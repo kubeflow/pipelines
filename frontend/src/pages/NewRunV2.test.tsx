@@ -128,16 +128,6 @@ describe('NewRunV2', () => {
     },
   };
 
-  const API_UI_CREATED_NEW_RECURRING_RUN_DETAILS: ApiJob = {
-    created_at: new Date('2021-05-17T20:58:23.000Z'),
-    description: 'V2 xgboost',
-    id: TEST_RECURRING_RUN_ID,
-    name: 'Run of v2-xgboost-ilbo',
-    pipeline_spec: {
-      pipeline_manifest: v2YamlTemplateString,
-    },
-  };
-
   // Reponse from BE while POST a run for cloning UI-Run
   const API_UI_CREATED_CLONING_RUN_DETAILS: ApiRunDetail = {
     pipeline_runtime: {
