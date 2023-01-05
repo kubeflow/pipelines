@@ -20,34 +20,35 @@ import (
 
 	"google.golang.org/grpc/codes"
 
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidateRunMetric_Pass(t *testing.T) {
-	metric := &api.RunMetric{
+func TestValidateRunMetricV1_Pass(t *testing.T) {
+	metric := &apiv1beta1.RunMetric{
 		Name:   "foo",
 		NodeId: "node-1",
 	}
 
-	err := ValidateRunMetric(metric)
+	err := ValidateRunMetricV1(metric)
 
 	assert.Nil(t, err)
 }
 
-func TestValidateRunMetric_InvalidNames(t *testing.T) {
-	metric := &api.RunMetric{
+func TestValidateRunMetricV1_InvalidNames(t *testing.T) {
+	metric := &apiv1beta1.RunMetric{
 		NodeId: "node-1",
 	}
 
 	// Empty name
-	err := ValidateRunMetric(metric)
+	err := ValidateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 
 	// Unallowed character
 	metric.Name = "$"
-	err = ValidateRunMetric(metric)
+	err = ValidateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 
 	// Name is too long
@@ -56,23 +57,112 @@ func TestValidateRunMetric_InvalidNames(t *testing.T) {
 		bytes[i] = 'a'
 	}
 	metric.Name = string(bytes)
-	err = ValidateRunMetric(metric)
+	err = ValidateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 }
 
-func TestValidateRunMetric_InvalidNodeIDs(t *testing.T) {
-	metric := &api.RunMetric{
+func TestValidateRunMetricV1_InvalidNodeIDs(t *testing.T) {
+	metric := &apiv1beta1.RunMetric{
 		Name: "a",
 	}
 
 	// Empty node ID
-	err := ValidateRunMetric(metric)
+	err := ValidateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 
 	// Node ID is too long
 	metric.NodeId = string(make([]byte, 129))
-	err = ValidateRunMetric(metric)
+	err = ValidateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
+}
+
+func TestNewReportRunMetricResultV1_OK(t *testing.T) {
+	tests := []struct {
+		metricName string
+	}{
+		{"metric-1"},
+		{"Metric_2"},
+		{"Metric3Name"},
+	}
+
+	for _, tc := range tests {
+		expected := newReportRunMetricResultV1(tc.metricName, "node-1")
+		expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_OK
+		actual := NewReportRunMetricResultV1(expected.GetMetricName(), expected.GetMetricNodeId(), nil)
+
+		assert.Equalf(t, expected, actual, "TestNewReportRunMetricResult_OK metric name '%s' should be OK", tc.metricName)
+	}
+}
+
+func TestNewReportRunMetricResultV1_UnknownError(t *testing.T) {
+	expected := newReportRunMetricResultV1("metric-1", "node-1")
+	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR
+
+	actual := NewReportRunMetricResultV1(
+		expected.GetMetricName(), expected.GetMetricNodeId(), errors.New("test"))
+
+	assert.Equal(t, expected, actual)
+}
+
+func TestNewReportRunMetricResultV1_InternalError(t *testing.T) {
+	expected := newReportRunMetricResultV1("metric-1", "node-1")
+	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR
+	expected.Message = "Internal Server Error"
+	error := util.NewInternalServerError(errors.New("test"), "Foo Error")
+
+	actual := NewReportRunMetricResultV1(
+		expected.GetMetricName(), expected.GetMetricNodeId(), error)
+
+	assert.Equal(t, expected, actual)
+}
+
+func TestNewReportRunMetricResultV1_InvalidArgument(t *testing.T) {
+	expected := newReportRunMetricResultV1("metric-1", "node-1")
+	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT
+	expected.Message = "Foo is invalid"
+	error := util.NewInvalidInputError(expected.Message)
+
+	actual := NewReportRunMetricResultV1(
+		expected.GetMetricName(), expected.GetMetricNodeId(), error)
+
+	assert.Equal(t, expected, actual)
+}
+
+func TestNewReportRunMetricResultV1_AlreadyExist(t *testing.T) {
+	expected := newReportRunMetricResultV1("metric-1", "node-1")
+	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_DUPLICATE_REPORTING
+	expected.Message = "Foo is duplicate"
+	error := util.NewAlreadyExistError(expected.Message)
+
+	actual := NewReportRunMetricResultV1(
+		expected.GetMetricName(), expected.GetMetricNodeId(), error)
+
+	assert.Equal(t, expected, actual)
+}
+
+func newReportRunMetricResultV1(metricName string, nodeID string) *apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult {
+	return &apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult{
+		MetricName:   metricName,
+		MetricNodeId: nodeID,
+	}
+}
+
+func newReportRunMetricResult(metricName string, nodeID string) *apiv2beta1.ReportRunMetricsResponse_ReportRunMetricResult {
+	return &apiv2beta1.ReportRunMetricsResponse_ReportRunMetricResult{
+		MetricName:   metricName,
+		MetricNodeId: nodeID,
+	}
+}
+
+func TestValidateRunMetric_Pass(t *testing.T) {
+	metric := &apiv2beta1.RunMetric{
+		DisplayName: "foo",
+		NodeId:      "node-1",
+	}
+
+	err := ValidateRunMetric(metric)
+
+	assert.Nil(t, err)
 }
 
 func TestNewReportRunMetricResult_OK(t *testing.T) {
@@ -86,62 +176,9 @@ func TestNewReportRunMetricResult_OK(t *testing.T) {
 
 	for _, tc := range tests {
 		expected := newReportRunMetricResult(tc.metricName, "node-1")
-		expected.Status = api.ReportRunMetricsResponse_ReportRunMetricResult_OK
+		expected.Status = apiv2beta1.ReportRunMetricsResponse_ReportRunMetricResult_OK
 		actual := NewReportRunMetricResult(expected.GetMetricName(), expected.GetMetricNodeId(), nil)
 
 		assert.Equalf(t, expected, actual, "TestNewReportRunMetricResult_OK metric name '%s' should be OK", tc.metricName)
-	}
-}
-
-func TestNewReportRunMetricResult_UnknownError(t *testing.T) {
-	expected := newReportRunMetricResult("metric-1", "node-1")
-	expected.Status = api.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR
-
-	actual := NewReportRunMetricResult(
-		expected.GetMetricName(), expected.GetMetricNodeId(), errors.New("test"))
-
-	assert.Equal(t, expected, actual)
-}
-
-func TestNewReportRunMetricResult_InternalError(t *testing.T) {
-	expected := newReportRunMetricResult("metric-1", "node-1")
-	expected.Status = api.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR
-	expected.Message = "Internal Server Error"
-	error := util.NewInternalServerError(errors.New("test"), "Foo Error")
-
-	actual := NewReportRunMetricResult(
-		expected.GetMetricName(), expected.GetMetricNodeId(), error)
-
-	assert.Equal(t, expected, actual)
-}
-
-func TestNewReportRunMetricResult_InvalidArgument(t *testing.T) {
-	expected := newReportRunMetricResult("metric-1", "node-1")
-	expected.Status = api.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT
-	expected.Message = "Foo is invalid"
-	error := util.NewInvalidInputError(expected.Message)
-
-	actual := NewReportRunMetricResult(
-		expected.GetMetricName(), expected.GetMetricNodeId(), error)
-
-	assert.Equal(t, expected, actual)
-}
-
-func TestNewReportRunMetricResult_AlreadyExist(t *testing.T) {
-	expected := newReportRunMetricResult("metric-1", "node-1")
-	expected.Status = api.ReportRunMetricsResponse_ReportRunMetricResult_DUPLICATE_REPORTING
-	expected.Message = "Foo is duplicate"
-	error := util.NewAlreadyExistError(expected.Message)
-
-	actual := NewReportRunMetricResult(
-		expected.GetMetricName(), expected.GetMetricNodeId(), error)
-
-	assert.Equal(t, expected, actual)
-}
-
-func newReportRunMetricResult(metricName string, nodeID string) *api.ReportRunMetricsResponse_ReportRunMetricResult {
-	return &api.ReportRunMetricsResponse_ReportRunMetricResult{
-		MetricName:   metricName,
-		MetricNodeId: nodeID,
 	}
 }

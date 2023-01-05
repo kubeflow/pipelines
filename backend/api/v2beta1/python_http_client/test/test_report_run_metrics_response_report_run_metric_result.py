@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.report_run_metrics_response_metric_status import ReportRunMetricsResponseMetricStatus  # noqa: E501
+from kfp_server_api.models.report_run_metrics_response_report_run_metric_result import ReportRunMetricsResponseReportRunMetricResult  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestReportRunMetricsResponseMetricStatus(unittest.TestCase):
-    """ReportRunMetricsResponseMetricStatus unit test stubs"""
+class TestReportRunMetricsResponseReportRunMetricResult(unittest.TestCase):
+    """ReportRunMetricsResponseReportRunMetricResult unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,20 +29,24 @@ class TestReportRunMetricsResponseMetricStatus(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test ReportRunMetricsResponseMetricStatus
+        """Test ReportRunMetricsResponseReportRunMetricResult
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.report_run_metrics_response_metric_status.ReportRunMetricsResponseMetricStatus()  # noqa: E501
+        # model = kfp_server_api.models.report_run_metrics_response_report_run_metric_result.ReportRunMetricsResponseReportRunMetricResult()  # noqa: E501
         if include_optional :
-            return ReportRunMetricsResponseMetricStatus(
+            return ReportRunMetricsResponseReportRunMetricResult(
+                metric_name = '0', 
+                metric_node_id = '0', 
+                status = 'UNSPECIFIED', 
+                message = '0'
             )
         else :
-            return ReportRunMetricsResponseMetricStatus(
+            return ReportRunMetricsResponseReportRunMetricResult(
         )
 
-    def testReportRunMetricsResponseMetricStatus(self):
-        """Test ReportRunMetricsResponseMetricStatus"""
+    def testReportRunMetricsResponseReportRunMetricResult(self):
+        """Test ReportRunMetricsResponseReportRunMetricResult"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

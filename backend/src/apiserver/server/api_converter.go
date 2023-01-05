@@ -595,7 +595,7 @@ func toApiRun(run *model.Run) *apiv1beta1.Run {
 		}
 	}
 	// v2 RuntimeConfig
-	runtimeConfig, err := toApiRuntimeConfig(run.PipelineSpec.RuntimeConfig)
+	runtimeConfig, err := toApiRuntimeConfigV1(run.PipelineSpec.RuntimeConfig)
 	if err != nil {
 		return &apiv1beta1.Run{
 			Id:    run.UUID,
@@ -634,7 +634,7 @@ func toApiRun(run *model.Run) *apiv1beta1.Run {
 func ToApiRuns(runs []*model.Run) []*apiv1beta1.Run {
 	apiRuns := make([]*apiv1beta1.Run, 0)
 	for _, run := range runs {
-		apiRuns = append(apiRuns, toApiRun(run))
+		apiRuns = append(apiRuns, toApiRunV1(run))
 	}
 	return apiRuns
 }
@@ -669,7 +669,6 @@ func ToApiTasks(tasks []*model.Task) []*apiv1beta1.Task {
 	}
 	return apiTasks
 }
-
 func ToApiJob(job *model.Job) *apiv1beta1.Job {
 	// v1 parameters
 	params, err := toApiParameters(job.Parameters)
@@ -680,7 +679,7 @@ func ToApiJob(job *model.Job) *apiv1beta1.Job {
 		}
 	}
 	// v2 RuntimeConfig
-	runtimeConfig, err := toApiRuntimeConfig(job.PipelineSpec.RuntimeConfig)
+	runtimeConfig, err := toApiRuntimeConfigV1(job.PipelineSpec.RuntimeConfig)
 	if err != nil {
 		return &apiv1beta1.Job{
 			Id:    job.UUID,

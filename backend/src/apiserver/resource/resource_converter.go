@@ -138,6 +138,7 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
 	var pipelineName string
+	var err error
 	if run.GetPipelineSpec().GetPipelineId() != "" {
 		pipelineName, err = r.getResourceName(model.PipelineResourceType, run.GetPipelineSpec().GetPipelineId())
 		if err != nil {
@@ -145,20 +146,39 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 		}
 	}
 
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	ref, err := r.getDefaultExperimentIfNoExperiment(run.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+	if ref != nil {
+		run.ResourceReferences = append(run.GetResourceReferences(), ref)
+	}
+
+	// Convert api ResourceReferences to Model ResourceReferences.
+	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
+	if err != nil {
+		return nil, util.Wrap(err, "Unable to convert resource references.")
+	}
+
 	experimentUUID, err := r.getOwningExperimentUUID(run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Error getting the experiment UUID")
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(run.GetResourceReferences())
+	if err != nil {
+		return nil, err
 	}
 
 	runDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:               runId,
 			ExperimentUUID:     experimentUUID,
+			Namespace:          namespace,
+			Name:               run.Name,
 			DisplayName:        run.Name,
-			Name:               workflow.ExecutionName(),
-			Namespace:          workflow.ExecutionNamespace(),
-			ServiceAccount:     workflow.ServiceAccount(),
-			Conditions:         string(workflow.ExecutionStatus().Condition()),
+			ServiceAccount:     run.ServiceAccount,
 			Description:        run.Description,
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
@@ -166,6 +186,14 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 				PipelineName: pipelineName,
 			},
 		},
+	}
+
+	// Assign the scheduled at time
+	if !run.ScheduledAt.AsTime().IsZero() {
+		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
+		runDetail.ScheduledAtInSec = runAt
+	} else {
+		runDetail.ScheduledAtInSec = run.ScheduledAt.AsTime().Unix()
 	}
 
 	if templateType == template.V1 {
@@ -176,7 +204,6 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 		}
 		runDetail.Parameters = params
 		runDetail.WorkflowSpecManifest = manifest
-		runDetail.WorkflowRuntimeManifest = workflow.ToStringForStore()
 		return runDetail, nil
 
 	} else if templateType == template.V2 {
@@ -311,7 +338,7 @@ func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, 
 		modelJob.Enabled = modeToModelEnabled(apiRecurringRun.Mode)
 		modelJob.Trigger, err = toModelTriggerV2(apiRecurringRun.Trigger)
 		if err != nil {
-			return nil, util.Wrap(err, "Cannot convert RecurringRun Trigger.")
+			return nil, util.Wrap(err, "Error getting the pipeline name.")
 		}
 		modelJob.MaxConcurrency = apiRecurringRun.MaxConcurrency
 		modelJob.NoCatchup = apiRecurringRun.NoCatchup
@@ -322,15 +349,19 @@ func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, 
 			PipelineId:   apiRecurringRun.GetPipelineVersionId(),
 			PipelineName: pipelineName,
 		}
-		params, err := runtimeConfigToModelParameters(apiRecurringRun.GetRuntimeConfig())
+		modelJob.Parameters = params
+		modelJob.WorkflowSpecManifest = manifest
+	} else if templateType == template.V2 {
+		// Input template if of V2 type (IR)
+		params, err := runtimeConfigToModelParametersV1(apiJob.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameters inside runtimeConfig.")
 		}
 		modelJob.PipelineSpecManifest = manifest
 		modelJob.PipelineSpec.RuntimeConfig.Parameters = params
-		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = apiRecurringRun.GetRuntimeConfig().GetPipelineRoot()
-	default:
-		return nil, util.NewInvalidInputError("Wrong Api Job type.")
+		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = apiJob.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
+	} else {
+		return nil, fmt.Errorf("failed to generate ModelJob with templateType %s", templateType)
 	}
 	return modelJob, nil
 }

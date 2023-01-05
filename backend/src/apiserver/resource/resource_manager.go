@@ -1023,7 +1023,16 @@ func (r *ResourceManager) GetNamespaceFromExperimentID(experimentID string) (str
 	if err != nil {
 		return "", util.Wrap(err, "Failed to get namespace from experiment ID.")
 	}
-	return experiment.Namespace, nil
+	namespace := experiment.Namespace
+
+	if len(namespace) == 0 {
+		if common.IsMultiUserMode() {
+			return "", util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
+		} else {
+			namespace = common.GetPodNamespace()
+		}
+	}
+	return namespace, nil
 }
 
 func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {

@@ -246,7 +246,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
 }
 
-func TestToApiRunDetail_RuntimeParams(t *testing.T) {
+func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "run123",
@@ -272,7 +272,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
-	apiRun := ToApiRunDetail(modelRun)
+	apiRun := ToApiRunDetailV1(modelRun)
 
 	listParams := []interface{}{1, 2, 3}
 	v2RuntimeListParams, _ := structpb.NewList(listParams)
@@ -321,7 +321,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 	assert.Equal(t, expectedApiRun.String(), apiRun.String())
 }
 
-func TestToApiRunDetail_V1Params(t *testing.T) {
+func TestToApiRunDetailV1_V1Params(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "run123",
@@ -370,7 +370,7 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 	assert.Equal(t, expectedApiRun, apiRun)
 }
 
-func TestToApiRuns(t *testing.T) {
+func TesttoApiRunsV1(t *testing.T) {
 	metric1 := &model.RunMetric{
 		Name:        "metric-1",
 		NodeID:      "node-1",
@@ -1033,7 +1033,7 @@ func TestToApiParameters(t *testing.T) {
 	assert.Equal(t, expectedApiParameters, actualApiParameters)
 }
 
-func TestToApiRuntimeConfig(t *testing.T) {
+func TestToApiRuntimeConfigV1(t *testing.T) {
 	listParams := []interface{}{1, 2, 3}
 	v2RuntimeListParams, _ := structpb.NewList(listParams)
 
@@ -1056,11 +1056,65 @@ func TestToApiRuntimeConfig(t *testing.T) {
 		Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
 		PipelineRoot: "model-pipeline-root",
 	}
-	actualRuntimeConfig, err := toApiRuntimeConfig(modelRuntimeConfig)
+	actualRuntimeConfig, err := toApiRuntimeConfigV1(modelRuntimeConfig)
 	assert.Nil(t, err)
 	// Compare the string representation of ApiRuntimeConfig, since these structs have fields
 	// used only by protobuff, and may be different. The .String() method marshal all
 	// exported fields into string format.
 	// See https://github.com/stretchr/testify/issues/758
 	assert.Equal(t, expectedRuntimeConfig.String(), actualRuntimeConfig.String())
+}
+
+func TestToApiRecurringRun(t *testing.T) {
+	modelJob := &model.Job{
+		UUID:        "job1",
+		DisplayName: "name 1",
+		Name:        "name1",
+		Enabled:     true,
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(2),
+				Cron:                       util.StringPointer("2 * *"),
+			},
+		},
+		MaxConcurrency: 2,
+		NoCatchup:      true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   "1",
+			PipelineName: "p1",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"param1\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+	}
+	expectedRecurringRun := &apiv2beta1.RecurringRun{
+		RecurringRunId: "job1",
+		DisplayName:    "name 1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		MaxConcurrency: 2,
+		NoCatchup:      true,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 2},
+				Cron:      "2 * *",
+			}}},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineId{PipelineId: "1"},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			Parameters: map[string]*structpb.Value{
+				"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+			},
+			PipelineRoot: "job-1-root",
+		},
+	}
+	apiRecurringRun := ToApiRecurringRun(modelJob)
+	// Compare the string representation of ApiRuns, since these structs have internal fields
+	// used only by protobuff, and may be different. The .String() method marshal all
+	// exported fields into string format.
+	// See https://github.com/stretchr/testify/issues/758
+	assert.Equal(t, expectedRecurringRun.String(), apiRecurringRun.String())
 }

@@ -7,7 +7,20 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+
+## Documentation updates
+# 2.0.0-beta.10
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
 * Fully support optional parameter inputs by witing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
+* Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
+* Fix bug deserializing v1 component YAML with boolean defaults, struct defaults, and array defaults [\#8639](https://github.com/kubeflow/pipelines/pull/8639)
 
 ## Documentation updates
 # 2.0.0-beta.9

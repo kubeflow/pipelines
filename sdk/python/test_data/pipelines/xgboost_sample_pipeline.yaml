@@ -133,6 +133,11 @@ components:
     executorLabel: exec-xgboost-train
     inputDefinitions:
       artifacts:
+        starting_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
         training_data:
           artifactType:
             schemaTitle: system.Artifact
@@ -183,6 +188,11 @@ components:
     executorLabel: exec-xgboost-train-2
     inputDefinitions:
       artifacts:
+        starting_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
         training_data:
           artifactType:
             schemaTitle: system.Artifact
@@ -914,4 +924,4 @@ root:
         taskInfo:
           name: xgboost-train-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.9

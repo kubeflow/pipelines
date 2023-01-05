@@ -159,7 +159,8 @@ func TestToModelRunMetric(t *testing.T) {
 		Format: apiv1beta1.RunMetric_RAW,
 	}
 
-	actualModelRunMetric := manager.ToModelRunMetric(apiRunMetric, "run-1")
+	actualModelRunMetric, err := manager.ToModelRunMetric(apiRunMetric, "run-1")
+	assert.Nil(t, err)
 
 	expectedModelRunMetric := &model.RunMetric{
 		RunUUID:     "run-1",
@@ -222,9 +223,9 @@ func TestToModelRunDetail(t *testing.T) {
 				Run: model.Run{
 					UUID:           "123",
 					ExperimentUUID: experiment.UUID,
+					Namespace:      "ns1",
+					Name:           "name1",
 					DisplayName:    "name1",
-					Name:           "workflow-name",
-					Conditions:     "running",
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						WorkflowSpecManifest: "workflow spec",
@@ -239,12 +240,6 @@ func TestToModelRunDetail(t *testing.T) {
 							ReferenceType: model.ExperimentResourceType,
 							Relationship:  model.OwnerRelationship},
 					},
-				},
-				PipelineRuntime: model.PipelineRuntime{
-					WorkflowRuntimeManifest: util.NewWorkflow(&v1alpha1.Workflow{
-						ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
-						Status:     v1alpha1.WorkflowStatus{Phase: "running"},
-					}).ToStringForStore(),
 				},
 			},
 		},
@@ -273,9 +268,9 @@ func TestToModelRunDetail(t *testing.T) {
 				Run: model.Run{
 					UUID:           "123",
 					ExperimentUUID: experiment.UUID,
+					Namespace:      "ns1",
+					Name:           "name1",
 					DisplayName:    "name1",
-					Name:           "workflow-name",
-					Conditions:     "running",
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
@@ -299,7 +294,7 @@ func TestToModelRunDetail(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modelRunDetail, err := manager.ToModelRunDetail(tt.apiRun, "123", tt.workflow, tt.manifest, tt.templateType)
+			modelRunDetail, err := manager.ToModelRunDetail(tt.apiRun, "123", 0, tt.manifest, tt.templateType)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
 		})
@@ -313,14 +308,14 @@ func TestToModelJob(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		jobInterface     interface{}
+		job              interface{}
 		manifest         string
 		templateType     template.TemplateType
 		expectedModelJob *model.Job
 	}{
 		{
 			name: "v1api v1template",
-			jobInterface: &apiv1beta1.Job{
+			job: &apiv1beta1.Job{
 				Name:           "name1",
 				Enabled:        true,
 				MaxConcurrency: 1,
@@ -367,7 +362,7 @@ func TestToModelJob(t *testing.T) {
 			},
 		}, {
 			name: "v1api v2template",
-			jobInterface: &apiv1beta1.Job{
+			job: &apiv1beta1.Job{
 				Name:           "name1",
 				Enabled:        true,
 				MaxConcurrency: 1,
@@ -421,7 +416,7 @@ func TestToModelJob(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modelJob, err := manager.ToModelJob(tt.jobInterface, tt.manifest, tt.templateType)
+			modelJob, err := manager.ToModelJob(tt.job, tt.manifest, tt.templateType)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expectedModelJob, modelJob)
 		})

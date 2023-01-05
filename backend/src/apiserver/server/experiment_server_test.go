@@ -1030,7 +1030,7 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	err := runServer.validateCreateRunRequest(&apiV1beta1.CreateRunRequest{Run: run1})
+	err := runServer.validateCreateRunRequestV1(&apiV1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
 	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
@@ -1041,7 +1041,7 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 		Name:               "run2",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	err = runServer.validateCreateRunRequest(&apiV1beta1.CreateRunRequest{Run: run2})
+	err = runServer.validateCreateRunRequestV1(&apiV1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
 	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
@@ -1107,7 +1107,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	err := runServer.validateCreateRunRequest(&apiV1beta1.CreateRunRequest{Run: run1})
+	err := runServer.validateCreateRunRequestV1(&apiV1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
 	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
@@ -1118,7 +1118,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		Name:               "run2",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	err = runServer.validateCreateRunRequest(&apiV1beta1.CreateRunRequest{Run: run2})
+	err = runServer.validateCreateRunRequestV1(&apiV1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
 	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
