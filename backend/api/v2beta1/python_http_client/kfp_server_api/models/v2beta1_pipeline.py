@@ -38,7 +38,7 @@ class V2beta1Pipeline(object):
         'description': 'str',
         'created_at': 'datetime',
         'namespace': 'str',
-        'error': 'RpcStatus'
+        'error': 'GooglerpcStatus'
     }
 
     attribute_map = {
@@ -198,7 +198,7 @@ class V2beta1Pipeline(object):
 
 
         :return: The error of this V2beta1Pipeline.  # noqa: E501
-        :rtype: RpcStatus
+        :rtype: GooglerpcStatus
         """
         return self._error
 
@@ -208,7 +208,7 @@ class V2beta1Pipeline(object):
 
 
         :param error: The error of this V2beta1Pipeline.  # noqa: E501
-        :type error: RpcStatus
+        :type error: GooglerpcStatus
         """
 
         self._error = error

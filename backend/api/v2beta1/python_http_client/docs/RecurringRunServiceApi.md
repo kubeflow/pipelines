@@ -19,6 +19,7 @@ Creates a new recurring run in an experiment, given the experiment ID.
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -31,9 +32,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
     body = kfp_server_api.V2beta1RecurringRun() # V2beta1RecurringRun | The recurring run to be created.
@@ -58,7 +73,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -79,6 +94,7 @@ Deletes a recurring run.
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -91,9 +107,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
     recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring run to be deleted.
@@ -118,7 +148,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -139,6 +169,7 @@ Stops a recurring run and all its associated runs. The recurring run is not dele
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -151,9 +182,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
     recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring runs to be disabled.
@@ -178,7 +223,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -199,6 +244,7 @@ Restarts a recurring run that was previously stopped. All runs associated with t
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -211,9 +257,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
     recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring runs to be enabled.
@@ -238,7 +298,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -259,6 +319,7 @@ Finds a specific recurring run by ID.
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -271,9 +332,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
     recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring run to be retrieved.
@@ -298,7 +373,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -319,6 +394,7 @@ Finds all recurring runs given experiment and namespace.  If experiment ID is no
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -331,9 +407,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
     page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRecurringRuns call or can be omitted when fetching the first page. (optional)
@@ -368,7 +458,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 

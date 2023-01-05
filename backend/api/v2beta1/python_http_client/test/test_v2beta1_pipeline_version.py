@@ -44,7 +44,7 @@ class TestV2beta1PipelineVersion(unittest.TestCase):
                 package_url = kfp_server_api.models.v2beta1_url.v2beta1Url(
                     pipeline_url = '0', ), 
                 pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
-                error = kfp_server_api.models.rpc_status.rpcStatus(
+                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                     code = 56, 
                     message = '0', 
                     details = [

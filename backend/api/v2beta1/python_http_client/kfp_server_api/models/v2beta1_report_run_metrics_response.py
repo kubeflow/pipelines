@@ -33,129 +33,45 @@ class V2beta1ReportRunMetricsResponse(object):
                             and the value is json key in definition.
     """
     openapi_types = {
-        'metric_name': 'str',
-        'metric_node_id': 'str',
-        'status': 'ReportRunMetricsResponseMetricStatus',
-        'message': 'str'
+        'results': 'list[ReportRunMetricsResponseReportRunMetricResult]'
     }
 
     attribute_map = {
-        'metric_name': 'metric_name',
-        'metric_node_id': 'metric_node_id',
-        'status': 'status',
-        'message': 'message'
+        'results': 'results'
     }
 
-    def __init__(self, metric_name=None, metric_node_id=None, status=None, message=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, results=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1ReportRunMetricsResponse - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration
 
-        self._metric_name = None
-        self._metric_node_id = None
-        self._status = None
-        self._message = None
+        self._results = None
         self.discriminator = None
 
-        if metric_name is not None:
-            self.metric_name = metric_name
-        if metric_node_id is not None:
-            self.metric_node_id = metric_node_id
-        if status is not None:
-            self.status = status
-        if message is not None:
-            self.message = message
+        if results is not None:
+            self.results = results
 
     @property
-    def metric_name(self):
-        """Gets the metric_name of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+    def results(self):
+        """Gets the results of this V2beta1ReportRunMetricsResponse.  # noqa: E501
 
-        Output. The name of the metric.  # noqa: E501
 
-        :return: The metric_name of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :rtype: str
+        :return: The results of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :rtype: list[ReportRunMetricsResponseReportRunMetricResult]
         """
-        return self._metric_name
+        return self._results
 
-    @metric_name.setter
-    def metric_name(self, metric_name):
-        """Sets the metric_name of this V2beta1ReportRunMetricsResponse.
+    @results.setter
+    def results(self, results):
+        """Sets the results of this V2beta1ReportRunMetricsResponse.
 
-        Output. The name of the metric.  # noqa: E501
 
-        :param metric_name: The metric_name of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :type metric_name: str
+        :param results: The results of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :type results: list[ReportRunMetricsResponseReportRunMetricResult]
         """
 
-        self._metric_name = metric_name
-
-    @property
-    def metric_node_id(self):
-        """Gets the metric_node_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-
-        Output. The ID of the node which reports the metric.  # noqa: E501
-
-        :return: The metric_node_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :rtype: str
-        """
-        return self._metric_node_id
-
-    @metric_node_id.setter
-    def metric_node_id(self, metric_node_id):
-        """Sets the metric_node_id of this V2beta1ReportRunMetricsResponse.
-
-        Output. The ID of the node which reports the metric.  # noqa: E501
-
-        :param metric_node_id: The metric_node_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :type metric_node_id: str
-        """
-
-        self._metric_node_id = metric_node_id
-
-    @property
-    def status(self):
-        """Gets the status of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-
-
-        :return: The status of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :rtype: ReportRunMetricsResponseMetricStatus
-        """
-        return self._status
-
-    @status.setter
-    def status(self, status):
-        """Sets the status of this V2beta1ReportRunMetricsResponse.
-
-
-        :param status: The status of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :type status: ReportRunMetricsResponseMetricStatus
-        """
-
-        self._status = status
-
-    @property
-    def message(self):
-        """Gets the message of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-
-        Output. The detailed message of the error of the reporting.  # noqa: E501
-
-        :return: The message of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :rtype: str
-        """
-        return self._message
-
-    @message.setter
-    def message(self, message):
-        """Sets the message of this V2beta1ReportRunMetricsResponse.
-
-        Output. The detailed message of the error of the reporting.  # noqa: E501
-
-        :param message: The message of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :type message: str
-        """
-
-        self._message = message
+        self._results = results
 
     def to_dict(self):
         """Returns the model properties as a dict"""

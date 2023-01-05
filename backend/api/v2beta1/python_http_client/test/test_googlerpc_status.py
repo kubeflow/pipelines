@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.rpc_status import RpcStatus  # noqa: E501
+from kfp_server_api.models.googlerpc_status import GooglerpcStatus  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestRpcStatus(unittest.TestCase):
-    """RpcStatus unit test stubs"""
+class TestGooglerpcStatus(unittest.TestCase):
+    """GooglerpcStatus unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,13 +29,13 @@ class TestRpcStatus(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test RpcStatus
+        """Test GooglerpcStatus
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.rpc_status.RpcStatus()  # noqa: E501
+        # model = kfp_server_api.models.googlerpc_status.GooglerpcStatus()  # noqa: E501
         if include_optional :
-            return RpcStatus(
+            return GooglerpcStatus(
                 code = 56, 
                 message = '0', 
                 details = [
@@ -45,11 +45,11 @@ class TestRpcStatus(unittest.TestCase):
                     ]
             )
         else :
-            return RpcStatus(
+            return GooglerpcStatus(
         )
 
-    def testRpcStatus(self):
-        """Test RpcStatus"""
+    def testGooglerpcStatus(self):
+        """Test GooglerpcStatus"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

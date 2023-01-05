@@ -20,7 +20,6 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -28,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
+func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
@@ -36,7 +35,12 @@ func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.Ex
 	// on every single step/pod so the cache server can understand.
 	// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
 	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
-	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
+
+	// Convert parameters
+	parameters, err := modelToParametersMap(modelRun.PipelineSpec.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert parameters.")
+	}
 	// Verify no additional parameter provided
 	if err := workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
@@ -49,12 +53,12 @@ func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.Ex
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 
-	setDefaultServiceAccount(workflow, apiRun.GetServiceAccount())
+	setDefaultServiceAccount(workflow, modelRun.ServiceAccount)
 
 	// Disable istio sidecar injection if not specified
 	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 
-	err := OverrideParameterWithSystemDefault(workflow)
+	err = OverrideParameterWithSystemDefault(workflow)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,7 @@ func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.Ex
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	workflow.SetAnnotations(util.AnnotationKeyRunName, apiRun.Name)
+	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.Name)
 	// Replace {{workflow.uid}} with runId
 	err = workflow.ReplaceUID(options.RunId)
 	if err != nil {

@@ -18,6 +18,7 @@ import * as React from 'react';
 import Trigger from './Trigger';
 import { shallow } from 'enzyme';
 import { TriggerType, PeriodicInterval } from '../lib/TriggerUtils';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 const PARAMS_DEFAULT = {
   catchup: true,
@@ -95,6 +96,22 @@ describe('Trigger', () => {
     (tree.instance() as any)._toggleDay(1);
     (tree.instance() as any)._toggleDay(3);
     expect(tree).toMatchSnapshot();
+  });
+
+  describe('max concurrent run', () => {
+    it('shows error message if the input is invalid (non-integer)', () => {
+      render(<Trigger />);
+      const maxConcurrenyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
+      screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
+    });
+
+    it('shows error message if the input is invalid (negative integer)', () => {
+      render(<Trigger />);
+      const maxConcurrenyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
+      screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
+    });
   });
 
   describe('interval trigger', () => {

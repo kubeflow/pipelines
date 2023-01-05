@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 **created_at** | **datetime** | Output. Creation time of the pipeline version. | [optional] 
 **package_url** | [**V2beta1Url**](V2beta1Url.md) |  | [optional] 
 **pipeline_spec** | [**object**](.md) | Required input field. Specifies the pipeline spec for the pipeline version. | [optional] 
-**error** | [**RpcStatus**](RpcStatus.md) |  | [optional] 
+**error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

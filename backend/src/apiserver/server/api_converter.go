@@ -24,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -238,7 +239,7 @@ func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*apiv2beta1.RuntimeCo
 	return apiRuntimeConfig, nil
 }
 
-func toApiRun(run *model.Run) *apiv1beta1.Run {
+func toApiRunV1(run *model.Run) *apiv1beta1.Run {
 	// v1 parameters
 	params, err := toApiParameters(run.Parameters)
 	if err != nil {
@@ -284,22 +285,83 @@ func toApiRun(run *model.Run) *apiv1beta1.Run {
 	}
 }
 
-func ToApiRuns(runs []*model.Run) []*apiv1beta1.Run {
+func toApiRunsV1(runs []*model.Run) []*apiv1beta1.Run {
 	apiRuns := make([]*apiv1beta1.Run, 0)
 	for _, run := range runs {
-		apiRuns = append(apiRuns, toApiRun(run))
+		apiRuns = append(apiRuns, toApiRunV1(run))
 	}
 	return apiRuns
 }
 
-func ToApiRunDetail(run *model.RunDetail) *apiv1beta1.RunDetail {
+func ToApiRunDetailV1(run *model.RunDetail) *apiv1beta1.RunDetail {
 	return &apiv1beta1.RunDetail{
-		Run: toApiRun(&run.Run),
+		Run: toApiRunV1(&run.Run),
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: run.WorkflowRuntimeManifest,
 			PipelineManifest: run.PipelineRuntimeManifest,
 		},
 	}
+}
+
+func toApiRun(run *model.Run) *apiv2beta1.Run {
+	apiRun := &apiv2beta1.Run{
+		ExperimentId:   run.ExperimentUUID,
+		RunId:          run.UUID,
+		DisplayName:    run.DisplayName,
+		Description:    run.Description,
+		ServiceAccount: run.ServiceAccount,
+		CreatedAt:      &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
+		FinishedAt:     &timestamp.Timestamp{Seconds: run.FinishedAtInSec},
+	}
+
+	// Fill in PipelineSource.
+	if run.PipelineSpec.PipelineId != "" {
+		apiRun.PipelineSource = &apiv2beta1.Run_PipelineId{PipelineId: run.PipelineSpec.PipelineId}
+	} else {
+		pipelineSpec := structpb.Struct{}
+		if run.PipelineSpec.PipelineSpecManifest != "" {
+			// Unmarshal only if PipelineSpecManifest is non-empty.
+			err := pipelineSpec.UnmarshalJSON([]byte(run.PipelineSpec.PipelineSpecManifest))
+			if err != nil {
+				return &apiv2beta1.Run{
+					RunId: run.UUID,
+					Error: &status.Status{Code: 3, Message: err.Error()},
+				}
+			}
+		}
+		apiRun.PipelineSource = &apiv2beta1.Run_PipelineSpec{PipelineSpec: &pipelineSpec}
+	}
+
+	// Fill in RuntimeConfig.
+	runtimeConfig, err := toApiRuntimeConfig(run.PipelineSpec.RuntimeConfig)
+	if err != nil {
+		return &apiv2beta1.Run{
+			RecurringRunId: run.UUID,
+			Error:          &status.Status{Code: 3, Message: err.Error()}, // Code = 3 INVALID_ARGUMENT
+		}
+	}
+	apiRun.RuntimeConfig = runtimeConfig
+
+	// Fill in StorageState.
+	storageState := apiv2beta1.Run_STORAGESTATE_UNSPECIFIED
+	switch run.StorageState {
+	case "AVAILABLE", "STORAGESTATE_AVAILABLE":
+		storageState = apiv2beta1.Run_AVAILABLE
+	case "ARCHIVED", "STORAGESTATE_ARCHIVED":
+		storageState = apiv2beta1.Run_ARCHIVED
+	}
+	apiRun.StorageState = storageState
+
+	return apiRun
+}
+
+func toApiRuns(runs []*model.Run) []*apiv2beta1.Run {
+	apiRuns := make([]*apiv2beta1.Run, 0)
+	for _, run := range runs {
+		apiRuns = append(apiRuns, toApiRun(run))
+	}
+	return apiRuns
 }
 
 func ToApiTask(task *model.Task) *apiv1beta1.Task {

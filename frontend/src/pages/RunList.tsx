@@ -269,7 +269,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   public _recurringRunCustomRenderer: React.FC<CustomRendererProps<RecurringRunInfo>> = (
     props: CustomRendererProps<RecurringRunInfo>,
   ) => {
-    // If the getJob call failed or a run has no job, we display a placeholder.
+    // If the response of listRuns doesn't contain job details, we display a placeholder.
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
