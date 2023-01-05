@@ -31,7 +31,7 @@ type V2beta1Pipeline struct {
 	// In case any error happens retrieving a pipeline field, only pipeline ID,
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle the error. This is especially useful during listing call.
-	Error *RPCStatus `json:"error,omitempty"`
+	Error *GooglerpcStatus `json:"error,omitempty"`
 
 	// Input. A namespace this pipeline belongs to.
 	// Causes error if user is not authorized to access the specified namespace.

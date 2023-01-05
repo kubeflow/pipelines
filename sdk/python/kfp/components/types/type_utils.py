@@ -13,8 +13,10 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
+from distutils import util
 import inspect
-from typing import Any, Optional, Type, Union
+import json
+from typing import Any, Callable, Dict, Optional, Type, Union
 import warnings
 
 import kfp
@@ -59,6 +61,52 @@ _PARAMETER_TYPES_MAPPING = {
     'jsonobject': pipeline_spec_pb2.ParameterType.STRUCT,
     'jsonarray': pipeline_spec_pb2.ParameterType.LIST,
 }
+
+
+def bool_cast_fn(default: Union[str, bool]) -> bool:
+    if isinstance(default, str):
+        default = util.strtobool(default) == 1
+    return default
+
+
+def try_loading_json(default: str) -> Union[dict, list, str]:
+    try:
+        return json.loads(default)
+    except:
+        return default
+
+
+_V1_DEFAULT_DESERIALIZER_MAPPING: Dict[str, Callable] = {
+    'integer': int,
+    'int': int,
+    'double': float,
+    'float': float,
+    'string': str,
+    'str': str,
+    'text': str,
+    'bool': bool_cast_fn,
+    'boolean': bool_cast_fn,
+    'dict': try_loading_json,
+    'list': try_loading_json,
+    'jsonobject': try_loading_json,
+    'jsonarray': try_loading_json,
+}
+
+
+def deserialize_v1_component_yaml_default(type_: str, default: Any) -> Any:
+    """Deserializes v1 default values to correct in-memory types.
+
+    Typecasts for primitive types. Tries to load JSON for arrays and
+    structs.
+    """
+    if default is None:
+        return default
+    if isinstance(type_, str):
+        cast_fn = _V1_DEFAULT_DESERIALIZER_MAPPING.get(type_.lower(),
+                                                       lambda x: x)
+        return cast_fn(default)
+    return default
+
 
 # Mapping primitive types to their IR message field names.
 # This is used in constructing condition strings.

@@ -380,14 +380,14 @@
           "additionalProperties": {
             "type": "object"
           },
-          "description": "The runtime parameters. The parameters will be used to replace \nthe placeholders at runtime."
+          "description": "The runtime parameters of the Pipeline. The parameters will be\nused to replace the placeholders at runtime."
         },
         "pipeline_root": {
           "type": "string",
-          "title": "A path in a object store bucket which will be treated as the root\noutput directory of this run. It is used by the system to\ngenerate the paths of output artifacts. \nRef:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+          "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts. \nRef:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
         }
       },
-      "description": "The runtime config of a run or recurring run."
+      "description": "The runtime config."
     },
     "v2beta1Trigger": {
       "type": "object",

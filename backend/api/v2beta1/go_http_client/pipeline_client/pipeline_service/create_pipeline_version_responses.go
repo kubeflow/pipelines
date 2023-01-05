@@ -87,7 +87,7 @@ CreatePipelineVersionDefault create pipeline version default
 type CreatePipelineVersionDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.RPCStatus
+	Payload *pipeline_model.GooglerpcStatus
 }
 
 // Code gets the status code for the create pipeline version default response
@@ -101,7 +101,7 @@ func (o *CreatePipelineVersionDefault) Error() string {
 
 func (o *CreatePipelineVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.RPCStatus)
+	o.Payload = new(pipeline_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -88,9 +88,13 @@ class InputSpec:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_inputs_dict['artifactType'][
                 'schemaVersion']
+            # TODO: would be better to extract these fields from the proto
+            # message, as False default would be preserved
+            optional = ir_component_inputs_dict.get('isOptional', False)
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version))
+                    type_, schema_version),
+                optional=optional)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -643,6 +647,8 @@ class ComponentSpec:
             type_ = spec.get('type')
             optional = spec.get('optional', False) or 'default' in spec
             default = spec.get('default')
+            default = type_utils.deserialize_v1_component_yaml_default(
+                type_=type_, default=default)
 
             if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
@@ -651,7 +657,6 @@ class ComponentSpec:
 
             elif isinstance(type_, str) and type_.lower(
             ) in type_utils._PARAMETER_TYPES_MAPPING:
-                default = spec.get('default')
                 type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
