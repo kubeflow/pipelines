@@ -94,11 +94,14 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
+
 	sharedExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
 	sharedJobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
+	sharedRunServer := server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
+
 	apiV1beta1.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag}))
 	apiV1beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
-	apiV1beta1.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiV1beta1.RegisterRunServiceServer(s, sharedRunServer)
 	apiV1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
 	apiV1beta1.RegisterJobServiceServer(s, sharedJobServer)
 	apiV1beta1.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
@@ -113,6 +116,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 
 	apiV2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
 	apiV2beta1.RegisterRecurringRunServiceServer(s, sharedJobServer)
+	apiV2beta1.RegisterRunServiceServer(s, sharedRunServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -143,6 +147,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// Create gRPC HTTP MUX and register services for v2beta1 api.
 	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := mux.NewRouter()

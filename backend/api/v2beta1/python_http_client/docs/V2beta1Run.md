@@ -16,7 +16,7 @@ Name | Type | Description | Notes
 **scheduled_at** | **datetime** | Output. When this run is scheduled to start. This could be different from created_at. For example, if a run is from a backfilling job that was supposed to run 2 month ago, the created_at will be 2 month behind scheduled_at. | [optional] 
 **finished_at** | **datetime** | Output. Completion of the run. | [optional] 
 **state** | [**V2beta1RuntimeState**](V2beta1RuntimeState.md) |  | [optional] 
-**error** | [**RpcStatus**](RpcStatus.md) |  | [optional] 
+**error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
 **run_details** | [**V2beta1RunDetails**](V2beta1RunDetails.md) |  | [optional] 
 **recurring_run_id** | **str** | ID of the recurring run that triggered this run. | [optional] 
 **recurring_run_name** | **str** |  | [optional] 
