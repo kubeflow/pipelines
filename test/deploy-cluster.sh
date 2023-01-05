@@ -91,7 +91,7 @@ gcloud container clusters get-credentials ${TEST_CLUSTER}
 # when we reuse a cluster when debugging, clean up its kfp installation first
 # this does nothing with a new cluster
 kubectl delete namespace ${NAMESPACE} --wait || echo "No need to delete ${NAMESPACE} namespace. It doesn't exist."
-kubectl create namespace ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
+kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 
 if [ "$ENABLE_WORKLOAD_IDENTITY" != true ]; then
   if [ -z $SA_KEY_FILE ]; then
@@ -103,5 +103,5 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" != true ]; then
     # Because there's a limit of 10 keys per service account, we are reusing the same key stored in the following bucket.
     gsutil cp "gs://ml-pipeline-test-keys/ml-pipeline-test-sa-key.json" $SA_KEY_FILE
   fi
-  kubectl create secret -n ${NAMESPACE} generic user-gcp-sa --from-file=user-gcp-sa.json=$SA_KEY_FILE --dry-run -o yaml | kubectl apply -f -
+  kubectl create secret -n ${NAMESPACE} generic user-gcp-sa --from-file=user-gcp-sa.json=$SA_KEY_FILE --dry-run=client -o yaml | kubectl apply -f -
 fi

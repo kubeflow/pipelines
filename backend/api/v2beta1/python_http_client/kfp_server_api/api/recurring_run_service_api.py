@@ -144,7 +144,7 @@ class RecurringRunServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/recurringruns', 'POST',
@@ -266,7 +266,7 @@ class RecurringRunServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/recurringruns/{recurring_run_id}', 'DELETE',
@@ -388,7 +388,7 @@ class RecurringRunServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/recurringruns/{recurring_run_id}:disable', 'POST',
@@ -510,7 +510,7 @@ class RecurringRunServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/recurringruns/{recurring_run_id}:enable', 'POST',
@@ -632,7 +632,7 @@ class RecurringRunServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/recurringruns/{recurring_run_id}', 'GET',
@@ -785,7 +785,7 @@ class RecurringRunServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/recurringruns', 'GET',

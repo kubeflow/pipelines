@@ -47,6 +47,10 @@ const (
 	MaxFileLength     = 32 << 20 // 32Mb
 )
 
+type isRun_PipelineSource interface {
+	isRun_PipelineSource()
+}
+
 // This method extract the common logic of naming the pipeline.
 // API caller can either explicitly name the pipeline through query string ?name=foobar
 // or API server can use the file name by default.
@@ -285,10 +289,7 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 	return nil
 }
 
-func ValidatePipelineSource(resourceManager *resource.ResourceManager, recurringRun *apiv2beta1.RecurringRun) error {
-	pipelineId := recurringRun.GetPipelineId()
-	pipelineSpec := recurringRun.GetPipelineSpec()
-
+func ValidatePipelineSource(resourceManager *resource.ResourceManager, pipelineId string, pipelineSpec *structpb.Struct) error {
 	if pipelineId == "" && pipelineSpec == nil {
 		return util.NewInvalidInputError("Invalid pipeline source: both pipelineId and pipelineSpec are empty.")
 	} else if pipelineId != "" && pipelineSpec != nil {
