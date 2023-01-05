@@ -46,7 +46,11 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!existingRunId, staleTime: Infinity },
   );
 
-  const {isSuccess: getRecurringRunSuccess, isFetching: recurringRunIsFetching, data: apiRecurringRun} = useQuery<ApiJob, Error>(
+  const {
+    isSuccess: getRecurringRunSuccess,
+    isFetching: recurringRunIsFetching,
+    data: apiRecurringRun,
+  } = useQuery<ApiJob, Error>(
     ['ApiRecurringRun', originalRecurringRunId],
     () => {
       if (!originalRecurringRunId) {
@@ -130,10 +134,13 @@ function NewRunSwitcher(props: PageProps) {
 
   // const templateString =
   //   templateStrFromRunId === '' ? templateStrFromPipelineId : templateStrFromRunId;
-  const templateString = pipelineManifest ? pipelineManifest : templateStrFromPipelineId
+  const templateString = pipelineManifest ? pipelineManifest : templateStrFromPipelineId;
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if ((getRunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) && isTemplateV2(templateString || '')) {
+    if (
+      (getRunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) &&
+      isTemplateV2(templateString || '')
+    ) {
       return (
         <NewRunV2
           {...props}
