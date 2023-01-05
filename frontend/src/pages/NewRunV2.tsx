@@ -589,7 +589,9 @@ function NewRunV2(props: NewRunV2Props) {
               onChange={({ trigger, maxConcurrentRuns, catchup }) => {
                 setTrigger(trigger);
                 setMaxConcurrentRuns(maxConcurrentRuns!);
-                setIsMaxConcurrentRunValid(Number.isInteger(Number(maxConcurrentRuns)));
+                setIsMaxConcurrentRunValid(
+                  Number.isInteger(Number(maxConcurrentRuns)) && Number(maxConcurrentRuns) > 0,
+                );
                 setCatchup(catchup);
               }}
             />
