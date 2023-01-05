@@ -22,7 +22,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -173,7 +172,7 @@ func (t *V2Spec) ParametersJSON() (string, error) {
 	return "[]", nil
 }
 
-func (t *V2Spec) RunWorkflow(apiRun *apiv1beta1.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
+func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
@@ -183,7 +182,7 @@ func (t *V2Spec) RunWorkflow(apiRun *apiv1beta1.Run, options RunWorkflowOptions)
 		return nil, util.Wrap(err, "Failed to parse pipeline spec")
 	}
 	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
-	jobRuntimeConfig, err := toPipelineJobRuntimeConfigV1(apiRun.GetPipelineSpec().GetRuntimeConfig())
+	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelRun.RuntimeConfig)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
@@ -196,13 +195,13 @@ func (t *V2Spec) RunWorkflow(apiRun *apiv1beta1.Run, options RunWorkflowOptions)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "not Workflow struct")
 	}
-	setDefaultServiceAccount(executionSpec, apiRun.GetServiceAccount())
+	setDefaultServiceAccount(executionSpec, modelRun.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	executionSpec.SetAnnotations(util.AnnotationKeyRunName, apiRun.Name)
+	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.Name)
 	// Replace {{workflow.uid}} with runId
 	err = executionSpec.ReplaceUID(options.RunId)
 	if err != nil {

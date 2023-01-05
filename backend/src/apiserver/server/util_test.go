@@ -420,7 +420,7 @@ func TestValidatePipelineSource_PipelineId(t *testing.T) {
 	recurringRun := &apiv2beta1.RecurringRun{
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineId{PipelineId: resource.DefaultFakeUUID},
 	}
-	err := ValidatePipelineSource(manager, recurringRun)
+	err := ValidatePipelineSource(manager, recurringRun.GetPipelineId(), recurringRun.GetPipelineSpec())
 	assert.Nil(t, err)
 }
 
@@ -433,7 +433,7 @@ func TestValidatePipelineSource_PipelineSpec(t *testing.T) {
 	recurringRun := &apiv2beta1.RecurringRun{
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpec},
 	}
-	err := ValidatePipelineSource(manager, recurringRun)
+	err := ValidatePipelineSource(manager, recurringRun.GetPipelineId(), recurringRun.GetPipelineSpec())
 	assert.Nil(t, err)
 }
 
@@ -441,7 +441,7 @@ func TestValidatePipelineSource_EmptyPipelineSource(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	recurringRun := &apiv2beta1.RecurringRun{}
-	err := ValidatePipelineSource(manager, recurringRun)
+	err := ValidatePipelineSource(manager, recurringRun.GetPipelineId(), recurringRun.GetPipelineSpec())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "both pipelineId and pipelineSpec are empty")
 }

@@ -55,7 +55,7 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                         scheduled_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         finished_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         state = 'RUNTIMESTATE_UNSPECIFIED', 
-                        error = kfp_server_api.models.rpc_status.rpcStatus(
+                        error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                             code = 56, 
                             message = '0', 
                             details = [

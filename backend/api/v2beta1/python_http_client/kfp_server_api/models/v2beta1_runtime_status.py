@@ -35,7 +35,7 @@ class V2beta1RuntimeStatus(object):
     openapi_types = {
         'update_time': 'datetime',
         'state': 'V2beta1RuntimeState',
-        'error': 'RpcStatus'
+        'error': 'GooglerpcStatus'
     }
 
     attribute_map = {
@@ -112,7 +112,7 @@ class V2beta1RuntimeStatus(object):
 
 
         :return: The error of this V2beta1RuntimeStatus.  # noqa: E501
-        :rtype: RpcStatus
+        :rtype: GooglerpcStatus
         """
         return self._error
 
@@ -122,7 +122,7 @@ class V2beta1RuntimeStatus(object):
 
 
         :param error: The error of this V2beta1RuntimeStatus.  # noqa: E501
-        :type error: RpcStatus
+        :type error: GooglerpcStatus
         """
 
         self._error = error
