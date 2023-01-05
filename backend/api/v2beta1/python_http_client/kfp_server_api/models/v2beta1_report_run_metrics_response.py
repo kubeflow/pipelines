@@ -33,45 +33,103 @@ class V2beta1ReportRunMetricsResponse(object):
                             and the value is json key in definition.
     """
     openapi_types = {
-        'results': 'list[ReportRunMetricsResponseReportRunMetricResult]'
+        'experiment_id': 'str',
+        'run_id': 'str',
+        'metrics': 'list[V2beta1RunMetric]'
     }
 
     attribute_map = {
-        'results': 'results'
+        'experiment_id': 'experiment_id',
+        'run_id': 'run_id',
+        'metrics': 'metrics'
     }
 
-    def __init__(self, results=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, metrics=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1ReportRunMetricsResponse - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration
 
-        self._results = None
+        self._experiment_id = None
+        self._run_id = None
+        self._metrics = None
         self.discriminator = None
 
-        if results is not None:
-            self.results = results
+        if experiment_id is not None:
+            self.experiment_id = experiment_id
+        if run_id is not None:
+            self.run_id = run_id
+        if metrics is not None:
+            self.metrics = metrics
 
     @property
-    def results(self):
-        """Gets the results of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+    def experiment_id(self):
+        """Gets the experiment_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
 
+        The ID of the parent experiment.  # noqa: E501
 
-        :return: The results of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :rtype: list[ReportRunMetricsResponseReportRunMetricResult]
+        :return: The experiment_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :rtype: str
         """
-        return self._results
+        return self._experiment_id
 
-    @results.setter
-    def results(self, results):
-        """Sets the results of this V2beta1ReportRunMetricsResponse.
+    @experiment_id.setter
+    def experiment_id(self, experiment_id):
+        """Sets the experiment_id of this V2beta1ReportRunMetricsResponse.
 
+        The ID of the parent experiment.  # noqa: E501
 
-        :param results: The results of this V2beta1ReportRunMetricsResponse.  # noqa: E501
-        :type results: list[ReportRunMetricsResponseReportRunMetricResult]
+        :param experiment_id: The experiment_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :type experiment_id: str
         """
 
-        self._results = results
+        self._experiment_id = experiment_id
+
+    @property
+    def run_id(self):
+        """Gets the run_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+
+        The ID of the parent run of the metric.  # noqa: E501
+
+        :return: The run_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :rtype: str
+        """
+        return self._run_id
+
+    @run_id.setter
+    def run_id(self, run_id):
+        """Sets the run_id of this V2beta1ReportRunMetricsResponse.
+
+        The ID of the parent run of the metric.  # noqa: E501
+
+        :param run_id: The run_id of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :type run_id: str
+        """
+
+        self._run_id = run_id
+
+    @property
+    def metrics(self):
+        """Gets the metrics of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+
+        List of metrics to report.  # noqa: E501
+
+        :return: The metrics of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :rtype: list[V2beta1RunMetric]
+        """
+        return self._metrics
+
+    @metrics.setter
+    def metrics(self, metrics):
+        """Sets the metrics of this V2beta1ReportRunMetricsResponse.
+
+        List of metrics to report.  # noqa: E501
+
+        :param metrics: The metrics of this V2beta1ReportRunMetricsResponse.  # noqa: E501
+        :type metrics: list[V2beta1RunMetric]
+        """
+
+        self._metrics = metrics
 
     def to_dict(self):
         """Returns the model properties as a dict"""

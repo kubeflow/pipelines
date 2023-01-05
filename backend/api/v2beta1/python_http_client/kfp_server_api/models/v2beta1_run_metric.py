@@ -36,17 +36,19 @@ class V2beta1RunMetric(object):
         'display_name': 'str',
         'node_id': 'str',
         'number_value': 'float',
-        'format': 'RunMetricFormat'
+        'format': 'RunMetricFormat',
+        'error': 'GooglerpcStatus'
     }
 
     attribute_map = {
         'display_name': 'display_name',
         'node_id': 'node_id',
         'number_value': 'number_value',
-        'format': 'format'
+        'format': 'format',
+        'error': 'error'
     }
 
-    def __init__(self, display_name=None, node_id=None, number_value=None, format=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, display_name=None, node_id=None, number_value=None, format=None, error=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1RunMetric - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -56,6 +58,7 @@ class V2beta1RunMetric(object):
         self._node_id = None
         self._number_value = None
         self._format = None
+        self._error = None
         self.discriminator = None
 
         if display_name is not None:
@@ -66,6 +69,8 @@ class V2beta1RunMetric(object):
             self.number_value = number_value
         if format is not None:
             self.format = format
+        if error is not None:
+            self.error = error
 
     @property
     def display_name(self):
@@ -156,6 +161,27 @@ class V2beta1RunMetric(object):
         """
 
         self._format = format
+
+    @property
+    def error(self):
+        """Gets the error of this V2beta1RunMetric.  # noqa: E501
+
+
+        :return: The error of this V2beta1RunMetric.  # noqa: E501
+        :rtype: GooglerpcStatus
+        """
+        return self._error
+
+    @error.setter
+    def error(self, error):
+        """Sets the error of this V2beta1RunMetric.
+
+
+        :param error: The error of this V2beta1RunMetric.  # noqa: E501
+        :type error: GooglerpcStatus
+        """
+
+        self._error = error
 
     def to_dict(self):
         """Returns the model properties as a dict"""

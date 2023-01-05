@@ -18,15 +18,21 @@ import (
 // swagger:model v2beta1ReportRunMetricsResponse
 type V2beta1ReportRunMetricsResponse struct {
 
-	// results
-	Results []*ReportRunMetricsResponseReportRunMetricResult `json:"results"`
+	// The ID of the parent experiment.
+	ExperimentID string `json:"experiment_id,omitempty"`
+
+	// List of metrics to report.
+	Metrics []*V2beta1RunMetric `json:"metrics"`
+
+	// The ID of the parent run of the metric.
+	RunID string `json:"run_id,omitempty"`
 }
 
 // Validate validates this v2beta1 report run metrics response
 func (m *V2beta1ReportRunMetricsResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateResults(formats); err != nil {
+	if err := m.validateMetrics(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -36,21 +42,21 @@ func (m *V2beta1ReportRunMetricsResponse) Validate(formats strfmt.Registry) erro
 	return nil
 }
 
-func (m *V2beta1ReportRunMetricsResponse) validateResults(formats strfmt.Registry) error {
+func (m *V2beta1ReportRunMetricsResponse) validateMetrics(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Results) { // not required
+	if swag.IsZero(m.Metrics) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Results); i++ {
-		if swag.IsZero(m.Results[i]) { // not required
+	for i := 0; i < len(m.Metrics); i++ {
+		if swag.IsZero(m.Metrics[i]) { // not required
 			continue
 		}
 
-		if m.Results[i] != nil {
-			if err := m.Results[i].Validate(formats); err != nil {
+		if m.Metrics[i] != nil {
+			if err := m.Metrics[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("results" + "." + strconv.Itoa(i))
+					return ve.ValidateName("metrics" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

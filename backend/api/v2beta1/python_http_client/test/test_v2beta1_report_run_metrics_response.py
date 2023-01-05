@@ -36,12 +36,22 @@ class TestV2beta1ReportRunMetricsResponse(unittest.TestCase):
         # model = kfp_server_api.models.v2beta1_report_run_metrics_response.V2beta1ReportRunMetricsResponse()  # noqa: E501
         if include_optional :
             return V2beta1ReportRunMetricsResponse(
-                results = [
-                    kfp_server_api.models.report_run_metrics_response_report_run_metric_result.ReportRunMetricsResponseReportRunMetricResult(
-                        metric_name = '0', 
-                        metric_node_id = '0', 
-                        status = 'UNSPECIFIED', 
-                        message = '0', )
+                experiment_id = '0', 
+                run_id = '0', 
+                metrics = [
+                    kfp_server_api.models.v2beta1_run_metric.v2beta1RunMetric(
+                        display_name = '0', 
+                        node_id = '0', 
+                        number_value = 1.337, 
+                        format = 'FORMAT_UNSPECIFIED', 
+                        error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                            code = 56, 
+                            message = '0', 
+                            details = [
+                                kfp_server_api.models.protobuf_any.protobufAny(
+                                    type_url = '0', 
+                                    value = 'YQ==', )
+                                ], ), )
                     ]
             )
         else :

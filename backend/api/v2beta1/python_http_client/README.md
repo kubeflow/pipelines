@@ -150,8 +150,6 @@ Class | Method | HTTP request | Description
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ProtobufNullValue](docs/ProtobufNullValue.md)
  - [RecurringRunMode](docs/RecurringRunMode.md)
- - [ReportRunMetricsResponseReportRunMetricResult](docs/ReportRunMetricsResponseReportRunMetricResult.md)
- - [ReportRunMetricsResponseReportRunMetricResultStatus](docs/ReportRunMetricsResponseReportRunMetricResultStatus.md)
  - [RunMetricFormat](docs/RunMetricFormat.md)
  - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
  - [V2beta1CronSchedule](docs/V2beta1CronSchedule.md)

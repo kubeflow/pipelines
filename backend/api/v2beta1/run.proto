@@ -290,6 +290,9 @@ message RunMetric {
 
   // The display format of metric.
   Format format = 4;
+
+  // Output. The error that occurred during metric computation or fetching.
+  google.rpc.Status error = 5;
 }
 
 // Runtime details of a run.
@@ -479,32 +482,14 @@ message ReportRunMetricsRequest {
 }
 
 message ReportRunMetricsResponse {
-  message ReportRunMetricResult {
-    // Output. The name of the metric.
-    string metric_name = 1;
+  // The ID of the parent experiment.
+  string experiment_id = 1;
 
-    // Output. The ID of the node which reports the metric.
-    string metric_node_id = 2;
+  // The ID of the parent run of the metric.
+  string run_id = 2;
 
-    enum Status {
-      // Default value if not present.
-      UNSPECIFIED = 0;
-      // Indicates successful reporting.
-      OK = 1;
-      // Indicates that the payload of the metric is invalid.
-      INVALID_ARGUMENT = 2;
-      // Indicates that the metric has been reported before.
-      DUPLICATE_REPORTING = 3;
-      // Indicates that something went wrong in the server.
-      INTERNAL_ERROR = 4;
-    }
-    // Output. The status of the metric reporting.
-    Status status = 3;
-
-    // Output. The detailed message of the error of the reporting.
-    string message = 4;
-  }
-  repeated ReportRunMetricResult results = 1;
+  // List of metrics to report.
+  repeated RunMetric metrics = 3;
 }
 
 message ReadArtifactRequest {

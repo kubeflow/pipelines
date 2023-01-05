@@ -21,6 +21,9 @@ type V2beta1RunMetric struct {
 	// `[a-z]([-a-z0-9]*[a-z0-9])?`.
 	DisplayName string `json:"display_name,omitempty"`
 
+	// Output. The error that occurred during metric computation or fetching.
+	Error *GooglerpcStatus `json:"error,omitempty"`
+
 	// The display format of metric.
 	Format RunMetricFormat `json:"format,omitempty"`
 
@@ -38,6 +41,10 @@ type V2beta1RunMetric struct {
 func (m *V2beta1RunMetric) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateError(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateFormat(formats); err != nil {
 		res = append(res, err)
 	}
@@ -45,6 +52,24 @@ func (m *V2beta1RunMetric) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *V2beta1RunMetric) validateError(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Error) { // not required
+		return nil
+	}
+
+	if m.Error != nil {
+		if err := m.Error.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("error")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

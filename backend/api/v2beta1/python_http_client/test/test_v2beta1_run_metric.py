@@ -39,7 +39,15 @@ class TestV2beta1RunMetric(unittest.TestCase):
                 display_name = '0', 
                 node_id = '0', 
                 number_value = 1.337, 
-                format = 'FORMAT_UNSPECIFIED'
+                format = 'FORMAT_UNSPECIFIED', 
+                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                    code = 56, 
+                    message = '0', 
+                    details = [
+                        kfp_server_api.models.protobuf_any.protobufAny(
+                            type_url = '0', 
+                            value = 'YQ==', )
+                        ], )
             )
         else :
             return V2beta1RunMetric(
