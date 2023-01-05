@@ -153,6 +153,28 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineV1Params) error
 	return nil
 }
 
+func (c *PipelineClient) DeletePipelineVersion(parameters *params.DeletePipelineVersionV1Params) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.PipelineService.DeletePipelineVersionV1(parameters, c.authInfoWriter)
+	if err != nil {
+		if defaultError, ok := err.(*params.DeletePipelineVersionV1Default); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to delete pipeline version. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to delete pipeline version '%v'", parameters.VersionID))
+	}
+	return nil
+}
+
 func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (template.Template, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)

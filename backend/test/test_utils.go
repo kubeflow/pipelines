@@ -71,6 +71,14 @@ func GetClientConfig(namespace string) clientcmd.ClientConfig {
 		&overrides, os.Stdin)
 }
 
+func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T) {
+	pipelineVersions, _, _, err := ListPipelineVersions(client)
+	assert.Nil(t, err)
+	for _, p := range pipelineVersions {
+		assert.Nil(t, client.DeletePipelineVersion(&pipelineparams.DeletePipelineVersionV1Params{VersionID: p.ID}))
+	}
+}
+
 func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
@@ -119,6 +127,13 @@ func ListPipelines(client *api_server.PipelineClient) (
 	parameters := &pipelineparams.ListPipelinesV1Params{}
 
 	return client.List(parameters)
+}
+
+func ListPipelineVersions(client *api_server.PipelineClient) (
+	[]*pipeline_model.APIPipelineVersion, int, string, error) {
+	parameters := &pipelineparams.ListPipelineVersionsV1Params{}
+
+	return client.ListPipelineVersions(parameters)
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {

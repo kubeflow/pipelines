@@ -88,6 +88,7 @@ func (s *PipelineApiTest) SetupTest() {
 func (s *PipelineApiTest) TestPipelineAPI() {
 	t := s.T()
 
+	test.DeleteAllPipelineVersions(s.pipelineClient, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ------ Upload v2 pipeline spec YAML --------*/
@@ -266,5 +267,6 @@ func (s *PipelineApiTest) TearDownSuite() {
 }
 
 func (s *PipelineApiTest) cleanUp() {
+	test.DeleteAllPipelineVersions(s.pipelineClient, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }
