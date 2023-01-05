@@ -76,8 +76,6 @@ function NewRunSwitcher(props: PageProps) {
     ? pipelineManifestFromRun
     : pipelineManifestFromRecurringRun;
 
-  // const templateStrFromRunId = apiRun ? apiRun.run?.pipeline_spec?.pipeline_manifest : '';
-
   const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
     ['ApiPipeline', pipelineId],
     () => {
@@ -132,8 +130,6 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  // const templateString =
-  //   templateStrFromRunId === '' ? templateStrFromPipelineId : templateStrFromRunId;
   const templateString = pipelineManifest ? pipelineManifest : templateStrFromPipelineId;
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
