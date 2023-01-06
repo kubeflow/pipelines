@@ -919,6 +919,17 @@ class ComponentSpec:
         pipeline_name = self.name
         task_group = group
 
+        pipeline_outputs = {}
+        pipeline_inputs = self.inputs or {}
+        pipeline_output_spec = self.outputs or {}
+
+        for arg_name, output_spec in pipeline_output_spec.items():
+            pipeline_outputs[
+                arg_name] = pipeline_channel.create_pipeline_channel(
+                    name=arg_name,
+                    channel_type=output_spec.type,
+                    task_name=task.name)
+
         utils.validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
@@ -927,16 +938,14 @@ class ComponentSpec:
         # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
         pipeline_spec.schema_version = '2.1.0'
 
-        # if we decide to surface component outputs to pipeline level,
-        # can just assign the component_spec_proto directly to .root
         component_spec_proto = builder._build_component_spec_from_component_spec_structure(
             self)
-        has_inputs = bool(
-            len(component_spec_proto.input_definitions.artifacts) +
-            len(component_spec_proto.input_definitions.parameters))
-        if has_inputs:
-            pipeline_spec.root.input_definitions.CopyFrom(
-                component_spec_proto.input_definitions)
+        pipeline_spec.root.CopyFrom(component_spec_proto)
+
+        if pipeline_outputs:
+            builder._build_dag_outputs(
+                component_spec=pipeline_spec.root,
+                dag_outputs=list(pipeline_outputs.values())[0])
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group

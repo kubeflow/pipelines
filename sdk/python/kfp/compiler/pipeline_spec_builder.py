@@ -13,7 +13,6 @@
 # limitations under the License.
 """Functions for creating PipelineSpec proto objects."""
 
-import copy
 import json
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import warnings
@@ -1549,18 +1548,6 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     json_dict = json_format.MessageToDict(pipeline_spec)
     yaml_comments = extract_comments_from_pipeline_spec(json_dict,
                                                         pipeline_description)
-
-    def add_output_definitions(json_dict):
-        if 'outputDefinitions' not in json_dict['root']:
-            root_name = json_dict['pipelineInfo']['name']
-            for components in json_dict['components']:
-                if components == 'comp-' + root_name:
-                    json_dict['root']['outputDefinitions'] = copy.deepcopy(
-                        json_dict['components'][components]
-                        ['outputDefinitions'])
-        return json_dict
-
-    json_dict = add_output_definitions(json_dict)
 
     if package_path.endswith('.json'):
         warnings.warn(
