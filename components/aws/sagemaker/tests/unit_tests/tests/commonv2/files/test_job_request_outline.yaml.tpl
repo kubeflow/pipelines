@@ -7,6 +7,6 @@ metadata:
 spec:
   spotInstance: False
   maxWaitTime: 1
-  inputStr: woof
+  inputStr: input
   inputInt: 1
   inputBool: False

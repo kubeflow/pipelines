@@ -1,8 +1,7 @@
 import json
 import os
-from re import L
 import unittest
-from unittest.mock import mock_open, patch, call, MagicMock, ANY
+from unittest.mock import patch, call, MagicMock
 
 from commonv2.common_inputs import (
     COMMON_INPUTS,
@@ -34,22 +33,11 @@ class SageMakerComponentMetadataTestCase(unittest.TestCase):
 
 
 class SageMakerComponentTestCase(unittest.TestCase):
-
-    MOCK_LICENSE_FILE = (
-        """Amazon SageMaker Components for Kubeflow Pipelines; version 1.2.3"""
-    )
-    MOCK_BAD_VERSION_LICENSE_FILE = (
-        """Amazon SageMaker Components for Kubeflow Pipelines; version WHATTHE"""
-    )
-    MOCK_BAD_FORMAT_LICENSE_FILE = """This isn't the first line"""
-
     @classmethod
     def setUp(cls):
         cls.component = SageMakerComponent()
         # Turn off polling interval for instant tests
         cls.component.STATUS_POLL_INTERVAL = 0
-        # cls.boto3_manager_patch = patch("commonv2.sagemaker_component.Boto3Manager")
-        # cls.boto3_manager_patch.start()
 
         # set up mock job_request_outline_location
         test_files_dir = os.path.join(
@@ -59,11 +47,6 @@ class SageMakerComponentTestCase(unittest.TestCase):
             test_files_dir, "test_job_request_outline.yaml.tpl"
         )
         cls.component.job_request_outline_location = test_job_request_outline_location
-
-    @classmethod
-    def tearDown(cls):
-        # cls.boto3_manager_patch.stop()
-        pass
 
     def test_do_exits_with_error(self):
         self.component._init_configure_k8s = MagicMock()
@@ -110,7 +93,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
             SageMakerJobStatus(is_completed=False, raw_status="status1"),
             SageMakerJobStatus(is_completed=False, raw_status="status2"),
             SageMakerJobStatus(is_completed=True, raw_status="status3"),
-            SageMakerJobStatus(is_completed=True, raw_status="don't reach"),
+            SageMakerJobStatus(is_completed=True, raw_status="unreachable"),
         ]
 
         self.component._after_job_complete = MagicMock()
@@ -135,7 +118,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
             SageMakerJobStatus(is_completed=False, raw_status="status1"),
             SageMakerJobStatus(is_completed=False, raw_status="status2"),
             Exception("A random error occurred"),
-            SageMakerJobStatus(is_completed=False, raw_status="don't reach"),
+            SageMakerJobStatus(is_completed=False, raw_status="unreachable"),
         ]
 
         self.component._after_job_complete = MagicMock()
@@ -392,7 +375,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
         ) as mock_open:
             Args = ["--input1", "abc123", "--input2", "123", "--region", "us-west-1"]
             nSpec = DummySpec(Args)
-            
+
             result = self.component._create_job_yaml(nSpec._inputs, DummySpec.OUTPUTS)
 
             sample = {
@@ -405,7 +388,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
                 "spec": {
                     "spotInstance": False,
                     "maxWaitTime": 1,
-                    "inputStr": "woof",
+                    "inputStr": "input",
                     "inputInt": 1,
                     "inputBool": False,
                 },
