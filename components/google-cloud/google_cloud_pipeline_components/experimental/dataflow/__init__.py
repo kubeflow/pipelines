@@ -21,8 +21,12 @@ except ImportError:
   from kfp.components import load_component_from_file
 
 __all__ = [
+    'DataflowFlexTemplateJobOp',
     'DataflowPythonJobOp',
 ]
 
+DataflowFlexTemplateJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'flex_template/component.yaml'))
+
 DataflowPythonJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'python_job/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'python_job/component.yaml'))

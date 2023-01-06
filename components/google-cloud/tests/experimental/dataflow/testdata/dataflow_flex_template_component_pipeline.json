@@ -1,0 +1,321 @@
+{
+  "components": {
+    "comp-dataflow-flex-template": {
+      "executorLabel": "exec-dataflow-flex-template",
+      "inputDefinitions": {
+        "parameters": {
+          "additional_experiments": {
+            "parameterType": "LIST"
+          },
+          "additional_user_labels": {
+            "parameterType": "STRUCT"
+          },
+          "autoscaling_algorithm": {
+            "parameterType": "STRING"
+          },
+          "container_spec_gcs_path": {
+            "parameterType": "STRING"
+          },
+          "disk_size_gb": {
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "dump_heap_on_oom": {
+            "parameterType": "BOOLEAN"
+          },
+          "enable_launcher_vm_serial_port_logging": {
+            "parameterType": "BOOLEAN"
+          },
+          "enable_streaming_engine": {
+            "parameterType": "BOOLEAN"
+          },
+          "flexrs_goal": {
+            "parameterType": "STRING"
+          },
+          "ip_configuration": {
+            "parameterType": "STRING"
+          },
+          "job_name": {
+            "parameterType": "STRING"
+          },
+          "kms_key_name": {
+            "parameterType": "STRING"
+          },
+          "launch_options": {
+            "parameterType": "STRUCT"
+          },
+          "launcher_machine_type": {
+            "parameterType": "STRING"
+          },
+          "location": {
+            "parameterType": "STRING"
+          },
+          "machine_type": {
+            "parameterType": "STRING"
+          },
+          "max_workers": {
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "network": {
+            "parameterType": "STRING"
+          },
+          "num_workers": {
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "parameters": {
+            "parameterType": "STRUCT"
+          },
+          "project": {
+            "parameterType": "STRING"
+          },
+          "save_heap_dumps_to_gcs_path": {
+            "parameterType": "STRING"
+          },
+          "sdk_container_image": {
+            "parameterType": "STRING"
+          },
+          "service_account_email": {
+            "parameterType": "STRING"
+          },
+          "staging_location": {
+            "parameterType": "STRING"
+          },
+          "subnetwork": {
+            "parameterType": "STRING"
+          },
+          "temp_location": {
+            "parameterType": "STRING"
+          },
+          "transform_name_mappings": {
+            "parameterType": "STRUCT"
+          },
+          "update": {
+            "parameterType": "BOOLEAN"
+          },
+          "validate_only": {
+            "parameterType": "BOOLEAN"
+          },
+          "worker_region": {
+            "parameterType": "STRING"
+          },
+          "worker_zone": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "parameters": {
+          "gcp_resources": {
+            "parameterType": "STRING"
+          }
+        }
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-dataflow-flex-template": {
+        "container": {
+          "args": ["--type", "DataflowJob", "--project", "{{$.inputs.parameters['project']}}", "--location", "{{$.inputs.parameters['location']}}", "--payload", "{\"launch_parameter\": {\"job_name\": \"{{$.inputs.parameters['job_name']}}\", \"container_spec_gcs_path\": \"{{$.inputs.parameters['container_spec_gcs_path']}}\", \"parameters\": {{$.inputs.parameters['parameters']}}, \"launch_options\": {{$.inputs.parameters['launch_options']}}, \"environment\": {\"num_workers\": {{$.inputs.parameters['num_workers']}}, \"max_workers\": {{$.inputs.parameters['max_workers']}}, \"service_account_email\": \"{{$.inputs.parameters['service_account_email']}}\", \"temp_location\": \"{{$.inputs.parameters['temp_location']}}\", \"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"additional_experiments\": {{$.inputs.parameters['additional_experiments']}}, \"network\": \"{{$.inputs.parameters['network']}}\", \"subnetwork\": \"{{$.inputs.parameters['subnetwork']}}\", \"additional_user_labels\": {{$.inputs.parameters['additional_user_labels']}}, \"kms_key_name\": \"{{$.inputs.parameters['kms_key_name']}}\", \"ip_configuration\": \"{{$.inputs.parameters['ip_configuration']}}\", \"worker_region\": \"{{$.inputs.parameters['worker_region']}}\", \"worker_zone\": \"{{$.inputs.parameters['worker_zone']}}\", \"enable_streaming_engine\": {{$.inputs.parameters['enable_streaming_engine']}}, \"flexrs_goal\": \"{{$.inputs.parameters['flexrs_goal']}}\", \"staging_location\": \"{{$.inputs.parameters['staging_location']}}\", \"sdk_container_image\": \"{{$.inputs.parameters['sdk_container_image']}}\", \"disk_size_gb\": {{$.inputs.parameters['disk_size_gb']}}, \"autoscaling_algorithm\": \"{{$.inputs.parameters['autoscaling_algorithm']}}\", \"dump_heap_on_oom\": {{$.inputs.parameters['dump_heap_on_oom']}}, \"save_heap_dumps_to_gcs_path\": \"{{$.inputs.parameters['save_heap_dumps_to_gcs_path']}}\", \"launcher_machine_type\": \"{{$.inputs.parameters['launcher_machine_type']}}\", \"enable_launcher_vm_serial_port_logging\": {{$.inputs.parameters['enable_launcher_vm_serial_port_logging']}}}, \"update\": {{$.inputs.parameters['update']}}, \"transform_name_mappings\": {{$.inputs.parameters['transform_name_mappings']}}}, \"validate_only\": {{$.inputs.parameters['validate_only']}}}", "--gcp_resources", "{{$.outputs.parameters['gcp_resources'].output_file}}"],
+          "command": ["python3", "-u", "-m", "google_cloud_pipeline_components.container.experimental.dataflow.flex_template.launcher"],
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "dataflow-flex-template-test"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "dataflow-flex-template": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-dataflow-flex-template"
+          },
+          "inputs": {
+            "parameters": {
+              "additional_experiments": {
+                "runtimeValue": {
+                  "constant": ["experiment1", "experiment2"]
+                }
+              },
+              "additional_user_labels": {
+                "runtimeValue": {
+                  "constant": {
+                    "key1": "value1",
+                    "key2": "value2"
+                  }
+                }
+              },
+              "autoscaling_algorithm": {
+                "runtimeValue": {
+                  "constant": "THROUGHPUT_BASED"
+                }
+              },
+              "container_spec_gcs_path": {
+                "runtimeValue": {
+                  "constant": "gs://test_container_spec_gcs_path"
+                }
+              },
+              "disk_size_gb": {
+                "runtimeValue": {
+                  "constant": 10.0
+                }
+              },
+              "dump_heap_on_oom": {
+                "runtimeValue": {
+                  "constant": 0.0
+                }
+              },
+              "enable_launcher_vm_serial_port_logging": {
+                "runtimeValue": {
+                  "constant": 0.0
+                }
+              },
+              "enable_streaming_engine": {
+                "runtimeValue": {
+                  "constant": 0.0
+                }
+              },
+              "flexrs_goal": {
+                "runtimeValue": {
+                  "constant": "COST_OPTIMIZED"
+                }
+              },
+              "ip_configuration": {
+                "runtimeValue": {
+                  "constant": "test_ip_configuration"
+                }
+              },
+              "job_name": {
+                "runtimeValue": {
+                  "constant": "test_job_name"
+                }
+              },
+              "kms_key_name": {
+                "runtimeValue": {
+                  "constant": "test_kms_key_name"
+                }
+              },
+              "launch_options": {
+                "runtimeValue": {
+                  "constant": {
+                    "key1": "value1",
+                    "key2": "value2"
+                  }
+                }
+              },
+              "launcher_machine_type": {
+                "runtimeValue": {
+                  "constant": "n1-standard-1"
+                }
+              },
+              "location": {
+                "runtimeValue": {
+                  "constant": "us-central1"
+                }
+              },
+              "machine_type": {
+                "runtimeValue": {
+                  "constant": "e2-standard-1"
+                }
+              },
+              "max_workers": {
+                "runtimeValue": {
+                  "constant": 1000.0
+                }
+              },
+              "network": {
+                "runtimeValue": {
+                  "constant": "test_network"
+                }
+              },
+              "num_workers": {
+                "runtimeValue": {
+                  "constant": 1.0
+                }
+              },
+              "parameters": {
+                "runtimeValue": {
+                  "constant": {
+                    "key1": "value1",
+                    "key2": "value2"
+                  }
+                }
+              },
+              "project": {
+                "runtimeValue": {
+                  "constant": "test_project"
+                }
+              },
+              "save_heap_dumps_to_gcs_path": {
+                "runtimeValue": {
+                  "constant": "gs://test_save_heap_dumps_to_gcs_path"
+                }
+              },
+              "sdk_container_image": {
+                "runtimeValue": {
+                  "constant": "gcr.io/test-project/test-image:latest"
+                }
+              },
+              "service_account_email": {
+                "runtimeValue": {
+                  "constant": "test_service_account_email"
+                }
+              },
+              "staging_location": {
+                "runtimeValue": {
+                  "constant": "test_staging_location"
+                }
+              },
+              "subnetwork": {
+                "runtimeValue": {
+                  "constant": "test_subnetwork"
+                }
+              },
+              "temp_location": {
+                "runtimeValue": {
+                  "constant": "gs://temp_location"
+                }
+              },
+              "transform_name_mappings": {
+                "runtimeValue": {
+                  "constant": {
+                    "oldTransformName1": "newTransformName1",
+                    "oldTransformName2": "newTransformName2"
+                  }
+                }
+              },
+              "update": {
+                "runtimeValue": {
+                  "constant": 0.0
+                }
+              },
+              "validate_only": {
+                "runtimeValue": {
+                  "constant": 0.0
+                }
+              },
+              "worker_region": {
+                "runtimeValue": {
+                  "constant": "us-central1"
+                }
+              },
+              "worker_zone": {
+                "runtimeValue": {
+                  "constant": "us-central1-b"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "dataflow-flex-template"
+          }
+        }
+      }
+    }
+  }
+}
