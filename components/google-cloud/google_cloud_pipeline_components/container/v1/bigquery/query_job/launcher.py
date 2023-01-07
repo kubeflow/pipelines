@@ -23,19 +23,43 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import par
 
 def _parse_args(args):
   """Parse command line arguments."""
-  parser, parsed_args = parser_util.parse_default_args(args)
+  parser, parsed_args = parser_util.parse_bigquery_default_args(args)
   # Parse the conditionally required arguments
+  parser.add_argument(
+      '--job_configuration_query',
+      dest='job_configuration_query',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--labels',
+      dest='labels',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--query',
+      dest='query',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--query_parameters',
+      dest='query_parameters',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--encryption_spec_key_name',
+      dest='encryption_spec_key_name',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
   parser.add_argument(
       '--executor_input',
       dest='executor_input',
       type=str,
       # executor_input is only needed for components that emit output artifacts.
-      required=True,
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--job_configuration_query_override',
-      dest='job_configuration_query_override',
-      type=str,
       required=True,
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
@@ -63,7 +87,7 @@ def main(argv):
   if job_type != 'BigqueryQueryJob':
     raise ValueError('Incorrect job type: ' + job_type)
 
-  logging.info('Job started for type: ' + job_type)
+  logging.info('Job started for type: %s', job_type)
 
   remote_runner.bigquery_query_job(**parsed_args)
 

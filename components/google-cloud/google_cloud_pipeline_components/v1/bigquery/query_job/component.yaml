@@ -80,24 +80,11 @@ implementation:
       --type, BigqueryQueryJob,
       --project, {inputValue: project},
       --location, {inputValue: location},
-      --payload,
-      concat: [
-          '{',
-            '"configuration": {',
-              '"query": ', {inputValue: job_configuration_query},
-              ', "labels": ', {inputValue: labels},
-            '}',
-          '}'
-      ],
-      --job_configuration_query_override,
-      concat: [
-          '{',
-            '"query": "', {inputValue: query}, '"',
-            ', "query_parameters": ', {inputValue: query_parameters},
-            ', "destination_encryption_configuration": {',
-            '"kmsKeyName": "', {inputValue: encryption_spec_key_name}, '"}',
-          '}'
-      ],
+      --job_configuration_query, {inputValue: job_configuration_query},
+      --labels, {inputValue: labels},
+      --query, {inputValue: query},
+      --query_parameters, {inputValue: query_parameters},
+      --encryption_spec_key_name, {inputValue: encryption_spec_key_name},
       --gcp_resources, {outputPath: gcp_resources},
       --executor_input, "{{$}}",
     ]

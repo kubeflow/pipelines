@@ -27,8 +27,11 @@ def bigquery_query_job(
     type,
     project,
     location,
-    payload,
-    job_configuration_query_override,
+    job_configuration_query,
+    labels,
+    query,
+    query_parameters,
+    encryption_spec_key_name,
     gcp_resources,
     executor_input,
 ):
@@ -62,6 +65,17 @@ def bigquery_query_job(
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input: A json serialized pipeline executor input.
   """
-  return bigquery_util.bigquery_query_job(type, project, location, payload,
-                                          job_configuration_query_override,
-                                          gcp_resources, executor_input)
+  payload = {}
+  payload['configuration'] = {}
+  payload['configuration']['query'] = job_configuration_query
+  payload['configuration']['labels'] = labels
+  job_configuration_query_override = {}
+  job_configuration_query_override['query'] = query
+  job_configuration_query_override['query_parameters'] = query_parameters
+  job_configuration_query_override['destination_encryption_configuration'] = {}
+  job_configuration_query_override['destination_encryption_configuration'][
+      'kmsKeyName'] = encryption_spec_key_name
+  return bigquery_util.bigquery_query_job(
+      type, project, location, json.dumps(payload),
+      json.dumps(job_configuration_query_override), gcp_resources,
+      executor_input)
