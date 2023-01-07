@@ -100,7 +100,8 @@ implementation:
       --payload,
       concat: [
           '{',
-          '"display_name": "', {inputValue: display_name}, '"',
+          '"display_name": "', {inputValue: display_name},
+          '"',
           ', "job_spec": {',
           '"worker_pool_specs": ', {inputValue: worker_pool_specs},
           ', "scheduling": {',
