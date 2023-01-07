@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **display_name** | **str** | Required input. Name provided by user, or auto generated if run is created by a recurring run. | [optional] 
 **storage_state** | [**V2beta1RunStorageState**](V2beta1RunStorageState.md) |  | [optional] 
 **description** | **str** | Optional input. Short description of the run. | [optional] 
-**pipeline_id** | **str** | ID of existing pipeline. | [optional] 
+**pipeline_version_id** | **str** | ID of existing pipeline version. | [optional] 
 **pipeline_spec** | [**object**](.md) | Pipeline spec. | [optional] 
 **runtime_config** | [**V2beta1RuntimeConfig**](V2beta1RuntimeConfig.md) |  | [optional] 
 **service_account** | **str** | Optional input. Specifies which kubernetes service account is used. | [optional] 

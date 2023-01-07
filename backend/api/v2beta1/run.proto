@@ -164,10 +164,10 @@ message Run {
   string description = 5;
  
   // Required input. Specifies the source of the pipeline spec for this 
-  // run. Can be either a pipeline id, or a pipeline spec.
+  // run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
-    // ID of existing pipeline.
-    string pipeline_id = 6;
+    // ID of existing pipeline version.
+    string pipeline_version_id = 6;
 
     // Pipeline spec.
     google.protobuf.Struct pipeline_spec = 7;

@@ -43,7 +43,7 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                         display_name = '0', 
                         storage_state = 'STORAGESTATE_UNSPECIFIED', 
                         description = '0', 
-                        pipeline_id = '0', 
+                        pipeline_version_id = '0', 
                         pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
                         runtime_config = kfp_server_api.models.v2beta1_runtime_config.v2beta1RuntimeConfig(
                             parameters = {

@@ -43,11 +43,11 @@ type V2beta1Run struct {
 	// Format: date-time
 	FinishedAt strfmt.DateTime `json:"finished_at,omitempty"`
 
-	// ID of existing pipeline.
-	PipelineID string `json:"pipeline_id,omitempty"`
-
 	// Pipeline spec.
 	PipelineSpec interface{} `json:"pipeline_spec,omitempty"`
+
+	// ID of existing pipeline version.
+	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 
 	// ID of the recurring run that triggered this run.
 	RecurringRunID string `json:"recurring_run_id,omitempty"`

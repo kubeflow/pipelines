@@ -2230,9 +2230,9 @@
           "type": "string",
           "description": "Optional input. Short description of the run."
         },
-        "pipeline_id": {
+        "pipeline_version_id": {
           "type": "string",
-          "description": "ID of existing pipeline."
+          "description": "ID of existing pipeline version."
         },
         "pipeline_spec": {
           "type": "object",
