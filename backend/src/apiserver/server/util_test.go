@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -6,10 +20,12 @@ import (
 	"strings"
 	"testing"
 
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestGetPipelineName_QueryStringNotEmpty(t *testing.T) {
@@ -206,16 +222,16 @@ func TestValidateExperimentResourceReference(t *testing.T) {
 func TestValidateExperimentResourceReference_MoreThanOneRef(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	references := []*api.ResourceReference{
+	references := []*apiv1beta1.ResourceReference{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_OWNER,
+			Key: &apiv1beta1.ResourceKey{
+				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123"},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "456"},
-			Relationship: api.Relationship_OWNER,
+			Key: &apiv1beta1.ResourceKey{
+				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "456"},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
 	err := ValidateExperimentResourceReference(manager, references)
@@ -226,11 +242,11 @@ func TestValidateExperimentResourceReference_MoreThanOneRef(t *testing.T) {
 func TestValidateExperimentResourceReference_UnexpectedType(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	references := []*api.ResourceReference{
+	references := []*apiv1beta1.ResourceReference{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123"},
-			Relationship: api.Relationship_OWNER,
+			Key: &apiv1beta1.ResourceKey{
+				Type: apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123"},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
 	err := ValidateExperimentResourceReference(manager, references)
@@ -241,11 +257,11 @@ func TestValidateExperimentResourceReference_UnexpectedType(t *testing.T) {
 func TestValidateExperimentResourceReference_EmptyID(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	references := []*api.ResourceReference{
+	references := []*apiv1beta1.ResourceReference{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT},
-			Relationship: api.Relationship_OWNER,
+			Key: &apiv1beta1.ResourceKey{
+				Type: apiv1beta1.ResourceType_EXPERIMENT},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
 	err := ValidateExperimentResourceReference(manager, references)
@@ -256,11 +272,11 @@ func TestValidateExperimentResourceReference_EmptyID(t *testing.T) {
 func TestValidateExperimentResourceReference_UnexpectedRelationship(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	references := []*api.ResourceReference{
+	references := []*apiv1beta1.ResourceReference{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
+			Key: &apiv1beta1.ResourceKey{
+				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123"},
+			Relationship: apiv1beta1.Relationship_CREATOR,
 		},
 	}
 	err := ValidateExperimentResourceReference(manager, references)
@@ -280,7 +296,7 @@ func TestValidateExperimentResourceReference_ExperimentNotExist(t *testing.T) {
 func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{
+	spec := &apiv1beta1.PipelineSpec{
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
@@ -290,7 +306,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVe
 func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{
+	spec := &apiv1beta1.PipelineSpec{
 		PipelineId:       resource.DefaultFakeUUID,
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
@@ -301,7 +317,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID
 func TestValidatePipelineSpecAndResourceReferences_InvalidWorkflowManifest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{WorkflowManifest: "I am an invalid manifest"}
+	spec := &apiv1beta1.PipelineSpec{WorkflowManifest: "I am an invalid manifest"}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Invalid argo workflow format.")
@@ -318,7 +334,7 @@ func TestValidatePipelineSpecAndResourceReferences_NilPipelineSpecAndEmptyPipeli
 func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{}
+	spec := &apiv1beta1.PipelineSpec{}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
@@ -327,7 +343,7 @@ func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipe
 func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineId(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{PipelineId: "not-found"}
+	spec := &apiv1beta1.PipelineSpec{PipelineId: "not-found"}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Get pipelineId failed.")
@@ -345,7 +361,7 @@ func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipeline
 	clients := initWithExperimentsAndTwoPipelineVersions(t)
 	manager := resource.NewResourceManager(clients)
 	defer clients.Close()
-	spec := &api.PipelineSpec{
+	spec := &apiv1beta1.PipelineSpec{
 		PipelineId: resource.NonDefaultFakeUUID}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
@@ -355,12 +371,12 @@ func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipeline
 func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineId(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	var params []*api.Parameter
+	var params []*apiv1beta1.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
 	for i := 0; i < 10000; i++ {
-		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
+		params = append(params, &apiv1beta1.Parameter{Name: "param2", Value: "world"})
 	}
-	spec := &api.PipelineSpec{PipelineId: resource.DefaultFakeUUID, Parameters: params}
+	spec := &apiv1beta1.PipelineSpec{PipelineId: resource.DefaultFakeUUID, Parameters: params}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
@@ -369,12 +385,12 @@ func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineI
 func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithWorkflowManifest(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	var params []*api.Parameter
+	var params []*apiv1beta1.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
 	for i := 0; i < 10000; i++ {
-		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
+		params = append(params, &apiv1beta1.Parameter{Name: "param2", Value: "world"})
 	}
-	spec := &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore(), Parameters: params}
+	spec := &apiv1beta1.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore(), Parameters: params}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
@@ -383,7 +399,7 @@ func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithWorkflowM
 func TestValidatePipelineSpecAndResourceReferences_ValidPipelineIdAndPipelineVersionId(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{
+	spec := &apiv1beta1.PipelineSpec{
 		PipelineId: resource.DefaultFakeUUID}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.Nil(t, err)
@@ -392,7 +408,40 @@ func TestValidatePipelineSpecAndResourceReferences_ValidPipelineIdAndPipelineVer
 func TestValidatePipelineSpecAndResourceReferences_ValidWorkflowManifest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()}
+	spec := &apiv1beta1.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.Nil(t, err)
+}
+
+func TestValidatePipelineSource_PipelineId(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+
+	recurringRun := &apiv2beta1.RecurringRun{
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineId{PipelineId: resource.DefaultFakeUUID},
+	}
+	err := ValidatePipelineSource(manager, recurringRun.GetPipelineId(), recurringRun.GetPipelineSpec())
+	assert.Nil(t, err)
+}
+
+func TestValidatePipelineSource_PipelineSpec(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+
+	pipelineSpec := new(structpb.Struct)
+	pipelineSpec.UnmarshalJSON([]byte("PipelineSpec"))
+	recurringRun := &apiv2beta1.RecurringRun{
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpec},
+	}
+	err := ValidatePipelineSource(manager, recurringRun.GetPipelineId(), recurringRun.GetPipelineSpec())
+	assert.Nil(t, err)
+}
+
+func TestValidatePipelineSource_EmptyPipelineSource(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	recurringRun := &apiv2beta1.RecurringRun{}
+	err := ValidatePipelineSource(manager, recurringRun.GetPipelineId(), recurringRun.GetPipelineSpec())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "both pipelineId and pipelineSpec are empty")
 }

@@ -22,22 +22,18 @@ ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
 kubectl config set-context $(kubectl config current-context) --namespace=default
 echo "Add necessary cluster role bindings"
 ACCOUNT=$(gcloud info --format='value(config.account)')
-kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT --dry-run -o yaml | kubectl apply -f -
-kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default --dry-run -o yaml | kubectl apply -f -
+kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT --dry-run=client -o yaml | kubectl apply -f -
+kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default --dry-run=client -o yaml | kubectl apply -f -
 
 "${DIR}/install-argo-cli.sh"
-
-# No need to install here, it comes with kfp lite deployment
-# kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
-# kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/$ARGO_VERSION/manifests/install.yaml
 
 ARGO_KSA="test-runner"
 
 # Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
 # In this case, the default service account in that namespace doesn't have enough permission
 echo "add service account for running the test workflow"
-kubectl create serviceaccount ${ARGO_KSA} -n ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
-kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:${ARGO_KSA} --dry-run -o yaml | kubectl apply -f -
+kubectl create serviceaccount ${ARGO_KSA} -n ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:${ARGO_KSA} --dry-run=client -o yaml | kubectl apply -f -
 
 if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   ARGO_GSA="test-argo"

@@ -18,6 +18,7 @@ import os
 import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
 import unittest
+from unittest import mock
 
 from absl.testing import parameterized
 from kfp.components import executor
@@ -43,14 +44,17 @@ class ExecutorTest(unittest.TestCase):
         artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls._test_dir + '/minio/'
         artifact_types._S3_LOCAL_MOUNT_PREFIX = cls._test_dir + '/s3/'
 
-    def execute_and_load_output_metadata(self, func: Callable,
-                                         executor_input: str) -> dict:
+    def execute(self, func: Callable, executor_input: str) -> None:
         executor_input_dict = json.loads(executor_input %
                                          {'test_dir': self._test_dir})
 
         executor.Executor(
             executor_input=executor_input_dict,
             function_to_execute=func).execute()
+
+    def execute_and_load_output_metadata(self, func: Callable,
+                                         executor_input: str) -> dict:
+        self.execute(func, executor_input)
         with open(os.path.join(self._test_dir, 'output_metadata.json'),
                   'r') as f:
             return json.loads(f.read())
@@ -845,6 +849,21 @@ class ExecutorTest(unittest.TestCase):
                 },
             })
 
+    def test_function_with_optional_input_artifact(self):
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(a: Optional[Input[Artifact]] = None):
+            self.assertIsNone(a)
+
+        self.execute(test_func, executor_input)
+
     def test_function_with_pipeline_task_final_status(self):
         executor_input = """\
     {
@@ -1001,6 +1020,168 @@ class ExecutorTest(unittest.TestCase):
                     }
                 }
             })
+
+    @mock.patch.dict(
+        os.environ,
+        {'CLUSTER_SPEC': json.dumps({'task': {
+            'type': 'workerpool0'
+        }})},
+        clear=True)
+    def test_distributed_training_strategy_write(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "input_parameter": "Hello, KFP"
+            }
+          },
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(input_parameter: str):
+            self.assertEqual(input_parameter, 'Hello, KFP')
+
+        self.execute(
+            func=test_func,
+            executor_input=executor_input,
+        )
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(self._test_dir, 'output_metadata.json')))
+
+    @mock.patch.dict(
+        os.environ,
+        {'CLUSTER_SPEC': json.dumps({'task': {
+            'type': 'workerpool1'
+        }})},
+        clear=True)
+    def test_distributed_training_strategy_no_write(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "input_parameter": "Hello, KFP"
+            }
+          },
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(input_parameter: str):
+            self.assertEqual(input_parameter, 'Hello, KFP')
+
+        self.execute(
+            func=test_func,
+            executor_input=executor_input,
+        )
+        self.assertFalse(
+            os.path.exists(
+                os.path.join(self._test_dir, 'output_metadata.json')))
+
+    def test_single_artifact_input(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_artifact": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_artifact"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_artifact: Input[Artifact]):
+            self.assertIsInstance(input_artifact, Artifact)
+            self.assertEqual(
+                input_artifact.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+            )
+            self.assertEqual(
+                input_artifact.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+            )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
+    def test_list_of_artifacts_input(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_list": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/0"
+              },
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_list: Input[List[Artifact]]):
+            self.assertEqual(len(input_list), 2)
+            self.assertEqual(
+                input_list[0].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+            )
+            self.assertEqual(
+                input_list[1].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1'
+            )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
 
 
 class VertexDataset:

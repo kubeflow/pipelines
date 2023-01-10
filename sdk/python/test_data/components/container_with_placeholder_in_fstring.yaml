@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: container-with-placeholder-in-fstring
+# Inputs:
+#    text1: str [Default: 'text!']
 components:
   comp-container-with-placeholder-in-fstring:
     executorLabel: exec-container-with-placeholder-in-fstring
@@ -5,6 +9,7 @@ components:
       parameters:
         text1:
           defaultValue: text!
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -41,6 +46,7 @@ root:
     parameters:
       text1:
         defaultValue: text!
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.6
+sdkVersion: kfp-2.0.0-beta.8

@@ -1,5 +1,19 @@
-# Current Version 1.0.30.dev (Still in Development)
+# Current Version 1.0.33.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.32
+* Support a HyperparameterTuningJobWithMetrics type to take execution_metrics path
+
+# Release 1.0.31
+* Fix aiplatform serialization
+* Release Structured Data team's updated components and pipelines
+* Add components for natural language: training TFHub model and preprocessing component for batch prediction
+
+# Release 1.0.30
+* Fix aiplatform & v1 batch predict job to work with KFP v2
+* Fix serialization for aiplatform components
+* Update Dataproc doc links
+* Update tags in Structured Data team's forecasting pipelines
 
 # Release 1.0.29
 * Propagate vertex system labels to the downstream resources

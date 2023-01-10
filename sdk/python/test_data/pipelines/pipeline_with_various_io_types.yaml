@@ -1,3 +1,9 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-various-types
+# Inputs:
+#    input1: str
+#    input3: system.Artifact
+#    input4: str [Default: '']
 components:
   comp-downstream:
     executorLabel: exec-downstream
@@ -204,6 +210,7 @@ root:
         parameterType: STRING
       input4:
         defaultValue: ''
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.8

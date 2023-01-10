@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: container-with-if-placeholder
+# Inputs:
+#    optional_input: str [Default: 'default']
 components:
   comp-container-with-if-placeholder:
     executorLabel: exec-container-with-if-placeholder
@@ -5,6 +9,7 @@ components:
       parameters:
         optional_input:
           defaultValue: default
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -50,6 +55,7 @@ root:
     parameters:
       optional_input:
         defaultValue: default
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.8

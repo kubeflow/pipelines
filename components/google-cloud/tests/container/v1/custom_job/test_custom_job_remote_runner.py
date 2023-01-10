@@ -25,12 +25,16 @@ from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.custom_job import remote_runner as custom_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+
 import requests
 
 from google.protobuf import json_format
 import unittest
 from unittest import mock
+
+_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
 
 
 class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -53,6 +57,8 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "gcp_resources")
     self._type = "CustomJob"
     self._custom_job_uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
+    os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
+        _SYSTEM_LABELS)
 
   def tearDown(self):
     if os.path.exists(self._gcp_resources):
@@ -106,6 +112,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     expected_parent = f"projects/{self._project}/locations/{self._location}"
     expected_job_spec = json.loads(self._payload, strict=False)
+    expected_job_spec["labels"] = _SYSTEM_LABELS
 
     job_client.create_custom_job.assert_called_once_with(
         parent=expected_parent, custom_job=expected_job_spec)

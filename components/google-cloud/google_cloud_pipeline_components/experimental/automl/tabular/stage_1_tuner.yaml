@@ -60,6 +60,8 @@ description: |
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
         tuning_result_output (AutoMLTabularTuningResult):
             The trained model and architectures.
+        execution_metrics (JsonObject):
+            Core metrics in dictionary of component execution.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String}
@@ -85,6 +87,7 @@ inputs:
 outputs:
 - {name: gcp_resources, type: String}
 - {name: tuning_result_output, type: AutoMLTabularTuningResult}
+- {name: execution_metrics, type: JsonObject}
 
 implementation:
   container:
@@ -100,11 +103,11 @@ implementation:
         '{"display_name": "automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221203_1325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221216_0001_RC00',
         '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--training_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221203_1325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221216_0001_RC00',
         '", ',
         {if: {
           cond: {isPresent: feature_ranking},
@@ -147,5 +150,7 @@ implementation:
         {inputValue: encryption_spec_key_name},
         '", "--gcp_resources_path=',
         {outputPath: gcp_resources},
+        '", "--execution_metrics_path=',
+        {outputPath: execution_metrics},
         '", "--use_json=true", "--log_level=ERROR", "--executor_input={{$.json_escape[1]}}"]}}]}}',
       ]]

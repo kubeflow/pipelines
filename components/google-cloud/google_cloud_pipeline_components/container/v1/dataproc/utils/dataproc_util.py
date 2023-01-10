@@ -165,7 +165,7 @@ class DataprocBatchRemoteRunner():
     if not lro_name:
       return
     # Dataproc Operation Cancel API:
-    # https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.operations/cancel
+    # https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.operations/cancel
     lro_uri = f'{_DATAPROC_URI_PREFIX}/{lro_name}:cancel'
     self._post_resource(lro_uri, '')
 
@@ -174,7 +174,7 @@ class DataprocBatchRemoteRunner():
 
     Returns:
       Dict of the long-running Operation resource if it exists. For more details, see:
-         https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.operations#resource:-operation
+        https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.operations#Operation
       None if the Operation resource does not exist.
 
     Raises:
@@ -227,12 +227,12 @@ class DataprocBatchRemoteRunner():
 
     Args:
       lro: Dict of the long-running Operation resource. For more details, see:
-        https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.operations#resource:-operation
+        https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.operations#Operation
       poll_interval_seconds: Seconds to wait between polls.
 
     Returns:
       Dict of the long-running Operation resource. For more details, see:
-         https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.operations#resource:-operation
+        https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.operations#Operation
 
     Raises:
       RuntimeError: Operation resource indicates an error.
@@ -263,11 +263,11 @@ class DataprocBatchRemoteRunner():
     Args:
       batch_id: Dataproc batch id.
       batch_request: Dict of the Batch resource. For more details, see:
-        https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.locations.batches#:-batch
+        https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.batches#resource:-batch
 
     Returns:
-       Dict of the long-running Operation resource. For more details, see:
-         https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.operations#resource:-operation
+      Dict of the long-running Operation resource. For more details, see:
+        https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.operations#Operation
     """
     # Create the Batch resource.
     create_batch_url = f'https://dataproc.googleapis.com/v1/projects/{self._project}/locations/{self._location}/batches/?batchId={batch_id}'
@@ -308,14 +308,13 @@ def create_batch(
     location: Location to launch the batch workload.
     batch_id: Dataproc batch id.
     payload: A json serialized Batch resource. For more details, see:
-      https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.locations.batches#:-batch
+      https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.batches#resource:-batch
     gcp_resources: File path for storing `gcp_resources` output parameter.
 
   Returns:
     Dict of the completed Batch resource. For more details, see:
-      https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.locations.batches#:-batch
+      https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.batches#resource:-batch
   """
-  # TODO(b/261485228) Update the doc link for payload.
   try:
     batch_request = json_util.recursive_remove_empty(
         json.loads(insert_system_labels_into_payload(payload), strict=False))

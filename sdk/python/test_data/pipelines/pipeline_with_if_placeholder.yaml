@@ -1,9 +1,19 @@
+# PIPELINE DEFINITION
+# Name: one-step-pipeline-with-if-placeholder
+# Inputs:
+#    input0: str
+#    input1: str
+#    input2: str
 components:
   comp-component-with-optional-inputs:
     executorLabel: exec-component-with-optional-inputs
     inputDefinitions:
       parameters:
         optional_input_1:
+          isOptional: true
+          parameterType: STRING
+        optional_input_2:
+          isOptional: true
           parameterType: STRING
         required_input:
           parameterType: STRING
@@ -46,4 +56,4 @@ root:
       input2:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

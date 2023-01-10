@@ -31,10 +31,12 @@ class LauncherHyperparameterTuningJobUtilsTests(unittest.TestCase):
     self._gcp_resources = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
         'test_file_path/test_file.txt')
+    self._execution_metrics = 'test_metrics_path'
 
   @mock.patch.object(
       remote_runner, 'create_hyperparameter_tuning_job', autospec=True)
-  def test_launcher_on_hyperparameter_tuning_job_type(self, mock_create_hyperparameter_tuning_job):
+  def test_launcher_on_hyperparameter_tuning_job_type(
+      self, mock_create_hyperparameter_tuning_job):
     job_type = 'HyperparameterTuningJob'
     payload = 'test_payload'
     input_args = [
@@ -48,4 +50,25 @@ class LauncherHyperparameterTuningJobUtilsTests(unittest.TestCase):
         project=self._project,
         location=self._location,
         payload=payload,
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+        execution_metrics=None)
+
+  @mock.patch.object(
+      remote_runner, 'create_hyperparameter_tuning_job', autospec=True)
+  def test_launcher_on_hyperparameter_tuning_job_with_metrics_type(
+      self, mock_create_hyperparameter_tuning_job):
+    job_type = 'HyperparameterTuningJobWithMetrics'
+    payload = 'test_payload'
+    input_args = [
+        '--type', job_type, '--project', self._project, '--location',
+        self._location, '--payload', payload, '--gcp_resources',
+        self._gcp_resources, '--execution_metrics', self._execution_metrics
+    ]
+    launcher.main(input_args)
+    mock_create_hyperparameter_tuning_job.assert_called_once_with(
+        type=job_type,
+        project=self._project,
+        location=self._location,
+        payload=payload,
+        gcp_resources=self._gcp_resources,
+        execution_metrics=self._execution_metrics)

@@ -16,7 +16,7 @@ black==21.7b0
     #   papermill
 cachetools==4.2.4
     # via google-auth
-certifi==2022.12.7
+certifi==2021.10.8
     # via
     #   kubernetes
     #   minio
@@ -74,7 +74,7 @@ junit-xml==1.9
     # via -r requirements.in
 jupyter-client==7.1.0
     # via nbclient
-jupyter-core==4.9.1
+jupyter-core==4.11.2
     # via
     #   jupyter-client
     #   nbformat

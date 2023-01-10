@@ -1,3 +1,5 @@
+# PIPELINE DEFINITION
+# Name: v2-component-optional-input
 components:
   comp-component-op:
     executorLabel: exec-component-op
@@ -5,8 +7,13 @@ components:
       parameters:
         input1:
           defaultValue: default value
+          isOptional: true
           parameterType: STRING
         input2:
+          isOptional: true
+          parameterType: STRING
+        input3:
+          isOptional: true
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -22,7 +29,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -61,4 +68,4 @@ root:
         taskInfo:
           name: component-op
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

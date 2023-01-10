@@ -1,3 +1,8 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-loops-and-conditions-multi-layers
+# Inputs:
+#    loop_parameter: list [Default: [{'A_a': 'heads', 'B_b': ['A', 'B']}, {'A_a': 'tails', 'B_b': ['X', 'Y', 'Z']}]]
+#    msg: str [Default: 'hello']
 components:
   comp-args-generator-op:
     executorLabel: exec-args-generator-op
@@ -508,11 +513,17 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-2:
     executorLabel: exec-print-text-2
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-text-3:
     executorLabel: exec-print-text-3
@@ -520,17 +531,26 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-4:
     executorLabel: exec-print-text-4
     inputDefinitions:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-5:
     executorLabel: exec-print-text-5
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-text-6:
     executorLabel: exec-print-text-6
@@ -539,6 +559,7 @@ components:
         msg:
           parameterType: STRING
         msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-text-7:
     executorLabel: exec-print-text-7
@@ -546,17 +567,26 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-8:
     executorLabel: exec-print-text-8
     inputDefinitions:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-9:
     executorLabel: exec-print-text-9
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -572,7 +602,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -601,7 +631,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -630,7 +660,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -658,7 +688,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -684,7 +714,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -711,7 +741,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -738,7 +768,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -765,7 +795,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -792,7 +822,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -819,7 +849,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -846,7 +876,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -873,7 +903,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -900,7 +930,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -985,9 +1015,11 @@ root:
           - X
           - Y
           - Z
+        isOptional: true
         parameterType: LIST
       msg:
         defaultValue: hello
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

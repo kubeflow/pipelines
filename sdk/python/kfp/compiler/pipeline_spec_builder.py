@@ -330,58 +330,21 @@ def build_component_spec_for_task(
     Returns:
         A ComponentSpec object for the task.
     """
-    component_spec = pipeline_spec_pb2.ComponentSpec()
-    component_spec.executor_label = utils.sanitize_executor_label(task.name)
-
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
+        if not is_exit_task and type_utils.is_task_final_status_type(
+                input_spec.type):
+            raise ValueError(
+                f'PipelineTaskFinalStatus can only be used in an exit task. Parameter {input_name} of a non exit task has type PipelineTaskFinalStatus.'
+            )
 
-        # Special handling for PipelineTaskFinalStatus first.
-        if type_utils.is_task_final_status_type(input_spec.type):
-            if not is_exit_task:
-                raise ValueError(
-                    'PipelineTaskFinalStatus can only be used in an exit task.')
-            component_spec.input_definitions.parameters[
-                input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
-            continue
-
-        # skip inputs not present, as a workaround to support optional inputs.
-        if input_name not in task.inputs and input_spec.default is None:
-            continue
-
-        if type_utils.is_parameter_type(input_spec.type):
-            component_spec.input_definitions.parameters[
-                input_name].parameter_type = type_utils.get_parameter_type(
-                    input_spec.type)
-            if input_spec.default is not None:
-                _fill_in_component_input_default_value(
-                    component_spec=component_spec,
-                    input_name=input_name,
-                    default_value=input_spec.default,
-                )
-
-        else:
-            component_spec.input_definitions.artifacts[
-                input_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        input_spec.type))
-
-    for output_name, output_spec in (task.component_spec.outputs or {}).items():
-        if type_utils.is_parameter_type(output_spec.type):
-            component_spec.output_definitions.parameters[
-                output_name].parameter_type = type_utils.get_parameter_type(
-                    output_spec.type)
-        else:
-            component_spec.output_definitions.artifacts[
-                output_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        output_spec.type))
-
+    component_spec = _build_component_spec_from_component_spec_structure(
+        task.component_spec)
+    component_spec.executor_label = utils.sanitize_executor_label(task.name)
     return component_spec
 
 
-# TODO(chensun): merge with build_component_spec_for_task
 def _build_component_spec_from_component_spec_structure(
-    component_spec_struct: structures.ComponentSpec,
+    component_spec_struct: structures.ComponentSpec
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec proto from ComponentSpec structure."""
     component_spec = pipeline_spec_pb2.ComponentSpec()
@@ -392,13 +355,16 @@ def _build_component_spec_from_component_spec_structure(
         if type_utils.is_task_final_status_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
-            continue
+            component_spec.input_definitions.parameters[
+                input_name].is_optional = True
 
-        if type_utils.is_parameter_type(input_spec.type):
+        elif type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
-            if input_spec.default is not None:
+            if input_spec.optional:
+                component_spec.input_definitions.parameters[
+                    input_name].is_optional = True
                 _fill_in_component_input_default_value(
                     component_spec=component_spec,
                     input_name=input_name,
@@ -410,6 +376,9 @@ def _build_component_spec_from_component_spec_structure(
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         input_spec.type))
+            if input_spec.optional:
+                component_spec.input_definitions.artifacts[
+                    input_name].is_optional = True
 
     for output_name, output_spec in (component_spec_struct.outputs or
                                      {}).items():
@@ -570,15 +539,11 @@ def _fill_in_component_input_default_value(
     parameter_type = component_spec.input_definitions.parameters[
         input_name].parameter_type
     if pipeline_spec_pb2.ParameterType.NUMBER_INTEGER == parameter_type:
-        # cast to int to support v1 component YAML where NUMBER_INTEGER defaults are included as strings
-        # for example, input Limit: https://raw.githubusercontent.com/kubeflow/pipelines/60a2612541ec08c6a85c237d2ec7525b12543a43/components/datasets/Chicago_Taxi_Trips/component.yaml
         component_spec.input_definitions.parameters[
-            input_name].default_value.number_value = int(default_value)
-        # cast to int to support v1 component YAML where NUMBER_DOUBLE defaults are included as strings
-        # for example, input learning_rate: https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml
+            input_name].default_value.number_value = default_value
     elif pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.number_value = float(default_value)
+            input_name].default_value.number_value = default_value
     elif pipeline_spec_pb2.ParameterType.STRING == parameter_type:
         component_spec.input_definitions.parameters[
             input_name].default_value.string_value = default_value
@@ -596,8 +561,7 @@ def _fill_in_component_input_default_value(
 
 
 def build_component_spec_for_group(
-    pipeline_channels: List[pipeline_channel.PipelineChannel],
-    is_root_group: bool,
+    pipeline_channels: List[pipeline_channel.PipelineChannel]
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec for a TasksGroup.
 
@@ -611,10 +575,7 @@ def build_component_spec_for_group(
     component_spec = pipeline_spec_pb2.ComponentSpec()
 
     for channel in pipeline_channels:
-
-        input_name = (
-            channel.name if is_root_group else
-            _additional_input_name_for_pipeline_channel(channel))
+        input_name = _additional_input_name_for_pipeline_channel(channel)
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             component_spec.input_definitions.artifacts[
@@ -627,14 +588,6 @@ def build_component_spec_for_group(
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
-
-            if is_root_group:
-                _fill_in_component_input_default_value(
-                    component_spec=component_spec,
-                    input_name=input_name,
-                    default_value=channel.value,
-                )
-
     return component_spec
 
 
@@ -1203,9 +1156,7 @@ def build_spec_by_group(
             loop_subgroup_channels.append(subgroup.loop_argument)
 
             subgroup_component_spec = build_component_spec_for_group(
-                pipeline_channels=loop_subgroup_channels,
-                is_root_group=False,
-            )
+                pipeline_channels=loop_subgroup_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
@@ -1227,9 +1178,7 @@ def build_spec_by_group(
                     condition_subgroup_channels.append(operand)
 
             subgroup_component_spec = build_component_spec_for_group(
-                pipeline_channels=condition_subgroup_channels,
-                is_root_group=False,
-            )
+                pipeline_channels=condition_subgroup_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
@@ -1241,9 +1190,7 @@ def build_spec_by_group(
         elif isinstance(subgroup, tasks_group.ExitHandler):
 
             subgroup_component_spec = build_component_spec_for_group(
-                pipeline_channels=subgroup_channels,
-                is_root_group=False,
-            )
+                pipeline_channels=subgroup_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,

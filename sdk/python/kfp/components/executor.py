@@ -25,31 +25,43 @@ class Executor():
     """Executor executes v2-based Python function components."""
 
     def __init__(self, executor_input: Dict, function_to_execute: Callable):
-        if hasattr(function_to_execute, 'python_func'):
-            self._func = function_to_execute.python_func
-        else:
-            self._func = function_to_execute
+        self._func = function_to_execute
 
         self._input = executor_input
-        self._input_artifacts: Dict[str, artifact_types.Artifact] = {}
+        self._input_artifacts: Dict[str,
+                                    Union[artifact_types.Artifact,
+                                          List[artifact_types.Artifact]]] = {}
         self._output_artifacts: Dict[str, artifact_types.Artifact] = {}
 
         for name, artifacts in self._input.get('inputs',
                                                {}).get('artifacts', {}).items():
-            artifacts_list = artifacts.get('artifacts')
-            if artifacts_list:
-                self._input_artifacts[name] = self.make_artifact(
-                    artifacts_list[0],
-                    name,
-                    self._func,
-                )
+            list_of_artifact_proto_structs = artifacts.get('artifacts')
+            if list_of_artifact_proto_structs:
+                annotation = self._func.__annotations__[name]
+                # InputPath has no attribute __origin__ and also should be handled as a single artifact
+                if type_annotations.is_Input_Output_artifact_annotation(
+                        annotation) and type_annotations.is_list_of_artifacts(
+                            annotation.__origin__):
+                    self._input_artifacts[name] = [
+                        self.make_artifact(
+                            msg,
+                            name,
+                            self._func,
+                        ) for msg in list_of_artifact_proto_structs
+                    ]
+                else:
+                    self._input_artifacts[name] = self.make_artifact(
+                        list_of_artifact_proto_structs[0],
+                        name,
+                        self._func,
+                    )
 
         for name, artifacts in self._input.get('outputs',
                                                {}).get('artifacts', {}).items():
-            artifacts_list = artifacts.get('artifacts')
-            if artifacts_list:
+            list_of_artifact_proto_structs = artifacts.get('artifacts')
+            if list_of_artifact_proto_structs:
                 output_artifact = self.make_artifact(
-                    artifacts_list[0],
+                    list_of_artifact_proto_structs[0],
                     name,
                     self._func,
                 )
@@ -257,9 +269,18 @@ class Executor():
                     f'Unknown return type: {self._return_annotation}. Must be one of `str`, `int`, `float`, a subclass of `Artifact`, or a NamedTuple collection of these types.'
                 )
 
-        executor_output_path = self._input['outputs']['outputFile']
-        # This check is to reduce the likelihood that two or more workers (in a distributed training/compute strategy) attempt to write to the same executor output file at the same time using gcsfuse. Do not remove until fixed by gcsfuse.
-        if not os.path.exists(executor_output_path):
+        # This check is to ensure only one worker (in a mirrored, distributed training/compute strategy) attempts to write to the same executor output file at the same time using gcsfuse, which enforces immutability of files.
+        write_file = True
+
+        CLUSTER_SPEC_ENV_VAR_NAME = 'CLUSTER_SPEC'
+        cluster_spec_string = os.environ.get(CLUSTER_SPEC_ENV_VAR_NAME)
+        if cluster_spec_string:
+            cluster_spec = json.loads(cluster_spec_string)
+            CHIEF_NODE_LABELS = {'workerpool0', 'chief', 'master'}
+            write_file = cluster_spec['task']['type'] in CHIEF_NODE_LABELS
+
+        if write_file:
+            executor_output_path = self._input['outputs']['outputFile']
             os.makedirs(os.path.dirname(executor_output_path), exist_ok=True)
             with open(executor_output_path, 'w') as f:
                 f.write(json.dumps(self._executor_output))

@@ -76,8 +76,11 @@ class InputSpec:
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
-            # TODO: write the IR is_optional field to IR when compiling. currently we don't do this, so just set optional to True if default_value is not None.
-            optional = default_value is not None
+            # fallback to checking if the parameter has a default value,
+            # since some IR compiled with kfp<=2.0.0b8 will have defaults
+            # without isOptional=True
+            optional = ir_component_inputs_dict.get(
+                'isOptional', 'defaultValue' in ir_component_inputs_dict)
             return InputSpec(
                 type=type_, default=default_value, optional=optional)
 
@@ -85,9 +88,13 @@ class InputSpec:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_inputs_dict['artifactType'][
                 'schemaVersion']
+            # TODO: would be better to extract these fields from the proto
+            # message, as False default would be preserved
+            optional = ir_component_inputs_dict.get('isOptional', False)
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version))
+                    type_, schema_version),
+                optional=optional)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -640,15 +647,16 @@ class ComponentSpec:
             type_ = spec.get('type')
             optional = spec.get('optional', False) or 'default' in spec
             default = spec.get('default')
+            default = type_utils.deserialize_v1_component_yaml_default(
+                type_=type_, default=default)
 
             if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
-                inputs[utils.sanitize_input_name(
-                    spec['name'])] = InputSpec(type=type_)
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_, optional=True)
                 continue
 
             elif isinstance(type_, str) and type_.lower(
             ) in type_utils._PARAMETER_TYPES_MAPPING:
-                default = spec.get('default')
                 type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
@@ -682,7 +690,7 @@ class ComponentSpec:
                 raise ValueError(f'Unknown input: {type_}')
 
             if optional:
-                # handles a v1 edge-case where a user marks an artifact input as optional with no default value. some of these v1 component YAMLs exist.
+                # handles optional artifacts with no default value
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=type_utils.create_bundled_artifact_type(
                         schema_title, schema_version),
@@ -906,18 +914,9 @@ class ComponentSpec:
             group_type=tasks_group.TasksGroupType.PIPELINE)
         group.tasks.append(task)
 
-        # Fill in the default values.
-        args_list_with_defaults = [
-            pipeline_channel.create_pipeline_channel(
-                name=input_name,
-                channel_type=input_spec.type,
-                value=input_spec.default,
-            ) for input_name, input_spec in pipeline_inputs.items()
-        ]
         group.name = uuid.uuid4().hex
 
         pipeline_name = self.name
-        pipeline_args = args_list_with_defaults
         task_group = group
 
         utils.validate_pipeline_name(pipeline_name)
@@ -927,11 +926,17 @@ class ComponentSpec:
         pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
         # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
         pipeline_spec.schema_version = '2.1.0'
-        pipeline_spec.root.CopyFrom(
-            builder.build_component_spec_for_group(
-                pipeline_channels=pipeline_args,
-                is_root_group=True,
-            ))
+
+        # if we decide to surface component outputs to pipeline level,
+        # can just assign the component_spec_proto directly to .root
+        component_spec_proto = builder._build_component_spec_from_component_spec_structure(
+            self)
+        has_inputs = bool(
+            len(component_spec_proto.input_definitions.artifacts) +
+            len(component_spec_proto.input_definitions.parameters))
+        if has_inputs:
+            pipeline_spec.root.input_definitions.CopyFrom(
+                component_spec_proto.input_definitions)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group

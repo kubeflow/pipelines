@@ -362,12 +362,8 @@ class UtilsTest(unittest.TestCase):
         'gs://foo',
         'target',
         'classification',
-        'gs://foo/transform_config',
         0.01,
         0.01,
-        training_fraction=0.8,
-        validation_fraction=0.2,
-        test_fraction=0.0,
         data_source_csv_filenames='gs://foo/bar.csv',
         dataflow_service_account='service-account')
 
@@ -378,11 +374,11 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': 'gs://foo/transform_config',
+            'dataset_level_custom_transformation_definitions': [],
+            'dataset_level_transformations': [],
+            'tf_auto_transform_features': [],
+            'tf_custom_transformation_definitions': [],
             'data_source_csv_filenames': 'gs://foo/bar.csv',
-            'training_fraction': 0.8,
-            'validation_fraction': 0.2,
-            'test_fraction': 0.0,
             'learning_rate': 0.01,
             'dnn_learning_rate': 0.01,
             'optimizer_type': 'adam',
@@ -409,9 +405,6 @@ class UtilsTest(unittest.TestCase):
             'batch_size': 100,
             'eval_frequency_secs': 600,
             'weight_column': '',
-            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers': 25,
-            'stats_and_example_gen_dataflow_disk_size_gb': 40,
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
@@ -426,7 +419,8 @@ class UtilsTest(unittest.TestCase):
             'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
-            'encryption_spec_key_name': ''
+            'encryption_spec_key_name': '',
+            'run_feature_selection': False
         })
 
   def test_get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(self):
@@ -436,7 +430,6 @@ class UtilsTest(unittest.TestCase):
         'gs://foo',
         'target',
         'classification',
-        'gs://foo/transform_config',
         'loss',
         'MINIMIZE', [{
             'parameter_id': 'dnn_learning_rate',
@@ -460,9 +453,6 @@ class UtilsTest(unittest.TestCase):
         }],
         2,
         1,
-        training_fraction=0.8,
-        validation_fraction=0.2,
-        test_fraction=0.0,
         data_source_csv_filenames='gs://foo/bar.csv',
         dataflow_service_account='service-account')
     self.assertEqual(
@@ -472,11 +462,11 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': 'gs://foo/transform_config',
+            'dataset_level_custom_transformation_definitions': [],
+            'dataset_level_transformations': [],
+            'tf_auto_transform_features': [],
+            'tf_custom_transformation_definitions': [],
             'data_source_csv_filenames': 'gs://foo/bar.csv',
-            'training_fraction': 0.8,
-            'validation_fraction': 0.2,
-            'test_fraction': 0.0,
             'study_spec_metric_id': 'loss',
             'study_spec_metric_goal': 'MINIMIZE',
             'study_spec_parameters_override': [{
@@ -509,9 +499,6 @@ class UtilsTest(unittest.TestCase):
             'max_failed_trial_count': 0,
             'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
             'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
-            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers': 25,
-            'stats_and_example_gen_dataflow_disk_size_gb': 40,
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
@@ -526,7 +513,8 @@ class UtilsTest(unittest.TestCase):
             'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
-            'encryption_spec_key_name': ''
+            'encryption_spec_key_name': '',
+            'run_feature_selection': False
         })
 
   def test_get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
@@ -537,7 +525,6 @@ class UtilsTest(unittest.TestCase):
         'gs://foo',
         'target',
         'classification',
-        'gs://foo/transform_config',
         'loss',
         'MINIMIZE', [{
             'parameter_id': 'dnn_learning_rate',
@@ -561,9 +548,6 @@ class UtilsTest(unittest.TestCase):
         }],
         2,
         1,
-        training_fraction=0.8,
-        validation_fraction=0.2,
-        test_fraction=0.0,
         data_source_csv_filenames='gs://foo/bar.csv',
         dataflow_service_account='service-account')
     self.assertEqual(
@@ -573,11 +557,11 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': 'gs://foo/transform_config',
+            'dataset_level_custom_transformation_definitions': [],
+            'dataset_level_transformations': [],
+            'tf_auto_transform_features': [],
+            'tf_custom_transformation_definitions': [],
             'data_source_csv_filenames': 'gs://foo/bar.csv',
-            'training_fraction': 0.8,
-            'validation_fraction': 0.2,
-            'test_fraction': 0.0,
             'study_spec_metric_id': 'loss',
             'study_spec_metric_goal': 'MINIMIZE',
             'study_spec_parameters_override': [{
@@ -610,9 +594,6 @@ class UtilsTest(unittest.TestCase):
             'max_failed_trial_count': 0,
             'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
             'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
-            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers': 25,
-            'stats_and_example_gen_dataflow_disk_size_gb': 40,
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
@@ -627,7 +608,8 @@ class UtilsTest(unittest.TestCase):
             'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
-            'encryption_spec_key_name': ''
+            'encryption_spec_key_name': '',
+            'run_feature_selection': False
         })
 
   def test_get_tabnet_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
@@ -638,7 +620,6 @@ class UtilsTest(unittest.TestCase):
         'gs://foo',
         'target',
         'classification',
-        'gs://foo/transform_config',
         'loss',
         'MINIMIZE', [{
             'parameter_id': 'dnn_learning_rate',
@@ -663,9 +644,6 @@ class UtilsTest(unittest.TestCase):
         2,
         1,
         algorithm='tabnet',
-        training_fraction=0.8,
-        validation_fraction=0.2,
-        test_fraction=0.0,
         data_source_csv_filenames='gs://foo/bar.csv',
         dataflow_service_account='service-account')
     self.assertEqual(
@@ -675,11 +653,11 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': 'gs://foo/transform_config',
+            'dataset_level_custom_transformation_definitions': [],
+            'dataset_level_transformations': [],
+            'tf_auto_transform_features': [],
+            'tf_custom_transformation_definitions': [],
             'data_source_csv_filenames': 'gs://foo/bar.csv',
-            'training_fraction': 0.8,
-            'validation_fraction': 0.2,
-            'test_fraction': 0.0,
             'study_spec_metric_id': 'loss',
             'study_spec_metric_goal': 'MINIMIZE',
             'study_spec_parameters_override': [{
@@ -712,9 +690,6 @@ class UtilsTest(unittest.TestCase):
             'max_failed_trial_count': 0,
             'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
             'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
-            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers': 25,
-            'stats_and_example_gen_dataflow_disk_size_gb': 40,
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
@@ -729,7 +704,8 @@ class UtilsTest(unittest.TestCase):
             'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
-            'encryption_spec_key_name': ''
+            'encryption_spec_key_name': '',
+            'run_feature_selection': False
         })
 
   def test_get_wide_and_deep_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
@@ -740,7 +716,6 @@ class UtilsTest(unittest.TestCase):
         'gs://foo',
         'target',
         'classification',
-        'gs://foo/transform_config',
         'loss',
         'MINIMIZE', [{
             'parameter_id': 'dnn_learning_rate',
@@ -765,9 +740,6 @@ class UtilsTest(unittest.TestCase):
         2,
         1,
         algorithm='wide_and_deep',
-        training_fraction=0.8,
-        validation_fraction=0.2,
-        test_fraction=0.0,
         data_source_csv_filenames='gs://foo/bar.csv',
         dataflow_service_account='service-account')
     self.assertEqual(
@@ -777,11 +749,11 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': 'gs://foo/transform_config',
+            'dataset_level_custom_transformation_definitions': [],
+            'dataset_level_transformations': [],
+            'tf_auto_transform_features': [],
+            'tf_custom_transformation_definitions': [],
             'data_source_csv_filenames': 'gs://foo/bar.csv',
-            'training_fraction': 0.8,
-            'validation_fraction': 0.2,
-            'test_fraction': 0.0,
             'study_spec_metric_id': 'loss',
             'study_spec_metric_goal': 'MINIMIZE',
             'study_spec_parameters_override': [{
@@ -814,9 +786,6 @@ class UtilsTest(unittest.TestCase):
             'max_failed_trial_count': 0,
             'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
             'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
-            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers': 25,
-            'stats_and_example_gen_dataflow_disk_size_gb': 40,
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
@@ -831,7 +800,8 @@ class UtilsTest(unittest.TestCase):
             'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
-            'encryption_spec_key_name': ''
+            'encryption_spec_key_name': '',
+            'run_feature_selection': False
         })
 
   def test_get_tabnet_trainer_pipeline_and_parameters(self):
@@ -841,11 +811,7 @@ class UtilsTest(unittest.TestCase):
         'gs://foo',
         'target',
         'classification',
-        'gs://foo/transform_config',
         0.01,
-        training_fraction=0.8,
-        validation_fraction=0.2,
-        test_fraction=0.0,
         data_source_csv_filenames='gs://foo/bar.csv',
         dataflow_service_account='service-account')
 
@@ -856,11 +822,11 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': 'gs://foo/transform_config',
+            'dataset_level_custom_transformation_definitions': [],
+            'dataset_level_transformations': [],
+            'tf_auto_transform_features': [],
+            'tf_custom_transformation_definitions': [],
             'data_source_csv_filenames': 'gs://foo/bar.csv',
-            'training_fraction': 0.8,
-            'validation_fraction': 0.2,
-            'test_fraction': 0.0,
             'learning_rate': 0.01,
             'max_steps': -1,
             'max_train_secs': -1,
@@ -889,9 +855,6 @@ class UtilsTest(unittest.TestCase):
             'batch_size': 100,
             'eval_frequency_secs': 600,
             'weight_column': '',
-            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers': 25,
-            'stats_and_example_gen_dataflow_disk_size_gb': 40,
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
@@ -906,7 +869,8 @@ class UtilsTest(unittest.TestCase):
             'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
-            'encryption_spec_key_name': ''
+            'encryption_spec_key_name': '',
+            'run_feature_selection': False
         })
 
   def test_get_tabnet_study_spec_parameters_override_classification(self):

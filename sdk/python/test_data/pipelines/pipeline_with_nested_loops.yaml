@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-nested-loops
+# Inputs:
+#    loop_parameter: list [Default: [{'p_a': [{'q_a': '1'}, {'q_a': '2'}], 'p_b': 'hello'}, {'p_a': [{'q_a': '11'}, {'q_a': '22'}], 'p_b': 'halo'}]]
 components:
   comp-for-loop-1:
     dag:
@@ -106,11 +110,17 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-op-2:
     executorLabel: exec-print-op-2
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-op-3:
     executorLabel: exec-print-op-3
@@ -119,6 +129,7 @@ components:
         msg:
           parameterType: STRING
         msg2:
+          isOptional: true
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -134,7 +145,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -161,7 +172,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -188,7 +199,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -242,6 +253,7 @@ root:
           - q_a: '11'
           - q_a: '22'
           p_b: halo
+        isOptional: true
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

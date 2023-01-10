@@ -38,7 +38,7 @@ class V2beta1Experiment(object):
         'description': 'str',
         'created_at': 'datetime',
         'namespace': 'str',
-        'storage_state': 'ExperimentStorageState'
+        'storage_state': 'V2beta1ExperimentStorageState'
     }
 
     attribute_map = {
@@ -198,7 +198,7 @@ class V2beta1Experiment(object):
 
 
         :return: The storage_state of this V2beta1Experiment.  # noqa: E501
-        :rtype: ExperimentStorageState
+        :rtype: V2beta1ExperimentStorageState
         """
         return self._storage_state
 
@@ -208,7 +208,7 @@ class V2beta1Experiment(object):
 
 
         :param storage_state: The storage_state of this V2beta1Experiment.  # noqa: E501
-        :type storage_state: ExperimentStorageState
+        :type storage_state: V2beta1ExperimentStorageState
         """
 
         self._storage_state = storage_state

@@ -19,6 +19,13 @@ _EVALUATION_DATAFLOW_MAX_NUM_WORKERS = 25
 _EVALUATION_DATAFLOW_DISK_SIZE_GB = 50
 
 
+def _update_parameters(parameter_values: Dict[str, Any], new_params: Dict[str,
+                                                                          Any]):
+  parameter_values.update({
+      param: value for param, value in new_params.items() if value is not None
+  })
+
+
 def _get_default_pipeline_params(
     project: str,
     location: str,
@@ -1879,9 +1886,23 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: str,
     learning_rate: float,
     dnn_learning_rate: float,
+    transform_config: Optional[str] = None,
+    dataset_level_custom_transformation_definitions: Optional[List[Dict[
+        str, Any]]] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: bool = False,
+    feature_selection_algorithm: Optional[str] = None,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
+    tf_transformations_path: Optional[str] = None,
     optimizer_type: str = 'adam',
     max_steps: int = -1,
     max_train_secs: int = -1,
@@ -1907,16 +1928,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
-    predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
-    stratified_split_key: Optional[str] = None,
-    training_fraction: Optional[float] = None,
-    validation_fraction: Optional[float] = None,
-    test_fraction: Optional[float] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
     weight_column: str = '',
-    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
-    stats_and_example_gen_dataflow_max_num_workers: int = 25,
-    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
@@ -1950,14 +1963,36 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     prediction_type:
       The type of prediction the model is to produce.
       'classification' or 'regression'.
-    transform_config:
-      The path to a GCS file containing the transformations to
-      apply.
     learning_rate:
       The learning rate used by the linear optimizer.
     dnn_learning_rate:
       The learning rate for training the deep part of the
       model.
+    transform_config:
+      Path to v1 TF transformation configuration.
+    dataset_level_custom_transformation_definitions:
+      Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations:
+      Dataset-level transformation configuration in string format.
+    run_feature_selection: Whether to enable feature selection.
+    feature_selection_algorithm: Feature selection algorithm.
+    max_selected_features: Maximum number of features to select.
+    predefined_split_key:
+      Predefined split key.
+    stratified_split_key:
+      Stratified split key.
+    training_fraction:
+      Training fraction.
+    validation_fraction:
+      Validation fraction.
+    test_fraction:
+      Test fraction.
+    tf_auto_transform_features:
+      List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions:
+      TF custom transformation definitions in string format.
+    tf_transformations_path:
+      Path to TF transformation configuration.
     optimizer_type:
       The type of optimizer to use. Choices are "adam", "ftrl" and
       "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
@@ -2024,29 +2059,10 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       The CSV data source.
     data_source_bigquery_table_path:
       The BigQuery data source.
-    predefined_split_key:
-      The predefined_split column name.
-    timestamp_split_key:
-      The timestamp_split column name.
-    stratified_split_key:
-      The stratified_split column name.
-    training_fraction:
-      The training fraction.
-    validation_fraction:
-      The validation fraction.
-    test_fraction:
-      The test fraction.
+    bigquery_staging_full_dataset_id:
+      The BigQuery staging full dataset id for storing intermediate tables.
     weight_column:
       The weight column name.
-    stats_and_example_gen_dataflow_machine_type:
-      The dataflow machine type for
-      stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers:
-      The max number of Dataflow
-      workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb:
-      Dataflow worker's disk size in
-      GB for stats_and_example_gen component.
     transform_dataflow_machine_type:
       The dataflow machine type for transform
       component.
@@ -2093,8 +2109,19 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       The KMS key name.
 
   Returns:
-    Tuple of pipeline_definiton_path and parameter_values.
+    Tuple of pipeline_definition_path and parameter_values.
   """
+  if transform_config and tf_transformations_path:
+    raise ValueError(
+        'Only one of transform_config and tf_transformations_path can '
+        'be specified.')
+
+  elif transform_config:
+    warnings.warn(
+        'transform_config parameter is deprecated. '
+        'Please use the flattened transform config arguments instead.')
+    tf_transformations_path = transform_config
+
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
@@ -2109,8 +2136,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           target_column,
       'prediction_type':
           prediction_type,
-      'transform_config':
-          transform_config,
       'learning_rate':
           learning_rate,
       'dnn_learning_rate':
@@ -2163,12 +2188,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           eval_frequency_secs,
       'weight_column':
           weight_column,
-      'stats_and_example_gen_dataflow_machine_type':
-          stats_and_example_gen_dataflow_machine_type,
-      'stats_and_example_gen_dataflow_max_num_workers':
-          stats_and_example_gen_dataflow_max_num_workers,
-      'stats_and_example_gen_dataflow_disk_size_gb':
-          stats_and_example_gen_dataflow_disk_size_gb,
       'transform_dataflow_machine_type':
           transform_dataflow_machine_type,
       'transform_dataflow_max_num_workers':
@@ -2200,21 +2219,47 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+
+  fte_params = {
+      'dataset_level_custom_transformation_definitions':
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions else [],
+      'dataset_level_transformations':
+          dataset_level_transformations
+          if dataset_level_transformations else [],
+      'run_feature_selection':
+          run_feature_selection,
+      'feature_selection_algorithm':
+          feature_selection_algorithm,
+      'max_selected_features':
+          max_selected_features,
+      'predefined_split_key':
+          predefined_split_key,
+      'stratified_split_key':
+          stratified_split_key,
+      'training_fraction':
+          training_fraction,
+      'validation_fraction':
+          validation_fraction,
+      'test_fraction':
+          test_fraction,
+      'tf_auto_transform_features':
+          tf_auto_transform_features if tf_auto_transform_features else [],
+      'tf_custom_transformation_definitions':
+          tf_custom_transformation_definitions
+          if tf_custom_transformation_definitions else [],
+      'tf_transformations_path':
+          tf_transformations_path,
+  }
+  _update_parameters(parameter_values, fte_params)
+
   data_source_and_split_parameters = {
       'data_source_csv_filenames': data_source_csv_filenames,
       'data_source_bigquery_table_path': data_source_bigquery_table_path,
-      'predefined_split_key': predefined_split_key,
-      'timestamp_split_key': timestamp_split_key,
-      'stratified_split_key': stratified_split_key,
-      'training_fraction': training_fraction,
-      'validation_fraction': validation_fraction,
-      'test_fraction': test_fraction
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id,
   }
-  parameter_values.update({
-      param: value
-      for param, value in data_source_and_split_parameters.items()
-      if value is not None
-  })
+  _update_parameters(parameter_values, data_source_and_split_parameters)
+
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'wide_and_deep_trainer_pipeline.json')
@@ -2228,7 +2273,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: str,
     study_spec_metric_id: str,
     study_spec_metric_goal: str,
     study_spec_parameters_override: List[Dict[str, Any]],
@@ -2239,21 +2283,25 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     seed: int = 1,
     eval_steps: int = 0,
     eval_frequency_secs: int = 600,
-    data_source_csv_filenames: Optional[str] = None,
-    data_source_bigquery_table_path: Optional[str] = None,
+    transform_config: Optional[str] = None,
+    dataset_level_custom_transformation_definitions: Optional[List[Dict[
+        str, Any]]] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
     predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
     stratified_split_key: Optional[str] = None,
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
+    tf_transformations_path: Optional[str] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
     weight_column: str = '',
     max_failed_trial_count: int = 0,
     study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
     study_spec_measurement_selection_type: str = 'BEST_MEASUREMENT',
-    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
-    stats_and_example_gen_dataflow_max_num_workers: int = 25,
-    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
@@ -2287,9 +2335,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     prediction_type:
       The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config:
-      The path to a GCS file containing the transformations to
-      apply.
     study_spec_metric_id:
       Metric to optimize, possible values: [
       'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc',
@@ -2319,22 +2364,34 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     eval_frequency_secs:
       Frequency at which evaluation and checkpointing will
       take place.
+    transform_config:
+      Path to v1 TF transformation configuration.
+    dataset_level_custom_transformation_definitions:
+      Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations:
+      Dataset-level transformation configuration in string format.
+    predefined_split_key:
+      Predefined split key.
+    stratified_split_key:
+      Stratified split key.
+    training_fraction:
+      Training fraction.
+    validation_fraction:
+      Validation fraction.
+    test_fraction:
+      Test fraction.
+    tf_auto_transform_features:
+      List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions:
+      TF custom transformation definitions in string format.
+    tf_transformations_path:
+      Path to TF transformation configuration.
     data_source_csv_filenames:
       The CSV data source.
     data_source_bigquery_table_path:
       The BigQuery data source.
-    predefined_split_key:
-      The predefined_split column name.
-    timestamp_split_key:
-      The timestamp_split column name.
-    stratified_split_key:
-      The stratified_split column name.
-    training_fraction:
-      The training fraction.
-    validation_fraction:
-      The validation fraction.
-    test_fraction:
-      The test fraction.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
+      storing intermediate tables.
     weight_column:
       The weight column name.
     max_failed_trial_count:
@@ -2349,15 +2406,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       service automatically selects the final measurement from previously
       reported intermediate measurements. One of "BEST_MEASUREMENT" or
       "LAST_MEASUREMENT".
-    stats_and_example_gen_dataflow_machine_type:
-      The dataflow machine type for
-      stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers:
-      The max number of Dataflow
-      workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb:
-      Dataflow worker's disk size in
-      GB for stats_and_example_gen component.
     transform_dataflow_machine_type:
       The dataflow machine type for transform
       component.
@@ -2418,31 +2466,33 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         root_dir=root_dir,
         target_column=target_column,
         prediction_type=prediction_type,
-        transform_config=transform_config,
         study_spec_metric_id=study_spec_metric_id,
         study_spec_metric_goal=study_spec_metric_goal,
         study_spec_parameters_override=study_spec_parameters_override,
         max_trial_count=max_trial_count,
         parallel_trial_count=parallel_trial_count,
+        transform_config=transform_config,
+        dataset_level_custom_transformation_definitions=dataset_level_custom_transformation_definitions,
+        dataset_level_transformations=dataset_level_transformations,
+        predefined_split_key=predefined_split_key,
+        stratified_split_key=stratified_split_key,
+        training_fraction=training_fraction,
+        validation_fraction=validation_fraction,
+        test_fraction=test_fraction,
+        tf_auto_transform_features=tf_auto_transform_features,
+        tf_custom_transformation_definitions=tf_custom_transformation_definitions,
+        tf_transformations_path=tf_transformations_path,
         enable_profiler=enable_profiler,
         seed=seed,
         eval_steps=eval_steps,
         eval_frequency_secs=eval_frequency_secs,
         data_source_csv_filenames=data_source_csv_filenames,
         data_source_bigquery_table_path=data_source_bigquery_table_path,
-        predefined_split_key=predefined_split_key,
-        timestamp_split_key=timestamp_split_key,
-        stratified_split_key=stratified_split_key,
-        training_fraction=training_fraction,
-        validation_fraction=validation_fraction,
-        test_fraction=test_fraction,
+        bigquery_staging_full_dataset_id=bigquery_staging_full_dataset_id,
         weight_column=weight_column,
         max_failed_trial_count=max_failed_trial_count,
         study_spec_algorithm=study_spec_algorithm,
         study_spec_measurement_selection_type=study_spec_measurement_selection_type,
-        stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
-        stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
-        stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
         transform_dataflow_machine_type=transform_dataflow_machine_type,
         transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
         transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
@@ -2465,31 +2515,33 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         root_dir=root_dir,
         target_column=target_column,
         prediction_type=prediction_type,
-        transform_config=transform_config,
         study_spec_metric_id=study_spec_metric_id,
         study_spec_metric_goal=study_spec_metric_goal,
         study_spec_parameters_override=study_spec_parameters_override,
         max_trial_count=max_trial_count,
         parallel_trial_count=parallel_trial_count,
+        transform_config=transform_config,
+        dataset_level_custom_transformation_definitions=dataset_level_custom_transformation_definitions,
+        dataset_level_transformations=dataset_level_transformations,
+        predefined_split_key=predefined_split_key,
+        stratified_split_key=stratified_split_key,
+        training_fraction=training_fraction,
+        validation_fraction=validation_fraction,
+        test_fraction=test_fraction,
+        tf_auto_transform_features=tf_auto_transform_features,
+        tf_custom_transformation_definitions=tf_custom_transformation_definitions,
+        tf_transformations_path=tf_transformations_path,
         enable_profiler=enable_profiler,
         seed=seed,
         eval_steps=eval_steps,
         eval_frequency_secs=eval_frequency_secs,
         data_source_csv_filenames=data_source_csv_filenames,
         data_source_bigquery_table_path=data_source_bigquery_table_path,
-        predefined_split_key=predefined_split_key,
-        timestamp_split_key=timestamp_split_key,
-        stratified_split_key=stratified_split_key,
-        training_fraction=training_fraction,
-        validation_fraction=validation_fraction,
-        test_fraction=test_fraction,
+        bigquery_staging_full_dataset_id=bigquery_staging_full_dataset_id,
         weight_column=weight_column,
         max_failed_trial_count=max_failed_trial_count,
         study_spec_algorithm=study_spec_algorithm,
         study_spec_measurement_selection_type=study_spec_measurement_selection_type,
-        stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
-        stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
-        stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
         transform_dataflow_machine_type=transform_dataflow_machine_type,
         transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
         transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
@@ -2517,31 +2569,37 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: str,
     study_spec_metric_id: str,
     study_spec_metric_goal: str,
     study_spec_parameters_override: List[Dict[str, Any]],
     max_trial_count: int,
     parallel_trial_count: int,
+    transform_config: Optional[str] = None,
+    dataset_level_custom_transformation_definitions: Optional[List[Dict[
+        str, Any]]] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: bool = False,
+    feature_selection_algorithm: Optional[str] = None,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
+    tf_transformations_path: Optional[str] = None,
     enable_profiler: bool = False,
     seed: int = 1,
     eval_steps: int = 0,
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
-    predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
-    stratified_split_key: Optional[str] = None,
-    training_fraction: Optional[float] = None,
-    validation_fraction: Optional[float] = None,
-    test_fraction: Optional[float] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
     weight_column: str = '',
     max_failed_trial_count: int = 0,
     study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
     study_spec_measurement_selection_type: str = 'BEST_MEASUREMENT',
-    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
-    stats_and_example_gen_dataflow_max_num_workers: int = 25,
-    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
@@ -2564,134 +2622,113 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
   """Get the TabNet HyperparameterTuningJob pipeline.
 
   Args:
-    project:
-      The GCP project that runs the pipeline components.
-    location:
-      The GCP region that runs the pipeline components.
-    root_dir:
-      The root GCS directory for the pipeline components.
-    target_column:
-      The target column name.
-    prediction_type:
-      The type of prediction the model is to produce.
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config:
-      The path to a GCS file containing the transformations to
-      apply.
-    study_spec_metric_id:
-      Metric to optimize, possible values: [
-      'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc',
-      'precision', 'recall'].
-    study_spec_metric_goal:
-      Optimization goal of the metric, possible values:
+    study_spec_metric_id: Metric to optimize, possible values: [ 'loss',
+      'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision',
+      'recall'].
+    study_spec_metric_goal: Optimization goal of the metric, possible values:
       "MAXIMIZE", "MINIMIZE".
-    study_spec_parameters_override:
-      List of dictionaries representing parameters
+    study_spec_parameters_override: List of dictionaries representing parameters
       to optimize. The dictionary key is the parameter_id, which is passed to
       training job as a command line argument, and the dictionary value is the
       parameter specification of the metric.
-    max_trial_count:
-      The desired total number of trials.
-    parallel_trial_count:
-      The desired number of trials to run in parallel.
-    enable_profiler:
-      Enables profiling and saves a trace during evaluation.
-    seed:
-      Seed to be used for this run.
-    eval_steps:
-      Number of steps to run evaluation for. If not specified or
+    max_trial_count: The desired total number of trials.
+    parallel_trial_count: The desired number of trials to run in parallel.
+    transform_config:
+      Path to v1 TF transformation configuration.
+    dataset_level_custom_transformation_definitions:
+      Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations:
+      Dataset-level transformation configuration in string format.
+    run_feature_selection: Whether to enable feature selection.
+    feature_selection_algorithm: Feature selection algorithm.
+    max_selected_features: Maximum number of features to select.
+    predefined_split_key:
+      Predefined split key.
+    stratified_split_key:
+      Stratified split key.
+    training_fraction:
+      Training fraction.
+    validation_fraction:
+      Validation fraction.
+    test_fraction:
+      Test fraction.
+    tf_auto_transform_features:
+      List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions:
+      TF custom transformation definitions in string format.
+    tf_transformations_path:
+      Path to TF transformation configuration.
+    enable_profiler: Enables profiling and saves a trace during evaluation.
+    seed: Seed to be used for this run.
+    eval_steps: Number of steps to run evaluation for. If not specified or
       negative, it means run evaluation on the whole validation dataset. If set
       to 0, it means run evaluation for a fixed number of samples.
-    eval_frequency_secs:
-      Frequency at which evaluation and checkpointing will
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
-    data_source_csv_filenames:
-      The CSV data source.
-    data_source_bigquery_table_path:
-      The BigQuery data source.
-    predefined_split_key:
-      The predefined_split column name.
-    timestamp_split_key:
-      The timestamp_split column name.
-    stratified_split_key:
-      The stratified_split column name.
-    training_fraction:
-      The training fraction.
-    validation_fraction:
-      The validation fraction.
-    test_fraction:
-      The test fraction.
-    weight_column:
-      The weight column name.
-    max_failed_trial_count:
-      The number of failed trials that need to be seen
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
+      storing intermediate tables.
+    weight_column: The weight column name.
+    max_failed_trial_count: The number of failed trials that need to be seen
       before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
       how many trials must fail before the whole job fails.
-    study_spec_algorithm:
-      The search algorithm specified for the study. One of
+    study_spec_algorithm: The search algorithm specified for the study. One of
       "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
-    study_spec_measurement_selection_type:
-      Which measurement to use if/when the
+    study_spec_measurement_selection_type: Which measurement to use if/when the
       service automatically selects the final measurement from previously
       reported intermediate measurements. One of "BEST_MEASUREMENT" or
       "LAST_MEASUREMENT".
-    stats_and_example_gen_dataflow_machine_type:
-      The dataflow machine type for
-      stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers:
-      The max number of Dataflow
-      workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb:
-      Dataflow worker's disk size in
-      GB for stats_and_example_gen component.
-    transform_dataflow_machine_type:
-      The dataflow machine type for transform
+    transform_dataflow_machine_type: The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers:
-      The max number of Dataflow workers for
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb:
-      Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
-    worker_pool_specs_override:
-      The dictionary for overriding training and
-        evaluation worker pool specs. The dictionary should be of format
+    worker_pool_specs_override: The dictionary for overriding training and
+      evaluation worker pool specs. The dictionary should be of format
           https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    run_evaluation:
-      Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type:
-      The prediction server machine type
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count:
-      The initial number of
+    evaluation_batch_predict_starting_replica_count: The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count:
-      The max number of prediction
+    evaluation_batch_predict_max_replica_count: The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type:
-      The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers:
-      The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb:
-      Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       evaluation components.
-    dataflow_service_account:
-      Custom service account to run dataflow jobs.
-    dataflow_subnetwork:
-      Dataflow's fully qualified subnetwork name, when empty
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips:
-      Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name:
-      The KMS key name.
+    encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  if transform_config and tf_transformations_path:
+    raise ValueError(
+        'Only one of transform_config and tf_transformations_path can '
+        'be specified.')
+
+  elif transform_config:
+    warnings.warn(
+        'transform_config parameter is deprecated. '
+        'Please use the flattened transform config arguments instead.')
+    tf_transformations_path = transform_config
+
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
@@ -2706,8 +2743,6 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
           target_column,
       'prediction_type':
           prediction_type,
-      'transform_config':
-          transform_config,
       'study_spec_metric_id':
           study_spec_metric_id,
       'study_spec_metric_goal':
@@ -2734,12 +2769,6 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
           study_spec_algorithm,
       'study_spec_measurement_selection_type':
           study_spec_measurement_selection_type,
-      'stats_and_example_gen_dataflow_machine_type':
-          stats_and_example_gen_dataflow_machine_type,
-      'stats_and_example_gen_dataflow_max_num_workers':
-          stats_and_example_gen_dataflow_max_num_workers,
-      'stats_and_example_gen_dataflow_disk_size_gb':
-          stats_and_example_gen_dataflow_disk_size_gb,
       'transform_dataflow_machine_type':
           transform_dataflow_machine_type,
       'transform_dataflow_max_num_workers':
@@ -2771,25 +2800,51 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+
+  fte_params = {
+      'dataset_level_custom_transformation_definitions':
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions else [],
+      'dataset_level_transformations':
+          dataset_level_transformations
+          if dataset_level_transformations else [],
+      'run_feature_selection':
+          run_feature_selection,
+      'feature_selection_algorithm':
+          feature_selection_algorithm,
+      'max_selected_features':
+          max_selected_features,
+      'predefined_split_key':
+          predefined_split_key,
+      'stratified_split_key':
+          stratified_split_key,
+      'training_fraction':
+          training_fraction,
+      'validation_fraction':
+          validation_fraction,
+      'test_fraction':
+          test_fraction,
+      'tf_auto_transform_features':
+          tf_auto_transform_features if tf_auto_transform_features else [],
+      'tf_custom_transformation_definitions':
+          tf_custom_transformation_definitions
+          if tf_custom_transformation_definitions else [],
+      'tf_transformations_path':
+          tf_transformations_path,
+  }
+  _update_parameters(parameter_values, fte_params)
+
   data_source_and_split_parameters = {
       'data_source_csv_filenames': data_source_csv_filenames,
       'data_source_bigquery_table_path': data_source_bigquery_table_path,
-      'predefined_split_key': predefined_split_key,
-      'timestamp_split_key': timestamp_split_key,
-      'stratified_split_key': stratified_split_key,
-      'training_fraction': training_fraction,
-      'validation_fraction': validation_fraction,
-      'test_fraction': test_fraction
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id
   }
-  parameter_values.update({
-      param: value
-      for param, value in data_source_and_split_parameters.items()
-      if value is not None
-  })
+  _update_parameters(parameter_values, data_source_and_split_parameters)
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'tabnet_hyperparameter_tuning_job_pipeline.json')
+      'tabnet_hyperparameter_tuning_job_pipeline.json'
+  )
 
   return pipeline_definition_path, parameter_values
 
@@ -2800,31 +2855,37 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: str,
     study_spec_metric_id: str,
     study_spec_metric_goal: str,
     study_spec_parameters_override: List[Dict[str, Any]],
     max_trial_count: int,
     parallel_trial_count: int,
+    transform_config: Optional[str] = None,
+    dataset_level_custom_transformation_definitions: Optional[List[Dict[
+        str, Any]]] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: bool = False,
+    feature_selection_algorithm: Optional[str] = None,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
+    tf_transformations_path: Optional[str] = None,
     enable_profiler: bool = False,
     seed: int = 1,
     eval_steps: int = 0,
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
-    predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
-    stratified_split_key: Optional[str] = None,
-    training_fraction: Optional[float] = None,
-    validation_fraction: Optional[float] = None,
-    test_fraction: Optional[float] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
     weight_column: str = '',
     max_failed_trial_count: int = 0,
     study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
     study_spec_measurement_selection_type: str = 'BEST_MEASUREMENT',
-    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
-    stats_and_example_gen_dataflow_max_num_workers: int = 25,
-    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
@@ -2847,134 +2908,113 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
   """Get the Wide & Deep algorithm HyperparameterTuningJob pipeline.
 
   Args:
-    project:
-      The GCP project that runs the pipeline components.
-    location:
-      The GCP region that runs the pipeline components.
-    root_dir:
-      The root GCS directory for the pipeline components.
-    target_column:
-      The target column name.
-    prediction_type:
-      The type of prediction the model is to produce.
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config:
-      The path to a GCS file containing the transformations to
-      apply.
-    study_spec_metric_id:
-      Metric to optimize, possible values: [
-      'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc',
-      'precision', 'recall'].
-    study_spec_metric_goal:
-      Optimization goal of the metric, possible values:
+    study_spec_metric_id: Metric to optimize, possible values: [ 'loss',
+      'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision',
+      'recall'].
+    study_spec_metric_goal: Optimization goal of the metric, possible values:
       "MAXIMIZE", "MINIMIZE".
-    study_spec_parameters_override:
-      List of dictionaries representing parameters
+    study_spec_parameters_override: List of dictionaries representing parameters
       to optimize. The dictionary key is the parameter_id, which is passed to
       training job as a command line argument, and the dictionary value is the
       parameter specification of the metric.
-    max_trial_count:
-      The desired total number of trials.
-    parallel_trial_count:
-      The desired number of trials to run in parallel.
-    enable_profiler:
-      Enables profiling and saves a trace during evaluation.
-    seed:
-      Seed to be used for this run.
-    eval_steps:
-      Number of steps to run evaluation for. If not specified or
+    max_trial_count: The desired total number of trials.
+    parallel_trial_count: The desired number of trials to run in parallel.
+    transform_config:
+      Path to v1 TF transformation configuration.
+    dataset_level_custom_transformation_definitions:
+      Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations:
+      Dataset-level transformation configuration in string format.
+    run_feature_selection: Whether to enable feature selection.
+    feature_selection_algorithm: Feature selection algorithm.
+    max_selected_features: Maximum number of features to select.
+    predefined_split_key:
+      Predefined split key.
+    stratified_split_key:
+      Stratified split key.
+    training_fraction:
+      Training fraction.
+    validation_fraction:
+      Validation fraction.
+    test_fraction:
+      Test fraction.
+    tf_auto_transform_features:
+      List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions:
+      TF custom transformation definitions in string format.
+    tf_transformations_path:
+      Path to TF transformation configuration.
+    enable_profiler: Enables profiling and saves a trace during evaluation.
+    seed: Seed to be used for this run.
+    eval_steps: Number of steps to run evaluation for. If not specified or
       negative, it means run evaluation on the whole validation dataset. If set
       to 0, it means run evaluation for a fixed number of samples.
-    eval_frequency_secs:
-      Frequency at which evaluation and checkpointing will
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
-    data_source_csv_filenames:
-      The CSV data source.
-    data_source_bigquery_table_path:
-      The BigQuery data source.
-    predefined_split_key:
-      The predefined_split column name.
-    timestamp_split_key:
-      The timestamp_split column name.
-    stratified_split_key:
-      The stratified_split column name.
-    training_fraction:
-      The training fraction.
-    validation_fraction:
-      The validation fraction.
-    test_fraction:
-      The test fraction.
-    weight_column:
-      The weight column name.
-    max_failed_trial_count:
-      The number of failed trials that need to be seen
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
+      storing intermediate tables.
+    weight_column: The weight column name.
+    max_failed_trial_count: The number of failed trials that need to be seen
       before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
       how many trials must fail before the whole job fails.
-    study_spec_algorithm:
-      The search algorithm specified for the study. One of
+    study_spec_algorithm: The search algorithm specified for the study. One of
       "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
-    study_spec_measurement_selection_type:
-      Which measurement to use if/when the
+    study_spec_measurement_selection_type: Which measurement to use if/when the
       service automatically selects the final measurement from previously
       reported intermediate measurements. One of "BEST_MEASUREMENT" or
       "LAST_MEASUREMENT".
-    stats_and_example_gen_dataflow_machine_type:
-      The dataflow machine type for
-      stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers:
-      The max number of Dataflow
-      workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb:
-      Dataflow worker's disk size in
-      GB for stats_and_example_gen component.
-    transform_dataflow_machine_type:
-      The dataflow machine type for transform
+    transform_dataflow_machine_type: The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers:
-      The max number of Dataflow workers for
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb:
-      Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
-    worker_pool_specs_override:
-      The dictionary for overriding training and
-        evaluation worker pool specs. The dictionary should be of format
+    worker_pool_specs_override: The dictionary for overriding training and
+      evaluation worker pool specs. The dictionary should be of format
           https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    run_evaluation:
-      Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type:
-      The prediction server machine type
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count:
-      The initial number of
+    evaluation_batch_predict_starting_replica_count: The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count:
-      The max number of prediction
+    evaluation_batch_predict_max_replica_count: The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type:
-      The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers:
-      The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb:
-      Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       evaluation components.
-    dataflow_service_account:
-      Custom service account to run dataflow jobs.
-    dataflow_subnetwork:
-      Dataflow's fully qualified subnetwork name, when empty
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips:
-      Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name:
-      The KMS key name.
+    encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  if transform_config and tf_transformations_path:
+    raise ValueError(
+        'Only one of transform_config and tf_transformations_path can '
+        'be specified.')
+
+  elif transform_config:
+    warnings.warn(
+        'transform_config parameter is deprecated. '
+        'Please use the flattened transform config arguments instead.')
+    tf_transformations_path = transform_config
+
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
@@ -2989,8 +3029,6 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
           target_column,
       'prediction_type':
           prediction_type,
-      'transform_config':
-          transform_config,
       'study_spec_metric_id':
           study_spec_metric_id,
       'study_spec_metric_goal':
@@ -3017,12 +3055,6 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
           study_spec_algorithm,
       'study_spec_measurement_selection_type':
           study_spec_measurement_selection_type,
-      'stats_and_example_gen_dataflow_machine_type':
-          stats_and_example_gen_dataflow_machine_type,
-      'stats_and_example_gen_dataflow_max_num_workers':
-          stats_and_example_gen_dataflow_max_num_workers,
-      'stats_and_example_gen_dataflow_disk_size_gb':
-          stats_and_example_gen_dataflow_disk_size_gb,
       'transform_dataflow_machine_type':
           transform_dataflow_machine_type,
       'transform_dataflow_max_num_workers':
@@ -3054,25 +3086,51 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+
+  fte_params = {
+      'dataset_level_custom_transformation_definitions':
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions else [],
+      'dataset_level_transformations':
+          dataset_level_transformations
+          if dataset_level_transformations else [],
+      'run_feature_selection':
+          run_feature_selection,
+      'feature_selection_algorithm':
+          feature_selection_algorithm,
+      'max_selected_features':
+          max_selected_features,
+      'predefined_split_key':
+          predefined_split_key,
+      'stratified_split_key':
+          stratified_split_key,
+      'training_fraction':
+          training_fraction,
+      'validation_fraction':
+          validation_fraction,
+      'test_fraction':
+          test_fraction,
+      'tf_auto_transform_features':
+          tf_auto_transform_features if tf_auto_transform_features else [],
+      'tf_custom_transformation_definitions':
+          tf_custom_transformation_definitions
+          if tf_custom_transformation_definitions else [],
+      'tf_transformations_path':
+          tf_transformations_path,
+  }
+  _update_parameters(parameter_values, fte_params)
+
   data_source_and_split_parameters = {
       'data_source_csv_filenames': data_source_csv_filenames,
       'data_source_bigquery_table_path': data_source_bigquery_table_path,
-      'predefined_split_key': predefined_split_key,
-      'timestamp_split_key': timestamp_split_key,
-      'stratified_split_key': stratified_split_key,
-      'training_fraction': training_fraction,
-      'validation_fraction': validation_fraction,
-      'test_fraction': test_fraction
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id,
   }
-  parameter_values.update({
-      param: value
-      for param, value in data_source_and_split_parameters.items()
-      if value is not None
-  })
+  _update_parameters(parameter_values, data_source_and_split_parameters)
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'wide_and_deep_hyperparameter_tuning_job_pipeline.json')
+      'wide_and_deep_hyperparameter_tuning_job_pipeline.json'
+  )
 
   return pipeline_definition_path, parameter_values
 
@@ -3083,8 +3141,22 @@ def get_tabnet_trainer_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: str,
     learning_rate: float,
+    transform_config: Optional[str] = None,
+    dataset_level_custom_transformation_definitions: Optional[List[Dict[
+        str, Any]]] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: bool = False,
+    feature_selection_algorithm: Optional[str] = None,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
+    tf_transformations_path: Optional[str] = None,
     max_steps: int = -1,
     max_train_secs: int = -1,
     large_category_dim: int = 1,
@@ -3113,31 +3185,19 @@ def get_tabnet_trainer_pipeline_and_parameters(
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
-    predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
-    stratified_split_key: Optional[str] = None,
-    training_fraction: Optional[float] = None,
-    validation_fraction: Optional[float] = None,
-    test_fraction: Optional[float] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
     weight_column: str = '',
-    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
-    stats_and_example_gen_dataflow_max_num_workers: int = 25,
-    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
     worker_pool_specs_override: Optional[Dict[str, Any]] = None,
     run_evaluation: bool = True,
-    evaluation_batch_predict_machine_type:
-    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
-    evaluation_batch_predict_starting_replica_count:
-    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
-    evaluation_batch_predict_max_replica_count:
-    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
-    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
-    evaluation_dataflow_max_num_workers:
-    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
-    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
+    evaluation_batch_predict_starting_replica_count: int = 25,
+    evaluation_batch_predict_max_replica_count: int = 25,
+    evaluation_dataflow_machine_type: str = 'n1-standard-4',
+    evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_disk_size_gb: int = 50,
     dataflow_service_account: str = '',
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
@@ -3156,11 +3216,33 @@ def get_tabnet_trainer_pipeline_and_parameters(
     prediction_type:
       The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config:
-      The path to a GCS file containing the transformations to
-      apply.
     learning_rate:
       The learning rate used by the linear optimizer.
+    transform_config:
+      Path to v1 TF transformation configuration.
+    dataset_level_custom_transformation_definitions:
+      Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations:
+      Dataset-level transformation configuration in string format.
+    run_feature_selection: Whether to enable feature selection.
+    feature_selection_algorithm: Feature selection algorithm.
+    max_selected_features: Maximum number of features to select.
+    predefined_split_key:
+      Predefined split key.
+    stratified_split_key:
+      Stratified split key.
+    training_fraction:
+      Training fraction.
+    validation_fraction:
+      Validation fraction.
+    test_fraction:
+      Test fraction.
+    tf_auto_transform_features:
+      List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions:
+      TF custom transformation definitions in string format.
+    tf_transformations_path:
+      Path to TF transformation configuration.
     max_steps:
       Number of steps to run the trainer for.
     max_train_secs:
@@ -3241,29 +3323,10 @@ def get_tabnet_trainer_pipeline_and_parameters(
       The CSV data source.
     data_source_bigquery_table_path:
       The BigQuery data source.
-    predefined_split_key:
-      The predefined_split column name.
-    timestamp_split_key:
-      The timestamp_split column name.
-    stratified_split_key:
-      The stratified_split column name.
-    training_fraction:
-      The training fraction.
-    validation_fraction:
-      The validation fraction.
-    test_fraction:
-      The test fraction.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
+      storing intermediate tables.
     weight_column:
       The weight column name.
-    stats_and_example_gen_dataflow_machine_type:
-      The dataflow machine type for
-      stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers:
-      The max number of Dataflow
-      workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb:
-      Dataflow worker's disk size in
-      GB for stats_and_example_gen component.
     transform_dataflow_machine_type:
       The dataflow machine type for transform
       component.
@@ -3312,6 +3375,17 @@ def get_tabnet_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  if transform_config and tf_transformations_path:
+    raise ValueError(
+        'Only one of transform_config and tf_transformations_path can '
+        'be specified.')
+
+  elif transform_config:
+    warnings.warn(
+        'transform_config parameter is deprecated. '
+        'Please use the flattened transform config arguments instead.')
+    tf_transformations_path = transform_config
+
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
@@ -3326,8 +3400,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
           target_column,
       'prediction_type':
           prediction_type,
-      'transform_config':
-          transform_config,
       'learning_rate':
           learning_rate,
       'max_steps':
@@ -3384,12 +3456,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
           eval_frequency_secs,
       'weight_column':
           weight_column,
-      'stats_and_example_gen_dataflow_machine_type':
-          stats_and_example_gen_dataflow_machine_type,
-      'stats_and_example_gen_dataflow_max_num_workers':
-          stats_and_example_gen_dataflow_max_num_workers,
-      'stats_and_example_gen_dataflow_disk_size_gb':
-          stats_and_example_gen_dataflow_disk_size_gb,
       'transform_dataflow_machine_type':
           transform_dataflow_machine_type,
       'transform_dataflow_max_num_workers':
@@ -3421,21 +3487,47 @@ def get_tabnet_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+
+  fte_params = {
+      'dataset_level_custom_transformation_definitions':
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions else [],
+      'dataset_level_transformations':
+          dataset_level_transformations
+          if dataset_level_transformations else [],
+      'run_feature_selection':
+          run_feature_selection,
+      'feature_selection_algorithm':
+          feature_selection_algorithm,
+      'max_selected_features':
+          max_selected_features,
+      'predefined_split_key':
+          predefined_split_key,
+      'stratified_split_key':
+          stratified_split_key,
+      'training_fraction':
+          training_fraction,
+      'validation_fraction':
+          validation_fraction,
+      'test_fraction':
+          test_fraction,
+      'tf_auto_transform_features':
+          tf_auto_transform_features if tf_auto_transform_features else [],
+      'tf_custom_transformation_definitions':
+          tf_custom_transformation_definitions
+          if tf_custom_transformation_definitions else [],
+      'tf_transformations_path':
+          tf_transformations_path,
+  }
+  _update_parameters(parameter_values, fte_params)
+
   data_source_and_split_parameters = {
       'data_source_csv_filenames': data_source_csv_filenames,
       'data_source_bigquery_table_path': data_source_bigquery_table_path,
-      'predefined_split_key': predefined_split_key,
-      'timestamp_split_key': timestamp_split_key,
-      'stratified_split_key': stratified_split_key,
-      'training_fraction': training_fraction,
-      'validation_fraction': validation_fraction,
-      'test_fraction': test_fraction
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id
   }
-  parameter_values.update({
-      param: value
-      for param, value in data_source_and_split_parameters.items()
-      if value is not None
-  })
+  _update_parameters(parameter_values, data_source_and_split_parameters)
+
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'tabnet_trainer_pipeline.json')
 

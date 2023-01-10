@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-task-final-status-yaml
+# Inputs:
+#    message: str [Default: 'Hello World!']
 components:
   comp-exit-handler-1:
     dag:
@@ -22,6 +26,7 @@ components:
     inputDefinitions:
       parameters:
         status:
+          isOptional: true
           parameterType: STRUCT
         user_input:
           parameterType: STRING
@@ -84,6 +89,7 @@ root:
     parameters:
       message:
         defaultValue: Hello World!
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

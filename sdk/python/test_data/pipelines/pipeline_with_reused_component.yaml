@@ -1,3 +1,8 @@
+# PIPELINE DEFINITION
+# Name: add-pipeline
+# Inputs:
+#    a: int [Default: 2.0]
+#    b: int [Default: 5.0]
 components:
   comp-add:
     executorLabel: exec-add
@@ -138,9 +143,11 @@ root:
     parameters:
       a:
         defaultValue: 2.0
+        isOptional: true
         parameterType: NUMBER_INTEGER
       b:
         defaultValue: 5.0
+        isOptional: true
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

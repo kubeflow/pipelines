@@ -24,6 +24,7 @@ from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job import remote_runner as hyperparameter_tuning_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 
@@ -33,25 +34,57 @@ import requests
 import google.auth
 import google.auth.transport.requests
 
+_SYSTEM_LABELS = {"key1": "value1", "key2": "value2"}
+
 
 class HyperparameterTuningJobRemoteRunnerUtilsTests(unittest.TestCase):
 
   def setUp(self):
     super(HyperparameterTuningJobRemoteRunnerUtilsTests, self).setUp()
-    self._payload = (
-        '{"display_name": "HPTuningJob", "study_spec": {"metrics": '
-        '{"accuracy": "maximize"}, "parameters": {"parameterId": '
-        '"learning_rate", "doubleValueSpec": {"minValue": 0.001, "maxValue": '
-        '1.0}, "scaleType": 2, "conditionalParameterSpecs": []}, "algorithm": '
-        '"ALGORITHM_UNSPECIFIED", "measurement_selection_type": '
-        '"BEST_MEASUREMENT"}, "max_trial_count": 10.0, "parallel_trial_count":'
-        ' 3.0, "max_failed_trial_count": 0.0, "trial_job_spec": '
-        '{"worker_pool_specs": [{"container_spec": {"image_uri": '
-        '"gcr.io/project_id/test"}, "machine_spec": {"accelerator_count": 1.0,'
-        ' "accelerator_type": "NVIDIA_TESLA_T4", "machine_type": '
-        '"n1-standard-4"}, "replica_count": 1.0}], "service_account": "", '
-        '"network": "", "base_output_directory": "gs://my-bucket/blob"}, '
-        '"encryption_spec": {"kms_key_name": ""}}')
+    os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
+        _SYSTEM_LABELS)
+    self._payload = json.dumps({
+        "display_name": "HPTuningJob",
+        "study_spec": {
+            "metrics": {
+                "accuracy": "maximize"
+            },
+            "parameters": {
+                "parameterId": "learning_rate",
+                "doubleValueSpec": {
+                    "minValue": 0.001,
+                    "maxValue": 1.0
+                },
+                "scaleType": 2,
+                "conditionalParameterSpecs": []
+            },
+            "algorithm": "ALGORITHM_UNSPECIFIED",
+            "measurement_selection_type": "BEST_MEASUREMENT"
+        },
+        "max_trial_count": 10.0,
+        "parallel_trial_count": 3.0,
+        "max_failed_trial_count": 0.0,
+        "trial_job_spec": {
+            "worker_pool_specs": [{
+                "container_spec": {
+                    "image_uri": "gcr.io/project_id/test"
+                },
+                "machine_spec": {
+                    "accelerator_count": 1.0,
+                    "accelerator_type": "NVIDIA_TESLA_T4",
+                    "machine_type": "n1-standard-4"
+                },
+                "replica_count": 1.0
+            }],
+            "service_account": "",
+            "network": "",
+            "base_output_directory": "gs://my-bucket/blob"
+        },
+        "encryption_spec": {
+            "kms_key_name": ""
+        }
+    })
+
     self._project = "test_project"
     self._location = "test_region"
     self._hptuning_job_name = f"/projects/{self._project}/locations/{self._location}/hyperparameterTuningJobs/test_job_id"
@@ -114,6 +147,7 @@ class HyperparameterTuningJobRemoteRunnerUtilsTests(unittest.TestCase):
     expected_parent = f"projects/{self._project}/locations/{self._location}"
     expected_job_spec = json_util.recursive_remove_empty(
         json.loads(self._payload, strict=False))
+    expected_job_spec["labels"] = _SYSTEM_LABELS
 
     job_client.create_hyperparameter_tuning_job.assert_called_once_with(
         parent=expected_parent, hyperparameter_tuning_job=expected_job_spec)

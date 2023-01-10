@@ -15,9 +15,20 @@
 
 from google.api_core import retry
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 
+import json
+
 _CUSTOM_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
+LABELS_PAYLOAD_KEY = 'labels'
+
+
+def insert_system_labels_into_payload(payload):
+  job_spec = json.loads(payload)
+  job_spec[LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+      job_spec[LABELS_PAYLOAD_KEY] if LABELS_PAYLOAD_KEY in job_spec else {})
+  return json.dumps(job_spec)
 
 
 def create_custom_job_with_client(job_client, parent, job_spec):
@@ -71,8 +82,9 @@ def create_custom_job(
     # Create custom job if it does not exist
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
-      job_name = remote_runner.create_job(create_custom_job_with_client,
-                                          payload)
+      job_name = remote_runner.create_job(
+          create_custom_job_with_client,
+          insert_system_labels_into_payload(payload))
 
     # Poll custom job status until "JobState.JOB_STATE_SUCCEEDED"
     remote_runner.poll_job(get_custom_job_with_client, job_name)
