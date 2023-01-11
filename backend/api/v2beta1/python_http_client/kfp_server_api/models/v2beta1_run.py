@@ -49,7 +49,6 @@ class V2beta1Run(object):
         'error': 'GooglerpcStatus',
         'run_details': 'V2beta1RunDetails',
         'recurring_run_id': 'str',
-        'recurring_run_name': 'str',
         'state_history': 'list[V2beta1RuntimeStatus]'
     }
 
@@ -70,11 +69,10 @@ class V2beta1Run(object):
         'error': 'error',
         'run_details': 'run_details',
         'recurring_run_id': 'recurring_run_id',
-        'recurring_run_name': 'recurring_run_name',
         'state_history': 'state_history'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, recurring_run_name=None, state_history=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -96,7 +94,6 @@ class V2beta1Run(object):
         self._error = None
         self._run_details = None
         self._recurring_run_id = None
-        self._recurring_run_name = None
         self._state_history = None
         self.discriminator = None
 
@@ -132,8 +129,6 @@ class V2beta1Run(object):
             self.run_details = run_details
         if recurring_run_id is not None:
             self.recurring_run_id = recurring_run_id
-        if recurring_run_name is not None:
-            self.recurring_run_name = recurring_run_name
         if state_history is not None:
             self.state_history = state_history
 
@@ -254,7 +249,7 @@ class V2beta1Run(object):
     def pipeline_version_id(self):
         """Gets the pipeline_version_id of this V2beta1Run.  # noqa: E501
 
-        ID of existing pipeline version.  # noqa: E501
+        ID of an existing pipeline version.  # noqa: E501
 
         :return: The pipeline_version_id of this V2beta1Run.  # noqa: E501
         :rtype: str
@@ -265,7 +260,7 @@ class V2beta1Run(object):
     def pipeline_version_id(self, pipeline_version_id):
         """Sets the pipeline_version_id of this V2beta1Run.
 
-        ID of existing pipeline version.  # noqa: E501
+        ID of an existing pipeline version.  # noqa: E501
 
         :param pipeline_version_id: The pipeline_version_id of this V2beta1Run.  # noqa: E501
         :type pipeline_version_id: str
@@ -494,27 +489,6 @@ class V2beta1Run(object):
         """
 
         self._recurring_run_id = recurring_run_id
-
-    @property
-    def recurring_run_name(self):
-        """Gets the recurring_run_name of this V2beta1Run.  # noqa: E501
-
-
-        :return: The recurring_run_name of this V2beta1Run.  # noqa: E501
-        :rtype: str
-        """
-        return self._recurring_run_name
-
-    @recurring_run_name.setter
-    def recurring_run_name(self, recurring_run_name):
-        """Sets the recurring_run_name of this V2beta1Run.
-
-
-        :param recurring_run_name: The recurring_run_name of this V2beta1Run.  # noqa: E501
-        :type recurring_run_name: str
-        """
-
-        self._recurring_run_name = recurring_run_name
 
     @property
     def state_history(self):

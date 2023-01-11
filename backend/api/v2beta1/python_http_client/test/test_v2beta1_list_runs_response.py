@@ -41,7 +41,7 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                         experiment_id = '0', 
                         run_id = '0', 
                         display_name = '0', 
-                        storage_state = 'STORAGESTATE_UNSPECIFIED', 
+                        storage_state = 'STORAGE_STATE_UNSPECIFIED', 
                         description = '0', 
                         pipeline_version_id = '0', 
                         pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
@@ -54,7 +54,7 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                         created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         scheduled_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         finished_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                        state = 'RUNTIMESTATE_UNSPECIFIED', 
+                        state = 'RUNTIME_STATE_UNSPECIFIED', 
                         error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                             code = 56, 
                             message = '0', 
@@ -100,7 +100,6 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                         ], )
                                 ], ), 
                         recurring_run_id = '0', 
-                        recurring_run_name = '0', 
                         state_history = [
                             kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                                 update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), )

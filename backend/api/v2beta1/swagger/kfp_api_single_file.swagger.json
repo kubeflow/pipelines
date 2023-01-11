@@ -2232,7 +2232,7 @@
         },
         "pipeline_version_id": {
           "type": "string",
-          "description": "ID of existing pipeline version."
+          "description": "ID of an existing pipeline version."
         },
         "pipeline_spec": {
           "type": "object",
@@ -2276,10 +2276,6 @@
         "recurring_run_id": {
           "type": "string",
           "description": "ID of the recurring run that triggered this run."
-        },
-        "recurring_run_name": {
-          "type": "string",
-          "title": "Name of the recurring run that triggered this run"
         },
         "state_history": {
           "type": "array",
@@ -2343,17 +2339,17 @@
     "v2beta1RunStorageState": {
       "type": "string",
       "enum": [
-        "STORAGESTATE_UNSPECIFIED",
+        "STORAGE_STATE_UNSPECIFIED",
         "AVAILABLE",
         "ARCHIVED"
       ],
-      "default": "STORAGESTATE_UNSPECIFIED",
-      "description": "Describes whether an entity is available or archived.\n\n - STORAGESTATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
+      "default": "STORAGE_STATE_UNSPECIFIED",
+      "description": "Describes whether an entity is available or archived.\n\n - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },
     "v2beta1RuntimeState": {
       "type": "string",
       "enum": [
-        "RUNTIMESTATE_UNSPECIFIED",
+        "RUNTIME_STATE_UNSPECIFIED",
         "PENDING",
         "RUNNING",
         "SUCCEEDED",
@@ -2363,8 +2359,8 @@
         "CANCELED",
         "PAUSED"
       ],
-      "default": "RUNTIMESTATE_UNSPECIFIED",
-      "description": "Describes the runtime state of an entity.\n\n - RUNTIMESTATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - SKIPPED: Entity has been skipped. For example, due to caching.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
+      "default": "RUNTIME_STATE_UNSPECIFIED",
+      "description": "Describes the runtime state of an entity.\n\n - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - SKIPPED: Entity has been skipped. For example, due to caching.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
     },
     "v2beta1RuntimeStatus": {
       "type": "object",

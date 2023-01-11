@@ -16,7 +16,7 @@ import (
 
 // V2beta1RunStorageState Describes whether an entity is available or archived.
 //
-//  - STORAGESTATE_UNSPECIFIED: Default state. This state in not used
+//  - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used
 //  - AVAILABLE: Entity is available.
 //  - ARCHIVED: Entity is archived.
 // swagger:model v2beta1RunStorageState
@@ -24,8 +24,8 @@ type V2beta1RunStorageState string
 
 const (
 
-	// V2beta1RunStorageStateSTORAGESTATEUNSPECIFIED captures enum value "STORAGESTATE_UNSPECIFIED"
-	V2beta1RunStorageStateSTORAGESTATEUNSPECIFIED V2beta1RunStorageState = "STORAGESTATE_UNSPECIFIED"
+	// V2beta1RunStorageStateSTORAGESTATEUNSPECIFIED captures enum value "STORAGE_STATE_UNSPECIFIED"
+	V2beta1RunStorageStateSTORAGESTATEUNSPECIFIED V2beta1RunStorageState = "STORAGE_STATE_UNSPECIFIED"
 
 	// V2beta1RunStorageStateAVAILABLE captures enum value "AVAILABLE"
 	V2beta1RunStorageStateAVAILABLE V2beta1RunStorageState = "AVAILABLE"
@@ -39,7 +39,7 @@ var v2beta1RunStorageStateEnum []interface{}
 
 func init() {
 	var res []V2beta1RunStorageState
-	if err := json.Unmarshal([]byte(`["STORAGESTATE_UNSPECIFIED","AVAILABLE","ARCHIVED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["STORAGE_STATE_UNSPECIFIED","AVAILABLE","ARCHIVED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

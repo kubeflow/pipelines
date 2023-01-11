@@ -148,7 +148,7 @@ message Run {
   // Describes whether an entity is available or archived.
   enum StorageState {
     // Default state. This state in not used
-    STORAGESTATE_UNSPECIFIED = 0;
+    STORAGE_STATE_UNSPECIFIED = 0;
 
     // Entity is available.
     AVAILABLE = 1;
@@ -166,7 +166,7 @@ message Run {
   // Required input. Specifies the source of the pipeline spec for this 
   // run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
-    // ID of existing pipeline version.
+    // ID of an existing pipeline version.
     string pipeline_version_id = 6;
 
     // Pipeline spec.
@@ -204,18 +204,15 @@ message Run {
   // ID of the recurring run that triggered this run.
   string recurring_run_id = 16;
 
-  // Name of the recurring run that triggered this run
-  string recurring_run_name = 17;
-
   // Output. A sequence of run statuses. This field keeps a record 
   // of state transitions.
-  repeated RuntimeStatus state_history = 18;
+  repeated RuntimeStatus state_history = 17;
 }
 
 // Describes the runtime state of an entity.
 enum RuntimeState {
   // Default value. This value is not used.
-  RUNTIMESTATE_UNSPECIFIED = 0;
+  RUNTIME_STATE_UNSPECIFIED = 0;
 
   // Service is preparing to execute an entity.
   PENDING = 1;
