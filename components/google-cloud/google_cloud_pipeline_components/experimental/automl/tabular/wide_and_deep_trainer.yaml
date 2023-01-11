@@ -77,6 +77,9 @@ description: |
             Beta 2 value for dnn_optimizer_type="adam".
         enable_profiler (Optional[bool]):
             Enables profiling and saves a trace during evaluation.
+        cache_data (Optional[str]):
+            Whether to cache data or not. If set to 'auto', caching is
+            determined based on the dataset size.
         seed (Optional[int]):
             Seed to be used for this run.
         eval_steps (Optional[int]):
@@ -91,6 +94,8 @@ description: |
         training_machine_spec (Optional[Dict[str, Any]]):
             The training machine spec.
             See https://cloud.google.com/compute/docs/machine-types for options.
+        training_disk_spec (Optional[Dict[str, Any]]):
+            The training disk spec.
         instance_baseline (AutoMLTabularInstanceBaseline):
             The path to a JSON file for baseline values.
         metadata (TabularExampleGenMetadata):
@@ -139,11 +144,13 @@ inputs:
   - { name: dnn_beta_1, type: Float, default: 0.9 }
   - { name: dnn_beta_2, type: Float, default: 0.999 }
   - { name: enable_profiler, type: Boolean, default: "false" }
+  - { name: cache_data, type: String, default: "auto" }
   - { name: seed, type: Integer, default: 1 }
   - { name: eval_steps, type: Integer, default: 0 }
   - { name: batch_size, type: Integer, default: 100 }
   - { name: eval_frequency_secs, type: Integer, default: 600 }
   - { name: training_machine_spec, type: JsonObject, default: '{"machine_type": "c2-standard-16"}' }
+  - { name: training_disk_spec, type: JsonObject, default: '{"boot_disk_type": "pd-ssd", "boot_disk_size_gb": 100}' }
   - { name: instance_baseline, type: AutoMLTabularInstanceBaseline }
   - { name: metadata, type: TabularExampleGenMetadata }
   - { name: materialized_train_split, type: MaterializedSplit }
@@ -173,8 +180,10 @@ implementation:
           '1',
           '", "machine_spec": ',
           { inputValue: training_machine_spec },
+          ', "disk_spec": ',
+          { inputValue: training_disk_spec },
           ', "container_spec": {"image_uri":"',
-          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20221216_0001_RC00',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20230110_1125_RC00',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -182,7 +191,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20221216_0001_RC00',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230110_1125_RC00',
           '", "--baseline_path=',
           { inputUri: instance_baseline },
           '", "--metadata_path=',
@@ -239,6 +248,8 @@ implementation:
           { inputValue: dnn_beta_2 },
           '", "--enable_profiler=',
           { inputValue: enable_profiler },
+          '", "--cache_data=',
+          { inputValue: cache_data },
           '", "--seed=',
           { inputValue: seed },
           '", "--eval_steps=',
