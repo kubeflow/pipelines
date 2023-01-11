@@ -944,8 +944,7 @@ class ComponentSpec:
 
         if pipeline_outputs:
             builder._build_dag_outputs(
-                component_spec=pipeline_spec.root,
-                dag_outputs=list(pipeline_outputs.values())[0])
+                component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group

@@ -444,6 +444,14 @@ def _build_dag_outputs(
                     output_name=output_name,
                     output_channel=output_channel,
                 )
+        elif isinstance(dag_outputs, dict):
+            for output_name, output_channel in dag_outputs.items():
+                _connect_dag_outputs(
+                    component_spec=component_spec,
+                    output_name=output_name,
+                    output_channel=output_channel,
+                )
+
     # Valid dag outputs covers all outptus in component definition.
     for output_name in component_spec.output_definitions.artifacts:
         if output_name not in component_spec.dag.outputs.artifacts:
