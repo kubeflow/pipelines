@@ -1922,6 +1922,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     dnn_beta_1: float = 0.9,
     dnn_beta_2: float = 0.999,
     enable_profiler: bool = False,
+    cache_data: str = 'auto',
     seed: int = 1,
     eval_steps: int = 0,
     batch_size: int = 100,
@@ -2044,6 +2045,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       Beta 2 value for dnn_optimizer_type="adam".
     enable_profiler:
       Enables profiling and saves a trace during evaluation.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is
+      determined based on the dataset size.
     seed:
       Seed to be used for this run.
     eval_steps:
@@ -2178,6 +2181,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           dnn_beta_2,
       'enable_profiler':
           enable_profiler,
+      'cache_data':
+          cache_data,
       'seed':
           seed,
       'eval_steps':
@@ -2590,6 +2595,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     enable_profiler: bool = False,
+    cache_data: str = 'auto',
     seed: int = 1,
     eval_steps: int = 0,
     eval_frequency_secs: int = 600,
@@ -2665,6 +2671,8 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     tf_transformations_path:
       Path to TF transformation configuration.
     enable_profiler: Enables profiling and saves a trace during evaluation.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is
+      determined based on the dataset size.
     seed: Seed to be used for this run.
     eval_steps: Number of steps to run evaluation for. If not specified or
       negative, it means run evaluation on the whole validation dataset. If set
@@ -2755,6 +2763,8 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
           parallel_trial_count,
       'enable_profiler':
           enable_profiler,
+      'cache_data':
+          cache_data,
       'seed':
           seed,
       'eval_steps':
@@ -2876,6 +2886,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     enable_profiler: bool = False,
+    cache_data: str = 'auto',
     seed: int = 1,
     eval_steps: int = 0,
     eval_frequency_secs: int = 600,
@@ -2951,6 +2962,8 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     tf_transformations_path:
       Path to TF transformation configuration.
     enable_profiler: Enables profiling and saves a trace during evaluation.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is
+      determined based on the dataset size.
     seed: Seed to be used for this run.
     eval_steps: Number of steps to run evaluation for. If not specified or
       negative, it means run evaluation on the whole validation dataset. If set
@@ -3041,6 +3054,8 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
           parallel_trial_count,
       'enable_profiler':
           enable_profiler,
+      'cache_data':
+          cache_data,
       'seed':
           seed,
       'eval_steps':
@@ -3179,6 +3194,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     alpha_focal_loss: float = 0.25,
     gamma_focal_loss: float = 2.0,
     enable_profiler: bool = False,
+    cache_data: str = 'auto',
     seed: int = 1,
     eval_steps: int = 0,
     batch_size: int = 100,
@@ -3308,6 +3324,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
       loss. Only used for classification.
     enable_profiler:
       Enables profiling and saves a trace during evaluation.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is
+      determined based on the dataset size.
     seed:
       Seed to be used for this run.
     eval_steps:
@@ -3446,6 +3464,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           gamma_focal_loss,
       'enable_profiler':
           enable_profiler,
+      'cache_data':
+          cache_data,
       'seed':
           seed,
       'eval_steps':
@@ -3632,6 +3652,22 @@ def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
   param_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'configs/wide_and_deep_params.json')
+  with open(param_path, 'r') as f:
+    param_content = f.read()
+    params = json.loads(param_content)
+
+  return params
+
+
+def get_xgboost_study_spec_parameters_override() -> List[Dict[str, Any]]:
+  """Get study_spec_parameters_override for an XGBoost hyperparameter tuning job.
+
+  Returns:
+    List of study_spec_parameters_override.
+  """
+  param_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'configs/xgboost_params.json')
   with open(param_path, 'r') as f:
     param_content = f.read()
     params = json.loads(param_content)
