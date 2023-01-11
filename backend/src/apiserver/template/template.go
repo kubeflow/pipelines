@@ -23,8 +23,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -127,15 +125,6 @@ func New(bytes []byte) (Template, error) {
 	}
 }
 
-func toParametersMap(apiParams []*apiv1beta1.Parameter) map[string]string {
-	// Preprocess workflow by appending parameter and add pipeline specific labels
-	desiredParamsMap := make(map[string]string)
-	for _, param := range apiParams {
-		desiredParamsMap[param.Name] = param.Value
-	}
-	return desiredParamsMap
-}
-
 func modelToParametersMap(modelParameters string) (map[string]string, error) {
 	var paramsMapList []*map[string]string
 	desiredParamsMap := make(map[string]string)
@@ -209,18 +198,6 @@ func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 	return util.Truncate(processedName, 25), nil
 }
 
-func toCRDParametersV1(apiParams []*apiv1beta1.Parameter) []scheduledworkflow.Parameter {
-	var swParams []scheduledworkflow.Parameter
-	for _, apiParam := range apiParams {
-		swParam := scheduledworkflow.Parameter{
-			Name:  apiParam.Name,
-			Value: apiParam.Value,
-		}
-		swParams = append(swParams, swParam)
-	}
-	return swParams
-}
-
 func toCRDParameters(apiParams map[string]*structpb.Value) []scheduledworkflow.Parameter {
 	var swParams []scheduledworkflow.Parameter
 	for name, value := range apiParams {
@@ -231,26 +208,6 @@ func toCRDParameters(apiParams map[string]*structpb.Value) []scheduledworkflow.P
 		swParams = append(swParams, swParam)
 	}
 	return swParams
-}
-
-func toPipelineJobRuntimeConfigV1(apiRuntimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
-	if apiRuntimeConfig == nil {
-		return nil, nil
-	}
-	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	runtimeConfig.ParameterValues = apiRuntimeConfig.GetParameters()
-	runtimeConfig.GcsOutputDirectory = apiRuntimeConfig.GetPipelineRoot()
-	return runtimeConfig, nil
-}
-
-func toPipelineJobRuntimeConfig(apiRuntimeConfig *apiv2beta1.RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
-	if apiRuntimeConfig == nil {
-		return nil, nil
-	}
-	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	runtimeConfig.ParameterValues = apiRuntimeConfig.GetParameters()
-	runtimeConfig.GcsOutputDirectory = apiRuntimeConfig.GetPipelineRoot()
-	return runtimeConfig, nil
 }
 
 func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
@@ -329,14 +286,6 @@ func modelToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, er
 		swParams = append(swParams, swParam)
 	}
 	return swParams, nil
-}
-
-func modeToPipelineJobEnabled(recurringRunMode apiv2beta1.RecurringRun_Mode) bool {
-	if recurringRunMode == 1 {
-		return true
-	} else {
-		return false
-	}
 }
 
 // Mutate default values of specified pipeline spec.

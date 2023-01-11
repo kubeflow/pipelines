@@ -20,7 +20,6 @@ import (
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
@@ -225,12 +224,6 @@ func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("")
 	assert.Nil(t, err)
 	assert.Equal(t, name, "job-")
-}
-
-func TestToCrdParametersV1(t *testing.T) {
-	assert.Equal(t,
-		toCRDParametersV1([]*apiv1beta1.Parameter{{Name: "param2", Value: "world"}, {Name: "param1", Value: "hello"}}),
-		[]scheduledworkflow.Parameter{{Name: "param2", Value: "world"}, {Name: "param1", Value: "hello"}})
 }
 
 func TestScheduledWorkflow(t *testing.T) {

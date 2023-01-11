@@ -136,6 +136,19 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
+func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+	return r.experimentStore.CreateExperiment(experiment)
+}
+
+func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment, error) {
+	return r.experimentStore.GetExperiment(experimentId)
+}
+
+func (r *ResourceManager) ListExperiments(filterContext *model.FilterContext, opts *list.Options) (
+	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
+	return r.experimentStore.ListExperiments(filterContext, opts)
+}
+
 func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId string) error {
 	// To archive an experiment
 	// (1) update our persistent agent to disable CRDs of jobs in experiment
@@ -158,7 +171,7 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 		for _, job := range jobs {
 			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
 				ctx,
-				job.Name,
+				job.K8SName,
 				types.MergePatchType,
 				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
 			if err != nil {
@@ -181,6 +194,14 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 
 func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
 	return r.experimentStore.UnarchiveExperiment(experimentId)
+}
+
+func (r *ResourceManager) DeleteExperiment(experimentID string) error {
+	_, err := r.experimentStore.GetExperiment(experimentID)
+	if err != nil {
+		return util.Wrap(err, "Delete experiment failed")
+	}
+	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
 // Creates a pipeline, but does not create a pipeline version.
@@ -554,7 +575,94 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	return nil
 }
 
-func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
+func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	// Get manifest from either of the two places:
+	// (1) raw manifest in pipeline_spec
+	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
+	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
+	manifestBytes, err := getManifestBytesV1(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(gkcalat): consider moving to the store. Other UUIDs are being assigned by their respective stores.
+	uuid, err := r.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
+	}
+	runId := uuid.String()
+	runAt := r.time.Now().Unix()
+
+	tmpl, err := template.New(manifestBytes)
+	if err != nil {
+		return nil, err
+	}
+	runWorkflowOptions := template.RunWorkflowOptions{
+		RunId: runId,
+		RunAt: runAt,
+	}
+	executionSpec, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec.")
+	}
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+	if ref != nil {
+		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+
+	err = executionSpec.Validate(false, false)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", executionSpec.ExecutionName())
+	}
+	// Create argo workflow CR resource
+	newExecSpec, err := r.getWorkflowClient(namespace).Create(ctx, executionSpec, v1.CreateOptions{})
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
+	}
+
+	// Patched the default value to apiRun
+	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
+		for _, param := range apiRun.PipelineSpec.Parameters {
+			var err error
+			param.Value, err = template.PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+		}
+	}
+
+	// Store run metadata into database
+	runDetail, err := r.ToModelRunDetail(apiRun, runId, newExecSpec, string(manifestBytes), tmpl.GetTemplateType())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert run model")
+	}
+
+	// Assign the create at time.
+	runDetail.CreatedAtInSec = runAt
+
+	// Assign the scheduled at time
+	if !apiRun.ScheduledAt.AsTime().IsZero() {
+		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
+		runDetail.ScheduledAtInSec = runAt
+	} else {
+		runDetail.ScheduledAtInSec = apiRun.ScheduledAt.AsTime().Unix()
+	}
+
+	return r.runStore.CreateRun(runDetail)
+}
+
+func (r *ResourceManager) GetRun(runId string) (*model.Run, error) {
 	return r.runStore.GetRun(runId)
 }
 
@@ -605,6 +713,26 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runID string) error {
 		return util.Wrap(err, "Delete run failed")
 	}
 	return nil
+}
+
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
+func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *apiv1beta1.Task) (*model.Task, error) {
+	uuid, err := r.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to generate task ID.")
+	}
+	id := uuid.String()
+	task := model.Task{
+		UUID:              id,
+		Namespace:         apiTask.Namespace,
+		PipelineName:      apiTask.PipelineName,
+		RunUUID:           apiTask.RunId,
+		MLMDExecutionID:   apiTask.MlmdExecutionID,
+		CreatedTimestamp:  apiTask.CreatedAt.AsTime().Unix(),
+		FinishedTimestamp: apiTask.FinishedAt.AsTime().Unix(),
+		Fingerprint:       apiTask.Fingerprint,
+	}
+	return r.taskStore.CreateTask(&task)
 }
 
 func (r *ResourceManager) ListTasks(filterContext *model.FilterContext,
@@ -734,7 +862,7 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	return err
 }
 
-func (r *ResourceManager) readRunLogFromPod(ctx context.Context, run *model.RunDetail, nodeId string, follow bool, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromPod(ctx context.Context, run *model.Run, nodeId string, follow bool, dst io.Writer) error {
 	logOptions := corev1.PodLogOptions{
 		Container:  "main",
 		Timestamps: false,
@@ -759,7 +887,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, run *model.RunD
 	return nil
 }
 
-func (r *ResourceManager) readRunLogFromArchive(run *model.RunDetail, nodeId string, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromArchive(run *model.Run, nodeId string, dst io.Writer) error {
 	if run.WorkflowRuntimeManifest == "" {
 		return util.NewBadRequestError(errors.New("archived log cannot be read"), "Failed to retrieve the runtime workflow from the run")
 	}
@@ -921,7 +1049,7 @@ func (r *ResourceManager) checkJobExist(ctx context.Context, jobID string) (*mod
 // checkRunExist The Kubernetes API doesn't support CRUD by UID. This method
 // retrieve the run metadata from the database, then retrieve the CR
 // using the run name, and compare the given run id is same as the CR.
-func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) {
+func (r *ResourceManager) checkRunExist(runID string) (*model.Run, error) {
 	runDetail, err := r.runStore.GetRun(runID)
 	if err != nil {
 		return nil, util.Wrap(err, "Check run exist failed")
@@ -1067,113 +1195,6 @@ func (r *ResourceManager) GetNamespaceFromPipelineVersion(versionId string) (str
 		return "", util.Wrap(err, fmt.Sprintf("[ResourceManager]: Failed to get namespace for pipeline version id %v.", versionId))
 	}
 	return r.GetNamespaceFromPipelineID(pipelineVersion.PipelineId)
-}
-
-// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
-func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run) (*model.RunDetail, error) {
-	// Get manifest from either of the two places:
-	// (1) raw manifest in pipeline_spec
-	// (2) pipeline version in resource_references
-	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
-	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	manifestBytes, err := getManifestBytesV1(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO(gkcalat): consider moving to the store. Other UUIDs are being assigned by their respective stores.
-	uuid, err := r.uuid.NewRandom()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
-	}
-	runId := uuid.String()
-	runAt := r.time.Now().Unix()
-
-	tmpl, err := template.New(manifestBytes)
-	if err != nil {
-		return nil, err
-	}
-	runWorkflowOptions := template.RunWorkflowOptions{
-		RunId: runId,
-		RunAt: runAt,
-	}
-	executionSpec, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec.")
-	}
-	// Add a reference to the default experiment if run does not already have a containing experiment
-	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
-	if err != nil {
-		return nil, err
-	}
-	if ref != nil {
-		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
-	}
-
-	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
-	if err != nil {
-		return nil, err
-	}
-
-	err = executionSpec.Validate(false, false)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", executionSpec.ExecutionName())
-	}
-	// Create argo workflow CR resource
-	newExecSpec, err := r.getWorkflowClient(namespace).Create(ctx, executionSpec, v1.CreateOptions{})
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
-	}
-
-	// Patched the default value to apiRun
-	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
-		for _, param := range apiRun.PipelineSpec.Parameters {
-			var err error
-			param.Value, err = template.PatchPipelineDefaultParameter(param.Value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
-			}
-		}
-	}
-
-	// Store run metadata into database
-	runDetail, err := r.ToModelRunDetail(apiRun, runId, newExecSpec, string(manifestBytes), tmpl.GetTemplateType())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert run model")
-	}
-
-	// Assign the create at time.
-	runDetail.CreatedAtInSec = runAt
-
-	// Assign the scheduled at time
-	if !apiRun.ScheduledAt.AsTime().IsZero() {
-		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
-		runDetail.ScheduledAtInSec = runAt
-	} else {
-		runDetail.ScheduledAtInSec = apiRun.ScheduledAt.AsTime().Unix()
-	}
-
-	return r.runStore.CreateRun(runDetail)
-}
-
-// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
-func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *apiv1beta1.Task) (*model.Task, error) {
-	uuid, err := r.uuid.NewRandom()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to generate task ID.")
-	}
-	id := uuid.String()
-	task := model.Task{
-		UUID:              id,
-		Namespace:         apiTask.Namespace,
-		PipelineName:      apiTask.PipelineName,
-		RunUUID:           apiTask.RunId,
-		MLMDExecutionID:   apiTask.MlmdExecutionID,
-		CreatedTimestamp:  apiTask.CreatedAt.AsTime().Unix(),
-		FinishedTimestamp: apiTask.FinishedAt.AsTime().Unix(),
-		Fingerprint:       apiTask.Fingerprint,
-	}
-	return r.taskStore.CreateTask(&task)
 }
 
 // TODO(gkcalat): refactor this after beta release to remove the dependency on API.
@@ -1362,32 +1383,6 @@ func (r *ResourceManager) getNamespaceFromExperiment(references []*apiv1beta1.Re
 		}
 	}
 	return namespace, nil
-}
-
-// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
-func (r *ResourceManager) CreateExperiment(inputExperiment interface{}) (*model.Experiment, error) {
-	experiment, err := r.ToModelExperiment(inputExperiment)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert experiment model")
-	}
-	return r.experimentStore.CreateExperiment(experiment)
-}
-
-func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment, error) {
-	return r.experimentStore.GetExperiment(experimentId)
-}
-
-func (r *ResourceManager) ListExperiments(filterContext *model.FilterContext, opts *list.Options) (
-	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(filterContext, opts)
-}
-
-func (r *ResourceManager) DeleteExperiment(experimentID string) error {
-	_, err := r.experimentStore.GetExperiment(experimentID)
-	if err != nil {
-		return util.Wrap(err, "Delete experiment failed")
-	}
-	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
 // TODO(gkcalat): refactor this after beta release to remove the dependency on API.
@@ -1589,34 +1584,6 @@ func convertPipelineIdToDefaultPipelineVersion(pipelineSpec *apiv1beta1.Pipeline
 		Relationship: apiv1beta1.Relationship_CREATOR,
 	})
 	return nil
-}
-
-// TODO(gkcalat): remove this before GA. This is duplicating the function in server package.
-func getExperimentIDFromAPIResourceReferences(resourceRefs []*apiv1beta1.ResourceReference) string {
-	experimentID := ""
-	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == apiv1beta1.ResourceType_EXPERIMENT {
-			experimentID = resourceRef.Key.Id
-			break
-		}
-	}
-	return experimentID
-}
-
-// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
-func (r *ResourceManager) getOwningExperimentUUID(references []*model.ResourceReference) (string, error) {
-	var experimentUUID string
-	for _, ref := range references {
-		if ref.Key.Type == apiv1beta1.ResourceType_EXPERIMENT && ref.Relationship == apiv1beta1.Relationship_OWNER {
-			experimentUUID = ref.Key.Id
-			break
-		}
-	}
-
-	if experimentUUID == "" {
-		return "", util.NewInternalServerError(nil, "Missing owning experiment UUID")
-	}
-	return experimentUUID, nil
 }
 
 func (r *ResourceManager) updateModelJobWithNewScheduledWorkflow(modelJob *model.Job, swf *util.ScheduledWorkflow) error {
