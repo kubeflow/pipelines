@@ -34,13 +34,16 @@ const (
 
 type Pipeline struct {
 	// gorm.Model
-	UUID           string         `gorm:"column:UUID; not null; primary_key;"`
-	CreatedAtInSec int64          `gorm:"column:CreatedAtInSec; not null;"`
-	Name           string         `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
-	Description    string         `gorm:"column:Description; not null; size:65535;"`           // Same as below, set size to large number so it will be stored as longtext
-	Status         PipelineStatus `gorm:"column:Status; not null;"`
-	Namespace      string         `gorm:"column:Namespace; unique_index:namespace_name; size:63; default:'';"`
-	// Url       string `gorm:"column:Url; default:'';"`
+	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
+	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
+	Description    string `gorm:"column:Description; not null; size:65535;"`           // Same as below, set size to large number so it will be stored as longtext
+	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
+	Parameters string         `gorm:"column:Parameters; size:65535; default='';"`
+	Status     PipelineStatus `gorm:"column:Status; not null;"`
+	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
+	DefaultVersionId string `gorm:"column:DefaultVersionId; default='';"` // deprecated
+	Namespace        string `gorm:"column:Namespace; unique_index:namespace_name; size:63; default:'';"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -69,8 +72,6 @@ var pipelineAPIToModelFieldMap = map[string]string{
 	"created_at":   "CreatedAtInSec",
 	"description":  "Description",
 	"namespace":    "Namespace",
-	// "url.pipeline_url": "Url",
-	// "url":              "Url",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model
@@ -103,8 +104,6 @@ func (p *Pipeline) GetFieldValue(name string) interface{} {
 		return p.Description
 	case "Namespace":
 		return p.Namespace
-	// case "Url":
-	// 	return p.Url
 	default:
 		return nil
 	}
@@ -153,9 +152,6 @@ func (p *Pipeline) SetFieldValue(name string, value interface{}) error {
 	case "Namespace":
 		p.Namespace = value.(string)
 		return nil
-		// case "Url":
-		// 	p.Url = value.(string)
-		// return nil
 	default:
 		return util.NewInvalidInputError(fmt.Sprintf("Error setting field '%s' to '%v' in Pipeline object: not found or not allowed to set.", name, value))
 	}

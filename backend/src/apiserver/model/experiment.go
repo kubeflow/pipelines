@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
 package model
 
 type Experiment struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key"`
-	Name           string `gorm:"column:Name; not null; unique_index:idx_name_namespace"`
-	Description    string `gorm:"column:Description; not null"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
-	Namespace      string `gorm:"column:Namespace; not null; default:''; unique_index:idx_name_namespace;"`
-	StorageState   string `gorm:"column:StorageState; not null;"`
+	UUID           string       `gorm:"column:UUID; not null; primary_key;"`
+	Name           string       `gorm:"column:Name; not null; unique_index:idx_name_namespace;"`
+	Description    string       `gorm:"column:Description; not null;"`
+	CreatedAtInSec int64        `gorm:"column:CreatedAtInSec; not null;"`
+	Namespace      string       `gorm:"column:Namespace; not null; default:''; unique_index:idx_name_namespace;"`
+	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 }
 
 // Note: Experiment.StorageState can have values: "STORAGESTATE_UNSPECIFIED", "AVAILABLE" or "ARCHIVED"

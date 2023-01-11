@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,46 +18,247 @@ import (
 	"strings"
 )
 
+type RuntimeState string
+type StorageState string
+
 const (
-	RunTerminatingConditions string = "Terminating"
+	RuntimeStateUnspecified   RuntimeState = "RUNTIME_STATE_UNSPECIFIED"
+	RuntimeStatePending       RuntimeState = "PENDING"
+	RuntimeStateRunning       RuntimeState = "RUNNING"
+	RuntimeStateSucceeded     RuntimeState = "SUCCEEDED"
+	RuntimeStateSkipped       RuntimeState = "SKIPPED"
+	RuntimeStateFailed        RuntimeState = "FAILED"
+	RuntimeStateCancelling    RuntimeState = "CANCELING"
+	RuntimeStateCanceled      RuntimeState = "CANCELED"
+	RuntimeStatePaused        RuntimeState = "PAUSED"
+	RuntimeStatePendingV1     RuntimeState = "PENDING"
+	RuntimeStateRunningV1     RuntimeState = "RUNNING"
+	RuntimeStateSucceededV1   RuntimeState = "SUCCEEDED"
+	RuntimeStateSkippedV1     RuntimeState = "SKIPPED"
+	RuntimeStateFailedV1      RuntimeState = "FAILED"
+	RuntimeStateErrorV1       RuntimeState = "ERROR"
+	StorageStateUnspecified   StorageState = "STORAGE_STATE_UNSPECIFIED"
+	StorageStateAvailable     StorageState = "AVAILABLE"
+	StorageStateArchived      StorageState = "ARCHIVED"
+	StorageStateUnspecifiedV1 StorageState = "STORAGESTATE_UNSPECIFIED"
+	StorageStateAvailableV1   StorageState = "STORAGESTATE_AVAILABLE"
+	StorageStateArchivedV1    StorageState = "STORAGESTATE_ARCHIVED"
+	RunTerminatingConditions  string       = "Terminating"
 )
 
+func (s RuntimeState) ToV1() RuntimeState {
+	switch s {
+	case RuntimeStateUnspecified:
+		return RuntimeStateErrorV1
+	case RuntimeStatePending:
+		return RuntimeStatePendingV1
+	case RuntimeStateRunning:
+		return RuntimeStateRunningV1
+	case RuntimeStateSucceeded:
+		return RuntimeStateSucceededV1
+	case RuntimeStateSkipped:
+		return RuntimeStateSkippedV1
+	case RuntimeStateFailed:
+		return RuntimeStateFailedV1
+	case RuntimeStateCancelling:
+		return RuntimeStateFailedV1
+	case RuntimeStateCanceled:
+		return RuntimeStateFailedV1
+	case RuntimeStatePaused:
+		return RuntimeStateFailedV1
+	default:
+		return ""
+	}
+}
+
+func (s RuntimeState) ToUpper() RuntimeState {
+	return RuntimeState(strings.ToUpper(string(s)))
+}
+
+func (s RuntimeState) ToString() string {
+	switch s.ToUpper() {
+	case RuntimeStateErrorV1, RuntimeStateUnspecified, "NO_STATUS":
+		return string(RuntimeStateUnspecified)
+	case RuntimeStatePending:
+		return string(RuntimeStatePending)
+	case RuntimeStateRunning, "ENABLED", "READY":
+		return string(RuntimeStateRunning)
+	case RuntimeStateSucceeded:
+		return string(RuntimeStateSucceeded)
+	case RuntimeStateSkipped:
+		return string(RuntimeStateSkipped)
+	case RuntimeStateFailed:
+		return string(RuntimeStateFailed)
+	case RuntimeStateCancelling:
+		return string(RuntimeStateCancelling)
+	case RuntimeStateCanceled, "DISABLED":
+		return string(RuntimeStateCanceled)
+	case RuntimeStatePaused:
+		return string(RuntimeStatePaused)
+	default:
+		return ""
+	}
+}
+
+func (s RuntimeState) IsValid() bool {
+	switch s {
+	case RuntimeStateUnspecified, RuntimeStatePending, RuntimeStateRunning, RuntimeStateSucceeded, RuntimeStateSkipped, RuntimeStateFailed, RuntimeStateCancelling, RuntimeStateCanceled, RuntimeStatePaused, RuntimeStateErrorV1:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s StorageState) ToV1() StorageState {
+	switch s {
+	case StorageStateAvailable:
+		return StorageStateAvailableV1
+	case StorageStateArchived:
+		return StorageStateArchivedV1
+	case StorageStateUnspecified:
+		return StorageStateUnspecifiedV1
+	case StorageStateAvailableV1:
+		return StorageStateAvailableV1
+	case StorageStateArchivedV1:
+		return StorageStateArchivedV1
+	case StorageStateUnspecifiedV1:
+		return StorageStateUnspecifiedV1
+	default:
+		return ""
+	}
+}
+
+func (s StorageState) ToUpper() StorageState {
+	return StorageState(strings.ToUpper(string(s)))
+}
+
+func (s StorageState) ToString() string {
+	switch s.ToUpper() {
+	case StorageStateUnspecified, StorageStateUnspecifiedV1, "NO_STATUS", "ERROR":
+		return string(StorageStateUnspecified)
+	case StorageStateAvailable, StorageStateAvailableV1, "ENABLED", "READY":
+		return string(StorageStateAvailable)
+	case StorageStateArchived, StorageStateArchivedV1, "DISABLED":
+		return string(StorageStateArchived)
+	default:
+		return ""
+	}
+}
+
+func (s StorageState) IsValid() bool {
+	switch s {
+	case StorageStateAvailable, StorageStateArchived, StorageStateUnspecified, StorageStateAvailableV1, StorageStateArchivedV1, StorageStateUnspecifiedV1:
+		return true
+	default:
+		return false
+	}
+}
+
+type Tabler interface {
+	TableName() string
+}
+
+// TableName overrides the table name used by Run.
+func (Run) TableName() string {
+	return "run_details"
+}
+
 type Run struct {
-	UUID               string `gorm:"column:UUID; not null; primary_key"`
-	ExperimentUUID     string `gorm:"column:ExperimentUUID; not null;"`
-	DisplayName        string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
-	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
-	StorageState       string `gorm:"column:StorageState; not null;"`
-	Namespace          string `gorm:"column:Namespace; not null;"`
-	ServiceAccount     string `gorm:"column:ServiceAccount; not null;"`
-	Description        string `gorm:"column:Description; not null;"`
-	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null;"`
-	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec; default:0;"`
-	FinishedAtInSec    int64  `gorm:"column:FinishedAtInSec; default:0;"`
-	Conditions         string `gorm:"column:Conditions; not null"`
-	Metrics            []*RunMetric
+	UUID        string `gorm:"column:UUID; not null; primary_key"`
+	DisplayName string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
+	K8SName     string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
+	Description string `gorm:"column:Description; not null;"`
+
+	Namespace      string `gorm:"column:Namespace; not null;"`
+	ExperimentId   string `gorm:"column:ExperimentUUID; not null;"`
+	RecurringRunId string `gorm:"column:JobUUID; default:null;"`
+
+	StorageState   StorageState `gorm:"column:StorageState; not null;"`
+	ServiceAccount string       `gorm:"column:ServiceAccount; not null;"`
+	Metrics        []*RunMetric
+
+	// ResourceReferences are deprecated. Use Namespace, ExperimentId,
+	// RecurringRunId, PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
 	ResourceReferences []*ResourceReference
+
 	PipelineSpec
+
+	RunDetails
 }
 
-type PipelineRuntime struct {
-	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:65535"`
-	/* Argo CRD. Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
-	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; size:65535"`
+func (r *Run) ToV1() *Run {
+	if r.ResourceReferences == nil {
+		r.ResourceReferences = make([]*ResourceReference, 0)
+	}
+	r.ResourceReferences = append(
+		r.ResourceReferences,
+		&ResourceReference{
+			ResourceUUID:  r.UUID,
+			ResourceType:  RunResourceType,
+			ReferenceUUID: r.ExperimentId,
+			ReferenceType: ExperimentResourceType,
+			Relationship:  OwnerRelationship,
+		},
+	)
+	r.ResourceReferences = append(
+		r.ResourceReferences,
+		&ResourceReference{
+			ResourceUUID:  r.UUID,
+			ResourceType:  RunResourceType,
+			ReferenceUUID: r.Namespace,
+			ReferenceType: NamespaceResourceType,
+			Relationship:  OwnerRelationship,
+		},
+	)
+	if r.RecurringRunId != "" {
+		r.ResourceReferences = append(
+			r.ResourceReferences,
+			&ResourceReference{
+				ResourceUUID:  r.UUID,
+				ResourceType:  RunResourceType,
+				ReferenceUUID: r.RecurringRunId,
+				ReferenceType: JobResourceType,
+				Relationship:  CreatorRelationship,
+			},
+		)
+
+	}
+	return r
 }
 
-type RunDetail struct {
-	Run
-	PipelineRuntime
+// Stores runtime information about a pipeline run
+type RunDetails struct {
+	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null;"`
+	ScheduledAtInSec int64 `gorm:"column:ScheduledAtInSec; default:0;"`
+	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0;"`
+	// Conditions were deprecated. Use State instead.
+	Conditions         string       `gorm:"column:Conditions; not null;"`
+	State              RuntimeState `gorm:"column:State; default:null;"`
+	StateHistoryString string       `gorm:"column:StateHistory; default:'';"`
+	StateHistory       []*RuntimeStatus
+	// Serialized runtime details of a run in v2beta1
+	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:33554432;"`
+	// Serialized Argo CRD in v1beta1
+	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; size:33554432;"`
+	// Deserialized runtime details of a run includes PipelineContextId, PipelineRunContextId, and TaskDetails
+	PipelineContextId    int64
+	PipelineRunContextId int64
+	TaskDetails          []*Task
 }
 
 type RunMetric struct {
-	RunUUID     string  `gorm:"column:RunUUID; not null;primary_key"`
-	NodeID      string  `gorm:"column:NodeID; not null; primary_key"`
-	Name        string  `gorm:"column:Name; not null;primary_key"`
-	NumberValue float64 `gorm:"column:NumberValue"`
-	Format      string  `gorm:"column:Format"`
-	Payload     string  `gorm:"column:Payload; not null; size:65535"`
+	RunUUID     string  `gorm:"column:RunUUID; not null; primary_key;"`
+	NodeID      string  `gorm:"column:NodeID; not null; primary_key;"`
+	Name        string  `gorm:"column:Name; not null; primary_key;"`
+	NumberValue float64 `gorm:"column:NumberValue;"`
+	Format      string  `gorm:"column:Format;"`
+	Payload     string  `gorm:"column:Payload; not null; size:65535;"`
+}
+
+type RuntimeStatus struct {
+	UpdateTimeInSec int64        `json:"UpdateTimeInSec,omitempty"`
+	State           RuntimeState `json:"State,omitempty"`
+	Error           error        `json:"Error,omitempty"`
 }
 
 func (r Run) GetValueOfPrimaryKey() string {
@@ -79,13 +280,21 @@ func (r *Run) DefaultSortField() string {
 }
 
 var runAPIToModelFieldMap = map[string]string{
-	"id":            "UUID",
-	"name":          "DisplayName",
-	"created_at":    "CreatedAtInSec",
-	"description":   "Description",
-	"scheduled_at":  "ScheduledAtInSec",
-	"storage_state": "StorageState",
-	"status":        "Conditions",
+	"run_id":           "UUID", // added in API v2
+	"id":               "UUID",
+	"display_name":     "DisplayName", // added in API v2
+	"name":             "DisplayName",
+	"created_at":       "CreatedAtInSec",
+	"description":      "Description",
+	"scheduled_at":     "ScheduledAtInSec",
+	"storage_state":    "StorageState",
+	"status":           "Conditions",
+	"namespace":        "Namespace",               // added in API v2
+	"experiment_id":    "ExperimentId",            // added in API v2
+	"state":            "State",                   // added in API v2
+	"state_history":    "StateHistory",            // added in API v2
+	"runtime_details":  "PipelineRuntimeManifest", // added in API v2
+	"recurring_run_id": "RecurringRunId",          // added in API v2
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.
@@ -120,15 +329,27 @@ func (r *Run) GetFieldValue(name string) interface{} {
 	case "DisplayName":
 		return r.DisplayName
 	case "CreatedAtInSec":
-		return r.CreatedAtInSec
+		return r.RunDetails.CreatedAtInSec
 	case "Description":
 		return r.Description
 	case "ScheduledAtInSec":
-		return r.ScheduledAtInSec
+		return r.RunDetails.ScheduledAtInSec
 	case "StorageState":
 		return r.StorageState
 	case "Conditions":
-		return r.Conditions
+		return r.RunDetails.Conditions
+	case "Namespace":
+		return r.Namespace
+	case "ExperimentId":
+		return r.ExperimentId
+	case "State":
+		return r.RunDetails.State
+	case "StateHistory":
+		return r.RunDetails.StateHistory
+	case "PipelineRuntimeManifest":
+		return r.RunDetails.PipelineRuntimeManifest
+	case "RecurringRunId":
+		return r.RecurringRunId
 	}
 	// Second, try to find the match of "name" inside an array typed field
 	for _, metric := range r.Metrics {

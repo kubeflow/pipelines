@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -499,7 +499,7 @@ func (s *PipelineServer) CreatePipelineCommon(ctx context.Context, r interface{}
 	case *apiv2beta1.CreatePipelineRequest:
 		return s.CreatePipeline(ctx, r.(*apiv2beta1.CreatePipelineRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("CreatePipeline", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("CreatePipeline", r)
 	}
 }
 
@@ -602,7 +602,7 @@ func (s *PipelineServer) CreatePipelineVersionCommon(ctx context.Context, r inte
 	case *apiv2beta1.CreatePipelineVersionRequest:
 		return s.CreatePipelineVersion(ctx, r.(*apiv2beta1.CreatePipelineVersionRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("CreatePipeline", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("CreatePipeline", r)
 	}
 }
 
@@ -706,7 +706,7 @@ func (s *PipelineServer) GetPipelineCommon(ctx context.Context, r interface{}) (
 	case *apiv2beta1.GetPipelineRequest:
 		return s.GetPipeline(ctx, r.(*apiv2beta1.GetPipelineRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("GetPipeline", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("GetPipeline", r)
 	}
 }
 
@@ -753,7 +753,7 @@ func (s *PipelineServer) GetPipelineByNameCommon(ctx context.Context, r interfac
 	case *apiv2beta1.GetPipelineByNameRequest:
 		return s.GetPipelineByName(ctx, r.(*apiv2beta1.GetPipelineByNameRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("GetPipelineByName", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("GetPipelineByName", r)
 	}
 }
 
@@ -799,7 +799,7 @@ func (s *PipelineServer) GetPipelineVersionCommon(ctx context.Context, r interfa
 	case *apiv2beta1.GetPipelineVersionRequest:
 		return s.GetPipelineVersion(ctx, r.(*apiv2beta1.GetPipelineVersionRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("GetPipelineVersion", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("GetPipelineVersion", r)
 	}
 }
 
@@ -879,7 +879,7 @@ func (s *PipelineServer) ListPipelinesCommon(ctx context.Context, r interface{})
 	case *apiv2beta1.ListPipelinesRequest:
 		return s.ListPipelines(ctx, r.(*apiv2beta1.ListPipelinesRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("ListPipelines", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("ListPipelines", r)
 	}
 }
 
@@ -1003,7 +1003,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 		TotalSize:        int32(totalSize)}, nil
 }
 
-// TODO (gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
+// TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
 // Updates default pipeline version for a given pipeline.
 // Supports v1beta1 behavior.
 func (s *PipelineServer) UpdatePipelineDefaultVersionV1(ctx context.Context, request *apiv1beta1.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
@@ -1033,7 +1033,7 @@ func (s *PipelineServer) DeletePipelineCommon(ctx context.Context, r interface{}
 	case *apiv2beta1.DeletePipelineRequest:
 		return s.DeletePipeline(ctx, r.(*apiv2beta1.DeletePipelineRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("DeletePipeline", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("DeletePipeline", r)
 	}
 }
 
@@ -1080,7 +1080,7 @@ func (s *PipelineServer) DeletePipelinVersioneCommon(ctx context.Context, r inte
 	case *apiv2beta1.DeletePipelineVersionRequest:
 		return s.DeletePipelineVersion(ctx, r.(*apiv2beta1.DeletePipelineVersionRequest))
 	default:
-		return nil, util.NewUnknownApiVersionError("DeletePipelineVersion", fmt.Sprintf("%T", r))
+		return nil, util.NewUnknownApiVersionError("DeletePipelineVersion", r)
 	}
 }
 

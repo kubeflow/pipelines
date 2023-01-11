@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,24 +14,107 @@
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
+
+type StatusState string
+
+const (
+	StatusStateUnspecified   StatusState = "STATUS_UNSPECIFIED"
+	StatusStateUnspecifiedV1 StatusState = "UNKNOWN_MODE"
+	StatusStateEnabled       StatusState = "ENABLED"
+	StatusStateEnabledV1     StatusState = "ENABLED"
+	StatusStateDisabled      StatusState = "DISABLED"
+	StatusStateDisabledV1    StatusState = "DISABLED"
+)
+
+func (s StatusState) ToV1() StatusState {
+	switch s {
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "ERROR", "":
+		return StatusStateUnspecified
+	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
+		return StatusStateEnabledV1
+	case StatusStateDisabled, "DISABLE":
+		return StatusStateDisabledV1
+	default:
+		return ""
+	}
+}
+
+func (s StatusState) ToUpper() StatusState {
+	return StatusState(strings.ToUpper(string(s)))
+}
+
+func (s StatusState) ToString() string {
+	switch s.ToUpper() {
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "":
+		return string(StatusStateUnspecified)
+	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
+		return string(StatusStateEnabled)
+	case StatusStateDisabled, "DISABLE":
+		return string(StatusStateDisabled)
+	default:
+		return ""
+	}
+}
+
+func (s StatusState) IsValid() bool {
+	switch s {
+	case StatusStateUnspecified, StatusStateEnabled, StatusStateDisabled:
+		return true
+	default:
+		return false
+	}
+}
 
 type Job struct {
-	UUID               string `gorm:"column:UUID; not null; primary_key"`
-	DisplayName        string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
-	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
-	Namespace          string `gorm:"column:Namespace; not null;"`
-	ServiceAccount     string `gorm:"column:ServiceAccount; not null;"`
-	Description        string `gorm:"column:Description; not null"`
-	MaxConcurrency     int64  `gorm:"column:MaxConcurrency;not null"`
-	NoCatchup          bool   `gorm:"column:NoCatchup; not null"`
-	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null"` /* The time this record is stored in DB*/
-	UpdatedAtInSec     int64  `gorm:"column:UpdatedAtInSec; not null"`
-	Enabled            bool   `gorm:"column:Enabled; not null"`
+	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	DisplayName    string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
+	K8SName        string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
+	Namespace      string `gorm:"column:Namespace; not null;"`
+	ServiceAccount string `gorm:"column:ServiceAccount; not null;"`
+	Description    string `gorm:"column:Description; not null;"`
+	MaxConcurrency int64  `gorm:"column:MaxConcurrency; not null;"`
+	NoCatchup      bool   `gorm:"column:NoCatchup; not null;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"` /* The time this record is stored in DB*/
+	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; not null;"`
+	Enabled        bool   `gorm:"column:Enabled; not null;"`
+	ExperimentId   string `gorm:"column:ExperimentId; not null;"`
+	// ResourceReferences are deprecated. Use Namespace, ExperimentId
+	// PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
 	ResourceReferences []*ResourceReference
 	Trigger
 	PipelineSpec
-	Conditions string `gorm:"column:Conditions; not null"`
+	Conditions string `gorm:"column:Conditions; not null;"`
+}
+
+func (j *Job) ToV1() *Job {
+	if j.ResourceReferences == nil {
+		j.ResourceReferences = make([]*ResourceReference, 0)
+	}
+	j.ResourceReferences = append(
+		j.ResourceReferences,
+		&ResourceReference{
+			ResourceUUID:  j.UUID,
+			ResourceType:  JobResourceType,
+			ReferenceUUID: j.ExperimentId,
+			ReferenceType: ExperimentResourceType,
+			Relationship:  OwnerRelationship,
+		},
+	)
+	j.ResourceReferences = append(
+		j.ResourceReferences,
+		&ResourceReference{
+			ResourceUUID:  j.UUID,
+			ResourceType:  JobResourceType,
+			ReferenceUUID: j.Namespace,
+			ReferenceType: NamespaceResourceType,
+			Relationship:  OwnerRelationship,
+		},
+	)
+	return j
 }
 
 // Trigger specifies when to create a new workflow.

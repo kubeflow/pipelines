@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -259,7 +259,7 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		namespace := GetNamespaceFromAPIResourceReferences(tc.references)
+		namespace := getNamespaceFromResourceReferenceV1(tc.references)
 		assert.Equal(t, tc.expectedNamespace, namespace,
 			"TestGetNamespaceFromResourceReferences(%v) has unexpected result.", tc.name)
 	}
@@ -300,7 +300,7 @@ func TestGetExperimentIDFromResourceReferences(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		experimentID := GetExperimentIDFromAPIResourceReferences(tc.references)
+		experimentID := getExperimentIdFromResourceReferencesV1(tc.references)
 		assert.Equal(t, tc.expectedExperimentID, experimentID,
 			"TestGetExperimentIDFromResourceReferences(%v) has unexpected result.", tc.name)
 	}
@@ -313,7 +313,7 @@ func TestGetWorkflowSpecBytes_ByWorkflowManifest(t *testing.T) {
 			{Name: "param1", Value: "world"},
 		},
 	}
-	workflowBytes, err := getWorkflowSpecBytesFromPipelineSpec(spec)
+	workflowBytes, err := getWorkflowSpecBytesFromPipelineSpecV1(spec)
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("some manifest"), workflowBytes)
 }
@@ -324,7 +324,7 @@ func TestGetWorkflowSpecBytes_MissingSpec(t *testing.T) {
 			{Name: "param1", Value: "world"},
 		},
 	}
-	_, err := getWorkflowSpecBytesFromPipelineSpec(spec)
+	_, err := getWorkflowSpecBytesFromPipelineSpecV1(spec)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please provide a valid pipeline spec")
 }

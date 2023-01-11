@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -4083,6 +4083,90 @@ func TestCreateTask(t *testing.T) {
 	storedTask, err := manager.taskStore.GetTask(common.DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value.")
+}
+
+func TestUpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
+	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
+	defer store.Close()
+
+	modelJob := &model.Job{
+		Name:        "name1",
+		Namespace:   "ns1",
+		DisplayName: "name1",
+		Enabled:     true,
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				Cron:                       util.StringPointer("1 * * * *"),
+			},
+		},
+		MaxConcurrency: 1,
+		NoCatchup:      true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:           pipeline.UUID,
+			PipelineName:         pipeline.Name,
+			PipelineSpecManifest: "pipeline spec",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"param2\":\"world\"}",
+			},
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceType:  model.JobResourceType,
+				ReferenceUUID: experiment.UUID,
+				ReferenceName: experiment.Name,
+				ReferenceType: model.ExperimentResourceType,
+				Relationship:  model.OwnerRelationship},
+		},
+	}
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "swf_name",
+			Namespace: "swf_namespace",
+			UID:       "swf_123",
+		},
+		Status: swfapi.ScheduledWorkflowStatus{
+			Conditions: []swfapi.ScheduledWorkflowCondition{{Type: swfapi.ScheduledWorkflowEnabled}}},
+	})
+
+	expectedModelJob := &model.Job{
+		UUID:        "swf_123",
+		Name:        "swf_name",
+		Namespace:   "swf_namespace",
+		DisplayName: "name1",
+		Enabled:     true,
+		Conditions:  "Enabled",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				Cron:                       util.StringPointer("1 * * * *"),
+			},
+		},
+		MaxConcurrency: 1,
+		NoCatchup:      true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:           pipeline.UUID,
+			PipelineName:         pipeline.Name,
+			PipelineSpecManifest: "pipeline spec",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"param2\":\"world\"}",
+			},
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "swf_123",
+				ResourceType:  model.JobResourceType,
+				ReferenceUUID: experiment.UUID,
+				ReferenceName: experiment.Name,
+				ReferenceType: model.ExperimentResourceType,
+				Relationship:  model.OwnerRelationship},
+		},
+	}
+
+	err := manager.updateModelJobWithNewScheduledWorkflow(modelJob, swf)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedModelJob, modelJob)
 }
 
 var v2SpecHelloWorld = `

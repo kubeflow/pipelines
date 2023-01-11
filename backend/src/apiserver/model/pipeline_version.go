@@ -1,4 +1,4 @@
-// Copyright 2019-2022 The Kubeflow Authors
+// Copyright 2019-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,18 +33,17 @@ const (
 
 type PipelineVersion struct {
 	gorm.Model
-	UUID           string `gorm:"column:UUID; not null; primary_key;unique_index:idx_pipelineid_name;"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index"`
-	Name           string `gorm:"column:Name; not null;unique_index:idx_pipelineid_name;"`
-	// Set size to 65535 so it will be stored as longtext.
-	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
-	Parameters string `gorm:"column:Parameters; not null; size:65535"`
+	UUID           string `gorm:"column:UUID; not null; primary_key; unique_index:idx_pipelineid_name;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
+	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name;"`
+	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
+	Parameters string `gorm:"column:Parameters; not null; size:65535;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
-	PipelineId string                `gorm:"column:PipelineId; not null;index; unique_index:idx_pipelineid_name;"`
+	PipelineId string                `gorm:"column:PipelineId; not null; index; unique_index:idx_pipelineid_name;"`
 	Pipeline   *Pipeline             `gorm:"foreignKey:PipelineId; constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Status     PipelineVersionStatus `gorm:"column:Status; not null"`
+	Status     PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
 	Description     string `gorm:"column:Description; not null; size:65535;"`     // Set size to large number so it will be stored as longtext

@@ -243,7 +243,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.Pipeline{},
 		&model.PipelineVersion{},
 		&model.ResourceReference{},
-		&model.RunDetail{},
+		&model.Run{},
 		&model.RunMetric{},
 		&model.Task{},
 		&model.DBStatus{},
@@ -268,12 +268,12 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
 	}
 
-	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
+	response = db.Model(&model.Run{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
 	if response.Error != nil {
 		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
 	}
 
-	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
+	response = db.Model(&model.Run{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
 	if response.Error != nil {
 		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}

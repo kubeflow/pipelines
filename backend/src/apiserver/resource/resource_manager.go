@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -253,7 +253,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv model.PipelineVersion) (*mode
 		return nil, util.Wrap(err, "ResourceManager: Failed to create pipeline version in PipelineStore.")
 	}
 
-	// TODO (gkcalat): consider removing this after v2beta1 GA if we adopt storing PipelineSpec in DB.
+	// TODO(gkcalat): consider removing this after v2beta1 GA if we adopt storing PipelineSpec in DB.
 	// Store the pipeline file
 	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
 	if err != nil {
@@ -330,7 +330,7 @@ func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace s
 	}
 }
 
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Returns a pipeline specified by name and namespace using LEFT JOIN on SQL query.
 // This could be more performant for a large number of pipeline versions.
 func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
@@ -417,7 +417,7 @@ func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts
 	return pipelines, total_size, nextPageToken, err
 }
 
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Returns a list of pipelines using LEFT JOIN on SQL query.
 // This could be more performant for a large number of pipeline versions.
 func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
@@ -510,7 +510,7 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	// either using async deletion in order for this method to be non-blocking
 	// or or exploring other performance optimization tools provided by gcs.
 	//
-	// TODO (gkcalat): consider removing this if we switch to storing PipelineSpec in DB.
+	// TODO(gkcalat): consider removing this if we switch to storing PipelineSpec in DB.
 	// DeleteObject always responds with http '204' even for
 	// objects which do not exist. The err below will be nil.
 	//
@@ -1069,7 +1069,7 @@ func (r *ResourceManager) GetNamespaceFromPipelineVersion(versionId string) (str
 	return r.GetNamespaceFromPipelineID(pipelineVersion.PipelineId)
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run) (*model.RunDetail, error) {
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
@@ -1081,7 +1081,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run)
 		return nil, err
 	}
 
-	// TODO (gkcalat): consider moving to the store. Other UUIDs are being assigned by their respective stores.
+	// TODO(gkcalat): consider moving to the store. Other UUIDs are being assigned by their respective stores.
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
@@ -1156,7 +1156,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run)
 	return r.runStore.CreateRun(runDetail)
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *apiv1beta1.Task) (*model.Task, error) {
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
@@ -1176,7 +1176,7 @@ func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *apiv1beta1.Ta
 	return r.taskStore.CreateTask(&task)
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interface{}) (*model.Job, error) {
 	// Get pipeline manifest from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
@@ -1226,7 +1226,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 	return r.jobStore.CreateJob(modelJob)
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func getManifestBytesfromAPIJobInterface(apiJobInterface interface{}, r *ResourceManager) ([]byte, error) {
 	var manifestBytes []byte
 	var err error
@@ -1256,7 +1256,7 @@ func getManifestBytesfromAPIJobInterface(apiJobInterface interface{}, r *Resourc
 	return manifestBytes, nil
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 // Used to initialize the Experiment database with a default to be used for runs
 func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	// First check that we don't already have a default experiment ID in the DB.
@@ -1299,7 +1299,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	return experiment.UUID, nil
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 // getDefaultExperimentIfNoExperiment If the provided run does not include a reference to a containing
 // experiment, then we fetch the default experiment's ID and create a reference to that.
 func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*apiv1beta1.ResourceReference) (*apiv1beta1.ResourceReference, error) {
@@ -1315,7 +1315,7 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*apiv1
 	return r.getDefaultExperimentResourceReference(references)
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) getDefaultExperimentResourceReference(references []*apiv1beta1.ResourceReference) (*apiv1beta1.ResourceReference, error) {
 	// Create reference to the default experiment
 	defaultExperimentId, err := r.GetDefaultExperimentId()
@@ -1340,12 +1340,12 @@ func (r *ResourceManager) getDefaultExperimentResourceReference(references []*ap
 	return defaultExperimentRef, nil
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) ReportMetric(metric *apiv1beta1.RunMetric, runUUID string) error {
 	return r.runStore.ReportMetric(r.ToModelRunMetric(metric, runUUID))
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) getNamespaceFromExperiment(references []*apiv1beta1.ResourceReference) (string, error) {
 	experimentID := getExperimentIDFromAPIResourceReferences(references)
 	experiment, err := r.GetExperiment(experimentID)
@@ -1364,7 +1364,7 @@ func (r *ResourceManager) getNamespaceFromExperiment(references []*apiv1beta1.Re
 	return namespace, nil
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) CreateExperiment(inputExperiment interface{}) (*model.Experiment, error) {
 	experiment, err := r.ToModelExperiment(inputExperiment)
 	if err != nil {
@@ -1390,7 +1390,7 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) error {
 	objMeta := execSpec.ExecutionObjectMeta()
 	execStatus := execSpec.ExecutionStatus()
@@ -1530,7 +1530,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	return nil
 }
 
-// TODO (gkcalat): refactor this after beta release to remove the dependency on API.
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
 // Returns pipeline spec []byte array.
 func getManifestBytesV1(pipelineSpec *apiv1beta1.PipelineSpec, resourceReferences *[]*apiv1beta1.ResourceReference, r *ResourceManager) ([]byte, error) {
 	var manifestBytes []byte
@@ -1557,14 +1557,14 @@ func getManifestBytesV1(pipelineSpec *apiv1beta1.PipelineSpec, resourceReference
 	return manifestBytes, nil
 }
 
-// TODO (gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
+// TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
 // Updates default pipeline version for a given pipeline.
 // Supports v1beta1 behavior.
 func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
 	return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
 }
 
-// TODO (gkcalat): remove this before GA. This is duplicating the function in server package.
+// TODO(gkcalat): remove this before GA. This is duplicating the function in server package.
 // Convert PipelineId in PipelineSpec to the pipeline's default pipeline version.
 // This is for legacy usage of pipeline id to create run. The standard way to
 // create run is by specifying the pipeline version.
@@ -1591,7 +1591,7 @@ func convertPipelineIdToDefaultPipelineVersion(pipelineSpec *apiv1beta1.Pipeline
 	return nil
 }
 
-// TODO (gkcalat): remove this before GA. This is duplicating the function in server package.
+// TODO(gkcalat): remove this before GA. This is duplicating the function in server package.
 func getExperimentIDFromAPIResourceReferences(resourceRefs []*apiv1beta1.ResourceReference) string {
 	experimentID := ""
 	for _, resourceRef := range resourceRefs {
@@ -1601,4 +1601,77 @@ func getExperimentIDFromAPIResourceReferences(resourceRefs []*apiv1beta1.Resourc
 		}
 	}
 	return experimentID
+}
+
+// TODO(gkcalat): refactor this after beta release to remove the dependency on API.
+func (r *ResourceManager) getOwningExperimentUUID(references []*model.ResourceReference) (string, error) {
+	var experimentUUID string
+	for _, ref := range references {
+		if ref.Key.Type == apiv1beta1.ResourceType_EXPERIMENT && ref.Relationship == apiv1beta1.Relationship_OWNER {
+			experimentUUID = ref.Key.Id
+			break
+		}
+	}
+
+	if experimentUUID == "" {
+		return "", util.NewInternalServerError(nil, "Missing owning experiment UUID")
+	}
+	return experimentUUID, nil
+}
+
+func (r *ResourceManager) updateModelJobWithNewScheduledWorkflow(modelJob *model.Job, swf *util.ScheduledWorkflow) error {
+	modelJob.UUID = string(swf.UID)
+	modelJob.Name = swf.Name
+	modelJob.Namespace = swf.Namespace
+	modelJob.Conditions = swf.ConditionSummary()
+	r.updateJobResourceReferences(string(swf.UID), modelJob)
+
+	serviceAccount := ""
+	if swf.Spec.Workflow != nil {
+		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
+		if err == nil {
+			serviceAccount = execSpec.ServiceAccount()
+		}
+	}
+	modelJob.ServiceAccount = serviceAccount
+	return nil
+}
+
+func (r *ResourceManager) getResourceName(resourceType model.ResourceType, resourceId string) (string, error) {
+	switch resourceType {
+	case model.ExperimentResourceType:
+		experiment, err := r.GetExperiment(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred experiment not found.")
+		}
+		return experiment.Name, nil
+	case model.PipelineResourceType:
+		pipeline, err := r.GetPipeline(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred pipeline not found.")
+		}
+		return pipeline.Name, nil
+	case model.JobResourceType:
+		job, err := r.GetJob(resourceId)
+		if err != nil {
+			return "", util.NewInvalidInputError("Referred job not found.")
+		}
+		return job.DisplayName, nil
+	case model.RunResourceType:
+		run, err := r.GetRun(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred run not found.")
+		}
+		return run.DisplayName, nil
+	case model.PipelineVersionResourceType:
+		version, err := r.GetPipelineVersion(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred pipeline version not found.")
+		}
+		return version.Name, nil
+	case model.NamespaceResourceType:
+		return resourceId, nil
+	default:
+		return "", util.NewInvalidInputError("Unsupported resource type: %s", string(resourceType))
+	}
 }

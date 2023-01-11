@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,26 +20,43 @@ type PipelineSpec struct {
 	PipelineId string `gorm:"column:PipelineId; not null;"`
 
 	// Pipeline version's id.
-	PipelineVersionId string `gorm:"column:PipelineVersionId;default:null;"`
+	PipelineVersionId string `gorm:"column:PipelineVersionId; default:null;"`
 
+	// TODO(gkcalat): consider adding PipelineVersionName to avoid confusion.
 	// Pipeline versions's Name will be required if ID is not empty.
 	// This carries the name of the pipeline version in v2beta1.
-	PipelineName string `gorm:"column:PipelineName; not null"`
+	PipelineName string `gorm:"column:PipelineName; not null;"`
 
 	// Pipeline YAML definition. This is the pipeline interface for creating a pipeline.
 	// Set size to 65535 so it will be stored as longtext.
 	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
-	// TODO (gkcalat): consider increasing the size limit > 32MB (<4GB for MySQL, and <1GB for PostgreSQL).
+	// TODO(gkcalat): consider increasing the size limit > 32MB (<4GB for MySQL, and <1GB for PostgreSQL).
 	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; size:33554432;"`
 
 	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
-	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:33554432"`
+	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:33554432;"`
 
 	// Store parameters key-value pairs as serialized string.
 	// This field is only used for V1 API. For V2, use the `Parameters` field in RuntimeConfig.
 	// At most one of the fields `Parameters` and `RuntimeConfig` can be non-empty
-	Parameters string `gorm:"column:Parameters; size:65535"`
+	Parameters string `gorm:"column:Parameters; size:65535;"`
 
-	// Runtime config of the pipeline, only used for v2 API.
+	// Runtime config of the pipeline, only used for v2 template in API v1beta1 API.
 	RuntimeConfig
+}
+
+// Returns Argo workflow manifest in []byte array
+func (p *PipelineSpec) getWorkflowSpecBytes() []byte {
+	if p.WorkflowSpecManifest != "" {
+		return []byte(p.WorkflowSpecManifest)
+	}
+	return nil
+}
+
+// Returns pipeline spec manifest in []byte array
+func (p *PipelineSpec) getPipelineSpecBytes() []byte {
+	if p.PipelineSpecManifest != "" {
+		return []byte(p.PipelineSpecManifest)
+	}
+	return nil
 }

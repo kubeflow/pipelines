@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.Name)
+	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.K8SName)
 	// Replace {{workflow.uid}} with runId
 	err = workflow.ReplaceUID(options.RunId)
 	if err != nil {
@@ -106,7 +106,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	setDefaultServiceAccount(workflow, modelJob.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.Name)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed.")
 	}

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,8 +35,15 @@ var (
 		"RunUUID",
 		"MLMDExecutionID",
 		"CreatedTimestamp",
+		"StartedTimestamp",
 		"FinishedTimestamp",
 		"Fingerprint",
+		"Name",
+		"ParentTaskUUID",
+		"State",
+		"StateHistory",
+		"MLMDInputs",
+		"MLMDOutputs",
 	}
 )
 
@@ -75,16 +82,25 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 
 	sql, args, err := sq.
 		Insert(table_name).
-		SetMap(sq.Eq{
-			"UUID":              newTask.UUID,
-			"Namespace":         newTask.Namespace,
-			"PipelineName":      newTask.PipelineName,
-			"RunUUID":           newTask.RunUUID,
-			"MLMDExecutionID":   newTask.MLMDExecutionID,
-			"CreatedTimestamp":  newTask.CreatedTimestamp,
-			"FinishedTimestamp": newTask.FinishedTimestamp,
-			"Fingerprint":       newTask.Fingerprint,
-		}).
+		SetMap(
+			sq.Eq{
+				"UUID":              newTask.UUID,
+				"Namespace":         newTask.Namespace,
+				"PipelineName":      newTask.PipelineName,
+				"RunUUID":           newTask.RunId,
+				"MLMDExecutionID":   newTask.MLMDExecutionID,
+				"CreatedTimestamp":  newTask.CreatedTimestamp,
+				"StartedTimestamp":  newTask.StartedTimestamp,
+				"FinishedTimestamp": newTask.FinishedTimestamp,
+				"Fingerprint":       newTask.Fingerprint,
+				"Name":              newTask.Name,
+				"ParentTaskUUID":    newTask.ParentTaskId,
+				"State":             newTask.State,
+				"StateHistory":      newTask.StateHistory,
+				"MLMDInputs":        newTask.MLMDInputs,
+				"MLMDOutputs":       newTask.MLMDOutputs,
+			},
+		).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert task to task table: %v",
@@ -102,8 +118,25 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	var tasks []*model.Task
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, mlmdExecutionID, fingerprint string
-		var createdTimestamp, finishedTimestamp int64
-		err := rows.Scan(&uuid, &namespace, &pipelineName, &runUUID, &mlmdExecutionID, &createdTimestamp, &finishedTimestamp, &fingerprint)
+		var name, parentTaskId, state, stateHistory, inputs, outputs sql.NullString
+		var createdTimestamp, startedTimestamp, finishedTimestamp int64
+		err := rows.Scan(
+			&uuid,
+			&namespace,
+			&pipelineName,
+			&runUUID,
+			&mlmdExecutionID,
+			&createdTimestamp,
+			&startedTimestamp,
+			&finishedTimestamp,
+			&fingerprint,
+			&name,
+			&parentTaskId,
+			&state,
+			&stateHistory,
+			&inputs,
+			&outputs,
+		)
 		if err != nil {
 			fmt.Printf("scan error is %v", err)
 			return tasks, err
@@ -112,11 +145,17 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			UUID:              uuid,
 			Namespace:         namespace,
 			PipelineName:      pipelineName,
-			RunUUID:           runUUID,
+			RunId:             runUUID,
 			MLMDExecutionID:   mlmdExecutionID,
 			CreatedTimestamp:  createdTimestamp,
+			StartedTimestamp:  startedTimestamp,
 			FinishedTimestamp: finishedTimestamp,
 			Fingerprint:       fingerprint,
+			Name:              name.String,
+			ParentTaskId:      parentTaskId.String,
+			StateHistory:      stateHistory.String,
+			MLMDInputs:        inputs.String,
+			MLMDOutputs:       outputs.String,
 		}
 		tasks = append(tasks, task)
 	}
@@ -135,6 +174,9 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
 	}
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
+	}
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
 
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
@@ -147,6 +189,9 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	sqlBuilder = sq.Select("count(*)").From("tasks")
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+	}
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
 	}
 	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
 	if err != nil {

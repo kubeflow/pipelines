@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -218,12 +218,12 @@ func NewPermissionDeniedError(err error, externalFormat string, a ...interface{}
 		codes.PermissionDenied)
 }
 
-func NewUnknownApiVersionError(a string, o string) *UserError {
-	externalMessage := fmt.Sprintf("Error using %s for %s.", a, o)
+func NewUnknownApiVersionError(a string, o interface{}) *UserError {
+	externalMessage := fmt.Sprintf("Error using %s with %T.", a, o)
 	return newUserError(
 		errors.New(fmt.Sprintf("UnknownApiVersionError: %v", externalMessage)),
 		externalMessage,
-		codes.NotFound)
+		codes.InvalidArgument)
 }
 
 func (e *UserError) ExternalMessage() string {
@@ -288,7 +288,7 @@ func (e *UserError) GRPCStatus() *status1.Status {
 	return statWithDetail
 }
 
-// Converts an error to google.rpc.Status
+// Converts an error to google.rpc.Status.
 func ToRpcStatus(e error) *status.Status {
 	var grpcStatus *status1.Status
 	var rpcStatus *status.Status
@@ -305,6 +305,14 @@ func ToRpcStatus(e error) *status.Status {
 	rpcStatus.Message = grpcStatus.Proto().GetMessage()
 	rpcStatus.Details = grpcStatus.Proto().GetDetails()
 	return rpcStatus
+}
+
+// Converts google.rpc.Status to an error.
+func ToError(s *status.Status) error {
+	if s == nil {
+		return nil
+	}
+	return status1.ErrorProto(s)
 }
 
 func Wrapf(err error, format string, args ...interface{}) error {

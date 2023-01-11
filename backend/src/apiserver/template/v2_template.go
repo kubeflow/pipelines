@@ -1,4 +1,4 @@
-// Copyright 2021-2022 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	setDefaultServiceAccount(executionSpec, modelJob.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.Name)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed.")
 	}
@@ -201,7 +201,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.Name)
+	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.K8SName)
 	// Replace {{workflow.uid}} with runId
 	err = executionSpec.ReplaceUID(options.RunId)
 	if err != nil {

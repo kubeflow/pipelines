@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -237,7 +237,7 @@ func TestScheduledWorkflow(t *testing.T) {
 	v2Template, _ := New([]byte(v2SpecHelloWorldYAML))
 
 	modelJob := &model.Job{
-		Name:           "name1",
+		K8SName:        "name1",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		NoCatchup:      true,

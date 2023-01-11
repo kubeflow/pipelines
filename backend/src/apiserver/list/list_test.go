@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -983,10 +983,13 @@ func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 
 func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listable := &model.Run{
-		UUID:           "run_id_1",
-		CreatedAtInSec: 1,
-		Name:           "run_name_1",
-		Conditions:     "Succeeded",
+		UUID:        "run_id_1",
+		DisplayName: "run_name_1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec: 1,
+			Conditions:     "Succeeded",
+			State:          model.RuntimeStateSucceededV1,
+		},
 	}
 	protoFilter := &api.Filter{}
 	protoFilter.Predicates = []*api.Predicate{

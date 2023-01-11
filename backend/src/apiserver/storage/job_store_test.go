@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 	job1 := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		Enabled:     true,
 		Conditions:  "ready",
@@ -61,19 +61,13 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType, ReferenceUUID: defaultFakeExpId,
-				ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
 	jobStore.CreateJob(job1)
 	job2 := &model.Job{
 		UUID:        "2",
 		DisplayName: "pp 2",
-		Name:        "pp2",
+		K8SName:     "pp2",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -91,13 +85,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		Enabled:        true,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "2", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpIdTwo,
 	}
 	jobStore.CreateJob(job2)
 	return db, jobStore
@@ -111,7 +99,7 @@ func TestListJobs_Pagination(t *testing.T) {
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
-			Name:        "pp1",
+			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   "1",
@@ -128,15 +116,10 @@ func TestListJobs_Pagination(t *testing.T) {
 			},
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "1", ResourceType: model.JobResourceType,
-					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-				},
-			},
-		}}
-
+			ExperimentId:   defaultFakeExpId,
+		},
+	}
+	jobsExpected[0] = jobsExpected[0].ToV1()
 	opts, err := list.NewOptions(&model.Job{}, 1, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
@@ -149,7 +132,7 @@ func TestListJobs_Pagination(t *testing.T) {
 		{
 			UUID:        "2",
 			DisplayName: "pp 2",
-			Name:        "pp2",
+			K8SName:     "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   "1",
@@ -167,14 +150,10 @@ func TestListJobs_Pagination(t *testing.T) {
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 			Conditions:     "ready",
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "2", ResourceType: model.JobResourceType,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-				},
-			},
-		}}
+			ExperimentId:   defaultFakeExpIdTwo,
+		},
+	}
+	jobsExpected2[0] = jobsExpected2[0].ToV1()
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
@@ -230,7 +209,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 		{
 			UUID:        "2",
 			DisplayName: "pp 2",
-			Name:        "pp2",
+			K8SName:     "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   "1",
@@ -248,14 +227,9 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			NoCatchup:      true,
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "2", ResourceType: model.JobResourceType,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-				},
-			},
+			ExperimentId:   defaultFakeExpIdTwo,
 		}}
+	jobsExpected[0] = jobsExpected[0].ToV1()
 	opts, err := list.NewOptions(&model.Job{}, 1, "name desc", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
@@ -268,7 +242,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
-			Name:        "pp1",
+			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   "1",
@@ -286,15 +260,9 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			NoCatchup:      false,
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "1", ResourceType: model.JobResourceType,
-					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-				},
-			},
+			ExperimentId:   defaultFakeExpId,
 		}}
-
+	jobsExpected2[0] = jobsExpected2[0].ToV1()
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
@@ -312,7 +280,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
-			Name:        "pp1",
+			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   "1",
@@ -329,18 +297,12 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			},
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "1", ResourceType: model.JobResourceType,
-					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-				},
-			},
+			ExperimentId:   defaultFakeExpId,
 		},
 		{
 			UUID:        "2",
 			DisplayName: "pp 2",
-			Name:        "pp2",
+			K8SName:     "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   "1",
@@ -358,15 +320,10 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			NoCatchup:      true,
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "2", ResourceType: model.JobResourceType,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-				},
-			},
+			ExperimentId:   defaultFakeExpIdTwo,
 		}}
-
+	jobsExpected[0] = jobsExpected[0].ToV1()
+	jobsExpected[1] = jobsExpected[1].ToV1()
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
@@ -384,7 +341,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
-			Name:        "pp1",
+			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   "1",
@@ -401,15 +358,9 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 			},
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "1", ResourceType: model.JobResourceType,
-					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-				},
-			},
+			ExperimentId:   defaultFakeExpId,
 		}}
-
+	jobsExpected[0] = jobsExpected[0].ToV1()
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(
@@ -446,7 +397,7 @@ func TestGetJob(t *testing.T) {
 	jobExpected := model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -463,15 +414,9 @@ func TestGetJob(t *testing.T) {
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
-
+	jobExpected = *jobExpected.ToV1()
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
 	assert.Equal(t, jobExpected, *job, "Got unexpected job")
@@ -505,7 +450,7 @@ func TestCreateJob(t *testing.T) {
 	job := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -514,13 +459,7 @@ func TestCreateJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		Enabled:        true,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
 
 	job, err := jobStore.CreateJob(job)
@@ -528,7 +467,7 @@ func TestCreateJob(t *testing.T) {
 	jobExpected := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -537,13 +476,9 @@ func TestCreateJob(t *testing.T) {
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		}}
+		ExperimentId:   defaultFakeExpId,
+	}
+	jobExpected = jobExpected.ToV1()
 	assert.Equal(t, jobExpected, job, "Got unexpected jobs")
 
 	// Check resource reference exists
@@ -562,7 +497,7 @@ func TestCreateJob_V2(t *testing.T) {
 	job := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -575,13 +510,7 @@ func TestCreateJob_V2(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		Enabled:        true,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
 
 	job, err := jobStore.CreateJob(job)
@@ -589,7 +518,7 @@ func TestCreateJob_V2(t *testing.T) {
 	jobExpected := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -602,13 +531,9 @@ func TestCreateJob_V2(t *testing.T) {
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		}}
+		ExperimentId:   defaultFakeExpId,
+	}
+	jobExpected = jobExpected.ToV1()
 	assert.Equal(t, jobExpected, job, "Got unexpected jobs")
 
 	// Check resource reference exists
@@ -626,20 +551,14 @@ func TestCreateJobError(t *testing.T) {
 	job := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
 			PipelineName: "p1",
 		},
-		Enabled: true,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		Enabled:      true,
+		ExperimentId: defaultFakeExpId,
 	}
 
 	job, err := jobStore.CreateJob(job)
@@ -657,7 +576,7 @@ func TestEnableJob(t *testing.T) {
 	jobExpected := model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -674,14 +593,9 @@ func TestEnableJob(t *testing.T) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
+	jobExpected = *jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
@@ -698,7 +612,7 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 	jobExpected := model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -715,14 +629,9 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
+	jobExpected = *jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
@@ -747,7 +656,7 @@ func TestUpdateJob_Success(t *testing.T) {
 	jobExpected := model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -764,14 +673,9 @@ func TestUpdateJob_Success(t *testing.T) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
+	jobExpected = *jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
@@ -780,7 +684,7 @@ func TestUpdateJob_Success(t *testing.T) {
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
+			Namespace: "n1",
 			UID:       "1",
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
@@ -824,10 +728,10 @@ func TestUpdateJob_Success(t *testing.T) {
 	jobExpected = model.Job{
 		UUID:           "1",
 		DisplayName:    "pp 1",
-		Name:           "MY_NAME",
-		Namespace:      "MY_NAMESPACE",
+		K8SName:        "MY_NAME",
+		Namespace:      "n1",
 		Enabled:        false,
-		Conditions:     "Enabled",
+		Conditions:     "ENABLED",
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		MaxConcurrency: 200,
@@ -849,15 +753,9 @@ func TestUpdateJob_Success(t *testing.T) {
 				IntervalSecond:                 util.Int64Pointer(50),
 			},
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId: defaultFakeExpId,
 	}
-
+	jobExpected = *jobExpected.ToV1()
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
 	assert.Equal(t, jobExpected, *job)
@@ -870,7 +768,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	jobExpected := model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
@@ -887,14 +785,9 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   defaultFakeExpId,
 	}
+	jobExpected = *jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
@@ -903,7 +796,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
+			Namespace: "n1",
 			UID:       "1",
 		},
 	})
@@ -914,10 +807,10 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	jobExpected = model.Job{
 		UUID:           "1",
 		DisplayName:    "pp 1",
-		Name:           "MY_NAME",
-		Namespace:      "MY_NAMESPACE",
+		K8SName:        "MY_NAME",
+		Namespace:      "n1",
 		Enabled:        false,
-		Conditions:     "NO_STATUS",
+		Conditions:     "STATUS_UNSPECIFIED",
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		PipelineSpec: model.PipelineSpec{
@@ -937,14 +830,9 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 				IntervalSecond:                 util.Int64Pointer(0),
 			},
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId: defaultFakeExpId,
 	}
+	jobExpected = *jobExpected.ToV1()
 
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)

@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -28,6 +26,80 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"gopkg.in/yaml.v2"
 )
+
+// Returns namespace inferred from v1beta1 API resource references.
+// Supports v1beta1 API.
+func getNamespaceFromResourceReferenceV1(resourceRefs []*apiv1beta1.ResourceReference) string {
+	namespace := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == apiv1beta1.ResourceType_NAMESPACE {
+			namespace = resourceRef.Key.Id
+			break
+		}
+	}
+	return namespace
+}
+
+// Returns experiment id inferred from v1beta1 API resource references.
+// Supports v1beta1 API.
+func getExperimentIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReference) string {
+	experimentId := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == apiv1beta1.ResourceType_EXPERIMENT {
+			experimentId = resourceRef.Key.Id
+			break
+		}
+	}
+	return experimentId
+}
+
+// Returns pipeline id inferred from v1beta1 API resource references.
+// Supports v1beta1 API.
+func getPipelineIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReference) string {
+	pipelineId := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == apiv1beta1.ResourceType_PIPELINE {
+			pipelineId = resourceRef.Key.Id
+			break
+		}
+	}
+	return pipelineId
+}
+
+// Returns pipeline version id inferred from v1beta1 API resource references.
+// Support v1beta1 API.
+func getPipelineVersionFromResourceReferencesV1(resourceReferences []*apiv1beta1.ResourceReference) string {
+	var pipelineVersionId = ""
+	for _, resourceReference := range resourceReferences {
+		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == apiv1beta1.Relationship_CREATOR {
+			pipelineVersionId = resourceReference.Key.Id
+		}
+	}
+	return pipelineVersionId
+}
+
+// Returns id of the recurring run inferred from v1beta1 API resource references.
+// Supports v1beta1 API.
+func getJobIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReference) string {
+	jobId := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == apiv1beta1.ResourceType_JOB {
+			jobId = resourceRef.Key.Id
+			break
+		}
+	}
+	return jobId
+}
+
+// Converts structpb.Struct to a yaml string
+func protobufStructToYamlString(s *structpb.Struct) (string, error) {
+	bytes, err := yaml.Marshal(s.AsMap())
+	// bytes, err := json.Marshal(s.AsMap())
+	if err != nil {
+		return "", util.Wrap(err, "Failed to convert a protobuf struct to a yaml string.")
+	}
+	return string(bytes), nil
+}
 
 func getOwningExperimentUUID(references []*apiv1beta1.ResourceReference) (string, error) {
 	var experimentUUID string
@@ -54,104 +126,12 @@ func GetResourceReferenceFromRunInterface(r interface{}) ([]*apiv1beta1.Resource
 	case *apiv2beta1.Run:
 		return nil, nil
 	default:
-		return nil, util.NewUnknownApiVersionError("GetResourceReferenceFromRunInterface()", fmt.Sprintf("ResourceReference from %T", reflect.TypeOf(r)))
+		return nil, util.NewUnknownApiVersionError("GetResourceReferenceFromRunInterface()", r)
 	}
-}
-
-// Fetches a PipelineId from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetPipelineIdFromRunInterface(r interface{}) (string, error) {
-	switch runType := r.(type) {
-	case *apiv1beta1.Run:
-		return r.(*apiv1beta1.Run).GetPipelineSpec().GetPipelineId(), nil
-	case *apiv2beta1.Run:
-		pipelineId := r.(*apiv2beta1.Run).GetPipelineId()
-		if pipelineId == "" {
-			if pipelineIdValue, ok := r.(*apiv2beta1.Run).GetPipelineSpec().GetFields()["PipelineId"]; ok {
-				pipelineId = pipelineIdValue.GetStringValue()
-			} else {
-				return "", util.NewResourceNotFoundError(fmt.Sprintf("PipelineId not found in %T. This could be because PipelineId is set to an empty string or invalid PipelineId field in PipelineSpec", runType), "")
-			}
-		}
-		return pipelineId, nil
-	default:
-		return "", util.NewUnknownApiVersionError("GetPipelineIdFromRunInterface()", fmt.Sprintf("PipelineId from %T", reflect.TypeOf(r)))
-	}
-}
-
-// Fetches a ExperimentId from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetExperimentIdFromRunInterface(r interface{}) (string, error) {
-	switch r.(type) {
-	case *apiv1beta1.Run:
-		return "", nil
-	case *apiv2beta1.Run:
-		return r.(*apiv2beta1.Run).GetExperimentId(), nil
-	default:
-		return "", util.NewUnknownApiVersionError("GetExperimentIdFromRunInterface()", fmt.Sprintf("ExperimentId from %T", reflect.TypeOf(r)))
-	}
-}
-
-// Fetches a RuntimeState from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetStateFromRunInterface(r interface{}) (string, error) {
-	switch r.(type) {
-	case *apiv1beta1.Run:
-		return "", nil
-	case *apiv2beta1.Run:
-		return r.(*apiv2beta1.Run).GetState().String(), nil
-	default:
-		return "", util.NewUnknownApiVersionError("GetStateFromRunInterface()", fmt.Sprintf("State from %T", reflect.TypeOf(r)))
-	}
-}
-
-// Fetches a RuntimeStateHistory from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetStateHistoryFromRunInterface(r interface{}) (string, error) {
-	switch r.(type) {
-	case *apiv1beta1.Run:
-		return "", nil
-	case *apiv2beta1.Run:
-		if serializedState, err := json.Marshal(r.(*apiv2beta1.Run).GetStateHistory()); err != nil {
-			return "", err
-		} else {
-			return string(serializedState), err
-		}
-	default:
-		return "", util.NewUnknownApiVersionError("GetStateHistoryFromRunInterface()", fmt.Sprintf("StateHistory from %T", reflect.TypeOf(r)))
-	}
-}
-
-// Fetches a DisplayName from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetDisplayNameFromRunInterface(r interface{}) (string, error) {
-	switch r.(type) {
-	case *apiv1beta1.Run:
-		return r.(*apiv1beta1.Run).GetName(), nil
-	case *apiv2beta1.Run:
-		return r.(*apiv2beta1.Run).GetDisplayName(), nil
-	default:
-		return "", util.NewUnknownApiVersionError("GetDisplayNameFromRunInterface()", fmt.Sprintf("DisplayName from %T", reflect.TypeOf(r)))
-	}
-}
-
-// Converts structpb.Struct into a yaml string
-func ProtobufStructToYamlString(s *structpb.Struct) (string, error) {
-	bytes, err := yaml.Marshal(s.AsMap())
-	// bytes, err := json.Marshal(s.AsMap())
-	if err != nil {
-		return "", util.Wrap(err, "Failed to convert a protobuf struct into a yaml string.")
-	}
-	return string(bytes), nil
 }
 
 // Converts a yaml string into structpb.Struct (v2)
-func YamlStringToProtobufStruct(s string) (*structpb.Struct, error) {
+func yamlStringToProtobufStruct(s string) (*structpb.Struct, error) {
 	var m *map[string]interface{}
 	// var m *structpb.Struct
 	err := yaml.Unmarshal([]byte(s), m)
@@ -175,7 +155,7 @@ func GetPipelineRootFromRunInterface(r interface{}) (string, error) {
 	case *apiv2beta1.Run:
 		return r.(*apiv2beta1.Run).GetRuntimeConfig().GetPipelineRoot(), nil
 	default:
-		return "", util.NewUnknownApiVersionError("GetPipelineRootFromRunInterface()", fmt.Sprintf("PipelineRoot from %T", reflect.TypeOf(r)))
+		return "", util.NewUnknownApiVersionError("GetPipelineRootFromRunInterface()", r)
 	}
 }
 
@@ -220,7 +200,7 @@ func GetRuntimeConfigFromRunInterface(r interface{}) (map[string]interface{}, er
 		}
 		return newRuntimeConfig, nil
 	default:
-		return nil, util.NewUnknownApiVersionError("GetRuntimeConfigFromRunInterface()", fmt.Sprintf("RuntimeConfig from %T", reflect.TypeOf(r)))
+		return nil, util.NewUnknownApiVersionError("GetRuntimeConfigFromRunInterface()", r)
 	}
 }
 
@@ -234,18 +214,8 @@ func GetRunDetailsFromRunInterface(r interface{}) (string, error) {
 	case *apiv2beta1.Run:
 		return r.(*apiv2beta1.Run).GetRunDetails().String(), nil
 	default:
-		return "", util.NewUnknownApiVersionError("GetRunDetailsFromRunInterface()", fmt.Sprintf("RunDetails from %T", reflect.TypeOf(r)))
+		return "", util.NewUnknownApiVersionError("GetRunDetailsFromRunInterface()", r)
 	}
-}
-
-func getPipelineVersionIdFromResourceReferences(resourceManager *resource.ResourceManager, resourceReferences []*apiv1beta1.ResourceReference) string {
-	var pipelineVersionId = ""
-	for _, resourceReference := range resourceReferences {
-		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == apiv1beta1.Relationship_CREATOR {
-			pipelineVersionId = resourceReference.Key.Id
-		}
-	}
-	return pipelineVersionId
 }
 
 // Verify the input resource references has one and only reference which is owner experiment.
@@ -277,7 +247,7 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 	pipelineId := spec.GetPipelineId()
 	workflowManifest := spec.GetWorkflowManifest()
 	pipelineManifest := spec.GetPipelineManifest()
-	pipelineVersionId := getPipelineVersionIdFromResourceReferences(resourceManager, resourceReferences)
+	pipelineVersionId := getPipelineVersionFromResourceReferencesV1(resourceReferences)
 
 	if workflowManifest != "" || pipelineManifest != "" {
 		if workflowManifest != "" && pipelineManifest != "" {
@@ -317,7 +287,7 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 	if err := validateParameters(spec.GetParameters()); err != nil {
 		return err
 	}
-	if err := validateRuntimeConfig(spec.GetRuntimeConfig()); err != nil {
+	if err := validateRuntimeConfigV1(spec.GetRuntimeConfig()); err != nil {
 		return err
 	}
 	return nil
@@ -329,7 +299,7 @@ func validateParameters(parameters []*apiv1beta1.Parameter) error {
 		if err != nil {
 			return util.NewInternalServerError(err,
 				"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
-				printParameters(parameters))
+				apiParametersToStringV1(parameters))
 		}
 		if len(paramsBytes) > util.MaxParameterBytes {
 			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
@@ -338,7 +308,7 @@ func validateParameters(parameters []*apiv1beta1.Parameter) error {
 	return nil
 }
 
-func validateRuntimeConfig(runtimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig) error {
+func validateRuntimeConfigV1(runtimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig) error {
 	if runtimeConfig.GetParameters() != nil {
 		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
 		if err != nil {
@@ -386,7 +356,7 @@ func validatePipelineManifest(pipelineManifest string) error {
 	return nil
 }
 
-func printParameters(params []*apiv1beta1.Parameter) string {
+func apiParametersToStringV1(params []*apiv1beta1.Parameter) string {
 	var s strings.Builder
 	for _, p := range params {
 		s.WriteString(p.String())
@@ -394,8 +364,7 @@ func printParameters(params []*apiv1beta1.Parameter) string {
 	return s.String()
 }
 
-// Returns workflow template []byte array from PipelineSpec
-func getWorkflowSpecBytesFromPipelineSpec(spec *apiv1beta1.PipelineSpec) ([]byte, error) {
+func getWorkflowSpecBytesFromPipelineSpecV1(spec *apiv1beta1.PipelineSpec) ([]byte, error) {
 	if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}

@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+	// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
 	// `pipelines` joined with `pipeline_versions`
 	// This supports v1beta1 behavior.
 	// The order of the selected columns must match the order used in scan rows.
@@ -77,7 +77,7 @@ var (
 )
 
 type PipelineStoreInterface interface {
-	// TODO (gkcalat): As these calls use joins on two (potentially) large sets with one-many relationship,
+	// TODO(gkcalat): As these calls use joins on two (potentially) large sets with one-many relationship,
 	// let's keep them to avoid performance issues. consider removing after KFP v2 GA if users are not affected.
 	//
 	// `pipelines` left joined with `pipeline_versions`
@@ -197,7 +197,7 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 	return pipelineVersions, nil
 }
 
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Parses SQL results of joining `pipelines` and `pipeline_versions` tables into []Pipelines.
 // This supports v1beta1 behavior.
 func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*model.PipelineVersion, error) {
@@ -731,7 +731,7 @@ func (s *PipelineStore) UpdatePipelineVersionStatus(id string, status model.Pipe
 	return s.ExecuteSQL(sql, args, "update", "status of a pipeline version")
 }
 
-// TODO (gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
+// TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
 // Updates default pipeline version for a given pipeline.
 // Supports v1beta1 behavior.
 func (s *PipelineStore) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
@@ -776,7 +776,7 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 	return s.ExecuteSQL(sql, args, "delete", "pipeline version")
 }
 
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Returns the latest pipeline and the latest pipeline version specified by name and namespace.
 // Performance depends on the index (name, namespace) in `pipelines` table.
 // This supports v1beta1 behavior.
@@ -815,7 +815,7 @@ func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace s
 	return pipelines[0], pipelineVersions[0], nil
 }
 
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
 // total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
 // This supports v1beta1 behavior.

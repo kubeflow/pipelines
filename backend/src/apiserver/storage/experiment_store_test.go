@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ import (
 
 	"fmt"
 
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -379,13 +380,13 @@ func TestListExperiments_Filtering(t *testing.T) {
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDFour, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment4"))
 
-	filterProto := &api.Filter{
-		Predicates: []*api.Predicate{
-			&api.Predicate{
+	filterProto := &apiv1beta1.Filter{
+		Predicates: []*apiv1beta1.Predicate{
+			&apiv1beta1.Predicate{
 				Key: "name",
-				Op:  api.Predicate_IN,
-				Value: &api.Predicate_StringValues{
-					StringValues: &api.StringValues{
+				Op:  apiv1beta1.Predicate_IN,
+				Value: &apiv1beta1.Predicate_StringValues{
+					StringValues: &apiv1beta1.StringValues{
 						Values: []string{"experiment2", "experiment4", "experiment3"},
 					},
 				},
@@ -460,54 +461,44 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// Initial state: 1 experiment and 2 runs in it.
 	// The experiment is unarchived.
 	// One run is archived and the other is not.
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
-	experimentStore.CreateExperiment(createExperiment("experiment1"))
+	experimentStore := NewExperimentStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(fakeID, nil),
+	)
+	experimentStore.CreateExperiment(
+		createExperiment("experiment1"),
+	)
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
-	run1 := &model.RunDetail{
-		Run: model.Run{
-			UUID:             "1",
-			Name:             "run1",
-			DisplayName:      "run1",
-			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Namespace:        "n1",
-			CreatedAtInSec:   1,
-			ScheduledAtInSec: 1,
-			Conditions:       "Running",
-			ExperimentUUID:   fakeID,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "1", ResourceType: model.RunResourceType,
-					ReferenceUUID: fakeID, ReferenceName: "experiment1",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
-				},
-			},
-		},
-		PipelineRuntime: model.PipelineRuntime{
+	run1 := &model.Run{
+		UUID:         "1",
+		DisplayName:  "run1",
+		K8SName:      "run1",
+		StorageState: model.StorageStateAvailableV1,
+		Namespace:    "n1",
+		ExperimentId: fakeID,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			ScheduledAtInSec:        1,
+			State:                   "RUNNING",
 			WorkflowRuntimeManifest: "workflow1",
 		},
+		PipelineSpec: model.PipelineSpec{},
 	}
-	run2 := &model.RunDetail{
-		Run: model.Run{
-			UUID:             "2",
-			Name:             "run2",
-			DisplayName:      "run2",
-			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
-			Namespace:        "n1",
-			CreatedAtInSec:   2,
-			ScheduledAtInSec: 2,
-			Conditions:       "done",
-			ExperimentUUID:   fakeID,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "2", ResourceType: model.RunResourceType,
-					ReferenceUUID: fakeID, ReferenceName: "experiment1",
-					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
-				},
-			},
-		},
-		PipelineRuntime: model.PipelineRuntime{
+	run2 := &model.Run{
+		UUID:         "2",
+		DisplayName:  "run2",
+		K8SName:      "run2",
+		StorageState: model.StorageStateArchivedV1,
+		Namespace:    "n1",
+		ExperimentId: fakeID,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          2,
+			ScheduledAtInSec:        2,
+			State:                   "FINISHED",
 			WorkflowRuntimeManifest: "workflow1",
 		},
+		PipelineSpec: model.PipelineSpec{},
 	}
 	runStore.CreateRun(run1)
 	runStore.CreateRun(run2)
@@ -515,17 +506,19 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	runs, total_run_size, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_run_size)
-	assert.Equal(t, api.Run_STORAGESTATE_AVAILABLE.String(), runs[0].StorageState)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_AVAILABLE.String(), string(runs[0].StorageState.ToV1()))
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_AVAILABLE.String(), runs[0].StorageState.ToString())
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		Enabled:     true,
-		Conditions:  "ready",
+		Conditions:  "ENABLED",
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -535,18 +528,12 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: model.JobResourceType, ReferenceUUID: fakeID,
-				ReferenceName: "experiment1", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   fakeID,
 	}
 	job2 := &model.Job{
 		UUID:        "2",
 		DisplayName: "pp 2",
-		Name:        "pp2",
+		K8SName:     "pp2",
 		Namespace:   "n1",
 		Conditions:  "ready",
 		Trigger: model.Trigger{
@@ -560,13 +547,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		Enabled:        false,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "2", ResourceType: model.JobResourceType,
-				ReferenceUUID: fakeID, ReferenceName: "experiment2", ReferenceType: model.ExperimentResourceType,
-				Relationship: model.OwnerRelationship,
-			},
-		},
+		ExperimentId:   fakeID,
 	}
 	jobStore.CreateJob(job1)
 	jobStore.CreateJob(job2)
@@ -576,16 +557,18 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, "ARCHIVED", exp.StorageState)
+	assert.Equal(t, "ARCHIVED", exp.StorageState.ToString())
 	opts, err = list.NewOptions(&model.Run{}, 10, "id", nil)
 	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_run_size)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 	jobs, total_job_size, _, err := jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, total_job_size, 2)
+	assert.Equal(t, 2, total_job_size)
 	assert.Equal(t, false, jobs[0].Enabled)
 	assert.Equal(t, false, jobs[1].Enabled)
 
@@ -594,12 +577,14 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	exp, err = experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, "AVAILABLE", exp.StorageState)
+	assert.Equal(t, "AVAILABLE", exp.StorageState.ToString())
 	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_run_size, 2)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 	jobs, total_job_size, _, err = jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_job_size, 2)
