@@ -114,6 +114,30 @@ function hasVersionID(
   return hasVersionType;
 }
 
+function getPipelineDetailsUrl(
+  props: NewRunV2Props,
+  existingRunId: string | null,
+  originalRecurringRunId: string | null,
+): string {
+  const urlParser = new URLParser(props);
+
+  const pipelineDetailsUrlfromRun = existingRunId
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
+    : '';
+
+  const pipelineDetailsUrlfromRecurringRun = originalRecurringRunId
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.cloneFromRecurringRun]: originalRecurringRunId })
+    : '';
+
+  return pipelineDetailsUrlfromRun ? pipelineDetailsUrlfromRun : pipelineDetailsUrlfromRecurringRun;
+}
+
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const {
@@ -145,38 +169,26 @@ function NewRunV2(props: NewRunV2Props) {
   const [isParameterValid, setIsParameterValid] = useState(false);
   const [isClone, setIsClone] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(apiRecurringRun !== undefined);
-  const [trigger, setTrigger] = useState(apiRecurringRun ? apiRecurringRun.trigger : undefined);
-  const [maxConcurrentRuns, setMaxConcurrentRuns] = useState(
-    apiRecurringRun ? apiRecurringRun.max_concurrency : '10',
-  );
+  const initialTrigger =
+    apiRecurringRun && apiRecurringRun.trigger ? apiRecurringRun.trigger : undefined;
+  const [trigger, setTrigger] = useState(initialTrigger);
+  const initialMaxConCurrentRuns =
+    apiRecurringRun && apiRecurringRun.max_concurrency !== undefined
+      ? apiRecurringRun.max_concurrency
+      : '10';
+  const [maxConcurrentRuns, setMaxConcurrentRuns] = useState(initialMaxConCurrentRuns);
   const [isMaxConcurrentRunValid, setIsMaxConcurrentRunValid] = useState(true);
   const initialCatchup =
     apiRecurringRun && apiRecurringRun.no_catchup !== undefined
       ? !apiRecurringRun.no_catchup
       : true;
-  const [catchup, setCatchup] = useState(initialCatchup);
+  const [needCatchup, setNeedCatchup] = useState(initialCatchup);
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
 
   const urlParser = new URLParser(props);
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
-  const pipelineDetailsUrlfromRun = existingRunId
-    ? RoutePage.PIPELINE_DETAILS.replace(
-        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
-        '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
-    : '';
 
-  const pipelineDetailsUrlfromRecurringRun = originalRecurringRunId
-    ? RoutePage.PIPELINE_DETAILS.replace(
-        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
-        '',
-      ) + urlParser.build({ [QUERY_PARAMS.cloneFromRecurringRun]: originalRecurringRunId })
-    : '';
-
-  const pipelineDetailsUrl = pipelineDetailsUrlfromRun
-    ? pipelineDetailsUrlfromRun
-    : pipelineDetailsUrlfromRecurringRun;
   const isTemplatePullSuccess = templateString ? true : false;
   const apiResourceRefFromRun = apiRun?.run?.resource_references;
   const apiResourceRefFromRecurringRun = apiRecurringRun?.resource_references;
@@ -342,7 +354,7 @@ function NewRunV2(props: NewRunV2Props) {
         ? {
             enabled: true,
             max_concurrency: maxConcurrentRuns || '1',
-            no_catchup: !catchup,
+            no_catchup: !needCatchup,
             trigger: trigger,
           }
         : {
@@ -424,7 +436,10 @@ function NewRunV2(props: NewRunV2Props) {
             <div className={classes(padding(10, 't'))}>
               {/* TODO(jlyaoyuli): View pipelineDetails from existing recurring run*/}
               {apiRun && (
-                <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
+                <Link
+                  className={classes(commonCss.link)}
+                  to={getPipelineDetailsUrl(props, existingRunId, originalRecurringRunId)}
+                >
                   [View pipeline]
                 </Link>
               )}
@@ -584,7 +599,7 @@ function NewRunV2(props: NewRunV2Props) {
               initialProps={{
                 trigger: trigger,
                 maxConcurrentRuns: maxConcurrentRuns,
-                catchup: catchup,
+                catchup: needCatchup,
               }}
               onChange={({ trigger, maxConcurrentRuns, catchup }) => {
                 setTrigger(trigger);
@@ -592,7 +607,7 @@ function NewRunV2(props: NewRunV2Props) {
                 setIsMaxConcurrentRunValid(
                   Number.isInteger(Number(maxConcurrentRuns)) && Number(maxConcurrentRuns) > 0,
                 );
-                setCatchup(catchup);
+                setNeedCatchup(catchup);
               }}
             />
           </>

@@ -32,6 +32,7 @@ function NewRunSwitcher(props: PageProps) {
   );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
+  // Retrieve run details
   const { isSuccess: getRunSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
     ApiRunDetail,
     Error
@@ -46,6 +47,7 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!existingRunId, staleTime: Infinity },
   );
 
+  // Retrieve recurring run details
   const {
     isSuccess: getRecurringRunSuccess,
     isFetching: recurringRunIsFetching,
@@ -61,20 +63,15 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!originalRecurringRunId, staleTime: Infinity },
   );
 
-  let pipelineManifestFromRecurringRun: string | undefined;
-  let pipelineManifestFromRun: string | undefined;
+  if (apiRun !== undefined && apiRecurringRun !== undefined) {
+    throw new Error('The existence of run and recurring run should be exclusive.');
+  }
 
+  // template string from cloned object
+  let pipelineManifest = apiRun?.run?.pipeline_spec?.pipeline_manifest;
   if (getRecurringRunSuccess && apiRecurringRun) {
-    pipelineManifestFromRecurringRun = apiRecurringRun.pipeline_spec?.pipeline_manifest;
+    pipelineManifest = apiRecurringRun.pipeline_spec?.pipeline_manifest;
   }
-
-  if (getRunSuccess && apiRun) {
-    pipelineManifestFromRun = apiRun.run?.pipeline_spec?.pipeline_manifest;
-  }
-
-  let pipelineManifest = pipelineManifestFromRun
-    ? pipelineManifestFromRun
-    : pipelineManifestFromRecurringRun;
 
   const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
     ['ApiPipeline', pipelineId],
