@@ -93,21 +93,33 @@ type NewRunV2Props = RunV2Props & PageProps;
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
 
-function hasVersionID(
-  apiRun: ApiRunDetail | undefined,
-  apiRecurringRun: ApiJob | undefined,
-): boolean {
-  if (!apiRun && !apiRecurringRun) {
+type CloneOrigin = {
+  isClone: boolean;
+  isRecurring: boolean;
+  run: ApiRunDetail | undefined;
+  recurringRun: ApiJob | undefined;
+};
+
+function getCloneOrigin(apiRun: ApiRunDetail | undefined, apiRecurringRun: ApiJob | undefined) {
+  let cloneOrigin: CloneOrigin = {
+    isClone: apiRun !== undefined || apiRecurringRun !== undefined,
+    isRecurring: apiRecurringRun !== undefined,
+    run: apiRun,
+    recurringRun: apiRecurringRun,
+  };
+  return cloneOrigin;
+}
+
+function hasVersionID(cloneOrigin: CloneOrigin): boolean {
+  if (!cloneOrigin.isClone) {
     return true;
   }
   let hasVersionType: boolean = false;
-  if (apiRun && apiRun.run?.resource_references) {
-    apiRun.run.resource_references.forEach(value => {
-      hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
-    });
-  }
-  if (apiRecurringRun && apiRecurringRun.resource_references) {
-    apiRecurringRun.resource_references.forEach(value => {
+  const existResourceRef = cloneOrigin.isRecurring
+    ? cloneOrigin.recurringRun?.resource_references
+    : cloneOrigin.run?.run?.resource_references;
+  if (existResourceRef) {
+    existResourceRef.forEach(value => {
       hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
     });
   }
@@ -152,6 +164,7 @@ function NewRunV2(props: NewRunV2Props) {
     templateString,
     chosenExperiment,
   } = props;
+  const cloneOrigin = getCloneOrigin(apiRun, apiRecurringRun);
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
@@ -167,38 +180,42 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
-  const [isClone, setIsClone] = useState(false);
-  const [isRecurringRun, setIsRecurringRun] = useState(apiRecurringRun !== undefined);
-  const initialTrigger =
-    apiRecurringRun && apiRecurringRun.trigger ? apiRecurringRun.trigger : undefined;
+  const [isRecurringRun, setIsRecurringRun] = useState(cloneOrigin.isRecurring);
+  const initialTrigger = cloneOrigin.recurringRun?.trigger
+    ? cloneOrigin.recurringRun.trigger
+    : undefined;
   const [trigger, setTrigger] = useState(initialTrigger);
   const initialMaxConCurrentRuns =
-    apiRecurringRun && apiRecurringRun.max_concurrency !== undefined
-      ? apiRecurringRun.max_concurrency
+    cloneOrigin.recurringRun?.max_concurrency !== undefined
+      ? cloneOrigin.recurringRun.max_concurrency
       : '10';
   const [maxConcurrentRuns, setMaxConcurrentRuns] = useState(initialMaxConCurrentRuns);
   const [isMaxConcurrentRunValid, setIsMaxConcurrentRunValid] = useState(true);
   const initialCatchup =
-    apiRecurringRun && apiRecurringRun.no_catchup !== undefined
-      ? !apiRecurringRun.no_catchup
+    cloneOrigin.recurringRun?.no_catchup !== undefined
+      ? !cloneOrigin.recurringRun.no_catchup
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
-  const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
+
+  const initClonedRuntimeConfig = cloneOrigin.isRecurring
+    ? cloneOrigin.recurringRun?.pipeline_spec?.runtime_config
+    : cloneOrigin.run?.run?.pipeline_spec?.runtime_config;
+  const [clonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>(
+    initClonedRuntimeConfig ? initClonedRuntimeConfig : {},
+  );
 
   const urlParser = new URLParser(props);
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
-  const apiResourceRefFromRun = apiRun?.run?.resource_references;
-  const apiResourceRefFromRecurringRun = apiRecurringRun?.resource_references;
-  const existResourceRef = apiResourceRefFromRun
-    ? apiResourceRefFromRun
-    : apiResourceRefFromRecurringRun;
+  const existResourceRef = cloneOrigin.isRecurring
+    ? cloneOrigin.recurringRun?.resource_references
+    : cloneOrigin.run?.run?.resource_references;
 
   // TODO(jlyaoyuli): support cloning recurring run with query parameter from isRecurring.
-  const titleVerb = existingRunId || originalRecurringRunId ? 'Clone' : 'Start';
-  const titleAdjective = existingRunId || originalRecurringRunId ? '' : 'new';
+  const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
+  const titleAdjective = cloneOrigin.isClone ? '' : 'new';
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -209,14 +226,7 @@ function NewRunV2(props: NewRunV2Props) {
         : `${titleVerb} a ${titleAdjective} run`,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Determine if it is cloning (run / recurring run)
-  useEffect(() => {
-    if (apiRun || apiRecurringRun) {
-      setIsClone(true);
-    }
-  }, [apiRun, apiRecurringRun]);
+  }, [isRecurringRun]);
 
   // Pre-fill names for pipeline, pipeline version and experiment.
   useEffect(() => {
@@ -279,15 +289,6 @@ function NewRunV2(props: NewRunV2Props) {
     }
   }, [templateString, errorMessage, isParameterValid, isMaxConcurrentRunValid]);
 
-  useEffect(() => {
-    if (apiRun?.run?.pipeline_spec?.runtime_config) {
-      setClonedRuntimeConfig(apiRun?.run?.pipeline_spec?.runtime_config);
-    }
-    if (apiRecurringRun?.pipeline_spec?.runtime_config) {
-      setClonedRuntimeConfig(apiRecurringRun.pipeline_spec.runtime_config);
-    }
-  }, [apiRun, apiRecurringRun]);
-
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
   useEffect(() => {
@@ -321,7 +322,7 @@ function NewRunV2(props: NewRunV2Props) {
         relationship: ApiRelationship.OWNER,
       });
     }
-    if (existingPipelineVersion && hasVersionID(apiRun, apiRecurringRun)) {
+    if (existingPipelineVersion && hasVersionID(cloneOrigin)) {
       references.push({
         key: {
           id: existingPipelineVersion.id,
@@ -336,7 +337,7 @@ function NewRunV2(props: NewRunV2Props) {
       name: runName,
       pipeline_spec: {
         // FE can only provide either pipeline_manifest or pipeline version
-        pipeline_manifest: hasVersionID(apiRun, apiRecurringRun) ? undefined : templateString,
+        pipeline_manifest: hasVersionID(cloneOrigin) ? undefined : templateString,
         runtime_config: {
           // TODO(zijianjoy): determine whether to provide pipeline root.
           pipeline_root: undefined, // pipelineRoot,
@@ -348,22 +349,12 @@ function NewRunV2(props: NewRunV2Props) {
       service_account: serviceAccount,
     };
 
-    let newRecurringRun: ApiJob = Object.assign(
-      newRun,
-      isRecurringRun
-        ? {
-            enabled: true,
-            max_concurrency: maxConcurrentRuns || '1',
-            no_catchup: !needCatchup,
-            trigger: trigger,
-          }
-        : {
-            enabled: false,
-            max_concurrency: undefined,
-            no_catchup: undefined,
-            trigger: undefined,
-          },
-    );
+    let newRecurringRun: ApiJob = Object.assign(newRun, {
+      enabled: true,
+      max_concurrency: maxConcurrentRuns || '1',
+      no_catchup: !needCatchup,
+      trigger: trigger,
+    });
     setIsStartingNewRun(true);
 
     const runCreation = () =>
@@ -428,7 +419,7 @@ function NewRunV2(props: NewRunV2Props) {
       <div className={commonCss.scrollContainer}>
         <div className={commonCss.header}>Run details</div>
 
-        {(apiRun || apiRecurringRun) && (
+        {cloneOrigin.isClone && (
           <div>
             <div>
               <span>{usePipelineFromRunLabel}</span>
@@ -447,7 +438,7 @@ function NewRunV2(props: NewRunV2Props) {
           </div>
         )}
 
-        {!(apiRun || apiRecurringRun) && (
+        {!cloneOrigin.isClone && (
           <div>
             {/* Pipeline selection */}
             <PipelineSelector
@@ -569,8 +560,8 @@ function NewRunV2(props: NewRunV2Props) {
         {/* One-off/Recurring Run Type */}
         {/* TODO(zijianjoy): Support Recurring Run */}
         <div className={commonCss.header}>Run Type</div>
-        {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
-        {!isClone && (
+        {cloneOrigin.isClone === true && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+        {cloneOrigin.isClone === false && (
           <>
             <FormControlLabel
               id='oneOffToggle'
