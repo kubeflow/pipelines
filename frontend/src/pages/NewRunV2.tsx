@@ -128,6 +128,7 @@ function hasVersionID(cloneOrigin: CloneOrigin): boolean {
 
 function getPipelineDetailsUrl(
   props: NewRunV2Props,
+  isRecurring: boolean,
   existingRunId: string | null,
   originalRecurringRunId: string | null,
 ): string {
@@ -147,7 +148,7 @@ function getPipelineDetailsUrl(
       ) + urlParser.build({ [QUERY_PARAMS.cloneFromRecurringRun]: originalRecurringRunId })
     : '';
 
-  return pipelineDetailsUrlfromRun ? pipelineDetailsUrlfromRun : pipelineDetailsUrlfromRecurringRun;
+  return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
 }
 
 function NewRunV2(props: NewRunV2Props) {
@@ -429,7 +430,12 @@ function NewRunV2(props: NewRunV2Props) {
               {apiRun && (
                 <Link
                   className={classes(commonCss.link)}
-                  to={getPipelineDetailsUrl(props, existingRunId, originalRecurringRunId)}
+                  to={getPipelineDetailsUrl(
+                    props,
+                    cloneOrigin.isRecurring,
+                    existingRunId,
+                    originalRecurringRunId,
+                  )}
                 >
                   [View pipeline]
                 </Link>
