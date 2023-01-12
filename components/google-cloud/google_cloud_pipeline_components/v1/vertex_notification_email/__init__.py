@@ -11,18 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Vertex Notification Email Components."""
+"""Core modules for AI Platform Pipeline Components."""
 
 import os
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from . import component as vertex_notification_email_component
 
 __all__ = [
     'VertexNotificationEmailOp',
 ]
 
-VertexNotificationEmailOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'component.yaml'))
+VertexNotificationEmailOp = vertex_notification_email_component.vertex_pipelines_notification_email
