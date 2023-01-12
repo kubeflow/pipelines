@@ -21,9 +21,9 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 cd "${DIR}"
 source "${DIR}/scripts/ci-env.sh"
 
-# Install required packages from commit
+# Install kfp
 python3 -m pip install --upgrade pip
-python3 -m pip install $source_root/sdk/python
+python3 -m pip install kfp
 
 # Install KFP server API from commit.
 cp -r $source_root/backend/api/v1beta1/python_http_client /python_http_client
