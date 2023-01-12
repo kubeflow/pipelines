@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,125 +15,85 @@
 
 import os
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from .create_model import component as create_model_component
+from .detect_anomalies_model import component as detect_anomalies_model_component
+from .drop_model import component as drop_model_component
+from .evaluate_model import component as evaluate_model_component
+from .explain_forecast_model import component as explain_forecast_model_component
+from .explain_predict_model import component as explain_predict_model
+from .export_model import component as export_model_component
+from .feature_importance import component as feature_importance_component
+from .forecast_model import component as forecast_model_component
+from .global_explain import component as global_explain_component
+from .ml_advanced_weights import component as ml_advanced_weights_component
+from .ml_arima_coefficients import component as ml_arima_coefficients_component
+from .ml_arima_evaluate import component as ml_arima_evaluate_component
+from .ml_centroids import component as ml_centroids_component
+from .ml_confusion_matrix import component as ml_confusion_matrix_component
+from .ml_feature_info import component as ml_feature_info_component
+from .ml_principal_component_info import component as ml_principal_component_info_component
+from .ml_principal_components import component as ml_principal_components_component
+from .ml_recommend import component as ml_recommend_component
+from .ml_reconstruction_loss import component as ml_reconstruction_loss_component
+from .ml_roc_curve import component as ml_roc_curve_component
+from .ml_training_info import component as ml_training_info_component
+from .ml_trial_info import component as ml_trial_info_component
+from .ml_weights import component as ml_weights_component
+from .predict_model import component as predict_model_component
+from .query_job import component as query_job_component
 
 __all__ = [
-    'BigqueryQueryJobOp',
     'BigqueryCreateModelJobOp',
-    'BigqueryExportModelJobOp',
-    'BigqueryMLArimaEvaluateJobOp',
-    'BigqueryPredictModelJobOp',
-    'BigqueryEvaluateModelJobOp',
-    'BigqueryMLArimaCoefficientsJobOp',
-    'BigqueryMLWeightsJobOp',
-    'BigqueryMLReconstructionLossJobOp',
-    'BigqueryMLTrialInfoJobOp',
-    'BigqueryMLTrainingInfoJobOp',
-    'BigqueryExplainPredictModelJobOp',
-    'BigqueryExplainForecastModelJobOp',
-    'BigqueryMLAdvancedWeightsJobOp',
+    'BigqueryDetectAnomaliesModelJobOp',
     'BigqueryDropModelJobOp',
+    'BigqueryEvaluateModelJobOp',
+    'BigqueryExplainForecastModelJobOp',
+    'BigqueryExplainPredictModelJobOp',
+    'BigqueryExportModelJobOp',
+    'BigqueryForecastModelJobOp',
+    'BigqueryMLAdvancedWeightsJobOp',
+    'BigqueryMLArimaCoefficientsJobOp',
+    'BigqueryMLArimaEvaluateJobOp',
     'BigqueryMLCentroidsJobOp',
     'BigqueryMLConfusionMatrixJobOp',
-    'BigqueryMLFeatureInfoJobOp',
-    'BigqueryMLRocCurveJobOp',
-    'BigqueryMLPrincipalComponentsJobOp',
-    'BigqueryMLPrincipalComponentInfoJobOp',
     'BigqueryMLFeatureImportanceJobOp',
-    'BigqueryMLRecommendJobOp',
-    'BigqueryForecastModelJobOp',
-    'BigqueryForecastModelJobOp',
+    'BigqueryMLFeatureInfoJobOp',
     'BigqueryMLGlobalExplainJobOp',
-    'BigqueryDetectAnomaliesModelJobOp',
+    'BigqueryMLPrincipalComponentInfoJobOp',
+    'BigqueryMLPrincipalComponentsJobOp',
+    'BigqueryMLRecommendJobOp',
+    'BigqueryMLReconstructionLossJobOp',
+    'BigqueryMLRocCurveJobOp',
+    'BigqueryMLTrainingInfoJobOp',
+    'BigqueryMLTrialInfoJobOp',
+    'BigqueryMLWeightsJobOp',
+    'BigqueryPredictModelJobOp',
+    'BigqueryQueryJobOp',
 ]
 
-BigqueryQueryJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'query_job/component.yaml'))
-
-BigqueryCreateModelJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'create_model/component.yaml'))
-
-BigqueryExportModelJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'export_model/component.yaml'))
-
-BigqueryPredictModelJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'predict_model/component.yaml'))
-
-BigqueryExplainPredictModelJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'explain_predict_model/component.yaml'))
-
-BigqueryExplainForecastModelJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'explain_forecast_model/component.yaml'))
-
-BigqueryEvaluateModelJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'evaluate_model/component.yaml'))
-
-BigqueryMLArimaCoefficientsJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'ml_arima_coefficients/component.yaml'))
-
-BigqueryMLArimaEvaluateJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_arima_evaluate/component.yaml'))
-
-BigqueryMLReconstructionLossJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'ml_reconstruction_loss/component.yaml'))
-
-BigqueryMLTrialInfoJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_trial_info/component.yaml'))
-
-BigqueryMLWeightsJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_weights/component.yaml'))
-
-BigqueryMLTrainingInfoJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_training_info/component.yaml'))
-
-BigqueryMLAdvancedWeightsJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'ml_advanced_weights/component.yaml'))
-
-BigqueryDropModelJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'drop_model/component.yaml'))
-
-BigqueryMLCentroidsJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_centroids/component.yaml'))
-
-BigqueryMLConfusionMatrixJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'ml_confusion_matrix/component.yaml'))
-
-BigqueryMLFeatureInfoJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_feature_info/component.yaml'))
-
-BigqueryMLRocCurveJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_roc_curve/component.yaml'))
-
-BigqueryMLPrincipalComponentsJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'ml_principal_components/component.yaml'))
-
-BigqueryMLPrincipalComponentInfoJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'ml_principal_component_info/component.yaml'))
-
-BigqueryMLFeatureImportanceJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'feature_importance/component.yaml'))
-
-BigqueryMLRecommendJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ml_recommend/component.yaml'))
-
-BigqueryForecastModelJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecast_model/component.yaml'))
-
-BigqueryMLGlobalExplainJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'global_explain/component.yaml'))
-
-BigqueryDetectAnomaliesModelJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'detect_anomalies_model/component.yaml'))
+BigqueryCreateModelJobOp = create_model_component.bigquery_create_model_job
+BigqueryDetectAnomaliesModelJobOp = detect_anomalies_model_component.bigquery_detect_anomalies_job
+BigqueryDropModelJobOp = drop_model_component.bigquery_drop_model_job
+BigqueryEvaluateModelJobOp = evaluate_model_component.bigquery_evaluate_model_job
+BigqueryExplainForecastModelJobOp = explain_forecast_model_component.bigquery_explain_forecast_model_job
+BigqueryExplainPredictModelJobOp = explain_predict_model.bigquery_explain_predict_model_job
+BigqueryExportModelJobOp = export_model_component.bigquery_export_model_job
+BigqueryForecastModelJobOp = forecast_model_component.bigquery_forecast_model_job
+BigqueryMLAdvancedWeightsJobOp = ml_advanced_weights_component.bigquery_ml_advanced_weights_job
+BigqueryMLArimaCoefficientsJobOp = ml_arima_coefficients_component.bigquery_ml_arima_coefficients
+BigqueryMLArimaEvaluateJobOp = ml_arima_evaluate_component.bigquery_ml_arima_evaluate_job
+BigqueryMLCentroidsJobOp = ml_centroids_component.bigquery_ml_centroids_job
+BigqueryMLConfusionMatrixJobOp = ml_confusion_matrix_component.bigquery_ml_confusion_matrix_job
+BigqueryMLFeatureImportanceJobOp = feature_importance_component.bigquery_ml_feature_importance_job
+BigqueryMLFeatureInfoJobOp = ml_feature_info_component.bigquery_ml_feature_info_job
+BigqueryMLGlobalExplainJobOp = global_explain_component.bigquery_ml_global_explain_job
+BigqueryMLPrincipalComponentInfoJobOp = ml_principal_component_info_component.bigquery_ml_principal_component_info_job
+BigqueryMLPrincipalComponentsJobOp = ml_principal_components_component.bigquery_ml_principal_components_job
+BigqueryMLRecommendJobOp = ml_recommend_component.bigquery_ml_recommend_job
+BigqueryMLReconstructionLossJobOp = ml_reconstruction_loss_component.bigquery_ml_reconstruction_loss_job
+BigqueryMLRocCurveJobOp = ml_roc_curve_component.bigquery_ml_roc_curve_job
+BigqueryMLTrainingInfoJobOp = ml_training_info_component.bigquery_ml_training_info_job
+BigqueryMLTrialInfoJobOp = ml_trial_info_component.bigquery_ml_trial_info_job
+BigqueryMLWeightsJobOp = ml_weights_component.bigquery_ml_weights_job
+BigqueryPredictModelJobOp = predict_model_component.bigquery_predict_model_job
+BigqueryQueryJobOp = query_job_component.bigquery_query_job
