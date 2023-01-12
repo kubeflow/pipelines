@@ -38,17 +38,20 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
  */
 export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets) {
   if (!config.accessKey || !config.secretKey) {
-    const credentials = fromNodeProviderChain();
-    const aws_credentials = await credentials();
-    if (aws_credentials) {
-      const {
-        accessKeyId: accessKey,
-        secretAccessKey: secretKey,
-        sessionToken: sessionToken,
-      } = aws_credentials;
-      return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
+    try {
+      const credentials = fromNodeProviderChain();
+      const aws_credentials = await credentials();
+      if (aws_credentials) {
+        const {
+          accessKeyId: accessKey,
+          secretAccessKey: secretKey,
+          sessionToken: sessionToken,
+        } = aws_credentials;
+        return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
+      }
+    } catch (err) {
+      console.error('unable to get credentials from AWS credential provider chain: ', err);
     }
-    console.error('unable to get credentials from AWS credential provider chain.');
   }
 
   return new MinioClient(config as MinioClientOptions);
