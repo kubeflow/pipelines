@@ -36,7 +36,6 @@ import {
   ApiResourceType,
   ApiRun,
   ApiRunDetail,
-  PipelineSpecRuntimeConfig,
 } from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -77,15 +76,15 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
 interface RunV2Props {
   namespace?: string;
   existingRunId: string | null;
-  apiRun: ApiRunDetail | undefined;
+  apiRun?: ApiRunDetail;
   originalRecurringRunId: string | null;
-  apiRecurringRun: ApiJob | undefined;
-  existingPipeline: ApiPipeline | undefined;
+  apiRecurringRun?: ApiJob;
+  existingPipeline?: ApiPipeline;
   handlePipelineIdChange: (pipelineId: string) => void;
-  existingPipelineVersion: ApiPipelineVersion | undefined;
+  existingPipelineVersion?: ApiPipelineVersion;
   handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
-  templateString: string | undefined;
-  chosenExperiment: ApiExperiment | undefined;
+  templateString?: string;
+  chosenExperiment?: ApiExperiment;
 }
 
 type NewRunV2Props = RunV2Props & PageProps;
@@ -96,11 +95,11 @@ export type RuntimeParameters = { [key: string]: any };
 type CloneOrigin = {
   isClone: boolean;
   isRecurring: boolean;
-  run: ApiRunDetail | undefined;
-  recurringRun: ApiJob | undefined;
+  run?: ApiRunDetail;
+  recurringRun?: ApiJob;
 };
 
-function getCloneOrigin(apiRun: ApiRunDetail | undefined, apiRecurringRun: ApiJob | undefined) {
+function getCloneOrigin(apiRun?: ApiRunDetail, apiRecurringRun?: ApiJob) {
   let cloneOrigin: CloneOrigin = {
     isClone: apiRun !== undefined || apiRecurringRun !== undefined,
     isRecurring: apiRecurringRun !== undefined,
@@ -198,13 +197,9 @@ function NewRunV2(props: NewRunV2Props) {
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
 
-  const initClonedRuntimeConfig = cloneOrigin.isRecurring
+  const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.pipeline_spec?.runtime_config
     : cloneOrigin.run?.run?.pipeline_spec?.runtime_config;
-  const [clonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>(
-    initClonedRuntimeConfig ? initClonedRuntimeConfig : {},
-  );
-
   const urlParser = new URLParser(props);
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
@@ -214,7 +209,6 @@ function NewRunV2(props: NewRunV2Props) {
     ? cloneOrigin.recurringRun?.resource_references
     : cloneOrigin.run?.run?.resource_references;
 
-  // TODO(jlyaoyuli): support cloning recurring run with query parameter from isRecurring.
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';
 
