@@ -288,6 +288,17 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", jobs[0].Name)
 
+	/* ---------- List the jobs, filtered by created_at, only return the previous two jobs ---------- */
+	filterTime := time.Now().Unix()
+	_, err = s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+	jobs, _, _, err = test.ListJobs(
+		s.jobClient,
+		&jobparams.ListJobsParams{
+			Filter: util.StringPointer(`predicates { key: "created_at" op: LESS_THAN_EQUALS long_value: ` + fmt.Sprint(filterTime) + ` }`)},
+		s.resourceNamespace)
+	assert.Equal(t, 2, len(jobs))
+
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
 

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"sort"
 	"testing"
@@ -249,6 +250,22 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
+
+	/* ---------- List the runs, filtered by finished_at, only return the previous two runs ---------- */
+	// Wait for the runs to finish
+	time.Sleep(120 * time.Second)
+	filterTime := time.Now().Unix()
+	// Create a new run
+	_, _, err = s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+	// Wait for the new run to finish
+	time.Sleep(120 * time.Second)
+	runs, _, _, err = test.ListRuns(
+		s.runClient,
+		&runparams.ListRunsV1Params{
+			Filter: util.StringPointer(`predicates { key: "finished_at" op: LESS_THAN_EQUALS long_value: ` + fmt.Sprint(filterTime) + ` }`)},
+		s.resourceNamespace)
+	assert.Equal(t, 2, len(runs))
 
 	/* ---------- Archive a run ------------*/
 	err = s.runClient.Archive(&runparams.ArchiveRunV1Params{
