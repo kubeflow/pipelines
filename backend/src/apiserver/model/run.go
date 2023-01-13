@@ -46,6 +46,10 @@ const (
 	RunTerminatingConditions  string       = "Terminating"
 )
 
+func (s RuntimeState) ToV2() RuntimeState {
+	return RuntimeState(s.ToString())
+}
+
 func (s RuntimeState) ToV1() RuntimeState {
 	switch s {
 	case RuntimeStateUnspecified:
@@ -107,6 +111,10 @@ func (s RuntimeState) IsValid() bool {
 	default:
 		return false
 	}
+}
+
+func (s StorageState) ToV2() StorageState {
+	return StorageState(s.ToString())
 }
 
 func (s StorageState) ToV1() StorageState {

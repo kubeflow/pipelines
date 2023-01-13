@@ -59,7 +59,7 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 			Subresource: "",
 			Name:        "",
 		}
-		err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
+		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize on namespace.")
 		}

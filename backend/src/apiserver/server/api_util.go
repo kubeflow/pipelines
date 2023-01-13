@@ -16,15 +16,26 @@ package server
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/types/known/structpb"
 	"gopkg.in/yaml.v2"
+)
+
+const (
+	// This regex expresses the following constraints:
+	// * Allows lowercase/uppercase letters
+	// * Allows "_", "-" and numbers in the middle
+	// * Additionally, numbers are also allowed at the end
+	// * At most 64 characters
+	metricNamePattern = "^[a-zA-Z]([-_a-zA-Z0-9]{0,62}[a-zA-Z0-9])?$"
 )
 
 // Returns namespace inferred from v1beta1 API resource references.
@@ -369,4 +380,26 @@ func getWorkflowSpecBytesFromPipelineSpecV1(spec *apiv1beta1.PipelineSpec) ([]by
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
+}
+
+// Validates a run metric fields from request.
+func validateRunMetric(metric *model.RunMetric) error {
+	matched, err := regexp.MatchString(metricNamePattern, metric.Name)
+	if err != nil {
+		// This should never happen.
+		return util.NewInternalServerError(
+			err, "failed to compile pattern '%s'", metricNamePattern)
+	}
+	if !matched {
+		return util.NewInvalidInputError(
+			"metric.name '%s' doesn't match with the pattern '%s'", metric.Name, metricNamePattern)
+	}
+	if metric.NodeID == "" {
+		return util.NewInvalidInputError("metric.node_id must not be empty")
+	}
+	if len(metric.NodeID) > 128 {
+		return util.NewInvalidInputError(
+			"metric.node_id '%s' cannot be longer than 128 characters", metric.NodeID)
+	}
+	return nil
 }

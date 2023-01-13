@@ -39,7 +39,7 @@ func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRe
 		return nil, util.Wrap(err, "Failed to create a new task.")
 	}
 
-	return ToApiTask(task), nil
+	return toApiTaskV1(task), nil
 }
 
 func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) error {
@@ -90,7 +90,7 @@ func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequ
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	filterContext, err := ValidateFilterV1(request.ResourceReferenceKey)
+	filterContext, err := validateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
@@ -100,7 +100,7 @@ func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequ
 		return nil, util.Wrap(err, "List tasks failed.")
 	}
 	return &api.ListTasksResponse{
-			Tasks:         ToApiTasks(tasks),
+			Tasks:         toApiTasksV1(tasks),
 			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken},
 		nil

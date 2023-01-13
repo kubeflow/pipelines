@@ -20,17 +20,11 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"context"
 	"io"
 	"io/ioutil"
 	"strings"
 
-	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/pkg/errors"
-	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func loadFile(fileReader io.Reader, MaxFileLength int) ([]byte, error) {
@@ -169,42 +163,4 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, MaxFileLength int) 
 		return nil, util.Wrap(err, "Error decompress the pipeline file")
 	}
 	return processedFile, nil
-}
-
-// isAuthorized verifies whether the user identity, which is contained in the context object,
-// can perform some action (verb) on a resource (resourceType/resourceName) living in the
-// target namespace. If the returned error is nil, the authorization passes. Otherwise,
-// authorization fails with a non-nil error.
-func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if common.IsMultiUserMode() == false {
-		// Skip authz if not multi-user mode.
-		return nil
-	}
-	if common.IsMultiUserSharedReadMode() &&
-		(resourceAttributes.Verb == common.RbacResourceVerbGet ||
-			resourceAttributes.Verb == common.RbacResourceVerbList) {
-		glog.Infof("Multi-user shared read mode is enabled. Request allowed: %+v", resourceAttributes)
-		return nil
-	}
-
-	glog.Info("Getting user identity...")
-	userIdentity, err := resourceManager.AuthenticateRequest(ctx)
-	if err != nil {
-		return err
-	}
-
-	if len(userIdentity) == 0 {
-		return util.NewUnauthenticatedError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
-	}
-
-	glog.Infof("User: %s, ResourceAttributes: %+v", userIdentity, resourceAttributes)
-	glog.Info("Authorizing request...")
-	err = resourceManager.IsRequestAuthorized(ctx, userIdentity, resourceAttributes)
-	if err != nil {
-		glog.Info(err.Error())
-		return err
-	}
-
-	glog.Infof("Authorized user '%s': %+v", userIdentity, resourceAttributes)
-	return nil
 }

@@ -130,7 +130,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	pipeline := model.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:        pipelineName,
 		Description: pipelineDescription,
 		Namespace:   pipelineNamespace,
@@ -141,7 +141,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	pipelineVersion := model.PipelineVersion{
+	pipelineVersion := &model.PipelineVersion{
 		Name:         pipelineName,
 		Description:  pipelineDescription,
 		PipelineId:   newPipeline.UUID,
@@ -157,7 +157,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
-	err = marshaler.Marshal(w, ToApiPipelineV1(newPipeline, newPipelineVersion))
+	err = marshaler.Marshal(w, toApiPipelineV1(newPipeline, newPipelineVersion))
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, fmt.Sprintf("[PipelineUploadServer %s]: Failed to create a pipeline due to error marshalling the pipeline.", s.options.ApiVersion)))
 		return
@@ -223,7 +223,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	}
 
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:         pipelineVersionName,
 			Description:  versionDescription,
 			PipelineId:   pipelineId,
@@ -237,9 +237,9 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 
 	w.Header().Set("Content-Type", "application/json")
 	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
-	createdPipelineVersion, err := ToApiPipelineVersionV1(newPipelineVersion)
-	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, fmt.Sprintf("[PipelineUploadServer %s]: Failed to create a pipeline version due to error converting it to API.", s.options.ApiVersion)))
+	createdPipelineVersion := toApiPipelineVersionV1(newPipelineVersion)
+	if createdPipelineVersion == nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.NewInternalServerError(errors.New("Failed to convert internal pipeline version representation to its v1beta1 API counterpart."), "[PipelineUploadServer %s]: Failed to create a pipeline version due to error converting it to API.", s.options.ApiVersion))
 		return
 	}
 	err = marshaler.Marshal(w, createdPipelineVersion)
@@ -282,7 +282,7 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 	}
 	ctx = metadata.NewIncomingContext(ctx, md)
 
-	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
+	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Authorization Failure.")
 	}

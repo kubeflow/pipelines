@@ -149,13 +149,13 @@ func OverrideParameterWithSystemDefault(execSpec util.ExecutionSpec) error {
 		patched := make(util.SpecParameters, 0, len(params))
 		for _, currentParam := range params {
 			if currentParam.Value != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Value)
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patched = append(patched, util.SpecParameter{Name: currentParam.Name, Value: &desiredValue})
 			} else if currentParam.Default != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
+				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Default)
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
@@ -286,21 +286,4 @@ func modelToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, er
 		swParams = append(swParams, swParam)
 	}
 	return swParams, nil
-}
-
-// Mutate default values of specified pipeline spec.
-// Args:
-//
-//	text: (part of) pipeline file in string.
-func PatchPipelineDefaultParameter(text string) (string, error) {
-	defaultBucket := common.GetStringConfig(common.DefaultBucketNameEnvVar)
-	projectId := common.GetStringConfig(common.ProjectIDEnvVar)
-	toPatch := map[string]string{
-		"{{kfp-default-bucket}}": defaultBucket,
-		"{{kfp-project-id}}":     projectId,
-	}
-	for key, value := range toPatch {
-		text = strings.Replace(text, key, value, -1)
-	}
-	return text, nil
 }

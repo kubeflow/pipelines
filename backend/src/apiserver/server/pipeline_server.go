@@ -180,7 +180,7 @@ func (s *PipelineServer) haveAccess(ctx context.Context, resourceAttributes *aut
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
 	resourceAttributes.Resource = common.RbacResourceTypePipelines
-	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
+	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to authorize with API.", s.options.ApiVersion))
 	}
@@ -225,7 +225,7 @@ func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.Pipeline
 }
 
 // Create a pipeline from a model.Pipeline. Not exported.
-func (s *PipelineServer) createPipeline(ctx context.Context, pipeline model.Pipeline) (*model.Pipeline, error) {
+func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pipeline) (*model.Pipeline, error) {
 	if pipeline.Namespace == model.NoNamespace {
 		pipeline.Namespace = s.options.DefaultNamespace
 	}
@@ -235,13 +235,13 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline model.Pipe
 		Verb:      common.RbacResourceVerbCreate,
 		Resource:  common.RbacResourceTypePipelines,
 	}
-	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
+	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline due to authorization error. Check if you have write permissions to namespace %s.", s.options.ApiVersion, pipeline.Namespace))
 	}
 
 	// Validate the pipeline. Fail fast if this is corrupted.
-	if err := s.validatePipelineBeforeCreating(&pipeline); err != nil {
+	if err := s.validatePipelineBeforeCreating(pipeline); err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline as pipeline validation failed.", s.options.ApiVersion))
 	}
 
@@ -249,7 +249,7 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline model.Pipe
 }
 
 // Create a pipeline version from a model.PipelineVersion. Not exported.
-func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv model.PipelineVersion) (*model.PipelineVersion, error) {
+func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.PipelineVersion) (*model.PipelineVersion, error) {
 	// Fail if pipeline spec is missing
 	if (pv.PipelineSpec == "") && (pv.CodeSourceUrl == "") && (pv.PipelineSpecURI == "") {
 		return nil, util.NewInvalidInputError("[PipelineServer %s]: Failed to create a pipeline version due to missing pipeline spec.", s.options.ApiVersion)
@@ -288,7 +288,7 @@ func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv model.Pip
 	}
 
 	// Validate the pipeline version
-	if err := s.validatePipelineVersionBeforeCreating(&pv); err != nil {
+	if err := s.validatePipelineVersionBeforeCreating(pv); err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline version due to validation error.", s.options.ApiVersion))
 	}
 
@@ -520,11 +520,11 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	}
 
 	// Convert the input request. Fail fast if either pipeline or pipeline version is corrupted.
-	pipeline, err := ToModelPipeline(request.GetPipeline())
+	pipeline, err := toModelPipeline(request.GetPipeline())
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline (v1beta1) as pipeline conversion failed.", s.options.ApiVersion))
 	}
-	pipelineVersion, err := ToModelPipelineVersion(request.GetPipeline())
+	pipelineVersion, err := toModelPipelineVersion(request.GetPipeline())
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline (v1beta1) as pipeline version conversion failed.", s.options.ApiVersion))
 	}
@@ -558,12 +558,12 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 			// Increment if a new pipeline version has been created
 			pipelineVersionCount.Inc()
 		}
-		return ToApiPipelineV1(createdPipeline, createdPipelineVersion), nil
+		return toApiPipelineV1(createdPipeline, createdPipelineVersion), nil
 	}
 
 	// A new pipeline has been created, but pipeline version creation failed after validation
 	if perr == nil {
-		return ToApiPipelineV1(createdPipeline, &model.PipelineVersion{}), nil
+		return toApiPipelineV1(createdPipeline, &model.PipelineVersion{}), nil
 	}
 
 	return nil, util.Wrap(perr, util.Wrap(pverr, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline and a pipeline version (v1beta1).", s.options.ApiVersion)).Error())
@@ -576,7 +576,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1
 	}
 
 	// Convert the input request. Fail fast if pipeline is corrupted.
-	pipeline, err := ToModelPipeline(request.GetPipeline())
+	pipeline, err := toModelPipeline(request.GetPipeline())
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline as pipeline conversion failed.", s.options.ApiVersion))
 	}
@@ -590,7 +590,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1
 	if s.options.CollectMetrics {
 		pipelineCount.Inc()
 	}
-	return ToApiPipeline(createdPipeline), nil
+	return toApiPipeline(createdPipeline), nil
 }
 
 // v2beta1: creates a pipeline.
@@ -620,7 +620,7 @@ func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *a
 	}
 
 	// Convert to pipeline
-	pv, err := ToModelPipelineVersion(request.GetVersion())
+	pv, err := toModelPipelineVersion(request.GetVersion())
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline version (v1beta1) due to conversion error.", s.options.ApiVersion))
 	}
@@ -648,9 +648,9 @@ func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *a
 
 	// Convert back to API
 	// Note, v1beta1 PipelineVersion does not have error message. Errors in converting to API will result in error.
-	result, err := ToApiPipelineVersionV1(newpv)
-	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline version (v1beta1) due to error converting back to API.", s.options.ApiVersion))
+	result := toApiPipelineVersionV1(newpv)
+	if result == nil {
+		return nil, util.NewInternalServerError(errors.New("Failed to convert internal pipeline version representation to its v1beta1 API counterpart."), "[PipelineServer %s]: Failed to create a pipeline version (v1beta1) due to error converting back to API.", s.options.ApiVersion)
 	}
 	return result, nil
 }
@@ -673,7 +673,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 	}
 
 	// Convert to pipeline
-	pv, err := ToModelPipelineVersion(request.GetPipelineVersion())
+	pv, err := toModelPipelineVersion(request.GetPipelineVersion())
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to create a pipeline version due to conversion error.", s.options.ApiVersion))
 	}
@@ -694,7 +694,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 	if s.options.CollectMetrics {
 		pipelineVersionCount.Inc()
 	}
-	return ToApiPipelineVersion(newpv), nil
+	return toApiPipelineVersion(newpv), nil
 }
 
 // v2beta1: returns a pipeline.
@@ -728,7 +728,7 @@ func (s *PipelineServer) GetPipelineV1(ctx context.Context, request *apiv1beta1.
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to get a pipeline (v1beta1) due to internal server error occurred when fetching the latest pipeline version.", s.options.ApiVersion))
 	}
 
-	return ToApiPipelineV1(pipeline, pipelineVersion), nil
+	return toApiPipelineV1(pipeline, pipelineVersion), nil
 }
 
 // Returns a v2beta1 pipeline.
@@ -741,7 +741,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.Ge
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to get a pipeline due to internal server error.", s.options.ApiVersion))
 	}
-	return ToApiPipeline(pipeline), nil
+	return toApiPipeline(pipeline), nil
 }
 
 // v2beta1: returns a pipeline specified by name and namespace.
@@ -771,7 +771,7 @@ func (s *PipelineServer) GetPipelineByNameV1(ctx context.Context, request *apiv1
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to get a pipeline (v1beta1) by name and namespace.", s.options.ApiVersion))
 	}
-	return ToApiPipelineV1(pipeline, pipelineVersion), nil
+	return toApiPipelineV1(pipeline, pipelineVersion), nil
 }
 
 // Returns a v2beta1 pipeline given name and namespace.
@@ -787,7 +787,7 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2be
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to get a pipeline by name and namespace.", s.options.ApiVersion))
 	}
-	return ToApiPipeline(pipeline), nil
+	return toApiPipeline(pipeline), nil
 }
 
 // v2beta1: returns a pipeline version.
@@ -814,7 +814,11 @@ func (s *PipelineServer) GetPipelineVersionV1(ctx context.Context, request *apiv
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to get a pipeline version (v1beta1).", s.options.ApiVersion))
 	}
-	return ToApiPipelineVersionV1(pipelineVersion)
+	apiPipelineVersion := toApiPipelineVersionV1(pipelineVersion)
+	if apiPipelineVersion == nil {
+		return nil, util.NewInternalServerError(errors.New("Pipeline version cannot be converted to v1beta1 API."), fmt.Sprintf("[PipelineServer %s]: Failed to get a pipeline version (v1beta1).", s.options.ApiVersion))
+	}
+	return apiPipelineVersion, nil
 }
 
 // Return a v2beta1 pipeline version.
@@ -827,7 +831,7 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2b
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to get a pipeline version.", s.options.ApiVersion))
 	}
-	return ToApiPipelineVersion(pipelineVersion), nil
+	return toApiPipelineVersion(pipelineVersion), nil
 }
 
 // Return the default (latest) pipeline template for a given pipeline id.
@@ -898,7 +902,7 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta
 		3. User provides resource reference to namespace
 	*/
 	namespace := ""
-	filterContext, err := ValidateFilterV1(request.GetResourceReferenceKey())
+	filterContext, err := validateFilterV1(request.GetResourceReferenceKey())
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipelines (v1beta1) due to filter validation error.", s.options.ApiVersion))
 	}
@@ -925,7 +929,7 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipelines (v1beta1).", s.options.ApiVersion))
 	}
 
-	apiPipelines := ToApiPipelinesV1(pipelines, pipelineVersions)
+	apiPipelines := toApiPipelinesV1(pipelines, pipelineVersions)
 	return &apiv1beta1.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
 }
 
@@ -945,7 +949,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipelines.", s.options.ApiVersion))
 	}
-	return &apiv2beta1.ListPipelinesResponse{Pipelines: ToApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
+	return &apiv2beta1.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
 }
 
 // Returns a list of v1beta1 pipeline versions for a given query.
@@ -969,15 +973,15 @@ func (s *PipelineServer) ListPipelineVersionsV1(ctx context.Context, request *ap
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipeline versions (v1beta1).", s.options.ApiVersion))
 	}
-	apiPipelineVersions, err := ToApiPipelineVersionsV1(pipelineVersions)
-	if err != nil {
+	apiPipelineVersions := toApiPipelineVersionsV1(pipelineVersions)
+	if apiPipelineVersions == nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipeline versions (v1beta1) due to conversion error.", s.options.ApiVersion))
 	}
-
 	return &apiv1beta1.ListPipelineVersionsResponse{
 		Versions:      apiPipelineVersions,
 		NextPageToken: nextPageToken,
-		TotalSize:     int32(totalSize)}, nil
+		TotalSize:     int32(totalSize),
+	}, nil
 }
 
 // Returns a list of v2beta1 pipeline versions for a given query.
@@ -998,7 +1002,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipeline versions.", s.options.ApiVersion))
 	}
 	return &apiv2beta1.ListPipelineVersionsResponse{
-		PipelineVersions: ToApiPipelineVersions(pipelineVersions),
+		PipelineVersions: toApiPipelineVersions(pipelineVersions),
 		NextPageToken:    nextPageToken,
 		TotalSize:        int32(totalSize)}, nil
 }

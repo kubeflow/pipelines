@@ -31,7 +31,7 @@ type ReportServer struct {
 
 func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
-	execSpec, err := ValidateReportWorkflowRequest(request)
+	execSpec, err := validateReportWorkflowRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed.")
 	}
@@ -44,7 +44,7 @@ func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 
 func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	request *api.ReportScheduledWorkflowRequest) (*empty.Empty, error) {
-	scheduledWorkflow, err := ValidateReportScheduledWorkflowRequest(request)
+	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Report scheduled workflow failed.")
 	}
@@ -55,7 +55,7 @@ func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (util.ExecutionSpec, error) {
+func validateReportWorkflowRequest(request *api.ReportWorkflowRequest) (*util.ExecutionSpec, error) {
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(request.Workflow))
 	if err != nil {
 		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
@@ -69,10 +69,10 @@ func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (util.Exe
 	if execSpec.ExecutionUID() == "" {
 		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", execSpec)
 	}
-	return execSpec, nil
+	return &execSpec, nil
 }
 
-func ValidateReportScheduledWorkflowRequest(request *api.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
+func validateReportScheduledWorkflowRequest(request *api.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
 	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
 	err := json.Unmarshal([]byte(request.ScheduledWorkflow), &scheduledWorkflow)
 	if err != nil {
