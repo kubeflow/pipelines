@@ -138,7 +138,7 @@ func parseAPIFilter(encoded string) (*api.Filter, error) {
 	}
 
 	errorF := func(err error) (*api.Filter, error) {
-		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
+		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v, decoded value: %q", encoded, err, decoded)
 	}
 
 	decoded, err := url.QueryUnescape(encoded)
