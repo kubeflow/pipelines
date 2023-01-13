@@ -253,19 +253,27 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- List the runs, filtered by finished_at, only return the previous two runs ---------- */
 	// Wait for the runs to finish
-	time.Sleep(120 * time.Second)
+	time.Sleep(300 * time.Second)
 	filterTime := time.Now().Unix()
 	// Create a new run
 	_, _, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Wait for the new run to finish
-	time.Sleep(120 * time.Second)
-	runs, _, _, err = test.ListRuns(
+	time.Sleep(300 * time.Second)
+	// Check total number of runs is 3
+	runs, totalSize, _, err = test.ListAllRuns(s.runClient, s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(runs))
+	assert.Equal(t, 3, totalSize)
+	// Check number of filtered runs finished before filterTime to be 2
+	runs, totalSize, _, err = test.ListRuns(
 		s.runClient,
 		&runparams.ListRunsV1Params{
 			Filter: util.StringPointer(`predicates { key: "finished_at" op: LESS_THAN_EQUALS long_value: ` + fmt.Sprint(filterTime) + ` }`)},
 		s.resourceNamespace)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
+	assert.Equal(t, 2, totalSize)
 
 	/* ---------- Archive a run ------------*/
 	err = s.runClient.Archive(&runparams.ArchiveRunV1Params{

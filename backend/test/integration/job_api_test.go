@@ -291,13 +291,20 @@ func (s *JobApiTestSuite) TestJobApis() {
 	/* ---------- List the jobs, filtered by created_at, only return the previous two jobs ---------- */
 	filterTime := time.Now().Unix()
 	_, err = s.jobClient.Create(createJobRequest)
+	// Check total number of jobs to be 3
+	jobs, totalSize, _, err = test.ListAllJobs(s.jobClient, s.resourceNamespace)
 	assert.Nil(t, err)
-	jobs, _, _, err = test.ListJobs(
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 3, len(jobs))
+	// Check number of filtered jobs finished before filterTime to be 2
+	jobs, totalSize, _, err = test.ListJobs(
 		s.jobClient,
 		&jobparams.ListJobsParams{
 			Filter: util.StringPointer(`predicates { key: "created_at" op: LESS_THAN_EQUALS long_value: ` + fmt.Sprint(filterTime) + ` }`)},
 		s.resourceNamespace)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(jobs))
+	assert.Equal(t, 2, totalSize)
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
