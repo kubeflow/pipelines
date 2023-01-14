@@ -252,7 +252,9 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, "hello world", runs[0].Name)
 
 	/* ---------- List the runs, filtered by created_at, only return the previous two runs ---------- */
+	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous runs are created at a different timestamp
 	filterTime := time.Now().Unix()
+	time.Sleep(5 * time.Second)
 	// Create a new run
 	_, _, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)

@@ -289,7 +289,9 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, "hello world", jobs[0].Name)
 
 	/* ---------- List the jobs, filtered by created_at, only return the previous two jobs ---------- */
+	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous jobs are created at a different timestamp
 	filterTime := time.Now().Unix()
+	time.Sleep(5 * time.Second)
 	_, err = s.jobClient.Create(createJobRequest)
 	// Check total number of jobs to be 3
 	jobs, totalSize, _, err = test.ListAllJobs(s.jobClient, s.resourceNamespace)
