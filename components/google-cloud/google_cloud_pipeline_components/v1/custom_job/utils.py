@@ -14,42 +14,55 @@
 """Module for supporting Google Vertex AI Custom Training Job Op."""
 
 import copy
-import json
-import os
 from typing import Callable, Dict, Optional, Sequence
 
+from google_cloud_pipeline_components.v1.custom_job import component
 from kfp import components
-from kfp.dsl import dsl_utils
-from kfp.v2.components.types import type_utils
 import yaml
 
-_EXECUTOR_PLACEHOLDER = '{{{{$}}}}'
+from google.protobuf import json_format
+
+_EXECUTOR_PLACEHOLDER = '{{$}}'
 # Executor replacement is used as executor content needs to be jsonified before
-# injection into the payload, since payload is already a Json serialized string.
+# injection into the payload, since payload is already a JSON serialized string.
 _EXECUTOR_PLACEHOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
 
 
-# This method is aliased to "create_custom_training_job_from_component" for
-# better readability
-def create_custom_training_job_op_from_component(
+def _replace_executor_placeholder(
+    container_input: Sequence[str]) -> Sequence[str]:
+  """Replace executor placeholder in container command or args.
+
+  Args:
+    container_input: Container command or args
+
+  Returns:
+    container input with executor placeholder replaced.
+  """
+  return [
+      _EXECUTOR_PLACEHOLDER_REPLACEMENT
+      if input == _EXECUTOR_PLACEHOLDER else input for input in container_input
+  ]
+
+
+def create_custom_training_job_from_component(
     component_spec: Callable,  # pylint: disable=g-bare-generic
-    display_name: Optional[str] = '',
-    replica_count: Optional[int] = 1,
-    machine_type: Optional[str] = 'n1-standard-4',
-    accelerator_type: Optional[str] = '',
-    accelerator_count: Optional[int] = 1,
-    boot_disk_type: Optional[str] = 'pd-ssd',
-    boot_disk_size_gb: Optional[int] = 100,
-    timeout: Optional[str] = '604800s',
-    restart_job_on_worker_restart: Optional[bool] = False,
-    service_account: Optional[str] = '',
-    network: Optional[str] = '',
-    encryption_spec_key_name: Optional[str] = '',
-    tensorboard: Optional[str] = '',
-    enable_web_access: Optional[bool] = False,
+    display_name: str = '',
+    replica_count: int = 1,
+    machine_type: str = 'n1-standard-4',
+    accelerator_type: str = '',
+    accelerator_count: int = 1,
+    boot_disk_type: str = 'pd-ssd',
+    boot_disk_size_gb: int = 100,
+    timeout: str = '604800s',
+    restart_job_on_worker_restart: bool = False,
+    service_account: str = '',
+    network: str = '',
+    encryption_spec_key_name: str = '',
+    tensorboard: str = '',
+    enable_web_access: bool = False,
     reserved_ip_ranges: Optional[Sequence[str]] = None,
     nfs_mounts: Optional[Sequence[Dict[str, str]]] = None,
-    base_output_directory: Optional[str] = '',
+    base_output_directory: str = '',
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:  # pylint: disable=g-bare-generic
   """Create a component spec that runs a custom training in Vertex AI.
@@ -148,155 +161,194 @@ def create_custom_training_job_op_from_component(
     A Custom Job component operator corresponding to the input component
     operator.
   """
-  worker_pool_specs = {}
-  input_specs = []
-  output_specs = []
+  # This function constructs a Custom Job component based on the input
+  # component, by performing a 3-way merge of the inputs/outputs of the
+  # input component, the Custom Job component and the arguments given to this
+  # function.
+  #
+  # It first retrieves the PipelineSpec (as a Python dict) for each of the two
+  # components (the input component and the Custom Job component).
+  #   Note: The advantage of using the PipelineSpec here is that the
+  #   placeholders are (mostly) serialized, so there is less processing
+  #   needed (and avoids unnecessary dependency on KFP internals).
+  #
+  # The arguments to this function are first inserted into each input parameter
+  # of the Custom Job component as a default value (which will be used at
+  # runtime, unless when overridden by specifying the input).
+  # One particular input parameter that needs detailed construction is the
+  # worker_pool_spec, before being inserted into the Custom Job component.
+  #
+  # After inserting the arguments into the Custom Job input parameters as
+  # default values, the input/output parameters from the input component are
+  # then merged with the Custom Job input/output parameters. Preference is given
+  # to Custom Job input parameters to make sure they are not overridden (which
+  # follows the same logic as the original version).
+  #
+  # It is assumed that the Custom Job component itself has no input/output
+  # artifacts, so the artifacts from the input component needs no merging.
+  # (There is a unit test to make sure this is the case, otherwise merging of
+  # artifacts need to be done here.)
+  #
+  # Once the above is done, and the dict of the Custom Job is converted back
+  # into a KFP component (by first converting to YAML, then using
+  # load_component_from_text to load the YAML).
+  # After adding the appropriate description and the name, the new component
+  # is returned.
 
-  # pytype: disable=attribute-error
+  custom_training_job_dict = json_format.MessageToDict(
+      component.custom_training_job.pipeline_spec)
 
-  if component_spec.component_spec.inputs:
-    input_specs = component_spec.component_spec.inputs
-  if component_spec.component_spec.outputs:
-    output_specs = component_spec.component_spec.outputs
+  input_component_spec_dict = json_format.MessageToDict(
+      component_spec.pipeline_spec)
+  component_spec_container = list(input_component_spec_dict['deploymentSpec']
+                                  ['executors'].values())[0]['container']
 
-  def _is_output_parameter(output_key: str) -> bool:
-    for output in component_spec.component_spec.outputs:
-      if output.name == output_key:
-        return type_utils.is_parameter_type(output.type)
-    return False
-
+  # Construct worker_pool_spec
   worker_pool_spec = {
       'machine_spec': {
           'machine_type': machine_type
       },
       'replica_count': 1,
       'container_spec': {
-          'image_uri':
-              component_spec.component_spec.implementation.container.image,
+          'image_uri': component_spec_container['image'],
       }
   }
-  if component_spec.component_spec.implementation.container.command:
-    container_command_copy = component_spec.component_spec.implementation.container.command.copy(
-    )
-    dsl_utils.resolve_cmd_lines(container_command_copy, _is_output_parameter)
-    # Replace executor place holder with the json escaped placeholder.
-    for idx, val in enumerate(container_command_copy):
-      if val == _EXECUTOR_PLACEHOLDER:
-        container_command_copy[idx] = _EXECUTOR_PLACEHOLDER_REPLACEMENT
-    worker_pool_spec['container_spec']['command'] = container_command_copy
+  worker_pool_spec['container_spec']['command'] = _replace_executor_placeholder(
+      component_spec_container.get('command', []))
+  worker_pool_spec['container_spec']['args'] = _replace_executor_placeholder(
+      component_spec_container.get('args', []))
 
-  if component_spec.component_spec.implementation.container.env:
-    worker_pool_spec['container_spec'][
-        'env'] = component_spec.component_spec.implementation.container.env.copy(
-        )
-
-  if component_spec.component_spec.implementation.container.args:
-    container_args_copy = component_spec.component_spec.implementation.container.args.copy(
-    )
-    dsl_utils.resolve_cmd_lines(container_args_copy, _is_output_parameter)
-    # Replace executor place holder with the json escaped placeholder.
-    for idx, val in enumerate(container_args_copy):
-      if val == _EXECUTOR_PLACEHOLDER:
-        container_args_copy[idx] = _EXECUTOR_PLACEHOLDER_REPLACEMENT
-    worker_pool_spec['container_spec']['args'] = container_args_copy
   if accelerator_type:
     worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
     worker_pool_spec['machine_spec']['accelerator_count'] = accelerator_count
   if boot_disk_type:
-    if 'disk_spec' not in worker_pool_spec:
-      worker_pool_spec['disk_spec'] = {}
-    worker_pool_spec['disk_spec']['boot_disk_type'] = boot_disk_type
-    if 'disk_spec' not in worker_pool_spec:
-      worker_pool_spec['disk_spec'] = {}
-    worker_pool_spec['disk_spec']['boot_disk_size_gb'] = boot_disk_size_gb
+    worker_pool_spec['disk_spec'] = {
+        'boot_disk_type': boot_disk_type,
+        'boot_disk_size_gb': boot_disk_size_gb,
+    }
   if nfs_mounts:
-    if 'nfs_mounts' not in worker_pool_spec:
-      worker_pool_spec['nfs_mounts'] = []
-    worker_pool_spec['nfs_mounts'].extend(nfs_mounts)
+    worker_pool_spec['nfs_mounts'] = nfs_mounts.copy()
 
   worker_pool_specs = [worker_pool_spec]
+
   if int(replica_count) > 1:
     additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
-    additional_worker_pool_spec['replica_count'] = str(replica_count - 1)
+    additional_worker_pool_spec['replica_count'] = replica_count - 1
     worker_pool_specs.append(additional_worker_pool_spec)
 
-  # Remove any Vertex Training duplicate input_spec from component input list.
-  input_specs[:] = [
-      input_spec for input_spec in input_specs
-      if input_spec.name not in ('project', 'location', 'display_name',
-                                 'worker_pool_specs', 'timeout',
-                                 'restart_job_on_worker_restart',
-                                 'service_account', 'tensorboard', 'network',
-                                 'reserved_ip_ranges', 'nfs_mounts',
-                                 'base_output_directory', 'labels',
-                                 'encryption_spec_key_name')
-  ]
+  # Retrieve the custom job input/output parameters
+  custom_training_job_dict_components = custom_training_job_dict['components']
+  custom_training_job_comp_key = list(
+      custom_training_job_dict_components.keys())[0]
+  custom_training_job_comp_val = custom_training_job_dict_components[
+      custom_training_job_comp_key]
+  custom_job_input_params = custom_training_job_comp_val['inputDefinitions'][
+      'parameters']
+  custom_job_output_params = custom_training_job_comp_val['outputDefinitions'][
+      'parameters']
 
-  custom_training_job_json = None
-  with open(os.path.join(os.path.dirname(__file__), 'component.yaml')) as file:
-    custom_training_job_json = yaml.load(file, Loader=yaml.FullLoader)
+  # Insert input arguments into custom_job_input_params as default values
+  custom_job_input_params['display_name'][
+      'defaultValue'] = display_name or component_spec.component_spec.name
+  custom_job_input_params['worker_pool_specs'][
+      'defaultValue'] = worker_pool_specs
+  custom_job_input_params['timeout']['defaultValue'] = timeout
+  custom_job_input_params['restart_job_on_worker_restart'][
+      'defaultValue'] = restart_job_on_worker_restart
+  custom_job_input_params['service_account']['defaultValue'] = service_account
+  custom_job_input_params['tensorboard']['defaultValue'] = tensorboard
+  custom_job_input_params['enable_web_access'][
+      'defaultValue'] = enable_web_access
+  custom_job_input_params['network']['defaultValue'] = network
+  custom_job_input_params['reserved_ip_ranges'][
+      'defaultValue'] = reserved_ip_ranges or []
+  custom_job_input_params['base_output_directory'][
+      'defaultValue'] = base_output_directory
+  custom_job_input_params['labels']['defaultValue'] = labels or {}
+  custom_job_input_params['encryption_spec_key_name'][
+      'defaultValue'] = encryption_spec_key_name
 
-  for input_item in custom_training_job_json['inputs']:
-    if 'display_name' in input_item.values():
-      input_item[
-          'default'] = display_name if display_name else component_spec.component_spec.name
-      input_item['optional'] = True
-    elif 'worker_pool_specs' in input_item.values():
-      input_item['default'] = json.dumps(worker_pool_specs)
-      input_item['optional'] = True
-    elif 'timeout' in input_item.values():
-      input_item['default'] = timeout
-      input_item['optional'] = True
-    elif 'restart_job_on_worker_restart' in input_item.values():
-      input_item['default'] = json.dumps(restart_job_on_worker_restart)
-      input_item['optional'] = True
-    elif 'service_account' in input_item.values():
-      input_item['default'] = service_account
-      input_item['optional'] = True
-    elif 'tensorboard' in input_item.values():
-      input_item['default'] = tensorboard
-      input_item['optional'] = True
-    elif 'enable_web_access' in input_item.values():
-      input_item['default'] = json.dumps(enable_web_access)
-      input_item['optional'] = True
-    elif 'network' in input_item.values():
-      input_item['default'] = network
-      input_item['optional'] = True
-    elif 'reserved_ip_ranges' in input_item.values():
-      input_item['default'] = json.dumps(
-          reserved_ip_ranges) if reserved_ip_ranges else '[]'
-      input_item['optional'] = True
-    elif 'base_output_directory' in input_item.values():
-      input_item['default'] = base_output_directory
-      input_item['optional'] = True
-    elif 'labels' in input_item.values():
-      input_item['default'] = json.dumps(labels) if labels else '{}'
-      input_item['optional'] = True
-    elif 'encryption_spec_key_name' in input_item.values():
-      input_item['default'] = encryption_spec_key_name
-      input_item['optional'] = True
-    else:
-      # This field does not need to be updated.
-      continue
+  # Merge with the input/output parameters from the input component.
+  input_component_spec_comp_val = list(
+      input_component_spec_dict['components'].values())[0]
+  custom_job_input_params = {
+      **(input_component_spec_comp_val.get('inputDefinitions',
+                                           {}).get('parameters', {})),
+      **custom_job_input_params
+  }
+  custom_job_output_params = {
+      **(input_component_spec_comp_val.get('outputDefinitions',
+                                           {}).get('parameters', {})),
+      **custom_job_output_params
+  }
 
-  # Copying over the input and output spec from the given component.
-  for input_spec in input_specs:
-    custom_training_job_json['inputs'].append(input_spec.to_dict())
+  # Copy merged input/output parameters to custom_training_job_dict
+  # Using copy.deepcopy here to avoid anchors and aliases in the produced
+  # YAML as a result of pointing to the same dict.
+  custom_training_job_dict['root']['inputDefinitions'][
+      'parameters'] = copy.deepcopy(custom_job_input_params)
+  custom_training_job_dict['components'][custom_training_job_comp_key][
+      'inputDefinitions']['parameters'] = copy.deepcopy(custom_job_input_params)
+  custom_training_job_tasks_key = list(
+      custom_training_job_dict['root']['dag']['tasks'].keys())[0]
+  custom_training_job_dict['root']['dag']['tasks'][
+      custom_training_job_tasks_key]['inputs']['parameters'] = {
+          **(list(input_component_spec_dict['root']['dag']['tasks'].values())
+             [0].get('inputs', {}).get('parameters', {})),
+          **(custom_training_job_dict['root']['dag']['tasks']
+             [custom_training_job_tasks_key]['inputs']['parameters'])
+      }
+  custom_training_job_dict['components'][custom_training_job_comp_key][
+      'outputDefinitions']['parameters'] = custom_job_output_params
 
-  for output_spec in output_specs:
-    custom_training_job_json['outputs'].append(output_spec.to_dict())
+  # Retrieve the input/output artifacts from the input component.
+  custom_job_input_artifacts = input_component_spec_comp_val.get(
+      'inputDefinitions', {}).get('artifacts', {})
+  custom_job_output_artifacts = input_component_spec_comp_val.get(
+      'outputDefinitions', {}).get('artifacts', {})
+
+  # Copy input/output artifacts from the input component to
+  # custom_training_job_dict
+  if custom_job_input_artifacts:
+    custom_training_job_dict['root']['inputDefinitions'][
+        'artifacts'] = copy.deepcopy(custom_job_input_artifacts)
+    custom_training_job_dict['components'][custom_training_job_comp_key][
+        'inputDefinitions']['artifacts'] = copy.deepcopy(
+            custom_job_input_artifacts)
+    custom_training_job_dict['root']['dag']['tasks'][
+        custom_training_job_tasks_key]['inputs']['artifacts'] = {
+            **(list(input_component_spec_dict['root']['dag']['tasks'].values())
+               [0].get('inputs', {}).get('artifacts', {})),
+            **(custom_training_job_dict['root']['dag']['tasks']
+               [custom_training_job_tasks_key]['inputs'].get('artifacts', {}))
+        }
+  if custom_job_output_artifacts:
+    custom_training_job_dict['components'][custom_training_job_comp_key][
+        'outputDefinitions']['artifacts'] = custom_job_output_artifacts
+
+  # Create new component from component IR YAML
+  custom_training_job_yaml = yaml.safe_dump(custom_training_job_dict)
+  new_component = components.load_component_from_text(custom_training_job_yaml)
 
   # Copy the component name and description
-  custom_training_job_json['name'] = component_spec.component_spec.name
+  # TODO(b/262360354): The inner .component_spec.name is needed here as that is
+  # the name that is retrieved by the FE for display. Can simply reference the
+  # outer .name once setter is implemented.
+  new_component.component_spec.name = component_spec.component_spec.name
 
-  if component_spec.component_spec.description:
+  if component_spec.description:
     # TODO(chavoshi) Add support for docstring parsing.
     component_description = 'A custom job that wraps '
     component_description += f'{component_spec.component_spec.name}.\n\nOriginal component'
-    component_description += f' description:\n{component_spec.component_spec.description}\n\nCustom'
+    component_description += f' description:\n{component_spec.description}\n\nCustom'
     component_description += ' Job wrapper description:\n'
-    component_description += custom_training_job_json['description']
-    custom_training_job_json['description'] = component_description
+    component_description += component.custom_training_job.description
 
-  return components.load_component_from_text(
-      yaml.safe_dump(custom_training_job_json))
+    new_component.description = component_description
+
+  return new_component
+
+
+# This alias points to the old "create_custom_training_job_op_from_component" to
+# avoid potential user breakage.
+create_custom_training_job_op_from_component = create_custom_training_job_from_component

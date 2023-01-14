@@ -400,6 +400,7 @@ class UtilsTest(unittest.TestCase):
             'dnn_beta_1': 0.9,
             'dnn_beta_2': 0.999,
             'enable_profiler': False,
+            'cache_data': 'auto',
             'seed': 1,
             'eval_steps': 0,
             'batch_size': 100,
@@ -492,6 +493,7 @@ class UtilsTest(unittest.TestCase):
             'max_trial_count': 2,
             'parallel_trial_count': 1,
             'enable_profiler': False,
+            'cache_data': 'auto',
             'seed': 1,
             'eval_steps': 0,
             'eval_frequency_secs': 600,
@@ -587,6 +589,7 @@ class UtilsTest(unittest.TestCase):
             'max_trial_count': 2,
             'parallel_trial_count': 1,
             'enable_profiler': False,
+            'cache_data': 'auto',
             'seed': 1,
             'eval_steps': 0,
             'eval_frequency_secs': 600,
@@ -683,6 +686,7 @@ class UtilsTest(unittest.TestCase):
             'max_trial_count': 2,
             'parallel_trial_count': 1,
             'enable_profiler': False,
+            'cache_data': 'auto',
             'seed': 1,
             'eval_steps': 0,
             'eval_frequency_secs': 600,
@@ -779,6 +783,7 @@ class UtilsTest(unittest.TestCase):
             'max_trial_count': 2,
             'parallel_trial_count': 1,
             'enable_profiler': False,
+            'cache_data': 'auto',
             'seed': 1,
             'eval_steps': 0,
             'eval_frequency_secs': 600,
@@ -850,6 +855,7 @@ class UtilsTest(unittest.TestCase):
             'alpha_focal_loss': 0.25,
             'gamma_focal_loss': 2.0,
             'enable_profiler': False,
+            'cache_data': 'auto',
             'seed': 1,
             'eval_steps': 0,
             'batch_size': 100,
@@ -1239,6 +1245,320 @@ class UtilsTest(unittest.TestCase):
         'discrete_value_spec': {
             'values': [1024, 2048, 4096, 8192, 16384]
         }
+    }])
+
+  def test_get_xgboost_study_spec_parameters_override(self):
+    study_spec_parameters_override = utils.get_xgboost_study_spec_parameters_override(
+    )
+
+    self.assertEqual(study_spec_parameters_override, [{
+        'parameter_id': 'num_boost_round',
+        'discrete_value_spec': {
+            'values': [1, 5, 10, 15, 20]
+        }
+    }, {
+        'parameter_id': 'early_stopping_rounds',
+        'discrete_value_spec': {
+            'values': [3, 5, 10]
+        }
+    }, {
+        'parameter_id': 'base_score',
+        'discrete_value_spec': {
+            'values': [0.5]
+        }
+    }, {
+        'parameter_id': 'booster',
+        'categorical_value_spec': {
+            'values': ['gbtree', 'gblinear', 'dart']
+        },
+        'conditional_parameter_specs': [{
+            'parameter_spec': {
+                'parameter_id': 'eta',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 1.0
+                },
+                'scale_type': 'UNIT_LOG_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'gamma',
+                'discrete_value_spec': {
+                    'values': [0, 10, 50, 100, 500, 1000]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'max_depth',
+                'integer_value_spec': {
+                    'min_value': 0,
+                    'max_value': 10
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'min_child_weight',
+                'double_value_spec': {
+                    'min_value': 0.0,
+                    'max_value': 10.0
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'max_delta_step',
+                'discrete_value_spec': {
+                    'values': [0.0, 1.0, 3.0, 5.0, 7.0, 9.0]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'subsample',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 1.0
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'colsample_bytree',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 1.0
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'colsample_bylevel',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 1.0
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'colsample_bynode',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 1.0
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'lambda',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 1.0
+                },
+                'scale_type': 'UNIT_REVERSE_LOG_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart', 'gblinear']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'alpha',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 1.0
+                },
+                'scale_type': 'UNIT_LOG_SCALE'
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart', 'gblinear']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'tree_method',
+                'categorical_value_spec': {
+                    'values': ['auto']
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'scale_pos_weight',
+                'discrete_value_spec': {
+                    'values': [1.0]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'refresh_leaf',
+                'discrete_value_spec': {
+                    'values': [1]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'process_type',
+                'categorical_value_spec': {
+                    'values': ['default']
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'grow_policy',
+                'categorical_value_spec': {
+                    'values': ['depthwise']
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'sampling_method',
+                'categorical_value_spec': {
+                    'values': ['uniform']
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'sample_type',
+                'categorical_value_spec': {
+                    'values': ['uniform']
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'normalize_type',
+                'categorical_value_spec': {
+                    'values': ['tree']
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'rate_drop',
+                'discrete_value_spec': {
+                    'values': [0.0]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'one_drop',
+                'discrete_value_spec': {
+                    'values': [0]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'skip_drop',
+                'discrete_value_spec': {
+                    'values': [0.0]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'num_parallel_tree',
+                'discrete_value_spec': {
+                    'values': [1]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gblinear']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'feature_selector',
+                'categorical_value_spec': {
+                    'values': ['cyclic']
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gblinear']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'top_k',
+                'discrete_value_spec': {
+                    'values': [0]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gblinear']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'max_leaves',
+                'discrete_value_spec': {
+                    'values': [0]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }, {
+            'parameter_spec': {
+                'parameter_id': 'max_bin',
+                'discrete_value_spec': {
+                    'values': [256]
+                }
+            },
+            'parent_categorical_values': {
+                'values': ['gbtree', 'dart']
+            }
+        }]
     }])
 
 

@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,26 +15,19 @@
 
 import os
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from .create_pyspark_batch import component as create_pyspark_batch_component
+from .create_spark_batch import component as create_spark_batch_component
+from .create_spark_r_batch import component as create_spark_r_batch_component
+from .create_spark_sql_batch import component as create_spark_sql_batch_component
 
 __all__ = [
     'DataprocPySparkBatchOp',
     'DataprocSparkBatchOp',
     'DataprocSparkRBatchOp',
-    'DataprocSparkSqlBatchOp'
+    'DataprocSparkSqlBatchOp',
 ]
 
-DataprocPySparkBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_pyspark_batch/component.yaml'))
-
-DataprocSparkBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_spark_batch/component.yaml'))
-
-DataprocSparkRBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_spark_r_batch/component.yaml'))
-
-DataprocSparkSqlBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_spark_sql_batch/component.yaml'))
+DataprocPySparkBatchOp = create_pyspark_batch_component.dataproc_create_pyspark_batch
+DataprocSparkBatchOp = create_spark_batch_component.dataproc_create_spark_batch
+DataprocSparkRBatchOp = create_spark_r_batch_component.dataproc_create_spark_r_batch
+DataprocSparkSqlBatchOp = create_spark_sql_batch_component.dataproc_create_spark_sql_batch

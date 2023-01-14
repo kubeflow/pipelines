@@ -1,5 +1,9 @@
-# Current Version 1.0.33.dev (Still in Development)
+# Current Version 1.0.34.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.33
+* Fix aiplatform & v1 batch predict job to work with KFP v2
+* Release Structured Data team's updated components and pipelines
 
 # Release 1.0.32
 * Support a HyperparameterTuningJobWithMetrics type to take execution_metrics path

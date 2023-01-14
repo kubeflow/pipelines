@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Dataflow python components."""
+"""Core modules for AI Platform Pipeline Components."""
 
 import os
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from .python_job import component as dataflow_python_component
 
 __all__ = [
     'DataflowPythonJobOp',
 ]
 
-DataflowPythonJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'python_job/component.yaml'))
+DataflowPythonJobOp = dataflow_python_component.dataflow_python
