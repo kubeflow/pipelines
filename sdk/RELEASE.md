@@ -7,6 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Accepts `PyYAML<7` in addition to `PyYAML>=5.3,<6` [\#8665](https://github.com/kubeflow/pipelines/pull/8665)
 
 ## Documentation updates
 # 2.0.0-beta.10
