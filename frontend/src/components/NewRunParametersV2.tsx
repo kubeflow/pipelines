@@ -54,7 +54,7 @@ interface NewRunParametersProps {
   pipelineRoot?: string;
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
-  clonedRuntimeConfig: PipelineSpecRuntimeConfig;
+  clonedRuntimeConfig?: PipelineSpecRuntimeConfig;
   handlePipelineRootChange?: (pipelineRoot: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
   setIsValidInput?: (isValid: boolean) => void;
@@ -164,7 +164,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
-    if (clonedRuntimeConfig.parameters) {
+    if (clonedRuntimeConfig && clonedRuntimeConfig.parameters) {
       const clonedRuntimeParametersStr: RuntimeParameters = {};
       // Convert cloned parameter to string type first to avoid error from convertInput
       Object.entries(clonedRuntimeConfig.parameters).forEach(entry => {
@@ -181,7 +181,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
         setIsValidInput(true);
       }
 
-      if (handleParameterChange) {
+      if (clonedRuntimeConfig && handleParameterChange) {
         handleParameterChange(clonedRuntimeConfig.parameters);
       }
       return;
