@@ -251,25 +251,21 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
 
-	/* ---------- List the runs, filtered by finished_at, only return the previous two runs ---------- */
-	// Wait for the runs to finish
-	time.Sleep(300 * time.Second)
+	/* ---------- List the runs, filtered by created_at, only return the previous two runs ---------- */
 	filterTime := time.Now().Unix()
 	// Create a new run
 	_, _, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
-	// Wait for the new run to finish
-	time.Sleep(300 * time.Second)
 	// Check total number of runs is 3
 	runs, totalSize, _, err = test.ListAllRuns(s.runClient, s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
 	assert.Equal(t, 3, totalSize)
-	// Check number of filtered runs finished before filterTime to be 2
+	// Check number of filtered runs created before filterTime to be 2
 	runs, totalSize, _, err = test.ListRuns(
 		s.runClient,
 		&runparams.ListRunsV1Params{
-			Filter: util.StringPointer(`predicates { key: "finished_at" op: LESS_THAN_EQUALS long_value: ` + fmt.Sprint(filterTime) + ` }`)},
+			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "op": 6, "string_value": "` + fmt.Sprint(filterTime) + `"}]}`)},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))

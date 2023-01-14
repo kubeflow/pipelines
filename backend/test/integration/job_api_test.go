@@ -300,7 +300,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	jobs, totalSize, _, err = test.ListJobs(
 		s.jobClient,
 		&jobparams.ListJobsParams{
-			Filter: util.StringPointer(`predicates { key: "created_at" op: LESS_THAN_EQUALS long_value: ` + fmt.Sprint(filterTime) + ` }`)},
+			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "op": 6, "string_value": "` + fmt.Sprint(filterTime) + `"}]}`)},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(jobs))
