@@ -344,12 +344,22 @@ function NewRunV2(props: NewRunV2Props) {
       service_account: serviceAccount,
     };
 
-    let newRecurringRun: ApiJob = Object.assign(newRun, {
-      enabled: true,
-      max_concurrency: maxConcurrentRuns || '1',
-      no_catchup: !needCatchup,
-      trigger: trigger,
-    });
+    let newRecurringRun: ApiJob = Object.assign(
+      newRun,
+      isRecurringRun
+        ? {
+            enabled: true,
+            max_concurrency: maxConcurrentRuns || '1',
+            no_catchup: !needCatchup,
+            trigger: trigger,
+          }
+        : {
+            enabled: false,
+            max_concurrency: undefined,
+            no_catchup: undefined,
+            trigger: undefined,
+          },
+    );
     setIsStartingNewRun(true);
 
     const runCreation = () =>
