@@ -194,7 +194,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return this.load();
   }
 
-  public buildBreadCumb(
+  private buildBreadCumb(
     breadcrumbs: Array<{ displayName: string; href: string }>,
     origin: origin,
     runId: string,

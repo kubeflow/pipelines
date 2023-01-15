@@ -56,51 +56,30 @@ describe('PipelineDetails', () => {
   let testRun: ApiRunDetail = {};
   let testRecurringRun: ApiJob = {};
 
-  function generateProps(fromRunSpec = false): PageProps {
-    const match = {
-      isExact: true,
-      params: fromRunSpec
-        ? {}
-        : {
-            [RouteParams.pipelineId]: testPipeline.id,
-            [RouteParams.pipelineVersionId]:
-              (testPipeline.default_version && testPipeline.default_version!.id) || '',
-          },
-      path: '',
-      url: '',
-    };
-    const location = { search: fromRunSpec ? `?${QUERY_PARAMS.fromRunId}=test-run-id` : '' } as any;
-    const pageProps = TestUtils.generatePageProps(
-      PipelineDetails,
-      location,
-      match,
-      historyPushSpy,
-      updateBannerSpy,
-      updateDialogSpy,
-      updateToolbarSpy,
-      updateSnackbarSpy,
-    );
-    return pageProps;
-  }
+  function generateProps(fromRunSpec = false, fromRecurringRunSpec = false): PageProps {
+    let params = {};
+    if (!fromRunSpec && !fromRecurringRunSpec) {
+      params = {
+        [RouteParams.pipelineId]: testPipeline.id,
+        [RouteParams.pipelineVersionId]:
+          (testPipeline.default_version && testPipeline.default_version!.id) || '',
+      };
+    }
 
-  function generateRecurringProps(fromRecurringRunSpec = false): PageProps {
+    let search = '';
+    if (fromRunSpec) {
+      search = `?${QUERY_PARAMS.fromRunId}=test-run-id`;
+    } else if (fromRecurringRunSpec) {
+      search = `?${QUERY_PARAMS.fromRecurringRunId}=test-recurring-run-id`;
+    }
+
     const match = {
       isExact: true,
-      params: fromRecurringRunSpec
-        ? {}
-        : {
-            [RouteParams.pipelineId]: testPipeline.id,
-            [RouteParams.pipelineVersionId]:
-              (testPipeline.default_version && testPipeline.default_version!.id) || '',
-          },
+      params: params,
       path: '',
       url: '',
     };
-    const location = {
-      search: fromRecurringRunSpec
-        ? `?${QUERY_PARAMS.fromRecurringRunId}=test-recurring-run-id`
-        : '',
-    } as any;
+    const location = { search } as any;
     const pageProps = TestUtils.generatePageProps(
       PipelineDetails,
       location,
@@ -283,7 +262,7 @@ describe('PipelineDetails', () => {
       pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
     };
 
-    tree = shallow(<PipelineDetails {...generateRecurringProps(true)} />);
+    tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('templateString')).toBe(
