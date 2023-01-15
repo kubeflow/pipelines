@@ -288,6 +288,26 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", jobs[0].Name)
 
+	/* ---------- List the jobs, filtered by created_at, only return the previous two jobs ---------- */
+	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous jobs are created at a different timestamp
+	filterTime := time.Now().Unix()
+	time.Sleep(5 * time.Second)
+	_, err = s.jobClient.Create(createJobRequest)
+	// Check total number of jobs to be 3
+	jobs, totalSize, _, err = test.ListAllJobs(s.jobClient, s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 3, len(jobs))
+	// Check number of filtered jobs finished before filterTime to be 2
+	jobs, totalSize, _, err = test.ListJobs(
+		s.jobClient,
+		&jobparams.ListJobsParams{
+			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "op": 6, "string_value": "` + fmt.Sprint(filterTime) + `"}]}`)},
+		s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(jobs))
+	assert.Equal(t, 2, totalSize)
+
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
 
@@ -319,11 +339,11 @@ func (s *JobApiTestSuite) TestJobApis() {
 		if err != nil {
 			return err
 		}
-		if len(runs) != 1 {
-			return fmt.Errorf("expected runs to be length 1, got: %v", len(runs))
+		if len(runs) != 2 {
+			return fmt.Errorf("expected runs to be length 2, got: %v", len(runs))
 		}
-		if totalSize != 1 {
-			return fmt.Errorf("expected total size 1, got: %v", totalSize)
+		if totalSize != 2 {
+			return fmt.Errorf("expected total size 2, got: %v", totalSize)
 		}
 		argParamsRun := runs[0]
 		return s.checkArgParamsRun(argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)

@@ -89,10 +89,11 @@ func (j *Job) DefaultSortField() string {
 }
 
 var jobAPIToModelFieldMap = map[string]string{
-	"id":         "UUID",
-	"name":       "DisplayName",
-	"created_at": "CreatedAtInSec",
-	"package_id": "PipelineId",
+	"id":          "UUID",
+	"name":        "DisplayName",
+	"created_at":  "CreatedAtInSec",
+	"updated_at":  "UpdatedAtInSec",
+	"description": "Description",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Job.

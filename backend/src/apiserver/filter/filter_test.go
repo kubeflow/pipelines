@@ -5,6 +5,8 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
@@ -350,5 +352,35 @@ func TestUnmarshalJSON(t *testing.T) {
 	err := json.Unmarshal([]byte(in), got)
 	if err != nil || !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
 		t.Errorf("json.Unmarshal(%+v):\nGot: %v, Error: %v\nWant:\n%+v, Error: nil\nDiff:%s\n", in, got, err, want, cmp.Diff(want, got, cmp.AllowUnexported(Filter{})))
+	}
+}
+
+func TestNewWithKeyMap(t *testing.T) {
+	filterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "finished_at",
+				Op:    api.Predicate_GREATER_THAN,
+				Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
+			},
+		},
+	}
+
+	want := &Filter{
+		filterProto: &api.Filter{
+			Predicates: []*api.Predicate{
+				&api.Predicate{
+					Key: "runs.FinishedAtInSec", Op: api.Predicate_GREATER_THAN,
+					Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
+				},
+			},
+		},
+		gt: map[string][]interface{}{"runs.FinishedAtInSec": {"SomeTime"}},
+	}
+
+	got, err := NewWithKeyMap(filterProto, (&model.Run{}).APIToModelFieldMap(), "runs")
+
+	if err != nil || !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
+		t.Errorf("NewWithKeyMap(%+v):\nGot: %+v, Error: %v\nWant:\n%+v, Error: nil\n", filterProto, got, err, want)
 	}
 }
