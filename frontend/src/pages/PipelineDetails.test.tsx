@@ -29,6 +29,7 @@ import TestUtils from '../TestUtils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
+import { ApiJob } from '../apis/job';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -40,6 +41,7 @@ describe('PipelineDetails', () => {
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+  const getJobSpy = jest.spyOn(Apis.jobServiceApi, 'getJob');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
   const getPipelineVersionTemplateSpy = jest.spyOn(
@@ -52,6 +54,7 @@ describe('PipelineDetails', () => {
   let testPipeline: ApiPipeline = {};
   let testPipelineVersion: ApiPipelineVersion = {};
   let testRun: ApiRunDetail = {};
+  let testRecurringRun: ApiJob = {};
 
   function generateProps(fromRunSpec = false): PageProps {
     const match = {
@@ -67,6 +70,37 @@ describe('PipelineDetails', () => {
       url: '',
     };
     const location = { search: fromRunSpec ? `?${QUERY_PARAMS.fromRunId}=test-run-id` : '' } as any;
+    const pageProps = TestUtils.generatePageProps(
+      PipelineDetails,
+      location,
+      match,
+      historyPushSpy,
+      updateBannerSpy,
+      updateDialogSpy,
+      updateToolbarSpy,
+      updateSnackbarSpy,
+    );
+    return pageProps;
+  }
+
+  function generateRecurringProps(fromRecurringRunSpec = false): PageProps {
+    const match = {
+      isExact: true,
+      params: fromRecurringRunSpec
+        ? {}
+        : {
+            [RouteParams.pipelineId]: testPipeline.id,
+            [RouteParams.pipelineVersionId]:
+              (testPipeline.default_version && testPipeline.default_version!.id) || '',
+          },
+      path: '',
+      url: '',
+    };
+    const location = {
+      search: fromRecurringRunSpec
+        ? `?${QUERY_PARAMS.fromRecurringRunId}=test-recurring-run-id`
+        : '',
+    } as any;
     const pageProps = TestUtils.generatePageProps(
       PipelineDetails,
       location,
@@ -112,12 +146,21 @@ describe('PipelineDetails', () => {
       },
     };
 
+    testRecurringRun = {
+      id: 'test-recurring-run-id',
+      name: 'test recurring run',
+      pipeline_spec: {
+        pipeline_id: 'run-pipeline-id',
+      },
+    };
+
     getPipelineSpy.mockImplementation(() => Promise.resolve(testPipeline));
     getPipelineVersionSpy.mockImplementation(() => Promise.resolve(testPipelineVersion));
     listPipelineVersionsSpy.mockImplementation(() =>
       Promise.resolve({ versions: [testPipelineVersion] }),
     );
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
+    getJobSpy.mockImplementation(() => Promise.resolve(testRecurringRun));
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'test-experiment-id', name: 'test experiment' } as ApiExperiment),
     );
@@ -226,6 +269,21 @@ describe('PipelineDetails', () => {
     };
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('templateString')).toBe(
+      'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+    );
+  });
+
+  it('directly uses pipeline manifest from recurring run as template string (v2)', async () => {
+    testRecurringRun.pipeline_spec = {
+      pipeline_id: 'run-pipeline-id',
+      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
+      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+    };
+
+    tree = shallow(<PipelineDetails {...generateRecurringProps(true)} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('templateString')).toBe(
