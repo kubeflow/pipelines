@@ -186,6 +186,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return this.load();
   }
 
+  /*
+  private buildBreadCumb() {
+    
+  }
+  */
+
   public async load(): Promise<void> {
     this.clearBanner();
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
