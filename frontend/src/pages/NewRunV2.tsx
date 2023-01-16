@@ -144,7 +144,7 @@ function getPipelineDetailsUrl(
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.cloneFromRecurringRun]: originalRecurringRunId })
+      ) + urlParser.build({ [QUERY_PARAMS.fromRecurringRunId]: originalRecurringRunId })
     : '';
 
   return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
@@ -431,7 +431,7 @@ function NewRunV2(props: NewRunV2Props) {
             </div>
             <div className={classes(padding(10, 't'))}>
               {/* TODO(jlyaoyuli): View pipelineDetails from existing recurring run*/}
-              {apiRun && (
+              {cloneOrigin.isClone && (
                 <Link
                   className={classes(commonCss.link)}
                   to={getPipelineDetailsUrl(

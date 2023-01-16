@@ -72,6 +72,7 @@ export enum QUERY_PARAMS {
   pipelineId = 'pipelineId',
   pipelineVersionId = 'pipelineVersionId',
   fromRunId = 'fromRun',
+  fromRecurringRunId = 'fromRecurringRun',
   runlist = 'runlist',
   view = 'view',
 }
