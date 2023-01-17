@@ -1,3 +1,4 @@
+absl-py==1.4.0
 docformatter==1.4
 docker==5.0.3
 isort==5.10.1
