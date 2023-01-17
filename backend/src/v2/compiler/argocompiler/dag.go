@@ -190,7 +190,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				return nil, err
 			}
 			driverTaskName := name + "-driver"
-			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
+			driver, driverOutputs := c.containerDriverTask(driverTaskName, task.GetRetryPolicy(), containerDriverInputs{
 				component:      componentSpecPlaceholder,
 				task:           taskSpecJson,
 				container:      containerPlaceholder,

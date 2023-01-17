@@ -43,6 +43,10 @@ func Test_argo_compiler(t *testing.T) {
 			jobPath:      "../testdata/importer.json",
 			argoYAMLPath: "testdata/importer.yaml",
 		},
+		{
+			jobPath:      "../testdata/pipeline_with_retry.json",
+			argoYAMLPath: "testdata/pipeline_with_retry.yaml",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {

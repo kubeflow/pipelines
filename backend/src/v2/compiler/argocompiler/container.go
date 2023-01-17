@@ -19,6 +19,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -51,10 +52,10 @@ type containerDriverInputs struct {
 	iterationIndex string // optional, when this is an iteration task
 }
 
-func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name string, retryPolicy *pipelinespec.PipelineTaskSpec_RetryPolicy, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerDriverTemplate(),
+		Template: c.addContainerDriverTemplate(retryPolicy),
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
@@ -78,7 +79,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 	return dagTask, outputs
 }
 
-func (c *workflowCompiler) addContainerDriverTemplate() string {
+func (c *workflowCompiler) addContainerDriverTemplate(retryPolicy *pipelinespec.PipelineTaskSpec_RetryPolicy) string {
 	name := "system-container-driver"
 	_, ok := c.templates[name]
 	if ok {
@@ -120,6 +121,22 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			},
 			Resources: driverResources,
 		},
+	}
+	// Add retry policy
+	maxRetryCount := intstr.FromInt(int(retryPolicy.GetMaxRetryCount()))
+	backOffFactor := intstr.FromInt(int(retryPolicy.GetBackoffFactor()))
+	if maxRetryCount.IntValue() > 0 {
+		// If maxRetryCount == 0, that means retry policy is empty. In this case we leave the whole field empty.
+		t.RetryStrategy = &wfapi.RetryStrategy{
+			Limit: &maxRetryCount,
+			Backoff: &wfapi.Backoff{
+				Duration: retryPolicy.GetBackoffDuration().String(),
+				// During the converstion from float64 to int, the fraction is discarded (truncated towards 0).
+				// See https://go.dev/ref/spec#Conversions
+				Factor:      &backOffFactor,
+				MaxDuration: retryPolicy.GetBackoffMaxDuration().String(),
+			},
+		}
 	}
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
