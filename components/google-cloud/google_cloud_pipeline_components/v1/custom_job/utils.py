@@ -14,6 +14,7 @@
 """Module for supporting Google Vertex AI Custom Training Job Op."""
 
 import copy
+import logging
 from typing import Callable, Dict, Optional, Sequence
 
 from google_cloud_pipeline_components.v1.custom_job import component
@@ -351,4 +352,20 @@ def create_custom_training_job_from_component(
 
 # This alias points to the old "create_custom_training_job_op_from_component" to
 # avoid potential user breakage.
-create_custom_training_job_op_from_component = create_custom_training_job_from_component
+def create_custom_training_job_op_from_component(*args, **kwargs) -> Callable:  # pylint: disable=g-bare-generic
+  """Deprecated. Please use create_custom_training_job_from_component instead.
+
+  Args:
+    *args: Positional arguments for create_custom_training_job_from_component.
+    **kwargs: Keyword arguments for create_custom_training_job_from_component.
+
+  Returns:
+    A Custom Job component operator corresponding to the input component
+    operator.
+  """
+
+  logging.warning(
+      'Deprecated. Please use create_custom_training_job_from_component'
+      ' instead.'
+  )
+  return create_custom_training_job_from_component(*args, **kwargs)
