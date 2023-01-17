@@ -23,7 +23,7 @@ import tarfile
 import tempfile
 import time
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 import warnings
 import zipfile
 
@@ -303,15 +303,8 @@ class Client:
                 namespace)
         return config
 
-    def _is_inverse_proxy_host(self, host):
-        if host:
-            return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
-        if re.match(r'\w+', host):
-            warnings.warn(
-                f'The received host is {host}, please include the full endpoint'
-                ' address (with ".(pipelines/notebooks).googleusercontent.com")'
-            )
-        return False
+    def _is_inverse_proxy_host(self, host: str) -> bool:
+        return bool(re.match(r'\S+.googleusercontent.com/{0,1}$', host))
 
     def _is_ipython(self) -> bool:
         """Returns whether we are running in notebook."""
@@ -559,10 +552,11 @@ class Client:
             resource_reference_key_id=namespace,
             filter=filter)
 
-    def get_experiment(self,
-                       experiment_id=None,
-                       experiment_name=None,
-                       namespace=None) -> kfp_server_api.ApiExperiment:
+    def get_experiment(
+            self,
+            experiment_id: Optional[str] = None,
+            experiment_name: Optional[str] = None,
+            namespace: Optional[str] = None) -> kfp_server_api.ApiExperiment:
         """Gets details of an experiment.
 
         Either ``experiment_id`` or ``experiment_name`` is required.
@@ -1023,7 +1017,7 @@ class Client:
 
     def create_run_from_pipeline_func(
         self,
-        pipeline_func: Union[Callable[..., Any], base_component.BaseComponent],
+        pipeline_func: base_component.BaseComponent,
         arguments: Optional[Dict[str, Any]] = None,
         run_name: Optional[str] = None,
         experiment_name: Optional[str] = None,
@@ -1082,7 +1076,7 @@ class Client:
     def create_run_from_pipeline_package(
         self,
         pipeline_file: str,
-        arguments: Optional[Dict[str, str]] = None,
+        arguments: Optional[Dict[str, Any]] = None,
         run_name: Optional[str] = None,
         experiment_name: Optional[str] = None,
         namespace: Optional[str] = None,
@@ -1362,9 +1356,9 @@ class Client:
 
     def upload_pipeline(
         self,
-        pipeline_package_path: str = None,
-        pipeline_name: str = None,
-        description: str = None,
+        pipeline_package_path: str,
+        pipeline_name: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> kfp_server_api.ApiPipeline:
         """Uploads a pipeline.
 
@@ -1531,7 +1525,7 @@ class Client:
 
 
 def _add_generated_apis(target_struct: Any, api_module: ModuleType,
-                        api_client: kfp_server_api.ApiClient):
+                        api_client: kfp_server_api.ApiClient) -> None:
     """Initializes a hierarchical API object based on the generated API module.
 
     PipelineServiceApi.create_pipeline becomes
