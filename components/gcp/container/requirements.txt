@@ -1,2 +1,0 @@
-apache-beam[gcp]
-pandas
