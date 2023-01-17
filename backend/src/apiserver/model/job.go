@@ -31,16 +31,11 @@ const (
 )
 
 func (s StatusState) ToV1() StatusState {
-	switch s {
-	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "ERROR", "":
-		return StatusStateUnspecified
-	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
-		return StatusStateEnabledV1
-	case StatusStateDisabled, "DISABLE":
-		return StatusStateDisabledV1
-	default:
-		return ""
-	}
+	return s.ToV2()
+}
+
+func (s StatusState) ToV2() StatusState {
+	return StatusState(s.ToString())
 }
 
 func (s StatusState) ToUpper() StatusState {
@@ -114,6 +109,22 @@ func (j *Job) ToV1() *Job {
 			Relationship:  OwnerRelationship,
 		},
 	)
+	j.Conditions = string(StatusState(j.Conditions).ToV1())
+	return j
+}
+
+func (j *Job) ToV2() *Job {
+	if j.ResourceReferences != nil {
+		for _, ref := range j.ResourceReferences {
+			switch ref.ReferenceType {
+			case ExperimentResourceType:
+				j.ExperimentId = ref.ReferenceUUID
+			case NamespaceResourceType:
+				j.Namespace = ref.ReferenceUUID
+			}
+		}
+	}
+	j.Conditions = StatusState(j.Conditions).ToString()
 	return j
 }
 

@@ -206,7 +206,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
-	namespace, err := s.resourceManager.GetNamespaceFromPipelineID(pipelineId)
+	namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, fmt.Sprintf("[PipelineUploadServer %s]: Failed to create a pipeline version due to error reading namespace.", s.options.ApiVersion)))
 		return
@@ -259,7 +259,7 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 		return nil
 	}
 	if len(pipelineId) > 0 {
-		namespace, err := s.resourceManager.GetNamespaceFromPipelineID(pipelineId)
+		namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 		if err != nil {
 			return util.Wrap(err, "Failed to authorize with the Pipeline ID.")
 		}

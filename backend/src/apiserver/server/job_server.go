@@ -321,7 +321,7 @@ func (s *JobServer) enableJob(ctx context.Context, jobId string) error {
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
-	return s.resourceManager.EnableJob(ctx, jobId, true)
+	return s.resourceManager.ChangeJobMode(ctx, jobId, true)
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *apiv1beta1.EnableJobRequest) (*empty.Empty, error) {
@@ -351,7 +351,7 @@ func (s *JobServer) disableJob(ctx context.Context, jobId string) error {
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
-	return s.resourceManager.EnableJob(ctx, jobId, false)
+	return s.resourceManager.ChangeJobMode(ctx, jobId, false)
 }
 
 func (s *JobServer) DisableJob(ctx context.Context, request *apiv1beta1.DisableJobRequest) (*empty.Empty, error) {

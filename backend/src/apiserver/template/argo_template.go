@@ -30,6 +30,10 @@ import (
 func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
+	// Overwrite namespace from the run object
+	if modelRun.Namespace != "" {
+		workflow.SetExecutionNamespace(modelRun.Namespace)
+	}
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
 	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
 	// on every single step/pod so the cache server can understand.
@@ -66,7 +70,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.K8SName)
+	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
 	err = workflow.ReplaceUID(options.RunId)
 	if err != nil {
@@ -93,6 +97,10 @@ type Argo struct {
 
 func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
+	// Overwrite namespace from the job object
+	if modelJob.Namespace != "" {
+		workflow.SetExecutionNamespace(modelJob.Namespace)
+	}
 	parameters, err := modelToParametersMap(modelJob.PipelineSpec.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert parameters.")

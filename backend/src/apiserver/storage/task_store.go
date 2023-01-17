@@ -48,12 +48,14 @@ var (
 )
 
 type TaskStoreInterface interface {
-	// Create a task entry in the database
+	// Create a task entry in the database.
 	CreateTask(task *model.Task) (*model.Task, error)
 
-	ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
-
+	// Fetches a task with a given id.
 	GetTask(id string) (*model.Task, error)
+
+	// Fetches tasks for given filtering and listing options.
+	ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
 }
 
 type TaskStore struct {

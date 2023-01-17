@@ -66,6 +66,10 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "not Workflow struct")
 	}
+	// Overwrite namespace from the job object
+	if modelJob.Namespace != "" {
+		executionSpec.SetExecutionNamespace(modelJob.Namespace)
+	}
 	setDefaultServiceAccount(executionSpec, modelJob.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -195,13 +199,17 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "not Workflow struct")
 	}
+	// Overwrite namespace from the run object
+	if modelRun.Namespace != "" {
+		executionSpec.SetExecutionNamespace(modelRun.Namespace)
+	}
 	setDefaultServiceAccount(executionSpec, modelRun.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.K8SName)
+	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
 	err = executionSpec.ReplaceUID(options.RunId)
 	if err != nil {

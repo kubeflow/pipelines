@@ -19,10 +19,8 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
@@ -165,9 +163,9 @@ func TestAuthorizeRequest_Unauthenticated(t *testing.T) {
 
 	_, err := authServer.AuthorizeV1(ctx, request)
 	assert.NotNil(t, err)
-	assert.EqualError(
+	assert.Contains(
 		t,
-		err,
-		util.Wrap(kfpauth.IdentityHeaderMissingError, "Failed to authorize the request").Error(),
+		err.Error(),
+		"there is no user identity header",
 	)
 }

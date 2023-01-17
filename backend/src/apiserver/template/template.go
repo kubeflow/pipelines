@@ -125,20 +125,105 @@ func New(bytes []byte) (Template, error) {
 	}
 }
 
-func modelToParametersMap(modelParameters string) (map[string]string, error) {
-	var paramsMapList []*map[string]string
-	desiredParamsMap := make(map[string]string)
-	if modelParameters == "" {
-		return desiredParamsMap, nil
+func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
+	if modelRuntimeConfig == nil {
+		return nil, nil
 	}
+	specParams, err := util.UnmarshalParameters(util.ArgoWorkflow, modelRuntimeConfig.Parameters)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to convert internal runtime config representation to its PipelineJob counterpart due to parsing error.")
+	}
+	protoParams := make(map[string]*structpb.Value)
+	for _, param := range specParams {
+		if param.Value != nil {
+			val, err := structpb.NewValue(*param.Value)
+			if err == nil {
+				protoParams[param.Name] = val
+			}
+		}
+	}
+	return &pipelinespec.PipelineJob_RuntimeConfig{
+		ParameterValues:    protoParams,
+		GcsOutputDirectory: modelRuntimeConfig.PipelineRoot,
+	}, nil
+}
+
+func modelToParametersMap(modelParameters string) (map[string]string, error) {
+	if modelParameters == "" {
+		return nil, nil
+	}
+	paramsMapList := make([]map[string]string, 0)
 	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
 	if err != nil {
 		return nil, err
 	}
-	for _, param := range paramsMapList {
-		desiredParamsMap[(*param)["name"]] = (*param)["value"]
+	paramsMap := make(map[string]string)
+	for _, params := range paramsMapList {
+		if name, ok := params["name"]; ok {
+			if val, ok := params["value"]; ok {
+				paramsMap[name] = val
+			}
+		}
 	}
-	return desiredParamsMap, nil
+	return paramsMap, nil
+}
+
+func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, error) {
+	crdTrigger := scheduledworkflow.Trigger{}
+	// CronSchedule and PeriodicSchedule can have at most one being non-empty
+	if modelTrigger.CronSchedule != (model.CronSchedule{}) {
+		// Check if CronSchedule is non-empty
+		crdCronSchedule := scheduledworkflow.CronSchedule{}
+		if modelTrigger.Cron != nil {
+			crdCronSchedule.Cron = *modelTrigger.Cron
+		}
+		if modelTrigger.CronScheduleStartTimeInSec != nil {
+			startTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleStartTimeInSec, 0))
+			crdCronSchedule.StartTime = &startTime
+		}
+		if modelTrigger.CronScheduleEndTimeInSec != nil {
+			endTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleEndTimeInSec, 0))
+			crdCronSchedule.EndTime = &endTime
+		}
+		crdTrigger.CronSchedule = &crdCronSchedule
+	} else if modelTrigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
+		// Check if PeriodicSchedule is non-empty
+		crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
+		if modelTrigger.IntervalSecond != nil {
+			crdPeriodicSchedule.IntervalSecond = *modelTrigger.IntervalSecond
+		}
+		if modelTrigger.PeriodicScheduleStartTimeInSec != nil {
+			startTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleStartTimeInSec, 0))
+			crdPeriodicSchedule.StartTime = &startTime
+		}
+		if modelTrigger.PeriodicScheduleEndTimeInSec != nil {
+			endTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleEndTimeInSec, 0))
+			crdPeriodicSchedule.EndTime = &endTime
+		}
+		crdTrigger.PeriodicSchedule = &crdPeriodicSchedule
+	}
+	return crdTrigger, nil
+}
+
+func modelToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
+	if modelParams == "" {
+		return nil, nil
+	}
+	specParams, err := util.UnmarshalParameters(util.ArgoWorkflow, modelParams)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to convert internal parameters to their scheduledworkflow counterpart due to parsing error.")
+	}
+	swParams := make([]scheduledworkflow.Parameter, 0)
+	for _, param := range specParams {
+		if param.Value != nil {
+			swParam := scheduledworkflow.Parameter{
+				Name:  param.Name,
+				Value: *param.Value,
+			}
+			swParams = append(swParams, swParam)
+		}
+	}
+	return swParams, nil
 }
 
 // Patch the system-specified default parameters if available.
@@ -208,82 +293,4 @@ func toCRDParameters(apiParams map[string]*structpb.Value) []scheduledworkflow.P
 		swParams = append(swParams, swParam)
 	}
 	return swParams
-}
-
-func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
-	if modelRuntimeConfig == nil {
-		return nil, nil
-	}
-	parameters := new(map[string]*structpb.Value)
-	if modelRuntimeConfig.Parameters != "" {
-		err := json.Unmarshal([]byte(modelRuntimeConfig.Parameters), parameters)
-		if err != nil {
-			return nil, err
-		}
-	}
-	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	runtimeConfig.ParameterValues = *parameters
-	runtimeConfig.GcsOutputDirectory = modelRuntimeConfig.PipelineRoot
-	return runtimeConfig, nil
-}
-
-func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, error) {
-	crdTrigger := scheduledworkflow.Trigger{}
-	// CronSchedule and PeriodicSchedule can have at most one being non-empty
-	if modelTrigger.CronSchedule != (model.CronSchedule{}) {
-		// Check if CronSchedule is non-empty
-		crdCronSchedule := scheduledworkflow.CronSchedule{}
-		if modelTrigger.Cron != nil {
-			crdCronSchedule.Cron = *modelTrigger.Cron
-		}
-		if modelTrigger.CronScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleStartTimeInSec, 0))
-			crdCronSchedule.StartTime = &startTime
-		}
-		if modelTrigger.CronScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleEndTimeInSec, 0))
-			crdCronSchedule.EndTime = &endTime
-		}
-		crdTrigger.CronSchedule = &crdCronSchedule
-	} else if modelTrigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
-		// Check if PeriodicSchedule is non-empty
-		crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-		if modelTrigger.IntervalSecond != nil {
-			crdPeriodicSchedule.IntervalSecond = *modelTrigger.IntervalSecond
-		}
-		if modelTrigger.PeriodicScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleStartTimeInSec, 0))
-			crdPeriodicSchedule.StartTime = &startTime
-		}
-		if modelTrigger.PeriodicScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleEndTimeInSec, 0))
-			crdPeriodicSchedule.EndTime = &endTime
-		}
-		crdTrigger.PeriodicSchedule = &crdPeriodicSchedule
-	}
-	return crdTrigger, nil
-}
-
-func modelToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
-	var swParams []scheduledworkflow.Parameter
-	var parameters map[string]*structpb.Value
-	if modelParams == "" {
-		return swParams, nil
-	}
-	err := json.Unmarshal([]byte(modelParams), &parameters)
-	if err != nil {
-		return nil, err
-	}
-	for name, value := range parameters {
-		valueBytes, err := value.MarshalJSON()
-		if err != nil {
-			return nil, err
-		}
-		swParam := scheduledworkflow.Parameter{
-			Name:  name,
-			Value: string(valueBytes),
-		}
-		swParams = append(swParams, swParam)
-	}
-	return swParams, nil
 }

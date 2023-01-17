@@ -56,11 +56,22 @@ var jobColumns = []string{
 }
 
 type JobStoreInterface interface {
+	// Create a recurring run entry in the database.
 	CreateJob(*model.Job) (*model.Job, error)
+
+	// Fetches a recurring run with a given id from the database.
 	GetJob(id string) (*model.Job, error)
+
+	// Fetches recurring runs from the database with the specified filtering and listing options.
 	ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
-	EnableJob(id string, enabled bool) error
+
+	// Enable or disables a recurring run in the database.
+	ChangeJobMode(id string, enabled bool) error
+
+	// Update a recurring run entry in the database.
 	UpdateJob(swf *util.ScheduledWorkflow) error
+
+	// Removes a recurring run entry from the database.
 	DeleteJob(id string) error
 }
 
@@ -190,6 +201,11 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 }
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
+	// Add creation/update time.
+	now := s.time.Now().Unix()
+	j.CreatedAtInSec = now
+	j.UpdatedAtInSec = now
+
 	jobSql, jobArgs, err := sq.
 		Insert("jobs").
 		SetMap(sq.Eq{
@@ -358,7 +374,7 @@ func (s *JobStore) ListJobs(
 	return jobs[:opts.PageSize], total_size, npt, err
 }
 
-func (s *JobStore) EnableJob(id string, enabled bool) error {
+func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
 	now := s.time.Now().Unix()
 	sql, args, err := sq.
 		Update("jobs").
@@ -388,8 +404,9 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	sql, args, err := sq.
 		Update("jobs").
 		SetMap(sq.Eq{
-			"Name":                           swf.Name,
-			"Namespace":                      swf.Namespace,
+			"Name": swf.Name,
+			// Namespace changes for recurring runs is forbidden
+			// "Namespace":                      swf.Namespace,
 			"Enabled":                        swf.Spec.Enabled,
 			"Conditions":                     model.StatusState(swf.ConditionSummary()).ToString(),
 			"MaxConcurrency":                 swf.MaxConcurrencyOr0(),

@@ -31,12 +31,17 @@ type TaskServer struct {
 func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
 	err := s.validateCreateTaskRequest(request)
 	if err != nil {
-		return nil, util.Wrap(err, "Validate create task request failed.")
+		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to validation error.")
 	}
 
-	task, err := s.resourceManager.CreateTask(ctx, request.Task)
+	modelTask, err := toModelTask(request.GetTask())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a new task.")
+		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to conversion error.")
+	}
+
+	task, err := s.resourceManager.CreateTask(modelTask)
+	if err != nil {
+		return nil, util.Wrap(err, "TaskServer: Failed to create a new task.")
 	}
 
 	return toApiTaskV1(task), nil

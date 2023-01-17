@@ -15,19 +15,124 @@
 package model
 
 const (
+	NamespaceResourceType       ResourceType = "Namespace"
 	ExperimentResourceType      ResourceType = "Experiment"
 	JobResourceType             ResourceType = "Job"
 	RecurringRunResourceType    ResourceType = "RecurringRun"
 	RunResourceType             ResourceType = "Run"
 	PipelineResourceType        ResourceType = "pipeline"
 	PipelineVersionResourceType ResourceType = "PipelineVersion"
-	NamespaceResourceType       ResourceType = "Namespace"
 )
 
 const (
 	OwnerRelationship   Relationship = "Owner"
 	CreatorRelationship Relationship = "Creator"
 )
+
+type ResourceReferenceRelationshipTriplet struct {
+	ResourceType     ResourceType
+	ReferenceType    ResourceType
+	RelationshipType Relationship
+}
+
+var validResourceReferenceRelationship map[ResourceReferenceRelationshipTriplet]bool = map[ResourceReferenceRelationshipTriplet]bool{
+	// NAMESPACE
+	{
+		ResourceType:     ExperimentResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     PipelineResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     PipelineVersionResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	// EXPERIMENT
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    ExperimentResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    ExperimentResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    ExperimentResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	// JOB
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    JobResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	// RECURRING_RUN
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    RecurringRunResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	// PIPELINE
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     PipelineVersionResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	// PIPELINE_VERSION
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+}
 
 // The type of a resource object.
 type ResourceType string
@@ -67,4 +172,17 @@ type ReferenceKey struct {
 type FilterContext struct {
 	// Filter by a specific reference key
 	*ReferenceKey
+}
+
+// Checks whether the resource-reference relationship combination is valid.
+func ValidateResourceReferenceRelationship(resType ResourceType, refType ResourceType, relType Relationship) bool {
+	check, err := validResourceReferenceRelationship[ResourceReferenceRelationshipTriplet{
+		ResourceType:     resType,
+		ReferenceType:    refType,
+		RelationshipType: relType,
+	}]
+	if err {
+		return check
+	}
+	return false
 }

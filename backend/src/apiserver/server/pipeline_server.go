@@ -136,7 +136,7 @@ func (s *PipelineServer) canAccessPipelineVersion(ctx context.Context, versionId
 		return nil
 	}
 	if versionId != "" {
-		namespace, err := s.resourceManager.GetNamespaceFromPipelineVersion(versionId)
+		namespace, err := s.resourceManager.FetchNamespaceFromPipelineVersionId(versionId)
 		// Manually allow users to access pipelines in the default namespace.
 		if (namespace == "") || (namespace == model.NoNamespace) || (namespace == s.options.DefaultNamespace) {
 			return nil
@@ -159,7 +159,7 @@ func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId strin
 		return nil
 	}
 	if pipelineId != "" {
-		namespace, err := s.resourceManager.GetNamespaceFromPipelineID(pipelineId)
+		namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 		// Manually allow users to access pipelines in the default namespace.
 		if (namespace == "") || (namespace == model.NoNamespace) || (namespace == s.options.DefaultNamespace) {
 			return nil
@@ -417,7 +417,7 @@ func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId st
 	if pipelineId == "" {
 		return nil, 0, "", util.NewInvalidInputError("[PipelineServer %s]: Failed to list pipeline versions due missing pipeline id.", s.options.ApiVersion)
 	}
-	namespace, err := s.resourceManager.GetNamespaceFromPipelineID(pipelineId)
+	namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 	if err != nil {
 		return nil, 0, "", util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipeline versions due to error fetching the namespace for pipeline id %v.", s.options.ApiVersion, pipelineId))
 	}

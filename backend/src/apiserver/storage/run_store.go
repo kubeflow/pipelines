@@ -89,8 +89,8 @@ type RunStoreInterface interface {
 	// Deletes a run.
 	DeleteRun(runId string) error
 
-	// Updates a run or create one if it does not exist.
-	CreateOrUpdateRun(run *model.Run) error
+	// // Updates a run or create one if it does not exist.
+	// CreateOrUpdateRun(run *model.Run) error
 
 	// Creates a new metric entry.
 	CreateMetric(metric *model.RunMetric) (err error)
@@ -295,10 +295,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 	var runs []*model.Run
 	for rows.Next() {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, conditions, description, pipelineId,
-			pipelineVersionId, pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
+			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
-		var metricsInString, resourceReferencesInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory sql.NullString
+		var metricsInString, resourceReferencesInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
 		err := rows.Scan(
 			&uuid,
 			&experimentUUID,
@@ -356,6 +356,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				Namespace:      namespace,
 				ServiceAccount: serviceAccount,
 				Description:    description,
+				RecurringRunId: jobId.String,
 				RunDetails: model.RunDetails{
 					CreatedAtInSec:          createdAtInSec,
 					ScheduledAtInSec:        scheduledAtInSec,
@@ -369,7 +370,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				ResourceReferences: resourceReferences,
 				PipelineSpec: model.PipelineSpec{
 					PipelineId:           pipelineId,
-					PipelineVersionId:    pipelineVersionId,
+					PipelineVersionId:    pipelineVersionId.String,
 					PipelineName:         pipelineName,
 					PipelineSpecManifest: pipelineSpecManifest,
 					WorkflowSpecManifest: workflowSpecManifest,
@@ -443,7 +444,6 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	if !r.StorageState.IsValid() {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
 	}
-
 	runSql, runArgs, err := sq.
 		Insert("run_details").
 		SetMap(sq.Eq{
@@ -458,13 +458,13 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"CreatedAtInSec":          r.RunDetails.CreatedAtInSec,
 			"ScheduledAtInSec":        r.RunDetails.ScheduledAtInSec,
 			"FinishedAtInSec":         r.RunDetails.FinishedAtInSec,
-			"Conditions":              r.RunDetails.State.ToString(),
+			"Conditions":              r.RunDetails.Conditions,
 			"WorkflowRuntimeManifest": r.RunDetails.WorkflowRuntimeManifest,
 			"PipelineRuntimeManifest": r.RunDetails.PipelineRuntimeManifest,
 			"PipelineId":              r.PipelineSpec.PipelineId,
 			"PipelineName":            r.PipelineSpec.PipelineName,
-			"PipelineSpecManifest":    r.PipelineSpecManifest,
-			"WorkflowSpecManifest":    r.WorkflowSpecManifest,
+			"PipelineSpecManifest":    r.PipelineSpec.PipelineSpecManifest,
+			"WorkflowSpecManifest":    r.PipelineSpec.WorkflowSpecManifest,
 			"Parameters":              r.Parameters,
 			"RuntimeParameters":       r.PipelineSpec.RuntimeConfig.Parameters,
 			"PipelineRoot":            r.PipelineSpec.RuntimeConfig.PipelineRoot,
@@ -491,6 +491,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	}
 
 	// TODO(gkcalat): remove this workflow once we fully deprecate resource references
+	// TODO(gkcalat): consider moving resource reference management to ResourceManager
 	// and provide logic for data migration for v1beta1 data.
 	if r.ResourceReferences == nil {
 		r.ResourceReferences = []*model.ResourceReference{
@@ -676,21 +677,6 @@ func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int
 	return nil
 }
 
-func (s *RunStore) CreateOrUpdateRun(r *model.Run) error {
-	_, createError := s.CreateRun(r)
-	if createError == nil {
-		return nil
-	}
-
-	updateError := s.UpdateRun(r.UUID, r.RunDetails.Conditions, r.RunDetails.FinishedAtInSec, r.RunDetails.WorkflowRuntimeManifest, r.RunDetails.Conditions)
-	if updateError != nil {
-		return util.Wrap(updateError, fmt.Sprintf(
-			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
-			r.Namespace, r.DisplayName, createError.Error(), updateError.Error()))
-	}
-	return nil
-}
-
 func (s *RunStore) ArchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
@@ -742,7 +728,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 		UPDATE run_details
 		SET Conditions = ?, State = ?
 		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		model.RunTerminatingConditions,
+		model.RunTerminatingConditionsV1,
 		model.RuntimeStateCancelling.ToString(),
 		runId,
 		model.RuntimeStatePaused.ToString(),

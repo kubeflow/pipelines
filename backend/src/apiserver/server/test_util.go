@@ -139,7 +139,9 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 			},
 		}
 	}
-	experiment, err := resourceManager.CreateExperiment(apiExperiment)
+	modelExperiment, err := toModelExperiment(apiExperiment)
+	assert.Nil(t, err)
+	experiment, err := resourceManager.CreateExperiment(modelExperiment)
 	assert.Nil(t, err)
 	return clientManager, resourceManager, experiment
 }
@@ -161,7 +163,9 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 			},
 		}
 	}
-	experiment, err := resourceManager.CreateExperiment(apiExperiment)
+	modelExperiment, err := toModelExperiment(apiExperiment)
+	assert.Nil(t, err)
+	experiment, err := resourceManager.CreateExperiment(modelExperiment)
 	assert.Nil(t, err)
 	return clientManager, resourceManager, experiment
 }
@@ -173,12 +177,14 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 
 	// Create an experiment.
 	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
-	experiment, err := resourceManager.CreateExperiment(apiExperiment)
+	modelExperiment, err := toModelExperiment(apiExperiment)
+	assert.Nil(t, err)
+	experiment, err := resourceManager.CreateExperiment(modelExperiment)
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
 	p, err := resourceManager.CreatePipeline(
-		model.Pipeline{
+		&model.Pipeline{
 			Name:        "p1",
 			Description: "",
 			Namespace:   "",
@@ -186,7 +192,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	)
 	assert.Nil(t, err)
 	_, err = resourceManager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:         "p1",
 			PipelineId:   p.UUID,
 			PipelineSpec: testWorkflow.ToStringForStore(),
@@ -195,7 +201,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	assert.Nil(t, err)
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.NonDefaultFakeUUID, nil))
 	_, err = resourceManager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:       "pipeline_version",
 			PipelineId: common.DefaultFakeUUID,
 		},
@@ -210,12 +216,14 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 
 	// Create an experiment.
 	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
-	_, err := resourceManager.CreateExperiment(apiExperiment)
+	modelExperiment, err := toModelExperiment(apiExperiment)
+	assert.Nil(t, err)
+	_, err = resourceManager.CreateExperiment(modelExperiment)
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
 	p, err := resourceManager.CreatePipeline(
-		model.Pipeline{
+		&model.Pipeline{
 			Name:        "pipeline",
 			Description: "",
 			Namespace:   "",
@@ -223,7 +231,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	)
 	assert.Nil(t, err)
 	_, err = resourceManager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:         "pipeline",
 			PipelineId:   p.UUID,
 			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
@@ -233,7 +241,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441001", nil))
 	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	_, err = resourceManager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:       "pipeline_version",
 			PipelineId: common.DefaultFakeUUID,
 		},
@@ -243,7 +251,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	// Create another pipeline and then pipeline version.
 	p1, err := resourceManager.CreatePipeline(
-		model.Pipeline{
+		&model.Pipeline{
 			Name:        "anpther-pipeline",
 			Description: "",
 			Namespace:   "",
@@ -252,7 +260,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 
 	assert.Nil(t, err)
 	_, err = resourceManager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:         "anpther-pipeline",
 			PipelineId:   p1.UUID,
 			Description:  "",
@@ -264,7 +272,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441002", nil))
 	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	_, err = resourceManager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:       "another_pipeline_version",
 			PipelineId: common.NonDefaultFakeUUID,
 		},
@@ -273,7 +281,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	return clientManager
 }
 
-func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.RunDetail) {
+func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Run) {
 	clientManager, manager, exp := initWithExperiment(t)
 
 	ctx := context.Background()
@@ -296,7 +304,9 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(ctx, apiRun)
+	modelRun, err := toModelRun(apiRun)
+	assert.Nil(t, err)
+	runDetail, err := manager.CreateRun(ctx, modelRun)
 	assert.Nil(t, err)
 	return clientManager, manager, runDetail
 }
@@ -307,7 +317,7 @@ func initWithPipeline(t *testing.T) (*resource.FakeClientManager, *resource.Reso
 	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := resource.NewResourceManager(store, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	p, err := manager.CreatePipeline(
-		model.Pipeline{
+		&model.Pipeline{
 			Name:        "p1",
 			Description: "",
 			Namespace:   "",
@@ -315,7 +325,7 @@ func initWithPipeline(t *testing.T) (*resource.FakeClientManager, *resource.Reso
 	)
 	assert.Nil(t, err)
 	_, err = manager.CreatePipelineVersion(
-		model.PipelineVersion{
+		&model.PipelineVersion{
 			Name:         "p1",
 			PipelineId:   p.UUID,
 			PipelineSpec: testWorkflow.ToStringForStore(),

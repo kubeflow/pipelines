@@ -22,28 +22,28 @@ type RuntimeState string
 type StorageState string
 
 const (
-	RuntimeStateUnspecified   RuntimeState = "RUNTIME_STATE_UNSPECIFIED"
-	RuntimeStatePending       RuntimeState = "PENDING"
-	RuntimeStateRunning       RuntimeState = "RUNNING"
-	RuntimeStateSucceeded     RuntimeState = "SUCCEEDED"
-	RuntimeStateSkipped       RuntimeState = "SKIPPED"
-	RuntimeStateFailed        RuntimeState = "FAILED"
-	RuntimeStateCancelling    RuntimeState = "CANCELING"
-	RuntimeStateCanceled      RuntimeState = "CANCELED"
-	RuntimeStatePaused        RuntimeState = "PAUSED"
-	RuntimeStatePendingV1     RuntimeState = "PENDING"
-	RuntimeStateRunningV1     RuntimeState = "RUNNING"
-	RuntimeStateSucceededV1   RuntimeState = "SUCCEEDED"
-	RuntimeStateSkippedV1     RuntimeState = "SKIPPED"
-	RuntimeStateFailedV1      RuntimeState = "FAILED"
-	RuntimeStateErrorV1       RuntimeState = "ERROR"
-	StorageStateUnspecified   StorageState = "STORAGE_STATE_UNSPECIFIED"
-	StorageStateAvailable     StorageState = "AVAILABLE"
-	StorageStateArchived      StorageState = "ARCHIVED"
-	StorageStateUnspecifiedV1 StorageState = "STORAGESTATE_UNSPECIFIED"
-	StorageStateAvailableV1   StorageState = "STORAGESTATE_AVAILABLE"
-	StorageStateArchivedV1    StorageState = "STORAGESTATE_ARCHIVED"
-	RunTerminatingConditions  string       = "Terminating"
+	RuntimeStateUnspecified    RuntimeState = "RUNTIME_STATE_UNSPECIFIED"
+	RuntimeStatePending        RuntimeState = "PENDING"
+	RuntimeStateRunning        RuntimeState = "RUNNING"
+	RuntimeStateSucceeded      RuntimeState = "SUCCEEDED"
+	RuntimeStateSkipped        RuntimeState = "SKIPPED"
+	RuntimeStateFailed         RuntimeState = "FAILED"
+	RuntimeStateCancelling     RuntimeState = "CANCELING"
+	RuntimeStateCanceled       RuntimeState = "CANCELED"
+	RuntimeStatePaused         RuntimeState = "PAUSED"
+	RuntimeStatePendingV1      RuntimeState = "Pending"
+	RuntimeStateRunningV1      RuntimeState = "Running"
+	RuntimeStateSucceededV1    RuntimeState = "Succeeded"
+	RuntimeStateSkippedV1      RuntimeState = "Skipped"
+	RuntimeStateFailedV1       RuntimeState = "Failed"
+	RuntimeStateErrorV1        RuntimeState = "Error"
+	StorageStateUnspecified    StorageState = "STORAGE_STATE_UNSPECIFIED"
+	StorageStateAvailable      StorageState = "AVAILABLE"
+	StorageStateArchived       StorageState = "ARCHIVED"
+	StorageStateUnspecifiedV1  StorageState = "STORAGESTATE_UNSPECIFIED"
+	StorageStateAvailableV1    StorageState = "STORAGESTATE_AVAILABLE"
+	StorageStateArchivedV1     StorageState = "STORAGESTATE_ARCHIVED"
+	RunTerminatingConditionsV1 string       = "Terminating"
 )
 
 func (s RuntimeState) ToV2() RuntimeState {
@@ -52,7 +52,7 @@ func (s RuntimeState) ToV2() RuntimeState {
 
 func (s RuntimeState) ToV1() RuntimeState {
 	switch s {
-	case RuntimeStateUnspecified:
+	case RuntimeStateUnspecified, "":
 		return RuntimeStateErrorV1
 	case RuntimeStatePending:
 		return RuntimeStatePendingV1
@@ -81,13 +81,13 @@ func (s RuntimeState) ToUpper() RuntimeState {
 
 func (s RuntimeState) ToString() string {
 	switch s.ToUpper() {
-	case RuntimeStateErrorV1, RuntimeStateUnspecified, "NO_STATUS":
+	case RuntimeStateErrorV1, RuntimeStateUnspecified, "NO_STATUS", "":
 		return string(RuntimeStateUnspecified)
 	case RuntimeStatePending:
 		return string(RuntimeStatePending)
 	case RuntimeStateRunning, "ENABLED", "READY":
 		return string(RuntimeStateRunning)
-	case RuntimeStateSucceeded:
+	case RuntimeStateSucceeded, "DONE":
 		return string(RuntimeStateSucceeded)
 	case RuntimeStateSkipped:
 		return string(RuntimeStateSkipped)
@@ -129,7 +129,7 @@ func (s StorageState) ToV1() StorageState {
 		return StorageStateAvailableV1
 	case StorageStateArchivedV1:
 		return StorageStateArchivedV1
-	case StorageStateUnspecifiedV1:
+	case StorageStateUnspecifiedV1, "":
 		return StorageStateUnspecifiedV1
 	default:
 		return ""
@@ -142,7 +142,7 @@ func (s StorageState) ToUpper() StorageState {
 
 func (s StorageState) ToString() string {
 	switch s.ToUpper() {
-	case StorageStateUnspecified, StorageStateUnspecifiedV1, "NO_STATUS", "ERROR":
+	case StorageStateUnspecified, StorageStateUnspecifiedV1, "NO_STATUS", "ERROR", "":
 		return string(StorageStateUnspecified)
 	case StorageStateAvailable, StorageStateAvailableV1, "ENABLED", "READY":
 		return string(StorageStateAvailable)
@@ -229,7 +229,31 @@ func (r *Run) ToV1() *Run {
 				Relationship:  CreatorRelationship,
 			},
 		)
+	}
+	if r.State == "" && r.Conditions != "" {
+		state := RuntimeState(r.Conditions).ToV2()
+		r.Conditions = string(state.ToV1())
+	} else if r.State != "" {
+		r.Conditions = string(r.State.ToV1())
+	}
+	return r
+}
 
+func (r *Run) ToV2() *Run {
+	if r.ResourceReferences != nil {
+		for _, ref := range r.ResourceReferences {
+			switch ref.ReferenceType {
+			case ExperimentResourceType:
+				r.ExperimentId = ref.ReferenceUUID
+			case NamespaceResourceType:
+				r.Namespace = ref.ReferenceUUID
+			case JobResourceType:
+				r.RecurringRunId = ref.ReferenceUUID
+			}
+		}
+	}
+	if r.Conditions != "" && r.State == "" {
+		r.State = RuntimeState(r.Conditions).ToV2()
 	}
 	return r
 }

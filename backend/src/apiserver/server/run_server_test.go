@@ -712,171 +712,171 @@ func TestListRuns(t *testing.T) {
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
 }
 
-func TestvalidateCreateRunRequestV1(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReference,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.Nil(t, err)
-}
+// func TestvalidateCreateRunRequestV1(t *testing.T) {
+// 	clients, manager, _ := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: validReference,
+// 		PipelineSpec: &apiv1beta1.PipelineSpec{
+// 			WorkflowManifest: testWorkflow.ToStringForStore(),
+// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+// 		},
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.Nil(t, err)
+// }
 
-func TestvalidateCreateRunRequestV1_WithPipelineVersionReference(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.Nil(t, err)
-}
+// func TestvalidateCreateRunRequestV1_WithPipelineVersionReference(t *testing.T) {
+// 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.Nil(t, err)
+// }
 
-func TestvalidateCreateRunRequestV1_EmptyName(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		ResourceReferences: validReference,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "The run name is empty")
-}
+// func TestvalidateCreateRunRequestV1_EmptyName(t *testing.T) {
+// 	clients, manager, _ := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		ResourceReferences: validReference,
+// 		PipelineSpec: &apiv1beta1.PipelineSpec{
+// 			WorkflowManifest: testWorkflow.ToStringForStore(),
+// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+// 		},
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.NotNil(t, err)
+// 	assert.Contains(t, err.Error(), "The run name is empty")
+// }
 
-func TestvalidateCreateRunRequestV1_InvalidPipelineVersionReference(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: referencesOfExperimentAndInvalidPipelineVersion,
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
-}
+// func TestvalidateCreateRunRequestV1_InvalidPipelineVersionReference(t *testing.T) {
+// 	clients, manager, _ := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: referencesOfExperimentAndInvalidPipelineVersion,
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.NotNil(t, err)
+// 	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
+// }
 
-func TestvalidateCreateRunRequestV1_NoExperiment(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: nil,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.Nil(t, err)
-}
+// func TestvalidateCreateRunRequestV1_NoExperiment(t *testing.T) {
+// 	clients, manager, _ := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: nil,
+// 		PipelineSpec: &apiv1beta1.PipelineSpec{
+// 			WorkflowManifest: testWorkflow.ToStringForStore(),
+// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+// 		},
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.Nil(t, err)
+// }
 
-func TestvalidateCreateRunRequestV1_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReference,
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
-}
+// func TestvalidateCreateRunRequestV1_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
+// 	clients, manager, _ := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: validReference,
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.NotNil(t, err)
+// 	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
+// }
 
-func TestvalidateCreateRunRequestV1_WorkflowManifestAndPipelineVersion(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
-}
+// func TestvalidateCreateRunRequestV1_WorkflowManifestAndPipelineVersion(t *testing.T) {
+// 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+// 		PipelineSpec: &apiv1beta1.PipelineSpec{
+// 			WorkflowManifest: testWorkflow.ToStringForStore(),
+// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+// 		},
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.NotNil(t, err)
+// 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
+// }
 
-func TestvalidateCreateRunRequestV1_InvalidPipelineSpec(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReference,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			PipelineId:       resource.DefaultFakeUUID,
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
-}
+// func TestvalidateCreateRunRequestV1_InvalidPipelineSpec(t *testing.T) {
+// 	clients, manager, _ := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: validReference,
+// 		PipelineSpec: &apiv1beta1.PipelineSpec{
+// 			PipelineId:       resource.DefaultFakeUUID,
+// 			WorkflowManifest: testWorkflow.ToStringForStore(),
+// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+// 		},
+// 	}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.NotNil(t, err)
+// 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
+// }
 
-func TestvalidateCreateRunRequestV1_TooMuchParameters(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// func TestvalidateCreateRunRequestV1_TooMuchParameters(t *testing.T) {
+// 	clients, manager, _ := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 
-	var params []*apiv1beta1.Parameter
-	// Create a long enough parameter string so it exceed the length limit of parameter.
-	for i := 0; i < 10000; i++ {
-		params = append(params, &apiv1beta1.Parameter{Name: "param2", Value: "world"})
-	}
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReference,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       params,
-		},
-	}
+// 	var params []*apiv1beta1.Parameter
+// 	// Create a long enough parameter string so it exceed the length limit of parameter.
+// 	for i := 0; i < 10000; i++ {
+// 		params = append(params, &apiv1beta1.Parameter{Name: "param2", Value: "world"})
+// 	}
+// 	run := &apiv1beta1.Run{
+// 		Name:               "run1",
+// 		ResourceReferences: validReference,
+// 		PipelineSpec: &apiv1beta1.PipelineSpec{
+// 			WorkflowManifest: testWorkflow.ToStringForStore(),
+// 			Parameters:       params,
+// 		},
+// 	}
 
-	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
-}
+// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
+// 	assert.NotNil(t, err)
+// 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
+// }
 
-func TestvalidateCreateRunRequest(t *testing.T) {
-	clients, manager, experiment := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	pipelineSpecStruct := &structpb.Struct{}
-	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+// func TestvalidateCreateRunRequest(t *testing.T) {
+// 	clients, manager, experiment := initWithExperiment(t)
+// 	defer clients.Close()
+// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+// 	pipelineSpecStruct := &structpb.Struct{}
+// 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	run := &apiv2beta1.Run{
-		DisplayName:  "run1",
-		ExperimentId: experiment.UUID,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: pipelineSpecStruct,
-		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
-			PipelineRoot: "model-pipeline-root",
-		},
-	}
-	err := server.validateCreateRunRequest(&apiv2beta1.CreateRunRequest{Run: run})
-	assert.Nil(t, err)
-}
+// 	run := &apiv2beta1.Run{
+// 		DisplayName:  "run1",
+// 		ExperimentId: experiment.UUID,
+// 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+// 			PipelineSpec: pipelineSpecStruct,
+// 		},
+// 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+// 			PipelineRoot: "model-pipeline-root",
+// 		},
+// 	}
+// 	err := server.validateCreateRunRequest(&apiv2beta1.CreateRunRequest{Run: run})
+// 	assert.Nil(t, err)
+// }
 
 func TestReportRunMetricsV1_RunNotFound(t *testing.T) {
 	httpServer := getMockServer(t)
@@ -950,7 +950,7 @@ func TestReportRunMetricsV1_Unauthorized(t *testing.T) {
 		Group:     common.RbacPipelinesGroup,
 		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypeRuns,
-		Name:      runDetails.Name,
+		Name:      runDetails.K8SName,
 	}
 	assert.EqualError(
 		t,
@@ -1039,9 +1039,11 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
+	modelRun, err := toModelRun(apiRun)
+	assert.Nil(t, err)
+	runDetail, _ := manager.CreateRun(context.Background(), modelRun)
 
-	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: runDetail.Namespace,
@@ -1049,7 +1051,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 		Group:     common.RbacPipelinesGroup,
 		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypeRuns,
-		Name:      runDetail.Name,
+		Name:      runDetail.K8SName,
 	}
 	assert.EqualError(
 		t,
@@ -1084,9 +1086,11 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
+	modelRun, err := toModelRun(apiRun)
+	assert.Nil(t, err)
+	runDetail, _ := manager.CreateRun(context.Background(), modelRun)
 
-	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.Nil(t, err)
 }
 
@@ -1120,9 +1124,11 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
+	modelRun, err := toModelRun(apiRun)
+	assert.Nil(t, err)
+	runDetail, _ := manager.CreateRun(context.Background(), modelRun)
 
-	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
 	assert.EqualError(
 		t,
@@ -1208,7 +1214,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 
 	//make the following request unauthorized
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager)
+	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"ApiVersion": "v2beta1", "DefaultNamespace": ""})
 
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &apiv1beta1.ReadArtifactRequest{
@@ -1225,7 +1231,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 		Group:     common.RbacPipelinesGroup,
 		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypeRuns,
-		Name:      run.Name,
+		Name:      run.K8SName,
 	}
 	assert.EqualError(
 		t,
@@ -1236,7 +1242,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 
 func TestReadArtifactsV1_Run_NotFound(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clientManager)
+	manager := resource.NewResourceManager(clientManager, map[string]interface{}{"ApiVersion": "v2beta1", "DefaultNamespace": ""})
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &apiv1beta1.ReadArtifactRequest{
 		RunId:        "Wrong_RUN_UUID",

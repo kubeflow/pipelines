@@ -570,7 +570,7 @@ func TestEnableJob(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	err := jobStore.EnableJob("1", false)
+	err := jobStore.ChangeJobMode("1", false)
 	assert.Nil(t, err)
 
 	jobExpected := model.Job{
@@ -592,7 +592,7 @@ func TestEnableJob(t *testing.T) {
 			},
 		},
 		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
+		UpdatedAtInSec: 3,
 		ExperimentId:   defaultFakeExpId,
 	}
 	jobExpected = *jobExpected.ToV1()
@@ -606,7 +606,7 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	err := jobStore.EnableJob("1", true)
+	err := jobStore.ChangeJobMode("1", true)
 	assert.Nil(t, err)
 
 	jobExpected := model.Job{
@@ -645,7 +645,7 @@ func TestEnableJob_DatabaseError(t *testing.T) {
 	db.Close()
 
 	// Enabling the job.
-	err := jobStore.EnableJob("1", true)
+	err := jobStore.ChangeJobMode("1", true)
 	assert.Contains(t, err.Error(), "Error when enabling job 1 to true: sql: database is closed")
 }
 
@@ -733,7 +733,7 @@ func TestUpdateJob_Success(t *testing.T) {
 		Enabled:        false,
 		Conditions:     "ENABLED",
 		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
+		UpdatedAtInSec: 3,
 		MaxConcurrency: 200,
 		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
@@ -812,7 +812,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		Enabled:        false,
 		Conditions:     "STATUS_UNSPECIFIED",
 		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
+		UpdatedAtInSec: 3,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
 			PipelineName: "p1",

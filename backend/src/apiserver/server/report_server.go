@@ -35,7 +35,7 @@ func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed.")
 	}
-	err = s.resourceManager.ReportWorkflowResource(ctx, execSpec)
+	err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed.")
 	}

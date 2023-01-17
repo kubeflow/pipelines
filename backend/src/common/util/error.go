@@ -205,7 +205,7 @@ func NewFailedPreconditionError(err error, externalFormat string, a ...interface
 func NewUnauthenticatedError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("Unauthenticated: %v", externalMessage)),
+		errors.Wrapf(err, "Unauthenticated: %v", externalMessage),
 		externalMessage,
 		codes.Unauthenticated)
 }
@@ -221,7 +221,7 @@ func NewPermissionDeniedError(err error, externalFormat string, a ...interface{}
 func NewUnknownApiVersionError(a string, o interface{}) *UserError {
 	externalMessage := fmt.Sprintf("Error using %s with %T.", a, o)
 	return newUserError(
-		errors.New(fmt.Sprintf("UnknownApiVersionError: %v", externalMessage)),
+		fmt.Errorf("UnknownApiVersionError: %v", externalMessage),
 		externalMessage,
 		codes.InvalidArgument)
 }
@@ -290,8 +290,6 @@ func (e *UserError) GRPCStatus() *status1.Status {
 
 // Converts an error to google.rpc.Status.
 func ToRpcStatus(e error) *status.Status {
-	var grpcStatus *status1.Status
-	var rpcStatus *status.Status
 	grpcStatus, ok := status1.FromError(e)
 	if !ok {
 		grpcStatus = status1.Newf(
@@ -301,10 +299,13 @@ func ToRpcStatus(e error) *status.Status {
 			e,
 		)
 	}
-	rpcStatus.Code = grpcStatus.Proto().GetCode()
-	rpcStatus.Message = grpcStatus.Proto().GetMessage()
-	rpcStatus.Details = grpcStatus.Proto().GetDetails()
-	return rpcStatus
+	proto := grpcStatus.Proto()
+	rpcStatus := status.Status{
+		Code:    proto.GetCode(),
+		Message: proto.GetMessage(),
+		Details: proto.GetDetails(),
+	}
+	return &rpcStatus
 }
 
 // Converts google.rpc.Status to an error.
