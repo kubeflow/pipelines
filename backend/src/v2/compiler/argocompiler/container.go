@@ -124,15 +124,15 @@ func (c *workflowCompiler) addContainerDriverTemplate(retryPolicy *pipelinespec.
 	}
 	// Add retry policy
 	maxRetryCount := intstr.FromInt(int(retryPolicy.GetMaxRetryCount()))
+	// During the converstion from float64 to int, the fraction is discarded (truncated towards 0).
+	// See https://go.dev/ref/spec#Conversions
 	backOffFactor := intstr.FromInt(int(retryPolicy.GetBackoffFactor()))
 	if maxRetryCount.IntValue() > 0 {
 		// If maxRetryCount == 0, that means retry policy is empty. In this case we leave the whole field empty.
 		t.RetryStrategy = &wfapi.RetryStrategy{
 			Limit: &maxRetryCount,
 			Backoff: &wfapi.Backoff{
-				Duration: retryPolicy.GetBackoffDuration().String(),
-				// During the converstion from float64 to int, the fraction is discarded (truncated towards 0).
-				// See https://go.dev/ref/spec#Conversions
+				Duration:    retryPolicy.GetBackoffDuration().String(),
 				Factor:      &backOffFactor,
 				MaxDuration: retryPolicy.GetBackoffMaxDuration().String(),
 			},
