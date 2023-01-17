@@ -10,5 +10,4 @@ data:
 
   # pns executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
   # However, it is flaky for containers that run really fast, see https://github.com/kubeflow/pipelines/issues/5285.
-  # So we still default to docker for now.
   containerRuntimeExecutor: pns
