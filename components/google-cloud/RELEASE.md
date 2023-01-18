@@ -1,4 +1,4 @@
-# Current Version 2.0.0b0
+# Release 2.0.0b0
 * Release of GCPC v2 beta
 * Supports KFP v2 beta
 * Experimental components that already in v1 folder are removed
