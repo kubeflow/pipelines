@@ -5,5 +5,5 @@ sphinx:
 python:
   version: 3.8
   install:
-    - method: setuptools
+    - method: pip
       path: components/google-cloud

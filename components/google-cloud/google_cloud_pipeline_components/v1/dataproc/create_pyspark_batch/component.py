@@ -105,7 +105,7 @@ def dataproc_create_pyspark_batch(
             https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b0',
       command=[
           'python3', '-u', '-m',
           'google_cloud_pipeline_components.container.v1.dataproc.create_pyspark_batch.launcher'

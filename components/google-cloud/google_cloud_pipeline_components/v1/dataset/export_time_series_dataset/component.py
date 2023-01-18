@@ -56,7 +56,7 @@ def time_series_dataset_export(
                 All of the files that are exported in this export operation.
   """
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b0',
       command=[
           'python3', '-m',
           'google_cloud_pipeline_components.container.aiplatform.remote_runner',

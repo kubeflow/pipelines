@@ -1,5 +1,9 @@
-# Current Version 1.0.34.dev (Still in Development)
-* Add notes for next release here.
+# Current Version 2.0.0b0
+* Release of GCPC v2 beta
+* Supports KFP v2 beta
+* Experimental components that already in v1 folder are removed
+* Experimental components that are not fully tested (e.g. AutoML, Model Evaluation) are excluded for now, will be added in future releases
+* Even though the GCPC package's version is v2, the components under v1 folder have no interface change, so the those components' version remain as v1, decoupled from package version.
 
 # Release 1.0.33
 * Fix aiplatform & v1 batch predict job to work with KFP v2
