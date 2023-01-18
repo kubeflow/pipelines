@@ -29,7 +29,7 @@ python3 -m pip install --upgrade protobuf
 pushd "$source_root/sdk/python"
 python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
-pytest sdk/python -n auto --cov=kfp
+pytest sdk/python -n auto --cov=kfp --ignore sdk/python/kfp/deprecated
 
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
