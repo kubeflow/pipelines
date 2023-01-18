@@ -40,9 +40,9 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
 export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets) {
   // This logic is AWS S3 specific
   if (isS3Endpoint(config.endPoint)) {
-    const credentials = fromNodeProviderChain();
-    const aws_credentials = await credentials();
     try {
+      const credentials = fromNodeProviderChain();
+      const aws_credentials = await credentials();
       if (aws_credentials) {
         const {
           accessKeyId: accessKey,
