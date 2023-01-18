@@ -17,6 +17,7 @@ source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
 python3 -m pip install coveralls==1.9.2
+python3 -m pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'docker==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-xdist==' sdk/python/requirements-dev.txt)
@@ -26,7 +27,7 @@ python3 -m pip install --upgrade protobuf
 pushd "$source_root/sdk/python"
 python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
-pytest sdk/python -n auto --cov=kfp --ignore sdk/python/kfp/deprecated
+pytest sdk/python/kfp --ignore=sdk/python/kfp/deprecated --cov=kfp 
 
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
