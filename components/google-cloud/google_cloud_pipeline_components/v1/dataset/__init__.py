@@ -14,6 +14,7 @@
 """Core modules for AI Platform Pipeline Components."""
 
 import os
+from kfp.components import load_component_from_file
 
 from .create_image_dataset import component as create_image_dataset_component
 from .create_tabular_dataset import component as create_tabular_dataset_component
@@ -25,9 +26,6 @@ from .export_tabular_dataset import component as export_tabular_dataset_componen
 from .export_text_dataset import component as export_text_dataset_component
 from .export_time_series_dataset import component as export_time_series_dataset_component
 from .export_video_dataset import component as export_video_dataset_component
-from .import_image_dataset import component as import_image_dataset_component
-from .import_text_dataset import component as import_text_dataset_component
-from .import_video_dataset import component as import_video_dataset_component
 
 __all__ = [
     'ImageDatasetCreateOp',
@@ -55,6 +53,15 @@ TabularDatasetExportDataOp = export_tabular_dataset_component.tabular_dataset_ex
 TextDatasetExportDataOp = export_text_dataset_component.text_dataset_export
 TimeSeriesDatasetExportDataOp = export_time_series_dataset_component.time_series_dataset_export
 VideoDatasetExportDataOp = export_video_dataset_component.video_dataset_export
-ImageDatasetImportDataOp = import_image_dataset_component.image_dataset_import
-TextDatasetImportDataOp = import_text_dataset_component.text_dataset_import
-VideoDatasetImportDataOp = import_video_dataset_component.video_dataset_import
+
+ImageDatasetImportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'import_image_dataset/component.yaml'))
+
+TextDatasetImportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'import_text_dataset/component.yaml'))
+
+VideoDatasetImportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'import_video_dataset/component.yaml'))
