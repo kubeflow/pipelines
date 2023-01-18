@@ -17,6 +17,7 @@ import * as tar from 'tar-stream';
 import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
+import { awsInstanceProfileCredentials, isS3Endpoint } from './aws-helper';
 const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
 
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
@@ -37,10 +38,11 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  */
 export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets) {
-  if (!config.accessKey || !config.secretKey) {
+  // This logic is AWS S3 specific
+  if (isS3Endpoint(config.endPoint)) {
+    const credentials = fromNodeProviderChain();
+    const aws_credentials = await credentials();
     try {
-      const credentials = fromNodeProviderChain();
-      const aws_credentials = await credentials();
       if (aws_credentials) {
         const {
           accessKeyId: accessKey,
@@ -50,10 +52,29 @@ export async function createMinioClient(config: MinioClientOptionsWithOptionalSe
         return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
       }
     } catch (err) {
-      console.error('unable to get credentials from AWS credential provider chain: ', err);
+      console.error('Unable to get credentials from AWS credential provider chain: ', err);
     }
   }
 
+  // This logic is S3 generic
+  if (!config.accessKey || !config.secretKey) {
+    try {
+      if (await awsInstanceProfileCredentials.ok()) {
+        const credentials = await awsInstanceProfileCredentials.getCredentials();
+        if (credentials) {
+          const {
+            AccessKeyId: accessKey,
+            SecretAccessKey: secretKey,
+            Token: sessionToken,
+          } = credentials;
+          return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
+        }
+        console.error('unable to get credentials from AWS metadata store.');
+      }
+    } catch (err) {
+      console.error('Unable to get aws instance profile credentials: ', err);
+    }
+  }
   return new MinioClient(config as MinioClientOptions);
 }
 
