@@ -19,6 +19,7 @@ import { createMinioClient, isTarball, maybeTarball, getObjectStream } from './m
 import { V1beta1JobTemplateSpec } from '@kubernetes/client-node';
 
 jest.mock('minio');
+jest.mock('./aws-helper');
 
 describe('minio-helper', () => {
   const MockedMinioClient: jest.Mock = MinioClient as any;
