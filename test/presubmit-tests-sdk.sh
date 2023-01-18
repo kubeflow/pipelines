@@ -23,9 +23,6 @@ python3 -m pip install $(grep 'pytest-xdist==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-cov==' sdk/python/requirements-dev.txt)
 python3 -m pip install --upgrade protobuf
 
-# Installing Argo CLI to lint all compiled workflows
-"${source_root}/test/install-argo-cli.sh"
-
 pushd "$source_root/sdk/python"
 python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
