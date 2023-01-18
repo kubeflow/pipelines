@@ -35,7 +35,7 @@ sys.path.insert(0, os.path.abspath('../sdk/python'))
 
 # -- Project information -----------------------------------------------------
 project = 'Kubeflow Pipelines'
-copyright = '2022, The Kubeflow Authors'
+copyright = '2023, The Kubeflow Authors'
 author = 'The Kubeflow Authors'
 
 # The short X.Y version
