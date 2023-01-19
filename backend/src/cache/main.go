@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -32,8 +33,8 @@ const (
 )
 
 const (
-	MutateAPI   string = "/mutate"
-	WebhookPort string = ":8443"
+	MutateAPI          string = "/mutate"
+	DefaultWebhookPort int    = 8443
 )
 
 const (
@@ -62,6 +63,7 @@ func main() {
 	var clientParams util.ClientParameters
 	var certFile string
 	var keyFile string
+	var webhookPort int
 
 	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
 	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
@@ -80,6 +82,7 @@ func main() {
 	// Eg: If you have created the certificate using cert-manager then specify tls_cert_filename=tls.crt and tls_key_filename=tls.key
 	flag.StringVar(&certFile, "tls_cert_filename", TLSCertFileDefault, "The TLS certificate filename.")
 	flag.StringVar(&keyFile, "tls_key_filename", TLSKeyFileDefault, "The TLS key filename.")
+	flag.IntVar(&webhookPort, "listen_port", DefaultWebhookPort, "Port number on which the webhook listens.")
 
 	flag.Parse()
 
@@ -94,9 +97,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle(MutateAPI, server.AdmitFuncHandler(server.MutatePodIfCached, &clientManager))
 	server := &http.Server{
-		// We listen on port 8443 such that we do not need root privileges or extra capabilities for this server.
-		// The Service object will take care of mapping this port to the HTTPS port 443.
-		Addr:    WebhookPort,
+		Addr:    fmt.Sprintf(":%d", webhookPort),
 		Handler: mux,
 	}
 	log.Fatal(server.ListenAndServeTLS(certPath, keyPath))

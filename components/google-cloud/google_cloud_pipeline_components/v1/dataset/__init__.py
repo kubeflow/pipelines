@@ -1,5 +1,4 @@
-# pytype: skip-file
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,66 +14,45 @@
 """Core modules for AI Platform Pipeline Components."""
 
 import os
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from kfp.components import load_component_from_file
+
+from .create_image_dataset import component as create_image_dataset_component
+from .create_tabular_dataset import component as create_tabular_dataset_component
+from .create_text_dataset import component as create_text_dataset_component
+from .create_time_series_dataset import component as create_time_series_dataset_component
+from .create_video_dataset import component as create_video_dataset_component
+from .export_image_dataset import component as export_image_dataset_component
+from .export_tabular_dataset import component as export_tabular_dataset_component
+from .export_text_dataset import component as export_text_dataset_component
+from .export_time_series_dataset import component as export_time_series_dataset_component
+from .export_video_dataset import component as export_video_dataset_component
 
 __all__ = [
     'ImageDatasetCreateOp',
     'TabularDatasetCreateOp',
     'TextDatasetCreateOp',
+    'TimeSeriesDatasetCreateOp',
     'VideoDatasetCreateOp',
     'ImageDatasetExportDataOp',
     'TabularDatasetExportDataOp',
     'TextDatasetExportDataOp',
+    'TimeSeriesDatasetExportDataOp',
     'VideoDatasetExportDataOp',
     'ImageDatasetImportDataOp',
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
-    'TimeSeriesDatasetCreateOp',
-    'TimeSeriesDatasetExportDataOp',
 ]
 
-TimeSeriesDatasetCreateOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_time_series_dataset/component.yaml'))
-
-ImageDatasetCreateOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_image_dataset/component.yaml'))
-
-TabularDatasetCreateOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_tabular_dataset/component.yaml'))
-
-TextDatasetCreateOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_text_dataset/component.yaml'))
-
-VideoDatasetCreateOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_video_dataset/component.yaml'))
-
-ImageDatasetExportDataOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'export_image_dataset/component.yaml'))
-
-TabularDatasetExportDataOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'export_tabular_dataset/component.yaml'))
-
-TimeSeriesDatasetExportDataOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'export_time_series_dataset/component.yaml'))
-
-TextDatasetExportDataOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'export_text_dataset/component.yaml'))
-
-VideoDatasetExportDataOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'export_video_dataset/component.yaml'))
+ImageDatasetCreateOp = create_image_dataset_component.image_dataset_create
+TabularDatasetCreateOp = create_tabular_dataset_component.tabular_dataset_create
+TextDatasetCreateOp = create_text_dataset_component.text_dataset_create
+TimeSeriesDatasetCreateOp = create_time_series_dataset_component.time_series_dataset_create
+VideoDatasetCreateOp = create_video_dataset_component.video_dataset_create
+ImageDatasetExportDataOp = export_image_dataset_component.image_dataset_export
+TabularDatasetExportDataOp = export_tabular_dataset_component.tabular_dataset_export
+TextDatasetExportDataOp = export_text_dataset_component.text_dataset_export
+TimeSeriesDatasetExportDataOp = export_time_series_dataset_component.time_series_dataset_export
+VideoDatasetExportDataOp = export_video_dataset_component.video_dataset_export
 
 ImageDatasetImportDataOp = load_component_from_file(
     os.path.join(

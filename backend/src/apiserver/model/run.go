@@ -318,6 +318,7 @@ var runAPIToModelFieldMap = map[string]string{
 	"display_name":     "DisplayName", // added in API v2
 	"name":             "DisplayName",
 	"created_at":       "CreatedAtInSec",
+	"finished_at":      "FinishedAtInSec",
 	"description":      "Description",
 	"scheduled_at":     "ScheduledAtInSec",
 	"storage_state":    "StorageState",

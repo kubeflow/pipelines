@@ -21,15 +21,15 @@ import (
 
 	"google.golang.org/protobuf/testing/protocmp"
 
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/stretchr/testify/assert"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/stretchr/testify/assert"
 )
 
 type fakeMetric struct {
@@ -507,6 +507,55 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 	got, err := NewOptions(&fakeListable{}, 10, "timestamp", protoFilter)
 	if err == nil {
 		t.Errorf("NewOptions(protoFilter=%+v) =\nGot: %+v, <nil>\nWant error", protoFilter, got)
+	}
+}
+
+func TestNewOptions_ModelFilter(t *testing.T) {
+	protoFilter := &api.Filter{
+		Predicates: []*api.Predicate{
+			{
+				Key:   "finished_at",
+				Op:    api.Predicate_GREATER_THAN,
+				Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
+			},
+		},
+	}
+
+	protoFilterWithRightKeyNames := &api.Filter{
+		Predicates: []*api.Predicate{
+			{
+				Key:   "FinishedAtInSec",
+				Op:    api.Predicate_GREATER_THAN,
+				Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
+			},
+		},
+	}
+
+	f, err := filter.New(protoFilterWithRightKeyNames)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
+	}
+
+	got, err := NewOptions(&model.Run{}, 10, "name", protoFilter)
+	want := &Options{
+		PageSize: 10,
+		token: &token{
+			KeyFieldName:    "UUID",
+			SortByFieldName: "DisplayName",
+			IsDesc:          false,
+			Filter:          f,
+		},
+	}
+
+	opts := []cmp.Option{
+		cmpopts.EquateEmpty(), protocmp.Transform(),
+		cmp.AllowUnexported(Options{}),
+		cmp.AllowUnexported(filter.Filter{}),
+	}
+
+	if !cmp.Equal(got, want, opts...) || err != nil {
+		t.Errorf("NewOptions(protoFilter=%+v) =\nGot: %+v, %v\nWant: %+v, nil\nDiff:\n%s",
+			protoFilter, got, err, want, cmp.Diff(got, want, opts...))
 	}
 }
 

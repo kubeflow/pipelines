@@ -14,12 +14,7 @@
 """Google Cloud Pipeline Wait GCP Resource Components."""
 
 import os
-from typing import Optional
-
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from kfp.components import load_component_from_file
 
 __all__ = [
     'WaitGcpResourcesOp',

@@ -1,5 +1,4 @@
-# pytype: skip-file
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,20 +14,14 @@
 """Core modules for AI Platform Pipeline Components."""
 
 import os
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+
+from .export_model import component as model_export_component
+from .upload_model import component as model_upload_component
 
 __all__ = [
     'ModelExportOp',
     'ModelUploadOp',
 ]
 
-ModelExportOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'export_model/component.yaml'))
-
-ModelUploadOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'upload_model/component.yaml'))
+ModelExportOp = model_export_component.model_export
+ModelUploadOp = model_upload_component.model_upload
