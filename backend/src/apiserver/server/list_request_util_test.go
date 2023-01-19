@@ -174,13 +174,13 @@ func TestParseSortByQueryString_NotSortableFieldName(t *testing.T) {
 func TestParseSortByQueryString_IncorrectDescFlag(t *testing.T) {
 	_, _, err := parseSortByQueryString("id foobar", fakeModelFieldsBySortableAPIFields)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Received invalid sort by format `id foobar`")
+	assert.Contains(t, err.Error(), "Received invalid sort by format 'id foobar'")
 }
 
 func TestParseSortByQueryString_StringTooLong(t *testing.T) {
 	_, _, err := parseSortByQueryString("Name desc foo", fakeModelFieldsBySortableAPIFields)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Received invalid sort by format `Name desc foo`")
+	assert.Contains(t, err.Error(), "Received invalid sort by format 'Name desc foo'")
 }
 
 func TestParseAPIFilter_EmptyStringYieldsNilFilter(t *testing.T) {

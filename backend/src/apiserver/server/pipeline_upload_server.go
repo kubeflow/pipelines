@@ -104,6 +104,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline due to invalid pipeline namespace"))
 		return
 	}
+	pipelineNamespace = s.resourceManager.ReplaceEmptyNamespace(pipelineNamespace)
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: pipelineNamespace,

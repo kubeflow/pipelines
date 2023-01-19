@@ -71,18 +71,15 @@ func GetClientConfig(namespace string) clientcmd.ClientConfig {
 		&overrides, os.Stdin)
 }
 
-func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T) {
-	pipelineVersions, _, _, err := ListPipelineVersions(client)
-	assert.Nil(t, err)
-	for _, p := range pipelineVersions {
-		assert.Nil(t, client.DeletePipelineVersion(&pipelineparams.DeletePipelineVersionV1Params{VersionID: p.ID}))
-	}
-}
-
 func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
 	for _, p := range pipelines {
+		pipelineVersions, _, _, err := client.ListPipelineVersions(&pipelineparams.ListPipelineVersionsV1Params{ResourceKeyID: util.StringPointer(p.ID), ResourceKeyType: util.StringPointer("pipeline")})
+		assert.Nil(t, err)
+		for _, pv := range pipelineVersions {
+			assert.Nil(t, client.DeletePipelineVersion(&pipelineparams.DeletePipelineVersionV1Params{VersionID: pv.ID}))
+		}
 		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineV1Params{ID: p.ID}))
 	}
 }
@@ -125,14 +122,12 @@ func GetExperimentIDFromV1beta1ResourceReferences(resourceRefs []*run_model.APIR
 func ListPipelines(client *api_server.PipelineClient) (
 	[]*pipeline_model.APIPipeline, int, string, error) {
 	parameters := &pipelineparams.ListPipelinesV1Params{}
-
 	return client.List(parameters)
 }
 
 func ListPipelineVersions(client *api_server.PipelineClient) (
 	[]*pipeline_model.APIPipelineVersion, int, string, error) {
 	parameters := &pipelineparams.ListPipelineVersionsV1Params{}
-
 	return client.ListPipelineVersions(parameters)
 }
 

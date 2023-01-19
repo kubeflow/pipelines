@@ -83,7 +83,6 @@ func (s *PipelineVersionApiTest) SetupTest() {
 func (s *PipelineVersionApiTest) TestArgoSpec() {
 	t := s.T()
 
-	test.DeleteAllPipelineVersions(s.pipelineClient, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ---------- Upload a pipeline YAML ---------- */
@@ -324,7 +323,6 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 func (s *PipelineVersionApiTest) TestV2Spec() {
 	t := s.T()
 
-	test.DeleteAllPipelineVersions(s.pipelineClient, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ---------- Upload a pipeline YAML ---------- */
@@ -370,6 +368,5 @@ func (s *PipelineVersionApiTest) TearDownSuite() {
 
 func (s *PipelineVersionApiTest) cleanUp() {
 	// Delete pipelines will fail if they have existing pipeline versions.
-	test.DeleteAllPipelineVersions(s.pipelineClient, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }

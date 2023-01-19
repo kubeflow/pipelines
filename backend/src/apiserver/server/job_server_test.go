@@ -634,11 +634,11 @@ func TestListJobs_Multiuser(t *testing.T) {
 			expectedJobsEmpty,
 		},
 		{
-			"Invalid - no filter",
+			"Valid - no filter",
 			&apiv1beta1.ListJobsRequest{},
-			true,
-			"Failed to list recurring runs: Namespace cannot be empty",
-			nil,
+			false,
+			"",
+			expectedJobsEmpty,
 		},
 		{
 			"Inalid - invalid filter type",

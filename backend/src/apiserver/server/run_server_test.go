@@ -110,7 +110,7 @@ func TestCreateRunV1_no_experiment(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Nil(t, runDetail)
-	assert.Contains(t, err.Error(), "Experiment id can not be empty in run")
+	assert.Contains(t, err.Error(), "Failed to create a run due to missing parent experiment id")
 }
 
 func TestCreateRunV1_no_pipeline_source(t *testing.T) {
@@ -946,11 +946,11 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			expectedRunsEmpty,
 		},
 		{
-			"Invalid - no filter",
+			"Valid - no filter",
 			&apiv1beta1.ListRunsRequest{},
-			true,
-			"Namespace cannot be empty",
-			nil,
+			false,
+			"",
+			expectedRunsEmpty,
 		},
 		{
 			"Inalid - invalid filter type",

@@ -359,7 +359,6 @@ func (s *ExperimentApiTest) TearDownSuite() {
 
 func (s *ExperimentApiTest) cleanUp() {
 	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
-	test.DeleteAllPipelineVersions(s.pipelineClient, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, s.T())

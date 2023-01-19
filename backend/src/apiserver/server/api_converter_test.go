@@ -1281,12 +1281,14 @@ func TestToApiExperimentsV1(t *testing.T) {
 		Name:           "experiment1",
 		Description:    "experiment1 was created using V2 APIV1BETA1",
 		StorageState:   "AVAILABLE",
+		Namespace:      "default",
 	}
 	exp2 := &model.Experiment{
 		UUID:           "exp2",
 		CreatedAtInSec: 2,
 		Name:           "experiment2",
 		Description:    "experiment2 was created using V2 APIV1BETA1",
+		Namespace:      "default",
 		StorageState:   "ARCHIVED",
 	}
 	exp3 := &model.Experiment{
@@ -1294,6 +1296,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 		CreatedAtInSec: 3,
 		Name:           "experiment3",
 		Description:    "experiment3 was created using V1 APIV1BETA1",
+		Namespace:      "default",
 		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	exp4 := &model.Experiment{
@@ -1301,6 +1304,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 		CreatedAtInSec: 4,
 		Name:           "experiment4",
 		Description:    "experiment4 was created using V1 APIV1BETA1",
+		Namespace:      "default",
 		StorageState:   "STORAGESTATE_ARCHIVED",
 	}
 	apiExps := toApiExperimentsV1([]*model.Experiment{exp1, exp2, exp3, exp4})
@@ -1311,6 +1315,12 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Description:  "experiment1 was created using V2 APIV1BETA1",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
 		},
 		{
 			Id:           "exp2",
@@ -1318,6 +1328,12 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Description:  "experiment2 was created using V2 APIV1BETA1",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
 		},
 		{
 			Id:           "exp3",
@@ -1325,6 +1341,12 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Description:  "experiment3 was created using V1 APIV1BETA1",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 3},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
 		},
 		{
 			Id:           "exp4",
@@ -1332,6 +1354,12 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Description:  "experiment4 was created using V1 APIV1BETA1",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 4},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
 		},
 	}
 	assert.Equal(t, expectedApiExps, apiExps)

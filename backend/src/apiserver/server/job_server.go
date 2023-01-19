@@ -121,18 +121,18 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 }
 
 func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	if common.IsMultiUserMode() {
-		if job.Namespace == "" {
-			ns, err := s.resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
-			if err != nil {
-				return nil, util.Wrapf(err, "Failed to create a job due to error fetching parent experiment's %s namespace. Try manually specifying the namespace", job.ExperimentId)
-			}
-			job.Namespace = ns
-		}
-		if err := s.resourceManager.ValidateExperimentNamespace(job.ExperimentId, job.Namespace); err != nil {
-			return nil, util.Wrapf(err, "Failed to create a job due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", job.Namespace, job.ExperimentId)
-		}
+	if job.ExperimentId == "" {
+		return nil, util.NewInvalidInputError("Failed to create a recurring run due to missing parent experiment id")
 	}
+	if err := s.resourceManager.ValidateExperimentNamespace(job.ExperimentId, job.Namespace); err != nil {
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", job.Namespace, job.ExperimentId)
+	}
+	ns, err := s.resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to error fetching namespace of the parent experiment %s", job.ExperimentId)
+	}
+	job.Namespace = ns
+
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: job.Namespace,
 		Verb:      common.RbacResourceVerbCreate,
@@ -227,6 +227,7 @@ func (s *JobServer) GetJob(ctx context.Context, request *apiv1beta1.GetJobReques
 }
 
 func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int, sortBy string, filter string, namespace string, experimentId string) ([]*model.Job, int, string, error) {
+	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
 	if experimentId != "" {
 		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
 		if err != nil {

@@ -157,32 +157,31 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 
 // Creates a run. Not exported.
 func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, error) {
-	if common.IsMultiUserMode() {
-		if run.Namespace == "" {
-			ns, err := s.resourceManager.GetNamespaceFromExperimentId(run.ExperimentId)
-			if err != nil {
-				return nil, util.Wrapf(err, "Failed to create a run due to error fetching parent experiment's %s namespace. Try manually specifying the namespace", run.ExperimentId)
-			}
-			run.Namespace = ns
-		}
-		if err := s.resourceManager.ValidateExperimentNamespace(run.ExperimentId, run.Namespace); err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", run.Namespace, run.ExperimentId)
-		}
+	if run.ExperimentId == "" {
+		return nil, util.NewInvalidInputError("Failed to create a run due to missing parent experiment id")
 	}
+	if err := s.resourceManager.ValidateExperimentNamespace(run.ExperimentId, run.Namespace); err != nil {
+		return nil, util.Wrapf(err, "Failed to create a run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", run.Namespace, run.ExperimentId)
+	}
+	ns, err := s.resourceManager.GetNamespaceFromExperimentId(run.ExperimentId)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to create a run due to error fetching parent experiment's %s namespace", run.ExperimentId)
+	}
+	run.Namespace = ns
+
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: run.Namespace,
 		Verb:      common.RbacResourceVerbCreate,
 		Resource:  common.RbacResourceTypePipelines,
 	}
-	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
-	if err != nil {
-		return nil, util.Wrapf(err, "CreateJob(job.ToV2())Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
+	if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
 	}
 
 	// Validate the pipeline. Fail fast if this is corrupted.
 	if err := s.validateRun(run); err != nil {
-		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to create a run as run validation failed")
+		return nil, util.Wrap(err, "Failed to create a run as run validation failed")
 	}
 	return s.resourceManager.CreateRun(ctx, run)
 }
@@ -270,6 +269,7 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 
 // Fetches all runs that conform to the specified filter and listing options. Not exported.
 func (s *RunServer) listRuns(ctx context.Context, pageToken string, pageSize int, sortBy string, filter string, namespace string, experimentId string) ([]*model.Run, int, string, error) {
+	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
 	if experimentId != "" {
 		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
 		if err != nil {

@@ -49,7 +49,6 @@ func (s *UpgradeTests) TestPrepare() {
 
 	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
-	test.DeleteAllPipelineVersions(s.pipelineClient, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
 	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
 
@@ -159,7 +158,6 @@ func (s *UpgradeTests) TearDownSuite() {
 			// tests because it needs changes in prepare tests to persist and verified
 			// later.)
 			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
-			test.DeleteAllPipelineVersions(s.pipelineClient, t)
 			test.DeleteAllPipelines(s.pipelineClient, t)
 			test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
 			test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
@@ -227,7 +225,6 @@ func (s *UpgradeTests) VerifyExperiments() {
 func (s *UpgradeTests) PreparePipelines() {
 	t := s.T()
 
-	test.DeleteAllPipelineVersions(s.pipelineClient, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ---------- Upload pipelines YAML ---------- */

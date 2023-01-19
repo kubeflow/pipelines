@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -49,6 +50,12 @@ func TestCreateExperimentV1(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		ResourceReferences: []*apiv1beta1.ResourceReference{
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+		},
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -67,6 +74,7 @@ func TestCreateExperiment(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
+		Namespace:    "default",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -260,6 +268,12 @@ func TestGetExperimentV1(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		ResourceReferences: []*apiv1beta1.ResourceReference{
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+		},
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -280,6 +294,7 @@ func TestGetExperiment(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
+		Namespace:    "default",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -439,6 +454,12 @@ func TestListExperimentsV1(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		ResourceReferences: []*apiV1beta1.ResourceReference{
+			{
+				Key:          &apiV1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+		},
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
@@ -459,6 +480,7 @@ func TestListExperiments(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
+		Namespace:    "default",
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
@@ -579,8 +601,9 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "ns1", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+
 	resourceReferences := []*apiV1beta1.ResourceReference{
 		{
 			Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
@@ -635,13 +658,6 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 			[]*apiV1beta1.Experiment{},
 		},
 		{
-			"Missing resource reference key",
-			&apiV1beta1.ListExperimentsRequest{},
-			true,
-			"Failed to list experiments: Namespace cannot be empty",
-			nil,
-		},
-		{
 			"Invalid resource reference key type",
 			&apiV1beta1.ListExperimentsRequest{
 				ResourceReferenceKey: &apiV1beta1.ResourceKey{
@@ -650,8 +666,22 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 				},
 			},
 			true,
-			"Failed to list experiments: Namespace cannot be empty",
+			"invalid resource reference key",
 			nil,
+		},
+		{
+			"Missing resource reference key",
+			&apiV1beta1.ListExperimentsRequest{},
+			false,
+			"",
+			[]*apiV1beta1.Experiment{{
+				Id:                 createResult.Id,
+				Name:               "exp1",
+				Description:        "first experiment",
+				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
+				ResourceReferences: resourceReferences,
+				StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+			}},
 		},
 		{
 			"Empty namespace",
@@ -661,9 +691,35 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 					Id:   "",
 				},
 			},
-			true,
-			"Failed to list experiments: Namespace cannot be empty",
-			nil,
+			false,
+			"",
+			[]*apiV1beta1.Experiment{{
+				Id:                 createResult.Id,
+				Name:               "exp1",
+				Description:        "first experiment",
+				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
+				ResourceReferences: resourceReferences,
+				StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+			}},
+		},
+		{
+			"No namespace",
+			&apiV1beta1.ListExperimentsRequest{
+				ResourceReferenceKey: &apiV1beta1.ResourceKey{
+					Type: apiV1beta1.ResourceType_NAMESPACE,
+					Id:   "-",
+				},
+			},
+			false,
+			"",
+			[]*apiV1beta1.Experiment{{
+				Id:                 createResult.Id,
+				Name:               "exp1",
+				Description:        "first experiment",
+				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
+				ResourceReferences: resourceReferences,
+				StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+			}},
 		},
 	}
 
@@ -685,7 +741,7 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 	}
 }
 
-func TestListExperiments_Multiuser(t *testing.T) {
+func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -735,9 +791,9 @@ func TestListExperiments_Multiuser(t *testing.T) {
 		{
 			"Missing namespace",
 			&apiV2beta1.ListExperimentsRequest{},
-			true,
-			"Failed to list experiments: Namespace cannot be empty",
-			nil,
+			false,
+			"",
+			[]*apiV2beta1.Experiment{},
 		},
 	}
 

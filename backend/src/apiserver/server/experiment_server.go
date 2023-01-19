@@ -122,6 +122,7 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 }
 
 func (s *ExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
+	experiment.Namespace = s.resourceManager.ReplaceEmptyNamespace(experiment.Namespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: experiment.Namespace,
 		Verb:      common.RbacResourceVerbCreate,
@@ -144,7 +145,6 @@ func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *apiv
 	if err != nil {
 		return nil, util.Wrap(err, "[ExperimentServer]: Failed to create a v1beta1 experiment due to conversion error")
 	}
-	modelExperiment.Namespace = s.resourceManager.ReplaceEmptyNamespace(modelExperiment.Namespace)
 
 	newExperiment, err := s.createExperiment(ctx, modelExperiment)
 	if err != nil {
@@ -234,6 +234,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta
 }
 
 func (s *ExperimentServer) listExperiments(ctx context.Context, pageToken string, pageSize int32, sortBy string, filter string, namespace string) ([]*model.Experiment, int32, string, error) {
+	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
 	if common.IsMultiUserMode() {
 		if namespace == "" {
 			return nil, 0, "", util.NewInternalServerError(
@@ -279,6 +280,8 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 	if filterContext.ReferenceKey != nil {
 		if filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			namespace = filterContext.ReferenceKey.ID
+		} else {
+			return nil, util.NewInvalidInputError("Failed to list v1beta1 experiment due to invalid resource reference key. It must be of type 'Namespace' and contain an existing or empty namespace, but you provided %v of type %v", filterContext.ReferenceKey.ID, filterContext.ReferenceKey.Type)
 		}
 	}
 

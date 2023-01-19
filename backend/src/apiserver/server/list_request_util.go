@@ -84,7 +84,7 @@ func parseSortByQueryString(queryString string, modelFieldByApiFieldMapping map[
 	// Check the query string format.
 	if len(queryList) > 2 || (len(queryList) == 2 && queryList[1] != "desc" && queryList[1] != "asc") {
 		return "", false, util.NewInvalidInputError(
-			"Received invalid sort by format `%v`. Supported format: \"field_name\", \"field_name desc\", or \"field_name asc\"", queryString)
+			"Received invalid sort by format '%v'. Supported format: \"field_name\", \"field_name desc\", or \"field_name asc\"", queryString)
 	}
 	isDesc := false
 	if len(queryList) == 2 && queryList[1] == "desc" {

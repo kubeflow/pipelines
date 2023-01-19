@@ -327,6 +327,7 @@ func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineI
 
 // Fetches pipeline and (optionally) pipeline version for a given name and namespace.
 func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, namespace string, apiRequestVersion string) (*model.Pipeline, *model.PipelineVersion, error) {
+	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
 	if common.IsMultiUserMode() {
 		if !s.resourceManager.IsDefaultNamespace(namespace) {
 			resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -353,9 +354,9 @@ func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, nam
 
 // Fetches an array of []model.Pipeline and an array of []model.PipelineVersion for given search query parameters.
 func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, filter string, apiRequestVersion string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	// Fill in the default namespace if multi-user mode is enabled
+	// Fill in the default namespace
+	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
 	if common.IsMultiUserMode() {
-		namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
 			Verb:      common.RbacResourceVerbGet,

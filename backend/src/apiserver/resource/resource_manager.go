@@ -479,7 +479,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	defaultExperiment := &model.Experiment{
 		Name:         "Default",
 		Description:  "All runs created without specifying an experiment will be grouped here",
-		Namespace:    r.serverOptions["DefaultNamespace"].(string),
+		Namespace:    r.GetDefaultNamespace(),
 		StorageState: model.StorageStateAvailable,
 	}
 	experiment, err := r.CreateExperiment(defaultExperiment)

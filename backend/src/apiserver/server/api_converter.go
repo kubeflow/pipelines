@@ -73,18 +73,15 @@ func toApiExperimentV1(experiment *model.Experiment) *apiv1beta1.Experiment {
 	if experiment == nil {
 		return &apiv1beta1.Experiment{}
 	}
-	resourceReferences := []*apiv1beta1.ResourceReference(nil)
 	// TODO(gkcalat): consider changing this of we change multi-user model behavior.
-	if common.IsMultiUserMode() {
-		resourceReferences = []*apiv1beta1.ResourceReference{
-			{
-				Key: &apiv1beta1.ResourceKey{
-					Type: apiv1beta1.ResourceType_NAMESPACE,
-					Id:   experiment.Namespace,
-				},
-				Relationship: apiv1beta1.Relationship_OWNER,
+	resourceReferences := []*apiv1beta1.ResourceReference{
+		{
+			Key: &apiv1beta1.ResourceKey{
+				Type: apiv1beta1.ResourceType_NAMESPACE,
+				Id:   experiment.Namespace,
 			},
-		}
+			Relationship: apiv1beta1.Relationship_OWNER,
+		},
 	}
 	storageState := apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
 	switch experiment.StorageState {
