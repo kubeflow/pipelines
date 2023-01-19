@@ -27,6 +27,8 @@ python3 -m pip install --upgrade protobuf
 pushd "$source_root/sdk/python"
 python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
+
+# TODO: remove deprecated dependency; then remove --ignore arg
 pytest sdk/python/kfp --ignore=sdk/python/kfp/deprecated --cov=kfp 
 
 set +x
