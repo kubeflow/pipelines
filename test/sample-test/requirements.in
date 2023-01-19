@@ -8,3 +8,5 @@ kubernetes
 
 google-cloud-bigquery<3
 google-cloud-storage<2
+# TODO: remove deprecated dependency
+-r sdk/python/requirements-deprecated.txt
