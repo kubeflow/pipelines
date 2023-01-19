@@ -114,7 +114,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 	}}
 
 	protoFilter := &api.Filter{Predicates: []*api.Predicate{
-		&api.Predicate{
+		{
 			Key:   "name",
 			Op:    api.Predicate_EQUALS,
 			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
@@ -445,7 +445,7 @@ func TestNewOptions_InvalidPageSize(t *testing.T) {
 func TestNewOptions_ValidFilter(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "name",
 				Op:    api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
@@ -455,7 +455,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 
 	protoFilterWithRightKeyNames := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "FakeName",
 				Op:    api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
@@ -496,7 +496,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 func TestNewOptions_InvalidFilter(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "unknownfield",
 				Op:    api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
@@ -513,7 +513,7 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 func TestAddPaginationAndFilterToSelect(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "Name",
 				Op:    api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
@@ -640,7 +640,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 
 func TestTokenSerialization(t *testing.T) {
 	protoFilter := &api.Filter{Predicates: []*api.Predicate{
-		&api.Predicate{
+		{
 			Key:   "name",
 			Op:    api.Predicate_EQUALS,
 			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
@@ -737,7 +737,7 @@ func TestTokenSerialization(t *testing.T) {
 func TestMatches(t *testing.T) {
 	protoFilter1 := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "Name",
 				Op:    api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
@@ -751,7 +751,7 @@ func TestMatches(t *testing.T) {
 
 	protoFilter2 := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "Name",
 				Op:    api.Predicate_NOT_EQUALS, // Not equals as opposed to equals above.
 				Value: &api.Predicate_StringValue{StringValue: "SomeName"},

@@ -51,7 +51,7 @@ var jobColumns = []string{
 	"Conditions",
 	"RuntimeParameters",
 	"PipelineRoot",
-	"ExperimentId",
+	"ExperimentUUID",
 	"PipelineVersionId",
 }
 
@@ -172,7 +172,10 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	var err error
 
 	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == model.NamespaceResourceType {
+	if refKey != nil && refKey.Type == model.ExperimentResourceType {
+		filteredSelectBuilder, err = list.FilterOnExperiment("jobs", jobColumns,
+			selectCount, refKey.ID)
+	} else if refKey != nil && refKey.Type == model.NamespaceResourceType {
 		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
 			selectCount, refKey.ID)
 	} else {
@@ -234,7 +237,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"Parameters":                     j.Parameters,
 			"RuntimeParameters":              j.PipelineSpec.RuntimeConfig.Parameters,
 			"PipelineRoot":                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
-			"ExperimentId":                   j.ExperimentId,
+			"ExperimentUUID":                 j.ExperimentId,
 			"PipelineVersionId":              j.PipelineVersionId,
 		}).ToSql()
 	if err != nil {
@@ -245,7 +248,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	// Use a transaction to make sure both job and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create job.")
+		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create job")
 	}
 	_, err = tx.Exec(jobSql, jobArgs...)
 	if err != nil {
@@ -458,7 +461,7 @@ func (s *JobStore) DeleteJob(id string) error {
 	// Use a transaction to make sure both run and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job.")
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job")
 	}
 	_, err = tx.Exec(jobSql, jobArgs...)
 	if err != nil {

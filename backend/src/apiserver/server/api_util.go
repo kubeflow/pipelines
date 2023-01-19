@@ -26,7 +26,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/types/known/structpb"
-	"gopkg.in/yaml.v2"
+
+	"github.com/ghodss/yaml"
 )
 
 const (
@@ -43,9 +44,11 @@ const (
 func getNamespaceFromResourceReferenceV1(resourceRefs []*apiv1beta1.ResourceReference) string {
 	namespace := ""
 	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == apiv1beta1.ResourceType_NAMESPACE {
-			namespace = resourceRef.Key.Id
-			break
+		if resourceRef.GetKey() != nil {
+			if resourceRef.GetKey().GetType() == apiv1beta1.ResourceType_NAMESPACE {
+				namespace = resourceRef.GetKey().GetId()
+				break
+			}
 		}
 	}
 	return namespace
@@ -56,9 +59,11 @@ func getNamespaceFromResourceReferenceV1(resourceRefs []*apiv1beta1.ResourceRefe
 func getExperimentIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReference) string {
 	experimentId := ""
 	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == apiv1beta1.ResourceType_EXPERIMENT {
-			experimentId = resourceRef.Key.Id
-			break
+		if resourceRef.GetKey() != nil {
+			if resourceRef.GetKey().GetType() == apiv1beta1.ResourceType_EXPERIMENT {
+				experimentId = resourceRef.GetKey().GetId()
+				break
+			}
 		}
 	}
 	return experimentId
@@ -69,9 +74,11 @@ func getExperimentIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.Resource
 func getPipelineIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReference) string {
 	pipelineId := ""
 	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == apiv1beta1.ResourceType_PIPELINE {
-			pipelineId = resourceRef.Key.Id
-			break
+		if resourceRef.GetKey() != nil {
+			if resourceRef.GetKey().GetType() == apiv1beta1.ResourceType_PIPELINE {
+				pipelineId = resourceRef.GetKey().GetId()
+				break
+			}
 		}
 	}
 	return pipelineId
@@ -82,8 +89,10 @@ func getPipelineIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceRe
 func getPipelineVersionFromResourceReferencesV1(resourceReferences []*apiv1beta1.ResourceReference) string {
 	var pipelineVersionId = ""
 	for _, resourceReference := range resourceReferences {
-		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == apiv1beta1.Relationship_CREATOR {
-			pipelineVersionId = resourceReference.Key.Id
+		if resourceReference.GetKey() != nil {
+			if resourceReference.GetKey().GetType() == apiv1beta1.ResourceType_PIPELINE_VERSION && resourceReference.GetRelationship() == apiv1beta1.Relationship_CREATOR {
+				pipelineVersionId = resourceReference.GetKey().GetId()
+			}
 		}
 	}
 	return pipelineVersionId
@@ -94,9 +103,11 @@ func getPipelineVersionFromResourceReferencesV1(resourceReferences []*apiv1beta1
 func getJobIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReference) string {
 	jobId := ""
 	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == apiv1beta1.ResourceType_JOB {
-			jobId = resourceRef.Key.Id
-			break
+		if resourceRef.GetKey() != nil {
+			if resourceRef.GetKey().GetType() == apiv1beta1.ResourceType_JOB {
+				jobId = resourceRef.GetKey().GetId()
+				break
+			}
 		}
 	}
 	return jobId
@@ -104,10 +115,10 @@ func getJobIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReferen
 
 // Converts structpb.Struct to a yaml string
 func protobufStructToYamlString(s *structpb.Struct) (string, error) {
-	bytes, err := yaml.Marshal(s.AsMap())
+	bytes, err := yaml.Marshal(s)
 	// bytes, err := json.Marshal(s.AsMap())
 	if err != nil {
-		return "", util.Wrap(err, "Failed to convert a protobuf struct to a yaml string.")
+		return "", util.Wrap(err, "Failed to convert a protobuf struct to a yaml string")
 	}
 	return string(bytes), nil
 }
@@ -143,17 +154,22 @@ func GetResourceReferenceFromRunInterface(r interface{}) ([]*apiv1beta1.Resource
 
 // Converts a yaml string into structpb.Struct (v2)
 func yamlStringToProtobufStruct(s string) (*structpb.Struct, error) {
-	var m *map[string]interface{}
-	// var m *structpb.Struct
-	err := yaml.Unmarshal([]byte(s), m)
+	st := &structpb.Struct{}
+	err := yaml.Unmarshal([]byte(s), st)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert a yaml string into a map[string]interface{}.")
-	}
-	st, err := structpb.NewStruct(*m)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert a yaml string into a protobuf struct.")
+		return nil, util.Wrap(err, "Failed to convert a yaml string into a protobuf struct")
 	}
 	return st, nil
+	// j, err := yaml.YAMLToJSON([]byte(s))
+	// if err != nil {
+	// 	return nil, util.Wrap(err, "Failed to convert a yaml string to json string")
+	// }
+	// pipelineSpec := &structpb.Struct{}
+	// err = pipelineSpec.UnmarshalJSON(j)
+	// if err != nil {
+	// 	return nil, util.Wrap(err, "Failed to convert a json string into a protobuf struct")
+	// }
+	// return pipelineSpec, nil
 }
 
 // Fetches a PipelineRoot from a Run.
@@ -232,10 +248,10 @@ func GetRunDetailsFromRunInterface(r interface{}) (string, error) {
 // Verify the input resource references has one and only reference which is owner experiment.
 func ValidateExperimentResourceReference(resourceManager *resource.ResourceManager, references []*apiv1beta1.ResourceReference) error {
 	if references == nil || len(references) == 0 || references[0] == nil {
-		return util.NewInvalidInputError("The resource reference is empty. Please specify which experiment owns this resource.")
+		return util.NewInvalidInputError("The resource reference is empty. Please specify which experiment owns this resource")
 	}
 	if len(references) > 1 {
-		return util.NewInvalidInputError("Got more resource references than expected. Please only specify which experiment owns this resource.")
+		return util.NewInvalidInputError("Got more resource references than expected. Please only specify which experiment owns this resource")
 	}
 	if references[0].Key.Type != apiv1beta1.ResourceType_EXPERIMENT {
 		return util.NewInvalidInputError("Unexpected resource type. Expected:%v. Got: %v",
@@ -249,7 +265,7 @@ func ValidateExperimentResourceReference(resourceManager *resource.ResourceManag
 			apiv1beta1.Relationship_OWNER, references[0].Relationship)
 	}
 	if _, err := resourceManager.GetExperiment(references[0].Key.Id); err != nil {
-		return util.Wrap(err, "Failed to get experiment.")
+		return util.Wrap(err, "Failed to get experiment")
 	}
 	return nil
 }
@@ -262,10 +278,10 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 
 	if workflowManifest != "" || pipelineManifest != "" {
 		if workflowManifest != "" && pipelineManifest != "" {
-			return util.NewInvalidInputError("Please don't specify both workflow manifest and pipeline manifest.")
+			return util.NewInvalidInputError("Please don't specify both workflow manifest and pipeline manifest")
 		}
 		if pipelineId != "" || pipelineVersionId != "" {
-			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
+			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest")
 		}
 		if err := validateWorkflowManifest(workflowManifest); err != nil {
 			return err
@@ -275,7 +291,7 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 		}
 	} else {
 		if pipelineId == "" && pipelineVersionId == "" {
-			return util.NewInvalidInputError("Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
+			return util.NewInvalidInputError("Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version)")
 		}
 		if err := validatePipelineId(resourceManager, pipelineId); err != nil {
 			return err
@@ -284,16 +300,16 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 			// verify pipelineVersionId exists
 			pipelineVersion, err := resourceManager.GetPipelineVersion(pipelineVersionId)
 			if err != nil {
-				return util.Wrap(err, "Get pipelineVersionId failed.")
+				return util.Wrap(err, "Get pipelineVersionId failed")
 			}
 			// verify pipelineId should be parent of pipelineVersionId
 			if pipelineId != "" && pipelineVersion.PipelineId != pipelineId {
-				return util.NewInvalidInputError("pipeline ID should be parent of pipeline version.")
+				return util.NewInvalidInputError("pipeline ID should be parent of pipeline version")
 			}
 		}
 	}
 	if spec.GetParameters() != nil && spec.GetRuntimeConfig() != nil {
-		return util.NewInvalidInputError("Please don't specify both parameters and runtime config.")
+		return util.NewInvalidInputError("Please don't specify both parameters and runtime config")
 	}
 	if err := validateParameters(spec.GetParameters()); err != nil {
 		return err
@@ -313,7 +329,7 @@ func validateParameters(parameters []*apiv1beta1.Parameter) error {
 				apiParametersToStringV1(parameters))
 		}
 		if len(paramsBytes) > util.MaxParameterBytes {
-			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v", util.MaxParameterBytes)
 		}
 	}
 	return nil
@@ -324,10 +340,10 @@ func validateRuntimeConfigV1(runtimeConfig *apiv1beta1.PipelineSpec_RuntimeConfi
 		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
 		if err != nil {
 			return util.NewInternalServerError(err,
-				"Failed to Marshall the runtime config parameters into bytes.")
+				"Failed to Marshall the runtime config parameters into bytes")
 		}
 		if len(paramsBytes) > util.MaxParameterBytes {
-			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v", util.MaxParameterBytes)
 		}
 	}
 	return nil
@@ -337,7 +353,7 @@ func validatePipelineId(resourceManager *resource.ResourceManager, pipelineId st
 	if pipelineId != "" {
 		// Verify pipeline exist
 		if _, err := resourceManager.GetPipeline(pipelineId); err != nil {
-			return util.Wrap(err, "Get pipelineId failed.")
+			return util.Wrap(err, "Get pipelineId failed")
 		}
 	}
 	return nil
@@ -361,7 +377,7 @@ func validatePipelineManifest(pipelineManifest string) error {
 		spec := &pipelinespec.PipelineSpec{}
 		if err := yaml.Unmarshal([]byte(pipelineManifest), spec); err != nil {
 			return util.NewInvalidInputErrorWithDetails(err,
-				"Invalid IR spec format.")
+				"Invalid IR spec format")
 		}
 	}
 	return nil

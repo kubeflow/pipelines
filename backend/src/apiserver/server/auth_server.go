@@ -68,16 +68,16 @@ func (s *AuthServer) AuthorizeV1(ctx context.Context, request *api.AuthorizeRequ
 
 func ValidateAuthorizeRequest(request *api.AuthorizeRequest) error {
 	if request == nil {
-		return util.NewInvalidInputError("request object is empty.")
+		return util.NewInvalidInputError("request object is empty")
 	}
 	if len(request.Namespace) == 0 {
-		return util.NewInvalidInputError("Namespace is empty. Please specify a valid namespace.")
+		return util.NewInvalidInputError("Namespace is empty. Please specify a valid namespace")
 	}
 	if request.Resources == api.AuthorizeRequest_UNASSIGNED_RESOURCES {
-		return util.NewInvalidInputError("Resources not specified. Please specify a valid resources.")
+		return util.NewInvalidInputError("Resources not specified. Please specify a valid resources")
 	}
 	if request.Verb == api.AuthorizeRequest_UNASSIGNED_VERB {
-		return util.NewInvalidInputError("Verb not specified. Please specify a valid verb.")
+		return util.NewInvalidInputError("Verb not specified. Please specify a valid verb")
 	}
 	return nil
 }

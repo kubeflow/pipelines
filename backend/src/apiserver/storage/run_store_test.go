@@ -60,7 +60,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
-			Conditions:              "RUNNING",
+			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
 			WorkflowRuntimeManifest: "workflow1",
 		},
@@ -81,7 +81,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          2,
 			ScheduledAtInSec:        2,
-			Conditions:              "SUCCEEDED",
+			Conditions:              "Succeeded",
 			State:                   model.RuntimeStateSucceeded,
 			WorkflowRuntimeManifest: "workflow1",
 		},
@@ -103,7 +103,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          3,
 			ScheduledAtInSec:        3,
-			Conditions:              "SUCCEEDED",
+			Conditions:              "Succeeded",
 			State:                   model.RuntimeStateSucceeded,
 			WorkflowRuntimeManifest: "workflow3",
 		},
@@ -153,7 +153,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
-				Conditions:              "RUNNING",
+				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -187,7 +187,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
-				Conditions:              "SUCCEEDED",
+				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -217,7 +217,7 @@ func TestListRuns_Pagination(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
@@ -226,7 +226,7 @@ func TestListRuns_Pagination(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
@@ -245,7 +245,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
-				Conditions:              "RUNNING",
+				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -278,7 +278,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
-				Conditions:              "SUCCEEDED",
+				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -308,7 +308,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
@@ -317,7 +317,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 
 	// Sort in desc order
@@ -328,7 +328,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
@@ -337,7 +337,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
@@ -393,7 +393,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
-				Conditions:              "SUCCEEDED",
+				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -426,7 +426,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
-				Conditions:              "RUNNING",
+				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -460,7 +460,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
@@ -469,7 +469,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
@@ -490,7 +490,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
 				State:                   model.RuntimeStateRunning,
-				Conditions:              "RUNNING",
+				Conditions:              "Running",
 				WorkflowRuntimeManifest: "workflow1",
 			},
 			Metrics: []*model.RunMetric{
@@ -521,7 +521,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
 				State:                   model.RuntimeStateSucceeded,
-				Conditions:              "SUCCEEDED",
+				Conditions:              "Succeeded",
 				WorkflowRuntimeManifest: "workflow1",
 			},
 			Metrics: []*model.RunMetric{
@@ -549,7 +549,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
@@ -579,7 +579,7 @@ func TestGetRun(t *testing.T) {
 			WorkflowRuntimeManifest: "workflow1",
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
-			Conditions:              "RUNNING",
+			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
 		},
 		Metrics: []*model.RunMetric{
@@ -622,222 +622,228 @@ func TestGetRun_InternalError(t *testing.T) {
 		"Expected get run to return internal error")
 }
 
-// func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
-// 	db, runStore := initializeRunStore()
-// 	defer db.Close()
+func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
 
-// 	expectedRun := &model.Run{
-// 		UUID:         "1",
-// 		ExperimentId: defaultFakeExpId,
-// 		K8SName:      "run1",
-// 		DisplayName:  "run1",
-// 		Namespace:    "n1",
-// 		StorageState: model.StorageStateAvailable,
-// 		RunDetails: model.RunDetails{
-// 			CreatedAtInSec:          1,
-// 			ScheduledAtInSec:        1,
-// 			Conditions:              "RUNNING",
-// 			State:                   model.RuntimeStateRunning,
-// 			WorkflowRuntimeManifest: "workflow1",
-// 		},
-// 		Metrics: []*model.RunMetric{
-// 			{
-// 				RunUUID:     "1",
-// 				NodeID:      "node1",
-// 				Name:        "dummymetric",
-// 				NumberValue: 1.0,
-// 				Format:      "PERCENTAGE",
-// 			},
-// 		},
-// 		PipelineSpec: model.PipelineSpec{
-// 			RuntimeConfig: model.RuntimeConfig{
-// 				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
-// 				PipelineRoot: "gs://my-bucket/path/to/root/run1",
-// 			},
-// 		},
-// 	}
+	expectedRun := &model.Run{
+		UUID:         "1",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			ScheduledAtInSec:        1,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+		},
+		Metrics: []*model.RunMetric{
+			{
+				RunUUID:     "1",
+				NodeID:      "node1",
+				Name:        "dummymetric",
+				NumberValue: 1.0,
+				Format:      "PERCENTAGE",
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+				PipelineRoot: "gs://my-bucket/path/to/root/run1",
+			},
+		},
+	}
 
-// 	runDetail, err := runStore.GetRun("1")
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, expectedRun.ToV1(), runDetail)
+	runDetail, err := runStore.GetRun("1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRun.ToV1(), runDetail)
 
-// 	runDetail = &model.Run{
-// 		UUID: "1",
+	runDetail = &model.Run{
+		UUID: "1",
 
-// 		StorageState: model.StorageStateAvailable,
-// 		RunDetails: model.RunDetails{
-// 			WorkflowRuntimeManifest: "workflow1_done",
-// 			Conditions:              "SUCCEEDED",
-// 			ScheduledAtInSec:        2, // This is will be ignored
-// 			State:                   model.RuntimeStateSucceeded,
-// 		},
-// 	}
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			WorkflowRuntimeManifest: "workflow1_done",
+			Conditions:              "Succeeded",
+			ScheduledAtInSec:        2, // This is will be ignored
+			State:                   model.RuntimeStateSucceeded,
+		},
+	}
 
-// 	err = runStore.CreateOrUpdateRun(runDetail)
-// 	assert.Nil(t, err)
+	err = runStore.UpdateRun("1", "Succeeded", 0, "workflow1_done", model.RuntimeStateSucceeded.ToString())
+	assert.Nil(t, err)
 
-// 	expectedRun = &model.Run{
-// 		UUID:         "1",
-// 		ExperimentId: defaultFakeExpId,
-// 		K8SName:      "run1",
-// 		DisplayName:  "run1",
-// 		Namespace:    "n1",
-// 		StorageState: model.StorageStateAvailable,
-// 		RunDetails: model.RunDetails{
-// 			CreatedAtInSec:          1,
-// 			ScheduledAtInSec:        1,
-// 			Conditions:              "SUCCEEDED",
-// 			State:                   model.RuntimeStateSucceeded,
-// 			WorkflowRuntimeManifest: "workflow1_done",
-// 		},
-// 		Metrics: []*model.RunMetric{
-// 			{
-// 				RunUUID:     "1",
-// 				NodeID:      "node1",
-// 				Name:        "dummymetric",
-// 				NumberValue: 1.0,
-// 				Format:      "PERCENTAGE",
-// 			},
-// 		},
-// 		PipelineSpec: model.PipelineSpec{
-// 			RuntimeConfig: model.RuntimeConfig{
-// 				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
-// 				PipelineRoot: "gs://my-bucket/path/to/root/run1",
-// 			},
-// 		},
-// 	}
+	expectedRun = &model.Run{
+		UUID:         "1",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			ScheduledAtInSec:        1,
+			Conditions:              "Succeeded",
+			State:                   model.RuntimeStateSucceeded,
+			WorkflowRuntimeManifest: "workflow1_done",
+		},
+		Metrics: []*model.RunMetric{
+			{
+				RunUUID:     "1",
+				NodeID:      "node1",
+				Name:        "dummymetric",
+				NumberValue: 1.0,
+				Format:      "PERCENTAGE",
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+				PipelineRoot: "gs://my-bucket/path/to/root/run1",
+			},
+		},
+	}
 
-// 	runDetail, err = runStore.GetRun("1")
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, expectedRun.ToV1(), runDetail)
-// }
+	runDetail, err = runStore.GetRun("1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRun.ToV1(), runDetail)
+}
 
-// func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
-// 	db, runStore := initializeRunStore()
-// 	defer db.Close()
-// 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-// 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-// 	// Checking that the run is not yet in the DB
-// 	_, err := runStore.GetRun("2000")
-// 	assert.NotNil(t, err)
+func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	// Checking that the run is not yet in the DB
+	_, err := runStore.GetRun("2000")
+	assert.NotNil(t, err)
 
-// 	runDetail := &model.Run{
-// 		UUID:         "2000",
-// 		ExperimentId: defaultFakeExpId,
-// 		K8SName:      "MY_NAME",
-// 		Namespace:    "MY_NAMESPACE",
-// 		RunDetails: model.RunDetails{
-// 			CreatedAtInSec:          11,
-// 			Conditions:              "RUNNING",
-// 			State:                   model.RuntimeStateRunning,
-// 			WorkflowRuntimeManifest: "workflow_runtime_spec",
-// 		},
-// 		PipelineSpec: model.PipelineSpec{
-// 			WorkflowSpecManifest: "workflow_spec",
-// 		},
-// 	}
+	runDetail := &model.Run{
+		UUID:         "2000",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "MY_NAME",
+		Namespace:    "MY_NAMESPACE",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          11,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow_runtime_spec",
+		},
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: "workflow_spec",
+		},
+	}
 
-// 	err = runStore.CreateOrUpdateRun(runDetail)
-// 	assert.Nil(t, err)
-// 	expectedRun := &model.Run{
-// 		UUID:         "2000",
-// 		ExperimentId: defaultFakeExpId,
-// 		K8SName:      "MY_NAME",
-// 		Namespace:    "MY_NAMESPACE",
-// 		RunDetails: model.RunDetails{
-// 			CreatedAtInSec:          11,
-// 			Conditions:              "RUNNING",
-// 			State:                   model.RuntimeStateRunning,
-// 			WorkflowRuntimeManifest: "workflow_runtime_spec",
-// 		},
-// 		PipelineSpec: model.PipelineSpec{
-// 			WorkflowSpecManifest: "workflow_spec",
-// 		},
-// 		StorageState: model.StorageStateAvailable,
-// 	}
+	err = runStore.UpdateRun("2000", "Running", 0, "workflow_runtime_spec", model.RuntimeStateRunning.ToString())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Run 2000 not found")
+	_, err = runStore.CreateRun(runDetail)
+	assert.Nil(t, err)
+	expectedRun := &model.Run{
+		UUID:         "2000",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "MY_NAME",
+		Namespace:    "MY_NAMESPACE",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          11,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow_runtime_spec",
+		},
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: "workflow_spec",
+		},
+		StorageState: model.StorageStateAvailable,
+	}
 
-// 	runDetail, err = runStore.GetRun("2000")
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, expectedRun.ToV1(), runDetail)
-// }
+	runDetail, err = runStore.GetRun("2000")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRun.ToV1(), runDetail)
+}
 
-// func TestCreateOrUpdateRun_UpdateNotFound(t *testing.T) {
-// 	db, runStore := initializeRunStore()
-// 	db.Close()
+func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
+	db, runStore := initializeRunStore()
+	db.Close()
 
-// 	run := &model.Run{
-// 		RunDetails: model.RunDetails{
-// 			WorkflowRuntimeManifest: "workflow1_done",
-// 			Conditions:              "SUCCEEDED",
-// 			State:                   model.RuntimeStateSucceeded,
-// 		},
-// 	}
-// 	err := runStore.CreateOrUpdateRun(run)
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "Error while creating or updating run")
-// }
+	run := &model.Run{
+		RunDetails: model.RunDetails{
+			WorkflowRuntimeManifest: "workflow1_done",
+			Conditions:              "Succeeded",
+			State:                   model.RuntimeStateSucceeded,
+		},
+	}
+	_, err := runStore.CreateRun(run)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to create a new transaction to create run")
+	err = runStore.UpdateRun("", "Succeeded", 0, "workflow1_done", model.RuntimeStateSucceeded.ToString())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "transaction creation failed")
+}
 
-// func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
-// 	db, runStore := initializeRunStore()
-// 	defer db.Close()
+func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
 
-// 	runDetail := &model.Run{
-// 		UUID:         "1000",
-// 		K8SName:      "run1",
-// 		ExperimentId: defaultFakeExpId,
-// 		Namespace:    "n1",
-// 		RunDetails: model.RunDetails{
-// 			WorkflowRuntimeManifest: "workflow1",
-// 			CreatedAtInSec:          1,
-// 			ScheduledAtInSec:        1,
-// 			Conditions:              "RUNNING",
-// 			State:                   model.RuntimeStateRunning,
-// 		},
-// 	}
+	runDetail := &model.Run{
+		UUID:         "1000",
+		K8SName:      "run1",
+		ExperimentId: defaultFakeExpId,
+		Namespace:    "n1",
+		RunDetails: model.RunDetails{
+			WorkflowRuntimeManifest: "workflow1",
+			CreatedAtInSec:          1,
+			ScheduledAtInSec:        1,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+		},
+	}
 
-// 	run, err := runStore.CreateRun(runDetail)
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, model.StorageStateAvailable, run.StorageState)
-// }
+	run, err := runStore.CreateRun(runDetail)
+	assert.Nil(t, err)
+	assert.Equal(t, model.StorageStateAvailable, run.StorageState)
+}
 
-// func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
-// 	db, runStore := initializeRunStore()
-// 	defer db.Close()
+func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
 
-// 	runDetail := &model.Run{
-// 		UUID:         "1",
-// 		ExperimentId: defaultFakeExpId,
-// 		K8SName:      "run1",
-// 		StorageState: "bad value",
-// 		Namespace:    "n1",
-// 		RunDetails: model.RunDetails{
-// 			CreatedAtInSec:          1,
-// 			ScheduledAtInSec:        1,
-// 			Conditions:              "RUNNING",
-// 			WorkflowRuntimeManifest: "workflow1",
-// 			State:                   model.RuntimeStateRunning,
-// 		},
-// 		Metrics: []*model.RunMetric{
-// 			{
-// 				RunUUID:     "1",
-// 				NodeID:      "node1",
-// 				Name:        "dummymetric",
-// 				NumberValue: 1.0,
-// 				Format:      "PERCENTAGE",
-// 			},
-// 		},
-// 	}
+	runDetail := &model.Run{
+		UUID:         "1",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run1",
+		StorageState: "bad value",
+		Namespace:    "n1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			ScheduledAtInSec:        1,
+			Conditions:              "Running",
+			WorkflowRuntimeManifest: "workflow1",
+			State:                   model.RuntimeStateRunning,
+		},
+		Metrics: []*model.RunMetric{
+			{
+				RunUUID:     "1",
+				NodeID:      "node1",
+				Name:        "dummymetric",
+				NumberValue: 1.0,
+				Format:      "PERCENTAGE",
+			},
+		},
+	}
 
-// 	_, err := runStore.CreateRun(runDetail)
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "Invalid value for StorageState field")
-// }
+	_, err := runStore.CreateRun(runDetail)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Invalid value for StorageState field")
+}
 
 func TestUpdateRun_RunNotExist(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	err := runStore.UpdateRun("not-exist", "SUCCEEDED", 1, "workflow_done", string(model.RuntimeStateSucceeded))
+	err := runStore.UpdateRun("not-exist", "Succeeded", 1, "workflow_done", string(model.RuntimeStateSucceeded))
 	assert.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "not found")
@@ -1014,7 +1020,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
-				Conditions:              "RUNNING",
+				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -1046,7 +1052,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
-				Conditions:              "SUCCEEDED",
+				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
 			},
@@ -1081,7 +1087,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 	for _, run := range runs {
 		sort.Sort(RunMetricSorter(run.Metrics))
 	}
-	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
+	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed")
 }
 
 func TestArchiveRun(t *testing.T) {
@@ -1178,7 +1184,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
-				Conditions:              "RUNNING",
+				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
 			},

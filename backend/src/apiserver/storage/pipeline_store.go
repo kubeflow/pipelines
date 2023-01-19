@@ -272,7 +272,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	// Set pipeline id
 	id, err := s.uuid.NewRandom()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "PipelineStore: Failed to create a pipeline UUID.")
+		return nil, util.NewInternalServerError(err, "PipelineStore: Failed to create a pipeline UUID")
 	}
 	newPipeline.UUID = id.String()
 
@@ -307,7 +307,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 		if s.db.IsDuplicateError(err) {
 			tx.Rollback()
 			return nil, util.NewAlreadyExistError(
-				"PipelineStore: Failed to create a new pipeline. The name %v already exist. Please specify a new name.", p.Name)
+				"PipelineStore: Failed to create a new pipeline. The name %v already exist. Please specify a new name", p.Name)
 		}
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "PipelineStore: Failed to add pipeline to pipeline table: %v",
@@ -329,7 +329,7 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 	// Set pipeline version id
 	id, err := s.uuid.NewRandom()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "PipelineStore: Failed to generate a pipeline version UUID.")
+		return nil, util.NewInternalServerError(err, "PipelineStore: Failed to generate a pipeline version UUID")
 	}
 	newPipelineVersion.UUID = id.String()
 
@@ -628,7 +628,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Optio
 	sqlSelect := buildQuery(sq.Select(pipelineVersionColumns...))
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect).ToSql()
 	if err != nil {
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to prepare a query for listing pipeline versions: %v.", err.Error())
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to prepare a query for listing pipeline versions: %v", err.Error())
 	}
 
 	// Query for getting total size. This matches the query to get all the rows above, in order
@@ -641,20 +641,20 @@ func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Optio
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
-		glog.Errorf("PipelineStore: Failed to begin SQL query listing pipeline versions.")
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to begin SQL query listing pipeline versions: %v.", err.Error())
+		glog.Errorf("PipelineStore: Failed to begin SQL query listing pipeline versions")
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to begin SQL query listing pipeline versions: %v", err.Error())
 	}
 
 	// Fetch the rows
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to list pipeline versions: %v.", err.Error())
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to list pipeline versions: %v", err.Error())
 	}
 	pipelineVersions, err := s.scanPipelineVersionsRows(rows)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to parse results of listing pipeline versions: %v.", err.Error())
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to parse results of listing pipeline versions: %v", err.Error())
 	}
 	rows.Close()
 
@@ -675,7 +675,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Optio
 	err = tx.Commit()
 	if err != nil {
 		glog.Errorf("PipelineStore: Failed to commit transaction to list pipeline versions")
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to commit transaction to list pipeline versions: %v.", err.Error())
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore: Failed to commit transaction to list pipeline versions: %v", err.Error())
 	}
 
 	// Split results on multiple pages if needed

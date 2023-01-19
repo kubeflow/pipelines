@@ -111,7 +111,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVe
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID(t *testing.T) {
@@ -122,7 +122,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_InvalidWorkflowManifest(t *testing.T) {
@@ -131,7 +131,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidWorkflowManifest(t *te
 	spec := &apiv1beta1.PipelineSpec{WorkflowManifest: "I am an invalid manifest"}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Invalid argo workflow format.")
+	assert.Contains(t, err.Error(), "Invalid argo workflow format")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
@@ -139,7 +139,7 @@ func TestValidatePipelineSpecAndResourceReferences_NilPipelineSpecAndEmptyPipeli
 	defer clients.Close()
 	err := ValidatePipelineSpecAndResourceReferences(manager, nil, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version)")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
@@ -148,7 +148,7 @@ func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipe
 	spec := &apiv1beta1.PipelineSpec{}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version)")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineId(t *testing.T) {
@@ -157,7 +157,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineId(t *testing.
 	spec := &apiv1beta1.PipelineSpec{PipelineId: "not-found"}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Get pipelineId failed.")
+	assert.Contains(t, err.Error(), "Get pipelineId failed")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *testing.T) {
@@ -165,7 +165,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *t
 	defer clients.Close()
 	err := ValidatePipelineSpecAndResourceReferences(manager, nil, referencesOfInvalidPipelineVersion)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
+	assert.Contains(t, err.Error(), "Get pipelineVersionId failed")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipelineVersionId(t *testing.T) {
@@ -176,7 +176,7 @@ func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipeline
 		PipelineId: common.NonDefaultFakeUUID}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "pipeline ID should be parent of pipeline version.")
+	assert.Contains(t, err.Error(), "pipeline ID should be parent of pipeline version")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineId(t *testing.T) {
@@ -261,7 +261,7 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 	for _, tc := range tests {
 		namespace := getNamespaceFromResourceReferenceV1(tc.references)
 		assert.Equal(t, tc.expectedNamespace, namespace,
-			"TestGetNamespaceFromResourceReferences(%v) has unexpected result.", tc.name)
+			"TestGetNamespaceFromResourceReferences(%v) has unexpected result", tc.name)
 	}
 }
 
@@ -302,7 +302,7 @@ func TestGetExperimentIDFromResourceReferences(t *testing.T) {
 	for _, tc := range tests {
 		experimentID := getExperimentIdFromResourceReferencesV1(tc.references)
 		assert.Equal(t, tc.expectedExperimentID, experimentID,
-			"TestGetExperimentIDFromResourceReferences(%v) has unexpected result.", tc.name)
+			"TestGetExperimentIDFromResourceReferences(%v) has unexpected result", tc.name)
 	}
 }
 

@@ -32,7 +32,7 @@ parser.add_argument(
     type=int,
     default=os.getenv('KERNEL_TIMEOUT', 100),
     help="Amount of time in seconds that a visualization can run for before " +
-         "being stopped."
+         "being stopped"
 )
 
 args = parser.parse_args()
@@ -55,7 +55,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
                 "type": self.get_body_argument("type")
             }
         except tornado.web.MissingArgumentError:
-            raise Exception("No type provided.")
+            raise Exception("No type provided")
 
         try:
             arguments["arguments"] = self.get_body_argument("arguments")
@@ -82,7 +82,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
 
         if arguments.get("type") != "custom":
             if len(arguments.get("source")) == 0:
-                raise Exception("No source provided.")
+                raise Exception("No source provided")
 
         return arguments
 

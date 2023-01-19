@@ -35,6 +35,7 @@ const (
 	RuntimeStateRunningV1      RuntimeState = "Running"
 	RuntimeStateSucceededV1    RuntimeState = "Succeeded"
 	RuntimeStateSkippedV1      RuntimeState = "Skipped"
+	RuntimeStateTerminatingV1  RuntimeState = "Terminating"
 	RuntimeStateFailedV1       RuntimeState = "Failed"
 	RuntimeStateErrorV1        RuntimeState = "Error"
 	StorageStateUnspecified    StorageState = "STORAGE_STATE_UNSPECIFIED"
@@ -65,11 +66,11 @@ func (s RuntimeState) ToV1() RuntimeState {
 	case RuntimeStateFailed:
 		return RuntimeStateFailedV1
 	case RuntimeStateCancelling:
-		return RuntimeStateFailedV1
+		return RuntimeStateTerminatingV1
 	case RuntimeStateCanceled:
 		return RuntimeStateFailedV1
 	case RuntimeStatePaused:
-		return RuntimeStateFailedV1
+		return RuntimeStatePendingV1
 	default:
 		return ""
 	}

@@ -217,7 +217,7 @@ func TestListPipelines_WithFilter(t *testing.T) {
 
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "name",
 				Op:    api.Predicate_IS_SUBSTRING,
 				Value: &api.Predicate_StringValue{StringValue: "pipeline_f"},
@@ -417,7 +417,7 @@ func TestGetPipeline(t *testing.T) {
 
 	pipeline, err := pipelineStore.GetPipeline(common.DefaultFakePipelineId)
 	assert.Nil(t, err)
-	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline.")
+	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline")
 }
 
 func TestGetPipeline_NotFound_Creating(t *testing.T) {
@@ -520,7 +520,7 @@ func TestCreatePipeline(t *testing.T) {
 	pipelineExpected.CreatedAtInSec = 1
 	pipelineActual, err := pipelineStore.CreatePipeline(pipelineExpected)
 	assert.Nil(t, err)
-	assert.Equal(t, pipelineExpected, pipelineActual, "Got unexpected pipeline.")
+	assert.Equal(t, pipelineExpected, pipelineActual, "Got unexpected pipeline")
 }
 
 func TestCreatePipeline_DuplicateKey(t *testing.T) {
@@ -705,7 +705,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 		t,
 		pipelineVersionExpected,
 		*pipelineVersionCreated,
-		"Got unexpected pipeline.")
+		"Got unexpected pipeline")
 }
 
 func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
@@ -749,7 +749,7 @@ func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
 		t,
 		pipelineVersionExpected,
 		*pipelineVersionCreated,
-		"Got unexpected pipeline.")
+		"Got unexpected pipeline")
 }
 
 func TestCreatePipelineVersion_DuplicateKey(t *testing.T) {
@@ -929,7 +929,7 @@ func TestGetPipelineVersion(t *testing.T) {
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
-		*pipelineVersion, "Got unexpected pipeline version.")
+		*pipelineVersion, "Got unexpected pipeline version")
 }
 
 func TestGetLatestPipelineVersion(t *testing.T) {
@@ -981,7 +981,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
-		*pipelineVersion, "Got unexpected pipeline version.",
+		*pipelineVersion, "Got unexpected pipeline version",
 	)
 
 	// Get pipeline version 2.
@@ -997,7 +997,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
-		*pipelineVersion, "Got unexpected pipeline version.")
+		*pipelineVersion, "Got unexpected pipeline version")
 
 	// Get the latest pipeline version.
 	pipelineVersion, err = pipelineStore.GetLatestPipelineVersion(common.DefaultFakePipelineId)
@@ -1012,7 +1012,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
-		*pipelineVersion, "Got unexpected pipeline version.")
+		*pipelineVersion, "Got unexpected pipeline version")
 }
 
 func TestGetPipelineVersion_InternalError(t *testing.T) {
@@ -1123,14 +1123,14 @@ func TestListPipelineVersion_FilterOutNotReady(t *testing.T) {
 	)
 
 	pipelineVersionsExpected := []*model.PipelineVersion{
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline_version_1",
 			Parameters:     `[{"Name": "param1"}]`,
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady},
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline_version_2",
@@ -1222,7 +1222,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 
 	// First page.
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline_version_1",
@@ -1230,7 +1230,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdFour,
 			CreatedAtInSec: 4,
 			Name:           "pipeline_version_2",
@@ -1250,7 +1250,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline_version_3",
@@ -1258,7 +1258,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdFive,
 			CreatedAtInSec: 5,
 			Name:           "pipeline_version_4",
@@ -1341,7 +1341,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 
 	// First page.
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdFive,
 			CreatedAtInSec: 5,
 			Name:           "pipeline_version_4",
@@ -1349,7 +1349,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 			PipelineId:     common.DefaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline_version_3",
@@ -1370,7 +1370,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	// Second Page.
 	assert.Equal(
 		t, pipelineVersions, []*model.PipelineVersion{
-			&model.PipelineVersion{
+			{
 				UUID:           common.DefaultFakePipelineIdFour,
 				CreatedAtInSec: 4,
 				Name:           "pipeline_version_2",
@@ -1378,7 +1378,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 				PipelineId:     common.DefaultFakePipelineId,
 				Status:         model.PipelineVersionReady,
 			},
-			&model.PipelineVersion{
+			{
 				UUID:           common.DefaultFakePipelineIdTwo,
 				CreatedAtInSec: 2,
 				Name:           "pipeline_version_1",
@@ -1425,7 +1425,7 @@ func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
-		&model.PipelineVersion{
+		{
 			UUID:           common.DefaultFakePipelineIdTwo,
 			Name:           "pipeline_version_1",
 			CreatedAtInSec: 2,
@@ -1476,7 +1476,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Filter for name being equal to pipeline_version_1
 	equalFilterProto := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "name",
 				Op:    api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "pipeline_version_1"},
@@ -1487,7 +1487,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Filter for name prefix being pipeline_version
 	prefixFilterProto := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "name",
 				Op:    api.Predicate_IS_SUBSTRING,
 				Value: &api.Predicate_StringValue{StringValue: "pipeline_version"},

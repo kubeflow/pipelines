@@ -51,13 +51,13 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelJob.RuntimeConfig)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert runtime config.")
+		return nil, util.Wrap(err, "Failed to convert runtime config")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 
 	obj, err := argocompiler.Compile(job, nil)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to compile job.")
+		return nil, util.Wrap(err, "Failed to compile job")
 	}
 	// currently, there is only Argo implementation, so it's using `ArgoWorkflow` for now
 	// later on, if a new runtime support will be added, we need a way to switch/specify
@@ -75,11 +75,11 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed.")
+		return nil, util.Wrap(err, "Create job failed")
 	}
 	parameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed.")
+		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed")
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {

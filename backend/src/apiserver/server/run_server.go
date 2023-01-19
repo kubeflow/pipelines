@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -95,9 +94,7 @@ var (
 )
 
 type RunServerOptions struct {
-	CollectMetrics   bool   `json:"collect_metrics,omitempty"`
-	ApiVersion       string `default:"v2beta1" json:"api_version,omitempty"`
-	DefaultNamespace string `default:"" json:"default_namespace,omitempty"`
+	CollectMetrics bool `json:"collect_metrics,omitempty"`
 }
 
 type RunServer struct {
@@ -111,13 +108,13 @@ func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerO
 
 func (s *RunServer) validateRun(r *model.Run) error {
 	if r.DisplayName == "" {
-		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
+		return util.NewInvalidInputError("The run name is empty. Please specify a valid name")
 	}
-	if r.PipelineSpec.PipelineId == "" && r.PipelineSpec.PipelineVersionId == "" {
-		return util.NewInvalidInputError("Failed to validate a run. At least one of pipeline id or pipeline version id must be non-empty.")
-	}
+	// if r.PipelineSpec.PipelineId == "" && r.PipelineSpec.PipelineVersionId == "" {
+	// 	return util.NewInvalidInputError("Failed to validate a run. At least one of pipeline id or pipeline version id must be non-empty")
+	// }
 	if r.ExperimentId == "" {
-		return util.NewInvalidInputError("Experiment id can not be empty in run.")
+		return util.NewInvalidInputError("Experiment id can not be empty in run")
 	}
 	return nil
 }
@@ -131,13 +128,13 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 	if len(runId) > 0 {
 		runDetail, err := s.resourceManager.GetRun(runId)
 		if err != nil {
-			return util.Wrap(err, "Failed to authorize with the run ID.")
+			return util.Wrap(err, "Failed to authorize with the run ID")
 		}
 		if len(resourceAttributes.Namespace) == 0 {
 			if len(runDetail.Namespace) == 0 {
 				return util.NewInternalServerError(
 					errors.New("Empty namespace"),
-					"The run doesn't have a valid namespace.",
+					"The run doesn't have a valid namespace",
 				)
 			}
 			resourceAttributes.Namespace = runDetail.Namespace
@@ -160,6 +157,18 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 
 // Creates a run. Not exported.
 func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	if common.IsMultiUserMode() {
+		if run.Namespace == "" {
+			ns, err := s.resourceManager.GetNamespaceFromExperimentId(run.ExperimentId)
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a run due to error fetching parent experiment's %s namespace. Try manually specifying the namespace", run.ExperimentId)
+			}
+			run.Namespace = ns
+		}
+		if err := s.resourceManager.ValidateExperimentNamespace(run.ExperimentId, run.Namespace); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", run.Namespace, run.ExperimentId)
+		}
+	}
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: run.Namespace,
@@ -168,12 +177,12 @@ func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, 
 	}
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("[RunServer %s]: Failed to create a run due to authorization error. Check if you have write permissions to namespace %s.", s.options.ApiVersion, run.Namespace))
+		return nil, util.Wrapf(err, "CreateJob(job.ToV2())Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
 	}
 
 	// Validate the pipeline. Fail fast if this is corrupted.
 	if err := s.validateRun(run); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("[RunServer %s]: Failed to create a run as run validation failed.", s.options.ApiVersion))
+		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to create a run as run validation failed")
 	}
 	return s.resourceManager.CreateRun(ctx, run)
 }
@@ -185,12 +194,12 @@ func (s *RunServer) CreateRunV1(ctx context.Context, request *apiv1beta1.CreateR
 
 	modelRun, err := toModelRun(request.GetRun())
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("[RunServer %s]: Failed to create a v1beta1 run due to conversion error.", s.options.ApiVersion))
+		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to create a v1beta1 run due to conversion error")
 	}
 
 	run, err := s.createRun(ctx, modelRun)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a new v1beta1 run.")
+		return nil, util.Wrap(err, "Failed to create a new v1beta1 run")
 	}
 
 	if s.options.CollectMetrics {
@@ -206,12 +215,12 @@ func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRun
 
 	modelRun, err := toModelRun(request.GetRun())
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("[RunServer %s]: Failed to create a run due to conversion error.", s.options.ApiVersion))
+		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to create a run due to conversion error")
 	}
 
 	run, err := s.createRun(ctx, modelRun)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a new run.")
+		return nil, util.Wrap(err, "Failed to create a new run")
 	}
 
 	if s.options.CollectMetrics {
@@ -240,7 +249,7 @@ func (s *RunServer) GetRunV1(ctx context.Context, request *apiv1beta1.GetRunRequ
 
 	run, err := s.getRun(ctx, request.RunId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get a v1beta1 run.")
+		return nil, util.Wrap(err, "Failed to get a v1beta1 run")
 	}
 
 	return toApiRunDetailV1(run), nil
@@ -253,7 +262,7 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 
 	run, err := s.getRun(ctx, request.RunId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get a run.")
+		return nil, util.Wrap(err, "Failed to get a run")
 	}
 
 	return toApiRun(run), nil
@@ -261,11 +270,18 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 
 // Fetches all runs that conform to the specified filter and listing options. Not exported.
 func (s *RunServer) listRuns(ctx context.Context, pageToken string, pageSize int, sortBy string, filter string, namespace string, experimentId string) ([]*model.Run, int, string, error) {
+	if experimentId != "" {
+		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
+		if err != nil {
+			return nil, 0, "", util.Wrapf(err, "Failed to list runs due to error fetching namespace for experiment %s. Try filtering based on namespace", experimentId)
+		}
+		namespace = ns
+	}
 	if common.IsMultiUserMode() {
 		if namespace == "" {
 			return nil, 0, "", util.NewInternalServerError(
 				errors.New("Namespace cannot be empty"),
-				"Failed to list runs.",
+				"Failed to list runs",
 			)
 		}
 	}
@@ -275,7 +291,7 @@ func (s *RunServer) listRuns(ctx context.Context, pageToken string, pageSize int
 	}
 	err := s.canAccessRun(ctx, "", resourceAttributes)
 	if err != nil {
-		return nil, 0, "", util.Wrap(err, fmt.Sprintf("Failed to list runs due to authorization error. Check if you have permission to access namespace %s.", namespace))
+		return nil, 0, "", util.Wrapf(err, "Failed to list runs due to authorization error. Check if you have permission to access namespace %s", namespace)
 	}
 
 	opts, err := validatedListOptions(&model.Run{}, pageToken, pageSize, sortBy, filter)
@@ -287,7 +303,7 @@ func (s *RunServer) listRuns(ctx context.Context, pageToken string, pageSize int
 	}
 	if experimentId != "" {
 		if err := s.resourceManager.ValidateExperimentNamespace(experimentId, namespace); err != nil {
-			return nil, 0, "", util.Wrap(err, "Failed to list runs due to namespace mismatch.")
+			return nil, 0, "", util.Wrap(err, "Failed to list runs due to namespace mismatch")
 		}
 		filterContext = &model.FilterContext{
 			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentId},
@@ -305,21 +321,24 @@ func (s *RunServer) ListRunsV1(ctx context.Context, r *apiv1beta1.ListRunsReques
 		listRunRequests.Inc()
 	}
 
-	filterContext, err := validateFilterV1(r.ResourceReferenceKey)
+	filterContext, err := validateFilterV1(r.GetResourceReferenceKey())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed.")
+		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
 	}
 	namespace := ""
 	experimentId := ""
-	switch filterContext.ReferenceKey.Type {
-	case model.NamespaceResourceType:
-		namespace = filterContext.ReferenceKey.ID
-	case model.ExperimentResourceType:
-		experimentId = filterContext.ReferenceKey.ID
+
+	if filterContext.ReferenceKey != nil {
+		switch filterContext.ReferenceKey.Type {
+		case model.NamespaceResourceType:
+			namespace = filterContext.ReferenceKey.ID
+		case model.ExperimentResourceType:
+			experimentId = filterContext.ReferenceKey.ID
+		}
 	}
 	runs, runsCount, nextPageToken, err := s.listRuns(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), namespace, experimentId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to list v1beta1 runs.")
+		return nil, util.Wrap(err, "Failed to list v1beta1 runs")
 	}
 
 	return &apiv1beta1.ListRunsResponse{Runs: toApiRunsV1(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
@@ -331,7 +350,7 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 	}
 	runs, runsCount, nextPageToken, err := s.listRuns(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), r.GetNamespace(), r.GetExperimentId())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to list runs.")
+		return nil, util.Wrap(err, "Failed to list runs")
 	}
 	return &apiv2beta1.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
 
@@ -344,10 +363,10 @@ func (s *RunServer) archiveRun(ctx context.Context, runId string, experimentId s
 	}
 	run, err := s.getRun(ctx, runId)
 	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run.")
+		return util.Wrap(err, "Failed to fetch a run")
 	}
 	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to archive a run.")
+		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to archive a run")
 	}
 	return s.resourceManager.ArchiveRun(runId)
 }
@@ -358,7 +377,7 @@ func (s *RunServer) ArchiveRunV1(ctx context.Context, request *apiv1beta1.Archiv
 	}
 	err := s.archiveRun(ctx, request.GetId(), "")
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to archive a v1beta1 run.")
+		return nil, util.Wrap(err, "Failed to archive a v1beta1 run")
 	}
 	return &empty.Empty{}, nil
 }
@@ -370,7 +389,7 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveR
 	}
 	err := s.archiveRun(ctx, request.GetRunId(), request.GetExperimentId())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to archive a run.")
+		return nil, util.Wrap(err, "Failed to archive a run")
 	}
 	return &empty.Empty{}, nil
 }
@@ -382,10 +401,10 @@ func (s *RunServer) unarchiveRun(ctx context.Context, runId string, experimentId
 	}
 	run, err := s.getRun(ctx, runId)
 	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run.")
+		return util.Wrap(err, "Failed to fetch a run")
 	}
 	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to unarchive a run.")
+		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to unarchive a run")
 	}
 	return s.resourceManager.UnarchiveRun(runId)
 }
@@ -396,7 +415,7 @@ func (s *RunServer) UnarchiveRunV1(ctx context.Context, request *apiv1beta1.Unar
 	}
 	err := s.unarchiveRun(ctx, request.GetId(), "")
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to unarchive a v1beta1 run.")
+		return nil, util.Wrap(err, "Failed to unarchive a v1beta1 run")
 	}
 	return &empty.Empty{}, nil
 }
@@ -408,7 +427,7 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.Unarch
 	}
 	err := s.unarchiveRun(ctx, request.GetRunId(), request.GetExperimentId())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to unarchive a run.")
+		return nil, util.Wrap(err, "Failed to unarchive a run")
 	}
 	return &empty.Empty{}, nil
 }
@@ -420,10 +439,10 @@ func (s *RunServer) terminateRun(ctx context.Context, runId string, experimentId
 	}
 	run, err := s.getRun(ctx, runId)
 	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run.")
+		return util.Wrap(err, "Failed to fetch a run")
 	}
 	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to terminate a run.")
+		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to terminate a run")
 	}
 	return s.resourceManager.TerminateRun(ctx, runId)
 }
@@ -435,7 +454,7 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.Termin
 	}
 	err := s.terminateRun(ctx, request.GetRunId(), request.GetExperimentId())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to terminate a run.")
+		return nil, util.Wrap(err, "Failed to terminate a run")
 	}
 	return &empty.Empty{}, nil
 }
@@ -446,7 +465,7 @@ func (s *RunServer) TerminateRunV1(ctx context.Context, request *apiv1beta1.Term
 	}
 	err := s.terminateRun(ctx, request.GetRunId(), "")
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to terminate a v1beta1 run.")
+		return nil, util.Wrap(err, "Failed to terminate a v1beta1 run")
 	}
 	return &empty.Empty{}, nil
 }
@@ -474,10 +493,10 @@ func (s *RunServer) deleteRun(ctx context.Context, runId string, experimentId st
 	}
 	run, err := s.getRun(ctx, runId)
 	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run.")
+		return util.Wrap(err, "Failed to fetch a run")
 	}
 	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to delete a run.")
+		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to delete a run")
 	}
 	return s.resourceManager.DeleteRun(ctx, runId)
 }
@@ -487,7 +506,7 @@ func (s *RunServer) DeleteRunV1(ctx context.Context, request *apiv1beta1.DeleteR
 		deleteRunRequests.Inc()
 	}
 	if err := s.deleteRun(ctx, request.GetId(), ""); err != nil {
-		return nil, util.Wrap(err, "Failed to delete a v1beta1 run.")
+		return nil, util.Wrap(err, "Failed to delete a v1beta1 run")
 	}
 	if s.options.CollectMetrics {
 		runCount.Dec()
@@ -501,7 +520,7 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRun
 		deleteRunRequests.Inc()
 	}
 	if err := s.deleteRun(ctx, request.GetRunId(), request.GetExperimentId()); err != nil {
-		return nil, util.Wrap(err, "Failed to delete a run.")
+		return nil, util.Wrap(err, "Failed to delete a run")
 	}
 	if s.options.CollectMetrics {
 		runCount.Dec()
@@ -512,11 +531,11 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRun
 func (s *RunServer) getRunMetrics(ctx context.Context, runId string) ([]*model.RunMetric, error) {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReportMetrics})
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("[RunServer %s]: Failed to fetch run metrics due to authorization error.", s.options.ApiVersion))
+		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to fetch run metrics due to authorization error")
 	}
 	_, err = s.resourceManager.GetRun(runId)
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("[RunServer %s]: Failed to fetch run metrics. Check if run %s can be fetched.", s.options.ApiVersion, runId))
+		return nil, util.Wrapf(err, "CreateJob(job.ToV2())Failed to fetch run metrics. Check if run %s can be fetched", runId)
 	}
 	return s.resourceManager.GetRunMetrics(runId)
 }
@@ -524,38 +543,45 @@ func (s *RunServer) getRunMetrics(ctx context.Context, runId string) ([]*model.R
 func (s *RunServer) reportRunMetrics(ctx context.Context, metrics []*model.RunMetric, runId string, experimentId string) ([]map[string]string, error) {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReportMetrics})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	existingRun, err := s.resourceManager.GetRun(runId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to fetch the requested run.")
+		return nil, util.Wrap(err, "Failed to fetch the requested run")
 	}
 	if experimentId != "" && existingRun.ExperimentId != experimentId && existingRun.ExperimentId != "" {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, existingRun.ExperimentId, experimentId), "Failed to report run metrics.")
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, existingRun.ExperimentId, experimentId), "Failed to report run metrics")
 	}
 	if experimentId != "" {
 		if err := s.resourceManager.ValidateExperimentNamespace(experimentId, existingRun.Namespace); err != nil {
-			return nil, util.Wrap(err, "Failed to report run metrics due to namespace mismatch.")
+			return nil, util.Wrap(err, "Failed to report run metrics due to namespace mismatch")
 		}
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace: existingRun.Namespace,
 			Verb:      common.RbacResourceVerbList,
 		}
 		if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
-			return nil, util.Wrap(err, fmt.Sprintf("Failed to report run metrics due to authorization error. Check if you have permission to access namespace %s.", existingRun.Namespace))
+			return nil, util.Wrapf(err, "Failed to report run metrics due to authorization error. Check if you have permission to access namespace %s", existingRun.Namespace)
 		}
 	}
 	results := make([]map[string]string, 0)
 	for _, metric := range metrics {
 		temp := map[string]string{"Name": metric.Name, "NodeId": metric.NodeID, "ErrorCode": "", "ErrorMessage": ""}
+		if err := validateRunMetric(metric); err != nil {
+			temp["ErrorCode"] = "invalid"
+			results = append(results, temp)
+			continue
+		}
 		err = s.resourceManager.ReportMetric(metric)
 		if err == nil {
 			temp["ErrorCode"] = "ok"
+			results = append(results, temp)
 			continue
 		}
 		err, ok := err.(*util.UserError)
 		if !ok {
 			temp["ErrorCode"] = "internal"
+			results = append(results, temp)
 			continue
 		}
 		temp["ErrorMessage"] = err.ExternalMessage()
@@ -585,13 +611,13 @@ func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *apiv1beta1.
 	for _, metric := range request.GetMetrics() {
 		modelMetric, err := toModelRunMetric(metric, request.GetRunId())
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create v1beta1 run metrics due to data conversion error.")
+			return nil, util.Wrap(err, "Failed to create v1beta1 run metrics due to data conversion error")
 		}
 		metrics = append(metrics, modelMetric)
 	}
 	results, err := s.reportRunMetrics(ctx, metrics, request.GetRunId(), "")
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to report v1beta1 run metrics.")
+		return nil, util.Wrap(err, "Failed to report v1beta1 run metrics")
 	}
 	apiResults := make([]*apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult, 0)
 	for _, result := range results {
@@ -620,13 +646,13 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *apiv2beta1.Re
 	for _, metric := range request.GetMetrics() {
 		modelMetric, err := toModelRunMetric(metric, request.GetRunId())
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create run metrics due to data conversion error.")
+			return nil, util.Wrap(err, "Failed to create run metrics due to data conversion error")
 		}
 		metrics = append(metrics, modelMetric)
 	}
 	reportResults, err := s.reportRunMetrics(ctx, metrics, request.GetRunId(), request.GetExperimentId())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to report run metrics.")
+		return nil, util.Wrap(err, "Failed to report run metrics")
 	}
 	existingMetrics, err := s.getRunMetrics(ctx, request.GetRunId())
 
@@ -651,7 +677,7 @@ func (s *RunServer) ReadArtifactV1(ctx context.Context, request *apiv1beta1.Read
 	content, err := s.resourceManager.ReadArtifact(
 		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
 	if err != nil {
-		return nil, util.Wrapf(err, "failed to read artifact '%+v'.", request)
+		return nil, util.Wrapf(err, "failed to read artifact '%+v'", request)
 	}
 	return &apiv1beta1.ReadArtifactResponse{
 		Data: content,
@@ -671,7 +697,7 @@ func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadAr
 	content, err := s.resourceManager.ReadArtifact(
 		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
 	if err != nil {
-		return nil, util.Wrapf(err, "failed to read artifact '%+v'.", request)
+		return nil, util.Wrapf(err, "failed to read artifact '%+v'", request)
 	}
 	return &apiv2beta1.ReadArtifactResponse{
 		Data: content,

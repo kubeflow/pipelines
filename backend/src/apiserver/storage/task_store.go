@@ -78,7 +78,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	newTask := *task
 	id, err := s.uuid.NewRandom()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create an task id.")
+		return nil, util.NewInternalServerError(err, "Failed to create an task id")
 	}
 	newTask.UUID = id.String()
 

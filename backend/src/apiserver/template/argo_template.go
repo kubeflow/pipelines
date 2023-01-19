@@ -43,11 +43,11 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	// Convert parameters
 	parameters, err := modelToParametersMap(modelRun.PipelineSpec.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert parameters.")
+		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
 	// Verify no additional parameter provided
 	if err := workflow.VerifyParameters(parameters); err != nil {
-		return nil, util.Wrap(err, "Failed to verify parameters.")
+		return nil, util.Wrap(err, "Failed to verify parameters")
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
@@ -103,11 +103,11 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	}
 	parameters, err := modelToParametersMap(modelJob.PipelineSpec.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert parameters.")
+		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
 	// Verify no additional parameter provided
 	if err := workflow.VerifyParameters(parameters); err != nil {
-		return nil, util.Wrap(err, "Failed to verify parameters.")
+		return nil, util.Wrap(err, "Failed to verify parameters")
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
@@ -116,7 +116,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed.")
+		return nil, util.Wrap(err, "Create job failed")
 	}
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
@@ -215,7 +215,7 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	var wf workflowapi.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Failed to parse the workflow template.")
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Failed to parse the workflow template")
 	}
 	if wf.APIVersion != argoVersion {
 		return nil, util.NewInvalidInputError("Unsupported argo version. Expected: %v. Received: %v", argoVersion, wf.APIVersion)

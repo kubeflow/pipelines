@@ -97,7 +97,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	newExperiment.CreatedAtInSec = now
 	id, err := s.uuid.NewRandom()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create an experiment id.")
+		return nil, util.NewInternalServerError(err, "Failed to create an experiment id")
 	}
 	newExperiment.UUID = id.String()
 
@@ -105,7 +105,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 		newExperiment.StorageState = model.StorageStateAvailable
 	}
 	if !newExperiment.StorageState.IsValid() {
-		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", newExperiment.StorageState)
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q", newExperiment.StorageState)
 	}
 
 	sql, args, err := sq.
@@ -127,7 +127,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
 			return nil, util.NewAlreadyExistError(
-				"Failed to create a new experiment. The name %v already exists. Please specify a new name.", experiment.Name)
+				"Failed to create a new experiment. The name %v already exists. Please specify a new name", experiment.Name)
 		}
 		return nil, util.NewInternalServerError(err, "Failed to add experiment to experiment table: %v",
 			err.Error())
@@ -245,7 +245,7 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	// Use a transaction to make sure both experiment and its resource references are deleted.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to delete experiment.")
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete experiment")
 	}
 	_, err = tx.Exec(experimentSql, experimentArgs...)
 	if err != nil {
@@ -302,7 +302,8 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		SetMap(sq.Eq{
 			"StorageState": string(model.StorageStateArchived),
 		}).
-		Where(fmt.Sprintf("UUID in (%s)", filteredRunsSql), filteredRunsArgs...).
+		Where(sq.NotEq{"StorageState": model.StorageStateArchived.ToString()}).
+		Where(fmt.Sprintf("UUID in (%s) OR ExperimentUUID = '%s'", filteredRunsSql, expId), filteredRunsArgs...).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -340,7 +341,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Enabled":        false,
 			"UpdatedAtInSec": now}).
 		Where(sq.Eq{"Enabled": true}).
-		Where(fmt.Sprintf("UUID in (%s)", filteredJobsSql), filteredJobsArgs...).
+		Where(fmt.Sprintf("UUID in (%s) OR ExperimentUUID = '%s'", filteredJobsSql, expId), filteredJobsArgs...).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -350,7 +351,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	// In a single transaction, we update experiments, run_details and jobs tables.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to archive an experiment.")
+		return util.NewInternalServerError(err, "Failed to create a new transaction to archive an experiment")
 	}
 
 	_, err = tx.Exec(sql, args...)

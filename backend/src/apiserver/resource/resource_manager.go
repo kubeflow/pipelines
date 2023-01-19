@@ -164,10 +164,10 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 				if errPipelineId != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
-							util.Wrap(errUri, "ResourceManager: Failed to read a file from pipeline_spec_uri."),
-							util.Wrap(errUUID, "ResourceManager: Failed to read a file from OS with pipeline_version_id.").Error(),
+							util.Wrap(errUri, "Failed to read a file from pipeline_spec_uri"),
+							util.Wrap(errUUID, "Failed to read a file from OS with pipeline_version_id").Error(),
 						),
-						util.Wrap(errPipelineId, "ResourceManager: Failed to read a file from OS with pipeline_id.").Error(),
+						util.Wrap(errPipelineId, "Failed to read a file from OS with pipeline_id").Error(),
 					)
 				}
 				return template, r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)), nil
@@ -186,7 +186,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 //  4. Fetch pipeline spec manifest from the latest pipeline version for PipelineSpec's PipelineId field.
 func (r *ResourceManager) fetchTemplateFromPipelineSpec(p *model.PipelineSpec) ([]byte, error) {
 	if p == nil {
-		return nil, util.NewInvalidInputError("Failed to read pipeline spec manifest from nil.")
+		return nil, util.NewInvalidInputError("Failed to read pipeline spec manifest from nil")
 	}
 	if len(p.PipelineSpecManifest) != 0 {
 		return []byte(p.PipelineSpecManifest), nil
@@ -222,15 +222,15 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(p *model.PipelineSpec) (
 		}
 	}
 	return nil, util.Wrap(
-		util.Wrap(errPv, fmt.Sprintf("ResourceManager: Failed to read pipeline spec for pipeline version id %v.", p.PipelineVersionId)),
-		util.Wrap(errP, fmt.Sprintf("ResourceManager: Failed to read pipeline spec for pipeline id %v.", p.PipelineId)).Error(),
+		util.Wrapf(errPv, "Failed to read pipeline spec for pipeline version id %v", p.PipelineVersionId),
+		util.Wrapf(errP, "Failed to read pipeline spec for pipeline id %v", p.PipelineId).Error(),
 	)
 }
 
 // Fetches PipelineSpec's manifest as []byte array from pipeline version's id.
 func (r *ResourceManager) fetchTemplateFromPipelineVersionId(pipelineVersionId string) ([]byte, error) {
 	if len(pipelineVersionId) == 0 {
-		return nil, util.NewInvalidInputError("ResourceManager: Failed to get manifest as pipeline version id is empty.")
+		return nil, util.NewInvalidInputError("Failed to get manifest as pipeline version id is empty")
 	}
 	pv, err := r.GetPipelineVersion(pipelineVersionId)
 	if err == nil {
@@ -239,7 +239,37 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersionId(pipelineVersionId s
 			return bytes, nil
 		}
 	}
-	return nil, util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to read pipeline spec for pipeline version id %v.", pipelineVersionId))
+	return nil, util.Wrapf(err, "Failed to read pipeline spec for pipeline version id %v", pipelineVersionId)
+}
+
+// Fetches the default namespace for resources.
+func (r *ResourceManager) GetDefaultNamespace() string {
+	if namespace, ok := r.serverOptions["DefaultNamespace"]; ok {
+		if namespace.(string) != "" && namespace.(string) != model.NoNamespace {
+			return namespace.(string)
+		}
+	}
+	return common.GetPodNamespace()
+}
+
+// Checks if the namespace is empty or equal to one of {`-`, `POD_NAMESPACE`, or the default value}.
+func (r *ResourceManager) IsDefaultNamespace(namespace string) bool {
+	if namespace == "" || namespace == model.NoNamespace {
+		return true
+	}
+	if namespace == r.GetDefaultNamespace() {
+		return true
+	}
+	return false
+}
+
+// Replaces the namespace if it is equal to one of {`-`, `POD_NAMESPACE`}.
+// The new namespace will have the default value.
+func (r *ResourceManager) ReplaceEmptyNamespace(namespace string) string {
+	if namespace == "" || namespace == model.NoNamespace {
+		return r.GetDefaultNamespace()
+	}
+	return namespace
 }
 
 // Fetches the default experiment id.
@@ -253,19 +283,19 @@ func (r *ResourceManager) SetDefaultExperimentId(id string) error {
 }
 
 // Fetches namespace that an experiment belongs to.
-func (r *ResourceManager) getNamespaceFromExperimentId(experimentId string) (string, error) {
+func (r *ResourceManager) GetNamespaceFromExperimentId(experimentId string) (string, error) {
 	experiment, err := r.GetExperiment(experimentId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from experiment %v.", experimentId))
+		return "", util.Wrapf(err, "Failed to fetch namespace from experiment %v", experimentId)
 	}
 	if experiment.Namespace == "" {
 		if common.IsMultiUserMode() {
 			namespaceRef, err := r.resourceReferenceStore.GetResourceReference(experimentId, model.ExperimentResourceType, model.NamespaceResourceType)
 			if err != nil {
-				return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from experiment %v due to resource references fetching error.", experimentId))
+				return "", util.Wrapf(err, "Failed to fetch namespace from experiment %v due to resource references fetching error", experimentId)
 			}
 			if namespaceRef == nil || namespaceRef.ReferenceUUID == "" {
-				return "", util.NewInternalServerError(util.NewNotFoundError(errors.New("Namespace is empty."), "Experiment's namespace was not found."), "ResourceManager: Failed to fetch a namespace for experiment %v in multi-user mode.", experimentId)
+				return "", util.NewInternalServerError(util.NewNotFoundError(errors.New("Namespace is empty"), "Experiment's namespace was not found"), "Failed to fetch a namespace for experiment %v in multi-user mode", experimentId)
 			}
 			experiment.Namespace = namespaceRef.ReferenceUUID
 		} else {
@@ -279,16 +309,16 @@ func (r *ResourceManager) getNamespaceFromExperimentId(experimentId string) (str
 func (r *ResourceManager) getNamespaceFromPipelineId(pipelineId string) (string, error) {
 	pipeline, err := r.GetPipeline(pipelineId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from pipeline %v.", pipelineId))
+		return "", util.Wrapf(err, "Failed to fetch namespace from pipeline %v", pipelineId)
 	}
 	if pipeline.Namespace == "" {
 		if common.IsMultiUserMode() {
 			namespaceRef, err := r.resourceReferenceStore.GetResourceReference(pipelineId, model.PipelineResourceType, model.NamespaceResourceType)
 			if err != nil {
-				return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from pipeline %v due to resource references fetching error.", pipelineId))
+				return "", util.Wrapf(err, "Failed to fetch namespace from pipeline %v due to resource references fetching error", pipelineId)
 			}
 			if namespaceRef == nil || namespaceRef.ReferenceUUID == "" {
-				return "", util.NewInternalServerError(util.NewNotFoundError(errors.New("Namespace is empty."), "Pipeline's namespace was not found."), "ResourceManager: Failed to fetch a namespace for pipeline %v in multi-user mode.", pipelineId)
+				return "", util.NewInternalServerError(util.NewNotFoundError(errors.New("Namespace is empty"), "Pipeline's namespace was not found"), "Failed to fetch a namespace for pipeline %v in multi-user mode", pipelineId)
 			}
 			pipeline.Namespace = namespaceRef.ReferenceUUID
 		} else {
@@ -302,11 +332,11 @@ func (r *ResourceManager) getNamespaceFromPipelineId(pipelineId string) (string,
 func (r *ResourceManager) getNamespaceFromPipelineVersionId(pipelineVersionId string) (string, error) {
 	pipelineVersion, err := r.GetPipelineVersion(pipelineVersionId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from pipeline version %v due to fetching error.", pipelineVersionId))
+		return "", util.Wrapf(err, "Failed to fetch namespace from pipeline version %v due to fetching error", pipelineVersionId)
 	}
 	namespace, err := r.getNamespaceFromPipelineId(pipelineVersion.PipelineId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from pipeline version %v.", pipelineVersionId))
+		return "", util.Wrapf(err, "Failed to fetch namespace from pipeline version %v", pipelineVersionId)
 	}
 	return namespace, nil
 }
@@ -315,11 +345,11 @@ func (r *ResourceManager) getNamespaceFromPipelineVersionId(pipelineVersionId st
 func (r *ResourceManager) getNamespaceFromRunId(runId string) (string, error) {
 	run, err := r.GetRun(runId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from run %v due to fetching error.", runId))
+		return "", util.Wrapf(err, "Failed to fetch namespace from run %v due to fetching error", runId)
 	}
-	namespace, err := r.getNamespaceFromExperimentId(run.ExperimentId)
+	namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("ResourceManager: Failed to fetch namespace from run %v.", runId))
+		return "", util.Wrapf(err, "Failed to fetch namespace from run %v", runId)
 	}
 	return namespace, nil
 }
@@ -328,7 +358,7 @@ func (r *ResourceManager) getNamespaceFromRunId(runId string) (string, error) {
 func (r *ResourceManager) FetchNamespaceFromPipelineId(pipelineId string) (string, error) {
 	pipeline, err := r.GetPipeline(pipelineId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("Failed to get namespace for pipeline id %v.", pipelineId))
+		return "", util.Wrapf(err, "Failed to get namespace for pipeline id %v", pipelineId)
 	}
 	return pipeline.Namespace, nil
 }
@@ -337,7 +367,7 @@ func (r *ResourceManager) FetchNamespaceFromPipelineId(pipelineId string) (strin
 func (r *ResourceManager) FetchNamespaceFromPipelineVersionId(versionId string) (string, error) {
 	pipelineVersion, err := r.GetPipelineVersion(versionId)
 	if err != nil {
-		return "", util.Wrap(err, fmt.Sprintf("Failed to get namespace for pipeline version id %v.", versionId))
+		return "", util.Wrapf(err, "Failed to get namespace for pipeline version id %v", versionId)
 	}
 	return r.FetchNamespaceFromPipelineId(pipelineVersion.PipelineId)
 }
@@ -347,12 +377,12 @@ func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, names
 	if experimentId == "" || namespace == "" {
 		return nil
 	}
-	experimentNamespace, err := r.getNamespaceFromExperimentId(experimentId)
+	experimentNamespace, err := r.GetNamespaceFromExperimentId(experimentId)
 	if err != nil {
-		return util.Wrapf(err, "Failed to validate the namespace of experiment %s.", experimentId)
+		return util.Wrapf(err, "Failed to validate the namespace of experiment %s", experimentId)
 	}
 	if experimentNamespace != "" && experimentNamespace != namespace {
-		return util.NewInternalServerError(util.NewInvalidInputError("Experiment %s belongs to namespace '%s' (claimed a different namespace '%s').", experimentId, experimentNamespace, namespace), "Failed to validate the namespace of experiment %s.", experimentId)
+		return util.NewInternalServerError(util.NewInvalidInputError("Experiment %s belongs to namespace '%s' (claimed a different namespace '%s')", experimentId, experimentNamespace, namespace), "Failed to validate the namespace of experiment %s", experimentId)
 	}
 	return nil
 }
@@ -374,9 +404,9 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 		return nil
 	}
 
-	glog.Info("Getting user identity...")
+	glog.Info("Getting user identity")
 	if ctx == nil {
-		return util.NewUnauthenticatedError(errors.New("Context is nil."), "Authentication request failed.")
+		return util.NewUnauthenticatedError(errors.New("Context is nil"), "Authentication request failed")
 	}
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
@@ -391,11 +421,11 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 		errlist = append(errlist, err)
 	}
 	if userIdentity == "" {
-		return util.NewUnauthenticatedError(utilerrors.NewAggregate(errlist), "Failed to check authorization. User identity is empty in the request header.")
+		return util.NewUnauthenticatedError(utilerrors.NewAggregate(errlist), "Failed to check authorization. User identity is empty in the request header")
 	}
 
 	glog.Infof("User: %s, ResourceAttributes: %+v", userIdentity, resourceAttributes)
-	glog.Info("Authorizing request...")
+	glog.Info("Authorizing request")
 	result, err := r.subjectAccessReviewClient.Create(
 		ctx,
 		&authorizationv1.SubjectAccessReview{
@@ -448,7 +478,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	// Create default experiment
 	defaultExperiment := &model.Experiment{
 		Name:         "Default",
-		Description:  "All runs created without specifying an experiment will be grouped here.",
+		Description:  "All runs created without specifying an experiment will be grouped here",
 		Namespace:    r.serverOptions["DefaultNamespace"].(string),
 		StorageState: model.StorageStateAvailable,
 	}
@@ -494,14 +524,14 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 	opts, err := list.NewOptions(&model.Job{}, 50, "name", nil)
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Failed to archive experiment %v. Report this backend error by creating a new issue on GitHub: https://github.com/kubeflow/pipelines/issues/new/choose.", experimentId)
+			"Failed to archive experiment %v. Report this backend error by creating a new issue on GitHub: https://github.com/kubeflow/pipelines/issues/new/choose", experimentId)
 	}
 	for {
 		jobs, _, newToken, err := r.jobStore.ListJobs(&model.FilterContext{
 			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentId}}, opts)
 		if err != nil {
 			return util.NewInternalServerError(err,
-				"Failed to list jobs of to-be-archived experiment %v.", experimentId)
+				"Failed to list jobs of to-be-archived experiment %v", experimentId)
 		}
 		for _, job := range jobs {
 			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
@@ -511,7 +541,7 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
 			if err != nil {
 				return util.NewInternalServerError(err,
-					"Failed to disable job %v while archiving experiment %v.", job.UUID, experimentId)
+					"Failed to disable job %v while archiving experiment %v", job.UUID, experimentId)
 			}
 		}
 		if newToken == "" {
@@ -520,7 +550,7 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 			opts, err = list.NewOptionsFromToken(newToken, 50)
 			if err != nil {
 				return util.NewInternalServerError(err,
-					"Failed to create list jobs options from page token when archiving experiment %v.", experimentId)
+					"Failed to create list jobs options from page token when archiving experiment %v", experimentId)
 			}
 		}
 	}
@@ -536,7 +566,7 @@ func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
 func (r *ResourceManager) DeleteExperiment(experimentId string) error {
 	_, err := r.experimentStore.GetExperiment(experimentId)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching it.", experimentId)
+		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching it", experimentId)
 	}
 	return r.experimentStore.DeleteExperiment(experimentId)
 }
@@ -552,7 +582,7 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 	// Create a record in KFP DB (only pipelines table)
 	newPipeline, err := r.pipelineStore.CreatePipeline(p)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline in PipelineStore.")
+		return nil, util.Wrap(err, "Failed to create a pipeline in PipelineStore")
 	}
 
 	newPipeline.Status = model.PipelineReady
@@ -561,7 +591,7 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 		newPipeline.Status,
 	)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to update status of a pipeline after creation.")
+		return nil, util.Wrap(err, "Failed to update status of a pipeline after creation")
 	}
 	return newPipeline, nil
 }
@@ -572,13 +602,13 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	// Extract pipeline id
 	pipelineId := pv.PipelineId
 	if len(pipelineId) == 0 {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline id.")
+		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline id")
 	}
 
 	// Fetch pipeline spec
 	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline version as template is broken.")
+		return nil, util.Wrap(err, "Failed to create a pipeline version as template is broken")
 	}
 	pv.PipelineSpec = string(pipelineSpecBytes)
 	if pipelineSpecURI != "" {
@@ -588,18 +618,18 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	// Create a template
 	tmpl, err := template.New(pipelineSpecBytes)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error.")
+		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}
 	if tmpl.IsV2() {
 		pipeline, err := r.GetPipeline(pipelineId)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a pipeline version as parent pipeline was not found.")
+			return nil, util.Wrap(err, "Failed to create a pipeline version as parent pipeline was not found")
 		}
 		tmpl.OverrideV2PipelineName(pipeline.Name, pipeline.Namespace)
 	}
 	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline version due to error converting parameters to json.")
+		return nil, util.Wrap(err, "Failed to create a pipeline version due to error converting parameters to json")
 	}
 	pv.Parameters = paramsJSON
 	pv.Status = model.PipelineVersionCreating
@@ -608,14 +638,14 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	// Create a record in DB
 	version, err := r.pipelineStore.CreatePipelineVersion(pv)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create pipeline version in PipelineStore.")
+		return nil, util.Wrap(err, "Failed to create pipeline version in PipelineStore")
 	}
 
 	// TODO(gkcalat): consider removing this after v2beta1 GA if we adopt storing PipelineSpec in DB.
 	// Store the pipeline file
 	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline version due to error saving PipelineSpec to ObjectStore.")
+		return nil, util.Wrap(err, "Failed to create a pipeline version due to error saving PipelineSpec to ObjectStore")
 	}
 
 	// After pipeline version being created in DB and pipeline file being
@@ -623,7 +653,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	version.Status = model.PipelineVersionReady
 	err = r.pipelineStore.UpdatePipelineVersionStatus(version.UUID, version.Status)
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to change the status of a new pipeline version with id %v.", version.UUID))
+		return nil, util.Wrapf(err, "Failed to change the status of a new pipeline version with id %v", version.UUID)
 	}
 	return version, nil
 }
@@ -631,7 +661,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 // Returns a pipeline.
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {
 	if pipeline, err := r.pipelineStore.GetPipeline(pipelineId); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to get a pipeline with id %v.", pipelineId))
+		return nil, util.Wrapf(err, "Failed to get a pipeline with id %v", pipelineId)
 	} else {
 		return pipeline, nil
 	}
@@ -640,7 +670,7 @@ func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error
 // Returns a pipeline version.
 func (r *ResourceManager) GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error) {
 	if pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to get a pipeline version with id %v.", pipelineVersionId))
+		return nil, util.Wrapf(err, "Failed to get a pipeline version with id %v", pipelineVersionId)
 	} else {
 		return pipelineVersion, nil
 	}
@@ -649,7 +679,7 @@ func (r *ResourceManager) GetPipelineVersion(pipelineVersionId string) (*model.P
 // Returns a pipeline specified by name and namespace.
 func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	if pipeline, err := r.pipelineStore.GetPipelineByNameAndNamespace(name, namespace); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to get a pipeline named %v in namespace %v.", name, namespace))
+		return nil, util.Wrapf(err, "Failed to get a pipeline named %v in namespace %v", name, namespace)
 	} else {
 		return pipeline, nil
 	}
@@ -660,7 +690,7 @@ func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace s
 // This could be more performant for a large number of pipeline versions.
 func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
 	if pipeline, pipelineVersion, err := r.pipelineStore.GetPipelineByNameAndNamespaceV1(name, namespace); err != nil {
-		return nil, nil, util.Wrap(err, fmt.Sprintf("ResourceManager (v1beta1): Failed to get a pipeline named %v in namespace %v.", name, namespace))
+		return nil, nil, util.Wrapf(err, "ResourceManager (v1beta1): Failed to get a pipeline named %v in namespace %v", name, namespace)
 	} else {
 		return pipeline, pipelineVersion, nil
 	}
@@ -671,18 +701,18 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 	// Verify pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get the latest template as pipeline was not found.")
+		return nil, util.Wrap(err, "Failed to get the latest template as pipeline was not found")
 	}
 
 	// Get the latest pipeline version
 	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get the latest template for a pipeline.")
+		return nil, util.Wrap(err, "Failed to get the latest template for a pipeline")
 	}
 
 	// Fetch template []byte array
 	if bytes, _, err := r.fetchTemplateFromPipelineVersion(latestPipelineVersion); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to get the latest template for pipeline with id %v.", pipelineId))
+		return nil, util.Wrapf(err, "Failed to get the latest template for pipeline with id %v", pipelineId)
 	} else {
 		return bytes, nil
 	}
@@ -693,13 +723,13 @@ func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.Pi
 	// Verify pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get the latest pipeline version as pipeline was not found.")
+		return nil, util.Wrap(err, "Failed to get the latest pipeline version as pipeline was not found")
 	}
 
 	// Get the latest pipeline version
 	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get the latest pipeline version for a pipeline.")
+		return nil, util.Wrap(err, "Failed to get the latest pipeline version for a pipeline")
 	}
 	return latestPipelineVersion, nil
 }
@@ -709,12 +739,12 @@ func (r *ResourceManager) GetPipelineVersionTemplate(pipelineVersionId string) (
 	// Verify pipeline version exist
 	pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId)
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to get pipeline version template as pipeline version id %v was not found.", pipelineVersionId))
+		return nil, util.Wrapf(err, "Failed to get pipeline version template as pipeline version id %v was not found", pipelineVersionId)
 	}
 
 	// Fetch template []byte array
 	if bytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to get a template for pipeline version with id %v.", pipelineVersionId))
+		return nil, util.Wrapf(err, "Failed to get a template for pipeline version with id %v", pipelineVersionId)
 	} else {
 		return bytes, nil
 	}
@@ -724,7 +754,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(pipelineVersionId string) (
 func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
 	pipelines, total_size, nextPageToken, err := r.pipelineStore.ListPipelines(filterContext, opts)
 	if err != nil {
-		err = util.Wrap(err, fmt.Sprintf("Failed to list pipelines with context %v, options %v.", filterContext, opts))
+		err = util.Wrapf(err, "Failed to list pipelines with context %v, options %v", filterContext, opts)
 	}
 	return pipelines, total_size, nextPageToken, err
 }
@@ -735,7 +765,7 @@ func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts
 func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
 	pipelines, pipelineVersions, total_size, nextPageToken, err := r.pipelineStore.ListPipelinesV1(filterContext, opts)
 	if err != nil {
-		err = util.Wrap(err, fmt.Sprintf("ResourceManager (v1beta1): Failed to list pipelines with context %v, options %v.", filterContext, opts))
+		err = util.Wrapf(err, "ResourceManager (v1beta1): Failed to list pipelines with context %v, options %v", filterContext, opts)
 	}
 	return pipelines, pipelineVersions, total_size, nextPageToken, err
 }
@@ -744,7 +774,7 @@ func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, op
 func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error) {
 	pipelineVersions, total_size, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts)
 	if err != nil {
-		err = util.Wrap(err, fmt.Sprintf("Failed to list pipeline versions with pipeline id %v, options %v.", pipelineId, opts))
+		err = util.Wrapf(err, "Failed to list pipeline versions with pipeline id %v, options %v", pipelineId, opts)
 	}
 	return pipelineVersions, total_size, nextPageToken, err
 }
@@ -753,7 +783,7 @@ func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Opt
 func (r *ResourceManager) UpdatePipelineStatus(pipelineId string, status model.PipelineStatus) error {
 	err := r.pipelineStore.UpdatePipelineStatus(pipelineId, status)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to update the status of pipeline id %v to %v.", pipelineId, status))
+		return util.Wrapf(err, "Failed to update the status of pipeline id %v to %v", pipelineId, status)
 	}
 	return nil
 }
@@ -762,7 +792,7 @@ func (r *ResourceManager) UpdatePipelineStatus(pipelineId string, status model.P
 func (r *ResourceManager) UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error {
 	err := r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersionId, status)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to update the status of pipeline version id %v to %v.", pipelineVersionId, status))
+		return util.Wrapf(err, "Failed to update the status of pipeline version id %v to %v", pipelineVersionId, status)
 	}
 	return nil
 }
@@ -773,27 +803,27 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// Check if pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to delete pipeline with id %v as it was not found.", pipelineId))
+		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineId)
 	}
 
 	// Check if it has no pipeline versions in Ready state
 	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
 	if latestPipelineVersion != nil {
-		return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v).", pipelineId, latestPipelineVersion.UUID)
+		return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v)", pipelineId, latestPipelineVersion.UUID)
 	} else if err.(*util.UserError).ExternalStatusCode() != codes.NotFound {
-		return util.Wrap(err, fmt.Sprintf("Failed to delete pipeline with id %v as it failed to check existing pipeline versions.", pipelineId))
+		return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineId)
 	}
 
 	// Mark pipeline as deleting so it's not visible to user.
 	err = r.pipelineStore.UpdatePipelineStatus(pipelineId, model.PipelineDeleting)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to change the status of pipeline id %v to DELETING.", pipelineId))
+		return util.Wrapf(err, "Failed to change the status of pipeline id %v to DELETING", pipelineId)
 	}
 
 	// Delete a pipeline.
 	err = r.pipelineStore.DeletePipeline(pipelineId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to delete pipeline DB entry for pipeline id %v.", pipelineId))
+		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineId)
 	}
 	return nil
 }
@@ -803,13 +833,13 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	// Check if pipeline version exists
 	pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to delete pipeline version with id %v as it was not found.", pipelineVersionId))
+		return util.Wrapf(err, "Failed to delete pipeline version with id %v as it was not found", pipelineVersionId)
 	}
 
 	// Mark pipeline as deleting so it's not visible to user.
 	err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersionId, model.PipelineVersionDeleting)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to change the status of pipeline version id %v to DELETING.", pipelineVersionId))
+		return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING", pipelineVersionId)
 	}
 
 	// Delete pipeline spec file and DB entry.
@@ -831,16 +861,16 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	var osErr error
 	err = r.objectStore.DeleteFile(pipelineVersion.PipelineSpecURI)
 	if err != nil {
-		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v with URI %v.", pipelineVersionId, pipelineVersion.PipelineSpecURI))
-		osErr = util.Wrap(err, fmt.Sprintf("Failed to delete pipeline spec for pipeline version id %v with URI %v.", pipelineVersionId, pipelineVersion.PipelineSpecURI))
+		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v with URI %v", pipelineVersionId, pipelineVersion.PipelineSpecURI))
+		osErr = util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v with URI %v", pipelineVersionId, pipelineVersion.PipelineSpecURI)
 	} else {
 		pipelineSpecRemoved = true
 	}
 	// Delete based on pipeline version id
 	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersionId)))
 	if err != nil {
-		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v.", pipelineVersionId))
-		err = util.Wrap(err, fmt.Sprintf("Failed to delete pipeline spec for pipeline version id %v.", pipelineVersionId))
+		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v", pipelineVersionId))
+		err = util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v", pipelineVersionId)
 		osErr = util.Wrap(osErr, err.Error())
 	} else {
 		pipelineSpecRemoved = true
@@ -848,20 +878,20 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	// Delete based on pipeline id
 	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 	if err != nil {
-		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v using pipeline id %v.", pipelineVersionId, pipelineVersion.PipelineId))
-		err = util.Wrap(err, fmt.Sprintf("Failed to delete pipeline spec for pipeline version id %v using pipeline id %v.", pipelineVersionId, pipelineVersion.PipelineId))
+		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v using pipeline id %v", pipelineVersionId, pipelineVersion.PipelineId))
+		err = util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v using pipeline id %v", pipelineVersionId, pipelineVersion.PipelineId)
 		osErr = util.Wrap(osErr, err.Error())
 	} else {
 		pipelineSpecRemoved = true
 	}
 	if !pipelineSpecRemoved {
-		return util.Wrap(osErr, "Failed to delete a pipeline spec.")
+		return util.Wrap(osErr, "Failed to delete a pipeline spec")
 	}
 	// Delete the DB entry
 	err = r.pipelineStore.DeletePipelineVersion(pipelineVersionId)
 	if err != nil {
-		glog.Errorf("%v", util.Wrapf(err, "Failed to delete a DB entry for pipeline version id %v.", pipelineVersionId))
-		return util.Wrap(err, fmt.Sprintf("Failed to delete a DB entry for pipeline version id %v.", pipelineVersionId))
+		glog.Errorf("%v", util.Wrapf(err, "Failed to delete a DB entry for pipeline version id %v", pipelineVersionId))
+		return util.Wrapf(err, "Failed to delete a DB entry for pipeline version id %v", pipelineVersionId)
 	}
 	return nil
 }
@@ -869,33 +899,34 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 // Creates a run and schedule a workflow CR.
 // Note: when creating a run from a manifest, this triggers creation of
 // a new pipeline and pipeline version that share the name, description, and namespace.
-// Manifest's namespace gets overwritten with the run.Namespace if the later is non-empty.
-// Otherwise, run.Namespace gets overwritten by the manifest.
-// Similarly, creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
+// If run.ExperimentId is not specified, it is set to the default experiment.
+// If run.Namespace  is no specified, it gets inferred from the parent experiment.
+// Manifest's namespace gets overwritten with the run.Namespace.
+// Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run with empty experiment id. Specify experiment id for the run or check if the default experiment exists.")
+			return nil, util.Wrapf(err, "Failed to create a run with empty experiment id. Specify experiment id for the run or check if the default experiment exists")
 		}
 		run.ExperimentId = defaultExperimentId
 	}
 
 	// Validate namespace
 	if run.Namespace == "" {
-		namespace, err := r.getNamespaceFromExperimentId(run.ExperimentId)
+		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a run.")
+			return nil, util.Wrap(err, "Failed to create a run")
 		}
 		run.Namespace = namespace
 	}
 	if common.IsMultiUserMode() {
 		if run.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run cannot have an empty namespace in multi-user mode."), "Failed to create a run.")
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run cannot have an empty namespace in multi-user mode"), "Failed to create a run")
 		}
 	}
 	if err := r.ValidateExperimentNamespace(run.ExperimentId, run.Namespace); err != nil {
-		return nil, util.Wrap(err, "Failed to create a run.")
+		return nil, util.Wrap(err, "Failed to create a run")
 	}
 
 	// Validate pipeline version id
@@ -903,13 +934,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if run.PipelineSpec.PipelineVersionId != "" {
 		pv, err := r.GetPipelineVersion(run.PipelineSpec.PipelineVersionId)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run with an invalid pipeline version id: %v.", run.PipelineSpec.PipelineVersionId)
+			return nil, util.Wrapf(err, "Failed to create a run with an invalid pipeline version id: %v", run.PipelineSpec.PipelineVersionId)
 		}
 		pipelineVersion = pv
 	} else if run.PipelineSpec.PipelineId != "" {
 		pv, err := r.GetLatestPipelineVersion(run.PipelineSpec.PipelineId)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a run with an empty pipeline version id.")
+			return nil, util.Wrap(err, "Failed to create a run with an empty pipeline version id")
 		}
 		pipelineVersion = pv
 	} else if run.PipelineSpec.PipelineSpecManifest != "" || run.PipelineSpec.WorkflowSpecManifest != "" {
@@ -924,7 +955,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		pipeline, err := r.CreatePipeline(pipeline)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run with pipeline spec manifests due to error creating a new pipeline.")
+			return nil, util.Wrapf(err, "Failed to create a run with pipeline spec manifests due to error creating a new pipeline")
 		}
 		pipelineVersion = &model.PipelineVersion{
 			PipelineId:   pipeline.UUID,
@@ -934,32 +965,33 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		pipelineVersion, err = r.CreatePipelineVersion(pipelineVersion)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run with pipeline spec manifests due to error creating a new pipeline version.")
+			return nil, util.Wrapf(err, "Failed to create a run with pipeline spec manifests due to error creating a new pipeline version")
 		}
 	} else if run.PipelineSpec.PipelineName != "" {
 		resourceNames := common.ParseResourceIdsFromFullName(run.PipelineSpec.PipelineName)
 		if resourceNames["PipelineVersionId"] == "" && resourceNames["PipelineId"] == "" {
-			return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing."), "Failed to create a run with an empty pipeline spec source.")
+			return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to create a run with an empty pipeline spec source")
 		}
 		if resourceNames["PipelineVersionId"] != "" {
 			pv, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec source.")
+				return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec source")
 			}
 			pipelineVersion = pv
 		} else {
 			pv, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec source.")
+				return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec source")
 			}
 			pipelineVersion = pv
 		}
 	} else {
-		return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing."), "Failed to create a run with an empty pipeline spec source.")
+		return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to create a run with an empty pipeline spec source")
 	}
 	run.PipelineSpec.PipelineId = pipelineVersion.PipelineId
 	run.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
 	run.PipelineSpec.PipelineName = pipelineVersion.Name
+	run.PipelineSpec.PipelineSpecManifest = pipelineVersion.PipelineSpec
 
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
@@ -970,7 +1002,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if err != nil {
 		tempBytes, err2 := r.fetchTemplateFromPipelineVersionId(run.PipelineSpec.PipelineId)
 		if err2 != nil {
-			return nil, util.Wrap(util.Wrap(err, err2.Error()), "Failed to create a run with an empty pipeline spec manifest.")
+			return nil, util.Wrap(util.Wrap(err, err2.Error()), "Failed to create a run with an empty pipeline spec manifest")
 		}
 		manifestBytes = tempBytes
 	}
@@ -985,7 +1017,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if run.UUID == "" {
 		uuid, err := r.uuid.NewRandom()
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
+			return nil, util.NewInternalServerError(err, "Failed to generate run ID")
 		}
 		run.UUID = uuid.String()
 	}
@@ -1001,12 +1033,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec.")
+		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec")
 	}
 	err = executionSpec.Validate(false, false)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", executionSpec.ExecutionName())
 	}
+	executionSpec.SetExecutionNamespace(run.Namespace)
 
 	// Create argo workflow CR resource
 	newExecSpec, err := r.getWorkflowClient(run.Namespace).Create(ctx, executionSpec, v1.CreateOptions{})
@@ -1016,7 +1049,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 	// Update the run with the new scheduled workflow
 	run.K8SName = newExecSpec.ExecutionName()
-	run.Namespace = newExecSpec.ExecutionNamespace()
+	// run.Namespace = newExecSpec.ExecutionNamespace()
 	run.ServiceAccount = newExecSpec.ServiceAccount()
 	run.RunDetails.State = model.RuntimeState(string(newExecSpec.ExecutionStatus().Condition())).ToV2()
 	run.RunDetails.Conditions = string(run.RunDetails.State.ToV1())
@@ -1034,7 +1067,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 	newRun, err := r.runStore.CreateRun(run)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a run.")
+		return nil, util.Wrap(err, "Failed to create a run")
 	}
 	return newRun, nil
 }
@@ -1043,7 +1076,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 func (r *ResourceManager) GetRun(runId string) (*model.Run, error) {
 	run, err := r.runStore.GetRun(runId)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to fetch run %v.", runId)
+		return nil, util.Wrapf(err, "Failed to fetch run %v", runId)
 	}
 	return run, nil
 }
@@ -1052,7 +1085,7 @@ func (r *ResourceManager) GetRun(runId string) (*model.Run, error) {
 func (r *ResourceManager) ListRuns(filterContext *model.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
 	runs, totalSize, nextPageToken, err := r.runStore.ListRuns(filterContext, opts)
 	if err != nil {
-		return nil, 0, "", util.Wrap(err, "Failed to list runs.")
+		return nil, 0, "", util.Wrap(err, "Failed to list runs")
 	}
 	return runs, totalSize, nextPageToken, nil
 }
@@ -1060,7 +1093,7 @@ func (r *ResourceManager) ListRuns(filterContext *model.FilterContext, opts *lis
 // Archives a run with a given id.
 func (r *ResourceManager) ArchiveRun(runId string) error {
 	if err := r.runStore.ArchiveRun(runId); err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to archive run %v.", runId))
+		return util.Wrapf(err, "Failed to archive run %v", runId)
 	}
 	return nil
 }
@@ -1069,28 +1102,28 @@ func (r *ResourceManager) ArchiveRun(runId string) error {
 func (r *ResourceManager) UnarchiveRun(runId string) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to unarchive run %v as it does not exist.", runId))
+		return util.Wrapf(err, "Failed to unarchive run %v as it does not exist", runId)
 	}
 	if run.ExperimentId == "" {
 		experimentRef, err := r.resourceReferenceStore.GetResourceReference(runId, model.RunResourceType, model.ExperimentResourceType)
 		if err != nil {
-			return util.Wrap(err, fmt.Sprintf("Failed to unarchive run %v due to resource references fetching error.", runId))
+			return util.Wrapf(err, "Failed to unarchive run %v due to resource references fetching error", runId)
 		}
 		run.ExperimentId = experimentRef.ReferenceUUID
 	}
 
 	experiment, err := r.GetExperiment(run.ExperimentId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to unarchive run %v due to experiment fetching error.", runId))
+		return util.Wrapf(err, "Failed to unarchive run %v due to experiment fetching error", runId)
 	}
 	if experiment.StorageState.ToV2() == model.StorageStateArchived {
 		return util.NewFailedPreconditionError(
 			errors.New("Unarchive the experiment first to allow the run to be restored"),
-			fmt.Sprintf("Failed to unarchive run %v as experiment %v must be un-archived first.", runId, run.ExperimentId),
+			fmt.Sprintf("Failed to unarchive run %v as experiment %v must be un-archived first", runId, run.ExperimentId),
 		)
 	}
 	if err := r.runStore.UnarchiveRun(runId); err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to unarchive run %v.", runId))
+		return util.Wrapf(err, "Failed to unarchive run %v", runId)
 	}
 	return nil
 }
@@ -1104,16 +1137,16 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 	}
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to terminate workflow %s due to error parsing the patch.", name)
+		return util.NewInternalServerError(err, "Failed to terminate workflow %s due to error parsing the patch", name)
 	}
 	var operation = func() error {
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
-		return util.Wrap(err, fmt.Sprintf("Failed to terminate workflow %s due to patching error.", name))
+		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error", name)
 	}
 	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
 	err = backoff.Retry(operation, backoffPolicy)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to terminate workflow %s due to patching error after multiple retries.", name))
+		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error after multiple retries", name)
 	}
 	return nil
 }
@@ -1122,22 +1155,22 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to terminate run %s due to error fetching the run.", runId))
+		return util.Wrapf(err, "Failed to terminate run %s due to error fetching the run", runId)
 	}
 	// TODO(gkcalat): consider using run.Namespace after migration logic will be available.
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to terminate run %s due to error fetching its namespace.", runId))
+		return util.Wrapf(err, "Failed to terminate run %s due to error fetching its namespace", runId)
 	}
 
 	err = r.runStore.TerminateRun(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to terminate run %s.", runId))
+		return util.Wrapf(err, "Failed to terminate run %s", runId)
 	}
 
 	err = TerminateWorkflow(ctx, r.getWorkflowClient(namespace), run.K8SName)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to terminate run %s due to error terminating its workflow.", runId)
+		return util.NewInternalServerError(err, "Failed to terminate run %s due to error terminating its workflow", runId)
 	}
 	return nil
 }
@@ -1146,16 +1179,16 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to retry run %s due to error fetching the run.", runId))
+		return util.Wrapf(err, "Failed to retry run %s due to error fetching the run", runId)
 	}
 	// TODO(gkcalat): consider using run.Namespace after migration logic will be available.
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to retry run %s due to error fetching its namespace.", runId))
+		return util.Wrapf(err, "Failed to retry run %s due to error fetching its namespace", runId)
 	}
 
 	if run.PipelineSpec.WorkflowSpecManifest != "" && run.RunDetails.WorkflowRuntimeManifest == "" {
-		return util.NewBadRequestError(util.NewInvalidInputError("Workflow manifest cannot be empty."), "Failed to retry run %s due to error fetching workflow manifest.", runId)
+		return util.NewBadRequestError(util.NewInvalidInputError("Workflow manifest cannot be empty"), "Failed to retry run %s due to error fetching workflow manifest", runId)
 	}
 	workflowManifest := run.RunDetails.WorkflowRuntimeManifest
 	if workflowManifest == "" {
@@ -1163,24 +1196,24 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(workflowManifest))
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s due to error parsing the workflow manifest.", runId)
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error parsing the workflow manifest", runId)
 	}
 
 	if err := execSpec.Decompress(); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s due to error decompressing execution spec.", runId)
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error decompressing execution spec", runId)
 	}
 
 	if err := execSpec.CanRetry(); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow reties.", runId)
+		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow reties", runId)
 	}
 
 	newExecSpec, podsToDelete, err := execSpec.GenerateRetryExecution()
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to retry run %s.", runId))
+		return util.Wrapf(err, "Failed to retry run %s", runId)
 	}
 
 	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt.", runId)
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
 	// First try to update workflow
@@ -1197,8 +1230,8 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newExecSpec, v1.CreateOptions{})
 		if createError != nil {
 			return util.Wrap(
-				util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating the old workflow.", runId),
-				util.NewInternalServerError(createError, "Failed to retry run %s due to error creating a new workflow.", runId).Error(),
+				util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating the old workflow", runId),
+				util.NewInternalServerError(createError, "Failed to retry run %s due to error creating a new workflow", runId).Error(),
 			)
 		}
 		newExecSpec = newCreatedWorkflow
@@ -1207,7 +1240,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	state := model.RuntimeState(condition).ToV2().ToString()
 	err = r.runStore.UpdateRun(runId, condition, 0, newExecSpec.ToStringForStore(), state)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry.", runId)
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
 	return nil
 }
@@ -1216,12 +1249,12 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to delete run %v as it does not exist.", runId))
+		return util.Wrapf(err, "Failed to delete run %v as it does not exist", runId)
 	}
 	if run.Namespace == "" {
-		namespace, err := r.getNamespaceFromExperimentId(run.ExperimentId)
+		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 		if err != nil {
-			return util.Wrap(err, fmt.Sprintf("Failed to delete a run %v due to namespace fetching error.", runId))
+			return util.Wrapf(err, "Failed to delete a run %v due to namespace fetching error", runId)
 		}
 		run.Namespace = namespace
 	}
@@ -1229,11 +1262,11 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	if err != nil {
 		// API won't need to delete the workflow CR
 		// once persistent agent sync the state to DB and set TTL for it.
-		glog.Warningf("Failed to delete run %v. Error: %v.", run.K8SName, err.Error())
+		glog.Warningf("Failed to delete run %v. Error: %v", run.K8SName, err.Error())
 	}
 	err = r.runStore.DeleteRun(runId)
 	if err != nil {
-		return util.Wrap(err, fmt.Sprintf("Failed to delete a run %v.", runId))
+		return util.Wrapf(err, "Failed to delete a run %v", runId)
 	}
 	return nil
 }
@@ -1242,36 +1275,36 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	run, err := r.GetRun(t.RunId)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task for run %v.", t.RunId)
+		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunId)
 	}
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists.", t.RunId)
+			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunId)
 		}
 		run.ExperimentId = defaultExperimentId
 	}
 
 	// Validate namespace
 	if t.Namespace == "" {
-		namespace, err := r.getNamespaceFromExperimentId(run.ExperimentId)
+		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v.", t.RunId)
+			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
 		}
 		t.Namespace = namespace
 	}
 	if common.IsMultiUserMode() {
 		if t.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode."), "Failed to create a task in run %v.", t.RunId)
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunId)
 		}
 	}
 	if err := r.ValidateExperimentNamespace(run.ExperimentId, t.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v.", t.RunId)
+		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
 	}
 
 	newTask, err := r.taskStore.CreateTask(t)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v.", t.RunId)
+		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
 	}
 	return newTask, nil
 }
@@ -1280,7 +1313,7 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 	task, err := r.taskStore.GetTask(taskId)
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to fetch task %v.", taskId))
+		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
 }
@@ -1289,7 +1322,7 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 func (r *ResourceManager) ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error) {
 	tasks, totalSize, nextPageToken, err := r.taskStore.ListTasks(filterContext, opts)
 	if err != nil {
-		return nil, 0, "", util.Wrap(err, "Failed to list tasks.")
+		return nil, 0, "", util.Wrap(err, "Failed to list tasks")
 	}
 	return tasks, totalSize, nextPageToken, nil
 }
@@ -1298,7 +1331,7 @@ func (r *ResourceManager) ListTasks(filterContext *model.FilterContext, opts *li
 func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
 	err := r.runStore.CreateMetric(metric)
 	if err != nil {
-		return util.Wrap(err, "Failed to report a run metric.")
+		return util.Wrap(err, "Failed to report a run metric")
 	}
 	return nil
 }
@@ -1307,7 +1340,7 @@ func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
 func (r *ResourceManager) GetRunMetrics(runId string) ([]*model.RunMetric, error) {
 	metrics, err := r.runStore.GetMetrics(runId)
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to fetch run metrics for run %s.", runId))
+		return nil, util.Wrapf(err, "Failed to fetch run metrics for run %s", runId)
 	}
 	return metrics, nil
 }
@@ -1342,22 +1375,22 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId string, follow bool, dst io.Writer) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
-		return util.NewBadRequestError(err, "Failed to read logs for run %v due to run fetching error.", runId)
+		return util.NewBadRequestError(err, "Failed to read logs for run %v due to run fetching error", runId)
 	}
 	// TODO(gkcalat): consider using run.Namespace after migration logic will be available.
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
-		return util.NewBadRequestError(err, "Failed to read logs for run %v due to namespace fetching error.", runId)
+		return util.NewBadRequestError(err, "Failed to read logs for run %v due to namespace fetching error", runId)
 	}
 	err = r.readRunLogFromPod(ctx, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
 		err = r.readRunLogFromArchive(run.WorkflowRuntimeManifest, nodeId, dst)
 		if err != nil {
-			return util.NewBadRequestError(err, "Failed to read logs for run %v.", runId)
+			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 		}
 	}
 	if err != nil {
-		return util.NewBadRequestError(err, "Failed to read logs for run %v.", runId)
+		return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 	}
 	return nil
 }
@@ -1374,15 +1407,15 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, namespace strin
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			glog.Errorf("Failed to read logs from pod %v: %v.", nodeId, err)
+			glog.Errorf("Failed to read logs from pod %v: %v", nodeId, err)
 		}
-		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error opening log stream.", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error opening log stream", nodeId)
 	}
 	defer podLogs.Close()
 
 	_, err = io.Copy(dst, podLogs)
 	if err != nil && err != io.EOF {
-		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error in streaming the log.", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error in streaming the log", nodeId)
 	}
 	return nil
 }
@@ -1390,27 +1423,27 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, namespace strin
 // Fetches execution logs from a archived pod logs.
 func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId string, dst io.Writer) error {
 	if workflowManifest == "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty."), "Failed to read logs from archive %v due to empty runtime workflow manifest.", nodeId)
+		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeId)
 	}
 
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(workflowManifest))
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due error reading execution spec.", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due error reading execution spec", nodeId)
 	}
 
 	logPath, err := r.logArchive.GetLogObjectKey(execSpec, nodeId)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v.", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
 	}
 
 	logContent, err := r.objectStore.GetFile(logPath)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file.", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
 	}
 
 	err = r.logArchive.CopyLogFromArchive(logContent, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file.", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file", nodeId)
 	}
 	return nil
 }
@@ -1424,25 +1457,25 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	if job.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id. Specify experiment id for the recurring run or check if the default experiment exists.")
+			return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id. Specify experiment id for the recurring run or check if the default experiment exists")
 		}
 		job.ExperimentId = defaultExperimentId
 	}
 	// Validate namespace
 	if job.Namespace == "" {
-		namespace, err := r.getNamespaceFromExperimentId(job.ExperimentId)
+		namespace, err := r.GetNamespaceFromExperimentId(job.ExperimentId)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run.")
+			return nil, util.Wrap(err, "Failed to create a recurring run")
 		}
 		job.Namespace = namespace
 	}
 	if common.IsMultiUserMode() {
 		if job.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode."), "Failed to create a recurring run.")
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode"), "Failed to create a recurring run")
 		}
 	}
 	if err := r.ValidateExperimentNamespace(job.ExperimentId, job.Namespace); err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run.")
+		return nil, util.Wrap(err, "Failed to create a recurring run")
 	}
 
 	// Validate pipeline version id
@@ -1450,13 +1483,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	if job.PipelineSpec.PipelineVersionId != "" {
 		pv, err := r.GetPipelineVersion(job.PipelineSpec.PipelineVersionId)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run with an invalid pipeline version id: %v.", job.PipelineSpec.PipelineVersionId)
+			return nil, util.Wrapf(err, "Failed to create a recurring run with an invalid pipeline version id: %v", job.PipelineSpec.PipelineVersionId)
 		}
 		pipelineVersion = pv
 	} else if job.PipelineSpec.PipelineId != "" {
 		pv, err := r.GetLatestPipelineVersion(job.PipelineSpec.PipelineId)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline version id.")
+			return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline version id")
 		}
 		pipelineVersion = pv
 	} else if job.PipelineSpec.PipelineSpecManifest != "" || job.PipelineSpec.WorkflowSpecManifest != "" {
@@ -1471,7 +1504,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		}
 		pipeline, err := r.CreatePipeline(pipeline)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run with pipeline spec manifests due to error creating a new pipeline.")
+			return nil, util.Wrapf(err, "Failed to create a recurring run with pipeline spec manifests due to error creating a new pipeline")
 		}
 		pipelineVersion = &model.PipelineVersion{
 			PipelineId:   pipeline.UUID,
@@ -1481,28 +1514,28 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		}
 		pipelineVersion, err = r.CreatePipelineVersion(pipelineVersion)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run with pipeline spec manifests due to error creating a new pipeline version.")
+			return nil, util.Wrapf(err, "Failed to create a recurring run with pipeline spec manifests due to error creating a new pipeline version")
 		}
 	} else if job.PipelineSpec.PipelineName != "" {
 		resourceNames := common.ParseResourceIdsFromFullName(job.PipelineSpec.PipelineName)
 		if resourceNames["PipelineVersionId"] == "" && resourceNames["PipelineId"] == "" {
-			return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing."), "Failed to create a recurring run with an empty pipeline spec source.")
+			return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to create a recurring run with an empty pipeline spec source")
 		}
 		if resourceNames["PipelineVersionId"] != "" {
 			pv, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec source.")
+				return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec source")
 			}
 			pipelineVersion = pv
 		} else {
 			pv, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec source.")
+				return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec source")
 			}
 			pipelineVersion = pv
 		}
 	} else {
-		return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing."), "Failed to create a recurring run with an empty pipeline spec source.")
+		return nil, util.Wrap(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to create a recurring run with an empty pipeline spec source")
 	}
 	job.PipelineSpec.PipelineId = pipelineVersion.PipelineId
 	job.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
@@ -1512,7 +1545,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	if err != nil {
 		tempBytes, err2 := r.fetchTemplateFromPipelineVersionId(job.PipelineSpec.PipelineId)
 		if err2 != nil {
-			return nil, util.Wrap(util.Wrap(err, err2.Error()), "Failed to create a recurring run with an empty pipeline spec manifest.")
+			return nil, util.Wrap(util.Wrap(err, err2.Error()), "Failed to create a recurring run with an empty pipeline spec manifest")
 		}
 		manifestBytes = tempBytes
 	}
@@ -1520,20 +1553,20 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 	tmpl, err := template.New(manifestBytes)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during template creation.")
+		return nil, util.Wrap(err, "Failed to create a recurring run during template creation")
 	}
 
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Convert modelJob into scheduledWorkflow.
 	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation.")
+		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 	}
 
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow.")
+		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
 	}
 
 	// Complete modelJob with info coming back from ScheduledWorkflow client.
@@ -1568,15 +1601,15 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enable bool) error {
 	job, err := r.GetJob(jobId)
 	if err != nil {
-		return util.Wrapf(err, "Failed to change recurring run's mode to enable:%v. Check if recurring run %v exists.", enable, jobId)
+		return util.Wrapf(err, "Failed to change recurring run's mode to enable:%v. Check if recurring run %v exists", enable, jobId)
 	}
 	if enable {
 		scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(ctx, job.K8SName, v1.GetOptions{})
 		if err != nil {
-			return util.NewInternalServerError(err, "Failed to enable recurring run %v. Check if the scheduled workflow exists.", jobId)
+			return util.NewInternalServerError(err, "Failed to enable recurring run %v. Check if the scheduled workflow exists", jobId)
 		}
 		if scheduledWorkflow == nil || string(scheduledWorkflow.UID) != jobId {
-			return util.Wrapf(util.NewResourceNotFoundError("recurring run", job.K8SName), "Failed to enable recurring run %v. Check if its k8s resource exists.", jobId)
+			return util.Wrapf(util.NewResourceNotFoundError("recurring run", job.K8SName), "Failed to enable recurring run %v. Check if its k8s resource exists", jobId)
 		}
 	}
 
@@ -1587,12 +1620,12 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enable))),
 	)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to change recurring run's %v mode to enable:%v.", jobId, enable)
+		return util.NewInternalServerError(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
 	}
 
 	err = r.jobStore.ChangeJobMode(jobId, enable)
 	if err != nil {
-		return util.Wrapf(err, "Failed to change recurring run's %v mode to enable:%v.", jobId, enable)
+		return util.Wrapf(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
 	}
 	return nil
 }
@@ -1607,23 +1640,23 @@ func (r *ResourceManager) ListJobs(filterContext *model.FilterContext,
 func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
 	job, err := r.GetJob(jobId)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists.", jobId)
+		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobId)
 	}
 
 	err = r.getScheduledWorkflowClient(job.Namespace).Delete(ctx, job.K8SName, &v1.DeleteOptions{})
 	if err != nil {
 		if !util.IsNotFound(err) {
-			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists.", jobId)
+			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists", jobId)
 		}
 		// The ScheduledWorkflow was not found.
-		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' because it was not found.", jobId, job.K8SName, job.Namespace)
+		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' because it was not found", jobId, job.K8SName, job.Namespace)
 		// Continue the execution, because we want to delete the
 		// ScheduledWorkflow. We can skip deleting the ScheduledWorkflow
 		// when it no longer exists.
 	}
 	err = r.jobStore.DeleteJob(jobId)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete recurring run %v.", jobId)
+		return util.Wrapf(err, "Failed to delete recurring run %v", jobId)
 	}
 	return nil
 }
@@ -1632,7 +1665,7 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
 func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWorkflow) error {
 	// Verify the job exists
 	if _, err := r.GetJob(string(swf.UID)); err != nil {
-		return util.Wrapf(err, "Failed to report scheduled workflow due to error retrieving recurring run %s.", string(swf.UID))
+		return util.Wrapf(err, "Failed to report scheduled workflow due to error retrieving recurring run %s", string(swf.UID))
 	}
 	return r.jobStore.UpdateJob(swf)
 }
@@ -1650,7 +1683,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	jobId := execSpec.ScheduledWorkflowUUIDAsStringOrEmpty()
 	// TODO(gkcalat): consider adding namespace validation to catch mismatch in the namespaces and release resources.
 	if len(execSpec.ExecutionNamespace()) == 0 {
-		return util.NewInvalidInputError("Failed to report a workflow. Namespace is empty.")
+		return util.NewInvalidInputError("Failed to report a workflow. Namespace is empty")
 	}
 
 	if execSpec.PersistedFinalState() {
@@ -1678,7 +1711,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	// If run already exists, simply update it
 	if _, err := r.GetRun(runId); err == nil {
 		if updateError := r.runStore.UpdateRun(runId, string(state.ToV1()), execStatus.FinishedAt(), execSpec.ToStringForStore(), state.ToString()); updateError != nil {
-			return util.Wrapf(err, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted.", runId)
+			return util.Wrapf(err, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}
 	}
 	if jobId == "" {
@@ -1687,14 +1720,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		// TODO(gkcalat): consider removing UpdateRUn call as it fail anyways
 		if updateError := r.runStore.UpdateRun(runId, string(state.ToV1()), execStatus.FinishedAt(), execSpec.ToStringForStore(), state.ToString()); updateError != nil {
 			if !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
-				return util.Wrap(updateError, "Failed to update the run.")
+				return util.Wrap(updateError, "Failed to update the run")
 			}
 			// Handle run not found in run store error.
 			// To avoid letting the workflow leak for ever, we need to GC it when its record does not exist in KFP DB.
 			glog.Errorf("Cannot find reported workflow name=%q namespace=%q runId=%q in run store. "+
 				"Deleting the workflow to avoid resource leaking. "+
 				"This can be caused by installing two KFP instances that try to manage the same workflows "+
-				"or an unknown bug. If you encounter this, recommend reporting more details in https://github.com/kubeflow/pipelines/issues/6189.",
+				"or an unknown bug. If you encounter this, recommend reporting more details in https://github.com/kubeflow/pipelines/issues/6189",
 				execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
 			if err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
 				if util.IsNotFound(err) {
@@ -1712,7 +1745,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		// Try to fetch the job.
 		existingJob, err := r.GetJob(jobId)
 		if err != nil {
-			return util.Wrapf(err, "Failed to report a workflow for run %s due to error retrieving recurring run %s.", runId, jobId)
+			return util.Wrapf(err, "Failed to report a workflow for run %s due to error retrieving recurring run %s", runId, jobId)
 		}
 		experimentId := existingJob.ExperimentId
 		namespace := existingJob.Namespace
@@ -1723,7 +1756,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if experimentId == "" {
 			experimentRef, err := r.resourceReferenceStore.GetResourceReference(jobId, model.JobResourceType, model.ExperimentResourceType)
 			if err != nil {
-				return util.Wrapf(err, "Failed to retrieve the experiment ID for the job %v that created the run.", jobId)
+				return util.Wrapf(err, "Failed to retrieve the experiment ID for the job %v that created the run", jobId)
 			}
 			experimentId = experimentRef.ReferenceUUID
 			if namespace == "" {
@@ -1735,14 +1768,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if experimentId == "" {
 			experimentId, err = r.GetDefaultExperimentId()
 			if err != nil {
-				return util.Wrapf(err, "Failed to report workflow for run %s. Fetching default experiment returned error. Check if you have experiment assigned for job %s.", runId, jobId)
+				return util.Wrapf(err, "Failed to report workflow for run %s. Fetching default experiment returned error. Check if you have experiment assigned for job %s", runId, jobId)
 			}
 		}
 		// TODO(gkcalat): consider adding namespace validation to catch mismatch in the namespaces and release resources.
 		if namespace == "" {
-			namespace, err = r.getNamespaceFromExperimentId(experimentId)
+			namespace, err = r.GetNamespaceFromExperimentId(experimentId)
 			if err != nil {
-				return util.Wrapf(err, "Failed to report workflow for run %s. Fetching namespace for experiment %s returned error. Check if you have namespace assigned for job %s.", runId, experimentId, jobId)
+				return util.Wrapf(err, "Failed to report workflow for run %s. Fetching namespace for experiment %s returned error. Check if you have namespace assigned for job %s", runId, experimentId, jobId)
 			}
 		}
 		if namespace == "" {
@@ -1775,7 +1808,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		}
 		_, err = r.runStore.CreateRun(run)
 		if err != nil {
-			return util.Wrapf(err, "Failed to report a workflow due to error creating run %s.", runId)
+			return util.Wrapf(err, "Failed to report a workflow due to error creating run %s", runId)
 		}
 	}
 
@@ -1809,7 +1842,7 @@ func addWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, nam
 
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
-		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object.")
+		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object")
 	}
 
 	var operation = func() error {

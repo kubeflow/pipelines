@@ -44,7 +44,7 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             body="")
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No type provided."),
+            wrap_error_in_html("400: No type provided"),
             response.body
         )
 
@@ -55,7 +55,7 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             body="source=gs://ml-pipeline/data.csv")
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No type provided."),
+            wrap_error_in_html("400: No type provided"),
             response.body
         )
 
@@ -66,7 +66,7 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             body='type=test')
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No source provided."),
+            wrap_error_in_html("400: No source provided"),
             response.body
         )
 

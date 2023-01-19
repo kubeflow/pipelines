@@ -50,11 +50,11 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	*FakeClientManager, error) {
 
 	if time == nil {
-		glog.Fatalf("The time parameter must not be null.") // Must never happen
+		glog.Fatalf("The time parameter must not be null") // Must never happen
 	}
 
 	if uuid == nil {
-		glog.Fatalf("The UUID generator must not be null.") // Must never happen
+		glog.Fatalf("The UUID generator must not be null") // Must never happen
 	}
 
 	// Initialize GORM
@@ -91,7 +91,7 @@ func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 	uuid := util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakeUUID, nil)
 	fakeStore, err := NewFakeClientManager(time, uuid)
 	if err != nil {
-		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
+		glog.Fatalf("The fake store doesn't create successfully. Fail fast")
 	}
 	return fakeStore
 }
@@ -105,7 +105,7 @@ func NewFakeClientManagerOrFatalV2() *FakeClientManager {
 	time := util.NewFakeTimeForEpoch()
 	fakeStore, err := NewFakeClientManager(time, uuid)
 	if err != nil {
-		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
+		glog.Fatalf("The fake store doesn't create successfully. Fail fast")
 	}
 	return fakeStore
 }

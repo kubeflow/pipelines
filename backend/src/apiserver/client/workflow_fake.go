@@ -67,12 +67,12 @@ func (c *FakeWorkflowClient) Get(ctx context.Context, name string, options v1.Ge
 }
 
 func (c *FakeWorkflowClient) List(ctx context.Context, opts v1.ListOptions) (*util.ExecutionSpecList, error) {
-	glog.Error("This fake method is not yet implemented.")
+	glog.Error("This fake method is not yet implemented")
 	return nil, nil
 }
 
 func (c *FakeWorkflowClient) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	glog.Error("This fake method is not yet implemented.")
+	glog.Error("This fake method is not yet implemented")
 	return nil, nil
 }
 
@@ -99,7 +99,7 @@ func (c *FakeWorkflowClient) Delete(ctx context.Context, name string, options v1
 
 func (c *FakeWorkflowClient) DeleteCollection(ctx context.Context, options v1.DeleteOptions,
 	listOptions v1.ListOptions) error {
-	glog.Error("This fake method is not yet implemented.")
+	glog.Error("This fake method is not yet implemented")
 	return nil
 }
 

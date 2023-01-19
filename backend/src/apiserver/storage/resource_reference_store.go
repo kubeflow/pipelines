@@ -58,11 +58,11 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 		}
 		refSql, refArgs, err := resourceRefSqlBuilder.ToSql()
 		if err != nil {
-			return util.NewInternalServerError(err, "Failed to create query to store resource references.")
+			return util.NewInternalServerError(err, "Failed to create query to store resource references")
 		}
 		_, err = tx.Exec(refSql, refArgs...)
 		if err != nil {
-			return util.NewInternalServerError(err, "Failed to store resource references.")
+			return util.NewInternalServerError(err, "Failed to store resource references")
 		}
 	}
 	return nil

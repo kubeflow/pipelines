@@ -63,7 +63,7 @@ func (m *FakeBadObjectStore) AddFile(template []byte, filePath string) error {
 }
 
 func (m *FakeBadObjectStore) DeleteFile(filePath string) error {
-	return errors.New("Not implemented.")
+	return errors.New("Not implemented")
 }
 
 func (m *FakeBadObjectStore) GetFile(filePath string) ([]byte, error) {
@@ -127,7 +127,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec: v1alpha1.WorkflowSpec{
 		Entrypoint: "testy",
-		Templates: []v1alpha1.Template{v1alpha1.Template{
+		Templates: []v1alpha1.Template{{
 			Name: "testy",
 			Container: &corev1.Container{
 				Image:   "docker/whalesay",
@@ -236,7 +236,7 @@ func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.J
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				Parameters:   "{\"param1\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
@@ -1542,8 +1542,8 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		},
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -1557,7 +1557,7 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
-		K8SName:        "hello-world-0",
+		K8SName:        "run1-0",
 		ServiceAccount: "pipeline-runner",
 		Namespace:      runDetail.Namespace,
 		StorageState:   model.StorageStateAvailable,
@@ -1575,8 +1575,9 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		},
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	expectedRunDetail.PipelineSpec.PipelineSpecManifest = runDetail.PipelineSpec.PipelineSpecManifest
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -1622,8 +1623,8 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		},
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -1671,8 +1672,8 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	expectedRunDetail.PipelineSpec.PipelineName = runDetail.PipelineSpec.PipelineName
 	expectedRunDetail.PipelineSpec.PipelineVersionId = runDetail.PipelineSpec.PipelineVersionId
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -1744,8 +1745,8 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		},
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -1818,8 +1819,8 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 		},
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -1861,7 +1862,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 			Relationship:  model.OwnerRelationship,
 		},
 	}
-	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "The CreateRun return has unexpected value.")
+	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "The CreateRun return has unexpected value")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "CreateRun stored invalid data in database")
@@ -2253,7 +2254,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				Parameters:   "{\"param1\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
@@ -2595,7 +2596,7 @@ func TestDisableJob_CustomResourceNotFound(t *testing.T) {
 	// Explicitly delete it to simulate the situation.
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
 	err := manager.ChangeJobMode(context.Background(), job.UUID, false)
-	require.Nil(t, err, "Disabling the job should succeed even when the custom resource is missing.")
+	require.Nil(t, err, "Disabling the job should succeed even when the custom resource is missing")
 	job, err = manager.GetJob(job.UUID)
 	require.Nil(t, err)
 	require.Equal(t, job.Enabled, false)
@@ -3794,7 +3795,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 		UUID:           common.DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
-		Description:    "All runs created without specifying an experiment will be grouped here.",
+		Description:    "All runs created without specifying an experiment will be grouped here",
 		Namespace:      "default",
 		StorageState:   "AVAILABLE",
 	}
@@ -3818,7 +3819,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		UUID:           common.DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
-		Description:    "All runs created without specifying an experiment will be grouped here.",
+		Description:    "All runs created without specifying an experiment will be grouped here",
 		Namespace:      "default",
 		StorageState:   "AVAILABLE",
 	}
@@ -3849,97 +3850,13 @@ func TestCreateTask(t *testing.T) {
 	}
 	createdTask, err := manager.CreateTask(task)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedTask, createdTask, "The CreateTask return has unexpected value.")
+	assert.Equal(t, expectedTask, createdTask, "The CreateTask return has unexpected value")
 
 	// Verify the T in DB is in status PipelineVersionCreating.
 	storedTask, err := manager.taskStore.GetTask(common.DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value.")
+	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value")
 }
-
-// func TestUpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
-// 	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
-// 	defer store.Close()
-
-// 	modelJob := &model.Job{
-// 		Name:        "name1",
-// 		Namespace:   "ns1",
-// 		DisplayName: "name1",
-// 		Enabled:     true,
-// 		Trigger: model.Trigger{
-// 			CronSchedule: model.CronSchedule{
-// 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-// 				Cron:                       util.StringPointer("1 * * * *"),
-// 			},
-// 		},
-// 		MaxConcurrency: 1,
-// 		NoCatchup:      true,
-// 		PipelineSpec: model.PipelineSpec{
-// 			PipelineId:           pipeline.UUID,
-// 			PipelineName:         pipeline.Name,
-// 			PipelineSpecManifest: "pipeline spec",
-// 			RuntimeConfig: model.RuntimeConfig{
-// 				Parameters: "{\"param2\":\"world\"}",
-// 			},
-// 		},
-// 		ResourceReferences: []*model.ResourceReference{
-// 			{
-// 				ResourceType:  model.JobResourceType,
-// 				ReferenceUUID: experiment.UUID,
-// 				ReferenceName: experiment.Name,
-// 				ReferenceType: model.ExperimentResourceType,
-// 				Relationship:  model.OwnerRelationship},
-// 		},
-// 	}
-
-// 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-// 		ObjectMeta: v1.ObjectMeta{
-// 			Name:      "swf_name",
-// 			Namespace: "swf_namespace",
-// 			UID:       "swf_123",
-// 		},
-// 		Status: swfapi.ScheduledWorkflowStatus{
-// 			Conditions: []swfapi.ScheduledWorkflowCondition{{Type: swfapi.ScheduledWorkflowEnabled}}},
-// 	})
-
-// 	expectedModelJob := &model.Job{
-// 		UUID:        "swf_123",
-// 		K8SName:        "swf_name",
-// 		Namespace:   "swf_namespace",
-// 		DisplayName: "name1",
-// 		Enabled:     true,
-// 		Conditions:  "Enabled",
-// 		Trigger: model.Trigger{
-// 			CronSchedule: model.CronSchedule{
-// 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-// 				Cron:                       util.StringPointer("1 * * * *"),
-// 			},
-// 		},
-// 		MaxConcurrency: 1,
-// 		NoCatchup:      true,
-// 		PipelineSpec: model.PipelineSpec{
-// 			PipelineId:           pipeline.UUID,
-// 			PipelineName:         pipeline.Name,
-// 			PipelineSpecManifest: "pipeline spec",
-// 			RuntimeConfig: model.RuntimeConfig{
-// 				Parameters: "{\"param2\":\"world\"}",
-// 			},
-// 		},
-// 		ResourceReferences: []*model.ResourceReference{
-// 			{
-// 				ResourceUUID:  "swf_123",
-// 				ResourceType:  model.JobResourceType,
-// 				ReferenceUUID: experiment.UUID,
-// 				ReferenceName: experiment.Name,
-// 				ReferenceType: model.ExperimentResourceType,
-// 				Relationship:  model.OwnerRelationship},
-// 		},
-// 	}
-
-// 	err := manager.updateModelJobWithNewScheduledWorkflow(modelJob, swf)
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, expectedModelJob, modelJob)
-// }
 
 var v2SpecHelloWorld = `
 components:

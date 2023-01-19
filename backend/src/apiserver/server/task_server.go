@@ -31,17 +31,17 @@ type TaskServer struct {
 func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
 	err := s.validateCreateTaskRequest(request)
 	if err != nil {
-		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to validation error.")
+		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to validation error")
 	}
 
 	modelTask, err := toModelTask(request.GetTask())
 	if err != nil {
-		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to conversion error.")
+		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to conversion error")
 	}
 
 	task, err := s.resourceManager.CreateTask(modelTask)
 	if err != nil {
-		return nil, util.Wrap(err, "TaskServer: Failed to create a new task.")
+		return nil, util.Wrap(err, "TaskServer: Failed to create a new task")
 	}
 
 	return toApiTaskV1(task), nil
@@ -49,9 +49,9 @@ func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRe
 
 func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) error {
 	if request == nil {
-		return util.NewInvalidInputError("CreatTaskRequst is nil")
+		return util.NewInvalidInputError("CreatTaskRequest is nil")
 	}
-	task := *request.Task
+	task := request.GetTask()
 
 	errMustSpecify := func(s string) error { return util.NewInvalidInputError("Invalid task: must specify %s", s) }
 
@@ -97,12 +97,12 @@ func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequ
 
 	filterContext, err := validateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
-		return nil, util.Wrap(err, "Validating filter failed.")
+		return nil, util.Wrap(err, "Validating filter failed")
 	}
 
 	tasks, total_size, nextPageToken, err := s.resourceManager.ListTasks(filterContext, opts)
 	if err != nil {
-		return nil, util.Wrap(err, "List tasks failed.")
+		return nil, util.Wrap(err, "List tasks failed")
 	}
 	return &api.ListTasksResponse{
 			Tasks:         toApiTasksV1(tasks),

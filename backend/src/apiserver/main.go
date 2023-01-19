@@ -109,9 +109,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	sharedPipelineServer := server.NewPipelineServer(
 		resourceManager,
 		&server.PipelineServerOptions{
-			CollectMetrics:   *collectMetricsFlag,
-			ApiVersion:       *apiVersion,
-			DefaultNamespace: *defaultNamespace,
+			CollectMetrics: *collectMetricsFlag,
 		},
 	)
 	sharedJobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
@@ -251,7 +249,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
 		}
 		p, configErr := resourceManager.CreatePipeline(
-			model.Pipeline{
+			&model.Pipeline{
 				Name:        config.Name,
 				Description: config.Description,
 				Namespace:   *defaultNamespace,
@@ -265,7 +263,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		}
 
 		_, configErr = resourceManager.CreatePipelineVersion(
-			model.PipelineVersion{
+			&model.PipelineVersion{
 				Name:         config.Name,
 				Description:  config.Description,
 				PipelineId:   p.UUID,

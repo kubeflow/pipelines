@@ -168,7 +168,7 @@ func TestParseSortByQueryString_FieldNameWithAscFlag(t *testing.T) {
 func TestParseSortByQueryString_NotSortableFieldName(t *testing.T) {
 	_, _, err := parseSortByQueryString("foobar", fakeModelFieldsBySortableAPIFields)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Cannot sort on field foobar.")
+	assert.Contains(t, err.Error(), "Cannot sort on field foobar")
 }
 
 func TestParseSortByQueryString_IncorrectDescFlag(t *testing.T) {
@@ -207,7 +207,7 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	// The above should correspond the following filter:
 	want := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key: "testkey", Op: api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "testvalue"},
 			},

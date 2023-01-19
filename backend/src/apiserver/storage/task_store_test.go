@@ -190,7 +190,7 @@ func TestListTasks(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: defaultFakeRunIdTwo}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedFirstPageTasks, tasks, "Unexpected Tasks listed.")
+	assert.Equal(t, expectedFirstPageTasks, tasks, "Unexpected Tasks listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
@@ -199,6 +199,6 @@ func TestListTasks(t *testing.T) {
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: defaultFakeRunIdTwo}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
-	assert.Equal(t, expectedSecondPageTasks, tasks, "Unexpected Tasks listed.")
+	assert.Equal(t, expectedSecondPageTasks, tasks, "Unexpected Tasks listed")
 	assert.Empty(t, nextPageToken)
 }

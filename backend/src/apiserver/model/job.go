@@ -76,7 +76,7 @@ type Job struct {
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"` /* The time this record is stored in DB*/
 	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; not null;"`
 	Enabled        bool   `gorm:"column:Enabled; not null;"`
-	ExperimentId   string `gorm:"column:ExperimentId; not null;"`
+	ExperimentId   string `gorm:"column:ExperimentUUID; not null;"`
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId
 	// PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
 	ResourceReferences []*ResourceReference

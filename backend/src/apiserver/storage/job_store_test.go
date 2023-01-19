@@ -63,7 +63,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobStore.CreateJob(job1)
+	jobStore.CreateJob(job1.ToV1())
 	job2 := &model.Job{
 		UUID:        "2",
 		DisplayName: "pp 2",
@@ -87,7 +87,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		UpdatedAtInSec: 2,
 		ExperimentId:   defaultFakeExpIdTwo,
 	}
-	jobStore.CreateJob(job2)
+	jobStore.CreateJob(job2.ToV1())
 	return db, jobStore
 }
 
@@ -184,7 +184,7 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 	// Add a filter
 	opts, _ := list.NewOptions(&model.Job{}, 4, "name", &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key: "name",
 				Op:  api.Predicate_IN,
 				Value: &api.Predicate_StringValues{
@@ -462,7 +462,7 @@ func TestCreateJob(t *testing.T) {
 		ExperimentId:   defaultFakeExpId,
 	}
 
-	job, err := jobStore.CreateJob(job)
+	job, err := jobStore.CreateJob(job.ToV1())
 	assert.Nil(t, err)
 	jobExpected := &model.Job{
 		UUID:        "1",
@@ -513,7 +513,7 @@ func TestCreateJob_V2(t *testing.T) {
 		ExperimentId:   defaultFakeExpId,
 	}
 
-	job, err := jobStore.CreateJob(job)
+	job, err := jobStore.CreateJob(job.ToV2())
 	assert.Nil(t, err)
 	jobExpected := &model.Job{
 		UUID:        "1",
@@ -561,7 +561,7 @@ func TestCreateJobError(t *testing.T) {
 		ExperimentId: defaultFakeExpId,
 	}
 
-	job, err := jobStore.CreateJob(job)
+	job, err := jobStore.CreateJob(job.ToV2())
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create job to return error")
 }
@@ -573,7 +573,7 @@ func TestEnableJob(t *testing.T) {
 	err := jobStore.ChangeJobMode("1", false)
 	assert.Nil(t, err)
 
-	jobExpected := model.Job{
+	jobExpected := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		K8SName:     "pp1",
@@ -582,7 +582,7 @@ func TestEnableJob(t *testing.T) {
 			PipelineId:   "1",
 			PipelineName: "p1",
 		},
-		Conditions: "ready",
+		Conditions: "ENABLED",
 		Enabled:    false,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
@@ -595,11 +595,43 @@ func TestEnableJob(t *testing.T) {
 		UpdatedAtInSec: 3,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = *jobExpected.ToV1()
+	jobExpected = jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job, "Got unexpected job")
+	assert.Equal(t, jobExpected, job, "Got unexpected job")
+
+	err = jobStore.ChangeJobMode("1", true)
+	assert.Nil(t, err)
+
+	jobExpected2 := &model.Job{
+		UUID:        "1",
+		DisplayName: "pp 1",
+		K8SName:     "pp1",
+		Namespace:   "n1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   "1",
+			PipelineName: "p1",
+		},
+		Conditions: "ENABLED",
+		Enabled:    true,
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 4,
+		ExperimentId:   defaultFakeExpId,
+	}
+	jobExpected2 = jobExpected2.ToV1()
+
+	job, err = jobStore.GetJob("1")
+	assert.Nil(t, err)
+	assert.Equal(t, jobExpected2, job, "Got unexpected job")
+
 }
 
 func TestEnableJob_SkipUpdate(t *testing.T) {
@@ -716,7 +748,7 @@ func TestUpdateJob_Success(t *testing.T) {
 				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
 				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
 				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled.",
+				Message:            "The schedule is enabled",
 			},
 			},
 		},

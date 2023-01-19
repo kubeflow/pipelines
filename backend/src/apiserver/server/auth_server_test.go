@@ -66,7 +66,7 @@ func TestAuthorizeRequest_InvalidRequest(t *testing.T) {
 
 	_, err := authServer.AuthorizeV1(ctx, request)
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Authorize request is not valid: Invalid input error: Namespace is empty. Please specify a valid namespace.")
+	assert.EqualError(t, err, "Authorize request is not valid: Invalid input error: Namespace is empty. Please specify a valid namespace")
 }
 
 func TestAuthorizeRequest_Authorized(t *testing.T) {

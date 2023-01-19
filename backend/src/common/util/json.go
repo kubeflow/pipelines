@@ -16,7 +16,6 @@ package util
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/golang/glog"
 )
@@ -40,7 +39,7 @@ func MarshalJsonOrFail(v interface{}) []byte {
 func MarshalJsonWithError(v interface{}) ([]byte, error) {
 	bytes, err := json.Marshal(v)
 	if err != nil {
-		return nil, Wrap(err, fmt.Sprintf("Failed to marshal the object: %+v", v))
+		return nil, Wrapf(err, "Failed to marshal the object: %+v", v)
 	}
 	return bytes, nil
 }
@@ -60,7 +59,7 @@ func UnmarshalJsonWithError(data interface{}, v *interface{}) error {
 	}
 	err := json.Unmarshal(bytes, v)
 	if err != nil {
-		return Wrap(err, fmt.Sprintf("Failed to unmarshal the object: %+v", v))
+		return Wrapf(err, "Failed to unmarshal the object: %+v", v)
 	}
 	return nil
 }

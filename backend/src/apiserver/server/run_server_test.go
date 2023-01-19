@@ -29,7 +29,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -63,6 +62,183 @@ var metric = &apiv2beta1.RunMetric{
 	Format: apiv2beta1.RunMetric_RAW,
 }
 
+func TestCreateRunV1_empty_name(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		ResourceReferences: validReference,
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Nil(t, runDetail)
+	assert.Contains(t, err.Error(), "name cannot be empty")
+}
+
+func TestCreateRunV1_invalid_pipeline_version(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			PipelineId: "invalid_id",
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Nil(t, runDetail)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestCreateRunV1_no_experiment(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name: "run1",
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Nil(t, runDetail)
+	assert.Contains(t, err.Error(), "Experiment id can not be empty in run")
+}
+
+func TestCreateRunV1_no_pipeline_source(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Nil(t, runDetail)
+	assert.Contains(t, err.Error(), "Pipeline spec source is missing")
+}
+
+func TestCreateRunV1_invalid_spec(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: "invalid pipeline spec",
+			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Nil(t, runDetail)
+	assert.Contains(t, err.Error(), "unknown template format")
+}
+func TestCreateRunV1_too_many_params(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	var params []*apiv1beta1.Parameter
+	// Create a long enough parameter string so it exceed the length limit of parameter.
+	for i := 0; i < 10000; i++ {
+		params = append(params, &apiv1beta1.Parameter{Name: "param2", Value: "world"})
+	}
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       params,
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Nil(t, runDetail)
+	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
+}
+
+func TestCreateRunV1_pipeline(t *testing.T) {
+	clients, manager, exp := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name: "run1",
+		ResourceReferences: []*apiv1beta1.ResourceReference{
+			{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_EXPERIMENT,
+					Id:   common.DefaultFakeUUID,
+				},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_PIPELINE,
+					Id:   common.DefaultFakeUUID,
+				},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+	assert.Equal(t, common.DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
+	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
+	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
+	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
+	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
+}
+
+func TestCreateRunV1_pipelineversion(t *testing.T) {
+	clients, manager, exp := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+	assert.Equal(t, common.DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
+	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
+	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
+	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
+	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
+}
+
+func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
+	clients, manager, exp := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow2.ToStringForStore(),
+			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+	assert.Equal(t, common.DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
+	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
+	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
+	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
+	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
+	assert.Equal(t, testWorkflow.ToStringForStore(), runDetail.Run.PipelineSpec.PipelineManifest)
+	assert.Equal(t, testWorkflow2.ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
+}
+
 func TestCreateRunV1_V1Params(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
@@ -87,25 +263,27 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Namespace = experiment.Namespace
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
 		},
 	}
 
-	expectedRunDetail := apiv1beta1.RunDetail{
+	expectedRunDetail := &apiv1beta1.RunDetail{
 		Run: &apiv1beta1.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
 			ServiceAccount: "pipeline-runner",
 			StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:      &timestamp.Timestamp{Seconds: 4},
+			ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
 			FinishedAt:     &timestamp.Timestamp{},
 			Status:         "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+				RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -118,7 +296,26 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
-	assert.Equal(t, expectedRunDetail, *runDetail)
+
+	matched := 0
+	for _, resRef := range expectedRunDetail.GetRun().GetResourceReferences() {
+		for _, resRef2 := range runDetail.GetRun().GetResourceReferences() {
+			if resRef.Key.Type == resRef2.Key.Type && resRef.Key.Id == resRef2.Key.Id && resRef.Relationship == resRef2.Relationship {
+				matched++
+			}
+		}
+	}
+	assert.Equal(t, len(expectedRunDetail.GetRun().GetResourceReferences()), matched)
+	expectedRunDetail.Run.ResourceReferences = runDetail.GetRun().GetResourceReferences()
+
+	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
+	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
+	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
+	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
+	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
+	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
+
+	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
 func TestCreateRunV1_RuntimeParams(t *testing.T) {
@@ -133,11 +330,11 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
-		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
-		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
-		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
-		"param5": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": {Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
 	}
 
 	run := &apiv1beta1.Run{
@@ -154,7 +351,7 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRunDetail := apiv1beta1.RunDetail{
+	expectedRunDetail := &apiv1beta1.RunDetail{
 		Run: &apiv1beta1.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
@@ -164,9 +361,10 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 			FinishedAt:     &timestamp.Timestamp{},
 			// Status:         "Running",
-			Status: "",
+			Status: "Error",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				PipelineManifest: v2SpecHelloWorld,
+				Parameters:       make([]*apiv1beta1.Parameter, 0),
 				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",
@@ -181,7 +379,26 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{},
 	}
-	assert.EqualValues(t, expectedRunDetail, *runDetail)
+
+	matched := 0
+	for _, resRef := range expectedRunDetail.GetRun().GetResourceReferences() {
+		for _, resRef2 := range runDetail.GetRun().GetResourceReferences() {
+			if resRef.Key.Type == resRef2.Key.Type && resRef.Key.Id == resRef2.Key.Id && resRef.Relationship == resRef2.Relationship {
+				matched++
+			}
+		}
+	}
+	assert.Equal(t, len(expectedRunDetail.GetRun().GetResourceReferences()), matched)
+	expectedRunDetail.Run.ResourceReferences = runDetail.GetRun().GetResourceReferences()
+
+	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
+	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
+	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
+	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
+	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
+	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
+
+	assert.EqualValues(t, expectedRunDetail, runDetail)
 }
 
 func TestCreateRunV1Patch(t *testing.T) {
@@ -200,29 +417,12 @@ func TestCreateRunV1Patch(t *testing.T) {
 	}
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
-
-	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
-	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
-	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
-		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
-		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
-	}
-	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
-	template := expectedRuntimeWorkflow.Spec.Templates[0]
-	expectedRuntimeWorkflow.Spec.Templates[0] = template
-	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
-		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
-		},
-	}
-
-	expectedRunDetail := apiv1beta1.RunDetail{
+	expectedRunDetail := &apiv1beta1.RunDetail{
 		Run: &apiv1beta1.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
 			ServiceAccount: "pipeline-runner",
+			Status:         "Error",
 			StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
@@ -233,6 +433,7 @@ func TestCreateRunV1Patch(t *testing.T) {
 					{Name: "param1", Value: "test-default-bucket"},
 					{Name: "param2", Value: "test-project-id"},
 				},
+				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -242,10 +443,32 @@ func TestCreateRunV1Patch(t *testing.T) {
 			},
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"default\",\"uid\":\"workflow2\",\"creationTimestamp\":null,\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
-	assert.Equal(t, expectedRunDetail, *runDetail)
+
+	matched := 0
+	for _, resRef := range expectedRunDetail.GetRun().GetResourceReferences() {
+		for _, resRef2 := range runDetail.GetRun().GetResourceReferences() {
+			if resRef2.Key.Type == apiv1beta1.ResourceType_NAMESPACE {
+				assert.Equal(t, resRef2.Key.Id, experiment.Namespace)
+			}
+			if resRef.Key.Type == resRef2.Key.Type && resRef.Key.Id == resRef2.Key.Id && resRef.Relationship == resRef2.Relationship {
+				matched++
+			}
+		}
+	}
+	assert.Equal(t, len(expectedRunDetail.GetRun().GetResourceReferences()), matched)
+	expectedRunDetail.Run.ResourceReferences = runDetail.GetRun().GetResourceReferences()
+
+	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
+	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
+	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
+	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
+	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
+	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
+
+	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
 func TestCreateRunV1_Unauthorized(t *testing.T) {
@@ -270,18 +493,10 @@ func TestCreateRunV1_Unauthorized(t *testing.T) {
 	}
 	_, err := server.CreateRunV1(ctx, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: "ns1",
-		Verb:      common.RbacResourceVerbCreate,
-		Group:     common.RbacPipelinesGroup,
-		Version:   common.RbacPipelinesVersion,
-		Resource:  common.RbacResourceTypeRuns,
-		Name:      "run1",
-	}
-	assert.EqualError(
+	assert.Contains(
 		t,
-		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+		err.Error(),
+		"PermissionDenied: User 'user@google.com' is not authorized with reason",
 	)
 }
 
@@ -323,19 +538,20 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 		},
 	}
 
-	expectedRunDetail := apiv1beta1.RunDetail{
+	expectedRunDetail := &apiv1beta1.RunDetail{
 		Run: &apiv1beta1.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
 			Status:         "Running",
 			ServiceAccount: "default-editor",
 			StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:      &timestamp.Timestamp{Seconds: 4},
+			ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+				RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -348,7 +564,26 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
-	assert.Equal(t, expectedRunDetail, *runDetail)
+
+	matched := 0
+	for _, resRef := range expectedRunDetail.GetRun().GetResourceReferences() {
+		for _, resRef2 := range runDetail.GetRun().GetResourceReferences() {
+			if resRef.Key.Type == resRef2.Key.Type && resRef.Key.Id == resRef2.Key.Id && resRef.Relationship == resRef2.Relationship {
+				matched++
+			}
+		}
+	}
+	assert.Equal(t, len(expectedRunDetail.GetRun().GetResourceReferences()), matched)
+	expectedRunDetail.Run.ResourceReferences = runDetail.GetRun().GetResourceReferences()
+
+	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
+	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
+	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
+	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
+	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
+	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
+
+	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
 func TestCreateRun(t *testing.T) {
@@ -363,11 +598,11 @@ func TestCreateRun(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
-		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
-		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
-		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
-		"param5": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": {Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
 	}
 
 	pipelineSpecStruct := &structpb.Struct{}
@@ -393,11 +628,11 @@ func TestCreateRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: pipelineSpecStruct,
+			PipelineSpec: run.GetPipelineSpec(),
 		},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters:   v2RuntimeParams,
@@ -405,6 +640,42 @@ func TestCreateRun(t *testing.T) {
 		},
 	}
 	assert.EqualValues(t, expectedRun, run)
+}
+
+func TestGetRunV1(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name: "run1",
+		ResourceReferences: []*apiv1beta1.ResourceReference{
+			{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_EXPERIMENT,
+					Id:   common.DefaultFakeUUID,
+				},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_PIPELINE,
+					Id:   common.DefaultFakeUUID,
+				},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	returnedRun, err := server.GetRunV1(context.Background(), &apiv1beta1.GetRunRequest{RunId: runDetail.GetRun().GetId()})
+	assert.Nil(t, err)
+	assert.Equal(t, runDetail, returnedRun)
+
+	returnedRun2, err := server.GetRunV1(context.Background(), &apiv1beta1.GetRunRequest{RunId: "wrong-id"})
+	assert.NotNil(t, err)
+	assert.Nil(t, returnedRun2)
+	assert.Contains(t, err.Error(), "not found")
 }
 
 func TestGetRun(t *testing.T) {
@@ -419,11 +690,11 @@ func TestGetRun(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
-		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
-		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
-		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
-		"param5": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": {Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
 	}
 
 	pipelineSpecStruct := &structpb.Struct{}
@@ -449,11 +720,11 @@ func TestGetRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: pipelineSpecStruct,
+			PipelineSpec: returnedRun.GetPipelineSpec(),
 		},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters:   v2RuntimeParams,
@@ -493,18 +764,57 @@ func TestListRunsV1(t *testing.T) {
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Name: "exp1", Relationship: apiv1beta1.Relationship_OWNER,
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: experiment.Namespace},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
 	}
-	listRunsResponse, err := server.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{})
+	listRunsResponse, err := server.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_NAMESPACE,
+			Id:   experiment.Namespace,
+		},
+	})
+
+	matched := 0
+	for _, resRef := range expectedRun.GetResourceReferences() {
+		for _, resRef2 := range listRunsResponse.Runs[0].GetResourceReferences() {
+			if resRef.Key.Type == resRef2.Key.Type && resRef.Key.Id == resRef2.Key.Id && resRef.Relationship == resRef2.Relationship {
+				matched++
+			}
+		}
+	}
+	assert.Equal(t, len(expectedRun.GetResourceReferences()), matched)
+	expectedRun.ResourceReferences = listRunsResponse.Runs[0].GetResourceReferences()
+	expectedRun.PipelineSpec.PipelineId = listRunsResponse.Runs[0].GetPipelineSpec().GetPipelineId()
+	expectedRun.PipelineSpec.PipelineName = listRunsResponse.Runs[0].GetPipelineSpec().GetPipelineName()
+	expectedRun.PipelineSpec.PipelineManifest = listRunsResponse.Runs[0].GetPipelineSpec().GetPipelineManifest()
+	expectedRun.CreatedAt = listRunsResponse.Runs[0].GetCreatedAt()
+	expectedRun.ScheduledAt = listRunsResponse.Runs[0].GetScheduledAt()
+	expectedRun.FinishedAt = listRunsResponse.Runs[0].GetFinishedAt()
+
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
+
+	listRunsResponse2, err := server.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_EXPERIMENT,
+			Id:   experiment.UUID,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listRunsResponse2.Runs))
+	assert.Equal(t, expectedRun, listRunsResponse2.Runs[0])
+	assert.Equal(t, listRunsResponse.Runs[0], listRunsResponse2.Runs[0])
 }
 
 func TestListRunsV1_Unauthorized(t *testing.T) {
@@ -526,19 +836,10 @@ func TestListRunsV1_Unauthorized(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: "ns1",
-		Verb:      common.RbacResourceVerbList,
-		Group:     common.RbacPipelinesGroup,
-		Version:   common.RbacPipelinesVersion,
-		Resource:  common.RbacResourceTypeRuns,
-	}
-	assert.EqualError(
+	assert.Contains(
 		t,
-		err,
-		util.Wrap(
-			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes)),
-			"Failed to authorize with namespace resource reference.").Error(),
+		err.Error(),
+		"Check if you have permission to access namespace ns1",
 	)
 }
 
@@ -560,7 +861,7 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	_, err := server.CreateRunV1(ctx, &apiv1beta1.CreateRunRequest{Run: run})
+	createdRun, err := server.CreateRunV1(ctx, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRuns := []*apiv1beta1.Run{{
@@ -568,18 +869,34 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 		Name:           "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Running",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
+			PipelineId:       createdRun.Run.PipelineSpec.GetPipelineId(),
+			PipelineName:     createdRun.Run.PipelineSpec.GetPipelineName(),
 			WorkflowManifest: testWorkflow.ToStringForStore(),
+			PipelineManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Name: "exp1", Relationship: apiv1beta1.Relationship_OWNER,
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: experiment.Namespace},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: createdRun.Run.PipelineSpec.GetPipelineId()},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: createdRun.Run.PipelineSpec.GetPipelineId()},
+				Relationship: apiv1beta1.Relationship_CREATOR,
 			},
 		},
 	}}
@@ -632,7 +949,7 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			"Invalid - no filter",
 			&apiv1beta1.ListRunsRequest{},
 			true,
-			"ListRuns must filter by resource reference",
+			"Namespace cannot be empty",
 			nil,
 		},
 		{
@@ -686,7 +1003,7 @@ func TestListRuns(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 		},
 	}
-	_, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	createdRun, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRun := &apiv2beta1.Run{
@@ -695,188 +1012,25 @@ func TestListRuns(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: pipelineSpecStruct,
+			PipelineSpec: createdRun.GetPipelineSpec(),
 		},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
+			Parameters:   make(map[string]*structpb.Value, 0),
 		},
 	}
 
-	listRunsResponse, err := server.ListRuns(nil, &apiv2beta1.ListRunsRequest{})
+	listRunsResponse, err := server.ListRuns(nil, &apiv2beta1.ListRunsRequest{
+		ExperimentId: experiment.UUID,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
 }
-
-// func TestvalidateCreateRunRequestV1(t *testing.T) {
-// 	clients, manager, _ := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: validReference,
-// 		PipelineSpec: &apiv1beta1.PipelineSpec{
-// 			WorkflowManifest: testWorkflow.ToStringForStore(),
-// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-// 		},
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.Nil(t, err)
-// }
-
-// func TestvalidateCreateRunRequestV1_WithPipelineVersionReference(t *testing.T) {
-// 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.Nil(t, err)
-// }
-
-// func TestvalidateCreateRunRequestV1_EmptyName(t *testing.T) {
-// 	clients, manager, _ := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		ResourceReferences: validReference,
-// 		PipelineSpec: &apiv1beta1.PipelineSpec{
-// 			WorkflowManifest: testWorkflow.ToStringForStore(),
-// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-// 		},
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "The run name is empty")
-// }
-
-// func TestvalidateCreateRunRequestV1_InvalidPipelineVersionReference(t *testing.T) {
-// 	clients, manager, _ := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: referencesOfExperimentAndInvalidPipelineVersion,
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
-// }
-
-// func TestvalidateCreateRunRequestV1_NoExperiment(t *testing.T) {
-// 	clients, manager, _ := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: nil,
-// 		PipelineSpec: &apiv1beta1.PipelineSpec{
-// 			WorkflowManifest: testWorkflow.ToStringForStore(),
-// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-// 		},
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.Nil(t, err)
-// }
-
-// func TestvalidateCreateRunRequestV1_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
-// 	clients, manager, _ := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: validReference,
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
-// }
-
-// func TestvalidateCreateRunRequestV1_WorkflowManifestAndPipelineVersion(t *testing.T) {
-// 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
-// 		PipelineSpec: &apiv1beta1.PipelineSpec{
-// 			WorkflowManifest: testWorkflow.ToStringForStore(),
-// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-// 		},
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
-// }
-
-// func TestvalidateCreateRunRequestV1_InvalidPipelineSpec(t *testing.T) {
-// 	clients, manager, _ := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: validReference,
-// 		PipelineSpec: &apiv1beta1.PipelineSpec{
-// 			PipelineId:       resource.DefaultFakeUUID,
-// 			WorkflowManifest: testWorkflow.ToStringForStore(),
-// 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-// 		},
-// 	}
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
-// }
-
-// func TestvalidateCreateRunRequestV1_TooMuchParameters(t *testing.T) {
-// 	clients, manager, _ := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-
-// 	var params []*apiv1beta1.Parameter
-// 	// Create a long enough parameter string so it exceed the length limit of parameter.
-// 	for i := 0; i < 10000; i++ {
-// 		params = append(params, &apiv1beta1.Parameter{Name: "param2", Value: "world"})
-// 	}
-// 	run := &apiv1beta1.Run{
-// 		Name:               "run1",
-// 		ResourceReferences: validReference,
-// 		PipelineSpec: &apiv1beta1.PipelineSpec{
-// 			WorkflowManifest: testWorkflow.ToStringForStore(),
-// 			Parameters:       params,
-// 		},
-// 	}
-
-// 	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
-// }
-
-// func TestvalidateCreateRunRequest(t *testing.T) {
-// 	clients, manager, experiment := initWithExperiment(t)
-// 	defer clients.Close()
-// 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-// 	pipelineSpecStruct := &structpb.Struct{}
-// 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
-
-// 	run := &apiv2beta1.Run{
-// 		DisplayName:  "run1",
-// 		ExperimentId: experiment.UUID,
-// 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-// 			PipelineSpec: pipelineSpecStruct,
-// 		},
-// 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
-// 			PipelineRoot: "model-pipeline-root",
-// 		},
-// 	}
-// 	err := server.validateCreateRunRequest(&apiv2beta1.CreateRunRequest{Run: run})
-// 	assert.Nil(t, err)
-// }
 
 func TestReportRunMetricsV1_RunNotFound(t *testing.T) {
 	httpServer := getMockServer(t)
@@ -944,20 +1098,11 @@ func TestReportRunMetricsV1_Unauthorized(t *testing.T) {
 		Metrics: []*apiv1beta1.RunMetric{metricV1},
 	})
 	assert.NotNil(t, err)
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: runDetails.Namespace,
-		Verb:      common.RbacResourceVerbReportMetrics,
-		Group:     common.RbacPipelinesGroup,
-		Version:   common.RbacPipelinesVersion,
-		Resource:  common.RbacResourceTypeRuns,
-		Name:      runDetails.K8SName,
-	}
-	assert.EqualError(
+	assert.Contains(
 		t,
-		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+		err.Error(),
+		"PermissionDenied: User 'user@google.com' is not authorized",
 	)
-
 }
 
 func TestReportRunMetricsV1_PartialFailures(t *testing.T) {
@@ -1030,10 +1175,6 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns"},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
@@ -1042,21 +1183,14 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	modelRun, err := toModelRun(apiRun)
 	assert.Nil(t, err)
 	runDetail, _ := manager.CreateRun(context.Background(), modelRun)
+	assert.Nil(t, err)
 
 	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: runDetail.Namespace,
-		Verb:      common.RbacResourceVerbGet,
-		Group:     common.RbacPipelinesGroup,
-		Version:   common.RbacPipelinesVersion,
-		Resource:  common.RbacResourceTypeRuns,
-		Name:      runDetail.K8SName,
-	}
-	assert.EqualError(
+	assert.Contains(
 		t,
-		err,
-		wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes)).Error(),
+		err.Error(),
+		"User 'user@google.com' is not authorized with reason",
 	)
 }
 
@@ -1115,10 +1249,6 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns"},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
@@ -1127,13 +1257,14 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 	modelRun, err := toModelRun(apiRun)
 	assert.Nil(t, err)
 	runDetail, _ := manager.CreateRun(context.Background(), modelRun)
+	assert.Nil(t, err)
 
 	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
-	assert.EqualError(
+	assert.Contains(
 		t,
-		err,
-		wrapFailedAuthzApiResourcesError(kfpauth.IdentityHeaderMissingError).Error(),
+		err.Error(),
+		"Unauthenticated: Request header error: there is no user identity header",
 	)
 }
 

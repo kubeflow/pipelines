@@ -342,7 +342,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
 		if err != nil {
 			// throw internal exception if failed to parse the resource reference.
-			return nil, util.NewInternalServerError(err, "Failed to parse resource reference.")
+			return nil, util.NewInternalServerError(err, "Failed to parse resource reference")
 		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 		runs = append(
@@ -388,7 +388,7 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) (err error) {
 	payloadBytes, err := json.Marshal(metric)
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Failed to marshal a run metric to json: %+v.", metric)
+			"Failed to marshal a run metric to json: %+v", metric)
 	}
 	sql, args, err := sq.
 		Insert("run_metrics").
@@ -401,15 +401,15 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) (err error) {
 			"Payload":     string(payloadBytes)}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Failed to create query for inserting a run metric: %+v.", metric)
+			"Failed to create query for inserting a run metric: %+v", metric)
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
 			return util.NewAlreadyExistError(
-				"Failed to create a run metric. Same metric has been reported before: %s/%s.", metric.NodeID, metric.Name)
+				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
 		}
-		return util.NewInternalServerError(err, "Failed to insert a run metric: %v.", metric)
+		return util.NewInternalServerError(err, "Failed to insert a run metric: %v", metric)
 	}
 	return nil
 }
@@ -421,11 +421,11 @@ func (s *RunStore) GetMetrics(runId string) ([]*model.RunMetric, error) {
 		Where(sq.Eq{"RunUUID": runId}).
 		ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v.", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
 	}
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v.", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
 	}
 	defer r.Close()
 	metrics, err := s.scanRowsToRunMetrics(r)
@@ -442,7 +442,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	}
 
 	if !r.StorageState.IsValid() {
-		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q", r.StorageState)
 	}
 	runSql, runArgs, err := sq.
 		Insert("run_details").
@@ -481,7 +481,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	// Use a transaction to make sure both run and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run.")
+		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run")
 	}
 
 	_, err = tx.Exec(runSql, runArgs...)
@@ -728,7 +728,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 		UPDATE run_details
 		SET Conditions = ?, State = ?
 		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		model.RunTerminatingConditionsV1,
+		string(model.RuntimeStateCancelling.ToV1()),
 		model.RuntimeStateCancelling.ToString(),
 		runId,
 		model.RuntimeStatePaused.ToString(),
@@ -743,7 +743,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 
 	if r, _ := result.RowsAffected(); r != 1 {
-		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found.", runId)
+		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
 	}
 	return nil
 }
@@ -757,7 +757,7 @@ func (s *RunStore) DeleteRun(id string) error {
 	// Use a transaction to make sure both run and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run.")
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run")
 	}
 	_, err = tx.Exec(runSql, runArgs...)
 	if err != nil {

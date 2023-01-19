@@ -44,7 +44,7 @@ var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
 	Spec: v1alpha1.WorkflowSpec{
 		Entrypoint: "testy",
-		Templates: []v1alpha1.Template{v1alpha1.Template{
+		Templates: []v1alpha1.Template{{
 			Name: "testy",
 			Container: &corev1.Container{
 				Image:   "docker/whalesay",
@@ -60,12 +60,29 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec: v1alpha1.WorkflowSpec{
 		Entrypoint: "testy",
-		Templates: []v1alpha1.Template{v1alpha1.Template{
+		Templates: []v1alpha1.Template{{
 			Name: "testy",
 			Container: &corev1.Container{
 				Image:   "docker/whalesay",
 				Command: []string{"cowsay"},
 				Args:    []string{"hello world"},
+			},
+		}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+})
+
+var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name2", UID: "workflow2", Namespace: "ns2"},
+	Spec: v1alpha1.WorkflowSpec{
+		Entrypoint: "testy2",
+		Templates: []v1alpha1.Template{{
+			Name: "testy2",
+			Container: &corev1.Container{
+				Image:   "docker/whalesay2",
+				Command: []string{"cowsay2"},
+				Args:    []string{"hello world2"},
 			},
 		}},
 		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
@@ -127,7 +144,7 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
-	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
+	apiExperiment := &apiv1beta1.Experiment{}
 	if common.IsMultiUserMode() {
 		apiExperiment = &apiv1beta1.Experiment{
 			Name: "exp1",
@@ -138,6 +155,17 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 				},
 			},
 		}
+	} else {
+		apiExperiment = &apiv1beta1.Experiment{
+			Name: "exp1",
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
+		}
+
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -164,6 +192,7 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 		}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
+	modelExperiment.Namespace = resourceManager.ReplaceEmptyNamespace(modelExperiment.Namespace)
 	assert.Nil(t, err)
 	experiment, err := resourceManager.CreateExperiment(modelExperiment)
 	assert.Nil(t, err)

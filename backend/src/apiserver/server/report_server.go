@@ -33,11 +33,11 @@ func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
 	execSpec, err := validateReportWorkflowRequest(request)
 	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed.")
+		return nil, util.Wrap(err, "Report workflow failed")
 	}
 	err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
 	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed.")
+		return nil, util.Wrap(err, "Report workflow failed")
 	}
 	return &empty.Empty{}, nil
 }
@@ -46,7 +46,7 @@ func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	request *api.ReportScheduledWorkflowRequest) (*empty.Empty, error) {
 	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(request)
 	if err != nil {
-		return nil, util.Wrap(err, "Report scheduled workflow failed.")
+		return nil, util.Wrap(err, "Report scheduled workflow failed")
 	}
 	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
 	if err != nil {

@@ -224,7 +224,7 @@ func TestGetExperiment(t *testing.T) {
 
 	experiment, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 }
 
 func TestGetExperiment_NotFoundError(t *testing.T) {
@@ -262,7 +262,7 @@ func TestCreateExperiment(t *testing.T) {
 	experiment := createExperiment("experiment1")
 	experiment, err := experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 }
 
 func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
@@ -281,7 +281,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 	experiment := createExperimentInNamespace("experiment1", "namespace1")
 	experiment, err := experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 
 	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil))
 	experiment = createExperimentInNamespace("experiment1", "namespace2")
@@ -296,7 +296,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 
 	experiment, err = experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 }
 
 func TestCreateExperiment_DuplicatedKey(t *testing.T) {
@@ -382,7 +382,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 
 	filterProto := &apiv1beta1.Filter{
 		Predicates: []*apiv1beta1.Predicate{
-			&apiv1beta1.Predicate{
+			{
 				Key: "name",
 				Op:  apiv1beta1.Predicate_IN,
 				Value: &apiv1beta1.Predicate_StringValues{
@@ -399,14 +399,14 @@ func TestListExperiments_Filtering(t *testing.T) {
 	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	expected := []*model.Experiment{
-		&model.Experiment{
+		{
 			UUID:           fakeIDTwo,
 			CreatedAtInSec: 2,
 			Name:           "experiment2",
 			Description:    "My name is experiment2",
 			StorageState:   "AVAILABLE",
 		},
-		&model.Experiment{
+		{
 			UUID:           fakeIDThree,
 			CreatedAtInSec: 3,
 			Name:           "experiment3",
@@ -427,7 +427,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	expected = []*model.Experiment{
-		&model.Experiment{
+		{
 			UUID:           fakeIDFour,
 			CreatedAtInSec: 4,
 			Name:           "experiment4",

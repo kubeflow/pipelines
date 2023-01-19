@@ -39,7 +39,7 @@ func validateFilterV1(referenceKey *api.ResourceKey) (*model.FilterContext, erro
 	if referenceKey != nil {
 		refType, err := toModelResourceTypeV1(referenceKey.Type)
 		if err != nil {
-			return nil, util.Wrap(err, "Unrecognized resource reference type.")
+			return nil, util.Wrap(err, "Unrecognized resource reference type")
 		}
 		filterContext.ReferenceKey = &model.ReferenceKey{Type: refType, ID: referenceKey.Id}
 	}
@@ -50,7 +50,7 @@ func validatePagination(pageToken string, pageSize int, keyFieldName string, que
 	modelFieldByApiFieldMapping map[string]string) (*common.PaginationContext, error) {
 	sortByFieldName, isDesc, err := parseSortByQueryString(queryString, modelFieldByApiFieldMapping)
 	if err != nil {
-		return nil, util.Wrap(err, "Invalid query string.")
+		return nil, util.Wrap(err, "Invalid query string")
 	}
 	if pageSize < 0 {
 		return nil, util.NewInvalidInputError("The page size should be greater than 0. Got %v", strconv.Itoa(pageSize))
@@ -68,7 +68,7 @@ func validatePagination(pageToken string, pageSize int, keyFieldName string, que
 	}
 	token, err := deserializePageToken(pageToken)
 	if err != nil {
-		return nil, util.Wrap(err, "Invalid page token.")
+		return nil, util.Wrap(err, "Invalid page token")
 	}
 	return &common.PaginationContext{
 		PageSize:        pageSize,
@@ -97,7 +97,7 @@ func parseSortByQueryString(queryString string, modelFieldByApiFieldMapping map[
 	// Check if the field can be sorted.
 	sortByFieldName, ok := modelFieldByApiFieldMapping[sortByApiField]
 	if !ok {
-		return "", false, util.NewInvalidInputError("Cannot sort on field %v. Supported fields %v.",
+		return "", false, util.NewInvalidInputError("Cannot sort on field %v. Supported fields %v",
 			sortByApiField, keysString(modelFieldByApiFieldMapping))
 	}
 	return sortByFieldName, isDesc, nil
@@ -120,12 +120,12 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 	}
 	tokenBytes, err := base64.StdEncoding.DecodeString(pageToken)
 	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token.")
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token")
 	}
 	var token common.Token
 	err = json.Unmarshal(tokenBytes, &token)
 	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token.")
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token")
 	}
 	return &token, nil
 }
@@ -157,7 +157,7 @@ func parseAPIFilter(encoded string) (*api.Filter, error) {
 func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string) (*list.Options, error) {
 	defaultOpts := func() (*list.Options, error) {
 		if listable == nil {
-			return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs.")
+			return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
 		}
 
 		f, err := parseAPIFilter(filterSpec)
@@ -185,7 +185,7 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 		}
 
 		if !opts.Matches(do) {
-			return nil, util.NewInvalidInputError("page token does not match the supplied sort by and/or filtering criteria. Either specify the same criteria or leave the latter empty if page token is specified.")
+			return nil, util.NewInvalidInputError("page token does not match the supplied sort by and/or filtering criteria. Either specify the same criteria or leave the latter empty if page token is specified")
 		}
 	}
 

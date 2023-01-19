@@ -65,7 +65,7 @@ type token struct {
 
 func (t *token) unmarshal(pageToken string) error {
 	errorF := func(err error) error {
-		return util.NewInvalidInputErrorWithDetails(err, "Invalid package token.")
+		return util.NewInvalidInputErrorWithDetails(err, "Invalid package token")
 	}
 	b, err := base64.StdEncoding.DecodeString(pageToken)
 	if err != nil {
@@ -82,7 +82,7 @@ func (t *token) unmarshal(pageToken string) error {
 func (t *token) marshal() (string, error) {
 	b, err := json.Marshal(t)
 	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to serialize page token.")
+		return "", util.NewInternalServerError(err, "Failed to serialize page token")
 	}
 	// return string(b), nil
 	return base64.StdEncoding.EncodeToString(b), nil

@@ -105,7 +105,7 @@ func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 	}
 	err = m.AddFile(bytes, filePath)
 	if err != nil {
-		return util.Wrap(err, "Failed to add a yaml file.")
+		return util.Wrap(err, "Failed to add a yaml file")
 	}
 	return nil
 }
@@ -113,7 +113,7 @@ func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
 	bytes, err := m.GetFile(filePath)
 	if err != nil {
-		return util.Wrap(err, "Failed to read from a yaml file.")
+		return util.Wrap(err, "Failed to read from a yaml file")
 	}
 	err = yaml.Unmarshal(bytes, o)
 	if err != nil {

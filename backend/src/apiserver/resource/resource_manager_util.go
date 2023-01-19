@@ -27,7 +27,7 @@ func deletePods(ctx context.Context, k8sCoreClient client.KubernetesCoreInterfac
 	for _, podId := range podsToDelete {
 		err := k8sCoreClient.PodClient(namespace).Delete(ctx, podId, metav1.DeleteOptions{})
 		if err != nil && !apierr.IsNotFound(err) {
-			return util.NewInternalServerError(err, "Failed to delete pods.")
+			return util.NewInternalServerError(err, "Failed to delete pods")
 		}
 	}
 	return nil

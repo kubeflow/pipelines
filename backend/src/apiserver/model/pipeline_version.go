@@ -168,7 +168,7 @@ func (p *PipelineVersion) SetFieldValue(name string, value interface{}) error {
 		p.PipelineSpecURI = value.(string)
 		return nil
 	default:
-		return util.NewInvalidInputError(fmt.Sprintf("Error setting field '%s' to '%v' in PipelineVersion object: not found or not allowed to set.", name, value))
+		return util.NewInvalidInputError(fmt.Sprintf("Error setting field '%s' to '%v' in PipelineVersion object: not found or not allowed to set", name, value))
 	}
 }
 
