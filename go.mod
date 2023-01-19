@@ -53,7 +53,6 @@ require (
 	k8s.io/code-generator v0.23.3
 	k8s.io/kubernetes v0.17.9
 	sigs.k8s.io/controller-runtime v0.11.1
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 replace (
