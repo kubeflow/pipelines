@@ -41,6 +41,8 @@ implementation:
       chmod +x "$backend_compiler_path"
       cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
       # run test sample
+      # TODO: remove deprecated dependency
+      pip install -r sdk/python/requirements-deprecated.txt
       python3 \
         -u \
         -m "$sample_path" \

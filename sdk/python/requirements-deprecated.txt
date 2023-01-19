@@ -1,0 +1,9 @@
+# TODO: remove deprecated dependency
+absl-py>=0.9,<2
+cloudpickle>=2.0.0,<3
+Deprecated>=1.2.7,<2
+fire>=0.3.1,<1
+jsonschema>=3.0.1,<4
+strip-hints>=0.1.8,<1
+uritemplate>=3.0.1,<4
+typer>=0.3.2,<1.0
