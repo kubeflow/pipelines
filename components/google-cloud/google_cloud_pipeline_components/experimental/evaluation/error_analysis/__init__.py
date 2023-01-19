@@ -22,11 +22,19 @@ except ImportError:
 
 __all__ = [
     'EvaluationDatasetPreprocessorErrorAnalysisOp',
+    'EvaluatedAnnotationOp',
 ]
 
 EvaluationDatasetPreprocessorErrorAnalysisOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__),
-        'error_analysis/dataset_preprocessor/component.yaml',
+        'dataset_preprocessor/component.yaml',
+    )
+)
+
+EvaluatedAnnotationOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'evaluated_annotation/component.yaml',
     )
 )
