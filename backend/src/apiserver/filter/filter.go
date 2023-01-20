@@ -297,24 +297,15 @@ func addPredicateValue(m map[string][]interface{}, p *api.Predicate) error {
 		m[p.Key] = append(m[p.Key], ts.Unix())
 
 	case *api.Predicate_IntValues:
-		var v []int32
-		for _, i := range p.GetIntValues().GetValues() {
-			v = append(v, i)
-		}
+		v := p.GetIntValues().GetValues()
 		m[p.Key] = append(m[p.Key], v)
 
 	case *api.Predicate_LongValues:
-		var v []int64
-		for _, i := range p.GetLongValues().GetValues() {
-			v = append(v, i)
-		}
+		v := p.GetLongValues().GetValues()
 		m[p.Key] = append(m[p.Key], v)
 
 	case *api.Predicate_StringValues:
-		var v []string
-		for _, i := range p.GetStringValues().GetValues() {
-			v = append(v, i)
-		}
+		v := p.GetStringValues().GetValues()
 		m[p.Key] = append(m[p.Key], v)
 
 	case nil:

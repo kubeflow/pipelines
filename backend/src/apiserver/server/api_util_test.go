@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -118,7 +117,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
-		PipelineId:       common.DefaultFakeUUID,
+		PipelineId:       DefaultFakeUUID,
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
@@ -173,7 +172,7 @@ func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipeline
 	manager := resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
-		PipelineId: common.NonDefaultFakeUUID}
+		PipelineId: NonDefaultFakeUUID}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "pipeline ID should be parent of pipeline version")
@@ -187,7 +186,7 @@ func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineI
 	for i := 0; i < 10000; i++ {
 		params = append(params, &apiv1beta1.Parameter{Name: "param2", Value: "world"})
 	}
-	spec := &apiv1beta1.PipelineSpec{PipelineId: common.DefaultFakeUUID, Parameters: params}
+	spec := &apiv1beta1.PipelineSpec{PipelineId: DefaultFakeUUID, Parameters: params}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
@@ -211,7 +210,7 @@ func TestValidatePipelineSpecAndResourceReferences_ValidPipelineIdAndPipelineVer
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
-		PipelineId: common.DefaultFakeUUID}
+		PipelineId: DefaultFakeUUID}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.Nil(t, err)
 }

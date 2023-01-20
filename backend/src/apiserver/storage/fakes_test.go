@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package common
+package storage
 
 const (
-	DefaultFakeUUID    = "123e4567-e89b-12d3-a456-426655440000"
-	FakeUUIDOne        = "123e4567-e89b-12d3-a456-426655440001"
-	NonDefaultFakeUUID = "123e4567-e89b-12d3-a456-426655441000"
-)
-
-const (
+	invalidPipelineVersionId   = "not_exist_pipeline_version"
+	DefaultFakeUUID            = "123e4567-e89b-12d3-a456-426655440000"
+	NonDefaultFakeUUID         = "123e4567-e89b-12d3-a456-426655441000"
+	FakeUUIDOne                = "123e4567-e89b-12d3-a456-426655440001"
 	DefaultFakePipelineId      = "123e4567-e89b-12d3-a456-426655440000"
 	DefaultFakePipelineIdTwo   = "123e4567-e89b-12d3-a456-426655440001"
 	DefaultFakePipelineIdThree = "123e4567-e89b-12d3-a456-426655440002"

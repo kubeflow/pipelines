@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import (
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -368,16 +367,16 @@ func TestToModelJob(t *testing.T) {
 func TestToModelResourceReferencesV1(t *testing.T) {
 	refs, err := toModelResourceReferencesV1(
 		[]*apiv1beta1.ResourceReference{
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: common.DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: common.DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
+			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
+			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
 		}, "r1", apiv1beta1.ResourceType_JOB,
 	)
 	assert.Nil(t, err)
 	expectedRefs := []*model.ResourceReference{
 		{ResourceUUID: "r1", ResourceType: model.JobResourceType,
-			ReferenceUUID: common.DefaultFakeUUID, ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship},
+			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship},
 		{ResourceUUID: "r1", ResourceType: model.JobResourceType,
-			ReferenceUUID: common.DefaultFakeUUID, ReferenceType: model.NamespaceResourceType, Relationship: model.OwnerRelationship},
+			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.NamespaceResourceType, Relationship: model.OwnerRelationship},
 	}
 	assert.Equal(t, expectedRefs, refs)
 }
@@ -789,10 +788,10 @@ func TestToApiRunsV1(t *testing.T) {
 
 func TestToApiTask(t *testing.T) {
 	modelTask := &model.Task{
-		UUID:              common.DefaultFakeUUID,
+		UUID:              DefaultFakeUUID,
 		Namespace:         "",
 		PipelineName:      "pipeline/my-pipeline",
-		RunId:             common.NonDefaultFakeUUID,
+		RunId:             NonDefaultFakeUUID,
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1,
 		FinishedTimestamp: 2,
@@ -800,10 +799,10 @@ func TestToApiTask(t *testing.T) {
 	}
 	apiTask := toApiTaskV1(modelTask)
 	expectedApiTask := &apiv1beta1.Task{
-		Id:              common.DefaultFakeUUID,
+		Id:              DefaultFakeUUID,
 		Namespace:       "",
 		PipelineName:    "pipeline/my-pipeline",
-		RunId:           common.NonDefaultFakeUUID,
+		RunId:           NonDefaultFakeUUID,
 		MlmdExecutionID: "1",
 		CreatedAt:       &timestamp.Timestamp{Seconds: 1},
 		FinishedAt:      &timestamp.Timestamp{Seconds: 2},

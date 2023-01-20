@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -860,7 +860,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 	assert.Equal(t, pv, actualTemplate)
 
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	assert.True(t, ok)
 	pv2 := createPipelineVersion(
 		p.UUID,
@@ -925,7 +925,7 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 	}
 
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	assert.True(t, ok)
 
 	manager.objectStore.AddFile([]byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey("1000"))
@@ -954,7 +954,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pv2, err := manager.CreatePipelineVersion(pv)
 	assert.NotEqual(t, p.UUID, pv2.UUID)
 
@@ -1012,11 +1012,11 @@ func TestListPipelines(t *testing.T) {
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(pv)
 	assert.Nil(t, err)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	p2 := createPipelineV1(
 		"pipeline2",
 	)
@@ -1071,11 +1071,11 @@ func TestListPipelinesV1(t *testing.T) {
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(pv)
 	assert.Nil(t, err)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	p2 := createPipelineV1(
 		"pipeline2",
 	)
@@ -1139,14 +1139,14 @@ func TestListPipelineVersions(t *testing.T) {
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(pv)
 	assert.Nil(t, err)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineIdThree, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
 	_, err = manager.CreatePipelineVersion(pv2)
 	assert.Nil(t, err)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	p2 := createPipelineV1(
 		"pipeline2",
 	)
@@ -1175,7 +1175,7 @@ func TestListPipelineVersions(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete a pipeline version
-	err = manager.DeletePipelineVersion(common.FakeUUIDOne)
+	err = manager.DeletePipelineVersion(FakeUUIDOne)
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelineVersions(
@@ -1199,13 +1199,13 @@ func TestUpdatePipelineStatus(t *testing.T) {
 	p1 := createPipelineV1(
 		"pipeline1",
 	)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineId, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
 	pnew1, err := manager.CreatePipeline(p1)
 	assert.Nil(t, err)
 	p2 := createPipelineV1(
 		"pipeline2",
 	)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineIdTwo, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
 	pnew2, err := manager.CreatePipeline(p2)
 	assert.Nil(t, err)
 
@@ -1227,30 +1227,30 @@ func TestUpdatePipelineStatus(t *testing.T) {
 		"",
 		"",
 	)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineId, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
 	_, err = manager.CreatePipelineVersion(pv)
 	assert.Nil(t, err)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineIdTwo, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
 	_, err = manager.CreatePipelineVersion(pv2)
 	assert.Nil(t, err)
 
-	p1retrieved, err := manager.GetPipeline(common.DefaultFakePipelineId)
+	p1retrieved, err := manager.GetPipeline(DefaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineReady, p1retrieved.Status)
 
-	err = manager.UpdatePipelineStatus(common.DefaultFakePipelineId, model.PipelineCreating)
+	err = manager.UpdatePipelineStatus(DefaultFakePipelineId, model.PipelineCreating)
 	assert.Nil(t, err)
-	p1retrieved, err = manager.GetPipeline(common.DefaultFakePipelineId)
+	p1retrieved, err = manager.GetPipeline(DefaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
-	err = manager.UpdatePipelineStatus(common.DefaultFakePipelineId, model.PipelineDeleting)
+	err = manager.UpdatePipelineStatus(DefaultFakePipelineId, model.PipelineDeleting)
 	assert.Nil(t, err)
-	p1retrieved, err = manager.GetPipeline(common.DefaultFakePipelineId)
+	p1retrieved, err = manager.GetPipeline(DefaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
-	err = manager.UpdatePipelineStatus(common.DefaultFakePipelineId, model.PipelineReady)
+	err = manager.UpdatePipelineStatus(DefaultFakePipelineId, model.PipelineReady)
 	assert.Nil(t, err)
-	p1retrieved, err = manager.GetPipeline(common.DefaultFakePipelineId)
+	p1retrieved, err = manager.GetPipeline(DefaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineReady, p1retrieved.Status)
 }
@@ -1268,13 +1268,13 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 	p1 := createPipelineV1(
 		"pipeline1",
 	)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineId, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
 	pnew1, err := manager.CreatePipeline(p1)
 	assert.Nil(t, err)
 	p2 := createPipelineV1(
 		"pipeline2",
 	)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineIdTwo, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
 	pnew2, err := manager.CreatePipeline(p2)
 	assert.Nil(t, err)
 
@@ -1296,30 +1296,30 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 		"",
 		"",
 	)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineId, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
 	_, err = manager.CreatePipelineVersion(pv)
 	assert.Nil(t, err)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakePipelineIdTwo, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
 	_, err = manager.CreatePipelineVersion(pv2)
 	assert.Nil(t, err)
 
-	p1retrieved, err := manager.GetPipelineVersion(common.DefaultFakePipelineIdTwo)
+	p1retrieved, err := manager.GetPipelineVersion(DefaultFakePipelineIdTwo)
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineVersionReady, p1retrieved.Status)
 
-	err = manager.UpdatePipelineVersionStatus(common.DefaultFakePipelineIdTwo, model.PipelineVersionCreating)
+	err = manager.UpdatePipelineVersionStatus(DefaultFakePipelineIdTwo, model.PipelineVersionCreating)
 	assert.Nil(t, err)
-	p1retrieved, err = manager.GetPipelineVersion(common.DefaultFakePipelineIdTwo)
+	p1retrieved, err = manager.GetPipelineVersion(DefaultFakePipelineIdTwo)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
-	err = manager.UpdatePipelineVersionStatus(common.DefaultFakePipelineIdTwo, model.PipelineVersionDeleting)
+	err = manager.UpdatePipelineVersionStatus(DefaultFakePipelineIdTwo, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
-	p1retrieved, err = manager.GetPipelineVersion(common.DefaultFakePipelineIdTwo)
+	p1retrieved, err = manager.GetPipelineVersion(DefaultFakePipelineIdTwo)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
-	err = manager.UpdatePipelineVersionStatus(common.DefaultFakePipelineIdTwo, model.PipelineVersionReady)
+	err = manager.UpdatePipelineVersionStatus(DefaultFakePipelineIdTwo, model.PipelineVersionReady)
 	assert.Nil(t, err)
-	p1retrieved, err = manager.GetPipelineVersion(common.DefaultFakePipelineIdTwo)
+	p1retrieved, err = manager.GetPipelineVersion(DefaultFakePipelineIdTwo)
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineVersionReady, p1retrieved.Status)
 }
@@ -1360,7 +1360,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 		"",
 		"",
 	)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pnew2, err := manager.CreatePipelineVersion(pv2)
 	assert.Nil(t, err)
 
@@ -1369,15 +1369,15 @@ func TestDeletePipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Verify the version doesn't exist.
-	_, err = manager.GetPipelineVersion(common.FakeUUIDOne)
+	_, err = manager.GetPipelineVersion(FakeUUIDOne)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
 	// Verify the first version exists.
-	_, err = manager.GetPipelineVersion(common.DefaultFakeUUID)
+	_, err = manager.GetPipelineVersion(DefaultFakeUUID)
 	assert.Nil(t, err)
 
 	// Verify the latest version
-	pvLatestTeplate, err := manager.GetPipelineLatestTemplate(common.DefaultFakeUUID)
+	pvLatestTeplate, err := manager.GetPipelineLatestTemplate(DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
 }
@@ -1407,18 +1407,18 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(pv)
 
 	// Switch to a bad object store
 	manager.objectStore = &FakeBadObjectStore{}
 
 	// Delete the above pipeline_version.
-	err = manager.DeletePipelineVersion(common.FakeUUIDOne)
+	err = manager.DeletePipelineVersion(FakeUUIDOne)
 	assert.NotNil(t, err)
 
 	// Verify the version in deleting status.
-	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(common.FakeUUIDOne, model.PipelineVersionDeleting)
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
 	assert.NotNil(t, version)
 }
@@ -1449,11 +1449,11 @@ func TestDeletePipeline(t *testing.T) {
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(pv)
 	assert.Nil(t, err)
 
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	p2 := createPipelineV1(
 		"pipeline2",
 	)
@@ -1465,17 +1465,17 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Verify the pipeline doesn't exist.
-	_, err = manager.GetPipeline(common.FakeUUIDOne)
+	_, err = manager.GetPipeline(FakeUUIDOne)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
 	// Verify the first pipeline exists.
-	_, err = manager.GetPipeline(common.DefaultFakeUUID)
+	_, err = manager.GetPipeline(DefaultFakeUUID)
 	assert.Nil(t, err)
 
 	// Must fail due to active pipeline versions
 	err = manager.DeletePipeline(pnew1.UUID)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", common.FakeUUIDOne))
+	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
 
 // TODO: use table driven test to test CreateRun api
@@ -1489,7 +1489,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	// Create a new pipeline version with UUID being FakeUUID.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pv := createPipelineVersion(p.UUID, "version_for_run", "", "", testWorkflow.ToStringForStore(), "", "")
 	version, err := manager.CreatePipelineVersion(pv)
 	assert.Nil(t, err)
@@ -1515,7 +1515,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
 		},
 	}
 	expectedRunDetail := &model.Run{
@@ -1594,7 +1594,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
 		},
 	}
 
@@ -1644,7 +1644,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
 		},
 	}
 
@@ -1685,7 +1685,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pv := createPipelineVersion(
 		pipeline.UUID,
 		"version_for_run",
@@ -1718,7 +1718,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
 		},
 	}
 
@@ -1758,7 +1758,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pv := createPipelineVersion(
 		pipeline.UUID,
 		"version_for_run",
@@ -1792,7 +1792,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
 		},
 	}
 
@@ -2204,7 +2204,7 @@ func TestUnarchiveRun_Failed_ExperimentArchived(t *testing.T) {
 func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {
 	store, manager, _ := initWithExperiment(t)
 	defer store.Close()
-	err := manager.UnarchiveRun(common.FakeUUIDOne)
+	err := manager.UnarchiveRun(FakeUUIDOne)
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2220,7 +2220,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		K8SName:        "job-",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
-		ExperimentId:   common.DefaultFakeUUID,
+		ExperimentId:   DefaultFakeUUID,
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -2247,7 +2247,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
-		ExperimentId:   common.DefaultFakeUUID,
+		ExperimentId:   DefaultFakeUUID,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
 		Conditions:     "STATUS_UNSPECIFIED",
@@ -2287,7 +2287,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	// Create a new pipeline version with UUID being FakeUUID.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pv := createPipelineVersion(
 		pipeline.UUID,
 		"version_for_job",
@@ -2333,7 +2333,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pv := createPipelineVersion(
 		pipeline.UUID,
 		"version_for_job",
@@ -2386,7 +2386,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	pv := createPipelineVersion(
 		pipeline.UUID,
 		"version_for_job",
@@ -2542,7 +2542,7 @@ func TestEnableJob(t *testing.T) {
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 5,
 		Conditions:     "STATUS_UNSPECIFIED",
-		ExperimentId:   common.DefaultFakeUUID,
+		ExperimentId:   DefaultFakeUUID,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           job.PipelineSpec.PipelineId,
 			PipelineName:         job.PipelineSpec.PipelineName,
@@ -2816,7 +2816,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 
 	expectedRunDetail := &model.Run{
 		UUID:           "WORKFLOW_1",
-		ExperimentId:   common.DefaultFakeUUID,
+		ExperimentId:   DefaultFakeUUID,
 		DisplayName:    "MY_NAME",
 		StorageState:   model.StorageStateAvailable,
 		K8SName:        "MY_NAME",
@@ -3792,7 +3792,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedExperiment := &model.Experiment{
-		UUID:           common.DefaultFakeUUID,
+		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here",
@@ -3816,7 +3816,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedExperiment := &model.Experiment{
-		UUID:           common.DefaultFakeUUID,
+		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here",
@@ -3839,7 +3839,7 @@ func TestCreateTask(t *testing.T) {
 	}
 
 	expectedTask := &model.Task{
-		UUID:              common.DefaultFakeUUID,
+		UUID:              DefaultFakeUUID,
 		Namespace:         "ns1",
 		PipelineName:      "pipeline/my-pipeline",
 		RunId:             runDetail.UUID,
@@ -3853,7 +3853,7 @@ func TestCreateTask(t *testing.T) {
 	assert.Equal(t, expectedTask, createdTask, "The CreateTask return has unexpected value")
 
 	// Verify the T in DB is in status PipelineVersionCreating.
-	storedTask, err := manager.taskStore.GetTask(common.DefaultFakeUUID)
+	storedTask, err := manager.taskStore.GetTask(DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value")
 }

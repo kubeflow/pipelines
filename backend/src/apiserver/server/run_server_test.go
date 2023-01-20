@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -177,14 +177,14 @@ func TestCreateRunV1_pipeline(t *testing.T) {
 			{
 				Key: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_EXPERIMENT,
-					Id:   common.DefaultFakeUUID,
+					Id:   DefaultFakeUUID,
 				},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 			{
 				Key: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_PIPELINE,
-					Id:   common.DefaultFakeUUID,
+					Id:   DefaultFakeUUID,
 				},
 				Relationship: apiv1beta1.Relationship_CREATOR,
 			},
@@ -192,7 +192,7 @@ func TestCreateRunV1_pipeline(t *testing.T) {
 	}
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
-	assert.Equal(t, common.DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
+	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
 	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
@@ -209,7 +209,7 @@ func TestCreateRunV1_pipelineversion(t *testing.T) {
 	}
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
-	assert.Equal(t, common.DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
+	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
 	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
@@ -230,7 +230,7 @@ func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
 	}
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
-	assert.Equal(t, common.DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
+	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
 	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
@@ -652,14 +652,14 @@ func TestGetRunV1(t *testing.T) {
 			{
 				Key: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_EXPERIMENT,
-					Id:   common.DefaultFakeUUID,
+					Id:   DefaultFakeUUID,
 				},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 			{
 				Key: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_PIPELINE,
-					Id:   common.DefaultFakeUUID,
+					Id:   DefaultFakeUUID,
 				},
 				Relationship: apiv1beta1.Relationship_CREATOR,
 			},

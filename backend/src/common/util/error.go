@@ -71,9 +71,9 @@ func HasCustomCode(err error, code CustomCode) bool {
 	if err == nil {
 		return false
 	}
-	switch err.(type) {
+	switch err := err.(type) {
 	case *CustomError:
-		return err.(*CustomError).code == code
+		return err.code == code
 	default:
 		return false
 	}
@@ -321,9 +321,9 @@ func Wrapf(err error, format string, args ...interface{}) error {
 		return nil
 	}
 
-	switch err.(type) {
+	switch err := err.(type) {
 	case *UserError:
-		return err.(*UserError).wrapf(format, args...)
+		return err.wrapf(format, args...)
 	default:
 		return errors.Wrapf(err, format, args...)
 	}
@@ -334,18 +334,18 @@ func Wrap(err error, message string) error {
 		return nil
 	}
 
-	switch err.(type) {
+	switch err := err.(type) {
 	case *UserError:
-		return err.(*UserError).wrap(message)
+		return err.wrap(message)
 	default:
 		return errors.Wrapf(err, message)
 	}
 }
 
 func LogError(err error) {
-	switch err.(type) {
+	switch err := err.(type) {
 	case *UserError:
-		err.(*UserError).Log()
+		err.Log()
 	default:
 		// We log all the details.
 		glog.Errorf("InternalError: %+v", err)
@@ -430,10 +430,11 @@ func IsUserErrorCodeMatch(err error, code codes.Code) bool {
 // ReasonForError returns the HTTP status for a particular error.
 func reasonForError(err error) k8metav1.StatusReason {
 	switch t := err.(type) {
-	case k8errors.APIStatus:
-		return t.Status().Reason
 	case *k8errors.StatusError:
 		return t.Status().Reason
+	case k8errors.APIStatus:
+		return t.Status().Reason
+	default:
+		return k8metav1.StatusReasonUnknown
 	}
-	return k8metav1.StatusReasonUnknown
 }

@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -392,7 +392,7 @@ func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, names
 // target namespace. If the returned error is nil, the authorization passes. Otherwise,
 // authorization fails with a non-nil error.
 func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if common.IsMultiUserMode() == false {
+	if !common.IsMultiUserMode() {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
@@ -466,7 +466,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	// First check that we don't already have a default experiment ID in the DB.
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
-		return "", fmt.Errorf("Failed to check if default experiment exists. Err: %v", err)
+		return "", util.Wrap(err, "Failed to check if default experiment exists")
 	}
 	// If default experiment ID is already present, don't fail, simply return.
 	if defaultExperimentId != "" {
@@ -484,13 +484,13 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	}
 	experiment, err := r.CreateExperiment(defaultExperiment)
 	if err != nil {
-		return "", fmt.Errorf("Failed to create default experiment. Err: %v", err)
+		return "", util.Wrap(err, "Failed to create the default experiment")
 	}
 
 	// Set default experiment ID in the DB
 	err = r.SetDefaultExperimentId(experiment.UUID)
 	if err != nil {
-		return "", fmt.Errorf("Failed to set default experiment ID. Err: %v", err)
+		return "", util.Wrap(err, "Failed to set default experiment ID")
 	}
 
 	glog.Infof("Default experiment is set. ID is: %v", experiment.UUID)

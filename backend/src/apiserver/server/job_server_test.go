@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -583,9 +583,9 @@ func TestListJobs_Multiuser(t *testing.T) {
 	commonExpectedJob.UpdatedAt = &timestamp.Timestamp{Seconds: 4}
 	commonExpectedJob.ResourceReferences = []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"}, Relationship: apiv1beta1.Relationship_OWNER},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: common.DefaultFakePipelineId}, Relationship: apiv1beta1.Relationship_OWNER},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: common.DefaultFakePipelineId}, Relationship: apiv1beta1.Relationship_CREATOR},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: common.DefaultFakePipelineId}, Relationship: apiv1beta1.Relationship_CREATOR},
+		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakePipelineId}, Relationship: apiv1beta1.Relationship_OWNER},
+		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: DefaultFakePipelineId}, Relationship: apiv1beta1.Relationship_CREATOR},
+		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: DefaultFakePipelineId}, Relationship: apiv1beta1.Relationship_CREATOR},
 	}
 	expectedJobs = append(expectedJobs, commonExpectedJob)
 	expectedJobsEmpty := []*apiv1beta1.Job{}

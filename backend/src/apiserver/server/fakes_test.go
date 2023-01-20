@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,7 +36,17 @@ import (
 )
 
 const (
-	invalidPipelineVersionId = "not_exist_pipeline_version"
+	invalidPipelineVersionId   = "not_exist_pipeline_version"
+	DefaultFakeUUID            = "123e4567-e89b-12d3-a456-426655440000"
+	NonDefaultFakeUUID         = "123e4567-e89b-12d3-a456-426655441000"
+	FakeUUIDOne                = "123e4567-e89b-12d3-a456-426655440001"
+	DefaultFakePipelineId      = "123e4567-e89b-12d3-a456-426655440000"
+	DefaultFakePipelineIdTwo   = "123e4567-e89b-12d3-a456-426655440001"
+	DefaultFakePipelineIdThree = "123e4567-e89b-12d3-a456-426655440002"
+	DefaultFakePipelineIdFour  = "123e4567-e89b-12d3-a456-426655440003"
+	DefaultFakePipelineIdFive  = "123e4567-e89b-12d3-a456-426655440004"
+	DefaultFakePipelineIdSix   = "123e4567-e89b-12d3-a456-426655440005"
+	DefaultFakePipelineIdSeven = "123e4567-e89b-12d3-a456-426655440006"
 )
 
 var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
@@ -92,7 +102,7 @@ var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
 var validReference = []*apiv1beta1.ResourceReference{
 	{
 		Key: &apiv1beta1.ResourceKey{
-			Type: apiv1beta1.ResourceType_EXPERIMENT, Id: common.DefaultFakeUUID},
+			Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID},
 		Relationship: apiv1beta1.Relationship_OWNER,
 	},
 }
@@ -101,14 +111,14 @@ var validReferencesOfExperimentAndPipelineVersion = []*apiv1beta1.ResourceRefere
 	{
 		Key: &apiv1beta1.ResourceKey{
 			Type: apiv1beta1.ResourceType_EXPERIMENT,
-			Id:   common.DefaultFakeUUID,
+			Id:   DefaultFakeUUID,
 		},
 		Relationship: apiv1beta1.Relationship_OWNER,
 	},
 	{
 		Key: &apiv1beta1.ResourceKey{
 			Type: apiv1beta1.ResourceType_PIPELINE_VERSION,
-			Id:   common.DefaultFakeUUID,
+			Id:   DefaultFakeUUID,
 		},
 		Relationship: apiv1beta1.Relationship_CREATOR,
 	},
@@ -118,7 +128,7 @@ var referencesOfExperimentAndInvalidPipelineVersion = []*apiv1beta1.ResourceRefe
 	{
 		Key: &apiv1beta1.ResourceKey{
 			Type: apiv1beta1.ResourceType_EXPERIMENT,
-			Id:   common.DefaultFakeUUID,
+			Id:   DefaultFakeUUID,
 		},
 		Relationship: apiv1beta1.Relationship_OWNER,
 	},
@@ -228,11 +238,11 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 		},
 	)
 	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.NonDefaultFakeUUID, nil))
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
 	_, err = resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version",
-			PipelineId: common.DefaultFakeUUID,
+			PipelineId: DefaultFakeUUID,
 		},
 	)
 	return clientManager, resourceManager, experiment
@@ -272,11 +282,11 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	_, err = resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version",
-			PipelineId: common.DefaultFakeUUID,
+			PipelineId: DefaultFakeUUID,
 		},
 	)
 	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.NonDefaultFakeUUID, nil))
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	// Create another pipeline and then pipeline version.
 	p1, err := resourceManager.CreatePipeline(
@@ -303,7 +313,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	_, err = resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "another_pipeline_version",
-			PipelineId: common.NonDefaultFakeUUID,
+			PipelineId: NonDefaultFakeUUID,
 		},
 	)
 	assert.Nil(t, err)

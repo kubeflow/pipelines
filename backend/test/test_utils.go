@@ -75,7 +75,7 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
 	for _, p := range pipelines {
-		pipelineVersions, _, _, err := client.ListPipelineVersions(&pipelineparams.ListPipelineVersionsV1Params{ResourceKeyID: util.StringPointer(p.ID), ResourceKeyType: util.StringPointer("pipeline")})
+		pipelineVersions, _, _, err := client.ListPipelineVersions(&pipelineparams.ListPipelineVersionsV1Params{ResourceKeyID: util.StringPointer(p.ID), ResourceKeyType: util.StringPointer("PIPELINE")})
 		assert.Nil(t, err)
 		for _, pv := range pipelineVersions {
 			assert.Nil(t, client.DeletePipelineVersion(&pipelineparams.DeletePipelineVersionV1Params{VersionID: pv.ID}))

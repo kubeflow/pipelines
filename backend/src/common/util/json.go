@@ -47,13 +47,13 @@ func MarshalJsonWithError(v interface{}) ([]byte, error) {
 // Converts a []byte array into an interface
 func UnmarshalJsonWithError(data interface{}, v *interface{}) error {
 	var bytes []byte
-	switch data.(type) {
+	switch data := data.(type) {
 	case string:
-		bytes = []byte(data.(string))
+		bytes = []byte(data)
 	case []byte:
-		bytes = data.([]byte)
+		bytes = data
 	case *[]byte:
-		bytes = data.([]byte)
+		bytes = *data
 	default:
 		return NewInvalidInputError("Unmarshalling %T is not implemented.", data)
 	}

@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ func TestCreateExperimentV1(t *testing.T) {
 	result, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV1beta1.Experiment{
-		Id:           common.DefaultFakeUUID,
+		Id:           DefaultFakeUUID,
 		Name:         "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
@@ -69,7 +69,7 @@ func TestCreateExperiment(t *testing.T) {
 	result, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV2beta1.Experiment{
-		ExperimentId: common.DefaultFakeUUID,
+		ExperimentId: DefaultFakeUUID,
 		DisplayName:  "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
@@ -214,7 +214,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 	result, err := server.CreateExperimentV1(ctx, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV1beta1.Experiment{
-		Id:                 common.DefaultFakeUUID,
+		Id:                 DefaultFakeUUID,
 		Name:               "exp1",
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
@@ -242,7 +242,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 	result, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV2beta1.Experiment{
-		ExperimentId: common.DefaultFakeUUID,
+		ExperimentId: DefaultFakeUUID,
 		DisplayName:  "exp1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
@@ -1042,7 +1042,7 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 	}
 	_, err := runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run2 := &apiV1beta1.Run{
@@ -1051,7 +1051,7 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 	}
 	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakeUUID, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job1 := &apiV1beta1.Job{
@@ -1119,7 +1119,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// assert.Nil(t, err)
 	_, err := runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run2 := &apiV1beta1.Run{
@@ -1130,7 +1130,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// assert.Nil(t, err)
 	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakeUUID, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job1 := &apiV1beta1.Job{

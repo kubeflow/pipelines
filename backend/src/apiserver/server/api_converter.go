@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,17 +37,15 @@ import (
 // Supports both v1beta1 abd v2beta1 API.
 func toModelExperiment(e interface{}) (*model.Experiment, error) {
 	var namespace, name, description string
-	switch e.(type) {
+	switch apiExperiment := e.(type) {
 	case *apiv1beta1.Experiment:
-		apiExperimentV1 := e.(*apiv1beta1.Experiment)
-		name = apiExperimentV1.GetName()
-		namespace = getNamespaceFromResourceReferenceV1(apiExperimentV1.GetResourceReferences())
-		description = apiExperimentV1.GetDescription()
+		name = apiExperiment.GetName()
+		namespace = getNamespaceFromResourceReferenceV1(apiExperiment.GetResourceReferences())
+		description = apiExperiment.GetDescription()
 	case *apiv2beta1.Experiment:
-		apiExperimentV2 := e.(*apiv2beta1.Experiment)
-		name = apiExperimentV2.GetDisplayName()
-		namespace = apiExperimentV2.GetNamespace()
-		description = apiExperimentV2.GetDescription()
+		name = apiExperiment.GetDisplayName()
+		namespace = apiExperiment.GetNamespace()
+		description = apiExperiment.GetDescription()
 	default:
 		return nil, util.NewUnknownApiVersionError("Experiment", e)
 	}
@@ -83,14 +81,14 @@ func toApiExperimentV1(experiment *model.Experiment) *apiv1beta1.Experiment {
 			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
-	storageState := apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
+	var storageState apiv1beta1.Experiment_StorageState
 	switch experiment.StorageState {
 	case "AVAILABLE", "STORAGESTATE_AVAILABLE":
 		storageState = apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"])
 	case "ARCHIVED", "STORAGESTATE_ARCHIVED":
 		storageState = apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"])
 	default:
-		return nil
+		storageState = apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
 	}
 	return &apiv1beta1.Experiment{
 		Id:                 experiment.UUID,
@@ -109,14 +107,14 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 	if experiment == nil {
 		return &apiv2beta1.Experiment{}
 	}
-	storageState := apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
+	var storageState apiv2beta1.Experiment_StorageState
 	switch experiment.StorageState {
 	case "AVAILABLE", "STORAGESTATE_AVAILABLE":
 		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["AVAILABLE"])
 	case "ARCHIVED", "STORAGESTATE_ARCHIVED":
 		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"])
 	default:
-		return nil
+		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
 	}
 	return &apiv2beta1.Experiment{
 		ExperimentId: experiment.UUID,
@@ -153,21 +151,19 @@ func toApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment 
 func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 	var uuid, name, namespace, description string
 	var createTime int64
-	switch p.(type) {
+	switch apiPipeline := p.(type) {
 	case *apiv1beta1.Pipeline:
-		apiPipelineV1 := p.(*apiv1beta1.Pipeline)
-		namespace = getNamespaceFromResourceReferenceV1(apiPipelineV1.GetResourceReferences())
-		uuid = apiPipelineV1.GetId()
-		createTime = apiPipelineV1.GetCreatedAt().GetSeconds()
-		name = apiPipelineV1.GetName()
-		description = apiPipelineV1.GetDescription()
+		namespace = getNamespaceFromResourceReferenceV1(apiPipeline.GetResourceReferences())
+		uuid = apiPipeline.GetId()
+		createTime = apiPipeline.GetCreatedAt().GetSeconds()
+		name = apiPipeline.GetName()
+		description = apiPipeline.GetDescription()
 	case *apiv2beta1.Pipeline:
-		apiPipelineV2 := p.(*apiv2beta1.Pipeline)
-		namespace = apiPipelineV2.GetNamespace()
-		uuid = apiPipelineV2.GetPipelineId()
-		createTime = apiPipelineV2.GetCreatedAt().GetSeconds()
-		name = apiPipelineV2.GetDisplayName()
-		description = apiPipelineV2.GetDescription()
+		namespace = apiPipeline.GetNamespace()
+		uuid = apiPipeline.GetPipelineId()
+		createTime = apiPipeline.GetCreatedAt().GetSeconds()
+		name = apiPipeline.GetDisplayName()
+		description = apiPipeline.GetDescription()
 	default:
 		return nil, util.NewUnknownApiVersionError("Pipeline", p)
 	}
@@ -335,9 +331,9 @@ func toApiPipelines(pipelines []*model.Pipeline) []*apiv2beta1.Pipeline {
 func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 	var uuid, name, description, pipelineId, pipelineSpec, codeUrl, parameters string
 	var createTime int64
-	switch p.(type) {
+	switch p := p.(type) {
 	case *apiv1beta1.PipelineVersion:
-		apiPipelineVersionV1 := p.(*apiv1beta1.PipelineVersion)
+		apiPipelineVersionV1 := p
 		if codeUrl = apiPipelineVersionV1.GetCodeSourceUrl(); codeUrl == "" {
 			if apiPipelineVersionV1.GetPackageUrl() != nil {
 				codeUrl = apiPipelineVersionV1.GetPackageUrl().GetPipelineUrl()
@@ -355,7 +351,7 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		description = apiPipelineVersionV1.GetDescription()
 		pipelineSpec = ""
 	case *apiv1beta1.Pipeline:
-		apiPipelineV1 := p.(*apiv1beta1.Pipeline)
+		apiPipelineV1 := p
 		apiPipelineVersionV1 := apiPipelineV1.GetDefaultVersion()
 		if apiPipelineVersionV1 == nil {
 			apiPipelineVersionV1 = &apiv1beta1.PipelineVersion{}
@@ -382,17 +378,17 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 				}
 				apiResourceRefs = apiResourceRefsNew
 			}
-			apiPipelineVersionV1.ResourceReferences = append(
-				apiResourceRefs,
-				&apiv1beta1.ResourceReference{
-					Key: &apiv1beta1.ResourceKey{
-						Id:   newPipelineId,
-						Type: apiv1beta1.ResourceType_PIPELINE,
-					},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			)
 		}
+		apiPipelineVersionV1.ResourceReferences = append(
+			apiResourceRefs,
+			&apiv1beta1.ResourceReference{
+				Key: &apiv1beta1.ResourceKey{
+					Id:   newPipelineId,
+					Type: apiv1beta1.ResourceType_PIPELINE,
+				},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+		)
 
 		// Infer Parameters from the parent if they are missing or invalid
 		if apiPipelineVersionV1.GetParameters() == nil && apiPipelineV1.GetParameters() != nil {
@@ -414,7 +410,7 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 
 		return toModelPipelineVersion(apiPipelineVersionV1)
 	case *apiv2beta1.PipelineVersion:
-		apiPipelineVersionV2 := p.(*apiv2beta1.PipelineVersion)
+		apiPipelineVersionV2 := p
 		spec, err := protobufStructToYamlString(apiPipelineVersionV2.GetPipelineSpec())
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to convert API pipeline version to internal pipeline version representation due to pipeline spec conversion error")
@@ -646,10 +642,10 @@ func toModelParameters(obj interface{}) (string, error) {
 	if obj == nil {
 		return "", nil
 	}
-	switch obj.(type) {
+	switch obj := obj.(type) {
 	case util.SpecParameters:
 		// This will translate to an array of parameters
-		specParams := obj.(util.SpecParameters)
+		specParams := obj
 		paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, specParams)
 		if err != nil {
 			return "", util.NewInternalServerError(err, "Failed to convert an array of SpecParameters to their internal representation")
@@ -663,7 +659,7 @@ func toModelParameters(obj interface{}) (string, error) {
 		}
 		return paramsString, nil
 	case []*apiv1beta1.Parameter:
-		apiParams := obj.([]*apiv1beta1.Parameter)
+		apiParams := obj
 		var params util.SpecParameters
 		for _, apiParam := range apiParams {
 			if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
@@ -681,7 +677,7 @@ func toModelParameters(obj interface{}) (string, error) {
 		return toModelParameters(params)
 	case map[string]*structpb.Value:
 		// This will translate to a map of parameters
-		protoStructParams := obj.(map[string]*structpb.Value)
+		protoStructParams := obj
 		paramsBytes, err := json.Marshal(protoStructParams)
 		if err != nil {
 			return "", util.NewInternalServerError(err, "Failed to marshal RuntimeConfig API parameters as string")
@@ -692,14 +688,14 @@ func toModelParameters(obj interface{}) (string, error) {
 		}
 		return paramsString, nil
 	case *apiv1beta1.PipelineSpec_RuntimeConfig:
-		runtimeConfig := obj.(*apiv1beta1.PipelineSpec_RuntimeConfig)
+		runtimeConfig := obj
 		protoParams := runtimeConfig.GetParameters()
 		if protoParams == nil {
 			return "", util.NewInternalServerError(util.NewInvalidInputError("Parameters cannot be nil"), "Failed to convert v1beta1 API runtime config to internal parameters representation")
 		}
 		return toModelParameters(protoParams)
 	case *apiv2beta1.RuntimeConfig:
-		runtimeConfig := obj.(*apiv2beta1.RuntimeConfig)
+		runtimeConfig := obj
 		protoParams := runtimeConfig.GetParameters()
 		if protoParams == nil {
 			return "", util.NewInternalServerError(util.NewInvalidInputError("Parameters cannot be nil"), "Failed to convert API runtime config to internal parameters representation")
@@ -758,11 +754,10 @@ func toModelTrigger(t interface{}) (*model.Trigger, error) {
 	if t == nil {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("API Trigger cannot be nil"), "Failed to convert API trigger to its internal representation")
 	}
-	switch t.(type) {
+	switch apiTrigger := t.(type) {
 	case *apiv2beta1.Trigger:
-		apiTriggerV2 := t.(*apiv2beta1.Trigger)
-		if apiTriggerV2.GetCronSchedule() != nil {
-			cronSchedule := apiTriggerV2.GetCronSchedule()
+		if apiTrigger.GetCronSchedule() != nil {
+			cronSchedule := apiTrigger.GetCronSchedule()
 			modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
 			if cronSchedule.StartTime != nil {
 				modelTrigger.CronScheduleStartTimeInSec = &cronSchedule.StartTime.Seconds
@@ -771,21 +766,20 @@ func toModelTrigger(t interface{}) (*model.Trigger, error) {
 				modelTrigger.CronScheduleEndTimeInSec = &cronSchedule.EndTime.Seconds
 			}
 		}
-		if apiTriggerV2.GetPeriodicSchedule() != nil {
-			periodicSchedule := apiTriggerV2.GetPeriodicSchedule()
+		if apiTrigger.GetPeriodicSchedule() != nil {
+			periodicSchedule := apiTrigger.GetPeriodicSchedule()
 			modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
 				IntervalSecond: &periodicSchedule.IntervalSecond}
-			if apiTriggerV2.GetPeriodicSchedule().StartTime != nil {
+			if apiTrigger.GetPeriodicSchedule().StartTime != nil {
 				modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
 			}
-			if apiTriggerV2.GetPeriodicSchedule().EndTime != nil {
+			if apiTrigger.GetPeriodicSchedule().EndTime != nil {
 				modelTrigger.PeriodicScheduleEndTimeInSec = &periodicSchedule.EndTime.Seconds
 			}
 		}
 	case *apiv1beta1.Trigger:
-		apiTriggerV1 := t.(*apiv1beta1.Trigger)
-		if apiTriggerV1.GetCronSchedule() != nil {
-			cronSchedule := apiTriggerV1.GetCronSchedule()
+		if apiTrigger.GetCronSchedule() != nil {
+			cronSchedule := apiTrigger.GetCronSchedule()
 			modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
 			if cronSchedule.StartTime != nil {
 				modelTrigger.CronScheduleStartTimeInSec = &cronSchedule.StartTime.Seconds
@@ -794,14 +788,14 @@ func toModelTrigger(t interface{}) (*model.Trigger, error) {
 				modelTrigger.CronScheduleEndTimeInSec = &cronSchedule.EndTime.Seconds
 			}
 		}
-		if apiTriggerV1.GetPeriodicSchedule() != nil {
-			periodicSchedule := apiTriggerV1.GetPeriodicSchedule()
+		if apiTrigger.GetPeriodicSchedule() != nil {
+			periodicSchedule := apiTrigger.GetPeriodicSchedule()
 			modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
 				IntervalSecond: &periodicSchedule.IntervalSecond}
-			if apiTriggerV1.GetPeriodicSchedule().StartTime != nil {
+			if apiTrigger.GetPeriodicSchedule().StartTime != nil {
 				modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
 			}
-			if apiTriggerV1.GetPeriodicSchedule().EndTime != nil {
+			if apiTrigger.GetPeriodicSchedule().EndTime != nil {
 				modelTrigger.PeriodicScheduleEndTimeInSec = &periodicSchedule.EndTime.Seconds
 			}
 		}
@@ -984,9 +978,9 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		return nil, util.NewInvalidInputError("Failed to convert API runtime config to its internal representation. Input cannot be nil")
 	}
 	var params, root string
-	switch obj.(type) {
+	switch obj := obj.(type) {
 	case *apiv1beta1.PipelineSpec_RuntimeConfig:
-		apiRuntimeConfigV1 := obj.(*apiv1beta1.PipelineSpec_RuntimeConfig)
+		apiRuntimeConfigV1 := obj
 		p, err := toModelParameters(apiRuntimeConfigV1.GetParameters())
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to convert v1beta1 API runtime config to its internal representation due to parameters conversion error")
@@ -994,7 +988,7 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		params = p
 		root = apiRuntimeConfigV1.GetPipelineRoot()
 	case *apiv2beta1.RuntimeConfig:
-		apiRuntimeConfigV2 := obj.(*apiv2beta1.RuntimeConfig)
+		apiRuntimeConfigV2 := obj
 		p, err := toModelParameters(apiRuntimeConfigV2.GetParameters())
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to convert API runtime config to its internal representation due to parameters conversion error")
@@ -1002,7 +996,7 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		params = p
 		root = apiRuntimeConfigV2.GetPipelineRoot()
 	case *pipelinespec.PipelineJob_RuntimeConfig:
-		specRuntimeConfig := obj.(*pipelinespec.PipelineJob_RuntimeConfig)
+		specRuntimeConfig := obj
 		p, err := toModelParameters(specRuntimeConfig.GetParameterValues())
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to convert PipelineSpec's runtime config to its internal representation due to parameters conversion error")
@@ -1073,19 +1067,17 @@ func toPipelineSpecRuntimeConfig(cfg *model.RuntimeConfig) *pipelinespec.Pipelin
 func toModelRunMetric(m interface{}, runId string) (*model.RunMetric, error) {
 	var name, nodeId, format string
 	var val float64
-	switch m.(type) {
+	switch apiRunMetric := m.(type) {
 	case *apiv1beta1.RunMetric:
-		metric := m.(*apiv1beta1.RunMetric)
-		name = metric.GetName()
-		nodeId = metric.GetNodeId()
-		val = metric.GetNumberValue()
-		format = metric.GetFormat().String()
+		name = apiRunMetric.GetName()
+		nodeId = apiRunMetric.GetNodeId()
+		val = apiRunMetric.GetNumberValue()
+		format = apiRunMetric.GetFormat().String()
 	case *apiv2beta1.RunMetric:
-		metric := m.(*apiv2beta1.RunMetric)
-		name = metric.GetDisplayName()
-		nodeId = metric.GetNodeId()
-		val = metric.GetNumberValue()
-		format = metric.GetFormat().String()
+		name = apiRunMetric.GetDisplayName()
+		nodeId = apiRunMetric.GetNodeId()
+		val = apiRunMetric.GetNumberValue()
+		format = apiRunMetric.GetFormat().String()
 	default:
 		return nil, util.NewUnknownApiVersionError("RunMetric", m)
 	}
@@ -1209,9 +1201,9 @@ func toApiRunMetricsWithErrors(reportResults []map[string]string, fetchedRunMetr
 // Supports both v1beta1 and v2beta1 API.
 // TODO(gkcalat): update this to extend run details.
 func toModelRunDetails(r interface{}) (*model.RunDetails, error) {
-	switch r.(type) {
+	switch r := r.(type) {
 	case *apiv2beta1.Run:
-		apiRunV2 := r.(*apiv2beta1.Run)
+		apiRunV2 := r
 		modelRunDetails := &model.RunDetails{
 			CreatedAtInSec:       apiRunV2.GetCreatedAt().GetSeconds(),
 			ScheduledAtInSec:     apiRunV2.GetScheduledAt().GetSeconds(),
@@ -1229,14 +1221,14 @@ func toModelRunDetails(r interface{}) (*model.RunDetails, error) {
 		}
 		return modelRunDetails, nil
 	case *apiv2beta1.RunDetails:
-		return toModelRunDetails(apiv2beta1.Run{RunDetails: r.(*apiv2beta1.RunDetails)})
+		return toModelRunDetails(apiv2beta1.Run{RunDetails: r})
 	case *apiv1beta1.RunDetail:
-		apiRunV1 := r.(*apiv1beta1.RunDetail).GetRun()
+		apiRunV1 := r.GetRun()
 		modelRunDetails, err := toModelRunDetails(apiRunV1)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API run detail to its internal representation")
 		}
-		apiRuntimeV1 := r.(*apiv1beta1.RunDetail).GetPipelineRuntime()
+		apiRuntimeV1 := r.GetPipelineRuntime()
 		modelRunDetails.PipelineRuntimeManifest = apiRuntimeV1.GetPipelineManifest()
 		modelRunDetails.WorkflowRuntimeManifest = apiRuntimeV1.GetWorkflowManifest()
 		return modelRunDetails, nil
@@ -1257,12 +1249,12 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	var pipelineRoot, storageState, serviceAcc string
 	var createTime, scheduleTime, finishTime int64
 	var modelMetrics []*model.RunMetric
-	switch r.(type) {
+	switch r := r.(type) {
 	case *apiv1beta1.Run:
-		return toModelRun(&apiv1beta1.RunDetail{Run: r.(*apiv1beta1.Run)})
+		return toModelRun(&apiv1beta1.RunDetail{Run: r})
 	case *apiv1beta1.RunDetail:
-		apiRunV1 := r.(*apiv1beta1.RunDetail).GetRun()
-		apiPipelineRuntimeV1 := r.(*apiv1beta1.RunDetail).GetPipelineRuntime()
+		apiRunV1 := r.GetRun()
+		apiPipelineRuntimeV1 := r.GetPipelineRuntime()
 		// TODO(gkcalat): deserialize these two fields into runtime details of a run.
 		runtimePipelineSpec = apiPipelineRuntimeV1.GetPipelineManifest()
 		runtimeWorkflowSpec = apiPipelineRuntimeV1.GetWorkflowManifest()
@@ -1320,13 +1312,13 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		workflowSpec = apiRunV1.GetPipelineSpec().GetWorkflowManifest()
 		serviceAcc = apiRunV1.GetServiceAccount()
 	case *apiv2beta1.Run:
+		apiRunV2 := r
 		namespace = ""
 		pipelineId = ""
 		workflowSpec = ""
 		// TODO(gkcalat): implement runtime details of a run logic based on the apiRunV2.RuDetails().
 		runtimePipelineSpec = ""
 		runtimeWorkflowSpec = ""
-		apiRunV2 := r.(*apiv2beta1.Run)
 		runName = apiRunV2.GetDisplayName()
 		if runName == "" {
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run name cannot be empty"), "Failed to convert a API run detail to its internal representation")
@@ -1660,9 +1652,9 @@ func toModelTask(t interface{}) (*model.Task, error) {
 	var taskId, namespace, pipelineName, runId, executionId, fingerprint string
 	var name, parentTaskId, state, stateHistory, inputs, outputs string
 	var createTime, startTime, finishTime int64
-	switch t.(type) {
+	switch t := t.(type) {
 	case *apiv1beta1.Task:
-		apiTaskV1 := t.(*apiv1beta1.Task)
+		apiTaskV1 := t
 		namespace = apiTaskV1.GetNamespace()
 		taskId = apiTaskV1.GetId()
 		pipelineName = apiTaskV1.GetPipelineName()
@@ -1679,8 +1671,8 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		inputs = ""
 		outputs = ""
 	case *apiv2beta1.Run:
-		apiRunV2 := t.(*apiv2beta1.Run)
-		apiTaskDetailV2 := &apiv2beta1.PipelineTaskDetail{}
+		apiRunV2 := t
+		var apiTaskDetailV2 *apiv2beta1.PipelineTaskDetail
 		if apiRunV2.GetRunDetails() != nil {
 			if apiRunV2.GetRunDetails().GetTaskDetails() != nil {
 				if len(apiRunV2.GetRunDetails().GetTaskDetails()) > 0 {
@@ -1697,7 +1689,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		return toModelTask(apiTaskDetailV2)
 	// TODO(gkcalat): implement runtime details of a task below.
 	case *apiv2beta1.PipelineTaskDetail:
-		apiTaskDetailV2 := t.(*apiv2beta1.PipelineTaskDetail)
+		apiTaskDetailV2 := t
 		namespace = ""
 		taskId = apiTaskDetailV2.GetTaskId()
 		pipelineName = ""
@@ -1793,111 +1785,107 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	var noCatchup, isEnabled bool
 	var trigger *model.Trigger
 	resRefs := make([]*model.ResourceReference, 0)
-	switch j.(type) {
+	switch apiJob := j.(type) {
 	case *apiv1beta1.Job:
-		apiJobV1 := j.(*apiv1beta1.Job)
-
-		pipelineId = apiJobV1.GetPipelineSpec().GetPipelineId()
+		pipelineId = apiJob.GetPipelineSpec().GetPipelineId()
 		if pipelineId == "" {
-			pipelineId = getPipelineIdFromResourceReferencesV1(apiJobV1.GetResourceReferences())
+			pipelineId = getPipelineIdFromResourceReferencesV1(apiJob.GetResourceReferences())
 		}
 
-		pipelineVersionId = getPipelineVersionFromResourceReferencesV1(apiJobV1.GetResourceReferences())
+		pipelineVersionId = getPipelineVersionFromResourceReferencesV1(apiJob.GetResourceReferences())
 		// if pipelineId == "" && pipelineVersionId == "" {
 		// 	return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline and pipeline version ids cannot be empty"), "Failed to convert a v1beta1 API recurring run to its internal representation")
 		// }
 
-		jobName = apiJobV1.GetName()
+		jobName = apiJob.GetName()
 		if jobName == "" {
-			jobName = apiJobV1.GetPipelineSpec().GetPipelineName()
+			jobName = apiJob.GetPipelineSpec().GetPipelineName()
 		}
 		if jobName == "" {
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("Job name cannot be empty"), "Failed to convert a v1beta1 API recurring run to its internal representation")
 		}
 
-		if t, err := toModelTrigger(apiJobV1.GetTrigger()); err == nil {
+		if t, err := toModelTrigger(apiJob.GetTrigger()); err == nil {
 			trigger = t
 		} else {
 			return nil, util.Wrap(err, "Failed to convert a v1beta1 API recurring run to its internal representation due to trigger parsing error")
 		}
 
 		// TODO(gkcalat): consider deprecating Enabled field in v1beta1/job.proto
-		isEnabled = apiJobV1.GetEnabled()
+		isEnabled = apiJob.GetEnabled()
 		if !isEnabled {
-			if flag, err := toModelJobEnabled(apiJobV1.GetMode()); err != nil {
+			if flag, err := toModelJobEnabled(apiJob.GetMode()); err != nil {
 				return nil, util.Wrap(err, "Failed to convert a v1beta1 API recurring run to its internal representation due to mode parsing error")
 			} else {
 				isEnabled = flag
 			}
 		}
 
-		jobId = apiJobV1.GetId()
-		desc = apiJobV1.GetDescription()
-		namespace = getNamespaceFromResourceReferenceV1(apiJobV1.GetResourceReferences())
-		experimentId = getExperimentIdFromResourceReferencesV1(apiJobV1.GetResourceReferences())
-		serviceAcc = apiJobV1.GetServiceAccount()
-		noCatchup = apiJobV1.GetNoCatchup()
-		maxConcur = apiJobV1.GetMaxConcurrency()
-		createTime = apiJobV1.GetCreatedAt().GetSeconds()
-		updateTime = apiJobV1.GetUpdatedAt().GetSeconds()
+		jobId = apiJob.GetId()
+		desc = apiJob.GetDescription()
+		namespace = getNamespaceFromResourceReferenceV1(apiJob.GetResourceReferences())
+		experimentId = getExperimentIdFromResourceReferencesV1(apiJob.GetResourceReferences())
+		serviceAcc = apiJob.GetServiceAccount()
+		noCatchup = apiJob.GetNoCatchup()
+		maxConcur = apiJob.GetMaxConcurrency()
+		createTime = apiJob.GetCreatedAt().GetSeconds()
+		updateTime = apiJob.GetUpdatedAt().GetSeconds()
 
-		params, err := toModelParameters(apiJobV1.GetPipelineSpec().GetParameters())
+		params, err := toModelParameters(apiJob.GetPipelineSpec().GetParameters())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API recurring run to its internal representation due to parameters parsing error")
 		}
 		specParams = params
 
-		cfg, err := toModelRuntimeConfig(apiJobV1.GetPipelineSpec().GetRuntimeConfig())
+		cfg, err := toModelRuntimeConfig(apiJob.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API recurring run to its internal representation due to runtime config conversion error")
 		}
 		cfgParams = cfg.Parameters
 		pipelineRoot = cfg.PipelineRoot
 
-		pipelineSpec = apiJobV1.GetPipelineSpec().GetPipelineManifest()
-		workflowSpec = apiJobV1.GetPipelineSpec().GetWorkflowManifest()
+		pipelineSpec = apiJob.GetPipelineSpec().GetPipelineManifest()
+		workflowSpec = apiJob.GetPipelineSpec().GetWorkflowManifest()
 		k8sName = jobName
 	case *apiv2beta1.RecurringRun:
-		apiRecurringRunV2 := j.(*apiv2beta1.RecurringRun)
-
-		pipelineVersionId = apiRecurringRunV2.GetPipelineVersionId()
-		if spec, err := protobufStructToYamlString(apiRecurringRunV2.GetPipelineSpec()); err == nil {
+		pipelineVersionId = apiJob.GetPipelineVersionId()
+		if spec, err := protobufStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
 			pipelineSpec = spec
 		} else {
 			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
 		}
 
-		cfg, err := toModelRuntimeConfig(apiRecurringRunV2.GetRuntimeConfig())
+		cfg, err := toModelRuntimeConfig(apiJob.GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to runtime config conversion error")
 		}
 		cfgParams = cfg.Parameters
 		pipelineRoot = cfg.PipelineRoot
 
-		jobName = apiRecurringRunV2.GetDisplayName()
+		jobName = apiJob.GetDisplayName()
 		if jobName == "" {
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run's name cannot be empty"), "Failed to convert a API recurring run to its internal representation")
 		}
 
-		if t, err := toModelTrigger(apiRecurringRunV2.GetTrigger()); err == nil {
+		if t, err := toModelTrigger(apiJob.GetTrigger()); err == nil {
 			trigger = t
 		} else {
 			return nil, util.Wrap(err, "Failed to convert a API recurring run to its internal representation due to trigger parsing error")
 		}
-		isEnabled, err = toModelJobEnabled(apiRecurringRunV2.GetMode())
+		isEnabled, err = toModelJobEnabled(apiJob.GetMode())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert a API recurring run to its internal representation due to parsing error occurred in its mode field")
 		}
 
-		jobId = apiRecurringRunV2.GetRecurringRunId()
-		desc = apiRecurringRunV2.GetDescription()
-		namespace = apiRecurringRunV2.GetNamespace()
-		experimentId = apiRecurringRunV2.GetExperimentId()
-		serviceAcc = apiRecurringRunV2.GetServiceAccount()
-		noCatchup = apiRecurringRunV2.GetNoCatchup()
-		maxConcur = apiRecurringRunV2.GetMaxConcurrency()
-		createTime = apiRecurringRunV2.GetCreatedAt().GetSeconds()
-		updateTime = apiRecurringRunV2.GetUpdatedAt().GetSeconds()
+		jobId = apiJob.GetRecurringRunId()
+		desc = apiJob.GetDescription()
+		namespace = apiJob.GetNamespace()
+		experimentId = apiJob.GetExperimentId()
+		serviceAcc = apiJob.GetServiceAccount()
+		noCatchup = apiJob.GetNoCatchup()
+		maxConcur = apiJob.GetMaxConcurrency()
+		createTime = apiJob.GetCreatedAt().GetSeconds()
+		updateTime = apiJob.GetUpdatedAt().GetSeconds()
 
 		k8sName = jobName
 		specParams = ""
@@ -1962,9 +1950,8 @@ func toModelJobEnabled(m interface{}) (bool, error) {
 	if m == nil {
 		return false, nil
 	}
-	switch m.(type) {
+	switch mode := m.(type) {
 	case apiv2beta1.RecurringRun_Mode:
-		mode := m.(apiv2beta1.RecurringRun_Mode)
 		switch mode {
 		case apiv2beta1.RecurringRun_ENABLE:
 			return true, nil
@@ -1974,7 +1961,6 @@ func toModelJobEnabled(m interface{}) (bool, error) {
 			return false, util.NewInternalServerError(util.NewInvalidInputError("Recurring run's mode is invalid: %v", mode), "Failed to convert API recurring run's mode to its internal representation")
 		}
 	case apiv1beta1.Job_Mode:
-		mode := m.(apiv1beta1.Job_Mode)
 		switch mode {
 		case apiv1beta1.Job_ENABLED:
 			return true, nil
