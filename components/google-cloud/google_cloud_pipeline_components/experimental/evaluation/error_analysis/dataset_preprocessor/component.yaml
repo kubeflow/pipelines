@@ -73,7 +73,7 @@ outputs:
   - { name: training_data_items_storage_source, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.8
+    image: gcr.io/ml-pipeline/model-evaluation:v0.8.1
     command:
       - python
       - /dataset_preprocessor.py
