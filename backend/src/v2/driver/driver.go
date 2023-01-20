@@ -315,8 +315,8 @@ func makePodSpecPatch(
 
 	// Convert environment variables
 	userEnvVar := make([]k8score.EnvVar, 0)
-	for _, envVar := range container.Env {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.Name, Value: envVar.Value})
+	for _, envVar := range container.GetEnv() {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
