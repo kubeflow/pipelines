@@ -134,13 +134,13 @@ Technically no breaking changes but compilation error could be exposed in a diff
 # 2.0.0-beta.3
 
 ## Major Features and Improvements
+* Add support for ConcatPlaceholder and IfPresentPlaceholder in containerized component [\#8145](https://github.com/kubeflow/pipelines/pull/8145)
 
 ## Breaking Changes
 
 ### For Pipeline Authors
 
 ### For Component Authors
-* Add support for ConcatPlaceholder and IfPresentPlaceholder in containerized component [\#8145](https://github.com/kubeflow/pipelines/pull/8145)
 ## Deprecations
 
 ## Bug Fixes and Other Changes
