@@ -61,7 +61,7 @@ const (
 	clientBurst = "ClientBurst"
 )
 
-// Container for all service clients
+// Container for all service clients.
 type ClientManager struct {
 	db                        *storage.DB
 	experimentStore           storage.ExperimentStoreInterface
@@ -227,7 +227,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// If pipeline_versions table is introduced into DB for the first time,
 	// it needs initialization or data backfill.
 	var tableNames []string
-	var initializePipelineVersions = true
+	initializePipelineVersions := true
 	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
 	for _, tableName := range tableNames {
 		if tableName == "pipeline_versions" {
@@ -319,16 +319,19 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if err != nil {
 		glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
 	}
+	if err := rows.Err(); err != nil {
+		glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
+	}
 	if rows.Next() {
 		db.Exec(`drop index idx_pipeline_version_uuid_name on pipeline_versions`)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
 // Initialize the connection string for connecting to Mysql database
-// Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
+// Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True.
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
 		common.GetStringConfigWithDefault(mysqlUser, "root"),
@@ -342,7 +345,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 	var db *sql.DB
 	var err error
-	var operation = func() error {
+	operation := func() error {
 		db, err = sql.Open(driverName, mysqlConfig.FormatDSN())
 		if err != nil {
 			return err
@@ -351,7 +354,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	}
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
-	//err = backoff.Retry(operation, b)
+	// err = backoff.Retry(operation, b)
 	backoff.RetryNotify(operation, b, func(e error, duration time.Duration) {
 		glog.Errorf("%v", e)
 	})
@@ -434,7 +437,7 @@ func initLogArchive() (logArchive archive.LogArchiveInterface) {
 	return
 }
 
-// newClientManager creates and Init a new instance of ClientManager
+// newClientManager creates and Init a new instance of ClientManager.
 func newClientManager() ClientManager {
 	clientManager := ClientManager{}
 	clientManager.init()
@@ -459,7 +462,7 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	// since the minio file's path is based on the pipeline ID (and now on the
 	// implicit version ID too). Meanwhile, IDs are required to be unique inside
 	// the same resource type, so pipeline and pipeline version as two different
-	// resources useing the same ID is OK.
+	// resources using the same ID is OK.
 	// On the other hand, pipeline and its pipeline versions created after
 	// pipeline version API is introduced will have different Ids; and the minio
 	// file will be put directly into the directories for pipeline versions.
@@ -473,10 +476,13 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx.Commit()
 }
 
-func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
+func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	// check if there is any row in the run table has experiment ID being empty
 	rows, err := db.CommonDB().Query(`SELECT ExperimentUUID FROM run_details WHERE ExperimentUUID = '' LIMIT 1`)
 	if err != nil {
+		return err
+	}
+	if err := rows.Err(); err != nil {
 		return err
 	}
 	defer rows.Close()

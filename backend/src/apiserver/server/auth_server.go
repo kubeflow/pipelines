@@ -40,7 +40,8 @@ type AuthServer struct {
 }
 
 func (s *AuthServer) AuthorizeV1(ctx context.Context, request *api.AuthorizeRequest) (
-	*empty.Empty, error) {
+	*empty.Empty, error,
+) {
 	err := ValidateAuthorizeRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Authorize request is not valid")

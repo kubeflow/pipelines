@@ -120,7 +120,7 @@ func (s *RunServer) validateRun(r *model.Run) error {
 }
 
 func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if common.IsMultiUserMode() == false {
+	if !common.IsMultiUserMode() {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
@@ -353,7 +353,6 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 		return nil, util.Wrap(err, "Failed to list runs")
 	}
 	return &apiv2beta1.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
-
 }
 
 func (s *RunServer) archiveRun(ctx context.Context, runId string, experimentId string) error {

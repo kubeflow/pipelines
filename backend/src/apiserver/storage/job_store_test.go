@@ -35,7 +35,7 @@ const (
 )
 
 func initializeDbAndStore() (*DB, *JobStore) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "n1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
@@ -442,7 +442,7 @@ func TestGetJob_InternalError(t *testing.T) {
 }
 
 func TestCreateJob(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
@@ -489,7 +489,7 @@ func TestCreateJob(t *testing.T) {
 }
 
 func TestCreateJob_V2(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
@@ -544,7 +544,7 @@ func TestCreateJob_V2(t *testing.T) {
 }
 
 func TestCreateJobError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	db.Close()

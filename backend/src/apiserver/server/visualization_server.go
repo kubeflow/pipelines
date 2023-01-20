@@ -139,12 +139,12 @@ func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.Crea
 
 func isVisualizationServiceAlive(serviceURL string) error {
 	resp, err := http.Get(serviceURL)
-
 	if err != nil {
 		wrappedErr := util.Wrapf(err, "Unable to verify visualization service aliveness by sending request to %s", serviceURL)
 		glog.Error(wrappedErr)
 		return wrappedErr
 	} else if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
 		wrappedErr := errors.New(fmt.Sprintf("Unable to verify visualization service aliveness by sending request to %s and get response code: %s !", serviceURL, resp.Status))
 		glog.Error(wrappedErr)
 		return wrappedErr

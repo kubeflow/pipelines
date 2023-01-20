@@ -30,7 +30,8 @@ type ReportServer struct {
 }
 
 func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
-	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
+	request *api.ReportWorkflowRequest,
+) (*empty.Empty, error) {
 	execSpec, err := validateReportWorkflowRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed")
@@ -43,7 +44,8 @@ func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 }
 
 func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
-	request *api.ReportScheduledWorkflowRequest) (*empty.Empty, error) {
+	request *api.ReportScheduledWorkflowRequest,
+) (*empty.Empty, error) {
 	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Report scheduled workflow failed")

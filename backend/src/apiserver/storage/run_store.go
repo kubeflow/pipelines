@@ -18,14 +18,12 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/pkg/errors"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
@@ -118,8 +116,8 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
-	filterContext *model.FilterContext) (string, []interface{}, error) {
-
+	filterContext *model.FilterContext,
+) (string, []interface{}, error) {
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
 
@@ -209,14 +207,6 @@ func apply(f func(string) string, vs []string) []string {
 	return vsm
 }
 
-func (s *RunStore) toListableModels(runs []model.Run) []model.ListableDataModel {
-	models := make([]model.ListableDataModel, len(runs))
-	for i := range models {
-		models[i] = runs[i]
-	}
-	return models
-}
-
 func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
 	var runtimeParametersString, pipelineRootString string
 	if runtimeParameters.Valid {
@@ -234,17 +224,9 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 	}
 	var refs []*model.ResourceReference
 	if err := json.Unmarshal([]byte(resourceRefString.String), &refs); err != nil {
-		return nil, fmt.Errorf("Failed to parse resource references '%s'. Error: %v", resourceRefString.String, err)
+		return nil, util.Wrapf(err, "Failed to parse resource references '%s'", resourceRefString.String)
 	}
 	return refs, nil
-}
-
-func (s *RunStore) toRunMetadatas(models []model.ListableDataModel) []model.Run {
-	runMetadatas := make([]model.Run, len(models))
-	for i := range models {
-		runMetadatas[i] = models[i].(model.Run)
-	}
-	return runMetadatas
 }
 
 func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
@@ -253,7 +235,7 @@ func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
 	}
 	var metrics []*model.RunMetric
 	if err := json.Unmarshal([]byte(metricsInString.String), &metrics); err != nil {
-		return nil, fmt.Errorf("Failed to parse a run metric '%s'. Error: %v", metricsInString.String, err)
+		return nil, util.Wrapf(err, "Failed to parse a run metric '%s'", metricsInString.String)
 	}
 	return metrics, nil
 }
@@ -384,7 +366,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 }
 
 // Creates a new metric in run_metrics table if does not exist.
-func (s *RunStore) CreateMetric(metric *model.RunMetric) (err error) {
+func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 	payloadBytes, err := json.Marshal(metric)
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -398,7 +380,8 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) (err error) {
 			"Name":        metric.Name,
 			"NumberValue": metric.NumberValue,
 			"Format":      metric.Format,
-			"Payload":     string(payloadBytes)}).ToSql()
+			"Payload":     string(payloadBytes),
+		}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query for inserting a run metric: %+v", metric)
@@ -429,7 +412,6 @@ func (s *RunStore) GetMetrics(runId string) ([]*model.RunMetric, error) {
 	}
 	defer r.Close()
 	metrics, err := s.scanRowsToRunMetrics(r)
-
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
 	}
@@ -536,7 +518,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	return r, nil
 }
 
-// GetRun Get the run manifest from Workflow CRD
+// GetRun Get the run manifest from Workflow CRD.
 func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	sql, args, err := s.addMetricsAndResourceReferences(
 		sq.Select(runColumns...).
@@ -544,7 +526,6 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 			Where(sq.Eq{"UUID": runId}).
 			Limit(1), nil).
 		ToSql()
-
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
@@ -572,7 +553,8 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
-	filterContext *model.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
+	filterContext *model.FilterContext, opts *list.Options,
+) ([]*model.Run, int, string, error) {
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -598,15 +580,22 @@ func (s *RunStore) ListRuns(
 	if err != nil {
 		return errorF(err)
 	}
+	if err := rows.Err(); err != nil {
+		return errorF(err)
+	}
 	runs, err := s.scanRowsToRuns(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
@@ -615,7 +604,7 @@ func (s *RunStore) ListRuns(
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
+	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -643,7 +632,8 @@ func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int
 			"Conditions":              condition,
 			"State":                   state,
 			"FinishedAtInSec":         finishedAtInSec,
-			"WorkflowRuntimeManifest": workflowRuntimeManifest}).
+			"WorkflowRuntimeManifest": workflowRuntimeManifest,
+		}).
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {
@@ -685,7 +675,6 @@ func (s *RunStore) ArchiveRun(runId string) error {
 		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
-
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to archive run %s. error: '%v'", runId, err.Error())
@@ -708,7 +697,6 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
-
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to unarchive run %s. error: '%v'", runId, err.Error())
@@ -736,7 +724,6 @@ func (s *RunStore) TerminateRun(runId string) error {
 		model.RuntimeStateRunning.ToString(),
 		model.RuntimeStateUnspecified.ToString(),
 	)
-
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())

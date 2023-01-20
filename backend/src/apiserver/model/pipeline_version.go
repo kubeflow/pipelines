@@ -80,7 +80,7 @@ func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 	}
 }
 
-// GetModelName returns table name used as sort field prefix
+// GetModelName returns table name used as sort field prefix.
 func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
 }

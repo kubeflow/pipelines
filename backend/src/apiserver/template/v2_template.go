@@ -18,9 +18,8 @@ import (
 	"fmt"
 	"regexp"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
-
 	"github.com/ghodss/yaml"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -34,7 +33,7 @@ type V2Spec struct {
 	spec *pipelinespec.PipelineSpec
 }
 
-// Converts modelJob to ScheduledWorkflow
+// Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
 

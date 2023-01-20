@@ -36,7 +36,7 @@ func createExecutionCache(cacheKey string, cacheOutput string) *model.ExecutionC
 }
 
 func TestCreateExecutionCache(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheExpected := model.ExecutionCache{
@@ -69,7 +69,7 @@ func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 		StartedAtInSec:    1,
 		EndedAtInSec:      1,
 	}
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheStore.CreateExecutionCache(executionCache)
@@ -79,7 +79,7 @@ func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 }
 
 func TestGetExecutionCache(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 
@@ -101,7 +101,7 @@ func TestGetExecutionCache(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 
@@ -113,7 +113,7 @@ func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 
@@ -136,7 +136,7 @@ func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheToPersist := &model.ExecutionCache{
@@ -154,7 +154,7 @@ func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheToPersist := &model.ExecutionCache{
@@ -174,7 +174,7 @@ func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheToPersist := &model.ExecutionCache{
@@ -194,7 +194,7 @@ func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
 }
 
 func TestDeleteExecutionCache(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))

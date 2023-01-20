@@ -20,20 +20,16 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-var (
-	defaultDBStatus = sq.Eq{"HaveSamplesLoaded": false}
-)
+var defaultDBStatus = sq.Eq{"HaveSamplesLoaded": false}
 
 type DBStatusStoreInterface interface {
 	HaveSamplesLoaded() (bool, error)
 	MarkSampleLoaded() error
 }
 
-var (
-	dbStatusStoreColumns = []string{
-		"HaveSamplesLoaded",
-	}
-)
+var dbStatusStoreColumns = []string{
+	"HaveSamplesLoaded",
+}
 
 // Implementation of a DBStatusStoreInterface. This store read/write state of the database.
 // For now we store status like whether sample is loaded.
@@ -52,8 +48,12 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to load database status")
 	}
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to load database status")
+	}
 	next := rows.Next()
-	rows.Close() // "rows" shouldn't be used after this point.
+	defer rows.Close() // "rows" shouldn't be used after this point.
 
 	// The table is not initialized
 	if !next {
@@ -91,6 +91,9 @@ func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Error when getting load sample status")
 	}
+	if err := rows.Err(); err != nil {
+		return false, util.NewInternalServerError(err, "Error when getting load sample status")
+	}
 	defer rows.Close()
 	if rows.Next() {
 		err = rows.Scan(&haveSamplesLoaded)
@@ -117,7 +120,7 @@ func (s *DBStatusStore) MarkSampleLoaded() error {
 	return nil
 }
 
-// factory function for database status store
+// factory function for database status store.
 func NewDBStatusStore(db *DB) *DBStatusStore {
 	s := &DBStatusStore{db: db}
 	// Initialize database status table

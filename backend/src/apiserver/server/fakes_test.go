@@ -154,7 +154,7 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
-	apiExperiment := &apiv1beta1.Experiment{}
+	var apiExperiment *apiv1beta1.Experiment
 	if common.IsMultiUserMode() {
 		apiExperiment = &apiv1beta1.Experiment{
 			Name: "exp1",

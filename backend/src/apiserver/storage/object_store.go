@@ -38,7 +38,7 @@ type ObjectStoreInterface interface {
 	GetPipelineKey(pipelineId string) string
 }
 
-// Managing pipeline using Minio
+// Managing pipeline using Minio.
 type MinioObjectStore struct {
 	minioClient      MinioClientInterface
 	bucketName       string
@@ -52,7 +52,6 @@ func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
 }
 
 func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
-
 	var parts int64
 
 	if m.disableMultipart {
@@ -120,10 +119,6 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error
 		return util.NewInternalServerError(err, "Failed to unmarshal file %v: %v", filePath, err.Error())
 	}
 	return nil
-}
-
-func buildPath(folder, file string) string {
-	return folder + "/" + file
 }
 
 func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {

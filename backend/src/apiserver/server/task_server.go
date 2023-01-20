@@ -31,17 +31,17 @@ type TaskServer struct {
 func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
 	err := s.validateCreateTaskRequest(request)
 	if err != nil {
-		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to validation error")
+		return nil, util.Wrap(err, "Failed to create a new task due to validation error")
 	}
 
 	modelTask, err := toModelTask(request.GetTask())
 	if err != nil {
-		return nil, util.Wrap(err, "TaskServer: Failed to create a new task due to conversion error")
+		return nil, util.Wrap(err, "Failed to create a new task due to conversion error")
 	}
 
 	task, err := s.resourceManager.CreateTask(modelTask)
 	if err != nil {
-		return nil, util.Wrap(err, "TaskServer: Failed to create a new task")
+		return nil, util.Wrap(err, "Failed to create a new task")
 	}
 
 	return toApiTaskV1(task), nil
@@ -87,10 +87,9 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 }
 
 func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequest) (
-	*api.ListTasksResponse, error) {
-
+	*api.ListTasksResponse, error,
+) {
 	opts, err := validatedListOptions(&model.Task{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
-
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
@@ -107,7 +106,8 @@ func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequ
 	return &api.ListTasksResponse{
 			Tasks:         toApiTasksV1(tasks),
 			TotalSize:     int32(total_size),
-			NextPageToken: nextPageToken},
+			NextPageToken: nextPageToken,
+		},
 		nil
 }
 

@@ -16,7 +16,6 @@ package storage
 
 import (
 	"database/sql"
-
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -43,18 +42,16 @@ type ExperimentStore struct {
 	defaultExperimentStore *DefaultExperimentStore
 }
 
-var (
-	experimentColumns = []string{
-		"UUID",
-		"Name",
-		"Description",
-		"CreatedAtInSec",
-		"Namespace",
-		"StorageState",
-	}
-)
+var experimentColumns = []string{
+	"UUID",
+	"Name",
+	"Description",
+	"CreatedAtInSec",
+	"Namespace",
+	"StorageState",
+}
 
-// factory function for experiment store
+// factory function for experiment store.
 func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
 	return &ExperimentStore{
 		db:                     db,
@@ -203,24 +200,32 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		tx.Rollback()
 		return errorF(err)
 	}
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
 	exps, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err := sizeRow.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	totalSize, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
+	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -229,11 +234,11 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	}
 
 	if len(exps) <= opts.PageSize {
-		return exps, total_size, "", nil
+		return exps, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(exps[opts.PageSize])
-	return exps[:opts.PageSize], total_size, npt, err
+	return exps[:opts.PageSize], totalSize, npt, err
 }
 
 func (s *ExperimentStore) DeleteExperiment(id string) error {
@@ -292,7 +297,8 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		Where(sq.And{
 			sq.Eq{"rf.ResourceType": model.RunResourceType},
 			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType}}).ToSql()
+			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType},
+		}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to filter the runs in an experiment %s. error: '%v'", expId, err.Error())
@@ -329,7 +335,8 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		Where(sq.And{
 			sq.Eq{"rf.ResourceType": model.JobResourceType},
 			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType}}).ToSql()
+			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType},
+		}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to filter the jobs in an experiment %s. error: '%v'", expId, err.Error())
@@ -339,7 +346,8 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		Update("jobs").
 		SetMap(sq.Eq{
 			"Enabled":        false,
-			"UpdatedAtInSec": now}).
+			"UpdatedAtInSec": now,
+		}).
 		Where(sq.Eq{"Enabled": true}).
 		Where(fmt.Sprintf("UUID in (%s) OR ExperimentUUID = '%s'", filteredJobsSql, expId), filteredJobsArgs...).
 		ToSql()

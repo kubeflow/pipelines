@@ -42,7 +42,7 @@ var testRefThree = &model.ResourceReference{
 }
 
 func TestResourceReferenceStore(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "e1"})

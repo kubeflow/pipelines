@@ -47,7 +47,8 @@ func validateFilterV1(referenceKey *api.ResourceKey) (*model.FilterContext, erro
 }
 
 func validatePagination(pageToken string, pageSize int, keyFieldName string, queryString string,
-	modelFieldByApiFieldMapping map[string]string) (*common.PaginationContext, error) {
+	modelFieldByApiFieldMapping map[string]string,
+) (*common.PaginationContext, error) {
 	sortByFieldName, isDesc, err := parseSortByQueryString(queryString, modelFieldByApiFieldMapping)
 	if err != nil {
 		return nil, util.Wrap(err, "Invalid query string")
@@ -75,7 +76,8 @@ func validatePagination(pageToken string, pageSize int, keyFieldName string, que
 		SortByFieldName: sortByFieldName,
 		KeyFieldName:    keyFieldName,
 		IsDesc:          isDesc,
-		Token:           token}, nil
+		Token:           token,
+	}, nil
 }
 
 func parseSortByQueryString(queryString string, modelFieldByApiFieldMapping map[string]string) (string, bool, error) {

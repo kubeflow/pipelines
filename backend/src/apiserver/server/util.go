@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -54,7 +55,7 @@ func isPipelineYamlFile(fileName string) bool {
 }
 
 func isZipFile(compressedFile []byte) bool {
-	return len(compressedFile) > 2 && compressedFile[0] == '\x50' && compressedFile[1] == '\x4B' //Signature of zip file is "PK"
+	return len(compressedFile) > 2 && compressedFile[0] == '\x50' && compressedFile[1] == '\x4B' // Signature of zip file is "PK"
 }
 
 func isCompressedTarballFile(compressedFile []byte) bool {
@@ -70,7 +71,7 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 	tarReader := tar.NewReader(gzipReader)
 	for {
 		header, err := tarReader.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			tarReader = nil
 			break
 		}
@@ -78,7 +79,7 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 		}
 		if isPipelineYamlFile(header.Name) {
-			//Found the pipeline file.
+			// Found the pipeline file.
 			break
 		}
 	}

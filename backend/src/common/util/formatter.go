@@ -106,7 +106,7 @@ func (p *WorkflowFormatter) formatParameter(param v1alpha1.Parameter) (*v1alpha1
 }
 
 func (p *WorkflowFormatter) formatString(s string) (string, error) {
-	re := regexp.MustCompile(`\\[\\[(.*?)\\]\\]`)
+	re := regexp.MustCompile("\\[\\[(.*?)\\]\\]")
 	matches := re.FindAllString(s, -1)
 	if matches == nil {
 		return s, nil

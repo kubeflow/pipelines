@@ -25,7 +25,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -40,16 +39,16 @@ func TestCreateExperimentV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
-	result, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	expectedExperiment := &apiV1beta1.Experiment{
+	expectedExperiment := &apiv1beta1.Experiment{
 		Id:           DefaultFakeUUID,
 		Name:         "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		StorageState: apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
@@ -83,9 +82,9 @@ func TestCreateExperimentV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 	clientManager.DB().Close()
-	_, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to add experiment to experiment table")
 }
@@ -105,19 +104,19 @@ func TestCreateExperiment_Failed(t *testing.T) {
 // 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 // 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 // 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-// 	resourceReferences := []*apiV1beta1.ResourceReference{
+// 	resourceReferences := []*apiv1beta1.ResourceReference{
 // 		{
-// 			Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-// 			Relationship: apiV1beta1.Relationship_OWNER,
+// 			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+// 			Relationship: apiv1beta1.Relationship_OWNER,
 // 		},
 // 	}
-// 	experiment := &apiV1beta1.Experiment{
+// 	experiment := &apiv1beta1.Experiment{
 // 		Name:               "exp1",
 // 		Description:        "first experiment",
 // 		ResourceReferences: resourceReferences,
 // 	}
 
-// 	_, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+// 	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 // 	assert.NotNil(t, err)
 // 	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain resource references")
 // }
@@ -144,17 +143,17 @@ func TestCreateExperimentV1_Unauthorized(t *testing.T) {
 	defer clients.Close()
 
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{
+	experiment := &apiv1beta1.Experiment{
 		Name:        "exp1",
 		Description: "first experiment",
-		ResourceReferences: []*apiV1beta1.ResourceReference{
+		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-				Relationship: apiV1beta1.Relationship_OWNER,
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		}}
 
-	_, err := server.CreateExperimentV1(ctx, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(
 		t,
@@ -199,27 +198,27 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	resourceReferences := []*apiV1beta1.ResourceReference{
+	resourceReferences := []*apiv1beta1.ResourceReference{
 		{
-			Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-			Relationship: apiV1beta1.Relationship_OWNER,
+			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
-	experiment := &apiV1beta1.Experiment{
+	experiment := &apiv1beta1.Experiment{
 		Name:               "exp1",
 		Description:        "first experiment",
 		ResourceReferences: resourceReferences,
 	}
 
-	result, err := server.CreateExperimentV1(ctx, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	expectedExperiment := &apiV1beta1.Experiment{
+	expectedExperiment := &apiv1beta1.Experiment{
 		Id:                 DefaultFakeUUID,
 		Name:               "exp1",
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 		ResourceReferences: resourceReferences,
-		StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -256,18 +255,18 @@ func TestGetExperimentV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.GetExperimentV1(nil, &apiV1beta1.GetExperimentRequest{Id: createResult.Id})
+	result, err := server.GetExperimentV1(nil, &apiv1beta1.GetExperimentRequest{Id: createResult.Id})
 	assert.Nil(t, err)
-	expectedExperiment := &apiV1beta1.Experiment{
+	expectedExperiment := &apiv1beta1.Experiment{
 		Id:           createResult.Id,
 		Name:         "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		StorageState: apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
@@ -303,12 +302,12 @@ func TestGetExperimentV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.GetExperimentV1(nil, &apiV1beta1.GetExperimentRequest{Id: createResult.Id})
+	_, err = server.GetExperimentV1(nil, &apiv1beta1.GetExperimentRequest{Id: createResult.Id})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to get experiment")
 }
@@ -340,7 +339,7 @@ func TestGetExperimentV1_Unauthorized(t *testing.T) {
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err := server.GetExperimentV1(ctx, &apiV1beta1.GetExperimentRequest{Id: experiment.UUID})
+	_, err := server.GetExperimentV1(ctx, &apiv1beta1.GetExperimentRequest{Id: experiment.UUID})
 	assert.NotNil(t, err)
 	assert.Contains(
 		t,
@@ -380,29 +379,29 @@ func TestGetExperimentV1_Multiuser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	resourceReferences := []*apiV1beta1.ResourceReference{
+	resourceReferences := []*apiv1beta1.ResourceReference{
 		{
-			Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-			Relationship: apiV1beta1.Relationship_OWNER,
+			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
-	experiment := &apiV1beta1.Experiment{
+	experiment := &apiv1beta1.Experiment{
 		Name:               "exp1",
 		Description:        "first experiment",
 		ResourceReferences: resourceReferences,
 	}
 
-	createResult, err := server.CreateExperimentV1(ctx, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.GetExperimentV1(ctx, &apiV1beta1.GetExperimentRequest{Id: createResult.Id})
+	result, err := server.GetExperimentV1(ctx, &apiv1beta1.GetExperimentRequest{Id: createResult.Id})
 	assert.Nil(t, err)
-	expectedExperiment := &apiV1beta1.Experiment{
+	expectedExperiment := &apiv1beta1.Experiment{
 		Id:                 createResult.Id,
 		Name:               "exp1",
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 		ResourceReferences: resourceReferences,
-		StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -441,22 +440,22 @@ func TestListExperimentsV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.ListExperimentsV1(nil, &apiV1beta1.ListExperimentsRequest{
-		ResourceReferenceKey: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "default"},
+	result, err := server.ListExperimentsV1(nil, &apiv1beta1.ListExperimentsRequest{
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
 	})
-	expectedExperiment := []*apiV1beta1.Experiment{{
+	expectedExperiment := []*apiv1beta1.Experiment{{
 		Id:           createResult.Id,
 		Name:         "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		StorageState: apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
-		ResourceReferences: []*apiV1beta1.ResourceReference{
+		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
+		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiV1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
@@ -490,12 +489,12 @@ func TestListExperimentsV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
-	_, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.ListExperimentsV1(nil, &apiV1beta1.ListExperimentsRequest{})
+	_, err = server.ListExperimentsV1(nil, &apiv1beta1.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed")
 }
@@ -518,13 +517,13 @@ func TestListExperiments_Failed(t *testing.T) {
 // 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 // 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 // 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-// 	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+// 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
-// 	_, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+// 	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 // 	assert.Nil(t, err)
-// 	_, err = server.ListExperimentsV1(nil, &apiV1beta1.ListExperimentsRequest{
-// 		ResourceReferenceKey: &apiV1beta1.ResourceKey{
-// 			Type: apiV1beta1.ResourceType_NAMESPACE,
+// 	_, err = server.ListExperimentsV1(nil, &apiv1beta1.ListExperimentsRequest{
+// 		ResourceReferenceKey: &apiv1beta1.ResourceKey{
+// 			Type: apiv1beta1.ResourceType_NAMESPACE,
 // 			Id:   "ns1",
 // 		},
 // 	})
@@ -558,9 +557,9 @@ func TestListExperimentsV1_Unauthorized(t *testing.T) {
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err := server.ListExperimentsV1(ctx, &apiV1beta1.ListExperimentsRequest{
-		ResourceReferenceKey: &apiV1beta1.ResourceKey{
-			Type: apiV1beta1.ResourceType_NAMESPACE,
+	_, err := server.ListExperimentsV1(ctx, &apiv1beta1.ListExperimentsRequest{
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_NAMESPACE,
 			Id:   "ns1",
 		},
 	})
@@ -604,64 +603,64 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "ns1", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 
-	resourceReferences := []*apiV1beta1.ResourceReference{
+	resourceReferences := []*apiv1beta1.ResourceReference{
 		{
-			Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-			Relationship: apiV1beta1.Relationship_OWNER,
+			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
-	experiment := &apiV1beta1.Experiment{
+	experiment := &apiv1beta1.Experiment{
 		Name:               "exp1",
 		Description:        "first experiment",
 		ResourceReferences: resourceReferences,
 	}
 
-	createResult, err := server.CreateExperimentV1(ctx, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
 	tests := []struct {
 		name                string
-		request             *apiV1beta1.ListExperimentsRequest
+		request             *apiv1beta1.ListExperimentsRequest
 		wantError           bool
 		errorMessage        string
-		expectedExperiments []*apiV1beta1.Experiment
+		expectedExperiments []*apiv1beta1.Experiment
 	}{
 		{
 			"Valid",
-			&apiV1beta1.ListExperimentsRequest{
-				ResourceReferenceKey: &apiV1beta1.ResourceKey{
-					Type: apiV1beta1.ResourceType_NAMESPACE,
+			&apiv1beta1.ListExperimentsRequest{
+				ResourceReferenceKey: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_NAMESPACE,
 					Id:   "ns1",
 				},
 			},
 			false,
 			"",
-			[]*apiV1beta1.Experiment{{
+			[]*apiv1beta1.Experiment{{
 				Id:                 createResult.Id,
 				Name:               "exp1",
 				Description:        "first experiment",
 				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 				ResourceReferences: resourceReferences,
-				StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+				StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 			}},
 		},
 		{
 			"Valid but empty result",
-			&apiV1beta1.ListExperimentsRequest{
-				ResourceReferenceKey: &apiV1beta1.ResourceKey{
-					Type: apiV1beta1.ResourceType_NAMESPACE,
+			&apiv1beta1.ListExperimentsRequest{
+				ResourceReferenceKey: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_NAMESPACE,
 					Id:   "ns2",
 				},
 			},
 			false,
 			"",
-			[]*apiV1beta1.Experiment{},
+			[]*apiv1beta1.Experiment{},
 		},
 		{
 			"Invalid resource reference key type",
-			&apiV1beta1.ListExperimentsRequest{
-				ResourceReferenceKey: &apiV1beta1.ResourceKey{
-					Type: apiV1beta1.ResourceType_EXPERIMENT,
+			&apiv1beta1.ListExperimentsRequest{
+				ResourceReferenceKey: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_EXPERIMENT,
 					Id:   "fake_id",
 				},
 			},
@@ -671,54 +670,54 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 		},
 		{
 			"Missing resource reference key",
-			&apiV1beta1.ListExperimentsRequest{},
+			&apiv1beta1.ListExperimentsRequest{},
 			false,
 			"",
-			[]*apiV1beta1.Experiment{{
+			[]*apiv1beta1.Experiment{{
 				Id:                 createResult.Id,
 				Name:               "exp1",
 				Description:        "first experiment",
 				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 				ResourceReferences: resourceReferences,
-				StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+				StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 			}},
 		},
 		{
 			"Empty namespace",
-			&apiV1beta1.ListExperimentsRequest{
-				ResourceReferenceKey: &apiV1beta1.ResourceKey{
-					Type: apiV1beta1.ResourceType_NAMESPACE,
+			&apiv1beta1.ListExperimentsRequest{
+				ResourceReferenceKey: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_NAMESPACE,
 					Id:   "",
 				},
 			},
 			false,
 			"",
-			[]*apiV1beta1.Experiment{{
+			[]*apiv1beta1.Experiment{{
 				Id:                 createResult.Id,
 				Name:               "exp1",
 				Description:        "first experiment",
 				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 				ResourceReferences: resourceReferences,
-				StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+				StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 			}},
 		},
 		{
 			"No namespace",
-			&apiV1beta1.ListExperimentsRequest{
-				ResourceReferenceKey: &apiV1beta1.ResourceKey{
-					Type: apiV1beta1.ResourceType_NAMESPACE,
+			&apiv1beta1.ListExperimentsRequest{
+				ResourceReferenceKey: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_NAMESPACE,
 					Id:   "-",
 				},
 			},
 			false,
 			"",
-			[]*apiV1beta1.Experiment{{
+			[]*apiv1beta1.Experiment{{
 				Id:                 createResult.Id,
 				Name:               "exp1",
 				Description:        "first experiment",
 				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 				ResourceReferences: resourceReferences,
-				StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+				StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 			}},
 		},
 	}
@@ -734,7 +733,7 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListExperimentsV1_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(apiV1beta1.Experiment{}, "CreatedAt")) {
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(apiv1beta1.Experiment{}, "CreatedAt")) {
 				t.Errorf("TestListExperimentsV1_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
 			}
 		}
@@ -818,26 +817,26 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 // func TestValidateCreateExperimentRequestV1(t *testing.T) {
 // 	tests := []struct {
 // 		name         string
-// 		experiment   *apiV1beta1.Experiment
+// 		experiment   *apiv1beta1.Experiment
 // 		wantError    bool
 // 		errorMessage string
 // 	}{
 // 		{
 // 			"Valid",
-// 			&apiV1beta1.Experiment{Name: "exp1", Description: "first experiment"},
+// 			&apiv1beta1.Experiment{Name: "exp1", Description: "first experiment"},
 // 			false,
 // 			"",
 // 		},
 // 		{
 // 			"Empty name",
-// 			&apiV1beta1.Experiment{Description: "first experiment"},
+// 			&apiv1beta1.Experiment{Description: "first experiment"},
 // 			true,
 // 			"name is empty",
 // 		},
 // 	}
 
 // 	for _, tc := range tests {
-// 		err := validateCreateExperimentRequestV1(&apiV1beta1.CreateExperimentRequest{Experiment: tc.experiment})
+// 		err := validateCreateExperimentRequestV1(&apiv1beta1.CreateExperimentRequest{Experiment: tc.experiment})
 // 		if !tc.wantError && err != nil {
 // 			t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect no error but got %v", tc.name, err)
 // 		}
@@ -892,19 +891,19 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 // 	defer viper.Set(common.MultiUserMode, "false")
 // 	tests := []struct {
 // 		name         string
-// 		experiment   *apiV1beta1.Experiment
+// 		experiment   *apiv1beta1.Experiment
 // 		wantError    bool
 // 		errorMessage string
 // 	}{
 // 		{
 // 			"Valid",
-// 			&apiV1beta1.Experiment{
+// 			&apiv1beta1.Experiment{
 // 				Name:        "exp1",
 // 				Description: "first experiment",
-// 				ResourceReferences: []*apiV1beta1.ResourceReference{
+// 				ResourceReferences: []*apiv1beta1.ResourceReference{
 // 					{
-// 						Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-// 						Relationship: apiV1beta1.Relationship_OWNER,
+// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+// 						Relationship: apiv1beta1.Relationship_OWNER,
 // 					},
 // 				},
 // 			},
@@ -913,7 +912,7 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 // 		},
 // 		{
 // 			"Missing namespace",
-// 			&apiV1beta1.Experiment{
+// 			&apiv1beta1.Experiment{
 // 				Name:        "exp1",
 // 				Description: "first experiment",
 // 			},
@@ -922,13 +921,13 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 // 		},
 // 		{
 // 			"Empty namespace",
-// 			&apiV1beta1.Experiment{
+// 			&apiv1beta1.Experiment{
 // 				Name:        "exp1",
 // 				Description: "first experiment",
-// 				ResourceReferences: []*apiV1beta1.ResourceReference{
+// 				ResourceReferences: []*apiv1beta1.ResourceReference{
 // 					{
-// 						Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: ""},
-// 						Relationship: apiV1beta1.Relationship_OWNER,
+// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
+// 						Relationship: apiv1beta1.Relationship_OWNER,
 // 					},
 // 				},
 // 			},
@@ -937,17 +936,17 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 // 		},
 // 		{
 // 			"Multiple namespace",
-// 			&apiV1beta1.Experiment{
+// 			&apiv1beta1.Experiment{
 // 				Name:        "exp1",
 // 				Description: "first experiment",
-// 				ResourceReferences: []*apiV1beta1.ResourceReference{
+// 				ResourceReferences: []*apiv1beta1.ResourceReference{
 // 					{
-// 						Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-// 						Relationship: apiV1beta1.Relationship_OWNER,
+// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+// 						Relationship: apiv1beta1.Relationship_OWNER,
 // 					},
 // 					{
-// 						Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns2"},
-// 						Relationship: apiV1beta1.Relationship_OWNER,
+// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
+// 						Relationship: apiv1beta1.Relationship_OWNER,
 // 					},
 // 				},
 // 			},
@@ -956,13 +955,13 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 // 		},
 // 		{
 // 			"Invalid resource type",
-// 			&apiV1beta1.Experiment{
+// 			&apiv1beta1.Experiment{
 // 				Name:        "exp1",
 // 				Description: "first experiment",
-// 				ResourceReferences: []*apiV1beta1.ResourceReference{
+// 				ResourceReferences: []*apiv1beta1.ResourceReference{
 // 					{
-// 						Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_EXPERIMENT, Id: "exp2"},
-// 						Relationship: apiV1beta1.Relationship_OWNER,
+// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp2"},
+// 						Relationship: apiv1beta1.Relationship_OWNER,
 // 					},
 // 				},
 // 			},
@@ -972,7 +971,7 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 // 	}
 
 // 	for _, tc := range tests {
-// 		err := ValidateCreateExperimentRequestV1(&apiV1beta1.CreateExperimentRequest{Experiment: tc.experiment})
+// 		err := ValidateCreateExperimentRequestV1(&apiv1beta1.CreateExperimentRequest{Experiment: tc.experiment})
 // 		if !tc.wantError && err != nil {
 // 			t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect no error but got %v", tc.name, err)
 // 		}
@@ -1036,71 +1035,71 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run1 := &apiV1beta1.Run{
+	run1 := &apiv1beta1.Run{
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	_, err := runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run1})
+	_, err := runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run2 := &apiV1beta1.Run{
+	run2 := &apiv1beta1.Run{
 		Name:               "run2",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run2})
+	_, err = runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	job1 := &apiV1beta1.Job{
+	job1 := &apiv1beta1.Job{
 		Name:           "name1",
 		Enabled:        true,
 		MaxConcurrency: 1,
-		Trigger: &apiV1beta1.Trigger{
-			Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
+		Trigger: &apiv1beta1.Trigger{
+			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
 			}}},
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	_, err = jobServer.CreateJob(nil, &apiV1beta1.CreateJobRequest{Job: job1})
+	_, err = jobServer.CreateJob(nil, &apiv1beta1.CreateJobRequest{Job: job1})
 	assert.Nil(t, err)
-	jobs, err := jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	jobs, err := jobServer.ListJobs(nil, &apiv1beta1.ListJobsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, true, jobs.Jobs[0].Enabled)
 
 	// Archive the experiment and thus all runs under it.
 	experimentServer := NewExperimentServer(manager, &ExperimentServerOptions{CollectMetrics: false})
-	_, err = experimentServer.ArchiveExperimentV1(nil, &apiV1beta1.ArchiveExperimentRequest{Id: experiment.UUID})
+	_, err = experimentServer.ArchiveExperimentV1(nil, &apiv1beta1.ArchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
-	result, err := experimentServer.GetExperimentV1(nil, &apiV1beta1.GetExperimentRequest{Id: experiment.UUID})
+	result, err := experimentServer.GetExperimentV1(nil, &apiv1beta1.GetExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
-	assert.Equal(t, apiV1beta1.Experiment_STORAGESTATE_ARCHIVED, result.StorageState)
-	runs, err := runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Equal(t, apiv1beta1.Experiment_STORAGESTATE_ARCHIVED, result.StorageState)
+	runs, err := runServer.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
-	jobs, err = jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err = jobServer.ListJobs(nil, &apiv1beta1.ListJobsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 
 	// Unarchive the experiment and thus all runs under it.
-	_, err = experimentServer.UnarchiveExperimentV1(nil, &apiV1beta1.UnarchiveExperimentRequest{Id: experiment.UUID})
+	_, err = experimentServer.UnarchiveExperimentV1(nil, &apiv1beta1.UnarchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
-	result, err = experimentServer.GetExperimentV1(nil, &apiV1beta1.GetExperimentRequest{Id: experiment.UUID})
+	result, err = experimentServer.GetExperimentV1(nil, &apiv1beta1.GetExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
-	assert.Equal(t, apiV1beta1.Experiment_STORAGESTATE_AVAILABLE, result.StorageState)
-	runs, err = runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Equal(t, apiv1beta1.Experiment_STORAGESTATE_AVAILABLE, result.StorageState)
+	runs, err = runServer.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
-	jobs, err = jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err = jobServer.ListJobs(nil, &apiv1beta1.ListJobsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
@@ -1111,42 +1110,42 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run1 := &apiV1beta1.Run{
+	run1 := &apiv1beta1.Run{
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	// err := runServer.validateCreateRunRequestV1(&apiV1beta1.CreateRunRequest{Run: run1})
+	// err := runServer.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run1})
 	// assert.Nil(t, err)
-	_, err := runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run1})
+	_, err := runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run2 := &apiV1beta1.Run{
+	run2 := &apiv1beta1.Run{
 		Name:               "run2",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	// err = runServer.validateCreateRunRequestV1(&apiV1beta1.CreateRunRequest{Run: run2})
+	// err = runServer.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run2})
 	// assert.Nil(t, err)
-	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run2})
+	_, err = runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil))
 	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	job1 := &apiV1beta1.Job{
+	job1 := &apiv1beta1.Job{
 		Name:           "name1",
 		Enabled:        true,
 		MaxConcurrency: 1,
-		Trigger: &apiV1beta1.Trigger{
-			Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
+		Trigger: &apiv1beta1.Trigger{
+			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
 			}}},
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	// err = jobServer.validateCreateJobRequest(&apiV1beta1.CreateJobRequest{Job: job1})
+	// err = jobServer.validateCreateJobRequest(&apiv1beta1.CreateJobRequest{Job: job1})
 	// assert.Nil(t, err)
-	_, err = jobServer.CreateJob(nil, &apiV1beta1.CreateJobRequest{Job: job1})
+	_, err = jobServer.CreateJob(nil, &apiv1beta1.CreateJobRequest{Job: job1})
 	assert.Nil(t, err)
 
 	// Archive the experiment and thus all runs under it.
@@ -1156,12 +1155,12 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	result, err := experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
 	assert.Nil(t, err)
 	assert.Equal(t, apiV2beta1.Experiment_ARCHIVED, result.StorageState)
-	runs, err := runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	runs, err := runServer.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
-	jobs, err := jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err := jobServer.ListJobs(nil, &apiv1beta1.ListJobsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
@@ -1172,12 +1171,12 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	result, err = experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
 	assert.Nil(t, err)
 	assert.Equal(t, apiV2beta1.Experiment_AVAILABLE, result.StorageState)
-	runs, err = runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	runs, err = runServer.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
-	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
-	jobs, err = jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err = jobServer.ListJobs(nil, &apiv1beta1.ListJobsRequest{ResourceReferenceKey: &apiv1beta1.ResourceKey{Id: experiment.UUID, Type: apiv1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
@@ -1207,15 +1206,15 @@ func TestDeleteExperimentsV1_SingleUser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
-	resultExperiment, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	resultExperiment, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	_, err = server.DeleteExperimentV1(nil, &apiV1beta1.DeleteExperimentRequest{Id: "ex2"})
+	_, err = server.DeleteExperimentV1(nil, &apiv1beta1.DeleteExperimentRequest{Id: "ex2"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 
-	_, err = server.DeleteExperimentV1(nil, &apiV1beta1.DeleteExperimentRequest{Id: resultExperiment.Id})
+	_, err = server.DeleteExperimentV1(nil, &apiv1beta1.DeleteExperimentRequest{Id: resultExperiment.Id})
 	assert.Nil(t, err)
 }
 
@@ -1253,24 +1252,24 @@ func TestDeleteExperimentsV1_MultiUser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	resourceReferences := []*apiV1beta1.ResourceReference{
+	resourceReferences := []*apiv1beta1.ResourceReference{
 		{
-			Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-			Relationship: apiV1beta1.Relationship_OWNER,
+			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
-	experiment := &apiV1beta1.Experiment{
+	experiment := &apiv1beta1.Experiment{
 		Name:               "ex1",
 		Description:        "first experiment",
 		ResourceReferences: resourceReferences}
-	resultExperiment, err := server.CreateExperimentV1(ctx, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	resultExperiment, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	_, err = server.DeleteExperimentV1(ctx, &apiV1beta1.DeleteExperimentRequest{Id: "ex2"})
+	_, err = server.DeleteExperimentV1(ctx, &apiv1beta1.DeleteExperimentRequest{Id: "ex2"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 
-	_, err = server.DeleteExperimentV1(ctx, &apiV1beta1.DeleteExperimentRequest{Id: resultExperiment.Id})
+	_, err = server.DeleteExperimentV1(ctx, &apiv1beta1.DeleteExperimentRequest{Id: resultExperiment.Id})
 	assert.Nil(t, err)
 }
 
@@ -1285,9 +1284,9 @@ func TestListExperimentsV1_Unauthenticated(t *testing.T) {
 	defer clients.Close()
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
-	_, err := server.ListExperimentsV1(ctx, &apiV1beta1.ListExperimentsRequest{
-		ResourceReferenceKey: &apiV1beta1.ResourceKey{
-			Type: apiV1beta1.ResourceType_NAMESPACE,
+	_, err := server.ListExperimentsV1(ctx, &apiv1beta1.ListExperimentsRequest{
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_NAMESPACE,
 			Id:   "ns1",
 		},
 	})

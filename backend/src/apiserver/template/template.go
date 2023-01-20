@@ -83,7 +83,7 @@ func isPipelineSpec(template []byte) bool {
 	return err == nil && spec.GetPipelineInfo().GetName() != "" && spec.GetRoot() != nil
 }
 
-// Pipeline template
+// Pipeline template.
 type Template interface {
 	IsV2() bool
 	// Gets v2 pipeline name.
@@ -97,7 +97,7 @@ type Template interface {
 	Bytes() []byte
 	GetTemplateType() TemplateType
 
-	//Get workflow
+	// Get workflow
 	RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
 	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
@@ -259,7 +259,7 @@ func setDefaultServiceAccount(workflow util.ExecutionSpec, serviceAccount string
 }
 
 // Process the job name to remove special char, prepend with "job-" prefix if empty, and
-// truncate size to <=25
+// truncate size to <=25.
 func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 	const (
 		// K8s resource name only allow lower case alphabetic char, number and -
@@ -274,16 +274,4 @@ func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 		processedName = "job-"
 	}
 	return util.Truncate(processedName, 25), nil
-}
-
-func toCRDParameters(apiParams map[string]*structpb.Value) []scheduledworkflow.Parameter {
-	var swParams []scheduledworkflow.Parameter
-	for name, value := range apiParams {
-		swParam := scheduledworkflow.Parameter{
-			Name:  name,
-			Value: value.GetStringValue(),
-		}
-		swParams = append(swParams, swParam)
-	}
-	return swParams
 }

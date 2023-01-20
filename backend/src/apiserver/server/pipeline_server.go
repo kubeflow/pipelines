@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -29,11 +28,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"google.golang.org/grpc/codes"
-	authorizationv1 "k8s.io/api/authorization/v1"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"google.golang.org/grpc/codes"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // Metric variables. Please prefix the metric names with pipeline_server_.
@@ -262,6 +260,7 @@ func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.Pi
 		if err != nil || resp.StatusCode != http.StatusOK {
 			return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
 		}
+		defer resp.Body.Close()
 		pipelineFileName := path.Base(pipelineUrl.String())
 		pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
 		if err != nil {
@@ -346,7 +345,7 @@ func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, nam
 		return p, nil, err
 	}
 	return nil, nil, util.NewInternalServerError(
-		errors.New("Wrong api version detected"),
+		util.NewInvalidInputError("Invalid api version detected"),
 		"Failed to get a pipeline by name and namespace. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
 		apiRequestVersion,
 	)
@@ -383,7 +382,7 @@ func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pa
 		return pipelines, nil, size, token, err
 	}
 	return nil, nil, 0, "", util.NewInternalServerError(
-		errors.New("Wrong api version detected"),
+		util.NewInvalidInputError("Invalid api version detected"),
 		"Failed to list pipelines due to unsupported API request. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
 		apiRequestVersion,
 	)
@@ -497,6 +496,9 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	// Get pipeline name
 	pipelineFileName := path.Base(pipelineVersion.CodeSourceUrl)
 	pipelineName, err := buildPipelineName(pipeline.Name, pipelineFileName)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v). Please, file a bug on github: https://github.com/kubeflow/pipelines/issues", pipeline.Name, pipelineFileName)
+	}
 	pipeline.Name = pipelineName
 
 	// Create the pipeline
@@ -579,7 +581,7 @@ func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *a
 	}
 
 	// Extract pipeline id
-	var pipelineId = ""
+	pipelineId := ""
 	for _, resourceReference := range request.Version.ResourceReferences {
 		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE && resourceReference.Relationship == apiv1beta1.Relationship_OWNER {
 			pipelineId = resourceReference.Key.Id
@@ -603,7 +605,7 @@ func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *a
 	// Note, v1beta1 PipelineVersion does not have error message. Errors in converting to API will result in error.
 	result := toApiPipelineVersionV1(newpv)
 	if result == nil {
-		return nil, util.NewInternalServerError(errors.New("Failed to convert internal pipeline version representation to its v1beta1 API counterpart"), "Failed to create a pipeline version (v1beta1) due to error converting back to API")
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal pipeline version representation to its v1beta1 API counterpart"), "Failed to create a pipeline version (v1beta1) due to error converting back to API")
 	}
 	return result, nil
 }
@@ -730,7 +732,7 @@ func (s *PipelineServer) GetPipelineVersionV1(ctx context.Context, request *apiv
 	}
 	apiPipelineVersion := toApiPipelineVersionV1(pipelineVersion)
 	if apiPipelineVersion == nil {
-		return nil, util.NewInternalServerError(errors.New("Pipeline version cannot be converted to v1beta1 API"), "Failed to get a pipeline version (v1beta1) due to error converting to API counterpart")
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline version cannot be converted to v1beta1 API"), "Failed to get a pipeline version (v1beta1) due to error converting to API counterpart")
 	}
 	return apiPipelineVersion, nil
 }
@@ -807,11 +809,6 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta
 		return nil, util.Wrap(err, "Failed to list pipelines (v1beta1) due to filter validation error")
 	}
 	refKey := filterContext.ReferenceKey
-	if refKey == nil {
-		filterContext = &model.FilterContext{
-			ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""},
-		}
-	}
 	if refKey != nil && refKey.Type != model.NamespaceResourceType {
 		return nil, util.NewInvalidInputError("Failed to list pipelines (v1beta1) due to invalid resource references for pipelines: %v", refKey)
 	}
@@ -904,7 +901,8 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 	return &apiv2beta1.ListPipelineVersionsResponse{
 		PipelineVersions: toApiPipelineVersions(pipelineVersions),
 		NextPageToken:    nextPageToken,
-		TotalSize:        int32(totalSize)}, nil
+		TotalSize:        int32(totalSize),
+	}, nil
 }
 
 // TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.

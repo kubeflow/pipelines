@@ -46,19 +46,3 @@ type PipelineSpec struct {
 	// Runtime config of the pipeline, only used for v2 template in API v1beta1 API.
 	RuntimeConfig
 }
-
-// Returns Argo workflow manifest in []byte array
-func (p *PipelineSpec) getWorkflowSpecBytes() []byte {
-	if p.WorkflowSpecManifest != "" {
-		return []byte(p.WorkflowSpecManifest)
-	}
-	return nil
-}
-
-// Returns pipeline spec manifest in []byte array
-func (p *PipelineSpec) getPipelineSpecBytes() []byte {
-	if p.PipelineSpecManifest != "" {
-		return []byte(p.PipelineSpecManifest)
-	}
-	return nil
-}

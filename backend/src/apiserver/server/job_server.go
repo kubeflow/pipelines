@@ -85,7 +85,7 @@ func NewJobServer(resourceManager *resource.ResourceManager, options *JobServerO
 }
 
 func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if common.IsMultiUserMode() == false {
+	if !common.IsMultiUserMode() {
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
@@ -151,11 +151,11 @@ func (s *JobServer) CreateJob(ctx context.Context, request *apiv1beta1.CreateJob
 
 	modelJob, err := toModelJob(request.GetJob())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to to create a recurring run due to conversion error")
+		return nil, util.Wrap(err, "Failed to create a recurring run due to conversion error")
 	}
 	newJob, err := s.createJob(ctx, modelJob)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to to create a recurring run")
+		return nil, util.Wrap(err, "Failed to create a recurring run")
 	}
 
 	if s.options.CollectMetrics {
@@ -171,11 +171,11 @@ func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.
 
 	modelJob, err := toModelJob(request.GetRecurringRun())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to to create a recurring run due to conversion error")
+		return nil, util.Wrap(err, "Failed to create a recurring run due to conversion error")
 	}
 	newRecurringRun, err := s.createJob(ctx, modelJob)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to to create a recurring run")
+		return nil, util.Wrap(err, "Failed to create a recurring run")
 	}
 
 	if s.options.CollectMetrics {

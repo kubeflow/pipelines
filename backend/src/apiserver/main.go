@@ -39,11 +39,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -259,6 +258,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
 			// In the future, we might consider loading samples during deployment, instead of when API server starts.
 			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
+
 			continue
 		}
 
@@ -274,6 +274,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
 			// In the future, we might consider loading samples during deployment, instead of when API server starts.
 			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
+
 			continue
 		}
 		// Since the default sorting is by create time,

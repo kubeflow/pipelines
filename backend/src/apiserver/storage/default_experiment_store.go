@@ -22,9 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-var (
-	defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": ""}
-)
+var defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": ""}
 
 type DefaultExperimentStoreInterface interface {
 	GetDefaultExperimentId() (string, error)
@@ -48,8 +46,12 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment")
 	}
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to get default experiment")
+	}
 	next := rows.Next()
-	rows.Close()
+	defer rows.Close()
 
 	// If the table is not initialized, then set the default value.
 	if !next {
@@ -104,6 +106,9 @@ func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error when getting default experiment ID")
 	}
+	if err := rows.Err(); err != nil {
+		return "", util.NewInternalServerError(err, "Error when getting default experiment ID")
+	}
 	defer rows.Close()
 
 	if rows.Next() {
@@ -140,7 +145,7 @@ func (s *DefaultExperimentStore) UnsetDefaultExperimentIdIfIdMatches(tx *sql.Tx,
 	return nil
 }
 
-// factory function for creating default experiment store
+// factory function for creating default experiment store.
 func NewDefaultExperimentStore(db *DB) *DefaultExperimentStore {
 	s := &DefaultExperimentStore{db: db}
 	// Initialize default experiment table

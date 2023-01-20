@@ -135,7 +135,8 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 
 	token := &token{
 		KeyFieldName: listable.PrimaryKeyColumnName(),
-		ModelName:    listable.GetModelName()}
+		ModelName:    listable.GetModelName(),
+	}
 
 	// Ignore the case of the letter. Split query string by space.
 	queryList := strings.Fields(strings.ToLower(sortBy))
@@ -191,14 +192,22 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{
+					sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{
+						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+					},
+				})
 		} else {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{
+					sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{
+						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+					},
+				})
 		}
 	}
 
@@ -225,9 +234,10 @@ func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilde
 }
 
 // FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
-// table that match an optional given filter, and returns the rebuilt SelectBuilder
+// table that match an optional given filter, and returns the rebuilt SelectBuilder.
 func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
-	selectCount bool, filterContext *model.FilterContext) (sq.SelectBuilder, error) {
+	selectCount bool, filterContext *model.FilterContext,
+) (sq.SelectBuilder, error) {
 	selectBuilder := sq.Select(columns...)
 	if selectCount {
 		selectBuilder = sq.Select("count(*)")
@@ -239,7 +249,8 @@ func FilterOnResourceReference(tableName string, columns []string, resourceType 
 			Where(sq.And{
 				sq.Eq{"rf.ResourceType": resourceType},
 				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type}}).ToSql()
+				sq.Eq{"rf.ReferenceType": filterContext.Type},
+			}).ToSql()
 		if err != nil {
 			return selectBuilder, util.NewInternalServerError(
 				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
@@ -250,7 +261,7 @@ func FilterOnResourceReference(tableName string, columns []string, resourceType 
 }
 
 // FilterOnExperiment filters the given table by rows based on provided experiment ID,
-// and returns the rebuilt SelectBuilder
+// and returns the rebuilt SelectBuilder.
 func FilterOnExperiment(
 	tableName string,
 	columns []string,
@@ -286,7 +297,7 @@ func filterByColumnValue(
 	return selectBuilder
 }
 
-// Scans the one given row into a number, and returns the number
+// Scans the one given row into a number, and returns the number.
 func ScanRowToTotalSize(rows *sql.Rows) (int, error) {
 	var total_size int
 	rows.Next()

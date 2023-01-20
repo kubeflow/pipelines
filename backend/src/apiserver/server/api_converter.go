@@ -769,7 +769,8 @@ func toModelTrigger(t interface{}) (*model.Trigger, error) {
 		if apiTrigger.GetPeriodicSchedule() != nil {
 			periodicSchedule := apiTrigger.GetPeriodicSchedule()
 			modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
-				IntervalSecond: &periodicSchedule.IntervalSecond}
+				IntervalSecond: &periodicSchedule.IntervalSecond,
+			}
 			if apiTrigger.GetPeriodicSchedule().StartTime != nil {
 				modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
 			}
@@ -791,7 +792,8 @@ func toModelTrigger(t interface{}) (*model.Trigger, error) {
 		if apiTrigger.GetPeriodicSchedule() != nil {
 			periodicSchedule := apiTrigger.GetPeriodicSchedule()
 			modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
-				IntervalSecond: &periodicSchedule.IntervalSecond}
+				IntervalSecond: &periodicSchedule.IntervalSecond,
+			}
 			if apiTrigger.GetPeriodicSchedule().StartTime != nil {
 				modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
 			}
@@ -817,11 +819,13 @@ func toApiTriggerV1(trigger *model.Trigger) *apiv1beta1.Trigger {
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
 			cronSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleStartTimeInSec}
+				Seconds: *trigger.CronScheduleStartTimeInSec,
+			}
 		}
 		if trigger.CronScheduleEndTimeInSec != nil {
 			cronSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleEndTimeInSec}
+				Seconds: *trigger.CronScheduleEndTimeInSec,
+			}
 		}
 		return &apiv1beta1.Trigger{Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
@@ -830,11 +834,13 @@ func toApiTriggerV1(trigger *model.Trigger) *apiv1beta1.Trigger {
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
 			periodicSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleStartTimeInSec}
+				Seconds: *trigger.PeriodicScheduleStartTimeInSec,
+			}
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
 			periodicSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleEndTimeInSec}
+				Seconds: *trigger.PeriodicScheduleEndTimeInSec,
+			}
 		}
 		return &apiv1beta1.Trigger{Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
@@ -856,11 +862,13 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
 			cronSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleStartTimeInSec}
+				Seconds: *trigger.CronScheduleStartTimeInSec,
+			}
 		}
 		if trigger.CronScheduleEndTimeInSec != nil {
 			cronSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleEndTimeInSec}
+				Seconds: *trigger.CronScheduleEndTimeInSec,
+			}
 		}
 		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
@@ -869,11 +877,13 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
 			periodicSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleStartTimeInSec}
+				Seconds: *trigger.PeriodicScheduleStartTimeInSec,
+			}
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
 			periodicSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleEndTimeInSec}
+				Seconds: *trigger.PeriodicScheduleEndTimeInSec,
+			}
 		}
 		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
@@ -1980,7 +1990,7 @@ func toModelJobEnabled(m interface{}) (bool, error) {
 // The mapping from Argo to v2beta:
 // Enabled, Running, Succeeded -> ENABLED
 // Disabled -> DISABLED
-// Error -> STATUS_UNSPECIFIED
+// Error -> STATUS_UNSPECIFIED.
 func toApiRecurringRunStatus(s string) apiv2beta1.RecurringRun_Status {
 	switch s {
 	case string(model.StatusStateEnabled), string(swapi.ScheduledWorkflowSucceeded), string(swapi.ScheduledWorkflowRunning), string(swapi.ScheduledWorkflowEnabled):
@@ -2002,7 +2012,7 @@ func toApiRecurringRunStatus(s string) apiv2beta1.RecurringRun_Status {
 // The mapping from Argo to v2beta:
 // Enabled, Running, Succeeded -> ENABLED
 // Disabled -> DISABLED
-// Error -> STATUS_UNSPECIFIED
+// Error -> STATUS_UNSPECIFIED.
 func toApiJobStatus(s string) string {
 	switch s {
 	case string(model.StatusStateEnabled), string(swapi.ScheduledWorkflowSucceeded), string(swapi.ScheduledWorkflowRunning), string(swapi.ScheduledWorkflowEnabled):

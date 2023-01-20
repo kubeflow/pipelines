@@ -23,9 +23,8 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // Filter represents a filter that can be applied when querying an arbitrary API
@@ -67,7 +66,7 @@ func (f *Filter) MarshalJSON() ([]byte, error) {
 	m := &jsonpb.Marshaler{}
 	s, err := m.MarshalToString(f.filterProto)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Failed to marshal filter proto into a string")
 	}
 	return json.Marshal(&filterForMarshaling{
 		FilterProto: s,
@@ -93,7 +92,7 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 	f.filterProto = &api.Filter{}
 	err = jsonpb.UnmarshalString(ffm.FilterProto, f.filterProto)
 	if err != nil {
-		return err
+		return util.Wrap(err, "Failed to unmarshal filter proto")
 	}
 
 	f.eq = ffm.EQ

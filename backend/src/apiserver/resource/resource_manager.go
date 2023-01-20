@@ -305,42 +305,6 @@ func (r *ResourceManager) GetNamespaceFromExperimentId(experimentId string) (str
 	return experiment.Namespace, nil
 }
 
-// Fetches namespace that a pipeline belongs to.
-func (r *ResourceManager) getNamespaceFromPipelineId(pipelineId string) (string, error) {
-	pipeline, err := r.GetPipeline(pipelineId)
-	if err != nil {
-		return "", util.Wrapf(err, "Failed to fetch namespace from pipeline %v", pipelineId)
-	}
-	if pipeline.Namespace == "" {
-		if common.IsMultiUserMode() {
-			namespaceRef, err := r.resourceReferenceStore.GetResourceReference(pipelineId, model.PipelineResourceType, model.NamespaceResourceType)
-			if err != nil {
-				return "", util.Wrapf(err, "Failed to fetch namespace from pipeline %v due to resource references fetching error", pipelineId)
-			}
-			if namespaceRef == nil || namespaceRef.ReferenceUUID == "" {
-				return "", util.NewInternalServerError(util.NewNotFoundError(errors.New("Namespace is empty"), "Pipeline's namespace was not found"), "Failed to fetch a namespace for pipeline %v in multi-user mode", pipelineId)
-			}
-			pipeline.Namespace = namespaceRef.ReferenceUUID
-		} else {
-			pipeline.Namespace = common.GetPodNamespace()
-		}
-	}
-	return pipeline.Namespace, nil
-}
-
-// Fetches namespace that a pipeline version belongs to.
-func (r *ResourceManager) getNamespaceFromPipelineVersionId(pipelineVersionId string) (string, error) {
-	pipelineVersion, err := r.GetPipelineVersion(pipelineVersionId)
-	if err != nil {
-		return "", util.Wrapf(err, "Failed to fetch namespace from pipeline version %v due to fetching error", pipelineVersionId)
-	}
-	namespace, err := r.getNamespaceFromPipelineId(pipelineVersion.PipelineId)
-	if err != nil {
-		return "", util.Wrapf(err, "Failed to fetch namespace from pipeline version %v", pipelineVersionId)
-	}
-	return namespace, nil
-}
-
 // Fetches namespace that a run belongs to.
 func (r *ResourceManager) getNamespaceFromRunId(runId string) (string, error) {
 	run, err := r.GetRun(runId)
@@ -410,12 +374,13 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 	}
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
-	var errlist []error
+	errlist := make([]error, 0)
 	userIdentity := ""
 	for _, auth := range r.authenticators {
 		identity, err := auth.GetUserIdentity(ctx)
 		if err == nil {
 			userIdentity = identity
+
 			break
 		}
 		errlist = append(errlist, err)
@@ -508,8 +473,7 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 }
 
 // Fetches experiments with the given filtering and listing options.
-func (r *ResourceManager) ListExperiments(filterContext *model.FilterContext, opts *list.Options) (
-	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
+func (r *ResourceManager) ListExperiments(filterContext *model.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error) {
 	return r.experimentStore.ListExperiments(filterContext, opts)
 }
 
@@ -528,7 +492,8 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 	}
 	for {
 		jobs, _, newToken, err := r.jobStore.ListJobs(&model.FilterContext{
-			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentId}}, opts)
+			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentId},
+		}, opts)
 		if err != nil {
 			return util.NewInternalServerError(err,
 				"Failed to list jobs of to-be-archived experiment %v", experimentId)
@@ -1013,7 +978,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// 1. Create an entry and assign creation timestamp and uuid.
 	// 2. Create a workflow CR.
 	// 3. Update a record in the DB with scheduled timestamp, state, etc.
-	// 4. Persistance agent will call apiserver to update the records later.
+	// 4. Persistence agent will call apiserver to update the records later.
 	if run.UUID == "" {
 		uuid, err := r.uuid.NewRandom()
 		if err != nil {
@@ -1139,11 +1104,11 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate workflow %s due to error parsing the patch", name)
 	}
-	var operation = func() error {
+	operation := func() error {
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error", name)
 	}
-	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	backoffPolicy := backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
 	err = backoff.Retry(operation, backoffPolicy)
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error after multiple retries", name)
@@ -1414,7 +1379,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, namespace strin
 	defer podLogs.Close()
 
 	_, err = io.Copy(dst, podLogs)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error in streaming the log", nodeId)
 	}
 	return nil
@@ -1631,8 +1596,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 }
 
 // Fetches recurring runs with given filtering and listing options.
-func (r *ResourceManager) ListJobs(filterContext *model.FilterContext,
-	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
+func (r *ResourceManager) ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
 	return r.jobStore.ListJobs(filterContext, opts)
 }
 
@@ -1845,11 +1809,11 @@ func addWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, nam
 		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object")
 	}
 
-	var operation = func() error {
+	operation := func() error {
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return err
 	}
-	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	backoffPolicy := backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
 	err = backoff.Retry(operation, backoffPolicy)
 	return err
 }

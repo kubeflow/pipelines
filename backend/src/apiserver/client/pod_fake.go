@@ -14,8 +14,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type FakePodClient struct {
-}
+type FakePodClient struct{}
 
 func (FakePodClient) UpdateEphemeralContainers(context.Context, string, *corev1.Pod, v1.UpdateOptions) (*corev1.Pod, error) {
 	glog.Error("This fake method is not yet implemented.")

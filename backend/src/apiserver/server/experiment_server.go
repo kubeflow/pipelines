@@ -136,7 +136,8 @@ func (s *ExperimentServer) createExperiment(ctx context.Context, experiment *mod
 }
 
 func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *apiv1beta1.CreateExperimentRequest) (
-	*apiv1beta1.Experiment, error) {
+	*apiv1beta1.Experiment, error,
+) {
 	if s.options.CollectMetrics {
 		createExperimentRequests.Inc()
 	}
@@ -163,7 +164,8 @@ func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *apiv
 }
 
 func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2beta1.CreateExperimentRequest) (
-	*apiv2beta1.Experiment, error) {
+	*apiv2beta1.Experiment, error,
+) {
 	if s.options.CollectMetrics {
 		createExperimentRequests.Inc()
 	}
@@ -198,7 +200,8 @@ func (s *ExperimentServer) getExperiment(ctx context.Context, experimentId strin
 }
 
 func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *apiv1beta1.GetExperimentRequest) (
-	*apiv1beta1.Experiment, error) {
+	*apiv1beta1.Experiment, error,
+) {
 	if s.options.CollectMetrics {
 		getExperimentRequests.Inc()
 	}
@@ -216,7 +219,8 @@ func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *apiv1be
 }
 
 func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta1.GetExperimentRequest) (
-	*apiv2beta1.Experiment, error) {
+	*apiv2beta1.Experiment, error,
+) {
 	if s.options.CollectMetrics {
 		getExperimentRequests.Inc()
 	}
@@ -267,7 +271,8 @@ func (s *ExperimentServer) listExperiments(ctx context.Context, pageToken string
 }
 
 func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1beta1.ListExperimentsRequest) (
-	*apiv1beta1.ListExperimentsResponse, error) {
+	*apiv1beta1.ListExperimentsResponse, error,
+) {
 	if s.options.CollectMetrics {
 		listExperimentsV1Requests.Inc()
 	}
@@ -304,7 +309,8 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 }
 
 func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2beta1.ListExperimentsRequest) (
-	*apiv2beta1.ListExperimentsResponse, error) {
+	*apiv2beta1.ListExperimentsResponse, error,
+) {
 	if s.options.CollectMetrics {
 		listExperimentsV1Requests.Inc()
 	}

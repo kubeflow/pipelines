@@ -88,7 +88,6 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 		}
 	}
 	return workflow, nil
-
 }
 
 type Argo struct {

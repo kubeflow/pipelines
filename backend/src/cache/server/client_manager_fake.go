@@ -33,7 +33,7 @@ func NewFakeClientManager(time util.TimeInterface) (*FakeClientManager, error) {
 		glog.Fatalf("The time parameter must not be null.") // Must never happen
 	}
 	// Initialize GORM
-	db, err := storage.NewFakeDb()
+	db, err := storage.NewFakeDB()
 	if err != nil {
 		return nil, err
 	}

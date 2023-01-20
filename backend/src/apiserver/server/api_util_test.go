@@ -305,29 +305,6 @@ func TestGetExperimentIDFromResourceReferences(t *testing.T) {
 	}
 }
 
-func TestGetWorkflowSpecBytes_ByWorkflowManifest(t *testing.T) {
-	spec := &apiv1beta1.PipelineSpec{
-		WorkflowManifest: "some manifest",
-		Parameters: []*apiv1beta1.Parameter{
-			{Name: "param1", Value: "world"},
-		},
-	}
-	workflowBytes, err := getWorkflowSpecBytesFromPipelineSpecV1(spec)
-	assert.Nil(t, err)
-	assert.Equal(t, []byte("some manifest"), workflowBytes)
-}
-
-func TestGetWorkflowSpecBytes_MissingSpec(t *testing.T) {
-	spec := &apiv1beta1.PipelineSpec{
-		Parameters: []*apiv1beta1.Parameter{
-			{Name: "param1", Value: "world"},
-		},
-	}
-	_, err := getWorkflowSpecBytesFromPipelineSpecV1(spec)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please provide a valid pipeline spec")
-}
-
 // func TestValidateRunMetricV1_Pass(t *testing.T) {
 // 	metric := &apiv1beta1.RunMetric{
 // 		Name:   "foo",

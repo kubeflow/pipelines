@@ -81,7 +81,7 @@ type JobStore struct {
 	time                   util.TimeInterface
 }
 
-// factory function for job store
+// factory function for job store.
 func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
 	return &JobStore{
 		db:                     db,
@@ -122,7 +122,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		if err != nil {
 			return nil, err
 		}
-		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
+		resourceReferences, _ := parseResourceReferences(resourceReferencesInString)
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 		jobs = append(jobs, &model.Job{
 			UUID:               uuid,
@@ -166,8 +166,8 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 }
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
-	filterContext *model.FilterContext) (string, []interface{}, error) {
-
+	filterContext *model.FilterContext,
+) (string, []interface{}, error) {
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
 
@@ -289,6 +289,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	}
 	return j, nil
 }
+
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	sql, args, err := s.addResourceReferences(sq.Select(jobColumns...).From("jobs")).
 		Where(sq.Eq{"uuid": id}).
@@ -318,7 +319,8 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
 // matching the supplied filters and resource references.
 func (s *JobStore) ListJobs(
-	filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
+	filterContext *model.FilterContext, opts *list.Options,
+) ([]*model.Job, int, string, error) {
 	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -344,24 +346,31 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		return errorF(err)
 	}
+	if err := rows.Err(); err != nil {
+		return errorF(err)
+	}
 	jobs, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err := sizeRow.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	totalSize, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
+	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -370,11 +379,11 @@ func (s *JobStore) ListJobs(
 	}
 
 	if len(jobs) <= opts.PageSize {
-		return jobs, total_size, "", nil
+		return jobs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(jobs[opts.PageSize])
-	return jobs[:opts.PageSize], total_size, npt, err
+	return jobs[:opts.PageSize], totalSize, npt, err
 }
 
 func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
@@ -383,7 +392,8 @@ func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
 		Update("jobs").
 		SetMap(sq.Eq{
 			"Enabled":        enabled,
-			"UpdatedAtInSec": now}).
+			"UpdatedAtInSec": now,
+		}).
 		Where(sq.Eq{"UUID": string(id)}).
 		Where(sq.Eq{"Enabled": !enabled}).
 		ToSql()
@@ -421,7 +431,8 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			"Schedule":                       swf.CronOrEmpty(),
 			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
 			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
-			"IntervalSecond":                 swf.IntervalSecondOr0()}).
+			"IntervalSecond":                 swf.IntervalSecondOr0(),
+		}).
 		Where(sq.Eq{"UUID": string(swf.UID)}).
 		ToSql()
 	if err != nil {
@@ -430,7 +441,6 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			err, swf.ScheduledWorkflow)
 	}
 	r, err := s.db.Exec(sql, args...)
-
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Error while updating job with scheduled workflow: %v: %+v",

@@ -46,8 +46,8 @@ type FakeClientManager struct {
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
-	*FakeClientManager, error) {
-
+	*FakeClientManager, error,
+) {
 	if time == nil {
 		glog.Fatalf("The time parameter must not be null") // Must never happen
 	}
@@ -57,7 +57,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	}
 
 	// Initialize GORM
-	db, err := storage.NewFakeDb()
+	db, err := storage.NewFakeDB()
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (f *FakeClientManager) Close() error {
 	return f.db.Close()
 }
 
-// Update the uuid used in this fake client manager
+// Update the uuid used in this fake client manager.
 func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
 	f.uuid = uuid
 	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid)

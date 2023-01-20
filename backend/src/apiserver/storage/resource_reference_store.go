@@ -16,7 +16,7 @@ package storage
 
 import (
 	"database/sql"
-
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -25,8 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-var resourceReferenceColumns = []string{"ResourceUUID", "ResourceType", "ReferenceUUID",
-	"ReferenceName", "ReferenceType", "Relationship", "Payload"}
+var resourceReferenceColumns = []string{
+	"ResourceUUID", "ResourceType", "ReferenceUUID",
+	"ReferenceName", "ReferenceType", "Relationship", "Payload",
+}
 
 type ResourceReferenceStoreInterface interface {
 	// Retrieve the resource reference for a given resource id, type and a reference type.
@@ -90,7 +92,7 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 	}
 	var exists bool
 	err = tx.QueryRow(fmt.Sprintf("SELECT exists (%s)", query), args...).Scan(&exists)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return false
 	}
 	return exists
@@ -103,23 +105,29 @@ func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string,
 		Delete("resource_references").
 		Where(sq.Or{
 			sq.Eq{"ResourceUUID": id, "ResourceType": resourceType},
-			sq.Eq{"ReferenceUUID": id, "ReferenceType": resourceType}}).
+			sq.Eq{"ReferenceUUID": id, "ReferenceType": resourceType},
+		}).
 		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to delete resource references for %s %s due to SQL syntax error", resourceType, id)
+	}
 	_, err = tx.Exec(refSql, refArgs...)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to delete resource references for %s %s", resourceType, id)
+		return util.NewInternalServerError(err, "Failed to delete resource references for %s %s due to SQL execution error", resourceType, id)
 	}
 	return nil
 }
 
 func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourceType model.ResourceType,
-	referenceType model.ResourceType) (*model.ResourceReference, error) {
+	referenceType model.ResourceType,
+) (*model.ResourceReference, error) {
 	sql, args, err := sq.Select(resourceReferenceColumns...).
 		From("resource_references").
 		Where(sq.Eq{
 			"ResourceUUID":  resourceId,
 			"ResourceType":  resourceType,
-			"ReferenceType": referenceType}).
+			"ReferenceType": referenceType,
+		}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err,

@@ -43,7 +43,7 @@ func (r RunMetricSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
 func (r RunMetricSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 func initializeRunStore() (*DB, *RunStore) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))

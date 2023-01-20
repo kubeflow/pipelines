@@ -27,25 +27,23 @@ import (
 
 const table_name = "tasks"
 
-var (
-	taskColumns = []string{
-		"UUID",
-		"Namespace",
-		"PipelineName",
-		"RunUUID",
-		"MLMDExecutionID",
-		"CreatedTimestamp",
-		"StartedTimestamp",
-		"FinishedTimestamp",
-		"Fingerprint",
-		"Name",
-		"ParentTaskUUID",
-		"State",
-		"StateHistory",
-		"MLMDInputs",
-		"MLMDOutputs",
-	}
-)
+var taskColumns = []string{
+	"UUID",
+	"Namespace",
+	"PipelineName",
+	"RunUUID",
+	"MLMDExecutionID",
+	"CreatedTimestamp",
+	"StartedTimestamp",
+	"FinishedTimestamp",
+	"Fingerprint",
+	"Name",
+	"ParentTaskUUID",
+	"State",
+	"StateHistory",
+	"MLMDInputs",
+	"MLMDOutputs",
+}
 
 type TaskStoreInterface interface {
 	// Create a task entry in the database.
@@ -212,15 +210,23 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		tx.Rollback()
 		return errorF(err)
 	}
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
 	exps, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
@@ -229,7 +235,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
+	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {

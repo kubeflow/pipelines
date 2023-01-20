@@ -22,8 +22,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type FakeSubjectAccessReviewClient struct {
-}
+type FakeSubjectAccessReviewClient struct{}
 
 func (FakeSubjectAccessReviewClient) Create(context.Context, *authzv1.SubjectAccessReview, v1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
 	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{
@@ -38,8 +37,7 @@ func NewFakeSubjectAccessReviewClient() FakeSubjectAccessReviewClient {
 	return FakeSubjectAccessReviewClient{}
 }
 
-type FakeSubjectAccessReviewClientUnauthorized struct {
-}
+type FakeSubjectAccessReviewClientUnauthorized struct{}
 
 func (FakeSubjectAccessReviewClientUnauthorized) Create(context.Context, *authzv1.SubjectAccessReview, v1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
 	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{
@@ -54,8 +52,7 @@ func NewFakeSubjectAccessReviewClientUnauthorized() FakeSubjectAccessReviewClien
 	return FakeSubjectAccessReviewClientUnauthorized{}
 }
 
-type FakeSubjectAccessReviewClientError struct {
-}
+type FakeSubjectAccessReviewClientError struct{}
 
 func (FakeSubjectAccessReviewClientError) Create(*authzv1.SubjectAccessReview) (*authzv1.SubjectAccessReview, error) {
 	return nil, errors.New("failed to create subject access review")
