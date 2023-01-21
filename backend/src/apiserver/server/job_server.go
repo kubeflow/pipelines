@@ -256,21 +256,13 @@ func (s *JobServer) GetJob(ctx context.Context, request *apiv1beta1.GetJobReques
 }
 
 func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int, sortBy string, filter string, namespace string, experimentId string) ([]*model.Job, int, string, error) {
-	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
+	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if experimentId != "" {
 		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
 		if err != nil {
 			return nil, 0, "", util.Wrapf(err, "Failed to list recurring runs due to error fetching namespace for experiment %s. Try filtering based on namespace", experimentId)
 		}
 		namespace = ns
-	}
-	if common.IsMultiUserMode() {
-		if namespace == "" {
-			return nil, 0, "", util.NewInternalServerError(
-				errors.New("Namespace cannot be empty"),
-				"Failed to list recurring runs",
-			)
-		}
 	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,

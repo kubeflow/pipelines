@@ -227,7 +227,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 	}
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
-		return fmt.Errorf("Failed to read sample configurations file. Err: %v", err)
+		return fmt.Errorf("failed to read sample configurations file. Err: %v", err)
 	}
 	type config struct {
 		Name        string
@@ -236,16 +236,16 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 	}
 	var configs []config
 	if err = json.Unmarshal(configBytes, &configs); err != nil {
-		return fmt.Errorf("Failed to read sample configurations. Err: %v", err)
+		return fmt.Errorf("failed to read sample configurations. Err: %v", err)
 	}
 	for _, config := range configs {
 		reader, configErr := os.Open(config.File)
 		if configErr != nil {
-			return fmt.Errorf("Failed to load sample %s. Error: %v", config.Name, configErr)
+			return fmt.Errorf("failed to load sample %s. Error: %v", config.Name, configErr)
 		}
 		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, common.MaxFileLength)
 		if configErr != nil {
-			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
+			return fmt.Errorf("failed to decompress the file %s. Error: %v", config.Name, configErr)
 		}
 		p, configErr := resourceManager.CreatePipeline(
 			&model.Pipeline{

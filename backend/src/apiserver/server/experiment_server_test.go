@@ -673,14 +673,7 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 			&apiv1beta1.ListExperimentsRequest{},
 			false,
 			"",
-			[]*apiv1beta1.Experiment{{
-				Id:                 createResult.Id,
-				Name:               "exp1",
-				Description:        "first experiment",
-				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
-				ResourceReferences: resourceReferences,
-				StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
-			}},
+			[]*apiv1beta1.Experiment{},
 		},
 		{
 			"Empty namespace",
@@ -692,14 +685,7 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 			},
 			false,
 			"",
-			[]*apiv1beta1.Experiment{{
-				Id:                 createResult.Id,
-				Name:               "exp1",
-				Description:        "first experiment",
-				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
-				ResourceReferences: resourceReferences,
-				StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
-			}},
+			[]*apiv1beta1.Experiment{},
 		},
 		{
 			"No namespace",
@@ -711,14 +697,7 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 			},
 			false,
 			"",
-			[]*apiv1beta1.Experiment{{
-				Id:                 createResult.Id,
-				Name:               "exp1",
-				Description:        "first experiment",
-				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
-				ResourceReferences: resourceReferences,
-				StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
-			}},
+			[]*apiv1beta1.Experiment{},
 		},
 	}
 

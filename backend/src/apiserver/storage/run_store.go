@@ -447,7 +447,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"PipelineName":            r.PipelineSpec.PipelineName,
 			"PipelineSpecManifest":    r.PipelineSpec.PipelineSpecManifest,
 			"WorkflowSpecManifest":    r.PipelineSpec.WorkflowSpecManifest,
-			"Parameters":              r.Parameters,
+			"Parameters":              r.PipelineSpec.Parameters,
 			"RuntimeParameters":       r.PipelineSpec.RuntimeConfig.Parameters,
 			"PipelineRoot":            r.PipelineSpec.RuntimeConfig.PipelineRoot,
 			"PipelineVersionId":       r.PipelineSpec.PipelineVersionId,

@@ -122,7 +122,7 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 }
 
 func (s *ExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
-	experiment.Namespace = s.resourceManager.ReplaceEmptyNamespace(experiment.Namespace)
+	experiment.Namespace = s.resourceManager.ReplaceNamespace(experiment.Namespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: experiment.Namespace,
 		Verb:      common.RbacResourceVerbCreate,
@@ -238,22 +238,14 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta
 }
 
 func (s *ExperimentServer) listExperiments(ctx context.Context, pageToken string, pageSize int32, sortBy string, filter string, namespace string) ([]*model.Experiment, int32, string, error) {
-	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
-	if common.IsMultiUserMode() {
-		if namespace == "" {
-			return nil, 0, "", util.NewInternalServerError(
-				errors.New("Namespace cannot be empty"),
-				"Failed to list experiments",
-			)
-		}
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: namespace,
-			Verb:      common.RbacResourceVerbList,
-		}
-		err := s.canAccessExperiment(ctx, "", resourceAttributes)
-		if err != nil {
-			return nil, 0, "", util.Wrap(err, "Failed to authorize with API")
-		}
+	namespace = s.resourceManager.ReplaceNamespace(namespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	err := s.canAccessExperiment(ctx, "", resourceAttributes)
+	if err != nil {
+		return nil, 0, "", util.Wrap(err, "Failed to authorize with API")
 	}
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},

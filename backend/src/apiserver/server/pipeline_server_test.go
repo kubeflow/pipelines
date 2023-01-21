@@ -468,7 +468,7 @@ func TestGetPipelineByName_NotFound(t *testing.T) {
 	assert.EqualValues(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), err)
 }
 
-func TestGetPipelineByName_NotFound_WrongNameSpace(t *testing.T) {
+func TestGetPipelineByName_WrongNameSpace(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -495,8 +495,8 @@ func TestGetPipelineByName_NotFound_WrongNameSpace(t *testing.T) {
 			Name:      pipeline.Name,
 			Namespace: "wrong_namespace",
 		})
-	assert.Nil(t, newPipeline)
-	assert.EqualValues(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), err)
+	assert.Nil(t, err)
+	assert.Equal(t, pipeline, newPipeline)
 }
 
 func TestCreatePipelineVersionAndCheckLatestVersion(t *testing.T) {

@@ -263,13 +263,13 @@ func (r *ResourceManager) IsDefaultNamespace(namespace string) bool {
 	return false
 }
 
-// Replaces the namespace if it is equal to one of {`-`, `POD_NAMESPACE`}.
-// The new namespace will have the default value.
-func (r *ResourceManager) ReplaceEmptyNamespace(namespace string) string {
-	if namespace == "" || namespace == model.NoNamespace {
+// Replaces the namespace to a default value for single-user mode.
+func (r *ResourceManager) ReplaceNamespace(namespace string) string {
+	if common.IsMultiUserMode() {
+		return namespace
+	} else {
 		return r.GetDefaultNamespace()
 	}
-	return namespace
 }
 
 // Fetches the default experiment id.
@@ -762,13 +762,27 @@ func (r *ResourceManager) UpdatePipelineVersionStatus(pipelineVersionId string, 
 	return nil
 }
 
-// Deletes a pipeline that does not have any pipeline versions. Does not delete pipeline spec.
-// This has changed the behavior in v2beta1.
-func (r *ResourceManager) DeletePipeline(pipelineId string) error {
+// Deletes a pipeline. Does not delete pipeline spec in the object storage.
+// v1beta1: also deletes underlying pipeline versions.
+// v2beta1: fails if the pipeline has existing pipeline versions.
+func (r *ResourceManager) DeletePipeline(pipelineId string, apiVersion string) error {
 	// Check if pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineId)
+	}
+
+	if apiVersion == "v1beta1" {
+		// Mark pipeline versions as deleting so they are not visible to user.
+		err = r.pipelineStore.UpdateAllPipelineVersionsStatus(pipelineId, model.PipelineVersionDeleting)
+		if err != nil {
+			return util.Wrapf(err, "Failed to change the status of all pipeline versions under pipeline id %v to DELETING", pipelineId)
+		}
+		// Delete all pipeline versions.
+		err = r.pipelineStore.DeleteAllPipelineVersions(pipelineId)
+		if err != nil {
+			return util.Wrapf(err, "Failed to delete all pipeline version DB entries for pipeline id %v", pipelineId)
+		}
 	}
 
 	// Check if it has no pipeline versions in Ready state

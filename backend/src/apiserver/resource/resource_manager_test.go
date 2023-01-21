@@ -1034,7 +1034,7 @@ func TestListPipelines(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID)
+	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelines(
@@ -1093,7 +1093,7 @@ func TestListPipelinesV1(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID)
+	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
 	assert.Nil(t, err)
 
 	_, _, nTotal, _, err = manager.ListPipelinesV1(
@@ -1164,7 +1164,7 @@ func TestListPipelineVersions(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID)
+	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelineVersions(
@@ -1461,7 +1461,7 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID)
+	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
 	assert.Nil(t, err)
 
 	// Verify the pipeline doesn't exist.
@@ -1473,7 +1473,7 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Must fail due to active pipeline versions
-	err = manager.DeletePipeline(pnew1.UUID)
+	err = manager.DeletePipeline(pnew1.UUID, "v2beta1")
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }

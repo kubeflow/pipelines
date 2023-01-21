@@ -269,21 +269,13 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 
 // Fetches all runs that conform to the specified filter and listing options. Not exported.
 func (s *RunServer) listRuns(ctx context.Context, pageToken string, pageSize int, sortBy string, filter string, namespace string, experimentId string) ([]*model.Run, int, string, error) {
-	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
+	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if experimentId != "" {
 		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
 		if err != nil {
 			return nil, 0, "", util.Wrapf(err, "Failed to list runs due to error fetching namespace for experiment %s. Try filtering based on namespace", experimentId)
 		}
 		namespace = ns
-	}
-	if common.IsMultiUserMode() {
-		if namespace == "" {
-			return nil, 0, "", util.NewInternalServerError(
-				errors.New("Namespace cannot be empty"),
-				"Failed to list runs",
-			)
-		}
 	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,

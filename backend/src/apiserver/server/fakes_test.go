@@ -202,7 +202,7 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 		}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
-	modelExperiment.Namespace = resourceManager.ReplaceEmptyNamespace(modelExperiment.Namespace)
+	modelExperiment.Namespace = resourceManager.ReplaceNamespace(modelExperiment.Namespace)
 	assert.Nil(t, err)
 	experiment, err := resourceManager.CreateExperiment(modelExperiment)
 	assert.Nil(t, err)

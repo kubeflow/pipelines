@@ -218,7 +218,7 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pip
 	if pipeline.Name == "" {
 		return nil, util.NewInvalidInputError("Failed create to a pipeline due to empty name. Please specify a valid name")
 	}
-	pipeline.Namespace = s.resourceManager.ReplaceEmptyNamespace(pipeline.Namespace)
+	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
 	// Check authorization
 	if common.IsMultiUserMode() {
 		resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -328,7 +328,7 @@ func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineI
 
 // Fetches pipeline and (optionally) pipeline version for a given name and namespace.
 func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, namespace string, apiRequestVersion string) (*model.Pipeline, *model.PipelineVersion, error) {
-	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
+	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if common.IsMultiUserMode() {
 		if !s.resourceManager.IsDefaultNamespace(namespace) {
 			resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -357,7 +357,7 @@ func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, nam
 // Fetches an array of []model.Pipeline and an array of []model.PipelineVersion for given search query parameters.
 func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, filter string, apiRequestVersion string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
 	// Fill in the default namespace
-	namespace = s.resourceManager.ReplaceEmptyNamespace(namespace)
+	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if common.IsMultiUserMode() {
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
@@ -433,7 +433,7 @@ func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId st
 }
 
 // Removes a model.Pipeline.
-func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string) error {
+func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string, apiVersion string) error {
 	// Fail fast
 	if pipelineId == "" {
 		return util.NewInvalidInputError("Failed to delete a pipeline due missing pipeline id")
@@ -448,7 +448,7 @@ func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string) 
 		return util.Wrapf(err, "Failed to delete a pipeline due authorization error for pipeline id %v", pipelineId)
 	}
 
-	return s.resourceManager.DeletePipeline(pipelineId)
+	return s.resourceManager.DeletePipeline(pipelineId, apiVersion)
 }
 
 // Removes a model.PipelineVersion.
@@ -930,13 +930,13 @@ func (s *PipelineServer) UpdatePipelineDefaultVersionV1(ctx context.Context, req
 	return &empty.Empty{}, nil
 }
 
-// Deletes a v1beta1 pipeline.
+// Deletes a v1beta1 pipeline with the underlying pipeline versions.
 func (s *PipelineServer) DeletePipelineV1(ctx context.Context, request *apiv1beta1.DeletePipelineRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineRequests.Inc()
 	}
 
-	if err := s.deletePipeline(ctx, request.GetId()); err != nil {
+	if err := s.deletePipeline(ctx, request.GetId(), "v1beta1"); err != nil {
 		return nil, util.Wrapf(err, "Failed to delete pipeline (v1beta1) %s. Check error stack", request.GetId())
 	}
 
@@ -953,7 +953,7 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1
 		deletePipelineRequests.Inc()
 	}
 
-	if err := s.deletePipeline(ctx, request.GetPipelineId()); err != nil {
+	if err := s.deletePipeline(ctx, request.GetPipelineId(), "v2beta1"); err != nil {
 		return nil, util.Wrapf(err, "Failed to delete pipeline %s. Check error stack", request.GetPipelineId())
 	}
 
