@@ -331,9 +331,13 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
-	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "wait-awhile")
+	if !assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "wait-awhile") {
+		fmt.Printf("RunDetail: %v", runDetail)
+	}
 	// Check runtime workflow manifest is not empty
-	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
+	if !assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile") {
+		fmt.Printf("RunDetail: %v", runDetail)
+	}
 
 	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,
@@ -369,9 +373,13 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
-	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
+	if !assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay") {
+		fmt.Printf("RunDetail: %v", runDetail)
+	}
 	// Check runtime workflow manifest is not empty
-	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
+	if !assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay") {
+		fmt.Printf("RunDetail: %v", runDetail)
+	}
 
 	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,

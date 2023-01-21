@@ -121,17 +121,41 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 }
 
 func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
+	pipelineId := job.PipelineSpec.PipelineId
+	pipelineVersionId := job.PipelineSpec.PipelineVersionId
+	if pipelineVersionId != "" {
+		ns, err := s.resourceManager.FetchNamespaceFromPipelineVersionId(pipelineVersionId)
+		if err != nil {
+			ns = ""
+		}
+		job.Namespace = ns
+	} else if pipelineId != "" {
+		ns, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
+		if err != nil {
+			ns = ""
+		}
+		job.Namespace = ns
+	}
+	if job.ExperimentId == "" {
+		expId, err := s.resourceManager.GetDefaultExperimentId()
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to create a recurring run due to missing parent experiment and default experiment")
+		}
+		job.ExperimentId = expId
+	}
 	if job.ExperimentId == "" {
 		return nil, util.NewInvalidInputError("Failed to create a recurring run due to missing parent experiment id")
 	}
 	if err := s.resourceManager.ValidateExperimentNamespace(job.ExperimentId, job.Namespace); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a recurring run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", job.Namespace, job.ExperimentId)
 	}
-	ns, err := s.resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run due to error fetching namespace of the parent experiment %s", job.ExperimentId)
+	if job.Namespace == "" {
+		ns, err := s.resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to create a recurring run due to error fetching namespace of the parent experiment %s", job.ExperimentId)
+		}
+		job.Namespace = ns
 	}
-	job.Namespace = ns
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: job.Namespace,

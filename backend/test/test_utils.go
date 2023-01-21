@@ -140,7 +140,6 @@ func ListExperiment(client *api_server.ExperimentClient, parameters *experimentp
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
 	}
-
 	return client.List(parameters)
 }
 

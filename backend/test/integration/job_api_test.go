@@ -495,7 +495,9 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
-	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay", "Job's error: %s", job.Error)
+	if !assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay") {
+		fmt.Printf("Job: %v", job)
+	}
 
 	expectedJob := &job_model.APIJob{
 		ID:             job.ID,
@@ -532,7 +534,9 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 
 func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string) {
 	// Check runtime workflow manifest is not empty
-	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "arguments-parameters-", "Job's error: %s", job.Error)
+	if !assert.Contains(t, job.PipelineSpec.WorkflowManifest, "arguments-parameters-") {
+		fmt.Printf("Job: %v", job)
+	}
 	expectedJob := &job_model.APIJob{
 		ID:             job.ID,
 		Name:           "argument parameter",

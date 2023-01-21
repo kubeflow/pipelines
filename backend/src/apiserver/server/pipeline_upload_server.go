@@ -141,8 +141,8 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 
 	pipelineVersion := &model.PipelineVersion{
-		Name:         pipelineName,
-		Description:  pipelineDescription,
+		Name:         newPipeline.Name,
+		Description:  newPipeline.Description,
 		PipelineId:   newPipeline.UUID,
 		PipelineSpec: string(pipelineFile),
 	}

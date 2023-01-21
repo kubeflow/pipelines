@@ -198,11 +198,12 @@ func (s *UpgradeTests) VerifyExperiments() {
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
 		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
-		s.resourceNamespace)
+		s.resourceNamespace,
+	)
 	require.Nil(t, err)
 	// after upgrade, default experiment may be inserted, but the oldest 3
 	// experiments should be the ones created in this test
-	require.True(t, len(experiments) >= 3)
+	require.Equal(t, 3, len(experiments), "Inconsistent number of experiments in resource namespace %s and namespace %s", s.resourceNamespace, s.namespace)
 
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "my first experiment", experiments[0].Description)
