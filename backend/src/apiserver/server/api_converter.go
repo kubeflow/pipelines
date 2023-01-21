@@ -178,6 +178,7 @@ func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 		Namespace:      namespace,
 		Description:    description,
 		CreatedAtInSec: createTime,
+		Status:         model.PipelineReady,
 	}, nil
 }
 
@@ -442,6 +443,7 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		CodeSourceUrl:  codeUrl,
 		Description:    description,
 		PipelineSpec:   pipelineSpec,
+		Status:         model.PipelineVersionReady,
 	}, nil
 }
 

@@ -485,6 +485,7 @@ func TestToModelPipelineVersion(t *testing.T) {
 		Parameters:     "",
 		PipelineId:     "pipeline1",
 		CodeSourceUrl:  "http://repo/11111",
+		Status:         model.PipelineVersionReady,
 	}
 
 	assert.Equal(t, expectedModelPipelineVersion, convertedModelPipelineVersion)

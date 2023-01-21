@@ -33,7 +33,6 @@ const (
 )
 
 type Pipeline struct {
-	// gorm.Model
 	UUID           string `gorm:"column:UUID; not null; primary_key;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
 	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
