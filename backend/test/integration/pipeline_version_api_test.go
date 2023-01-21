@@ -338,7 +338,6 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	v2Version, err := s.pipelineUploadClient.UploadPipelineVersion(
 		"../resources/v2-hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
 			Name:       util.StringPointer("v2-hello-world"),
-			Namespace:  &s.namespace,
 			Pipelineid: util.StringPointer(pipeline.ID),
 		})
 	require.Nil(t, err)

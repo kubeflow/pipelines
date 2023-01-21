@@ -377,6 +377,7 @@ func (s *UpgradeTests) VerifyJobs() {
 			PipelineID:       pipeline.ID,
 			PipelineName:     "hello-world.yaml",
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
+			PipelineManifest: job.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
@@ -419,8 +420,8 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     "hello-world.yaml",
-			PipelineManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			WorkflowManifest: runDetail.Run.PipelineSpec.PipelineManifest,
+			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},

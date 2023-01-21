@@ -506,7 +506,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 			PipelineID:       job.PipelineSpec.PipelineID,
 			PipelineName:     job.PipelineSpec.PipelineName,
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-			PipelineManifest: job.PipelineSpec.WorkflowManifest,
+			PipelineManifest: job.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
@@ -542,7 +542,7 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 			PipelineID:       job.PipelineSpec.PipelineID,
 			PipelineName:     job.PipelineSpec.PipelineName,
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-			PipelineManifest: job.PipelineSpec.WorkflowManifest,
+			PipelineManifest: job.PipelineSpec.PipelineManifest,
 			Parameters: []*job_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
