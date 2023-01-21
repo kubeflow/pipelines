@@ -393,14 +393,10 @@ func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pa
 }
 
 // Fetches an array of []model.PipelineVersion for given search query parameters.
-func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId string, pageToken string, pageSize int32, sortBy string, filter string, apiRequestVersion string) ([]*model.PipelineVersion, int, string, error) {
+func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId string, pageToken string, pageSize int32, sortBy string, filter string) ([]*model.PipelineVersion, int, string, error) {
 	// Fail fast of pipeline id or namespace are missing
 	if pipelineId == "" {
 		return nil, 0, "", util.NewInvalidInputError("Failed to list pipeline versions. Pipeline id cannot be empty")
-	}
-	namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
-	if err != nil {
-		return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due to error fetching the namespace for pipeline %v", pipelineId)
 	}
 
 	// Validate query parameters
@@ -417,6 +413,10 @@ func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId st
 
 	// Check authorization
 	if common.IsMultiUserMode() {
+		namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
+		if err != nil {
+			return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due to error fetching the namespace for pipeline %v", pipelineId)
+		}
 		if !s.resourceManager.IsDefaultNamespace(namespace) {
 			resourceAttributes := &authorizationv1.ResourceAttributes{
 				Namespace: namespace,
@@ -870,13 +870,13 @@ func (s *PipelineServer) ListPipelineVersionsV1(ctx context.Context, request *ap
 	sortBy := request.GetSortBy()
 	filter := request.GetFilter()
 
-	pipelineVersions, totalSize, nextPageToken, err := s.listPipelineVersions(ctx, pipelineId, pageToken, pageSize, sortBy, filter, "v1beta1")
+	pipelineVersions, totalSize, nextPageToken, err := s.listPipelineVersions(ctx, pipelineId, pageToken, pageSize, sortBy, filter)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipeline versions (v1beta1) with pipeline id %s. Check error stack", pipelineId)
 	}
 	apiPipelineVersions := toApiPipelineVersionsV1(pipelineVersions)
 	if apiPipelineVersions == nil {
-		return nil, util.Wrapf(err, "Failed to list pipeline versions (v1beta1) with pipeline id %s. due to conversion error", pipelineId)
+		return nil, util.Wrapf(err, "Failed to list pipeline versions (v1beta1) with pipeline id %s due to conversion error", pipelineId)
 	}
 	return &apiv1beta1.ListPipelineVersionsResponse{
 		Versions:      apiPipelineVersions,
@@ -898,7 +898,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 	sortBy := request.GetSortBy()
 	filter := request.GetFilter()
 
-	pipelineVersions, totalSize, nextPageToken, err := s.listPipelineVersions(ctx, pipelineId, pageToken, pageSize, sortBy, filter, "v2beta1")
+	pipelineVersions, totalSize, nextPageToken, err := s.listPipelineVersions(ctx, pipelineId, pageToken, pageSize, sortBy, filter)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipeline versions for pipeline %s", pipelineId)
 	}

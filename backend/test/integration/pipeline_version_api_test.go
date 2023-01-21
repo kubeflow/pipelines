@@ -114,14 +114,15 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsV1Params{ResourceKeyID: &pipelineId, SortBy: &sortBy})
 	require.Nil(t, err)
 
-	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionV1Params{PipelineID: pipelineId,
-		VersionID: versions[0].ID})
-	require.Nil(t, err)
+	// TODO(gkcalat): remove this workflow as we no longer support default version. Instead, we use the latest version as the default.
+	// err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionV1Params{PipelineID: pipelineId,
+	// 	VersionID: versions[0].ID})
+	// require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineV1Params{ID: pipelineId})
 	require.Nil(t, err)
-	assert.Equal(t, pipelineSelected.DefaultVersion.ID, versions[0].ID)
+	assert.Equal(t, pipelineSelected.DefaultVersion.ID, versions[1].ID)
 
 	/* ---------- Upload the same pipeline version again. Should fail due to name uniqueness ---------- */
 	time.Sleep(1 * time.Second)
@@ -350,7 +351,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
-	expected.OverrideV2PipelineName("test_v2_pipeline", "default")
+	expected.OverrideV2PipelineName("test_v2_pipeline", s.namespace)
 	assert.Equal(t, expected, template)
 }
 

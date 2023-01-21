@@ -133,7 +133,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	})
 	assert.Nil(t, err)
 	assert.True(t, test.VerifyExperimentResourceReferences(trainingExperiment.ResourceReferences, expectedTrainingExperiment.ResourceReferences))
-	trainingExperiment.ResourceReferences = expectedTrainingExperiment.ResourceReferences
+	expectedTrainingExperiment.ResourceReferences = trainingExperiment.ResourceReferences
 
 	expectedTrainingExperiment.ID = trainingExperiment.ID
 	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt

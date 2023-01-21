@@ -1022,6 +1022,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// persistence agent update the runtime data.
 	if tmpl.GetTemplateType() == template.V1 && run.RunDetails.WorkflowRuntimeManifest == "" {
 		run.RunDetails.WorkflowRuntimeManifest = newExecSpec.ToStringForStore()
+	} else {
+		run.RunDetails.PipelineRuntimeManifest = newExecSpec.ToStringForStore()
 	}
 
 	// Assign the scheduled at time

@@ -1689,7 +1689,17 @@ func toApiRunDetailV1(r *model.Run) *apiv1beta1.RunDetail {
 	apiRunDetails := &apiv1beta1.RunDetail{
 		Run: apiRunV1,
 	}
-	if r.RunDetails.PipelineRuntimeManifest != "" || r.RunDetails.WorkflowRuntimeManifest != "" {
+	if r.RunDetails.WorkflowRuntimeManifest == "" {
+		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
+			PipelineManifest: r.RunDetails.PipelineRuntimeManifest,
+			WorkflowManifest: r.RunDetails.PipelineRuntimeManifest,
+		}
+	} else if r.RunDetails.PipelineRuntimeManifest == "" {
+		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
+			PipelineManifest: r.RunDetails.WorkflowRuntimeManifest,
+			WorkflowManifest: r.RunDetails.WorkflowRuntimeManifest,
+		}
+	} else {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
 			PipelineManifest: r.RunDetails.PipelineRuntimeManifest,
 			WorkflowManifest: r.RunDetails.WorkflowRuntimeManifest,

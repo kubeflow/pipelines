@@ -1576,6 +1576,7 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
 	expectedRunDetail.PipelineSpec.PipelineSpecManifest = runDetail.PipelineSpec.PipelineSpecManifest
+	expectedRunDetail.RunDetails.PipelineRuntimeManifest = runDetail.RunDetails.PipelineRuntimeManifest
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value")
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)

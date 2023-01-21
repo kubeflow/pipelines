@@ -611,6 +611,7 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: "workflow123",
+			PipelineManifest: "workflow123",
 		},
 	}
 	// Compare the string representation of ApiRuns, since these structs have internal fields
@@ -667,6 +668,7 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: "workflow123",
+			PipelineManifest: "workflow123",
 		},
 	}
 	assert.Equal(t, expectedApiRun, apiRun)

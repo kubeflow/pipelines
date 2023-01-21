@@ -256,6 +256,9 @@ func (s *RunApiTestSuite) TestRunApis() {
 	time.Sleep(5 * time.Second)
 	// Create a new run
 	_, _, err = s.runClient.Create(createRunRequest)
+	assert.NotNil(t, err)
+	createRunRequest.Body.Name = "argument parameter 2"
+	_, _, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Check total number of runs is 3
 	runs, totalSize, _, err = test.ListAllRuns(s.runClient, s.resourceNamespace)
@@ -342,7 +345,6 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
@@ -358,6 +360,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
+	expectedRun.PipelineSpec.PipelineManifest = runDetail.Run.PipelineSpec.PipelineManifest
 	// Need to sort resource references before equality check as the order is non-deterministic
 	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
 	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
@@ -380,7 +383,6 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
@@ -397,6 +399,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
+	expectedRun.PipelineSpec.PipelineManifest = runDetail.Run.PipelineSpec.PipelineManifest
 	// Need to sort resource references before equality check as the order is non-deterministic
 	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
 	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
@@ -420,7 +423,6 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: string(argParamsBytes),
-			PipelineManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
@@ -438,6 +440,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
+	expectedRun.PipelineSpec.PipelineManifest = runDetail.Run.PipelineSpec.PipelineManifest
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
