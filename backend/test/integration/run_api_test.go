@@ -3,7 +3,6 @@ package integration
 import (
 	"fmt"
 	"io/ioutil"
-	"sort"
 	"testing"
 	"time"
 
@@ -340,7 +339,10 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		Status:         "Terminating",
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
@@ -354,9 +356,11 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -373,7 +377,10 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
@@ -388,9 +395,11 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -408,7 +417,10 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: string(argParamsBytes),
+			PipelineManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
@@ -424,6 +436,8 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -441,7 +455,7 @@ func (s *RunApiTestSuite) TearDownSuite() {
 
 func (s *RunApiTestSuite) cleanUp() {
 	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
 }

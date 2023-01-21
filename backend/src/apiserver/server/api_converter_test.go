@@ -506,15 +506,15 @@ func TestToApiPipeline(t *testing.T) {
 	}
 	apiPipeline := toApiPipelineV1(modelPipeline, modelVersion)
 	expectedApiPipeline := &apiv1beta1.Pipeline{
-		Id:         "pipeline1",
-		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
-		Parameters: []*apiv1beta1.Parameter{},
+		Id:        "pipeline1",
+		CreatedAt: &timestamp.Timestamp{Seconds: 1},
+		Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
 		DefaultVersion: &apiv1beta1.PipelineVersion{
 			Id:            "pipelineversion1",
 			CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-			Parameters:    []*apiv1beta1.Parameter{},
 			Description:   "desc1",
 			CodeSourceUrl: "http://repo/22222",
+			PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
 					Key: &apiv1beta1.ResourceKey{
@@ -656,7 +656,6 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-				RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
@@ -749,9 +748,7 @@ func TestToApiRunsV1(t *testing.T) {
 			FinishedAt:   &timestamp.Timestamp{},
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
-				Parameters:       make([]*apiv1beta1.Parameter, 0),
 				WorkflowManifest: "manifest",
-				RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
@@ -776,9 +773,7 @@ func TestToApiRunsV1(t *testing.T) {
 					Relationship: apiv1beta1.Relationship_OWNER},
 			},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
-				Parameters:       make([]*apiv1beta1.Parameter, 0),
 				WorkflowManifest: "manifest",
-				RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			Metrics: []*apiv1beta1.RunMetric{apiMetric2},
 		},
@@ -902,9 +897,6 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
-			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
-				PipelineRoot: "",
-			},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
@@ -955,9 +947,6 @@ func TestPeriodicScheduledJobtoApiJob(t *testing.T) {
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
-			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
-				PipelineRoot: "",
-			},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
@@ -991,14 +980,10 @@ func TestNonScheduledJobtoApiJob(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
 		MaxConcurrency: 1,
-		Trigger:        &apiv1beta1.Trigger{},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
-			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
-				PipelineRoot: "",
-			},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
@@ -1170,10 +1155,9 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "1 * *",
 				}}},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
-				Parameters:    []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-				PipelineId:    "1",
-				PipelineName:  "p1",
-				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{},
+				Parameters:   []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
@@ -1195,10 +1179,9 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "2 * *",
 				}}},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
-				Parameters:    []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-				PipelineId:    "2",
-				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{},
-				PipelineName:  "p2",
+				Parameters:   []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+				PipelineId:   "2",
+				PipelineName: "p2",
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "2"},
@@ -1503,7 +1486,7 @@ func TestToApiRecurringRun(t *testing.T) {
 				StartTime: &timestamp.Timestamp{Seconds: 2},
 				Cron:      "2 * *",
 			}}},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "1"},
+		// PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "1"},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
 				"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
@@ -1526,8 +1509,8 @@ func TestToApiRecurringRun(t *testing.T) {
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
+			PipelineVersionId: "pv1",
+			PipelineName:      "p1",
 			RuntimeConfig: model.RuntimeConfig{
 				Parameters:   "{\"param1\":\"world\"}",
 				PipelineRoot: "job-1-root",
@@ -1549,7 +1532,7 @@ func TestToApiRecurringRun(t *testing.T) {
 				StartTime: &timestamp.Timestamp{Seconds: 2},
 				Cron:      "2 * *",
 			}}},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "1"},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "pv1"},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
 				"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},

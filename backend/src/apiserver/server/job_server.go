@@ -139,7 +139,7 @@ func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, 
 		Name:      job.DisplayName,
 	}
 	if err := s.canAccessJob(ctx, "", resourceAttributes); err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
 	}
 	return s.resourceManager.CreateJob(ctx, job)
 }
@@ -181,7 +181,12 @@ func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.
 	if s.options.CollectMetrics {
 		jobCount.Inc()
 	}
-	return toApiRecurringRun(newRecurringRun), nil
+	apiRecurringRun := toApiRecurringRun(newRecurringRun)
+	if apiRecurringRun == nil {
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representation to its API counterpart"), "Failed to create a recurring run")
+	}
+
+	return apiRecurringRun, nil
 }
 
 func (s *JobServer) getJob(ctx context.Context, jobId string) (*model.Job, error) {
@@ -252,7 +257,7 @@ func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int
 		return nil, 0, "", util.Wrapf(err, "Failed to list recurring runs due to authorization error. Check if you have permission to access namespace %s", namespace)
 	}
 
-	opts, err := validatedListOptions(&model.Run{}, pageToken, pageSize, sortBy, filter)
+	opts, err := validatedListOptions(&model.Job{}, pageToken, pageSize, sortBy, filter)
 	if err != nil {
 		return nil, 0, "", util.Wrap(err, "Failed to create list options")
 	}
@@ -270,7 +275,7 @@ func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int
 	}
 	jobs, totalSize, token, err := s.resourceManager.ListJobs(filterContext, opts)
 	if err != nil {
-		return nil, 0, "", err
+		return nil, 0, "", util.Wrap(err, "Failed to list recurring runs")
 	}
 	return jobs, totalSize, token, nil
 }

@@ -127,7 +127,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	time.Sleep(1 * time.Second)
 	_, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineVersionParams())
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to upload pipeline version.")
+	assert.Contains(t, err.Error(), "Failed to upload pipeline version")
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
@@ -338,6 +338,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	v2Version, err := s.pipelineUploadClient.UploadPipelineVersion(
 		"../resources/v2-hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
 			Name:       util.StringPointer("v2-hello-world"),
+			Namespace:  &s.namespace,
 			Pipelineid: util.StringPointer(pipeline.ID),
 		})
 	require.Nil(t, err)
@@ -350,7 +351,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
-	expected.OverrideV2PipelineName("test_v2_pipeline", "")
+	expected.OverrideV2PipelineName("test_v2_pipeline", "default")
 	assert.Equal(t, expected, template)
 }
 

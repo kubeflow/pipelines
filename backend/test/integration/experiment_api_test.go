@@ -126,11 +126,15 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
+	expectedTrainingExperiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
+
 	trainingExperiment, err := s.experimentClient.Create(&params.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
-	expectedTrainingExperiment := test.GetExperiment(experiment.Name, experiment.Description, s.resourceNamespace)
+	assert.True(t, test.VerifyExperimentResourceReferences(trainingExperiment.ResourceReferences, expectedTrainingExperiment.ResourceReferences))
+	trainingExperiment.ResourceReferences = expectedTrainingExperiment.ResourceReferences
+
 	expectedTrainingExperiment.ID = trainingExperiment.ID
 	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt
 	expectedTrainingExperiment.StorageState = "STORAGESTATE_AVAILABLE"
@@ -358,8 +362,8 @@ func (s *ExperimentApiTest) TearDownSuite() {
 }
 
 func (s *ExperimentApiTest) cleanUp() {
-	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
 }

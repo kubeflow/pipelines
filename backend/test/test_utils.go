@@ -198,3 +198,83 @@ func GetDefaultPipelineRunnerServiceAccount(isKubeflowMode bool) string {
 		return "pipeline-runner"
 	}
 }
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyExperimentResourceReferences(resRefs []*experiment_model.APIResourceReference, targets []*experiment_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		for _, resRef := range resRefs {
+			if target.Key == nil {
+				matches++
+				break
+			}
+			if resRef.Key != nil {
+				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+					matches++
+					break
+				}
+			}
+		}
+	}
+	return matches == len(targets)
+}
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyJobResourceReferences(resRefs []*job_model.APIResourceReference, targets []*job_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		for _, resRef := range resRefs {
+			if target.Key == nil {
+				matches++
+				break
+			}
+			if resRef.Key != nil {
+				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+					matches++
+					break
+				}
+			}
+		}
+	}
+	return matches == len(targets)
+}
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyPipelineResourceReferences(resRefs []*pipeline_model.APIResourceReference, targets []*pipeline_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		for _, resRef := range resRefs {
+			if target.Key == nil {
+				matches++
+				break
+			}
+			if resRef.Key != nil {
+				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+					matches++
+					break
+				}
+			}
+		}
+	}
+	return matches == len(targets)
+}
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyRunResourceReferences(resRefs []*run_model.APIResourceReference, targets []*run_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		for _, resRef := range resRefs {
+			if target.Key == nil {
+				matches++
+				break
+			}
+			if resRef.Key != nil {
+				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+					matches++
+					break
+				}
+			}
+		}
+	}
+	return matches == len(targets)
+}

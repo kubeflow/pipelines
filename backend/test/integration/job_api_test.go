@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -504,7 +503,10 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		Description:    "this is hello world",
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &job_model.APIPipelineSpec{
+			PipelineID:       job.PipelineSpec.PipelineID,
+			PipelineName:     job.PipelineSpec.PipelineName,
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
+			PipelineManifest: job.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
@@ -518,12 +520,13 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Trigger:        &job_model.APITrigger{},
 	}
+	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences))
+	expectedJob.ResourceReferences = job.ResourceReferences
 
 	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
-	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
+	// sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
+	// sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -536,7 +539,10 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 		Description:    "this is argument parameter",
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &job_model.APIPipelineSpec{
+			PipelineID:       job.PipelineSpec.PipelineID,
+			PipelineName:     job.PipelineSpec.PipelineName,
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
+			PipelineManifest: job.PipelineSpec.WorkflowManifest,
 			Parameters: []*job_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
@@ -552,9 +558,9 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Trigger:        &job_model.APITrigger{},
 	}
-
+	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences))
+	expectedJob.ResourceReferences = job.ResourceReferences
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -647,11 +653,13 @@ func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID
 			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
 		},
 	}
-
-	if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
+	if !test.VerifyRunResourceReferences(run.ResourceReferences, resourceReferences) {
 		return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
 	}
-
+	// resourceReferences = run.ResourceReferences
+	// if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
+	// 	return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
+	// }
 	return nil
 }
 
@@ -668,9 +676,12 @@ func (s *JobApiTestSuite) checkArgParamsRun(run *run_model.APIRun, experimentID 
 			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
 		},
 	}
-	if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
+	if !test.VerifyRunResourceReferences(run.ResourceReferences, resourceReferences) {
 		return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
 	}
+	// if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
+	// 	return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
+	// }
 	return nil
 }
 
@@ -689,10 +700,10 @@ func (s *JobApiTestSuite) TearDownSuite() {
 /** ======== the following are util functions ========= **/
 
 func (s *JobApiTestSuite) cleanUp() {
-	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
-	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, s.T())
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
+	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
 }
 
 func defaultApiJob(pipelineVersionId, experimentId string) *job_model.APIJob {

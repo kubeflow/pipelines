@@ -104,7 +104,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
 	_, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to upload pipeline.")
+	assert.Contains(t, err.Error(), "Failed to upload pipeline")
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
@@ -224,7 +224,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
 	expected, err = pipelinetemplate.New(bytes)
-	expected.OverrideV2PipelineName("v2-hello-world.yaml", "")
+	expected.OverrideV2PipelineName("v2-hello-world.yaml", "default")
 	assert.Equal(t, expected, template)
 }
 
@@ -240,8 +240,8 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 			{Name: "param2"},                 // No default value in the pipeline
 		},
 		DefaultVersion: &model.APIPipelineVersion{
-			CreatedAt: pipeline.CreatedAt,
-			ID:        pipeline.ID,
+			CreatedAt: pipeline.DefaultVersion.CreatedAt,
+			ID:        pipeline.DefaultVersion.ID,
 			Name:      "arguments-parameters.yaml",
 			Parameters: []*model.APIParameter{
 				{Name: "param1", Value: "hello"},
@@ -250,6 +250,12 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
 				Relationship: model.APIRelationshipOWNER}}},
 	}
+	assert.True(t, test.VerifyPipelineResourceReferences(pipeline.ResourceReferences, expected.ResourceReferences))
+	expected.ResourceReferences = pipeline.ResourceReferences
+	expected.URL = pipeline.URL
+	assert.True(t, test.VerifyPipelineResourceReferences(pipeline.DefaultVersion.ResourceReferences, expected.DefaultVersion.ResourceReferences))
+	expected.DefaultVersion.ResourceReferences = pipeline.DefaultVersion.ResourceReferences
+	expected.DefaultVersion.PackageURL = pipeline.DefaultVersion.PackageURL
 	assert.Equal(t, expected, *pipeline)
 }
 

@@ -220,14 +220,16 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pip
 	}
 	pipeline.Namespace = s.resourceManager.ReplaceEmptyNamespace(pipeline.Namespace)
 	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: pipeline.Namespace,
-		Verb:      common.RbacResourceVerbCreate,
-		Resource:  common.RbacResourceTypePipelines,
-	}
-	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a pipeline due to authorization error. Check if you have write permissions to namespace %s", pipeline.Namespace)
+	if common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: pipeline.Namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Resource:  common.RbacResourceTypePipelines,
+		}
+		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to create a pipeline due to authorization error. Check if you have write permissions to namespace %s", pipeline.Namespace)
+		}
 	}
 	return s.resourceManager.CreatePipeline(pipeline)
 }
@@ -338,17 +340,18 @@ func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, nam
 			}
 		}
 	}
-	if apiRequestVersion == "v1beta1" {
+	switch apiRequestVersion {
+	case "v1beta1":
 		return s.resourceManager.GetPipelineByNameAndNamespaceV1(name, namespace)
-	} else if apiRequestVersion == "v2beta1" {
+	case "V2beta1":
 		p, err := s.resourceManager.GetPipelineByNameAndNamespace(name, namespace)
 		return p, nil, err
+	default:
+		return nil, nil, util.NewInternalServerError(
+			util.NewInvalidInputError("Invalid api version detected"),
+			"Failed to get a pipeline by name and namespace. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
+			apiRequestVersion)
 	}
-	return nil, nil, util.NewInternalServerError(
-		util.NewInvalidInputError("Invalid api version detected"),
-		"Failed to get a pipeline by name and namespace. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
-		apiRequestVersion,
-	)
 }
 
 // Fetches an array of []model.Pipeline and an array of []model.PipelineVersion for given search query parameters.
@@ -375,17 +378,18 @@ func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pa
 	}
 
 	// List pipelines
-	if apiRequestVersion == "v1beta1" {
+	switch apiRequestVersion {
+	case "v1beta1":
 		return s.resourceManager.ListPipelinesV1(filterContext, opts)
-	} else if apiRequestVersion == "v2beta1" {
+	case "v2beta1":
 		pipelines, size, token, err := s.resourceManager.ListPipelines(filterContext, opts)
 		return pipelines, nil, size, token, err
+	default:
+		return nil, nil, 0, "", util.NewInternalServerError(
+			util.NewInvalidInputError("Invalid api version detected"),
+			"Failed to list pipelines due to unsupported API request. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
+			apiRequestVersion)
 	}
-	return nil, nil, 0, "", util.NewInternalServerError(
-		util.NewInvalidInputError("Invalid api version detected"),
-		"Failed to list pipelines due to unsupported API request. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
-		apiRequestVersion,
-	)
 }
 
 // Fetches an array of []model.PipelineVersion for given search query parameters.
@@ -461,7 +465,7 @@ func (s *PipelineServer) deletePipelineVersion(ctx context.Context, pipelineId s
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Verb: common.RbacResourceVerbList,
 	}
-	err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes)
+	err := s.canAccessPipelineVersion(ctx, pipelineVersionId, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete a pipeline version id %v due to authorization error for pipeline id %v", pipelineVersionId, pipelineId)
 	}

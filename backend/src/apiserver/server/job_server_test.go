@@ -75,7 +75,6 @@ var (
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-			RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
@@ -403,7 +402,6 @@ func TestCreateJob_V2(t *testing.T) {
 		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
 		Status:    "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
-			Parameters:       make([]*apiv1beta1.Parameter, 0),
 			PipelineManifest: v2SpecHelloWorld,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 				Parameters:   v2RuntimeParams,

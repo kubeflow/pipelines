@@ -338,7 +338,7 @@ func (r *ResourceManager) FetchNamespaceFromPipelineVersionId(versionId string) 
 
 // Validates that the provided experiment belongs to the namespace. Returns error otherwise.
 func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, namespace string) error {
-	if experimentId == "" || namespace == "" {
+	if experimentId == "" || r.IsDefaultNamespace(namespace) {
 		return nil
 	}
 	experimentNamespace, err := r.GetNamespaceFromExperimentId(experimentId)

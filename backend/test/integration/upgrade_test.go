@@ -2,7 +2,6 @@ package integration
 
 import (
 	"io/ioutil"
-	"sort"
 	"testing"
 	"time"
 
@@ -47,22 +46,22 @@ func TestUpgrade(t *testing.T) {
 func (s *UpgradeTests) TestPrepare() {
 	t := s.T()
 
-	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
+	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
 	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
 
 	s.PrepareExperiments()
 	s.PreparePipelines()
-	s.PrepareRuns()
 	s.PrepareJobs()
+	s.PrepareRuns()
 }
 
 func (s *UpgradeTests) TestVerify() {
 	s.VerifyExperiments()
 	s.VerifyPipelines()
-	s.VerifyRuns()
 	s.VerifyJobs()
+	s.VerifyRuns()
 }
 
 // Check the namespace have ML job installed and ready
@@ -157,10 +156,10 @@ func (s *UpgradeTests) TearDownSuite() {
 			// Clean up after the suite to unblock other tests. (Not needed for upgrade
 			// tests because it needs changes in prepare tests to persist and verified
 			// later.)
-			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
-			test.DeleteAllPipelines(s.pipelineClient, t)
 			test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
 			test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
+			test.DeleteAllPipelines(s.pipelineClient, t)
+			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
 		}
 	}
 }
@@ -394,11 +393,12 @@ func (s *UpgradeTests) VerifyJobs() {
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Trigger:        &job_model.APITrigger{},
 	}
 
-	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
-	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
+	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences))
+	expectedJob.ResourceReferences = job.ResourceReferences
+	// sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
+	// sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -419,7 +419,8 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     "hello-world.yaml",
-			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			PipelineManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			WorkflowManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
@@ -434,8 +435,10 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 		ScheduledAt:    runDetail.Run.ScheduledAt,
 		FinishedAt:     runDetail.Run.FinishedAt,
 	}
-	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
-	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
+	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 

@@ -283,7 +283,6 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-				RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -360,11 +359,9 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 			FinishedAt:     &timestamp.Timestamp{},
-			// Status:         "Running",
-			Status: "Error",
+			Status:         "Error",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				PipelineManifest: v2SpecHelloWorld,
-				Parameters:       make([]*apiv1beta1.Parameter, 0),
 				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",
@@ -377,7 +374,6 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 				},
 			},
 		},
-		PipelineRuntime: &apiv1beta1.PipelineRuntime{},
 	}
 
 	matched := 0
@@ -433,7 +429,6 @@ func TestCreateRunV1Patch(t *testing.T) {
 					{Name: "param1", Value: "test-default-bucket"},
 					{Name: "param2", Value: "test-project-id"},
 				},
-				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -551,7 +546,6 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-				RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -764,7 +758,6 @@ func TestListRunsV1(t *testing.T) {
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-			RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
@@ -879,7 +872,6 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			PipelineManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-			RuntimeConfig:    &apiv1beta1.PipelineSpec_RuntimeConfig{},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{

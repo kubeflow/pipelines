@@ -71,7 +71,6 @@ func toApiExperimentV1(experiment *model.Experiment) *apiv1beta1.Experiment {
 	if experiment == nil {
 		return &apiv1beta1.Experiment{}
 	}
-	// TODO(gkcalat): consider changing this of we change multi-user model behavior.
 	resourceReferences := []*apiv1beta1.ResourceReference{
 		{
 			Key: &apiv1beta1.ResourceKey{
@@ -167,9 +166,9 @@ func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 	default:
 		return nil, util.NewUnknownApiVersionError("Pipeline", p)
 	}
-	if name == "" {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline must have a non-empty name"), "Failed to convert API pipeline to model pipeline")
-	}
+	// if name == "" {
+	// 	return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline must have a non-empty name"), "Failed to convert API pipeline to its internal representation")
+	// }
 	// if namespace == "" {
 	// 	return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline must have a non-empty namespace"), "Failed to convert API pipeline to model pipeline")
 	// }
@@ -203,6 +202,9 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 			Error: util.NewInternalServerError(util.NewInvalidInputError(fmt.Sprintf("Failed to convert parameters: %s", pipelineVersion.Parameters)), "Failed to convert a model pipeline to v1beta1 API pipeline").Error(),
 		}
 	}
+	if len(params) == 0 {
+		params = nil
+	}
 
 	defaultVersion := toApiPipelineVersionV1(pipelineVersion)
 	var resourceRefs []*apiv1beta1.ResourceReference
@@ -217,8 +219,7 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 			},
 		}
 	}
-
-	return &apiv1beta1.Pipeline{
+	apiPipeline := &apiv1beta1.Pipeline{
 		Id:                 pipeline.UUID,
 		CreatedAt:          &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
 		Name:               pipeline.Name,
@@ -227,6 +228,12 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 		DefaultVersion:     defaultVersion,
 		ResourceReferences: resourceRefs,
 	}
+	if defaultVersion.GetPackageUrl() != nil && defaultVersion.GetPackageUrl().GetPipelineUrl() != "" {
+		apiPipeline.Url = defaultVersion.GetPackageUrl()
+	} else if defaultVersion.GetCodeSourceUrl() != "" {
+		apiPipeline.Url = &apiv1beta1.Url{PipelineUrl: defaultVersion.GetCodeSourceUrl()}
+	}
+	return apiPipeline
 }
 
 // Converts internal pipeline representation to its API counterpart.
@@ -442,31 +449,35 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 // Supports v1beta1 API.
 // Note: does not return an error along with the result anymore. Check if the result is nil instead.
 func toApiPipelineVersionV1(pv *model.PipelineVersion) *apiv1beta1.PipelineVersion {
-	apiPipelineVersion := apiv1beta1.PipelineVersion{}
+	apiPipelineVersion := &apiv1beta1.PipelineVersion{}
 	if pv == nil {
-		return &apiPipelineVersion
+		return apiPipelineVersion
 	}
-
 	apiPipelineVersion.Id = pv.UUID
 	apiPipelineVersion.Name = pv.Name
 	apiPipelineVersion.CreatedAt = &timestamp.Timestamp{Seconds: pv.CreatedAtInSec}
 	if p := toApiParametersV1(pv.Parameters); p == nil {
 		return nil
-	} else {
+	} else if len(p) > 0 {
 		apiPipelineVersion.Parameters = p
 	}
 	apiPipelineVersion.Description = pv.Description
-	apiPipelineVersion.CodeSourceUrl = pv.CodeSourceUrl
-	apiPipelineVersion.ResourceReferences = []*apiv1beta1.ResourceReference{
-		{
-			Key: &apiv1beta1.ResourceKey{
-				Id:   pv.PipelineId,
-				Type: apiv1beta1.ResourceType_PIPELINE,
-			},
-			Relationship: apiv1beta1.Relationship_OWNER,
-		},
+	if pv.CodeSourceUrl != "" {
+		apiPipelineVersion.CodeSourceUrl = pv.CodeSourceUrl
+		apiPipelineVersion.PackageUrl = &apiv1beta1.Url{PipelineUrl: pv.CodeSourceUrl}
 	}
-	return &apiPipelineVersion
+	if pv.PipelineId != "" {
+		apiPipelineVersion.ResourceReferences = []*apiv1beta1.ResourceReference{
+			{
+				Key: &apiv1beta1.ResourceKey{
+					Id:   pv.PipelineId,
+					Type: apiv1beta1.ResourceType_PIPELINE,
+				},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+		}
+	}
+	return apiPipelineVersion
 }
 
 // Converts internal pipeline version representation to its API counterpart.
@@ -509,10 +520,23 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 		}
 	}
 
+	apiPipelineVersion := &apiv2beta1.PipelineVersion{
+		PipelineId:        pv.PipelineId,
+		PipelineVersionId: pv.UUID,
+		DisplayName:       pv.Name,
+		Description:       pv.Description,
+		CreatedAt:         &timestamp.Timestamp{Seconds: pv.CreatedAtInSec},
+	}
+
 	// Infer pipeline url
-	url := pv.CodeSourceUrl
-	if url == "" {
-		url = pv.PipelineSpecURI
+	if pv.CodeSourceUrl != "" {
+		apiPipelineVersion.PackageUrl = &apiv2beta1.Url{
+			PipelineUrl: pv.PipelineSpecURI,
+		}
+	} else if pv.PipelineSpecURI != "" {
+		apiPipelineVersion.PackageUrl = &apiv2beta1.Url{
+			PipelineUrl: pv.PipelineSpecURI,
+		}
 	}
 
 	// Convert pipeline spec
@@ -528,17 +552,10 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 			),
 		}
 	}
-	return &apiv2beta1.PipelineVersion{
-		PipelineId:        pv.PipelineId,
-		PipelineVersionId: pv.UUID,
-		DisplayName:       pv.Name,
-		Description:       pv.Description,
-		CreatedAt:         &timestamp.Timestamp{Seconds: pv.CreatedAtInSec},
-		PackageUrl: &apiv2beta1.Url{
-			PipelineUrl: url,
-		},
-		PipelineSpec: spec,
+	if len(spec.GetFields()) > 0 {
+		apiPipelineVersion.PipelineSpec = spec
 	}
+	return apiPipelineVersion
 }
 
 // Converts an array of internal pipeline version representations to an array of API pipeline versions.
@@ -1439,6 +1456,9 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 			Error: util.Wrap(errors.New("Failed to parse pipeline spec parameters"), "Failed to convert internal run representation to its v1beta1 API counterpart").Error(),
 		}
 	}
+	if len(specParams) == 0 {
+		specParams = nil
+	}
 
 	// v2 RuntimeConfig
 	runtimeConfig := toApiRuntimeConfigV1(r.PipelineSpec.RuntimeConfig)
@@ -1448,10 +1468,16 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 			Error: util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its v1beta1 API counterpart").Error(),
 		}
 	}
+	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
+		runtimeConfig = nil
+	}
 
 	var metrics []*apiv1beta1.RunMetric
 	if r.Metrics != nil {
 		metrics = toApiRunMetricsV1(r.Metrics)
+	}
+	if len(metrics) == 0 {
+		metrics = nil
 	}
 
 	resRefs := toApiResourceReferencesV1(r.ResourceReferences)
@@ -1521,6 +1547,17 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 			},
 		)
 	}
+	if len(resRefs) == 0 {
+		resRefs = nil
+	}
+	wfManifest := r.PipelineSpec.WorkflowSpecManifest
+	specManifest := r.PipelineSpec.PipelineSpecManifest
+	// if wfManifest == "" {
+	// 	wfManifest = r.PipelineSpec.PipelineSpecManifest
+	// }
+	// if specManifest == "" {
+	// 	specManifest = r.PipelineSpec.WorkflowSpecManifest
+	// }
 	return &apiv1beta1.Run{
 		CreatedAt:      &timestamp.Timestamp{Seconds: r.RunDetails.CreatedAtInSec},
 		Id:             r.UUID,
@@ -1535,8 +1572,8 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       r.PipelineSpec.PipelineId,
 			PipelineName:     r.PipelineSpec.PipelineName,
-			WorkflowManifest: r.PipelineSpec.WorkflowSpecManifest,
-			PipelineManifest: r.PipelineSpec.PipelineSpecManifest,
+			WorkflowManifest: wfManifest,
+			PipelineManifest: specManifest,
 			Parameters:       specParams,
 			RuntimeConfig:    runtimeConfig,
 		},
@@ -1556,6 +1593,9 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 			Error: util.ToRpcStatus(util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")),
 		}
 	}
+	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
+		runtimeConfig = nil
+	}
 	var stateHistory []*apiv2beta1.RuntimeStatus
 	if len(r.RunDetails.StateHistory) > 0 {
 		stateHistory = make([]*apiv2beta1.RuntimeStatus, 0)
@@ -1569,6 +1609,9 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 			}
 			stateHistory = append(stateHistory, apiState)
 		}
+	}
+	if len(stateHistory) == 0 {
+		stateHistory = nil
 	}
 	apiRunV2 := &apiv2beta1.Run{
 		RunId:          r.UUID,
@@ -1613,6 +1656,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		err = util.Wrap(err2, err.Error())
 	}
 	return &apiv2beta1.Run{
+		RunId: r.UUID,
 		Error: util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart due to missing pipeline source")),
 	}
 }
@@ -1642,13 +1686,16 @@ func toApiRuns(runs []*model.Run) []*apiv2beta1.Run {
 // Note: adds error details to the nested run message if a parsing error occurs.
 func toApiRunDetailV1(r *model.Run) *apiv1beta1.RunDetail {
 	apiRunV1 := toApiRunV1(r)
-	return &apiv1beta1.RunDetail{
+	apiRunDetails := &apiv1beta1.RunDetail{
 		Run: apiRunV1,
-		PipelineRuntime: &apiv1beta1.PipelineRuntime{
+	}
+	if r.RunDetails.PipelineRuntimeManifest != "" || r.RunDetails.WorkflowRuntimeManifest != "" {
+		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
 			PipelineManifest: r.RunDetails.PipelineRuntimeManifest,
 			WorkflowManifest: r.RunDetails.WorkflowRuntimeManifest,
-		},
+		}
 	}
+	return apiRunDetails
 }
 
 // Converts API task to its internal representation.
@@ -2037,12 +2084,18 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 			Error: util.NewInternalServerError(util.NewInvalidInputError("Pipeline spec parameters were not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
 		}
 	}
+	if len(specParams) == 0 {
+		specParams = nil
+	}
 	runtimeConfig := toApiRuntimeConfigV1(j.PipelineSpec.RuntimeConfig)
 	if runtimeConfig == nil {
 		return &apiv1beta1.Job{
 			Id:    j.UUID,
 			Error: util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
 		}
+	}
+	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
+		runtimeConfig = nil
 	}
 	resRefs := toApiResourceReferencesV1(j.ResourceReferences)
 	if resRefs == nil {
@@ -2099,6 +2152,19 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 			},
 		)
 	}
+	if len(resRefs) == 0 {
+		resRefs = nil
+	}
+	trigger := toApiTriggerV1(&j.Trigger)
+	if trigger == nil {
+		return &apiv1beta1.Job{
+			Id:    j.UUID,
+			Error: util.NewInternalServerError(util.NewInvalidInputError("Trigger was not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
+		}
+	}
+	if trigger.GetTrigger() == nil {
+		trigger = nil
+	}
 	return &apiv1beta1.Job{
 		Id:             j.UUID,
 		Name:           j.DisplayName,
@@ -2110,7 +2176,7 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 		UpdatedAt:      &timestamp.Timestamp{Seconds: j.UpdatedAtInSec},
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
-		Trigger:        toApiTriggerV1(&j.Trigger),
+		Trigger:        trigger,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       j.PipelineSpec.PipelineId,
 			PipelineName:     j.PipelineSpec.PipelineName,
@@ -2143,6 +2209,9 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 			}
 		}
 	}
+	if len(params) == 0 {
+		params = nil
+	}
 	runtimeConfig := toApiRuntimeConfig(j.PipelineSpec.RuntimeConfig)
 	if runtimeConfig == nil {
 		return &apiv2beta1.RecurringRun{
@@ -2150,10 +2219,8 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 			Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
 		}
 	}
-
-	pipelineSourceId := j.PipelineSpec.PipelineVersionId
-	if pipelineSourceId == "" {
-		pipelineSourceId = j.PipelineSpec.PipelineId
+	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
+		runtimeConfig = nil
 	}
 
 	apiRecurringRunV2 := &apiv2beta1.RecurringRun{
@@ -2172,7 +2239,7 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		ExperimentId:   j.ExperimentId,
 	}
 
-	if pipelineSourceId == "" {
+	if j.PipelineSpec.PipelineVersionId == "" {
 		spec, err := yamlStringToProtobufStruct(j.PipelineSpec.PipelineSpecManifest)
 		if err != nil {
 			return &apiv2beta1.RecurringRun{
@@ -2180,17 +2247,21 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 				Error:          util.ToRpcStatus(util.Wrap(err, "Failed to convert recurring run's internal representation to its API counterpart")),
 			}
 		}
-		apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineSpec{
-			PipelineSpec: spec,
+		if len(spec.GetFields()) > 0 {
+			apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineSpec{
+				PipelineSpec: spec,
+			}
 		}
 	} else {
-		apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: pipelineSourceId}
+		apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: j.PipelineSpec.PipelineVersionId}
 	}
 	if j.Enabled {
 		apiRecurringRunV2.Status = apiv2beta1.RecurringRun_ENABLED
+		// TODO(gkcalat): consider removing this as Mode is input
 		apiRecurringRunV2.Mode = apiv2beta1.RecurringRun_ENABLE
 	} else {
 		apiRecurringRunV2.Status = apiv2beta1.RecurringRun_DISABLED
+		// TODO(gkcalat): consider removing this as Mode is input
 		apiRecurringRunV2.Mode = apiv2beta1.RecurringRun_DISABLE
 	}
 	return apiRecurringRunV2
