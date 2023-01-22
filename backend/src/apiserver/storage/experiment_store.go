@@ -20,6 +20,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -167,7 +168,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 
 	// SQL for getting the filtered and paginated rows
 	sqlBuilder := sq.Select(experimentColumns...).From("experiments")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
 	}
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
@@ -180,7 +181,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
 	sqlBuilder = sq.Select("count(*)").From("experiments")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
 	}
 	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()

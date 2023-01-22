@@ -20,6 +20,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -535,18 +536,16 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines")
-		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
+		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
 			query = query.Where(
 				sq.Eq{
-					"pipelines.Status":    model.PipelineReady,
 					"pipelines.Namespace": filterContext.ReferenceKey.ID,
 				},
 			)
-		} else {
-			query = query.Where(
-				sq.Eq{"pipelines.Status": model.PipelineReady},
-			)
 		}
+		query = query.Where(
+			sq.Eq{"pipelines.Status": model.PipelineReady},
+		)
 		return query
 	}
 
@@ -839,18 +838,16 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
 			LeftJoin("pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId") // this results in total_size reflecting the number of pipeline_versions
-		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
+		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
 			query = query.Where(
 				sq.Eq{
-					"pipelines.Status":    model.PipelineReady,
 					"pipelines.Namespace": filterContext.ReferenceKey.ID,
 				},
 			)
-		} else {
-			query = query.Where(
-				sq.Eq{"pipelines.Status": model.PipelineReady},
-			)
 		}
+		query = query.Where(
+			sq.Eq{"pipelines.Status": model.PipelineReady},
+		)
 		return query
 	}
 	sqlBuilder := buildQuery(sq.Select(joinedColumns...))

@@ -194,15 +194,14 @@ func (s *UpgradeTests) VerifyExperiments() {
 	t := s.T()
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
+	// This should have the default experiment in addition to the old experiments.
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
 		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
-		s.resourceNamespace,
+		"",
 	)
 	require.Nil(t, err)
-	// after upgrade, default experiment may be inserted, but the oldest 3
-	// experiments should be the ones created in this test
-	require.Equal(t, 3, len(experiments), "Inconsistent number of experiments in resource namespace %s and namespace %s", s.resourceNamespace, s.namespace)
+	require.Equal(t, 4, len(experiments), "Inconsistent number of experiments without filtering on namespace")
 
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "my first experiment", experiments[0].Description)
@@ -218,6 +217,11 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.Equal(t, "my third experiment", experiments[2].Description)
 	assert.NotEmpty(t, experiments[2].ID)
 	assert.NotEmpty(t, experiments[2].CreatedAt)
+
+	assert.Equal(t, "Default", experiments[3].Name)
+	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[3].Description)
+	assert.NotEmpty(t, experiments[3].ID)
+	assert.NotEmpty(t, experiments[3].CreatedAt)
 }
 
 // TODO(jingzhang36): prepare pipeline versions.

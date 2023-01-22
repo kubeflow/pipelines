@@ -2168,12 +2168,12 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 		resRefs = nil
 	}
 	trigger := toApiTriggerV1(&j.Trigger)
-	if trigger == nil {
-		return &apiv1beta1.Job{
-			Id:    j.UUID,
-			Error: util.NewInternalServerError(util.NewInvalidInputError("Trigger was not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
-		}
-	}
+	// if trigger == nil {
+	// 	return &apiv1beta1.Job{
+	// 		Id:    j.UUID,
+	// 		Error: util.NewInternalServerError(util.NewInvalidInputError("Trigger was not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
+	// 	}
+	// }
 	if trigger.GetTrigger() == nil {
 		trigger = nil
 	}
