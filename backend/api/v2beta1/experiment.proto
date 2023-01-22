@@ -88,7 +88,7 @@ message Experiment {
   // Describes whether an entity is available or archived.
   enum StorageState {
     // Default state. This state in not used
-    STORAGESTATE_UNSPECIFIED = 0;
+    STORAGE_STATE_UNSPECIFIED = 0;
 
     // Entity is available.
     AVAILABLE = 1;

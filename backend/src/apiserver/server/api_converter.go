@@ -58,9 +58,10 @@ func toModelExperiment(e interface{}) (*model.Experiment, error) {
 	// 	}
 	// }
 	return &model.Experiment{
-		Name:        name,
-		Description: description,
-		Namespace:   namespace,
+		Name:         name,
+		Description:  description,
+		Namespace:    namespace,
+		StorageState: model.StorageStateAvailable,
 	}, nil
 }
 
@@ -113,7 +114,7 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 	case "ARCHIVED", "STORAGESTATE_ARCHIVED":
 		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"])
 	default:
-		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
+		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"])
 	}
 	return &apiv2beta1.Experiment{
 		ExperimentId: experiment.UUID,
@@ -2370,7 +2371,7 @@ func toApiRunStorageStateV1(s *model.StorageState) apiv1beta1.Run_StorageState {
 // Support v2beta1 API.
 func toApiExperimentStorageState(s *model.StorageState) apiv2beta1.Experiment_StorageState {
 	if string(*s) == "" {
-		return apiv2beta1.Experiment_STORAGESTATE_UNSPECIFIED
+		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
 	}
 	switch string(*s) {
 	case string(model.StorageStateArchived), string(model.StorageStateArchived.ToV1()):
@@ -2378,9 +2379,9 @@ func toApiExperimentStorageState(s *model.StorageState) apiv2beta1.Experiment_St
 	case string(model.StorageStateAvailable), string(model.StorageStateAvailable.ToV1()):
 		return apiv2beta1.Experiment_AVAILABLE
 	case string(model.StorageStateUnspecified), string(model.StorageStateUnspecified.ToV1()):
-		return apiv2beta1.Experiment_STORAGESTATE_UNSPECIFIED
+		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
 	default:
-		return apiv2beta1.Experiment_STORAGESTATE_UNSPECIFIED
+		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
 	}
 }
 

@@ -27,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -40,7 +41,7 @@ func TestToModelExperiment(t *testing.T) {
 		expectedModelExperiment *model.Experiment
 	}{
 		{
-			"API V1beta1: No resource references",
+			"No resource references v1",
 			&apiv1beta1.Experiment{
 				Name:        "exp1",
 				Description: "This is an experiment",
@@ -48,13 +49,14 @@ func TestToModelExperiment(t *testing.T) {
 			false,
 			"",
 			&model.Experiment{
-				Name:        "exp1",
-				Description: "This is an experiment",
-				Namespace:   "",
+				Name:         "exp1",
+				Description:  "This is an experiment",
+				Namespace:    "",
+				StorageState: model.StorageStateAvailable,
 			},
 		},
 		{
-			"API V1beta1: Valid resource references",
+			"Valid resource references v1",
 			&apiv1beta1.Experiment{
 				Name:        "exp1",
 				Description: "This is an experiment",
@@ -71,32 +73,14 @@ func TestToModelExperiment(t *testing.T) {
 			false,
 			"",
 			&model.Experiment{
-				Name:        "exp1",
-				Description: "This is an experiment",
-				Namespace:   "ns1",
+				Name:         "exp1",
+				Description:  "This is an experiment",
+				Namespace:    "ns1",
+				StorageState: model.StorageStateAvailable,
 			},
 		},
-		// {
-		// 	"API V1beta1: Invalid resource references",
-		// 	&apiv1beta1.Experiment{
-		// 		Name:        "exp1",
-		// 		Description: "This is an experiment",
-		// 		ResourceReferences: []*apiv1beta1.ResourceReference{
-		// 			&apiv1beta1.ResourceReference{
-		// 				Key: &apiv1beta1.ResourceKey{
-		// 					Type: apiv1beta1.ResourceType_EXPERIMENT,
-		// 					Id:   "invalid",
-		// 				},
-		// 				Relationship: apiv1beta1.Relationship_OWNER,
-		// 			},
-		// 		},
-		// 	},
-		// 	true,
-		// 	"Invalid resource references for experiment",
-		// 	nil,
-		// },
 		{
-			"API V2beta1: Happy pass",
+			"Happy pass v2",
 			&apiv2beta1.Experiment{
 				DisplayName: "exp2",
 				Description: "API V2beta1 test experiment",
@@ -105,20 +89,57 @@ func TestToModelExperiment(t *testing.T) {
 			false,
 			"",
 			&model.Experiment{
-				Name:        "exp2",
+				Name:         "exp2",
+				Description:  "API V2beta1 test experiment",
+				Namespace:    "ns2",
+				StorageState: model.StorageStateAvailable,
+			},
+		},
+		{
+			"Empty namespace v2",
+			&apiv2beta1.Experiment{
+				DisplayName: "exp2",
 				Description: "API V2beta1 test experiment",
-				Namespace:   "ns2",
+			},
+			false,
+			"",
+			&model.Experiment{
+				Name:         "exp2",
+				Description:  "API V2beta1 test experiment",
+				Namespace:    "",
+				StorageState: model.StorageStateAvailable,
 			},
 		},
 		{
 			"Wrong API type",
 			&model.Experiment{
-				Name:        "",
+				Name:        "test",
 				Description: "API V2beta1 test experiment",
 				Namespace:   "ns2",
 			},
 			true,
 			"UnknownApiVersionError: Error using Experiment with *model.Experiment",
+			nil,
+		},
+		{
+			"missing name v2",
+			&apiv2beta1.Experiment{
+				DisplayName: "",
+				Description: "API V2beta1 test experiment",
+				Namespace:   "ns2",
+			},
+			true,
+			"Experiment must have a non-empty name",
+			nil,
+		},
+		{
+			"missing name v1",
+			&apiv1beta1.Experiment{
+				Name:        "",
+				Description: "API V2beta1 test experiment",
+			},
+			true,
+			"Experiment must have a non-empty name",
 			nil,
 		},
 	}
@@ -136,6 +157,190 @@ func TestToModelExperiment(t *testing.T) {
 				t.Errorf("TesttoModelExperiment(%v) expect no error but got %v", tc.name, err)
 			} else if !cmp.Equal(tc.expectedModelExperiment, modelExperiment) {
 				t.Errorf("TesttoModelExperiment(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedModelExperiment, modelExperiment)
+			}
+		}
+	}
+}
+
+func TestToModelPipeline(t *testing.T) {
+	tests := []struct {
+		name                  string
+		pipeline              interface{}
+		wantError             bool
+		errorMessage          string
+		expectedModelPipeline *model.Pipeline
+	}{
+		{
+			"No resource references v1",
+			&apiv1beta1.Pipeline{
+				Name:        "p1",
+				Description: "This is a pipeline1",
+				CreatedAt:   &timestamp.Timestamp{Seconds: 2},
+			},
+			false,
+			"",
+			&model.Pipeline{
+				Name:           "p1",
+				Description:    "This is a pipeline1",
+				Status:         "READY",
+				CreatedAtInSec: 2,
+			},
+		},
+		{
+			"Invalid resource reference v1",
+			&apiv1beta1.Pipeline{
+				Name:        "p2",
+				Id:          "123",
+				Description: "This is a pipeline2",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
+						Relationship: apiv1beta1.Relationship_CREATOR,
+					},
+				},
+			},
+			false,
+			"",
+			&model.Pipeline{
+				UUID:        "123",
+				Name:        "p2",
+				Description: "This is a pipeline2",
+				Status:      "READY",
+			},
+		},
+		{
+			"Invalid relationship reference v1",
+			&apiv1beta1.Pipeline{
+				Name:        "p3",
+				Description: "This is a pipeline3",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_CREATOR,
+					},
+				},
+			},
+			false,
+			"",
+			&model.Pipeline{
+				Name:        "p3",
+				Description: "This is a pipeline3",
+				Status:      "READY",
+				Namespace:   "ns1",
+			},
+		},
+		{
+			"Valid reference v1",
+			&apiv1beta1.Pipeline{
+				Name:        "p4",
+				Description: "This is a pipeline4",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			false,
+			"",
+			&model.Pipeline{
+				Name:        "p4",
+				Description: "This is a pipeline4",
+				Status:      "READY",
+				Namespace:   "ns1",
+			},
+		},
+		{
+			"Empty valid reference v1",
+			&apiv1beta1.Pipeline{
+				Name:        "p5",
+				Description: "This is a pipeline5",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			false,
+			"",
+			&model.Pipeline{
+				Name:        "p5",
+				Description: "This is a pipeline5",
+				Status:      "READY",
+				Namespace:   "",
+			},
+		},
+		{
+			"Empty namespace v2",
+			&apiv2beta1.Pipeline{
+				DisplayName: "p6",
+				Description: "This is a pipeline6",
+				Namespace:   "",
+				PipelineId:  "222",
+				CreatedAt:   &timestamp.Timestamp{Seconds: 123},
+			},
+			false,
+			"",
+			&model.Pipeline{
+				UUID:           "222",
+				Name:           "p6",
+				Description:    "This is a pipeline6",
+				Status:         "READY",
+				Namespace:      "",
+				CreatedAtInSec: 123,
+			},
+		},
+		{
+			"Valid namespace v2",
+			&apiv2beta1.Pipeline{
+				DisplayName: "p7",
+				Description: "This is a pipeline7",
+				Namespace:   "ns2",
+				PipelineId:  "333",
+				Error:       &status.Status{Message: "test error"},
+			},
+			false,
+			"",
+			&model.Pipeline{
+				UUID:        "333",
+				Name:        "p7",
+				Description: "This is a pipeline7",
+				Status:      "READY",
+				Namespace:   "ns2",
+			},
+		},
+		{
+			"Empty name v2",
+			&apiv2beta1.Pipeline{
+				DisplayName: "",
+				Description: "This is a pipeline8",
+				Namespace:   "ns3",
+			},
+			false,
+			"",
+			&model.Pipeline{
+				Name:        "",
+				Description: "This is a pipeline8",
+				Status:      "READY",
+				Namespace:   "ns3",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		modelPipeline, err := toModelPipeline(tc.pipeline)
+		if tc.wantError {
+			if err == nil {
+				t.Errorf("TesttoModelExperiment(%v) expect error but got nil", tc.name)
+			} else if !strings.Contains(err.Error(), tc.errorMessage) {
+				t.Errorf("TesttoModelExperiment(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("TesttoModelPipeline(%v) expect no error but got %v", tc.name, err)
+			} else if !cmp.Equal(tc.expectedModelPipeline, modelPipeline) {
+				t.Errorf("TesttoModelPipeline(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedModelPipeline, modelPipeline)
 			}
 		}
 	}
@@ -1357,7 +1562,15 @@ func TestToApiExperimentsV1(t *testing.T) {
 		Namespace:      "default",
 		StorageState:   "STORAGESTATE_ARCHIVED",
 	}
-	apiExps := toApiExperimentsV1([]*model.Experiment{exp1, exp2, exp3, exp4})
+	exp5 := &model.Experiment{
+		UUID:           "exp5",
+		CreatedAtInSec: 1,
+		Name:           "experiment5",
+		Description:    "experiment5 was created using V2 APIV1BETA1",
+		StorageState:   "this is invalid value",
+		Namespace:      "default",
+	}
+	apiExps := toApiExperimentsV1([]*model.Experiment{exp1, exp2, exp3, exp4, nil, exp5})
 	expectedApiExps := []*apiv1beta1.Experiment{
 		{
 			Id:           "exp1",
@@ -1411,6 +1624,20 @@ func TestToApiExperimentsV1(t *testing.T) {
 				},
 			},
 		},
+		{},
+		{
+			Id:           "exp5",
+			Name:         "experiment5",
+			Description:  "experiment5 was created using V2 APIV1BETA1",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"]),
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
+		},
 	}
 	assert.Equal(t, expectedApiExps, apiExps)
 }
@@ -1444,7 +1671,14 @@ func TestToApiExperiments(t *testing.T) {
 		Description:    "experiment4 was created using V1 APIV1BETA1",
 		StorageState:   "STORAGESTATE_ARCHIVED",
 	}
-	apiExps := toApiExperiments([]*model.Experiment{exp1, exp2, exp3, exp4})
+	exp5 := &model.Experiment{
+		UUID:           "exp5",
+		CreatedAtInSec: 1,
+		Name:           "experiment5",
+		Description:    "My name is experiment5",
+		StorageState:   "this is invalid storage state",
+	}
+	apiExps := toApiExperiments([]*model.Experiment{exp1, exp2, exp3, exp4, nil, exp5})
 	expectedApiExps := []*apiv2beta1.Experiment{
 		{
 			ExperimentId: "exp1",
@@ -1473,6 +1707,14 @@ func TestToApiExperiments(t *testing.T) {
 			Description:  "experiment4 was created using V1 APIV1BETA1",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			StorageState: apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"]),
+		},
+		{},
+		{
+			ExperimentId: "exp5",
+			DisplayName:  "experiment5",
+			Description:  "My name is experiment5",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			StorageState: apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"]),
 		},
 	}
 	assert.Equal(t, expectedApiExps, apiExps)

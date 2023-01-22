@@ -78,11 +78,11 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 			Description:    description,
 			CreatedAtInSec: createdAtInSec,
 			Namespace:      namespace,
-			StorageState:   model.StorageState(storageState),
+			StorageState:   model.StorageState(storageState).ToV2(),
 		}
 		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
-		if experiment.StorageState == "" {
-			experiment.StorageState = "AVAILABLE"
+		if experiment.StorageState == "" || experiment.StorageState == model.StorageStateUnspecified {
+			experiment.StorageState = model.StorageStateAvailable
 		}
 		experiments = append(experiments, experiment)
 	}
@@ -99,7 +99,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	}
 	newExperiment.UUID = id.String()
 
-	if newExperiment.StorageState == "" {
+	if newExperiment.StorageState == "" || newExperiment.StorageState == model.StorageStateUnspecified {
 		newExperiment.StorageState = model.StorageStateAvailable
 	}
 	if !newExperiment.StorageState.IsValid() {
@@ -114,7 +114,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 			"Name":           newExperiment.Name,
 			"Description":    newExperiment.Description,
 			"Namespace":      newExperiment.Namespace,
-			"StorageState":   string(newExperiment.StorageState),
+			"StorageState":   newExperiment.StorageState.ToV2().ToString(),
 		}).
 		ToSql()
 	if err != nil {
@@ -282,7 +282,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	sql, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
-			"StorageState": string(model.StorageStateArchived),
+			"StorageState": model.StorageStateArchived.ToString(),
 		}).
 		Where(sq.Eq{"UUID": expId}).
 		ToSql()
@@ -307,7 +307,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	updateRunsSql, updateRunsArgs, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"StorageState": string(model.StorageStateArchived),
+			"StorageState": model.StorageStateArchived.ToString(),
 		}).
 		Where(sq.NotEq{"StorageState": model.StorageStateArchived.ToString()}).
 		Where(fmt.Sprintf("UUID in (%s) OR ExperimentUUID = '%s'", filteredRunsSql, expId), filteredRunsArgs...).
@@ -320,10 +320,10 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"StorageState": string(model.StorageStateArchived),
+			"StorageState": model.StorageStateArchived.ToString(),
 		}).
 		Where(sq.Eq{"ExperimentUUID": expId}).
-		Where(sq.NotEq{"StorageState": string(model.StorageStateArchived)}).
+		Where(sq.NotEq{"StorageState": model.StorageStateArchived.ToString()}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -407,7 +407,7 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 	sql, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
-			"StorageState": string(model.StorageStateAvailable),
+			"StorageState": model.StorageStateAvailable.ToString(),
 		}).
 		Where(sq.Eq{"UUID": expId}).
 		ToSql()

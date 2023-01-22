@@ -194,7 +194,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	t := s.T()
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
-	// This should have the default experiment in addition to the old experiments.
+	// This should have the hello-world experiment in addition to the old experiments.
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
 		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
@@ -218,8 +218,8 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.NotEmpty(t, experiments[2].ID)
 	assert.NotEmpty(t, experiments[2].CreatedAt)
 
-	assert.Equal(t, "Default", experiments[3].Name)
-	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[3].Description)
+	assert.Equal(t, "hello world experiment", experiments[3].Name)
+	assert.Equal(t, "", experiments[3].Description)
 	assert.NotEmpty(t, experiments[3].ID)
 	assert.NotEmpty(t, experiments[3].CreatedAt)
 }
@@ -380,7 +380,8 @@ func (s *UpgradeTests) VerifyJobs() {
 	job := jobs[0]
 
 	// Check workflow manifest is not empty
-	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
+	assert.Equal(t, "", job.PipelineSpec.WorkflowManifest, "Non empty workflow manifest for a job created from pipeline: %v", job.PipelineSpec)
+	assert.Contains(t, job.PipelineSpec.PipelineManifest, "whalesay", "Wrong pipeline manifest for a job created from pipeline: %v", job.PipelineSpec)
 	expectedJob := &job_model.APIJob{
 		ID:          job.ID,
 		Name:        "hello world",
@@ -397,7 +398,7 @@ func (s *UpgradeTests) VerifyJobs() {
 				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
 			},
 			{
-				Key:  &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINEVERSION},
+				Key:  &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINE},
 				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
@@ -410,7 +411,7 @@ func (s *UpgradeTests) VerifyJobs() {
 		Status:         job.Status,
 	}
 
-	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences))
+	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences), "Inconsistent resource references: %v does not contain %v", job.ResourceReferences, expectedJob.ResourceReferences)
 	expectedJob.ResourceReferences = job.ResourceReferences
 	// sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
 	// sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
@@ -418,10 +419,10 @@ func (s *UpgradeTests) VerifyJobs() {
 }
 
 func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
-	// Check workflow manifest is not empty
-	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
-	// Check runtime workflow manifest is not empty
-	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
+	// Check workflow manifest contains the correct name
+	assert.Contains(t, runDetail.Run.PipelineSpec.PipelineManifest, "whalesay", "Pipeline manifest does not contain workflow's name: %v", runDetail.Run.PipelineSpec)
+	// Check runtime workflow manifest is empty
+	assert.Equal(t, "", runDetail.PipelineRuntime.WorkflowManifest, "Workflow manifest is not empty: %v", runDetail.Run.PipelineSpec)
 
 	expectedExperimentID := test.GetExperimentIDFromV1beta1ResourceReferences(runDetail.Run.ResourceReferences)
 	require.NotEmpty(t, expectedExperimentID)
@@ -443,7 +444,7 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
 			},
 			{
-				Key:  &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINEVERSION},
+				Key:  &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINE},
 				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
@@ -452,7 +453,7 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 		ScheduledAt:    runDetail.Run.ScheduledAt,
 		FinishedAt:     runDetail.Run.FinishedAt,
 	}
-	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences), "Run's res references %v doe not include %v", runDetail.Run.ResourceReferences, expectedRun.ResourceReferences)
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))

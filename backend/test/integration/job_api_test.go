@@ -302,7 +302,27 @@ func (s *JobApiTestSuite) TestJobApis() {
 	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous jobs are created at a different timestamp
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
-	_, err = s.jobClient.Create(createJobRequest)
+	// This must fail as duplicate jobs are not allowed
+	createJobRequestNew := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+		Name:        "new hello world job",
+		Description: "this is a new hello world",
+		ResourceReferences: []*job_model.APIResourceReference{
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR,
+			},
+		},
+		MaxConcurrency: 10,
+		Enabled:        true,
+	}}
+	_, err = s.jobClient.Create(createJobRequestNew)
+	assert.Nil(t, err)
+	_, err = s.jobClient.Create(createJobRequestNew)
+	assert.NotNil(t, err)
 	// Check total number of jobs to be 3
 	jobs, totalSize, _, err = test.ListAllJobs(s.jobClient, s.resourceNamespace)
 	assert.Nil(t, err)
@@ -352,8 +372,8 @@ func (s *JobApiTestSuite) TestJobApis() {
 		if err != nil {
 			return err
 		}
-		if len(runs) != 2 {
-			return fmt.Errorf("expected runs to be length 2, got: %v", len(runs))
+		if len(runs) != 1 {
+			return fmt.Errorf("expected runs to be length 1, got: %v", len(runs))
 		}
 		if totalSize != 2 {
 			return fmt.Errorf("expected total size 2, got: %v", totalSize)

@@ -233,12 +233,12 @@
     "v2beta1ExperimentStorageState": {
       "type": "string",
       "enum": [
-        "STORAGESTATE_UNSPECIFIED",
+        "STORAGE_STATE_UNSPECIFIED",
         "AVAILABLE",
         "ARCHIVED"
       ],
-      "default": "STORAGESTATE_UNSPECIFIED",
-      "description": "Describes whether an entity is available or archived.\n\n - STORAGESTATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
+      "default": "STORAGE_STATE_UNSPECIFIED",
+      "description": "Describes whether an entity is available or archived.\n\n - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },
     "v2beta1ListExperimentsResponse": {
       "type": "object",
