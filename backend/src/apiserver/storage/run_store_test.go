@@ -297,7 +297,8 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 					PipelineRoot: "gs://my-bucket/path/to/root/run2",
 				},
 			},
-		}}
+		},
+	}
 	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
 
 	// Sort in asc order
@@ -539,7 +540,8 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 					PipelineRoot: "gs://my-bucket/path/to/root/run2",
 				},
 			},
-		}}
+		},
+	}
 	expectedRuns[0] = expectedRuns[0].ToV1()
 	expectedRuns[1] = expectedRuns[1].ToV1()
 
@@ -934,7 +936,8 @@ func TestCreateMetric_Success(t *testing.T) {
 			Name:        "dummymetric",
 			NumberValue: 1.0,
 			Format:      "PERCENTAGE",
-		}}, runDetail.Metrics)
+		},
+	}, runDetail.Metrics)
 }
 
 func TestCreateMetric_DupReports_Fail(t *testing.T) {
@@ -973,7 +976,8 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 			"Name":        "accuracy",
 			"NumberValue": 0.88,
 			"Format":      "RAW",
-			"Payload":     "{ invalid; json,"}).ToSql()
+			"Payload":     "{ invalid; json,",
+		}).ToSql()
 	db.Exec(sql, args...)
 
 	run, err := runStore.GetRun("1")
@@ -1039,7 +1043,8 @@ func TestListRuns_WithMetrics(t *testing.T) {
 					Format:      "PERCENTAGE",
 				},
 				metric1,
-				metric2},
+				metric2,
+			},
 		},
 		{
 			UUID:         "2",
@@ -1070,7 +1075,8 @@ func TestListRuns_WithMetrics(t *testing.T) {
 					NumberValue: 2.0,
 					Format:      "PERCENTAGE",
 				},
-				metric3},
+				metric3,
+			},
 		},
 	}
 	expectedRuns[0] = expectedRuns[0].ToV1()
@@ -1203,7 +1209,8 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 					PipelineRoot: "gs://my-bucket/path/to/root/run1",
 				},
 			},
-		}}
+		},
+	}
 	expectedRuns[0] = expectedRuns[0].ToV1()
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	runs, total_size, nextPageToken, err := runStore.ListRuns(

@@ -71,7 +71,8 @@ func TestCreatePipelineV1_YAML(t *testing.T) {
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name:        "argument-parameters",
 			Description: "pipeline description",
-		}})
+		},
+	})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
@@ -83,7 +84,6 @@ func TestCreatePipelineV1_YAML(t *testing.T) {
 	assert.NotNil(t, newPipeline)
 	assert.Equal(t, "pipeline description", newPipeline.Description)
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
-
 }
 
 func TestCreatePipelineV1_Tarball(t *testing.T) {
@@ -100,7 +100,8 @@ func TestCreatePipelineV1_Tarball(t *testing.T) {
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
 			Name:        "argument-parameters",
 			Description: "pipeline description",
-		}})
+		},
+	})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
@@ -239,12 +240,14 @@ func TestCreatePipelineVersionV1_YAML(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 
 	pipelineServer := PipelineServer{
-		resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+		resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false},
+	}
 	pipelineVersion, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
-					PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+					PipelineUrl: httpServer.URL + "/arguments-parameters.yaml",
+				},
 				Name: "argument-parameters",
 				ResourceReferences: []*api.ResourceReference{
 					{
@@ -253,7 +256,10 @@ func TestCreatePipelineVersionV1_YAML(t *testing.T) {
 							Type: api.ResourceType_PIPELINE,
 						},
 						Relationship: api.Relationship_OWNER,
-					}}}})
+					},
+				},
+			},
+		})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipelineVersion)
@@ -266,7 +272,8 @@ func TestCreatePipelineVersionV1_YAML(t *testing.T) {
 	err = json.Unmarshal([]byte(newPipelineVersion.Parameters), &params)
 	assert.Nil(t, err)
 	assert.Equal(t, []api.Parameter{
-		{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
+		{Name: "param1", Value: "hello"}, {Name: "param2"},
+	}, params)
 }
 
 func TestCreatePipelineVersion_InvalidYAML(t *testing.T) {
@@ -282,7 +289,8 @@ func TestCreatePipelineVersion_InvalidYAML(t *testing.T) {
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
-					PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
+					PipelineUrl: httpServer.URL + "/invalid-workflow.yaml",
+				},
 				Name: "argument-parameters",
 				ResourceReferences: []*api.ResourceReference{
 					{
@@ -291,7 +299,10 @@ func TestCreatePipelineVersion_InvalidYAML(t *testing.T) {
 							Type: api.ResourceType_PIPELINE,
 						},
 						Relationship: api.Relationship_OWNER,
-					}}}})
+					},
+				},
+			},
+		})
 
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
@@ -311,7 +322,8 @@ func TestCreatePipelineVersion_Tarball(t *testing.T) {
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
 					PipelineUrl: httpServer.URL +
-						"/arguments_tarball/arguments.tar.gz"},
+						"/arguments_tarball/arguments.tar.gz",
+				},
 				Name: "argument-parameters",
 				ResourceReferences: []*api.ResourceReference{
 					{
@@ -320,7 +332,10 @@ func TestCreatePipelineVersion_Tarball(t *testing.T) {
 							Type: api.ResourceType_PIPELINE,
 						},
 						Relationship: api.Relationship_OWNER,
-					}}}})
+					},
+				},
+			},
+		})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipelineVersion)
@@ -347,7 +362,8 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 	_, err := pipelineServer.CreatePipelineVersionV1(context.Background(), &api.CreatePipelineVersionRequest{
 		Version: &api.PipelineVersion{
 			PackageUrl: &api.Url{
-				PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
+				PipelineUrl: httpServer.URL + "/invalid-workflow.yaml",
+			},
 			Name: "argument-parameters",
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -356,7 +372,10 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 						Type: api.ResourceType_PIPELINE,
 					},
 					Relationship: api.Relationship_OWNER,
-				}}}})
+				},
+			},
+		},
+	})
 
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
@@ -395,7 +414,6 @@ func TestListPipelinesPublic(t *testing.T) {
 			},
 		})
 	assert.EqualValues(t, nil, err, err)
-
 }
 
 func TestGetPipelineByName_OK(t *testing.T) {
@@ -409,13 +427,16 @@ func TestGetPipelineByName_OK(t *testing.T) {
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name: "argument-parameters",
-			ResourceReferences: []*api.ResourceReference{{
-				Key: &api.ResourceKey{
-					Id:   "ns1",
-					Type: api.ResourceType_NAMESPACE,
-				}},
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key: &api.ResourceKey{
+						Id:   "ns1",
+						Type: api.ResourceType_NAMESPACE,
+					},
+				},
 			},
-		}})
+		},
+	})
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
 	newPipeline, err := pipelineServer.GetPipelineByNameV1(context.Background(),
@@ -438,7 +459,9 @@ func TestGetPipelineByName_Shared_OK(t *testing.T) {
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
-			Name: "argument-parameters"}},
+			Name: "argument-parameters",
+		},
+	},
 	)
 	namespace := getNamespaceFromResourceReferenceV1(pipeline.GetResourceReferences())
 
@@ -480,13 +503,16 @@ func TestGetPipelineByName_WrongNameSpace(t *testing.T) {
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name:        "argument-parameters",
 			Description: "pipeline description",
-			ResourceReferences: []*api.ResourceReference{{
-				Key: &api.ResourceKey{
-					Id:   "ns1",
-					Type: api.ResourceType_NAMESPACE,
-				}},
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key: &api.ResourceKey{
+						Id:   "ns1",
+						Type: api.ResourceType_NAMESPACE,
+					},
+				},
 			},
-		}})
+		},
+	})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
@@ -514,7 +540,8 @@ func TestCreatePipelineVersionAndCheckLatestVersion(t *testing.T) {
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
 			Name:        "argument-parameters",
 			Description: "pipeline description",
-		}})
+		},
+	})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
@@ -528,7 +555,8 @@ func TestCreatePipelineVersionAndCheckLatestVersion(t *testing.T) {
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
-					PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+					PipelineUrl: httpServer.URL + "/arguments-parameters.yaml",
+				},
 				Name: "argument-parameters-update",
 				ResourceReferences: []*api.ResourceReference{
 					{
@@ -537,7 +565,10 @@ func TestCreatePipelineVersionAndCheckLatestVersion(t *testing.T) {
 							Id:   pipeline.Id,
 						},
 						Relationship: api.Relationship_OWNER,
-					}}}})
+					},
+				},
+			},
+		})
 	assert.Nil(t, err)
 
 	pipeline2, err := pipelineServer.GetPipelineV1(context.Background(), &api.GetPipelineRequest{Id: pipeline.Id})

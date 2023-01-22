@@ -64,7 +64,8 @@ func TestResourceReferenceStore(t *testing.T) {
 			ResourceUUID: "notexist", ResourceType: model.JobResourceType,
 			ReferenceUUID: "e1", ReferenceType: model.ExperimentResourceType,
 			Relationship: model.OwnerRelationship,
-		}})
+		},
+	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "e1 not found")
 	tx.Rollback()
@@ -76,7 +77,8 @@ func TestResourceReferenceStore(t *testing.T) {
 	assert.Equal(t, &model.ResourceReference{
 		ResourceUUID: "r1", ResourceType: model.RunResourceType,
 		ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
-		Relationship: model.CreatorRelationship, Payload: string(payload)}, experimentRef)
+		Relationship: model.CreatorRelationship, Payload: string(payload),
+	}, experimentRef)
 
 	// Delete resource references
 	tx, _ = db.Begin()

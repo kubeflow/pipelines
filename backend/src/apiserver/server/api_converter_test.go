@@ -21,15 +21,14 @@ import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/structpb"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestToModelExperiment(t *testing.T) {
@@ -225,7 +224,9 @@ func TestToModelRunDetail(t *testing.T) {
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
-						Relationship: apiv1beta1.Relationship_OWNER}},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
 			},
 			workflow: util.NewWorkflow(&v1alpha1.Workflow{
 				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
@@ -259,7 +260,6 @@ func TestToModelRunDetail(t *testing.T) {
 			assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
 		})
 	}
-
 }
 
 func TestToModelJob(t *testing.T) {
@@ -281,7 +281,8 @@ func TestToModelJob(t *testing.T) {
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 						StartTime: &timestamp.Timestamp{Seconds: 1},
 						Cron:      "1 * * * *",
-					}}},
+					}},
+				},
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"}, Relationship: apiv1beta1.Relationship_OWNER},
 				},
@@ -320,14 +321,17 @@ func TestToModelJob(t *testing.T) {
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 						StartTime: &timestamp.Timestamp{Seconds: 1},
 						Cron:      "1 * * * *",
-					}}},
+					}},
+				},
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"}, Relationship: apiv1beta1.Relationship_OWNER},
 				},
-				PipelineSpec: &apiv1beta1.PipelineSpec{PipelineId: "p1",
+				PipelineSpec: &apiv1beta1.PipelineSpec{
+					PipelineId: "p1",
 					RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{Parameters: map[string]*structpb.Value{
 						"param2": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
-					}}},
+					}},
+				},
 			},
 			manifest:     "pipeline spec",
 			templateType: template.V2,
@@ -373,10 +377,14 @@ func TestToModelResourceReferencesV1(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	expectedRefs := []*model.ResourceReference{
-		{ResourceUUID: "r1", ResourceType: model.JobResourceType,
-			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship},
-		{ResourceUUID: "r1", ResourceType: model.JobResourceType,
-			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.NamespaceResourceType, Relationship: model.OwnerRelationship},
+		{
+			ResourceUUID: "r1", ResourceType: model.JobResourceType,
+			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
+		},
+		{
+			ResourceUUID: "r1", ResourceType: model.JobResourceType,
+			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.NamespaceResourceType, Relationship: model.OwnerRelationship,
+		},
 	}
 	assert.Equal(t, expectedRefs, refs)
 }
@@ -602,12 +610,18 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 				},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
-					Relationship: apiv1beta1.Relationship_OWNER},
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp123"},
-					Relationship: apiv1beta1.Relationship_OWNER},
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
-					Relationship: apiv1beta1.Relationship_CREATOR},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp123"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
+				},
 			},
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
@@ -641,8 +655,10 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			Parameters:           `[{"name":"param2","value":"world"}]`,
 		},
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run123", ResourceType: model.RunResourceType, ReferenceUUID: "job123",
-				ReferenceName: "j123", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship},
+			{
+				ResourceUUID: "run123", ResourceType: model.RunResourceType, ReferenceUUID: "job123",
+				ReferenceName: "j123", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
+			},
 		},
 	}
 	apiRun := toApiRunDetailV1(modelRun)
@@ -660,11 +676,15 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
 					Name:         "j123",
-					Relationship: apiv1beta1.Relationship_CREATOR},
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
-					Relationship: apiv1beta1.Relationship_OWNER},
+					Relationship: apiv1beta1.Relationship_CREATOR,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
 			},
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
@@ -715,8 +735,10 @@ func TestToApiRunsV1(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "job1",
-				ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship},
+			{
+				ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "job1",
+				ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
+			},
 		},
 		Metrics: []*model.RunMetric{metric1, metric2},
 	}
@@ -735,8 +757,10 @@ func TestToApiRunsV1(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run2", ResourceType: model.RunResourceType, ReferenceUUID: "job2",
-				ReferenceName: "j2", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship},
+			{
+				ResourceUUID: "run2", ResourceType: model.RunResourceType, ReferenceUUID: "job2",
+				ReferenceName: "j2", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
+			},
 		},
 		Metrics: []*model.RunMetric{metric2},
 	}
@@ -754,10 +778,14 @@ func TestToApiRunsV1(t *testing.T) {
 				WorkflowManifest: "manifest",
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
-					Name: "j1", Relationship: apiv1beta1.Relationship_CREATOR},
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: apiv1beta1.Relationship_OWNER},
+				{
+					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
+					Name: "j1", Relationship: apiv1beta1.Relationship_CREATOR,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
 			},
 			Metrics: []*apiv1beta1.RunMetric{apiMetric1, apiMetric2},
 		},
@@ -770,10 +798,14 @@ func TestToApiRunsV1(t *testing.T) {
 			FinishedAt:   &timestamp.Timestamp{},
 			Status:       "Succeeded",
 			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job2"},
-					Name: "j2", Relationship: apiv1beta1.Relationship_CREATOR},
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
-					Relationship: apiv1beta1.Relationship_OWNER},
+				{
+					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job2"},
+					Name: "j2", Relationship: apiv1beta1.Relationship_CREATOR,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
 			},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -879,8 +911,10 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "job1", ResourceType: model.JobResourceType, ReferenceUUID: "experiment1", ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship},
+			{
+				ResourceUUID: "job1", ResourceType: model.JobResourceType, ReferenceUUID: "experiment1", ReferenceName: "e1",
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
+			},
 		},
 	}
 	apiJob := toApiJobV1(&modelJob)
@@ -895,17 +929,22 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * *",
-			}}},
+			}},
+		},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
-				Name: "e1", Relationship: apiv1beta1.Relationship_OWNER},
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR},
+			{
+				Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
+				Name: "e1", Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
 		},
 		Status: "STATUS_UNSPECIFIED",
 	}
@@ -945,15 +984,18 @@ func TestPeriodicScheduledJobtoApiJob(t *testing.T) {
 			Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &apiv1beta1.PeriodicSchedule{
 				StartTime:      &timestamp.Timestamp{Seconds: 1},
 				IntervalSecond: 3,
-			}}},
+			}},
+		},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
 		},
 		Status: "STATUS_UNSPECIFIED",
 	}
@@ -989,8 +1031,10 @@ func TestNonScheduledJobtoApiJob(t *testing.T) {
 			PipelineName: "p1",
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
 		},
 		Status: "STATUS_UNSPECIFIED",
 	}
@@ -1073,14 +1117,17 @@ func TestToApiJob_V2(t *testing.T) {
 		NoCatchup:      true,
 		Status:         "STATUS_UNSPECIFIED",
 		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
 		},
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 2},
 				Cron:      "2 * *",
-			}}},
+			}},
+		},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:   "1",
 			PipelineName: "p1",
@@ -1156,15 +1203,18 @@ func TestToApiJobs(t *testing.T) {
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 					StartTime: &timestamp.Timestamp{Seconds: 1},
 					Cron:      "1 * *",
-				}}},
+				}},
+			},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				Parameters:   []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 				PipelineId:   "1",
 				PipelineName: "p1",
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-					Relationship: apiv1beta1.Relationship_CREATOR},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
+				},
 			},
 		},
 		{
@@ -1180,15 +1230,18 @@ func TestToApiJobs(t *testing.T) {
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 					StartTime: &timestamp.Timestamp{Seconds: 2},
 					Cron:      "2 * *",
-				}}},
+				}},
+			},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				Parameters:   []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 				PipelineId:   "2",
 				PipelineName: "p2",
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "2"},
-					Relationship: apiv1beta1.Relationship_CREATOR},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "2"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
+				},
 			},
 		},
 	}
@@ -1241,20 +1294,32 @@ func TestToApiRunMetric_UnknownFormat(t *testing.T) {
 
 func TestToApiResourceReferences(t *testing.T) {
 	resourceReferences := []*model.ResourceReference{
-		{ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "experiment1",
-			ReferenceName: "e1", ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship},
-		{ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "job1",
-			ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.OwnerRelationship},
-		{ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "pipelineversion1",
-			ReferenceName: "k1", ReferenceType: model.PipelineVersionResourceType, Relationship: model.OwnerRelationship},
+		{
+			ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "experiment1",
+			ReferenceName: "e1", ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
+		},
+		{
+			ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "job1",
+			ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.OwnerRelationship,
+		},
+		{
+			ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "pipelineversion1",
+			ReferenceName: "k1", ReferenceType: model.PipelineVersionResourceType, Relationship: model.OwnerRelationship,
+		},
 	}
 	expectedApiResourceReferences := []*apiv1beta1.ResourceReference{
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
-			Name: "e1", Relationship: apiv1beta1.Relationship_OWNER},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
-			Name: "j1", Relationship: apiv1beta1.Relationship_OWNER},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pipelineversion1"},
-			Name: "k1", Relationship: apiv1beta1.Relationship_OWNER},
+		{
+			Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
+			Name: "e1", Relationship: apiv1beta1.Relationship_OWNER,
+		},
+		{
+			Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
+			Name: "j1", Relationship: apiv1beta1.Relationship_OWNER,
+		},
+		{
+			Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pipelineversion1"},
+			Name: "k1", Relationship: apiv1beta1.Relationship_OWNER,
+		},
 	}
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferencesV1(resourceReferences))
 }
@@ -1488,7 +1553,8 @@ func TestToApiRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 2},
 				Cron:      "2 * *",
-			}}},
+			}},
+		},
 		// PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "1"},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
@@ -1534,7 +1600,8 @@ func TestToApiRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 2},
 				Cron:      "2 * *",
-			}}},
+			}},
+		},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "pv1"},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{

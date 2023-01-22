@@ -1128,21 +1128,22 @@ func TestListPipelineVersion_FilterOutNotReady(t *testing.T) {
 			Name:           "pipeline_version_1",
 			Parameters:     `[{"Name": "param1"}]`,
 			PipelineId:     DefaultFakePipelineId,
-			Status:         model.PipelineVersionReady},
+			Status:         model.PipelineVersionReady,
+		},
 		{
 			UUID:           DefaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline_version_2",
 			Parameters:     `[{"Name": "param1"}]`,
 			PipelineId:     DefaultFakePipelineId,
-			Status:         model.PipelineVersionReady},
+			Status:         model.PipelineVersionReady,
+		},
 	}
 
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
@@ -1213,8 +1214,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	// and second page containing verion_3 and version_4.
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "name", nil)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -1241,8 +1241,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err =
-		pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 	assert.Nil(t, err)
 
 	// Second page.
@@ -1332,8 +1331,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	// page "version_2" and "version_1".
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -1360,8 +1358,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err =
-		pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -1418,8 +1415,7 @@ func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -1567,9 +1563,8 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Check the new status by retrieving this pipeline version.
-	retrievedPipelineVersion, err :=
-		pipelineStore.GetPipelineVersionWithStatus(
-			pipelineVersion.UUID, model.PipelineVersionDeleting)
+	retrievedPipelineVersion, err := pipelineStore.GetPipelineVersionWithStatus(
+		pipelineVersion.UUID, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
 	assert.Equal(t, *retrievedPipelineVersion, model.PipelineVersion{
 		UUID:           DefaultFakePipelineIdTwo,

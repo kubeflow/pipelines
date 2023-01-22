@@ -19,11 +19,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/testing/protocmp"
-
 	"github.com/google/go-cmp/cmp"
-
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -31,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var fakeModelFieldsBySortableAPIFields = map[string]string{
@@ -72,7 +70,8 @@ func TestValidatePagination(t *testing.T) {
 		PageSize:        3,
 		SortByFieldName: "Name",
 		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"}}
+		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
+	}
 	assert.Equal(t, expected, context)
 }
 
@@ -91,7 +90,8 @@ func TestValidatePagination_DefaultPageSize(t *testing.T) {
 		PageSize:        defaultPageSize,
 		SortByFieldName: "Name",
 		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"}}
+		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
+	}
 	assert.Nil(t, err)
 	assert.Equal(t, expected, context)
 }
@@ -104,7 +104,8 @@ func TestValidatePagination_DefaultSorting(t *testing.T) {
 		PageSize:        defaultPageSize,
 		SortByFieldName: "Name",
 		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"}}
+		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
+	}
 	assert.Nil(t, err)
 	assert.Equal(t, expected, context)
 }

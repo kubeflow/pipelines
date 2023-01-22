@@ -75,7 +75,7 @@ type ExecutionSpec interface {
 	// Get ServiceAccountName
 	ServiceAccount() string
 
-	//Get ExecutionStatus which can be used to
+	// Get ExecutionStatus which can be used to
 	// access status related information
 	ExecutionStatus() ExecutionStatus
 
@@ -238,8 +238,8 @@ func MarshalParameters(execType ExecutionType, params SpecParameters) (string, e
 // Unmarshal Spec from ScheduleWorkflow to ExecutionSpec. The returned ExecutionSpec
 // only contains Spec information, and has empty values for the metadata part.
 func ScheduleSpecToExecutionSpec(
-	execType ExecutionType, wfr *swfapi.WorkflowResource) (ExecutionSpec, error) {
-
+	execType ExecutionType, wfr *swfapi.WorkflowResource,
+) (ExecutionSpec, error) {
 	switch execType {
 	case ArgoWorkflow:
 		if executionSpecStr, ok := wfr.Spec.(string); ok {

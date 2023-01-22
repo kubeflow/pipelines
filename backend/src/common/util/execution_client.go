@@ -83,7 +83,7 @@ func NewExecutionClientOrFatal(execType ExecutionType, initConnectionTimeout tim
 	switch execType {
 	case ArgoWorkflow:
 		var argoProjClient *argoclient.Clientset
-		var operation = func() error {
+		operation := func() error {
 			restConfig, err := rest.InClusterConfig()
 			if err != nil {
 				return errors.Wrap(err, "Failed to initialize the RestConfig")
@@ -97,7 +97,6 @@ func NewExecutionClientOrFatal(execType ExecutionType, initConnectionTimeout tim
 		b := backoff.NewExponentialBackOff()
 		b.MaxElapsedTime = initConnectionTimeout
 		err := backoff.Retry(operation, b)
-
 		if err != nil {
 			glog.Fatalf("Failed to create ExecutionClient for Argo. Error: %v", err)
 		}
@@ -112,12 +111,12 @@ func NewExecutionClientOrFatal(execType ExecutionType, initConnectionTimeout tim
 
 // Create an ExecutionInformer for the specified Executiontype
 func NewExecutionInformerOrFatal(execType ExecutionType, namespace string,
-	initConnectionTimeout time.Duration, clientParams ClientParameters) ExecutionInformer {
-
+	initConnectionTimeout time.Duration, clientParams ClientParameters,
+) ExecutionInformer {
 	switch execType {
 	case ArgoWorkflow:
 		var argoInformer argoinformer.SharedInformerFactory
-		var operation = func() error {
+		operation := func() error {
 			restConfig, err := rest.InClusterConfig()
 			if err != nil {
 				return errors.Wrap(err, "Failed to initialize the RestConfig")
@@ -137,12 +136,12 @@ func NewExecutionInformerOrFatal(execType ExecutionType, namespace string,
 		b := backoff.NewExponentialBackOff()
 		b.MaxElapsedTime = initConnectionTimeout
 		err := backoff.Retry(operation, b)
-
 		if err != nil {
 			glog.Fatalf("Failed to create ExecutionInformer for Argo. Error: %v", err)
 		}
 		return &WorkflowInformer{
-			informer: argoInformer.Argoproj().V1alpha1().Workflows(), factory: argoInformer}
+			informer: argoInformer.Argoproj().V1alpha1().Workflows(), factory: argoInformer,
+		}
 	case TektonPipelineRun:
 		glog.Fatalf("Not implemented yet")
 	default:

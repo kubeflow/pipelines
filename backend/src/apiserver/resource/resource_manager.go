@@ -763,27 +763,26 @@ func (r *ResourceManager) UpdatePipelineVersionStatus(pipelineVersionId string, 
 }
 
 // Deletes a pipeline. Does not delete pipeline spec in the object storage.
-// v1beta1: also deletes underlying pipeline versions.
-// v2beta1: fails if the pipeline has existing pipeline versions.
-func (r *ResourceManager) DeletePipeline(pipelineId string, apiVersion string) error {
+// Fails if the pipeline has existing pipeline versions.
+func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// Check if pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineId)
 	}
 
-	if apiVersion == "v1beta1" {
-		// Mark pipeline versions as deleting so they are not visible to user.
-		err = r.pipelineStore.UpdateAllPipelineVersionsStatus(pipelineId, model.PipelineVersionDeleting)
-		if err != nil {
-			return util.Wrapf(err, "Failed to change the status of all pipeline versions under pipeline id %v to DELETING", pipelineId)
-		}
-		// Delete all pipeline versions.
-		err = r.pipelineStore.DeleteAllPipelineVersions(pipelineId)
-		if err != nil {
-			return util.Wrapf(err, "Failed to delete all pipeline version DB entries for pipeline id %v", pipelineId)
-		}
-	}
+	// if apiVersion == "v1beta1" {
+	// 	// Mark pipeline versions as deleting so they are not visible to user.
+	// 	err = r.pipelineStore.UpdateAllPipelineVersionsStatus(pipelineId, model.PipelineVersionDeleting)
+	// 	if err != nil {
+	// 		return util.Wrapf(err, "Failed to change the status of all pipeline versions under pipeline id %v to DELETING", pipelineId)
+	// 	}
+	// 	// Delete all pipeline versions.
+	// 	err = r.pipelineStore.DeleteAllPipelineVersions(pipelineId)
+	// 	if err != nil {
+	// 		return util.Wrapf(err, "Failed to delete all pipeline version DB entries for pipeline id %v", pipelineId)
+	// 	}
+	// }
 
 	// Check if it has no pipeline versions in Ready state
 	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)

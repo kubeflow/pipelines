@@ -6,10 +6,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-
 	experimentParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
 	jobparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
@@ -23,6 +19,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 // Methods are organized into two types: "prepare" and "verify".
@@ -236,7 +235,9 @@ func (s *UpgradeTests) PreparePipelines() {
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
+		}},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
@@ -251,7 +252,9 @@ func (s *UpgradeTests) PreparePipelines() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
+		}},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 
@@ -305,8 +308,10 @@ func (s *UpgradeTests) PrepareRuns() {
 			PipelineID: helloWorldPipeline.ID,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER,
+			},
 		},
 	}}
 	_, _, err := s.runClient.Create(createRunRequest)
@@ -345,8 +350,10 @@ func (s *UpgradeTests) PrepareJobs() {
 			PipelineID: pipeline.ID,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -381,10 +388,12 @@ func (s *UpgradeTests) VerifyJobs() {
 			PipelineManifest: job.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+			{
+				Key:  &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
 				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
 			},
-			{Key: &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINEVERSION},
+			{
+				Key:  &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINEVERSION},
 				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
@@ -425,10 +434,12 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
 				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
 			},
-			{Key: &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINEVERSION},
+			{
+				Key:  &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINEVERSION},
 				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},

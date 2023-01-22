@@ -228,7 +228,8 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 			ExperimentId:   defaultFakeExpIdTwo,
-		}}
+		},
+	}
 	jobsExpected[0] = jobsExpected[0].ToV1()
 	opts, err := list.NewOptions(&model.Job{}, 1, "name desc", nil)
 	assert.Nil(t, err)
@@ -261,7 +262,8 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 			ExperimentId:   defaultFakeExpId,
-		}}
+		},
+	}
 	jobsExpected2[0] = jobsExpected2[0].ToV1()
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
@@ -321,7 +323,8 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 			ExperimentId:   defaultFakeExpIdTwo,
-		}}
+		},
+	}
 	jobsExpected[0] = jobsExpected[0].ToV1()
 	jobsExpected[1] = jobsExpected[1].ToV1()
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
@@ -359,7 +362,8 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 			ExperimentId:   defaultFakeExpId,
-		}}
+		},
+	}
 	jobsExpected[0] = jobsExpected[0].ToV1()
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
@@ -631,7 +635,6 @@ func TestEnableJob(t *testing.T) {
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
 	assert.Equal(t, jobExpected2, job, "Got unexpected job")
-
 }
 
 func TestEnableJob_SkipUpdate(t *testing.T) {
@@ -742,14 +745,15 @@ func TestUpdateJob_Success(t *testing.T) {
 			},
 		},
 		Status: swfapi.ScheduledWorkflowStatus{
-			Conditions: []swfapi.ScheduledWorkflowCondition{{
-				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
-				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled",
-			},
+			Conditions: []swfapi.ScheduledWorkflowCondition{
+				{
+					Type:               swfapi.ScheduledWorkflowEnabled,
+					Status:             core.ConditionTrue,
+					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
+					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
+					Reason:             string(swfapi.ScheduledWorkflowEnabled),
+					Message:            "The schedule is enabled",
+				},
 			},
 		},
 	})

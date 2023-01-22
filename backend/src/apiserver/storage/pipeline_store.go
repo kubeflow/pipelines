@@ -84,8 +84,6 @@ type PipelineStoreInterface interface {
 	// This supports v1beta1 behavior.
 	GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error)
 	ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error)
-	UpdateAllPipelineVersionsStatus(pipelineId string, status model.PipelineVersionStatus) error
-	DeleteAllPipelineVersions(pipelineId string) error
 
 	// `pipelines`
 	CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error)
@@ -750,20 +748,6 @@ func (s *PipelineStore) UpdatePipelineVersionStatus(id string, status model.Pipe
 	return s.ExecuteSQL(sql, args, "update", "status of a pipeline version")
 }
 
-// Updates status of all pipeline versions under a pipeline.
-func (s *PipelineStore) UpdateAllPipelineVersionsStatus(pipelineId string, status model.PipelineVersionStatus) error {
-	sql, args, err := sq.
-		Update("pipeline_versions").
-		SetMap(sq.Eq{"Status": status}).
-		Where(sq.Eq{"PipelineId": pipelineId}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to update the status of all pipeline versions under pipeline %v", pipelineId)
-	}
-	return s.ExecuteSQL(sql, args, "update", "status of all pipeline versions")
-}
-
 // TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
 // Updates default pipeline version for a given pipeline.
 // Supports v1beta1 behavior.
@@ -807,19 +791,6 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 		return util.NewInternalServerError(err, "Failed to create query to delete a pipeline version: %v", err.Error())
 	}
 	return s.ExecuteSQL(sql, args, "delete", "pipeline version")
-}
-
-// Deletes all pipeline versions under a pipeline.
-func (s *PipelineStore) DeleteAllPipelineVersions(pipelineId string) error {
-	// Prepare the query
-	sql, args, err := sq.
-		Delete("pipeline_versions").
-		Where(sq.Eq{"PipelineId": pipelineId}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create query to delete all pipeline versions in pipeline %v", pipelineId)
-	}
-	return s.ExecuteSQL(sql, args, "delete", "all pipeline version")
 }
 
 // TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.

@@ -20,8 +20,6 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
-	"google.golang.org/protobuf/testing/protocmp"
-
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -33,6 +31,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -45,7 +44,8 @@ var (
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
@@ -68,7 +68,8 @@ var (
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		CreatedAt: &timestamp.Timestamp{Seconds: 2},
 		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
 		Status:    "STATUS_UNSPECIFIED",
@@ -92,7 +93,8 @@ var (
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: &structpb.Struct{}},
 		ExperimentId:   "123e4567-e89b-12d3-a456-426655440000",
 	}
@@ -371,7 +373,8 @@ func TestCreateJob_V2(t *testing.T) {
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineManifest: v2SpecHelloWorld,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
@@ -397,7 +400,8 @@ func TestCreateJob_V2(t *testing.T) {
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		CreatedAt: &timestamp.Timestamp{Seconds: 2},
 		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
 		Status:    "STATUS_UNSPECIFIED",
@@ -816,7 +820,8 @@ func TestCreateRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
@@ -838,7 +843,8 @@ func TestCreateRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 4},
 		Status:         apiv2beta1.RecurringRun_ENABLED,
@@ -850,7 +856,6 @@ func TestCreateRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 	assert.Equal(t, expectedRecurringRun, recurringRun)
-
 }
 
 func TestGetRecurringRun(t *testing.T) {
@@ -869,7 +874,8 @@ func TestGetRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
@@ -891,7 +897,8 @@ func TestGetRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 4},
 		Status:         apiv2beta1.RecurringRun_ENABLED,
@@ -906,7 +913,6 @@ func TestGetRecurringRun(t *testing.T) {
 	recurringRun, err := server.GetRecurringRun(nil, &apiv2beta1.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRecurringRun, recurringRun)
-
 }
 
 func TestListRecurringRuns(t *testing.T) {
@@ -925,7 +931,8 @@ func TestListRecurringRuns(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
@@ -947,7 +954,8 @@ func TestListRecurringRuns(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 4},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: createdRecurringRun.GetPipelineVersionId()},
@@ -989,7 +997,8 @@ func TestEnableRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
@@ -1020,7 +1029,8 @@ func TestDisableRecurringRun(t *testing.T) {
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",

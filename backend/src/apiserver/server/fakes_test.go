@@ -62,7 +62,8 @@ var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
 				Args:    []string{"hello world"},
 			},
 		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}},
+	},
 })
 
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
@@ -78,7 +79,8 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 				Args:    []string{"hello world"},
 			},
 		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}},
+	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
@@ -95,14 +97,16 @@ var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
 				Args:    []string{"hello world2"},
 			},
 		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}},
+	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
 var validReference = []*apiv1beta1.ResourceReference{
 	{
 		Key: &apiv1beta1.ResourceKey{
-			Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID},
+			Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID,
+		},
 		Relationship: apiv1beta1.Relationship_OWNER,
 	},
 }
@@ -175,7 +179,6 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 				},
 			},
 		}
-
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)

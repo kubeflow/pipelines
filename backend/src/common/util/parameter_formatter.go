@@ -65,7 +65,8 @@ func NewRunParameterFormatter(runUUID string, runAt int64) *ParameterFormatter {
 
 // NewSWFParameterFormatter returns a new ParameterFormatter to substitute recurring run macros.
 func NewSWFParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int64,
-	index int64) *ParameterFormatter {
+	index int64,
+) *ParameterFormatter {
 	return &ParameterFormatter{
 		runUUID:        runUUID,
 		scheduledEpoch: scheduledEpoch,
@@ -75,7 +76,8 @@ func NewSWFParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int
 }
 
 func (p *ParameterFormatter) FormatWorkflowParameters(
-	parameters map[string]string) map[string]string {
+	parameters map[string]string,
+) map[string]string {
 	result := make(map[string]string)
 	for key, value := range parameters {
 		formatted := p.Format(value)

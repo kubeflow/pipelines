@@ -138,8 +138,7 @@ status:
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"resubmit-hl9ft-3879090716"}, nodes)
 
-	expectedNewWfString :=
-		`apiVersion: argoproj.io/v1alpha1
+	expectedNewWfString := `apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: "2021-05-26T09:14:07Z"

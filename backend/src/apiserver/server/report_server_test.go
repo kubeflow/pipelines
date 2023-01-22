@@ -57,7 +57,8 @@ func TestReportWorkflow(t *testing.T) {
 					{Name: "param1"},
 				},
 			},
-		}})
+		},
+	})
 	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})

@@ -35,12 +35,14 @@ func TestValidateExperimentResourceReference_MoreThanOneRef(t *testing.T) {
 	references := []*apiv1beta1.ResourceReference{
 		{
 			Key: &apiv1beta1.ResourceKey{
-				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123"},
+				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123",
+			},
 			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 		{
 			Key: &apiv1beta1.ResourceKey{
-				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "456"},
+				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "456",
+			},
 			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
@@ -55,7 +57,8 @@ func TestValidateExperimentResourceReference_UnexpectedType(t *testing.T) {
 	references := []*apiv1beta1.ResourceReference{
 		{
 			Key: &apiv1beta1.ResourceKey{
-				Type: apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123"},
+				Type: apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123",
+			},
 			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
@@ -70,7 +73,8 @@ func TestValidateExperimentResourceReference_EmptyID(t *testing.T) {
 	references := []*apiv1beta1.ResourceReference{
 		{
 			Key: &apiv1beta1.ResourceKey{
-				Type: apiv1beta1.ResourceType_EXPERIMENT},
+				Type: apiv1beta1.ResourceType_EXPERIMENT,
+			},
 			Relationship: apiv1beta1.Relationship_OWNER,
 		},
 	}
@@ -85,7 +89,8 @@ func TestValidateExperimentResourceReference_UnexpectedRelationship(t *testing.T
 	references := []*apiv1beta1.ResourceReference{
 		{
 			Key: &apiv1beta1.ResourceKey{
-				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123"},
+				Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123",
+			},
 			Relationship: apiv1beta1.Relationship_CREATOR,
 		},
 	}
@@ -107,7 +112,8 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVe
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
-		WorkflowManifest: testWorkflow.ToStringForStore()}
+		WorkflowManifest: testWorkflow.ToStringForStore(),
+	}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest")
@@ -118,7 +124,8 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
 		PipelineId:       DefaultFakeUUID,
-		WorkflowManifest: testWorkflow.ToStringForStore()}
+		WorkflowManifest: testWorkflow.ToStringForStore(),
+	}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest")
@@ -172,7 +179,8 @@ func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipeline
 	manager := resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
-		PipelineId: NonDefaultFakeUUID}
+		PipelineId: NonDefaultFakeUUID,
+	}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "pipeline ID should be parent of pipeline version")
@@ -210,7 +218,8 @@ func TestValidatePipelineSpecAndResourceReferences_ValidPipelineIdAndPipelineVer
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
-		PipelineId: DefaultFakeUUID}
+		PipelineId: DefaultFakeUUID,
+	}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.Nil(t, err)
 }
@@ -234,12 +243,14 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 			[]*apiv1beta1.ResourceReference{
 				{
 					Key: &apiv1beta1.ResourceKey{
-						Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123"},
+						Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123",
+					},
 					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 				{
 					Key: &apiv1beta1.ResourceKey{
-						Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns"},
+						Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns",
+					},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},
@@ -250,7 +261,8 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 			[]*apiv1beta1.ResourceReference{
 				{
 					Key: &apiv1beta1.ResourceKey{
-						Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123"},
+						Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123",
+					},
 					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 			},
@@ -275,12 +287,14 @@ func TestGetExperimentIDFromResourceReferences(t *testing.T) {
 			[]*apiv1beta1.ResourceReference{
 				{
 					Key: &apiv1beta1.ResourceKey{
-						Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123"},
+						Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "123",
+					},
 					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 				{
 					Key: &apiv1beta1.ResourceKey{
-						Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns"},
+						Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns",
+					},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},
@@ -291,7 +305,8 @@ func TestGetExperimentIDFromResourceReferences(t *testing.T) {
 			[]*apiv1beta1.ResourceReference{
 				{
 					Key: &apiv1beta1.ResourceKey{
-						Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns"},
+						Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns",
+					},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},

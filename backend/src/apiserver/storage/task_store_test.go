@@ -88,7 +88,7 @@ func initializeTaskStore() (*DB, *TaskStore) {
 		},
 	}
 
-	//runStore.CreateRun(run1)
+	// runStore.CreateRun(run1)
 	runStore.CreateRun(run2)
 	runStore.CreateRun(run3)
 

@@ -19,12 +19,9 @@ import (
 	"strings"
 	"testing"
 
-	"google.golang.org/protobuf/testing/protocmp"
-
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -33,6 +30,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestCreateExperimentV1(t *testing.T) {
@@ -151,7 +149,8 @@ func TestCreateExperimentV1_Unauthorized(t *testing.T) {
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
-		}}
+		},
+	}
 
 	_, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
@@ -1040,7 +1039,8 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
 	_, err = jobServer.CreateJob(nil, &apiv1beta1.CreateJobRequest{Job: job1})
@@ -1119,7 +1119,8 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * * * *",
-			}}},
+			}},
+		},
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
 	// err = jobServer.validateCreateJobRequest(&apiv1beta1.CreateJobRequest{Job: job1})
@@ -1240,7 +1241,8 @@ func TestDeleteExperimentsV1_MultiUser(t *testing.T) {
 	experiment := &apiv1beta1.Experiment{
 		Name:               "ex1",
 		Description:        "first experiment",
-		ResourceReferences: resourceReferences}
+		ResourceReferences: resourceReferences,
+	}
 	resultExperiment, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 

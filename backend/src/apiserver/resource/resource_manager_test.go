@@ -22,15 +22,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
-
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/util/file"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -135,7 +134,8 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 				Args:    []string{"hello world"},
 			},
 		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}},
+	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
@@ -1034,7 +1034,7 @@ func TestListPipelines(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
+	err = manager.DeletePipeline(pnew2.UUID)
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelines(
@@ -1093,7 +1093,7 @@ func TestListPipelinesV1(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
+	err = manager.DeletePipeline(pnew2.UUID)
 	assert.Nil(t, err)
 
 	_, _, nTotal, _, err = manager.ListPipelinesV1(
@@ -1164,7 +1164,7 @@ func TestListPipelineVersions(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
+	err = manager.DeletePipeline(pnew2.UUID)
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelineVersions(
@@ -1323,6 +1323,7 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineVersionReady, p1retrieved.Status)
 }
+
 func TestDeletePipelineVersion(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -1461,7 +1462,7 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, "v2beta1")
+	err = manager.DeletePipeline(pnew2.UUID)
 	assert.Nil(t, err)
 
 	// Verify the pipeline doesn't exist.
@@ -1473,7 +1474,7 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Must fail due to active pipeline versions
-	err = manager.DeletePipeline(pnew1.UUID, "v2beta1")
+	err = manager.DeletePipeline(pnew1.UUID)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
@@ -2004,8 +2005,8 @@ func TestDeleteRun_CrdFailure(t *testing.T) {
 
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.DeleteRun(context.Background(), runDetail.UUID)
-	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	//assert.Contains(t, err.Error(), "some error")
+	// assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	// assert.Contains(t, err.Error(), "some error")
 	// TODO(IronPan) This should return error if swf CRD doesn't cascade delete runs.
 	assert.Nil(t, err)
 }
@@ -3038,7 +3039,8 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	// Create pipeline
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+	})
 	p := createPipelineV1("1")
 	pipeline, err := manager.CreatePipeline(p)
 	assert.Nil(t, err)
@@ -3160,7 +3162,8 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(job.UUID),
 			}},
-		}})
+		},
+	})
 	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 

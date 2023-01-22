@@ -144,7 +144,8 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 					Relationship: pipeline_model.APIRelationshipOWNER,
 				},
 			},
-		}})
+		},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipelineVersion.Name)
 
@@ -172,7 +173,8 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 					Relationship: pipeline_model.APIRelationshipOWNER,
 				},
 			},
-		}})
+		},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments", argumentUrlPipelineVersion.Name)
 
@@ -368,6 +370,6 @@ func (s *PipelineVersionApiTest) TearDownSuite() {
 }
 
 func (s *PipelineVersionApiTest) cleanUp() {
-	// Delete pipelines will fail if they have existing pipeline versions.
+	// Delete pipelines and their pipeline versions
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }

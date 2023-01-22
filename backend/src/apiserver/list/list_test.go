@@ -19,17 +19,15 @@ import (
 	"strings"
 	"testing"
 
-	"google.golang.org/protobuf/testing/protocmp"
-
+	sq "github.com/Masterminds/squirrel"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-
-	sq "github.com/Masterminds/squirrel"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 type fakeMetric struct {
@@ -118,7 +116,8 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 			Key:   "name",
 			Op:    api.Predicate_EQUALS,
 			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
-		}}}
+		},
+	}}
 	testFilter, err := filter.New(protoFilter)
 	if err != nil {
 		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
@@ -693,7 +692,8 @@ func TestTokenSerialization(t *testing.T) {
 			Key:   "name",
 			Op:    api.Predicate_EQUALS,
 			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
-		}}}
+		},
+	}}
 	testFilter, err := filter.New(protoFilter)
 	if err != nil {
 		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
@@ -712,7 +712,8 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldName:      "KeyField",
 				KeyFieldValue:     "string_key_value",
 				KeyFieldPrefix:    "",
-				IsDesc:            true},
+				IsDesc:            true,
+			},
 			want: &token{
 				SortByFieldName:   "SortField",
 				SortByFieldValue:  "string_field_value",
@@ -720,7 +721,8 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldName:      "KeyField",
 				KeyFieldValue:     "string_key_value",
 				KeyFieldPrefix:    "",
-				IsDesc:            true},
+				IsDesc:            true,
+			},
 		},
 		// int values get deserialized as floats by JSON unmarshal.
 		{
@@ -731,7 +733,8 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldName:      "KeyField",
 				KeyFieldValue:     200,
 				KeyFieldPrefix:    "",
-				IsDesc:            true},
+				IsDesc:            true,
+			},
 			want: &token{
 				SortByFieldName:   "SortField",
 				SortByFieldValue:  float64(100),
@@ -739,7 +742,8 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldName:      "KeyField",
 				KeyFieldValue:     float64(200),
 				KeyFieldPrefix:    "",
-				IsDesc:            true},
+				IsDesc:            true,
+			},
 		},
 		// has a filter.
 		{
@@ -768,7 +772,6 @@ func TestTokenSerialization(t *testing.T) {
 
 	for _, test := range tests {
 		s, err := test.in.marshal()
-
 		if err != nil {
 			t.Errorf("Token.Marshal(%+v) = _, %v\nWant nil error", test.in, err)
 			continue
@@ -855,7 +858,6 @@ func TestMatches(t *testing.T) {
 }
 
 func TestFilterOnResourceReference(t *testing.T) {
-
 	type testIn struct {
 		table        string
 		resourceType model.ResourceType
@@ -922,7 +924,6 @@ func TestFilterOnResourceReference(t *testing.T) {
 }
 
 func TestFilterOnExperiment(t *testing.T) {
-
 	type testIn struct {
 		table  string
 		count  bool
@@ -966,7 +967,6 @@ func TestFilterOnExperiment(t *testing.T) {
 }
 
 func TestFilterOnNamesapce(t *testing.T) {
-
 	type testIn struct {
 		table  string
 		count  bool

@@ -20,8 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/protobuf/testing/protocmp"
-
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -38,6 +36,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -144,6 +143,7 @@ func TestCreateRunV1_invalid_spec(t *testing.T) {
 	assert.Nil(t, runDetail)
 	assert.Contains(t, err.Error(), "unknown template format")
 }
+
 func TestCreateRunV1_too_many_params(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
@@ -257,7 +257,8 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
-		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
+		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")},
+	}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
@@ -410,7 +411,8 @@ func TestCreateRunV1Patch(t *testing.T) {
 			WorkflowManifest: testWorkflowPatch.ToStringForStore(),
 			Parameters: []*apiv1beta1.Parameter{
 				{Name: "param1", Value: "test-default-bucket"},
-				{Name: "param2", Value: "test-project-id"}},
+				{Name: "param2", Value: "test-project-id"},
+			},
 		},
 	}
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
@@ -524,7 +526,8 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
-		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
+		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")},
+	}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
@@ -979,7 +982,6 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func TestListRuns(t *testing.T) {
@@ -1339,7 +1341,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
 
-	//make the following request unauthorized
+	// make the following request unauthorized
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"ApiVersion": "v2beta1", "DefaultNamespace": ""})
 

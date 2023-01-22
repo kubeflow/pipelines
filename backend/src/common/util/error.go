@@ -89,7 +89,8 @@ type UserError struct {
 }
 
 func newUserError(internalError error, externalMessage string,
-	externalStatusCode codes.Code) *UserError {
+	externalStatusCode codes.Code,
+) *UserError {
 	return &UserError{
 		internalError:      internalError,
 		externalMessage:    externalMessage,
@@ -136,7 +137,8 @@ func ExtractErrorForCLI(err error, isDebugMode bool) error {
 }
 
 func NewInternalServerError(err error, internalMessageFormat string,
-	a ...interface{}) *UserError {
+	a ...interface{},
+) *UserError {
 	internalMessage := fmt.Sprintf(internalMessageFormat, a...)
 	return newUserError(
 		errors.Wrapf(err, "InternalServerError: %v", internalMessage),
@@ -145,7 +147,8 @@ func NewInternalServerError(err error, internalMessageFormat string,
 }
 
 func NewNotFoundError(err error, externalMessageFormat string,
-	a ...interface{}) *UserError {
+	a ...interface{},
+) *UserError {
 	externalMessage := fmt.Sprintf(externalMessageFormat, a...)
 	return newUserError(
 		errors.Wrapf(err, "NotFoundError: %v", externalMessage),

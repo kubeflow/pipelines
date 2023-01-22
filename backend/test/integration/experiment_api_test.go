@@ -176,7 +176,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("name")},
+			SortBy:   util.StringPointer("name"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -190,7 +191,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
-			SortBy:    util.StringPointer("name")},
+			SortBy:    util.StringPointer("name"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -203,7 +205,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("created_at")},
+			SortBy:   util.StringPointer("created_at"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -217,7 +220,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
-			SortBy:    util.StringPointer("created_at")},
+			SortBy:    util.StringPointer("created_at"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -230,7 +234,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("unknownfield")},
+			SortBy:   util.StringPointer("unknownfield"),
+		},
 		s.resourceNamespace)
 	assert.NotNil(t, err)
 
@@ -239,7 +244,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("name desc")},
+			SortBy:   util.StringPointer("name desc"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -253,7 +259,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
-			SortBy:    util.StringPointer("name desc")},
+			SortBy:    util.StringPointer("name desc"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -280,10 +287,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER},
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
 	}}
 	run1, _, err := s.runClient.Create(createRunRequest)
@@ -295,10 +306,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER},
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: job_model.APIRelationshipCREATOR},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR,
+			},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,

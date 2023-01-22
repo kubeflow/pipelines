@@ -168,7 +168,6 @@ func TestUploadPipeline(t *testing.T) {
 			versionsExpect[1].PipelineSpec = versions[1].PipelineSpec
 			assert.Equal(t, versionsExpect, versions)
 		})
-
 	}
 }
 
@@ -319,7 +318,6 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	assert.Nil(t, err)
 	pkgsExpect2 := []*model.PipelineVersion{
 		{
-
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 2,
 			Name:           "foo bar",

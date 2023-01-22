@@ -53,8 +53,10 @@ var logCriOText = `
 2020-08-31T15:00:02.260657206Z stderr F [ERROR] Unable to connect
 `
 
-var logTs0, _ = time.Parse(time.RFC3339, "2020-08-31T15:00:00Z")
-var logTs1, _ = time.Parse(time.RFC3339, "2020-08-31T15:00:02.260657206Z")
+var (
+	logTs0, _ = time.Parse(time.RFC3339, "2020-08-31T15:00:00Z")
+	logTs1, _ = time.Parse(time.RFC3339, "2020-08-31T15:00:02.260657206Z")
+)
 
 func initLogArchive() *LogArchive {
 	return NewLogArchive("/logs", "main.log")
