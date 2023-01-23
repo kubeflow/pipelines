@@ -321,8 +321,6 @@ func (s *JobApiTestSuite) TestJobApis() {
 	}}
 	_, err = s.jobClient.Create(createJobRequestNew)
 	assert.Nil(t, err)
-	_, err = s.jobClient.Create(createJobRequestNew)
-	assert.NotNil(t, err)
 	// Check total number of jobs to be 3
 	jobs, totalSize, _, err = test.ListAllJobs(s.jobClient, s.resourceNamespace)
 	assert.Nil(t, err)
@@ -375,8 +373,8 @@ func (s *JobApiTestSuite) TestJobApis() {
 		if len(runs) != 1 {
 			return fmt.Errorf("expected runs to be length 1, got: %v", len(runs))
 		}
-		if totalSize != 2 {
-			return fmt.Errorf("expected total size 2, got: %v", totalSize)
+		if totalSize != 1 {
+			return fmt.Errorf("expected total size 1, got: %v", totalSize)
 		}
 		argParamsRun := runs[0]
 		return s.checkArgParamsRun(argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)

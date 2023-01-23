@@ -238,16 +238,17 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 
 	// Create table
 	response := db.AutoMigrate(
+		&model.DBStatus{},
+		&model.DefaultExperiment{},
 		&model.Experiment{},
-		&model.Job{},
 		&model.Pipeline{},
 		&model.PipelineVersion{},
-		&model.ResourceReference{},
+		&model.Job{},
 		&model.Run{},
 		&model.RunMetric{},
 		&model.Task{},
-		&model.DBStatus{},
-		&model.DefaultExperiment{})
+		&model.ResourceReference{},
+	)
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")

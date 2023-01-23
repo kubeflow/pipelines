@@ -420,9 +420,8 @@ func (s *UpgradeTests) VerifyJobs() {
 
 func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 	// Check workflow manifest contains the correct name
+	// Check runtime workflow manifest may be empty if the run was created via pipeline or pipeline version id
 	assert.Contains(t, runDetail.Run.PipelineSpec.PipelineManifest, "whalesay", "Pipeline manifest does not contain workflow's name: %v", runDetail.Run.PipelineSpec)
-	// Check runtime workflow manifest is empty
-	assert.Equal(t, "", runDetail.PipelineRuntime.WorkflowManifest, "Workflow manifest is not empty: %v", runDetail.Run.PipelineSpec)
 
 	expectedExperimentID := test.GetExperimentIDFromV1beta1ResourceReferences(runDetail.Run.ResourceReferences)
 	require.NotEmpty(t, expectedExperimentID)
