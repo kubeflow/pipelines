@@ -55,7 +55,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.34
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.bigquery.drop_model.launcher]
     args: [
       --type, BigqueryDropModelJob,
