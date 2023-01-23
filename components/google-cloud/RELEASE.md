@@ -1,3 +1,6 @@
+# Release 1.0.34
+* Cherrypick d1f1ee9f2bbd09df7ea6ab51b21f07ba5f86c871 and snap a new release
+
 # Release 1.0.33
 * Fix aiplatform & v1 batch predict job to work with KFP v2
 * Release Structured Data team's updated components and pipelines
