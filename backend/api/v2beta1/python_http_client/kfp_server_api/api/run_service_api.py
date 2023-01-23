@@ -1032,6 +1032,139 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
+    def retry_run(self, experiment_id, run_id, **kwargs):  # noqa: E501
+        """Re-initiates a failed or terminated run.  # noqa: E501
+
+        This method makes a synchronous HTTP request by default. To make an
+        asynchronous HTTP request, please pass async_req=True
+
+        >>> thread = api.retry_run(experiment_id, run_id, async_req=True)
+        >>> result = thread.get()
+
+        :param experiment_id: The ID of the parent experiment. (required)
+        :type experiment_id: str
+        :param run_id: The ID of the run to be Retried. (required)
+        :type run_id: str
+        :param async_req: Whether to execute the request asynchronously.
+        :type async_req: bool, optional
+        :param _preload_content: if False, the urllib3.HTTPResponse object will
+                                 be returned without reading/decoding response
+                                 data. Default is True.
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :return: Returns the result object.
+                 If the method is called asynchronously,
+                 returns the request thread.
+        :rtype: object
+        """
+        kwargs['_return_http_data_only'] = True
+        return self.retry_run_with_http_info(experiment_id, run_id, **kwargs)  # noqa: E501
+
+    def retry_run_with_http_info(self, experiment_id, run_id, **kwargs):  # noqa: E501
+        """Re-initiates a failed or terminated run.  # noqa: E501
+
+        This method makes a synchronous HTTP request by default. To make an
+        asynchronous HTTP request, please pass async_req=True
+
+        >>> thread = api.retry_run_with_http_info(experiment_id, run_id, async_req=True)
+        >>> result = thread.get()
+
+        :param experiment_id: The ID of the parent experiment. (required)
+        :type experiment_id: str
+        :param run_id: The ID of the run to be Retried. (required)
+        :type run_id: str
+        :param async_req: Whether to execute the request asynchronously.
+        :type async_req: bool, optional
+        :param _return_http_data_only: response data without head status code
+                                       and headers
+        :type _return_http_data_only: bool, optional
+        :param _preload_content: if False, the urllib3.HTTPResponse object will
+                                 be returned without reading/decoding response
+                                 data. Default is True.
+        :type _preload_content: bool, optional
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :return: Returns the result object.
+                 If the method is called asynchronously,
+                 returns the request thread.
+        :rtype: tuple(object, status_code(int), headers(HTTPHeaderDict))
+        """
+
+        local_var_params = locals()
+
+        all_params = [
+            'experiment_id',
+            'run_id'
+        ]
+        all_params.extend(
+            [
+                'async_req',
+                '_return_http_data_only',
+                '_preload_content',
+                '_request_timeout'
+            ]
+        )
+
+        for key, val in six.iteritems(local_var_params['kwargs']):
+            if key not in all_params:
+                raise ApiTypeError(
+                    "Got an unexpected keyword argument '%s'"
+                    " to method retry_run" % key
+                )
+            local_var_params[key] = val
+        del local_var_params['kwargs']
+        # verify the required parameter 'experiment_id' is set
+        if self.api_client.client_side_validation and ('experiment_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['experiment_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `experiment_id` when calling `retry_run`")  # noqa: E501
+        # verify the required parameter 'run_id' is set
+        if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['run_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `retry_run`")  # noqa: E501
+
+        collection_formats = {}
+
+        path_params = {}
+        if 'experiment_id' in local_var_params:
+            path_params['experiment_id'] = local_var_params['experiment_id']  # noqa: E501
+        if 'run_id' in local_var_params:
+            path_params['run_id'] = local_var_params['run_id']  # noqa: E501
+
+        query_params = []
+
+        header_params = {}
+
+        form_params = []
+        local_var_files = {}
+
+        body_params = None
+        # HTTP header `Accept`
+        header_params['Accept'] = self.api_client.select_header_accept(
+            ['application/json'])  # noqa: E501
+
+        # Authentication setting
+        auth_settings = ['Bearer']  # noqa: E501
+
+        return self.api_client.call_api(
+            '/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry', 'POST',
+            path_params,
+            query_params,
+            header_params,
+            body=body_params,
+            post_params=form_params,
+            files=local_var_files,
+            response_type='object',  # noqa: E501
+            auth_settings=auth_settings,
+            async_req=local_var_params.get('async_req'),
+            _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
+            _preload_content=local_var_params.get('_preload_content', True),
+            _request_timeout=local_var_params.get('_request_timeout'),
+            collection_formats=collection_formats)
+
     def terminate_run(self, experiment_id, run_id, **kwargs):  # noqa: E501
         """Terminates an active run.  # noqa: E501
 

@@ -77,6 +77,13 @@ class TestRunServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_retry_run(self):
+        """Test case for retry_run
+
+        Re-initiates a failed or terminated run.  # noqa: E501
+        """
+        pass
+
     def test_terminate_run(self):
         """Test case for terminate_run
 
