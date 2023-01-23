@@ -35,7 +35,10 @@ __all__ = [
     'TabNetTrainerOp',
     'FeatureTransformEngineOp',
     'SplitMaterializedDataOp',
-    'TrainingConfiguratorAndValidatorOp'
+    'TrainingConfiguratorAndValidatorOp',
+    'TrainingConfiguratorAndValidatorOp',
+    'XGBoostHyperparameterTuningJobOp',
+    'XGBoostTrainerOp'
 ]
 
 CvTrainerOp = load_component_from_file(
@@ -73,3 +76,9 @@ TabNetTrainerOp = load_component_from_file(
 TrainingConfiguratorAndValidatorOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'training_configurator_and_validator.yaml'))
+XGBoostTrainerOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'xgboost_trainer.yaml'))
+XGBoostHyperparameterTuningJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'xgboost_hyperparameter_tuning_job.yaml'))
