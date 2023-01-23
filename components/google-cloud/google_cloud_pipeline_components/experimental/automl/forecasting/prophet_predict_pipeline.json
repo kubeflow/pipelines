@@ -1309,7 +1309,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-bigquery-query-job-2": {
@@ -1336,7 +1336,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-generate-iso8601-underscore-datetime-format": {
@@ -1501,7 +1501,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-parse-data-source": {
