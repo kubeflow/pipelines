@@ -225,8 +225,8 @@ func (s *JobApiTestSuite) TestJobApis() {
 	/* ---------- List all the jobs. Both jobs should be returned ---------- */
 	jobs, totalSize, _, err := test.ListAllJobs(s.jobClient, s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, 2, len(jobs))
+	assert.Equal(t, 2, totalSize, "Incorrect total number of recurring runs in the namespace %v", s.resourceNamespace)
+	assert.Equal(t, 2, len(jobs), "Incorrect total number of recurring runs in the namespace %v", s.resourceNamespace)
 
 	/* ---------- List the jobs, paginated, sort by creation time ---------- */
 	jobs, totalSize, nextPageToken, err := test.ListJobs(
@@ -237,8 +237,8 @@ func (s *JobApiTestSuite) TestJobApis() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(jobs))
-	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, 1, len(jobs), "Incorrect number of recurring runs sorted by creation time in the namespace %v", s.resourceNamespace)
+	assert.Equal(t, 2, totalSize, "Incorrect total number of recurring runs sorted by creation time in the namespace %v", s.resourceNamespace)
 	assert.Equal(t, "hello world", jobs[0].Name, "Job: %v", jobs[0])
 	jobs, totalSize, _, err = test.ListJobs(
 		s.jobClient,

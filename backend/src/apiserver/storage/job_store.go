@@ -186,7 +186,6 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
-
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
 
 	// If we're not just counting, then also add select columns and perform a left join

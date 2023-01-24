@@ -353,7 +353,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
-	expected.OverrideV2PipelineName("test_v2_pipeline", *namespace)
+	expected.OverrideV2PipelineName("test_v2_pipeline", "")
 	assert.Equal(t, expected, template, "Discrepancy found in template's pipeline name. Created pipeline's name - %s.", pipeline.Name)
 }
 

@@ -201,7 +201,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 		"",
 	)
 	require.Nil(t, err)
-	require.Equal(t, 4, len(experiments), "Inconsistent number of experiments without filtering on namespace")
+	require.Equal(t, 5, len(experiments), "Inconsistent number of experiments without filtering on namespace")
 
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "my first experiment", experiments[0].Description)
@@ -222,6 +222,11 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.Equal(t, "", experiments[3].Description)
 	assert.NotEmpty(t, experiments[3].ID)
 	assert.NotEmpty(t, experiments[3].CreatedAt)
+
+	assert.Equal(t, "Default", experiments[4].Name)
+	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[4].Description)
+	assert.NotEmpty(t, experiments[4].ID)
+	assert.NotEmpty(t, experiments[4].CreatedAt)
 }
 
 // TODO(jingzhang36): prepare pipeline versions.
