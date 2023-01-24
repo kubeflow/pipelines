@@ -1,4 +1,7 @@
 # Release 1.0.34
+* Fix images for BQML components
+
+# Release 1.0.34
 * Cherrypick d1f1ee9f2bbd09df7ea6ab51b21f07ba5f86c871 and snap a new release
 
 # Release 1.0.33

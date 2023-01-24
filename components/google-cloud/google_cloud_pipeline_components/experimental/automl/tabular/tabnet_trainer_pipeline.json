@@ -2397,7 +2397,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.34"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.35"
           }
         },
         "exec-model-evaluation": {

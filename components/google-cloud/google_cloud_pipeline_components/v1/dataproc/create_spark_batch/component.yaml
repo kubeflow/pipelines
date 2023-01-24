@@ -98,7 +98,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.34
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.35
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.dataproc.create_spark_batch.launcher]
     args: [
       --type, DataprocSparkBatch,
