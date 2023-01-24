@@ -2633,7 +2633,7 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
 
 class TestIllegalFanInCollection(unittest.TestCase):
 
-    def test_no_aggregated(self):
+    def test_missing_collected_with_correct_annotation(self):
         from typing import List
 
         from kfp import dsl
@@ -2646,6 +2646,9 @@ class TestIllegalFanInCollection(unittest.TestCase):
         def add(nums: List[int]) -> int:
             return sum(nums)
 
+        # this error will only be surfaced if the annotation is correct,
+        # since the type-checker would catch the type LIST v primitive type
+        # mismatch first
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
                 'Argument type "NUMBER_INTEGER" is incompatible with the input type "LIST"'
@@ -2658,15 +2661,12 @@ class TestIllegalFanInCollection(unittest.TestCase):
 
                 return add(nums=t.output).output
 
-    def test_missing_Collected(self):
+    def test_missing_collected_with_incorrect_annotation(self):
 
         @dsl.component
         def double(num: int) -> int:
             return 2 * num
 
-        # this error will only be surfaced if the annotation is correct,
-        # since the type-checker would catch the type LIST v primitive type
-        # mismatch first
         @dsl.component
         def add(nums: int) -> int:
             return nums

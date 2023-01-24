@@ -340,8 +340,8 @@ def validate_collected_consumption_legal(
     upstream_groups: List[str],
     group_name_to_group: Dict[str, tasks_group.TasksGroup],
 ) -> None:
-    """Checks that the way an collected is being consumed results in an
-    unambiguous topology and si legal.
+    """Checks that a dsl.Collected object is being used results in an
+    unambiguous pipeline topology and is therefore legal.
 
     Args:
         consumer_task_name: The name of the consumer task.
@@ -349,7 +349,7 @@ def validate_collected_consumption_legal(
         group_name_to_group: Map of group name to TasksGroup, for fast lookups.
     """
     # illegal if the producer has a parent conditional outside of its outermost for loop, since the for loop may or may or may not be executed
-    # for example, what happens if text == 'b'?
+    # for example, what happens if text == 'b'? the resulting execution behavior is ambiguous.
     #
     # @dsl.pipeline
     # def my_pipeline(text: str = ''):
