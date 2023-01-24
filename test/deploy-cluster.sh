@@ -52,10 +52,10 @@ function clean_up {
     kubectl get pod $POD_NAME -n $NAMESPACE -o yaml >> "$pod_info_file"
   done
   
-  echo "Archiving ${ARTIFACTS} into /tmp/${COMMIT_SHA}_logs.tar.gz.." 
-  tar -czf /tmp/${COMMIT_SHA}_logs.tar.gz ${ARTIFACTS}
-  echo "Uploading /tmp/${COMMIT_SHA}_logs.tar.gz to ${TEST_RESULTS_GCS_DIR}/logs"
-  gsutil cp tmp/${COMMIT_SHA}_logs.tar.gz "${TEST_RESULTS_GCS_DIR}/logs"
+  echo "Archiving ${ARTIFACTS} into ./${COMMIT_SHA}_logs.tar.gz" 
+  tar -czf ./${COMMIT_SHA}_logs.tar.gz ${ARTIFACTS}
+  echo "Uploading ./${COMMIT_SHA}_logs.tar.gz to ${TEST_RESULTS_GCS_DIR}/logs"
+  gsutil cp ${COMMIT_SHA}_logs.tar.gz "${TEST_RESULTS_GCS_DIR}/logs"
 
   echo "Clean up cluster..."
   if [ $SHOULD_CLEANUP_CLUSTER == true ]; then

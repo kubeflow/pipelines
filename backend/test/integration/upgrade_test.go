@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -201,7 +202,16 @@ func (s *UpgradeTests) VerifyExperiments() {
 		"",
 	)
 	require.Nil(t, err)
-	require.Equal(t, 5, len(experiments), "Inconsistent number of experiments without filtering on namespace")
+
+	allExperiments := make([]string, len(experiments))
+	for i, exp := range experiments {
+		if len(exp.ResourceReferences) > 0 && exp.ResourceReferences[0].Key != nil {
+			allExperiments[i] = fmt.Sprintf("%v: %v/%v", i, exp.ResourceReferences[0].Key.ID, exp.Name)
+		} else {
+			allExperiments[i] = fmt.Sprintf("%v: %v", i, exp.Name)
+		}
+	}
+	fmt.Printf("All experiments: %v", allExperiments)
 
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "my first experiment", experiments[0].Description)
@@ -222,11 +232,14 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.Equal(t, "", experiments[3].Description)
 	assert.NotEmpty(t, experiments[3].ID)
 	assert.NotEmpty(t, experiments[3].CreatedAt)
-
-	assert.Equal(t, "Default", experiments[4].Name)
-	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[4].Description)
-	assert.NotEmpty(t, experiments[4].ID)
-	assert.NotEmpty(t, experiments[4].CreatedAt)
+	// This case happens in the upgrade test as it creates the default experiment
+	if len(experiments) > 4 {
+		assert.Equal(t, 5, len(experiments))
+		assert.Equal(t, "Default", experiments[4].Name)
+		assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[4].Description)
+		assert.NotEmpty(t, experiments[4].ID)
+		assert.NotEmpty(t, experiments[4].CreatedAt)
+	}
 }
 
 // TODO(jingzhang36): prepare pipeline versions.
@@ -385,8 +398,7 @@ func (s *UpgradeTests) VerifyJobs() {
 	job := jobs[0]
 
 	// Check workflow manifest is not empty
-	assert.Equal(t, "", job.PipelineSpec.WorkflowManifest, "Non empty workflow manifest for a job created from pipeline: %v", job.PipelineSpec)
-	assert.Contains(t, job.PipelineSpec.PipelineManifest, "whalesay", "Wrong pipeline manifest for a job created from pipeline: %v", job.PipelineSpec)
+	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay", "Wrong workflow manifest for a job created from pipeline: %v", job.PipelineSpec)
 	expectedJob := &job_model.APIJob{
 		ID:          job.ID,
 		Name:        "hello world",
@@ -426,7 +438,7 @@ func (s *UpgradeTests) VerifyJobs() {
 func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 	// Check workflow manifest contains the correct name
 	// Check runtime workflow manifest may be empty if the run was created via pipeline or pipeline version id
-	assert.Contains(t, runDetail.Run.PipelineSpec.PipelineManifest, "whalesay", "Pipeline manifest does not contain workflow's name: %v", runDetail.Run.PipelineSpec)
+	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay", "Pipeline manifest does not contain workflow's name: %v", runDetail.Run.PipelineSpec)
 
 	expectedExperimentID := test.GetExperimentIDFromV1beta1ResourceReferences(runDetail.Run.ResourceReferences)
 	require.NotEmpty(t, expectedExperimentID)
