@@ -51,13 +51,18 @@ function clean_up {
     echo "--------" >> "$pod_info_file"
     kubectl get pod $POD_NAME -n $NAMESPACE -o yaml >> "$pod_info_file"
   done
+  
+  echo "Archiving the pod logs into /tmp/COMMIT_SHA_logs.tar.gz.." 
+  tar -czf /tmp/COMMIT_SHA_logs.tar.gz ${ARTIFACTS}
+  echo "Uploading /tmp/COMMIT_SHA_logs.tar.gz to ${TEST_RESULTS_GCS_DIR}/logs"
+  gsutil cp ${ARTIFACTS} "${TEST_RESULTS_GCS_DIR}/logs"
 
-  # echo "Clean up cluster..."
-  # if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
-  #   # --async doesn't wait for this operation to complete, so we can get test
-  #   # results faster
-  #   yes | gcloud container clusters delete ${TEST_CLUSTER} --async
-  # fi
+  echo "Clean up cluster..."
+  if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
+    # --async doesn't wait for this operation to complete, so we can get test
+    # results faster
+    yes | gcloud container clusters delete ${TEST_CLUSTER} --async
+  fi
 }
 trap clean_up EXIT SIGINT SIGTERM
 

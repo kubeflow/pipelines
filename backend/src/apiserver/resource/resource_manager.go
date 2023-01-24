@@ -249,7 +249,7 @@ func (r *ResourceManager) GetDefaultNamespace() string {
 			return namespace.(string)
 		}
 	}
-	return common.GetPodNamespace()
+	return ""
 }
 
 // Checks if the namespace is empty or equal to one of {`-`, `POD_NAMESPACE`, or the default value}.
