@@ -141,6 +141,9 @@ pipelines:
     - module: pipeline_with_dynamic_importer_metadata
       name: my_pipeline
       execute: false
+    - module: pipeline_with_parsed_exit_handler_syntax
+      name: my_pipeline
+      execute: false
     - module: components_with_optional_artifacts
       name: pipeline
       execute: false

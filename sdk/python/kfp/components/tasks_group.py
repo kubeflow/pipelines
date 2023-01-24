@@ -14,7 +14,7 @@
 """Definition for TasksGroup."""
 
 import enum
-from typing import Optional, Union
+from typing import List, Mapping, Optional, Union
 
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
@@ -118,7 +118,7 @@ class ExitHandler(TasksGroup):
         exit_task: pipeline_task.PipelineTask,
         name: Optional[str] = None,
     ):
-        """Initializes a Condition task group."""
+        """Initializes an Exit Handler task group."""
         super().__init__(
             group_type=TasksGroupType.EXIT_HANDLER,
             name=name,
@@ -136,6 +136,35 @@ class ExitHandler(TasksGroup):
         exit_task.is_exit_handler = True
 
         self.exit_task = exit_task
+
+    def surface_outputs(self, task):
+        # For channels
+        self._outputs = {
+            task.name: pipeline_channel.create_pipeline_channel(
+                name=channel.name,
+                channel_type=channel.channel_type,
+                task_name=task.name,
+            ) for _, channel in (task.outputs or {}).items()
+        }
+
+    @property
+    def channel_inputs(self) -> List[pipeline_channel.PipelineChannel]:
+        """The list of all channel inputs passed to the task."""
+        return []
+
+    @property
+    def outputs(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
+        """The dictionary of outputs of the task.
+
+        Used when a task has more the one output or uses an
+        ``OutputPath`` or ``Output[Artifact]`` type annotation.
+        """
+        return self._outputs
+
+    @property
+    def dependent_tasks(self) -> List[str]:
+        """A list of the dependent task names."""
+        return []
 
 
 class Condition(TasksGroup):

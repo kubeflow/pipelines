@@ -955,17 +955,18 @@ class ComponentSpec:
             if only_task.channel_inputs:
                 for group_name in task_name_to_parent_groups[only_task.name]:
                     inputs[group_name].add((only_task.channel_inputs[-1], None))
+
             return inputs
 
         inputs = get_inputs(task_group, task_name_to_parent_groups)
+        outputs = self.outputs or {}
 
         builder.build_spec_by_group(
             pipeline_spec=pipeline_spec,
             deployment_config=deployment_config,
             group=root_group,
             inputs=inputs,
-            outputs=collections.defaultdict(
-                dict),  # empty -- no sub-DAG outputs to surface
+            outputs=outputs,
             dependencies={},  # no dependencies for single-component pipeline
             rootgroup_name=root_group.name,
             task_name_to_parent_groups=task_name_to_parent_groups,

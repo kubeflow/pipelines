@@ -564,6 +564,11 @@ def _get_uncommon_ancestors(
     Returns:
         A tuple which are lists of uncommon ancestors for each task.
     """
+
+    if getattr(task1, 'is_exit_handler', False) or getattr(
+            task2, 'is_exit_handler', False):
+        return ([task1.name], [task2.name])
+
     if task1.name in task_name_to_parent_groups:
         task1_groups = task_name_to_parent_groups[task1.name]
     elif task1.name in group_name_to_parent_groups:
@@ -665,6 +670,8 @@ def get_dependencies(
 
             # ParralelFor Nested Check
             # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
+            if isinstance(upstream_task, tasks_group.ExitHandler):
+                continue
             # only check when upstream_task is a PipelineTask, since checking
             # for TasksGroup results in catching dsl.Collected cases.
             if isinstance(upstream_task, pipeline_task.PipelineTask):
