@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"github.com/golang/glog"
 	"strings"
 	"testing"
 	"time"
