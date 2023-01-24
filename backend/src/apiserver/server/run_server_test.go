@@ -235,7 +235,7 @@ func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
 	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
-	assert.Equal(t, testWorkflow.ToStringForStore(), runDetail.Run.PipelineSpec.PipelineManifest)
+	assert.Equal(t, testWorkflow2.ToStringForStore(), runDetail.Run.PipelineSpec.PipelineManifest)
 	assert.Equal(t, testWorkflow2.ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
 }
 
@@ -364,6 +364,7 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 			Status:         "Error",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				PipelineManifest: v2SpecHelloWorld,
+				WorkflowManifest: v2SpecHelloWorld,
 				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",

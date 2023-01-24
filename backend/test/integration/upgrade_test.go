@@ -471,8 +471,6 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 	}
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences), "Run's res references %v doe not include %v", runDetail.Run.ResourceReferences, expectedRun.ResourceReferences)
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
-	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 

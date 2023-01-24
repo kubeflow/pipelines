@@ -530,7 +530,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
-	assert.Contains(t, job.PipelineSpec.PipelineManifest, "whalesay", "Job: %v", job.PipelineSpec)
+	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay", "Job: %v", job.PipelineSpec)
 
 	expectedJob := &job_model.APIJob{
 		ID:             job.ID,
@@ -540,7 +540,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		PipelineSpec: &job_model.APIPipelineSpec{
 			PipelineID:       job.PipelineSpec.PipelineID,
 			PipelineName:     job.PipelineSpec.PipelineName,
-			WorkflowManifest: "",
+			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 			PipelineManifest: job.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{

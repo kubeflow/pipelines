@@ -969,7 +969,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.PipelineSpec.PipelineId = pipelineVersion.PipelineId
 	run.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
 	run.PipelineSpec.PipelineName = pipelineVersion.Name
-	run.PipelineSpec.PipelineSpecManifest = pipelineVersion.PipelineSpec
 
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
@@ -985,6 +984,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		manifestBytes = tempBytes
 	}
 	run.PipelineSpec.PipelineSpecManifest = string(manifestBytes)
+	// if run.PipelineSpec.WorkflowSpecManifest == "" {
+	// 	run.PipelineSpec.WorkflowSpecManifest = run.PipelineSpec.PipelineSpecManifest
+	// }
 
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Proposed flow:
@@ -1530,6 +1532,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		manifestBytes = tempBytes
 	}
 	job.PipelineSpec.PipelineSpecManifest = string(manifestBytes)
+	// if job.PipelineSpec.WorkflowSpecManifest == "" {
+	// 	job.PipelineSpec.WorkflowSpecManifest = job.PipelineSpec.PipelineSpecManifest
+	// }
 
 	tmpl, err := template.New(manifestBytes)
 	if err != nil {

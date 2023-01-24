@@ -1558,7 +1558,7 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
-		K8SName:        "run1-0",
+		K8SName:        "hello-world-0",
 		ServiceAccount: "pipeline-runner",
 		Namespace:      runDetail.Namespace,
 		StorageState:   model.StorageStateAvailable,

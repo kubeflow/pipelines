@@ -361,45 +361,6 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-		},
-		ResourceReferences: []*run_model.APIResourceReference{
-			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
-			},
-			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
-			},
-		},
-		CreatedAt:   runDetail.Run.CreatedAt,
-		ScheduledAt: runDetail.Run.ScheduledAt,
-		FinishedAt:  runDetail.Run.FinishedAt,
-	}
-
-	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
-	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	expectedRun.PipelineSpec.PipelineManifest = runDetail.Run.PipelineSpec.PipelineManifest
-	// Need to sort resource references before equality check as the order is non-deterministic
-	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
-	assert.Equal(t, expectedRun, runDetail.Run)
-}
-
-func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
-	assert.Contains(t, runDetail.PipelineRuntime.PipelineManifest, "whalesay", "PipelineSpec: %v", runDetail.Run.PipelineSpec)
-	// Check workflow manifest is not empty as this run have been created from a pipeline id
-	assert.Equal(t, "", runDetail.Run.PipelineSpec.WorkflowManifest, "PipelineSpec: %v", runDetail.Run.PipelineSpec)
-
-	expectedRun := &run_model.APIRun{
-		ID:             runDetail.Run.ID,
-		Name:           "hello world",
-		Description:    "this is hello world",
-		Status:         runDetail.Run.Status,
-		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
-		PipelineSpec: &run_model.APIPipelineSpec{
-			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
-			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
@@ -419,10 +380,44 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	expectedRun.PipelineSpec.PipelineManifest = runDetail.Run.PipelineSpec.PipelineManifest
-	// Need to sort resource references before equality check as the order is non-deterministic
-	// sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	// sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	assert.Equal(t, expectedRun, runDetail.Run)
+}
+
+func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
+	// Check workflow manifest is not empty
+	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
+	// Check runtime workflow manifest is not empty
+	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
+
+	expectedRun := &run_model.APIRun{
+		ID:             runDetail.Run.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
+		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
+			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
+			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
+			},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
+			},
+		},
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
+	}
+
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -443,6 +438,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: string(argParamsBytes),
+			PipelineManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
@@ -461,7 +457,6 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	expectedRun.PipelineSpec.PipelineManifest = runDetail.Run.PipelineSpec.PipelineManifest
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 

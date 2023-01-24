@@ -406,6 +406,7 @@ func TestCreateJob_V2(t *testing.T) {
 		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
 		Status:    "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: v2SpecHelloWorld,
 			PipelineManifest: v2SpecHelloWorld,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 				Parameters:   v2RuntimeParams,
