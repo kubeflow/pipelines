@@ -82,6 +82,7 @@ export enum RouteParams {
   pipelineId = 'pid',
   pipelineVersionId = 'vid',
   runId = 'rid',
+  recurringRunId = 'rrid',
   // TODO: create one of these for artifact and execution?
   ID = 'id',
   executionId = 'executionid',
@@ -115,7 +116,7 @@ export const RoutePage = {
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
   RUN_DETAILS_WITH_EXECUTION: `/runs/details/:${RouteParams.runId}/execution/:${RouteParams.executionId}`,
   RECURRING_RUNS: '/recurringruns',
-  RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.runId}`,
+  RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.recurringRunId}`,
   START: '/start',
   FRONTEND_FEATURES: '/frontend_features',
 };

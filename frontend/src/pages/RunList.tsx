@@ -274,7 +274,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       return <div>-</div>;
     }
     const url = RoutePage.RECURRING_RUN_DETAILS.replace(
-      ':' + RouteParams.runId,
+      ':' + RouteParams.recurringRunId,
       props.value.id || '',
     );
     return (
