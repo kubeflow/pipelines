@@ -618,6 +618,22 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.Termin
 	return &empty.Empty{}, nil
 }
 
+func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		retryRunRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.RetryRun(ctx, request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
 func (s *RunServer) validateCreateRunRequestV1(request *apiv1beta1.CreateRunRequest) error {
 	run := request.Run
 	if run.Name == "" {
