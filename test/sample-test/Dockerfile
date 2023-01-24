@@ -11,6 +11,7 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY ./test/sample-test/requirements.txt /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 # TODO: remove deprecated dependency
+ENV ENV=TEST
 COPY ./sdk/python/requirements-deprecated.txt /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
 RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
 # Install KFP server API from commit.

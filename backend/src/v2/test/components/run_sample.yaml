@@ -42,6 +42,7 @@ implementation:
       cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
       # run test sample
       # TODO: remove deprecated dependency
+      export ENV=TEST
       pip install -r sdk/python/requirements-deprecated.txt
       python3 \
         -u \
