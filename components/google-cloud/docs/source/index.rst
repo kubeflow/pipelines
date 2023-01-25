@@ -5,10 +5,6 @@
 
 Welcome to google_cloud_pipeline_components's documentation!
 ============================================================
-Note: For google-cloud-pipeline-components v1 document, see 
-
-* https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-1.0.33
-
 Overview
 ^^^^^^^^
 Google Cloud Pipeline Components provides an SDK with a set of pipeline components for users to interact with Google Cloud services such as Vertex AI, Dataflow and BigQuery.
