@@ -34,6 +34,7 @@ interface PipelineVersionInfo {
   displayName?: string;
   versionId?: string;
   runId?: string;
+  recurringRunId?: string;
   pipelineId?: string;
   usePlaceholder: boolean;
 }
@@ -235,7 +236,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (!props.value || (!props.value.usePlaceholder && !props.value.pipelineId)) {
       return <div>-</div>;
     }
-    const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
+    const urlParser = new URLParser(this.props);
+    const search = props.value.recurringRunId
+      ? urlParser.build({ [QUERY_PARAMS.fromRecurringRunId]: props.value.recurringRunId })
+      : urlParser.build({ [QUERY_PARAMS.fromRunId]: props.id });
     const url = props.value.usePlaceholder
       ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') +
         search
@@ -274,7 +278,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       return <div>-</div>;
     }
     const url = RoutePage.RECURRING_RUN_DETAILS.replace(
-      ':' + RouteParams.runId,
+      ':' + RouteParams.recurringRunId,
       props.value.id || '',
     );
     return (
@@ -507,7 +511,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       !!RunUtils.getWorkflowManifest(displayRun.run) ||
       displayRun.run.pipeline_spec?.pipeline_manifest
     ) {
-      displayRun.pipelineVersion = { usePlaceholder: true };
+      displayRun.pipelineVersion = displayRun.recurringRun?.id
+        ? { usePlaceholder: true, recurringRunId: displayRun.recurringRun.id }
+        : { usePlaceholder: true };
     }
   }
 

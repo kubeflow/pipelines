@@ -46,6 +46,8 @@ import { logger } from '../lib/Utils';
 import { Page } from './Page';
 import PipelineDetailsV1 from './PipelineDetailsV1';
 import PipelineDetailsV2 from './PipelineDetailsV2';
+import { ApiRunDetail } from 'src/apis/run';
+import { ApiJob } from 'src/apis/job';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
@@ -58,6 +60,14 @@ interface PipelineDetailsState {
   templateString?: string;
   versions: ApiPipelineVersion[];
 }
+
+type Origin = {
+  isRecurring: boolean;
+  runId: string | null;
+  recurringRunId: string | null;
+  run?: ApiRunDetail;
+  recurringRun?: ApiJob;
+};
 
 class PipelineDetails extends Page<{}, PipelineDetailsState> {
   constructor(props: any) {
@@ -75,7 +85,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
-    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
+    const origin = this.getOrigin();
     const pipelineIdFromParams = this.props.match.params[RouteParams.pipelineId];
     const pipelineVersionIdFromParams = this.props.match.params[RouteParams.pipelineVersionId];
     buttons
@@ -91,13 +101,18 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         pipelineIdFromParams ? pipelineIdFromParams : '',
       );
 
-    if (fromRunId) {
+    if (origin) {
       return {
         actions: buttons.getToolbarActionMap(),
         breadcrumbs: [
           {
-            displayName: fromRunId,
-            href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId),
+            displayName: origin.isRecurring ? origin.recurringRunId! : origin.runId!,
+            href: origin.isRecurring
+              ? RoutePage.RECURRING_RUN_DETAILS.replace(
+                  ':' + RouteParams.recurringRunId,
+                  origin.recurringRunId!,
+                )
+              : RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, origin.runId!),
           },
         ],
         pageTitle: 'Pipeline details',
@@ -186,9 +201,26 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return this.load();
   }
 
+  private getOrigin() {
+    const urlParser = new URLParser(this.props);
+    const fromRunId = urlParser.get(QUERY_PARAMS.fromRunId);
+    const fromRecurringRunId = urlParser.get(QUERY_PARAMS.fromRecurringRunId);
+
+    if (fromRunId && fromRecurringRunId) {
+      throw new Error('The existence of run and recurring run should be exclusive.');
+    }
+
+    let origin: Origin = {
+      isRecurring: !!fromRecurringRunId,
+      runId: fromRunId,
+      recurringRunId: fromRecurringRunId,
+    };
+    return fromRunId || fromRecurringRunId ? origin : undefined;
+  }
+
   public async load(): Promise<void> {
     this.clearBanner();
-    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
+    const origin = this.getOrigin();
 
     let pipeline: ApiPipeline | null = null;
     let version: ApiPipelineVersion | null = null;
@@ -199,51 +231,67 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let selectedVersion: ApiPipelineVersion | undefined;
     let versions: ApiPipelineVersion[] = [];
 
-    // If fromRunId is specified, load the run and get the pipeline template from it
-    if (fromRunId) {
+    // If fromRunId or fromRecurringRunId is specified, load the run and get the pipeline template from it
+    if (origin) {
+      const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
-        const runDetails = await Apis.runServiceApi.getRun(fromRunId);
+        if (origin.isRecurring) {
+          origin.recurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
+        } else {
+          origin.run = await Apis.runServiceApi.getRun(origin.runId!);
+        }
+        const pipelineManifest = origin.isRecurring
+          ? origin.recurringRun!.pipeline_spec?.pipeline_manifest
+          : origin.run!.run?.pipeline_spec?.pipeline_manifest;
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
         // V2: Use the pipeline spec string directly because it can be translated in JSON format.
-        if (
-          isFeatureEnabled(FeatureKey.V2_ALPHA) &&
-          runDetails.run?.pipeline_spec?.pipeline_manifest
-        ) {
-          templateString = runDetails.run.pipeline_spec.pipeline_manifest;
+        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && pipelineManifest) {
+          templateString = pipelineManifest;
         } else {
           try {
-            const workflowManifestString = RunUtils.getWorkflowManifest(runDetails.run) || '';
+            const workflowManifestString =
+              RunUtils.getWorkflowManifest(
+                origin.isRecurring ? origin.recurringRun : origin.run!.run,
+              ) || '';
             const workflowManifest = JSON.parse(workflowManifestString || '{}');
             try {
-              if (WorkflowUtils.isPipelineSpec(workflowManifestString)) {
-                templateString = workflowManifestString;
-              } else {
-                templateString = JsYaml.safeDump(workflowManifest);
-              }
+              templateString = WorkflowUtils.isPipelineSpec(workflowManifestString)
+                ? workflowManifestString
+                : JsYaml.safeDump(workflowManifest);
             } catch (err) {
               await this.showPageError(
-                `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+                `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
+                  origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                }.`,
                 err,
               );
               logger.error(
-                `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
+                `Failed to convert pipeline spec YAML from ${msgRunOrRecurringRun} with ID: ${
+                  origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                }.`,
                 err,
               );
             }
           } catch (err) {
             await this.showPageError(
-              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+              `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
+                origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+              }.`,
               err,
             );
             logger.error(
-              `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
+              `Failed to parse pipeline spec JSON from ${msgRunOrRecurringRun} with ID: ${
+                origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+              }.`,
               err,
             );
           }
         }
 
-        const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
+        const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(
+          origin.isRecurring ? origin.recurringRun : origin.run!.run,
+        );
         let experiment: ApiExperiment | undefined;
         if (relatedExperimentId) {
           experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
@@ -262,20 +310,28 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             },
           );
         } else {
-          breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
+          breadcrumbs.push({
+            displayName: `All ${msgRunOrRecurringRun}s`,
+            href: origin.isRecurring ? RoutePage.RECURRING_RUNS : RoutePage.RUNS,
+          });
         }
         breadcrumbs.push({
-          displayName: runDetails.run!.name!,
-          href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId),
+          displayName: origin.isRecurring ? origin.recurringRun!.name! : origin.run!.run!.name!,
+          href: origin.isRecurring
+            ? RoutePage.RECURRING_RUN_DETAILS.replace(
+                ':' + RouteParams.recurringRunId,
+                origin.recurringRunId!,
+              )
+            : RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, origin.runId!),
         });
         pageTitle = 'Pipeline details';
       } catch (err) {
-        await this.showPageError('Cannot retrieve run details.', err);
-        logger.error('Cannot retrieve run details.', err);
+        await this.showPageError(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
+        logger.error(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
         return;
       }
     } else {
-      // if fromRunId is not specified, then we have a full pipeline
+      // if fromRunId or fromRecurringRunId is not specified, then we have a full pipeline
       const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
       try {
