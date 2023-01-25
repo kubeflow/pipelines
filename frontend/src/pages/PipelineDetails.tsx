@@ -233,7 +233,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     // If fromRunId or fromRecurringRunId is specified, load the run and get the pipeline template from it
     if (origin) {
-      const msgRunOrRecurringRun = origin.isRecurring ? 'recurring ' : '';
+      const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
         if (origin.isRecurring) {
           origin.recurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
@@ -261,13 +261,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                 : JsYaml.safeDump(workflowManifest);
             } catch (err) {
               await this.showPageError(
-                `Failed to parse pipeline spec from ${msgRunOrRecurringRun}run with ID: ${
+                `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                   origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
                 }.`,
                 err,
               );
               logger.error(
-                `Failed to convert pipeline spec YAML from ${msgRunOrRecurringRun}run with ID: ${
+                `Failed to convert pipeline spec YAML from ${msgRunOrRecurringRun} with ID: ${
                   origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
                 }.`,
                 err,
@@ -275,13 +275,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             }
           } catch (err) {
             await this.showPageError(
-              `Failed to parse pipeline spec from ${msgRunOrRecurringRun}run with ID: ${
+              `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                 origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
               }.`,
               err,
             );
             logger.error(
-              `Failed to parse pipeline spec JSON from ${msgRunOrRecurringRun}run with ID: ${
+              `Failed to parse pipeline spec JSON from ${msgRunOrRecurringRun} with ID: ${
                 origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
               }.`,
               err,
@@ -311,7 +311,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           );
         } else {
           breadcrumbs.push({
-            displayName: `All ${msgRunOrRecurringRun}runs`,
+            displayName: `All ${msgRunOrRecurringRun}s`,
             href: origin.isRecurring ? RoutePage.RECURRING_RUNS : RoutePage.RUNS,
           });
         }
@@ -326,8 +326,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         });
         pageTitle = 'Pipeline details';
       } catch (err) {
-        await this.showPageError(`Cannot retrieve ${msgRunOrRecurringRun}run details.`, err);
-        logger.error(`Cannot retrieve ${msgRunOrRecurringRun}run details.`, err);
+        await this.showPageError(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
+        logger.error(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
         return;
       }
     } else {
