@@ -118,6 +118,14 @@ describe('isS3Endpoint', () => {
     expect(isS3Endpoint('s3.cn-north-1.amazonaws.com.cn')).toBe(true);
   });
 
+  it('checks a valid s3 fips GovCloud endpoint', () => {
+    expect(isS3Endpoint('s3-fips.us-gov-west-1.amazonaws.com')).toBe(true);
+  });
+
+  it('checks a valid s3 PrivateLink endpoint', () => {
+    expect(isS3Endpoint('vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com')).toBe(true);
+  });
+
   it('checks an invalid s3 endpoint', () => {
     expect(isS3Endpoint('amazonaws.com')).toBe(false);
   });
