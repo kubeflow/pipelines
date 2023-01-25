@@ -14,7 +14,6 @@
 """Functions for creating PipelineSpec proto objects."""
 
 import json
-import typing
 from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
                     Union)
 import warnings
