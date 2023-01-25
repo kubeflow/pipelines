@@ -1,0 +1,112 @@
+name: Get worker pool specs
+description: Constructs worker_pool_specs based on the best hyperparameters.
+inputs:
+- name: best_hyperparameters
+  type: JsonArray
+  description: |-
+    Required. List representing the intermediate
+    JSON representation of the best hyperparameters from the
+    hyperparameter tuning job.
+- name: worker_pool_specs
+  type: JsonArray
+  description: |-
+    Required. The spec of the worker pools
+    including machine type and Docker image. All worker pools except the
+    first one are optional and can be skipped by providing an empty value.
+outputs:
+- {name: Output, type: JsonArray}
+implementation:
+  container:
+    image: python:3.10
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-aiplatform==1.18.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform==1.18.3'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def get_worker_pool_specs(best_hyperparameters,
+                               worker_pool_specs):
+        """Constructs worker_pool_specs based on the best hyperparameters.
+
+        Args:
+            best_hyperparameters (list): Required. List representing the intermediate
+              JSON representation of the best hyperparameters from the
+              hyperparameter tuning job.
+            worker_pool_specs (list): Required. The spec of the worker pools
+              including machine type and Docker image. All worker pools except the
+              first one are optional and can be skipped by providing an empty value.
+
+        Returns:
+            List containing an intermediate JSON representation of the
+            worker_pool_specs updated with the best hyperparameters as arguments
+            in the container_spec.
+
+        """
+        from google.cloud.aiplatform_v1.types import study
+
+        for worker_pool_spec in worker_pool_specs:
+          if 'args' not in worker_pool_spec['container_spec']:
+            worker_pool_spec['container_spec']['args'] = []
+          for param in best_hyperparameters:
+            p = study.Trial.Parameter.from_json(param)
+            worker_pool_spec['container_spec']['args'].append(
+                f'--{p.parameter_id}={p.value}')
+
+        return worker_pool_specs
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError(
+                      "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                      % obj.__class__.__name__)
+
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Get worker pool specs', description='Constructs worker_pool_specs based on the best hyperparameters.')
+      _parser.add_argument("--best-hyperparameters", dest="best_hyperparameters", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--worker-pool-specs", dest="worker_pool_specs", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = get_worker_pool_specs(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --best-hyperparameters
+    - {inputValue: best_hyperparameters}
+    - --worker-pool-specs
+    - {inputValue: worker_pool_specs}
+    - '----output-paths'
+    - {outputPath: Output}

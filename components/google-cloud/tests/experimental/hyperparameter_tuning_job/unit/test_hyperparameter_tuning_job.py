@@ -19,7 +19,13 @@ from unittest import mock
 from google.cloud import aiplatform
 from google.cloud.aiplatform import hyperparameter_tuning as hpt
 from google.cloud.aiplatform_v1.types import hyperparameter_tuning_job, study
-from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import GetBestHyperparametersOp, GetBestTrialOp, GetHyperparametersOp, GetTrialsOp, GetWorkerPoolSpecsOp, IsMetricBeyondThresholdOp, serialize_metrics, serialize_parameters
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import serialize_metrics, serialize_parameters
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job.get_best_hyperparameters.component import get_best_hyperparameters
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job.get_best_trial.component import get_best_trial
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job.get_hyperparameters.component import get_hyperparameters
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job.get_trials.component import get_trials
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job.get_worker_pool_specs.component import get_worker_pool_specs
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job.is_metric_beyond_threshold.component import is_metric_beyond_threshold
 
 import unittest
 
@@ -221,7 +227,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
                     for trial in self._trials_max]))
     expected_output = [json.loads(trial) for trial in self._trials_max]
 
-    output_trials = GetTrialsOp.python_func(gcp_resources=self._gcp_resources)
+    output_trials = get_trials(gcp_resources=self._gcp_resources)
     output = [json.loads(trial) for trial in output_trials]
 
     mock_job_service_client.assert_called_once_with(client_options={
@@ -235,7 +241,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
   def test_get_best_trial_op_max(self):
     expected_output = self._best_trial_max
 
-    output = GetBestTrialOp.python_func(
+    output = get_best_trial(
         trials=self._trials_max, study_spec_metrics=self._metrics_spec_max)
 
     self.assertEqual(json.loads(output), json.loads(expected_output))
@@ -243,7 +249,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
   def test_get_best_hyperparameters_op_max(self):
     expected_output = [json.loads(hp) for hp in self._best_hp_max]
 
-    output = GetBestHyperparametersOp.python_func(
+    output = get_best_hyperparameters(
         trials=self._trials_max, study_spec_metrics=self._metrics_spec_max)
     json_output = [json.loads(hp) for hp in output]
 
@@ -252,7 +258,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
   def test_get_best_trial_op_min(self):
     expected_output = self._best_trial_min
 
-    output = GetBestTrialOp.python_func(
+    output = get_best_trial(
         trials=self._trials_min, study_spec_metrics=self._metrics_spec_min)
 
     self.assertEqual(json.loads(output), json.loads(expected_output))
@@ -260,7 +266,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
   def test_get_best_hyperparameters_op_min(self):
     expected_output = [json.loads(hp) for hp in self._best_hp_min]
 
-    output = GetBestHyperparametersOp.python_func(
+    output = get_best_hyperparameters(
         trials=self._trials_min, study_spec_metrics=self._metrics_spec_min)
     json_output = [json.loads(hp) for hp in output]
 
@@ -269,7 +275,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
   def test_get_hyperparameters_op(self):
     expected_output = [json.loads(hp) for hp in self._best_hp_max]
 
-    output = GetHyperparametersOp.python_func(trial=self._best_trial_max)
+    output = get_hyperparameters(trial=self._best_trial_max)
     json_output = [json.loads(hp) for hp in output]
 
     self.assertEqual(json_output, expected_output)
@@ -291,7 +297,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
         }
     }]
 
-    output = GetWorkerPoolSpecsOp.python_func(
+    output = get_worker_pool_specs(
         best_hyperparameters=self._best_hp_max,
         worker_pool_specs=self._worker_pool_specs)
 
@@ -313,7 +319,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
 
     expected_output = 'true'
 
-    output = IsMetricBeyondThresholdOp.python_func(
+    output = is_metric_beyond_threshold(
         trial=trial_json,
         study_spec_metrics=self._metrics_spec_max,
         threshold=0.5)
@@ -336,7 +342,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
 
     expected_output = 'false'
 
-    output = IsMetricBeyondThresholdOp.python_func(
+    output = is_metric_beyond_threshold(
         trial=trial_json,
         study_spec_metrics=self._metrics_spec_max,
         threshold=0.5)
@@ -359,7 +365,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
 
     expected_output = 'false'
 
-    output = IsMetricBeyondThresholdOp.python_func(
+    output = is_metric_beyond_threshold(
         trial=trial_json,
         study_spec_metrics=self._metrics_spec_min,
         threshold=0.5)
@@ -382,7 +388,7 @@ class HyperparameterTuningJobTest(unittest.TestCase):
 
     expected_output = 'true'
 
-    output = IsMetricBeyondThresholdOp.python_func(
+    output = is_metric_beyond_threshold(
         trial=trial_json,
         study_spec_metrics=self._metrics_spec_min,
         threshold=0.5)

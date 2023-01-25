@@ -1,0 +1,90 @@
+name: Get hyperparameters
+description: Retrieves the hyperparameters from the given trial.
+inputs:
+- name: trial
+  type: String
+  description: |-
+    Required. The intermediate JSON representation of a
+    hyperparameter tuning job trial.
+outputs:
+- {name: Output, type: JsonArray}
+implementation:
+  container:
+    image: python:3.10
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-aiplatform==1.18.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform==1.18.3'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def get_hyperparameters(trial):
+        """Retrieves the hyperparameters from the given trial.
+
+        Args:
+            trial (str): Required. The intermediate JSON representation of a
+              hyperparameter tuning job trial.
+
+        Returns:
+            List representing the intermediate JSON representation of the
+            hyperparameters from the trial.
+        """
+        from google.cloud.aiplatform_v1.types import study
+
+        trial_proto = study.Trial.from_json(trial)
+
+        return [
+            study.Trial.Parameter.to_json(param) for param in trial_proto.parameters
+        ]
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError(
+                      "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                      % obj.__class__.__name__)
+
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Get hyperparameters', description='Retrieves the hyperparameters from the given trial.')
+      _parser.add_argument("--trial", dest="trial", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = get_hyperparameters(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --trial
+    - {inputValue: trial}
+    - '----output-paths'
+    - {outputPath: Output}

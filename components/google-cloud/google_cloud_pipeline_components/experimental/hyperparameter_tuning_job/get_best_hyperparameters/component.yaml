@@ -1,0 +1,126 @@
+name: Get best hyperparameters
+description: Retrieves the best hyperparameters based on the trials.
+inputs:
+- name: trials
+  type: JsonArray
+  description: |-
+    Required. List representing the intermediate
+    JSON representation of the trials from the hyperparameter tuning job.
+- name: study_spec_metrics
+  type: JsonArray
+  description: |-
+    Required. List serialized from dictionary
+    representing the metrics to optimize.
+    The dictionary key is the metric_id, which is reported by your training
+    job, and the dictionary value is the optimization goal of the metric
+    ('minimize' or 'maximize'). example:
+    metrics = hyperparameter_tuning_job.serialize_metrics(
+        {'loss': 'minimize', 'accuracy': 'maximize'})
+outputs:
+- {name: Output, type: JsonArray}
+implementation:
+  container:
+    image: python:3.10
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-aiplatform==1.18.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform==1.18.3'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def get_best_hyperparameters(trials, study_spec_metrics):
+        """Retrieves the best hyperparameters based on the trials.
+
+        Args:
+            trials (list): Required. List representing the intermediate
+              JSON representation of the trials from the hyperparameter tuning job.
+            study_spec_metrics (list): Required. List serialized from dictionary
+              representing the metrics to optimize.
+              The dictionary key is the metric_id, which is reported by your training
+              job, and the dictionary value is the optimization goal of the metric
+              ('minimize' or 'maximize'). example:
+              metrics = hyperparameter_tuning_job.serialize_metrics(
+                  {'loss': 'minimize', 'accuracy': 'maximize'})
+
+        Returns:
+            List representing the intermediate JSON representation of the best
+            hyperparameters from the best trial in the list of trials.
+
+        Raises:
+            RuntimeError: If there are multiple metrics.
+        """
+        from google.cloud.aiplatform_v1.types import study
+
+        if len(study_spec_metrics) > 1:
+          raise RuntimeError('Unable to determine best parameters for multi-objective'
+                             ' hyperparameter tuning.')
+        trials_list = [study.Trial.from_json(trial) for trial in trials]
+        best_trial = None
+        goal = study_spec_metrics[0]['goal']
+        best_fn = None
+        if goal == study.StudySpec.MetricSpec.GoalType.MAXIMIZE:
+          best_fn = max
+        elif goal == study.StudySpec.MetricSpec.GoalType.MINIMIZE:
+          best_fn = min
+        best_trial = best_fn(
+            trials_list, key=lambda trial: trial.final_measurement.metrics[0].value)
+
+        return [
+            study.Trial.Parameter.to_json(param) for param in best_trial.parameters
+        ]
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError(
+                      "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                      % obj.__class__.__name__)
+
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Get best hyperparameters', description='Retrieves the best hyperparameters based on the trials.')
+      _parser.add_argument("--trials", dest="trials", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--study-spec-metrics", dest="study_spec_metrics", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = get_best_hyperparameters(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --trials
+    - {inputValue: trials}
+    - --study-spec-metrics
+    - {inputValue: study_spec_metrics}
+    - '----output-paths'
+    - {outputPath: Output}
