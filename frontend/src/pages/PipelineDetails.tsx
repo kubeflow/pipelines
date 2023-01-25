@@ -233,14 +233,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     // If fromRunId or fromRecurringRunId is specified, load the run and get the pipeline template from it
     if (origin) {
-      const errorTextAdjective = origin.isRecurring ? 'recurring ' : '';
+      const msgRunOrRecurringRun = origin.isRecurring ? 'recurring ' : '';
       try {
-        origin.recurringRun = origin.isRecurring
-          ? await Apis.jobServiceApi.getJob(origin.recurringRunId!)
-          : undefined;
-        origin.run = origin.isRecurring
-          ? undefined
-          : await Apis.runServiceApi.getRun(origin.runId!);
+        if (origin.isRecurring) {
+          origin.recurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
+        } else {
+          origin.run = await Apis.runServiceApi.getRun(origin.runId!);
+        }
         const pipelineManifest = origin.isRecurring
           ? origin.recurringRun!.pipeline_spec?.pipeline_manifest
           : origin.run!.run?.pipeline_spec?.pipeline_manifest;
@@ -262,13 +261,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                 : JsYaml.safeDump(workflowManifest);
             } catch (err) {
               await this.showPageError(
-                `Failed to parse pipeline spec from ${errorTextAdjective}run with ID: ${
+                `Failed to parse pipeline spec from ${msgRunOrRecurringRun}run with ID: ${
                   origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
                 }.`,
                 err,
               );
               logger.error(
-                `Failed to convert pipeline spec YAML from ${errorTextAdjective}run with ID: ${
+                `Failed to convert pipeline spec YAML from ${msgRunOrRecurringRun}run with ID: ${
                   origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
                 }.`,
                 err,
@@ -276,13 +275,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             }
           } catch (err) {
             await this.showPageError(
-              `Failed to parse pipeline spec from ${errorTextAdjective}run with ID: ${
+              `Failed to parse pipeline spec from ${msgRunOrRecurringRun}run with ID: ${
                 origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
               }.`,
               err,
             );
             logger.error(
-              `Failed to parse pipeline spec JSON from ${errorTextAdjective}run with ID: ${
+              `Failed to parse pipeline spec JSON from ${msgRunOrRecurringRun}run with ID: ${
                 origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
               }.`,
               err,
@@ -312,7 +311,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           );
         } else {
           breadcrumbs.push({
-            displayName: `All ${errorTextAdjective}runs`,
+            displayName: `All ${msgRunOrRecurringRun}runs`,
             href: origin.isRecurring ? RoutePage.RECURRING_RUNS : RoutePage.RUNS,
           });
         }
@@ -327,8 +326,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         });
         pageTitle = 'Pipeline details';
       } catch (err) {
-        await this.showPageError(`Cannot retrieve ${errorTextAdjective}run details.`, err);
-        logger.error(`Cannot retrieve ${errorTextAdjective}run details.`, err);
+        await this.showPageError(`Cannot retrieve ${msgRunOrRecurringRun}run details.`, err);
+        logger.error(`Cannot retrieve ${msgRunOrRecurringRun}run details.`, err);
         return;
       }
     } else {
