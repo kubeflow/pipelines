@@ -5,7 +5,9 @@
 
 Welcome to google_cloud_pipeline_components's documentation!
 ============================================================
-(Please check https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-1.0.33/ for the v1 version of the document)
+Note: For google-cloud-pipeline-components v1 document, see 
+
+* https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-1.0.33/
 
 Overview
 ^^^^^^^^
