@@ -113,7 +113,7 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details']}
+        tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -133,6 +133,8 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
           </div>
         )}
+        {/* Logs tab */}
+        {selectedTab === 2 && <div>This is logs tab.</div>}
       </div>
     </div>
   );
