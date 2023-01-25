@@ -1,0 +1,58 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: xgboost_trainer
+description: |
+  Launch a XGBoost custom training job using Vertex CustomJob API.
+
+    Args:
+        project (str):
+            Required. The GCP project that runs the pipeline components.
+        location (str):
+            Required. The GCP region that runs the pipeline components.
+        worker_pool_specs (JsonArray):
+            The worker pool specs.
+        encryption_spec_key_name (Optional[str]):
+            The KMS key name.
+
+    Returns:
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the custom training job.
+
+inputs:
+  - { name: project, type: String }
+  - { name: location, type: String }
+  - { name: worker_pool_specs, type: JsonArray}
+  - { name: encryption_spec_key_name, type: String, default: "" }
+
+outputs:
+  - { name: gcp_resources, type: String }
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
+    args: [
+      --type, CustomJob,
+      --project, { inputValue: project },
+      --location, { inputValue: location },
+      --gcp_resources, { outputPath: gcp_resources },
+      --payload,
+      concat: [
+          '{"display_name": "xgboost-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+          { inputValue: encryption_spec_key_name },
+          '"}, "job_spec": {"worker_pool_specs": ',
+          { inputValue: worker_pool_specs },
+          '}}'
+      ]]

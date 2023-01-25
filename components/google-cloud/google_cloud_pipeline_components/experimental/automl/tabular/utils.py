@@ -1926,6 +1926,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     seed: int = 1,
     eval_steps: int = 0,
     batch_size: int = 100,
+    measurement_selection_type: Optional[str] = None,
+    optimization_metric: Optional[str] = None,
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
@@ -2055,6 +2057,14 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       to 0, it means run evaluation for a fixed number of samples.
     batch_size:
       Batch size for training.
+    measurement_selection_type:
+      Which measurement to use if/when the service automatically
+      selects the final measurement from previously
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
+    optimization_metric:
+      Optimization metric used for `measurement_selection_type`.
+      Default is "rmse" for regression and "auc" for classification.
     eval_frequency_secs:
       Frequency at which evaluation and checkpointing will
       take place.
@@ -2128,7 +2138,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
-  parameter_values = {
+  parameter_values = {}
+  training_and_eval_parameters = {
       'project':
           project,
       'location':
@@ -2189,6 +2200,10 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           eval_steps,
       'batch_size':
           batch_size,
+      'measurement_selection_type':
+          measurement_selection_type,
+      'optimization_metric':
+          optimization_metric,
       'eval_frequency_secs':
           eval_frequency_secs,
       'weight_column':
@@ -2224,6 +2239,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+  _update_parameters(parameter_values, training_and_eval_parameters)
 
   fte_params = {
       'dataset_level_custom_transformation_definitions':
@@ -3198,6 +3214,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
     seed: int = 1,
     eval_steps: int = 0,
     batch_size: int = 100,
+    measurement_selection_type: Optional[str] = None,
+    optimization_metric: Optional[str] = None,
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
@@ -3334,6 +3352,14 @@ def get_tabnet_trainer_pipeline_and_parameters(
       to 0, it means run evaluation for a fixed number of samples.
     batch_size:
       Batch size for training.
+    measurement_selection_type:
+      Which measurement to use if/when the service automatically
+      selects the final measurement from previously
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
+    optimization_metric:
+      Optimization metric used for `measurement_selection_type`.
+      Default is "rmse" for regression and "auc" for classification.
     eval_frequency_secs:
       Frequency at which evaluation and checkpointing will
       take place.
@@ -3407,7 +3433,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
-  parameter_values = {
+  parameter_values = {}
+  training_and_eval_parameters = {
       'project':
           project,
       'location':
@@ -3472,6 +3499,10 @@ def get_tabnet_trainer_pipeline_and_parameters(
           eval_steps,
       'batch_size':
           batch_size,
+      'measurement_selection_type':
+          measurement_selection_type,
+      'optimization_metric':
+          optimization_metric,
       'eval_frequency_secs':
           eval_frequency_secs,
       'weight_column':
@@ -3507,6 +3538,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+  _update_parameters(parameter_values, training_and_eval_parameters)
 
   fte_params = {
       'dataset_level_custom_transformation_definitions':
