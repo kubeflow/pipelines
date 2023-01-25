@@ -38,11 +38,11 @@ type Pipeline struct {
 	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
 	Description    string `gorm:"column:Description; not null; size:65535;"`           // Same as below, set size to large number so it will be stored as longtext
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string         `gorm:"column:Parameters; size:65535; default:'';"`
+	Parameters string         `gorm:"column:Parameters; size:65535;"`
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	DefaultVersionId string `gorm:"column:DefaultVersionId; default:'';"` // deprecated
-	Namespace        string `gorm:"column:Namespace; unique_index:namespace_name; size:63; default:'';"`
+	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated
+	Namespace        string `gorm:"column:Namespace; unique_index:namespace_name; size:63;"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
