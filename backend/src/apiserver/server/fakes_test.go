@@ -128,20 +128,6 @@ var validReferencesOfExperimentAndPipelineVersion = []*apiv1beta1.ResourceRefere
 	},
 }
 
-var referencesOfExperimentAndInvalidPipelineVersion = []*apiv1beta1.ResourceReference{
-	{
-		Key: &apiv1beta1.ResourceKey{
-			Type: apiv1beta1.ResourceType_EXPERIMENT,
-			Id:   DefaultFakeUUID,
-		},
-		Relationship: apiv1beta1.Relationship_OWNER,
-	},
-	{
-		Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
-		Relationship: apiv1beta1.Relationship_CREATOR,
-	},
-}
-
 var referencesOfInvalidPipelineVersion = []*apiv1beta1.ResourceReference{
 	{
 		Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
@@ -351,30 +337,6 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	runDetail, err := manager.CreateRun(ctx, modelRun)
 	assert.Nil(t, err)
 	return clientManager, manager, runDetail
-}
-
-// Util function to create an initial state with pipeline uploaded
-func initWithPipeline(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Pipeline) {
-	initEnvVars()
-	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(store, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
-	p, err := manager.CreatePipeline(
-		&model.Pipeline{
-			Name:        "p1",
-			Description: "",
-			Namespace:   "",
-		},
-	)
-	assert.Nil(t, err)
-	_, err = manager.CreatePipelineVersion(
-		&model.PipelineVersion{
-			Name:         "p1",
-			PipelineId:   p.UUID,
-			PipelineSpec: testWorkflow.ToStringForStore(),
-		},
-	)
-	assert.Nil(t, err)
-	return store, manager, p
 }
 
 func AssertUserError(t *testing.T, err error, expectedCode codes.Code) {

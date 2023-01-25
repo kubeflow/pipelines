@@ -311,8 +311,8 @@ func decompressLogArchive(logContent []byte) (io.Reader, error) {
 	if tarErr != nil || header.Typeflag != tar.TypeReg {
 		// It's not a tar archive - use decompressed content
 		compressedReader.Reset(logContent)
-		decompressedLogs.Reset(compressedReader)
-		return decompressedLogs, nil
+		err := decompressedLogs.Reset(compressedReader)
+		return decompressedLogs, err
 	} else {
 		return archiveReader, nil
 	}

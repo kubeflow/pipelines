@@ -191,7 +191,7 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 		return &apiv1beta1.Pipeline{
 			Id: "",
 			Error: util.NewInternalServerError(
-				errors.New("Pipeline cannot be nil"),
+				util.NewInvalidInputError("Pipeline cannot be nil"),
 				"Failed to convert a model pipeline to v1beta1 API pipeline",
 			).Error(),
 		}
@@ -666,11 +666,10 @@ func toModelParameters(obj interface{}) (string, error) {
 	case util.SpecParameters:
 		// This will translate to an array of parameters
 		specParams := obj
-		paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, specParams)
+		paramsString, err := util.MarshalParameters(util.ArgoWorkflow, specParams)
 		if err != nil {
 			return "", util.NewInternalServerError(err, "Failed to convert an array of SpecParameters to their internal representation")
 		}
-		paramsString := string(paramsBytes)
 		if len(paramsString) > util.MaxParameterBytes {
 			return "", util.NewInvalidInputError("The input parameter length exceed maximum size of %v", util.MaxParameterBytes)
 		}
@@ -2230,9 +2229,6 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 				Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime parameters were not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
 			}
 		}
-	}
-	if len(params) == 0 {
-		params = nil
 	}
 	runtimeConfig := toApiRuntimeConfig(j.PipelineSpec.RuntimeConfig)
 	if runtimeConfig == nil {

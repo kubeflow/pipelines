@@ -42,11 +42,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func initResourceManager() (*FakeClientManager, *ResourceManager) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	return store, NewResourceManager(store, map[string]interface{}{"DefaultNamespace": "", "ApiVersion": "v2beta1"})
-}
-
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
 }

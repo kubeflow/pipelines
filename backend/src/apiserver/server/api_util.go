@@ -117,7 +117,6 @@ func getJobIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReferen
 // Converts structpb.Struct to a yaml string.
 func protobufStructToYamlString(s *structpb.Struct) (string, error) {
 	bytes, err := yaml.Marshal(s)
-	// bytes, err := json.Marshal(s.AsMap())
 	if err != nil {
 		return "", util.Wrap(err, "Failed to convert a protobuf struct to a yaml string")
 	}

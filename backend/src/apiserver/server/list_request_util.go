@@ -150,7 +150,7 @@ func parseAPIFilter(encoded string) (*api.Filter, error) {
 	}
 
 	f := &api.Filter{}
-	if err := jsonpb.UnmarshalString(string(decoded), f); err != nil {
+	if err := jsonpb.UnmarshalString(decoded, f); err != nil {
 		return errorF(err)
 	}
 	return f, nil

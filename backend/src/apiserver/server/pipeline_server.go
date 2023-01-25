@@ -158,7 +158,7 @@ func (s *PipelineServer) canAccessPipelineVersion(ctx context.Context, versionId
 	}
 	err := s.checkAccess(ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrapf(err, "Failed to to access pipeline version %s. Check if you have access to namespace %s", versionId, resourceAttributes.Namespace)
+		return util.Wrapf(err, "Failed to access pipeline version %s. Check if you have access to namespace %s", versionId, resourceAttributes.Namespace)
 	}
 	return nil
 }
@@ -182,7 +182,7 @@ func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId strin
 	}
 	err := s.checkAccess(ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrapf(err, "Failed to to access pipeline %s. Check if you have access to namespace %s", pipelineId, resourceAttributes.Namespace)
+		return util.Wrapf(err, "Failed to access pipeline %s. Check if you have access to namespace %s", pipelineId, resourceAttributes.Namespace)
 	}
 	return nil
 }

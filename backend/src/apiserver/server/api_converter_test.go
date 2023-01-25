@@ -26,9 +26,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -672,40 +674,204 @@ func TestToModelRunMetric(t *testing.T) {
 	assert.Equal(t, expectedModelRunMetric, actualModelRunMetric)
 }
 
-// Tests toModelPipelineVersion
 func TestToModelPipelineVersion(t *testing.T) {
-	apiPipelineVersion := &apiv1beta1.PipelineVersion{
-		Id:            "pipelineversion1",
-		CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-		Parameters:    []*apiv1beta1.Parameter{},
-		CodeSourceUrl: "http://repo/11111",
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key: &apiv1beta1.ResourceKey{
-					Id:   "pipeline1",
-					Type: apiv1beta1.ResourceType_PIPELINE,
+	wrongParams := make([]*apiv1beta1.Parameter, 10000)
+	for i := 0; i < 10000; i++ {
+		wrongParams[i] = &apiv1beta1.Parameter{Name: "param2", Value: "world"}
+	}
+	tests := []struct {
+		name                    string
+		pipeline                interface{}
+		expectedPipelineVersion *model.PipelineVersion
+		isError                 bool
+		errMsg                  string
+	}{
+		{
+			"happy version v1",
+			&apiv1beta1.PipelineVersion{
+				Id:            "pipelineversion1",
+				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+				Parameters:    []*apiv1beta1.Parameter{},
+				CodeSourceUrl: "http://repo/11111",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key: &apiv1beta1.ResourceKey{
+							Id:   "pipeline1",
+							Type: apiv1beta1.ResourceType_PIPELINE,
+						},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
 				},
-				Relationship: apiv1beta1.Relationship_OWNER,
 			},
+			&model.PipelineVersion{
+				UUID:           "pipelineversion1",
+				CreatedAtInSec: 1,
+				Parameters:     "",
+				PipelineId:     "pipeline1",
+				CodeSourceUrl:  "http://repo/11111",
+				Status:         model.PipelineVersionReady,
+			},
+			false,
+			"",
+		},
+		{
+			"wrong parameters v1",
+			&apiv1beta1.PipelineVersion{
+				Id:            "pipelineversion1",
+				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+				Parameters:    wrongParams,
+				CodeSourceUrl: "http://repo/11111",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key: &apiv1beta1.ResourceKey{
+							Id:   "pipeline1",
+							Type: apiv1beta1.ResourceType_PIPELINE,
+						},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			nil,
+			true,
+			"Failed to convert v1beta1 API pipeline version to its internal representation due to conversion error of the parameters",
+		},
+		{
+			"happy pipeline v1",
+			&apiv1beta1.Pipeline{
+				Id: "pipeline1",
+				Parameters: []*apiv1beta1.Parameter{
+					{
+						Name:  "param1",
+						Value: "value1",
+					},
+				},
+				Url: &apiv1beta1.Url{PipelineUrl: "http://repo/2222"},
+				DefaultVersion: &apiv1beta1.PipelineVersion{
+					Id:        "pipelineversion1",
+					CreatedAt: &timestamp.Timestamp{Seconds: 1},
+					ResourceReferences: []*apiv1beta1.ResourceReference{
+						{
+							Key: &apiv1beta1.ResourceKey{
+								Id:   "pipeline2",
+								Type: apiv1beta1.ResourceType_PIPELINE,
+							},
+							Relationship: apiv1beta1.Relationship_OWNER,
+						},
+					},
+					Parameters: []*apiv1beta1.Parameter{
+						{
+							Name:  "param2",
+							Value: "value2",
+						},
+					},
+				},
+			},
+			&model.PipelineVersion{
+				UUID:           "pipelineversion1",
+				CreatedAtInSec: 1,
+				Parameters:     `[{"name":"param2","value":"value2"}]`,
+				PipelineId:     "pipeline1",
+				CodeSourceUrl:  "http://repo/2222",
+				Status:         model.PipelineVersionReady,
+			},
+			false,
+			"",
+		},
+		{
+			"happy pipeline v1",
+			&apiv1beta1.Pipeline{
+				Parameters: []*apiv1beta1.Parameter{
+					{
+						Name:  "param1",
+						Value: "value1",
+					},
+				},
+				DefaultVersion: &apiv1beta1.PipelineVersion{
+					Id:         "version2",
+					CreatedAt:  &timestamp.Timestamp{Seconds: 1},
+					PackageUrl: &apiv1beta1.Url{PipelineUrl: "http://repo/11111"},
+					ResourceReferences: []*apiv1beta1.ResourceReference{
+						{
+							Key: &apiv1beta1.ResourceKey{
+								Id:   "pipeline2",
+								Type: apiv1beta1.ResourceType_PIPELINE,
+							},
+							Relationship: apiv1beta1.Relationship_OWNER,
+						},
+					},
+				},
+			},
+			&model.PipelineVersion{
+				UUID:           "version2",
+				CreatedAtInSec: 1,
+				Parameters:     `[{"name":"param1","value":"value1"}]`,
+				PipelineId:     "pipeline2",
+				CodeSourceUrl:  "http://repo/11111",
+				Status:         model.PipelineVersionReady,
+			},
+			false,
+			"",
+		},
+		{
+			"happy pipeline version v2",
+			&apiv2beta1.PipelineVersion{
+				PipelineVersionId: "pv1",
+				CreatedAt:         &timestamppb.Timestamp{Seconds: 2},
+				DisplayName:       "Version 2 v2beta1",
+				PipelineId:        "pipeline 333",
+				PackageUrl:        &apiv2beta1.Url{PipelineUrl: "http://repo/3333"},
+				Description:       "This is pipeline version 333",
+				PipelineSpec:      &structpb.Struct{Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "PipelineVersion222"}}}},
+			},
+			&model.PipelineVersion{
+				UUID:           "pv1",
+				CreatedAtInSec: 2,
+				Name:           "Version 2 v2beta1",
+				Parameters:     "",
+				PipelineId:     "pipeline 333",
+				CodeSourceUrl:  "http://repo/3333",
+				Description:    "This is pipeline version 333",
+				PipelineSpec:   "name: PipelineVersion222\n",
+				Status:         model.PipelineVersionReady,
+			},
+			false,
+			"",
+		},
+		{
+			"happy pipeline version v2",
+			&apiv2beta1.PipelineVersion{
+				PipelineVersionId: "pv1",
+				CreatedAt:         &timestamppb.Timestamp{Seconds: 2},
+				DisplayName:       "Version 2 v2beta1",
+				PipelineId:        "pipeline 333",
+				PackageUrl:        &apiv2beta1.Url{PipelineUrl: "http://repo/3333"},
+				Description:       "This is pipeline version 333",
+				PipelineSpec:      &structpb.Struct{Fields: map[string]*structpb.Value{"name": {Kind: nil}}},
+			},
+			nil,
+			true,
+			"Failed to convert API pipeline version to internal pipeline version representation due to pipeline spec conversion error",
 		},
 	}
-
-	convertedModelPipelineVersion, _ := toModelPipelineVersion(apiPipelineVersion)
-
-	expectedModelPipelineVersion := &model.PipelineVersion{
-		UUID:           "pipelineversion1",
-		CreatedAtInSec: 1,
-		Parameters:     "",
-		PipelineId:     "pipeline1",
-		CodeSourceUrl:  "http://repo/11111",
-		Status:         model.PipelineVersionReady,
+	for _, tt := range tests {
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				pipelineVersion, err := toModelPipelineVersion(tt.pipeline)
+				if tt.isError {
+					assert.NotNil(t, err)
+					assert.Contains(t, err.Error(), tt.errMsg)
+				} else {
+					assert.Nil(t, err)
+				}
+				assert.Equal(t, tt.expectedPipelineVersion, pipelineVersion)
+			},
+		)
 	}
-
-	assert.Equal(t, expectedModelPipelineVersion, convertedModelPipelineVersion)
 }
 
 // Tests toApiPipelineV1
-func TestToApiPipeline(t *testing.T) {
+func TestToApiPipelineV1(t *testing.T) {
 	modelPipeline := &model.Pipeline{
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
@@ -744,7 +910,7 @@ func TestToApiPipeline(t *testing.T) {
 }
 
 // Tests toApiPipelineV1 (error parsing a field)
-func TestToApiPipeline_ErrorParsingField(t *testing.T) {
+func TestToApiPipelineV1_ErrorParsingField(t *testing.T) {
 	modelPipeline := &model.Pipeline{
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
@@ -755,6 +921,290 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 	apiPipeline := toApiPipelineV1(modelPipeline, modelVersion)
 	assert.Equal(t, "pipeline1", apiPipeline.Id)
 	assert.Contains(t, apiPipeline.Error, "Failed to convert parameters: super wrong parameters")
+}
+
+func TestToApiPipelinesV1(t *testing.T) {
+	modelPipelines := []*model.Pipeline{
+		{
+			UUID:           "pipeline1",
+			CreatedAtInSec: 1,
+		},
+		nil,
+		{
+			UUID:           "pipeline1",
+			CreatedAtInSec: 1,
+		},
+	}
+	modelPipelineVersions := []*model.PipelineVersion{
+		{
+			UUID:           "pipelineversion1",
+			CreatedAtInSec: 1,
+			Parameters:     "[]",
+			PipelineId:     "pipeline1",
+			Description:    "desc1",
+			CodeSourceUrl:  "http://repo/22222",
+		},
+		{
+			UUID:           "pipelineversion1",
+			CreatedAtInSec: 1,
+			Parameters:     "[]",
+			PipelineId:     "pipeline1",
+			Description:    "desc1",
+		},
+		{
+			Parameters: "super wrong parameters",
+		},
+	}
+	apiPipelines := toApiPipelinesV1(modelPipelines, modelPipelineVersions)
+	expectedPipelines := []*apiv1beta1.Pipeline{
+		{
+			Id:        "pipeline1",
+			CreatedAt: &timestamp.Timestamp{Seconds: 1},
+			Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
+			DefaultVersion: &apiv1beta1.PipelineVersion{
+				Id:            "pipelineversion1",
+				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+				Description:   "desc1",
+				CodeSourceUrl: "http://repo/22222",
+				PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key: &apiv1beta1.ResourceKey{
+							Id:   "pipeline1",
+							Type: apiv1beta1.ResourceType_PIPELINE,
+						},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+		},
+		{
+			Id:    "",
+			Error: "InternalServerError: Failed to convert a model pipeline to v1beta1 API pipeline: Invalid input error: Pipeline cannot be nil",
+		},
+		{
+			Id:    "pipeline1",
+			Error: "InternalServerError: Failed to convert a model pipeline to v1beta1 API pipeline: Invalid input error: Failed to convert parameters: super wrong parameters",
+		},
+	}
+	assert.Equal(t, expectedPipelines, apiPipelines)
+
+	modelPipelines2 := make([]*model.Pipeline, 0)
+	modelPipelineVersions2 := make([]*model.PipelineVersion, 0)
+	apiPipelines2 := toApiPipelinesV1(modelPipelines2, modelPipelineVersions2)
+	expectedPipelines2 := make([]*apiv1beta1.Pipeline, 0)
+	assert.Equal(t, expectedPipelines2, apiPipelines2)
+}
+
+func TestToApiPipeline(t *testing.T) {
+	tests := []struct {
+		name             string
+		pipeline         *model.Pipeline
+		expectedPipeline *apiv2beta1.Pipeline
+	}{
+		{
+			"happy case",
+			&model.Pipeline{
+				UUID:           "p1",
+				Name:           "pipeline1",
+				Description:    "This is pipeline1",
+				Namespace:      "ns1",
+				CreatedAtInSec: 1,
+			},
+			&apiv2beta1.Pipeline{
+				PipelineId:  "p1",
+				DisplayName: "pipeline1",
+				Description: "This is pipeline1",
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				Namespace:   "ns1",
+			},
+		},
+		{
+			"nil input",
+			nil,
+			&apiv2beta1.Pipeline{
+				Error: util.ToRpcStatus(
+					util.NewInternalServerError(
+						errors.New("Pipeline cannot be nil"),
+						"Failed to convert a pipeline to API pipeline",
+					),
+				),
+			},
+		},
+		{
+			"empy uuid",
+			&model.Pipeline{
+				Name:           "pipeline1",
+				Description:    "This is pipeline1",
+				Namespace:      "ns1",
+				CreatedAtInSec: 1,
+			},
+			&apiv2beta1.Pipeline{
+				Error: util.ToRpcStatus(
+					util.NewInternalServerError(
+						errors.New("Pipeline id cannot be empty"),
+						"Failed to convert a pipeline to API pipeline",
+					),
+				),
+			},
+		},
+		{
+			"zero create time",
+			&model.Pipeline{
+				UUID:        "p1",
+				Name:        "pipeline1",
+				Description: "This is pipeline1",
+				Namespace:   "ns1",
+			},
+			&apiv2beta1.Pipeline{
+				PipelineId: "p1",
+				Error: util.ToRpcStatus(
+					util.NewInternalServerError(
+						errors.New("Pipeline create time cannot be 0"),
+						"Failed to convert a pipeline to API pipeline",
+					),
+				),
+			},
+		},
+		{
+			"empty name",
+			&model.Pipeline{
+				UUID:           "p1",
+				Description:    "This is pipeline1",
+				Namespace:      "ns1",
+				CreatedAtInSec: 1,
+			},
+			&apiv2beta1.Pipeline{
+				PipelineId: "p1",
+				Error: util.ToRpcStatus(
+					util.NewInternalServerError(
+						errors.New("Pipeline name cannot be empty"),
+						"Failed to convert a pipeline to API pipeline",
+					),
+				),
+			},
+		},
+		{
+			"empty namespace",
+			&model.Pipeline{
+				UUID:           "p1",
+				Name:           "pipeline1",
+				Description:    "This is pipeline1",
+				CreatedAtInSec: 1,
+			},
+			&apiv2beta1.Pipeline{
+				PipelineId: "p1",
+				Error: util.ToRpcStatus(
+					util.NewInternalServerError(
+						errors.New("Pipeline namespace cannot be empty"),
+						"Failed to convert a pipeline to API pipeline",
+					),
+				),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pipeline := toApiPipeline(tt.pipeline)
+			assert.Equal(t, tt.expectedPipeline, pipeline)
+		})
+	}
+}
+
+func TestToApiPipelines(t *testing.T) {
+	modelPipelines := []*model.Pipeline{
+		{
+			UUID:           "p1",
+			Name:           "pipeline1",
+			Description:    "This is pipeline1",
+			Namespace:      "ns1",
+			CreatedAtInSec: 1,
+		},
+		nil,
+		{
+			Name:           "pipeline1",
+			Description:    "This is pipeline1",
+			Namespace:      "ns1",
+			CreatedAtInSec: 1,
+		},
+		{
+			UUID:        "p1",
+			Name:        "pipeline1",
+			Description: "This is pipeline1",
+			Namespace:   "ns1",
+		},
+		{
+			UUID:           "p1",
+			Description:    "This is pipeline1",
+			Namespace:      "ns1",
+			CreatedAtInSec: 1,
+		},
+		{
+			UUID:           "p1",
+			Name:           "pipeline1",
+			Description:    "This is pipeline1",
+			CreatedAtInSec: 1,
+		},
+	}
+	apiPipelines := toApiPipelines(modelPipelines)
+	expectedPipelines := []*apiv2beta1.Pipeline{
+		{
+			PipelineId:  "p1",
+			DisplayName: "pipeline1",
+			Description: "This is pipeline1",
+			CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+			Namespace:   "ns1",
+		},
+		{
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Pipeline cannot be nil"),
+					"Failed to convert a pipeline to API pipeline",
+				),
+			),
+		},
+		{
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Pipeline id cannot be empty"),
+					"Failed to convert a pipeline to API pipeline",
+				),
+			),
+		},
+		{
+			PipelineId: "p1",
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Pipeline create time cannot be 0"),
+					"Failed to convert a pipeline to API pipeline",
+				),
+			),
+		},
+		{
+			PipelineId: "p1",
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Pipeline name cannot be empty"),
+					"Failed to convert a pipeline to API pipeline",
+				),
+			),
+		},
+		{
+			PipelineId: "p1",
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Pipeline namespace cannot be empty"),
+					"Failed to convert a pipeline to API pipeline",
+				),
+			),
+		},
+	}
+	assert.Equal(t, expectedPipelines, apiPipelines)
+
+	modelPipelines2 := make([]*model.Pipeline, 0)
+	apiPipelines2 := toApiPipelines(modelPipelines2)
+	expectedPipelines2 := make([]*apiv2beta1.Pipeline, 0)
+	assert.Equal(t, expectedPipelines2, apiPipelines2)
 }
 
 func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {

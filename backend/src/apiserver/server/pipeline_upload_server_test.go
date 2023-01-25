@@ -62,7 +62,7 @@ func TestUploadPipeline(t *testing.T) {
 			response := uploadPipeline("/apis/v1beta1/pipelines/upload",
 				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 			if response.Code != 200 {
-				t.Fatalf("Upload response is not 200, message: %s", string(response.Body.Bytes()))
+				t.Fatalf("Upload response is not 200, message: %s", response.Body.String())
 			}
 
 			// Verify time format is RFC3339.

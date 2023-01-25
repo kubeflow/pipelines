@@ -269,7 +269,7 @@ type RunDetails struct {
 	// Conditions were deprecated. Use State instead.
 	Conditions         string       `gorm:"column:Conditions; not null;"`
 	State              RuntimeState `gorm:"column:State; default:null;"`
-	StateHistoryString string       `gorm:"column:StateHistory; default:'';"`
+	StateHistoryString string       `gorm:"column:StateHistory; default:null;"`
 	StateHistory       []*RuntimeStatus
 	// Serialized runtime details of a run in v2beta1
 	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:33554432;"`
