@@ -619,41 +619,41 @@ func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *apiv1beta1.
 	}, nil
 }
 
-// Creates run metric entries in the database and returns them.
-// Note: partial errors can occur at creating and fetching steps. They
-// are returned as google.rpc.Status Error field in each run metric.
-//   - If a run metric if successfully fetched from the database,
-//     prior creation errors are ignored; Error is not set.
-//   - If a run metric is missing in the fetching results,
-//     the corresponding creation error message is used.
-//   - If the fetching fails, creation error messages are used.
-//   - If the fetching fails, but creation succeeds run metric
-//     values and will be missing.
-func (s *RunServer) ReportRunMetrics(ctx context.Context, request *apiv2beta1.ReportRunMetricsRequest) (*apiv2beta1.ReportRunMetricsResponse, error) {
-	if s.options.CollectMetrics {
-		reportRunMetricsRequests.Inc()
-	}
-	metrics := make([]*model.RunMetric, 0)
-	for _, metric := range request.GetMetrics() {
-		modelMetric, err := toModelRunMetric(metric, request.GetRunId())
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create run metrics due to data conversion error")
-		}
-		metrics = append(metrics, modelMetric)
-	}
-	reportResults, err := s.reportRunMetrics(ctx, metrics, request.GetRunId(), request.GetExperimentId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to report run metrics")
-	}
-	existingMetrics, err := s.getRunMetrics(ctx, request.GetRunId())
+// // Creates run metric entries in the database and returns them.
+// // Note: partial errors can occur at creating and fetching steps. They
+// // are returned as google.rpc.Status Error field in each run metric.
+// //   - If a run metric if successfully fetched from the database,
+// //     prior creation errors are ignored; Error is not set.
+// //   - If a run metric is missing in the fetching results,
+// //     the corresponding creation error message is used.
+// //   - If the fetching fails, creation error messages are used.
+// //   - If the fetching fails, but creation succeeds run metric
+// //     values and will be missing.
+// func (s *RunServer) ReportRunMetrics(ctx context.Context, request *apiv2beta1.ReportRunMetricsRequest) (*apiv2beta1.ReportRunMetricsResponse, error) {
+// 	if s.options.CollectMetrics {
+// 		reportRunMetricsRequests.Inc()
+// 	}
+// 	metrics := make([]*model.RunMetric, 0)
+// 	for _, metric := range request.GetMetrics() {
+// 		modelMetric, err := toModelRunMetric(metric, request.GetRunId())
+// 		if err != nil {
+// 			return nil, util.Wrap(err, "Failed to create run metrics due to data conversion error")
+// 		}
+// 		metrics = append(metrics, modelMetric)
+// 	}
+// 	reportResults, err := s.reportRunMetrics(ctx, metrics, request.GetRunId(), request.GetExperimentId())
+// 	if err != nil {
+// 		return nil, util.Wrap(err, "Failed to report run metrics")
+// 	}
+// 	existingMetrics, err := s.getRunMetrics(ctx, request.GetRunId())
 
-	apiMetrics := toApiRunMetricsWithErrors(reportResults, existingMetrics, err != nil)
-	return &apiv2beta1.ReportRunMetricsResponse{
-		ExperimentId: request.GetExperimentId(),
-		RunId:        request.GetRunId(),
-		Metrics:      apiMetrics,
-	}, nil
-}
+// 	apiMetrics := toApiRunMetricsWithErrors(reportResults, existingMetrics, err != nil)
+// 	return &apiv2beta1.ReportRunMetricsResponse{
+// 		ExperimentId: request.GetExperimentId(),
+// 		RunId:        request.GetRunId(),
+// 		Metrics:      apiMetrics,
+// 	}, nil
+// }
 
 func (s *RunServer) ReadArtifactV1(ctx context.Context, request *apiv1beta1.ReadArtifactRequest) (*apiv1beta1.ReadArtifactResponse, error) {
 	if s.options.CollectMetrics {

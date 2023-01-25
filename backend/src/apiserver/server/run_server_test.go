@@ -52,15 +52,6 @@ var metricV1 = &apiv1beta1.RunMetric{
 	Format: apiv1beta1.RunMetric_RAW,
 }
 
-var metric = &apiv2beta1.RunMetric{
-	DisplayName: "metric-1",
-	NodeId:      "node-1",
-	Value: &apiv2beta1.RunMetric_NumberValue{
-		NumberValue: 0.88,
-	},
-	Format: apiv2beta1.RunMetric_RAW,
-}
-
 func TestCreateRunV1_empty_name(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()

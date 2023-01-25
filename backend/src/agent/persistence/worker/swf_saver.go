@@ -54,7 +54,7 @@ func (c *ScheduledWorkflowSaver) Save(key string, namespace string, name string,
 	}
 
 	// Save this Scheduled Workflow to the database.
-	err = c.pipelineClient.ReportScheduledWorkflow(swf)
+	err = c.pipelineClient.ReportScheduledWorkflowV1(swf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
 
 	// Failure

@@ -1102,11 +1102,11 @@ func toModelRunMetric(m interface{}, runId string) (*model.RunMetric, error) {
 		nodeId = apiRunMetric.GetNodeId()
 		val = apiRunMetric.GetNumberValue()
 		format = apiRunMetric.GetFormat().String()
-	case *apiv2beta1.RunMetric:
-		name = apiRunMetric.GetDisplayName()
-		nodeId = apiRunMetric.GetNodeId()
-		val = apiRunMetric.GetNumberValue()
-		format = apiRunMetric.GetFormat().String()
+	// case *apiv2beta1.RunMetric:
+	// 	name = apiRunMetric.GetDisplayName()
+	// 	nodeId = apiRunMetric.GetNodeId()
+	// 	val = apiRunMetric.GetNumberValue()
+	// 	format = apiRunMetric.GetFormat().String()
 	default:
 		return nil, util.NewUnknownApiVersionError("RunMetric", m)
 	}
@@ -1133,18 +1133,18 @@ func toApiRunMetricV1(metric *model.RunMetric) *apiv1beta1.RunMetric {
 	}
 }
 
-// Converts internal run metric representation to its API counterpart.
-// Supports v2beta1 API.
-func toApiRunMetric(metric *model.RunMetric) *apiv2beta1.RunMetric {
-	return &apiv2beta1.RunMetric{
-		DisplayName: metric.Name,
-		NodeId:      metric.NodeID,
-		Value: &apiv2beta1.RunMetric_NumberValue{
-			NumberValue: metric.NumberValue,
-		},
-		Format: apiv2beta1.RunMetric_Format(apiv2beta1.RunMetric_Format_value[metric.Format]),
-	}
-}
+// // Converts internal run metric representation to its API counterpart.
+// // Supports v2beta1 API.
+// func toApiRunMetric(metric *model.RunMetric) *apiv2beta1.RunMetric {
+// 	return &apiv2beta1.RunMetric{
+// 		DisplayName: metric.Name,
+// 		NodeId:      metric.NodeID,
+// 		Value: &apiv2beta1.RunMetric_NumberValue{
+// 			NumberValue: metric.NumberValue,
+// 		},
+// 		Format: apiv2beta1.RunMetric_Format(apiv2beta1.RunMetric_Format_value[metric.Format]),
+// 	}
+// }
 
 // Converts an array of internal run metric representations to an array of their API counterparts.
 // Supports v1beta1 API.
@@ -1156,15 +1156,15 @@ func toApiRunMetricsV1(m []*model.RunMetric) []*apiv1beta1.RunMetric {
 	return apiMetrics
 }
 
-// Converts an array of internal run metric representations to an array of their API counterparts.
-// Supports v2beta1 API.
-func toApiRunMetrics(m []*model.RunMetric) []*apiv2beta1.RunMetric {
-	apiMetrics := make([]*apiv2beta1.RunMetric, 0)
-	for _, metric := range m {
-		apiMetrics = append(apiMetrics, toApiRunMetric(metric))
-	}
-	return apiMetrics
-}
+// // Converts an array of internal run metric representations to an array of their API counterparts.
+// // Supports v2beta1 API.
+// func toApiRunMetrics(m []*model.RunMetric) []*apiv2beta1.RunMetric {
+// 	apiMetrics := make([]*apiv2beta1.RunMetric, 0)
+// 	for _, metric := range m {
+// 		apiMetrics = append(apiMetrics, toApiRunMetric(metric))
+// 	}
+// 	return apiMetrics
+// }
 
 // Convert results of run metrics creation to API response.
 // Supports v1beta1 API.
@@ -1190,41 +1190,41 @@ func toApiReportMetricsResultV1(metricName string, nodeId string, status string,
 	return apiResultV1
 }
 
-// Convert results of run metrics reporting to API run metrics with the corresponding errors.
-// Supports v2beta1 API.
-// Return nil if a parsing error occurs.
-func toApiRunMetricsWithErrors(reportResults []map[string]string, fetchedRunMetrics []*model.RunMetric, metricsFailed bool) []*apiv2beta1.RunMetric {
-	apiRunMetricsV2 := make([]*apiv2beta1.RunMetric, 0)
-	for _, results := range reportResults {
-		found := false
-		apiResultV2 := &apiv2beta1.RunMetric{}
-		if !metricsFailed {
-			for _, metric := range fetchedRunMetrics {
-				if metric.Name == results["Name"] && metric.NodeID == results["NodeId"] {
-					found = true
-					apiResultV2 = toApiRunMetric(metric)
-					break
-				}
-			}
-		}
-		if !found {
-			apiResultV2.DisplayName = results["Name"]
-			apiResultV2.NodeId = results["NodeId"]
-			switch results["ErrorCode"] {
-			case "internal":
-				apiResultV2.Error = util.ToRpcStatus(util.NewInternalServerError(errors.New(results["ErrorMessage"]), results["ErrorMessage"]))
-			case "invalid":
-				apiResultV2.Error = util.ToRpcStatus(util.NewInvalidInputError(results["ErrorMessage"]))
-			case "duplicate":
-				apiResultV2.Error = util.ToRpcStatus(util.NewAlreadyExistError(results["ErrorMessage"]))
-			default:
-				apiResultV2.Error = util.ToRpcStatus(util.NewInternalServerError(errors.New("Unknown run metric parsing error"), "Error type: %s. Error message: %s", results["ErrorCode"], results["ErrorMessage"]))
-			}
-		}
-		apiRunMetricsV2 = append(apiRunMetricsV2, apiResultV2)
-	}
-	return apiRunMetricsV2
-}
+// // Convert results of run metrics reporting to API run metrics with the corresponding errors.
+// // Supports v2beta1 API.
+// // Return nil if a parsing error occurs.
+// func toApiRunMetricsWithErrors(reportResults []map[string]string, fetchedRunMetrics []*model.RunMetric, metricsFailed bool) []*apiv2beta1.RunMetric {
+// 	apiRunMetricsV2 := make([]*apiv2beta1.RunMetric, 0)
+// 	for _, results := range reportResults {
+// 		found := false
+// 		apiResultV2 := &apiv2beta1.RunMetric{}
+// 		if !metricsFailed {
+// 			for _, metric := range fetchedRunMetrics {
+// 				if metric.Name == results["Name"] && metric.NodeID == results["NodeId"] {
+// 					found = true
+// 					apiResultV2 = toApiRunMetric(metric)
+// 					break
+// 				}
+// 			}
+// 		}
+// 		if !found {
+// 			apiResultV2.DisplayName = results["Name"]
+// 			apiResultV2.NodeId = results["NodeId"]
+// 			switch results["ErrorCode"] {
+// 			case "internal":
+// 				apiResultV2.Error = util.ToRpcStatus(util.NewInternalServerError(errors.New(results["ErrorMessage"]), results["ErrorMessage"]))
+// 			case "invalid":
+// 				apiResultV2.Error = util.ToRpcStatus(util.NewInvalidInputError(results["ErrorMessage"]))
+// 			case "duplicate":
+// 				apiResultV2.Error = util.ToRpcStatus(util.NewAlreadyExistError(results["ErrorMessage"]))
+// 			default:
+// 				apiResultV2.Error = util.ToRpcStatus(util.NewInternalServerError(errors.New("Unknown run metric parsing error"), "Error type: %s. Error message: %s", results["ErrorCode"], results["ErrorMessage"]))
+// 			}
+// 		}
+// 		apiRunMetricsV2 = append(apiRunMetricsV2, apiResultV2)
+// 	}
+// 	return apiRunMetricsV2
+// }
 
 // Converts API run or run details to internal run details representation.
 // Supports both v1beta1 and v2beta1 API.

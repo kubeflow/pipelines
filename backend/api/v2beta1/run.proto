@@ -105,18 +105,6 @@ service RunService {
     };
   }
 
-  // Reports metrics of a run. Each metric is reported in its
-  // own transaction, so this API accepts partial failures. Metric can be
-  // uniquely identified by (experiment_id, run_id, node_id, name). Duplicate 
-  // reporting will be ignored by the API. First reporting wins.
-  rpc ReportRunMetrics(ReportRunMetricsRequest)
-      returns (ReportRunMetricsResponse) {
-    option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics"
-      body: "*"
-    };
-  }
-
   // Finds artifact data in a run.
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
@@ -254,42 +242,6 @@ message RuntimeStatus {
   // retried. If the state is a non-final state, the error indicates that a 
   // system-error being retried.
   google.rpc.Status error = 3;
-}
-
-// Metric assiciated with a run.
-message RunMetric {
-  // Required input. The user defined name of the metric. It must be 1-63
-  // characters long and must conform to the following regular expression:
-  // `[a-z]([-a-z0-9]*[a-z0-9])?`.
-  string display_name = 1;
-
-  // Required input. The runtime node ID which reports the metric. The node ID 
-  // can be found in the RunDetail.workflow.Status. Metric with same 
-  // (node_id, name) are considerd as duplicate. Only the first reporting will
-  //  be recorded. Max length is 128.
-  string node_id = 2;
-
-  oneof value {
-    // The number value of the metric.
-    double number_value = 3;
-  }
-
-  enum Format {
-    // Default value if not present.
-    FORMAT_UNSPECIFIED = 0;
-    
-    // Display value as its raw format.
-    RAW = 1;
-    
-    // Display value in percentage format.
-    PERCENTAGE = 2;
-  }
-
-  // The display format of metric.
-  Format format = 4;
-
-  // Output. The error that occurred during metric computation or fetching.
-  google.rpc.Status error = 5;
 }
 
 // Runtime details of a run.
@@ -465,28 +417,6 @@ message DeleteRunRequest {
 
   // The ID of the run to be deleted.
   string run_id = 2;
-}
-
-message ReportRunMetricsRequest {
-  // The ID of the parent experiment.
-  string experiment_id = 1;
-
-  // Required. The parent run ID of the metric.
-  string run_id = 2;
-
-  // List of metrics to report.
-  repeated RunMetric metrics = 3;
-}
-
-message ReportRunMetricsResponse {
-  // The ID of the parent experiment.
-  string experiment_id = 1;
-
-  // The ID of the parent run of the metric.
-  string run_id = 2;
-
-  // List of metrics to report.
-  repeated RunMetric metrics = 3;
 }
 
 message ReadArtifactRequest {

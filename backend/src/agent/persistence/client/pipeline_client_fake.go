@@ -41,7 +41,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 	}
 }
 
-func (p *PipelineClientFake) ReportWorkflow(workflow util.ExecutionSpec) error {
+func (p *PipelineClientFake) ReportWorkflowV1(workflow util.ExecutionSpec) error {
 	if p.err != nil {
 		return p.err
 	}
@@ -49,7 +49,7 @@ func (p *PipelineClientFake) ReportWorkflow(workflow util.ExecutionSpec) error {
 	return nil
 }
 
-func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error {
+func (p *PipelineClientFake) ReportScheduledWorkflowV1(swf *util.ScheduledWorkflow) error {
 	if p.err != nil {
 		return p.err
 	}
@@ -57,7 +57,7 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 	return nil
 }
 
-func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
+func (p *PipelineClientFake) ReadArtifactV1(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
 	if p.err != nil {
 		return nil, p.err
 	}
@@ -65,7 +65,7 @@ func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest, user
 	return p.artifacts[request.String()], nil
 }
 
-func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
+func (p *PipelineClientFake) ReportRunMetricsV1(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
 	p.reportedMetricsRequest = request
 	return p.reportMetricsResponseStub, p.reportMetricsErrorStub
 }

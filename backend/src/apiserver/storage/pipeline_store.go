@@ -287,6 +287,9 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 				"Description":    newPipeline.Description,
 				"Status":         string(newPipeline.Status),
 				"Namespace":      newPipeline.Namespace,
+				// Parameters and DefaultVersionId are deprecated and set to empty string
+				"DefaultVersionId": "",
+				"Parameters":       "",
 			},
 		).
 		ToSql()
