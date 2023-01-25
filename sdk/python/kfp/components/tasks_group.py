@@ -132,12 +132,14 @@ class ExitHandler(TasksGroup):
         pipeline_context.Pipeline.get_default_pipeline(
         ).remove_task_from_groups(exit_task)
 
-        # Set is_exit_handler since the compiler might be using this attribute.
-        exit_task.is_exit_handler = True
+        # Set is_task_group_dependent since the compiler might be using this attribute.
+        exit_task.is_task_group_dependent = True
 
         self.exit_task = exit_task
 
-    def surface_outputs(self, task):
+    def _surface_outputs(
+        self, task: pipeline_task.PipelineTask
+    ) -> Mapping[str, pipeline_channel.PipelineChannel]:
         # For channels
         self._outputs = {
             task.name: pipeline_channel.create_pipeline_channel(
@@ -160,11 +162,6 @@ class ExitHandler(TasksGroup):
         ``OutputPath`` or ``Output[Artifact]`` type annotation.
         """
         return self._outputs
-
-    @property
-    def dependent_tasks(self) -> List[str]:
-        """A list of the dependent task names."""
-        return []
 
 
 class Condition(TasksGroup):

@@ -294,7 +294,7 @@ def get_inputs_for_all_groups(
                 # items.
 
                 # TODO: revisit if this is correct.
-                if getattr(task, 'is_exit_handler', False):
+                if getattr(task, 'is_task_group_dependent', False):
                     continue
 
                 # For PipelineChannel as a result of constant value used as
@@ -565,8 +565,8 @@ def _get_uncommon_ancestors(
         A tuple which are lists of uncommon ancestors for each task.
     """
 
-    if getattr(task1, 'is_exit_handler', False) or getattr(
-            task2, 'is_exit_handler', False):
+    if getattr(task1, 'is_task_group_dependent', False) or getattr(
+            task2, 'is_task_group_dependent', False):
         return ([task1.name], [task2.name])
 
     if task1.name in task_name_to_parent_groups:
@@ -625,6 +625,8 @@ def get_dependencies(
     """
     dependencies = collections.defaultdict(set)
     for task in pipeline.tasks.values():
+        if isinstance(task, tasks_group.TasksGroup):
+            continue
         upstream_task_names = set()
         task_condition_inputs = list(condition_channels[task.name])
         for channel in task.channel_inputs + task_condition_inputs:
@@ -641,6 +643,9 @@ def get_dependencies(
             else:
                 raise ValueError(
                     f'Compiler cannot find task: {upstream_task_name}.')
+
+            if isinstance(upstream_task, tasks_group.TasksGroup):
+                continue
 
             upstream_groups, downstream_groups = _get_uncommon_ancestors(
                 task_name_to_parent_groups=task_name_to_parent_groups,

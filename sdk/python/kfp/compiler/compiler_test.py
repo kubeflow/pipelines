@@ -2990,6 +2990,93 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                 t = double(num=1)
                 add(nums=dsl.Collected(t.output))
 
+class TestValidExitHandlerSyntax(unittest.TestCase):
+
+    def test_clean_up_on_wrapped_pipeline_permitted(self):
+
+        @dsl.component
+        def fail_op(msg: str = 'msg') -> str:
+            """Fails."""
+            import sys
+            print(msg)
+            sys.exit(1)
+            return input_string
+
+        @dsl.component
+        def print_op(msg: str = 'msg'):
+            """Prints a message."""
+            print(msg)
+
+        @dsl.pipeline
+        def wrapped_pipeline(message: str = 'message') -> str:
+            task = fail_op(msg=message)
+            return task.output
+
+        @dsl.pipeline
+        def my_pipeline(sample_input1: str = 'message'):
+            task1 = wrapped_pipeline(message=sample_input1)
+            clean_up = print_op(msg=task1.output)
+            task1.set_exit_task(exit_task=clean_up)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
+            self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            """Fails."""
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            """Prints a message."""
+            print(message)
+
+        with self.assertRaisesRegex(ValueError, r'Clean up task'):
+
+            @dsl.pipeline()
+            def my_pipeline(sample_input1: str = 'message'):
+                task = fail_op(message=sample_input1)
+                clean_up = print_op(message=task.output)
+                task.set_exit_task(exit_task=clean_up)
+
+    def test_clean_up_task_for_multiple_worker_tasks_blocked(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            """Fails."""
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            """Prints a message."""
+            print(message)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Clean up task can not be used for multiple worker tasks.'):
+
+            @dsl.pipeline()
+            def my_pipeline(sample_input1: str = 'message',
+                            sample_input2: str = 'message'):
+                task1 = fail_op(message=sample_input1)
+                task2 = fail_op(message=sample_input2)
+
+                clean_up = print_op()
+
+                task1.set_exit_task(exit_task=clean_up)
+                task2.set_exit_task(exit_task=clean_up)
+
 
 if __name__ == '__main__':
     unittest.main()

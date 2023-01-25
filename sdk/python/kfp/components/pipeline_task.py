@@ -212,7 +212,10 @@ class PipelineTask:
         """A list of the dependent task names."""
         return self._task_spec.dependent_tasks
 
-    def change_inputs(self, task_group_ouputs, task_group_name):
+    def _change_inputs(
+            self, task_group_ouputs: Mapping[str,
+                                             pipeline_channel.PipelineChannel],
+            task_group_name: str):
         """Change the channel inputs to the surface output of the taskgroup."""
         for name, value in self._inputs.items():
             if isinstance(value, pipeline_channel.PipelineChannel):
@@ -463,22 +466,36 @@ class PipelineTask:
             self._task_spec.dependent_tasks.append(task.name)
         return self
 
-    def set_exit_task(self, exit_task: 'PipelineTask',
-                      **kwargs) -> 'PipelineTask':
+    def set_exit_task(self, exit_task: 'PipelineTask') -> 'PipelineTask':
         """Specifies the task to invoke after the current task exits,
-        irrespective of whether the current task completes successfully."""
+        irrespective of whether the current task completes successfully.
+
+        Args:
+            exit_task: Task to execute after this task is done
+
+        Example:
+          ::
+
+            @dsl.pipeline()
+            def my_pipeline(sample_input1: str = 'message'):
+                task = fail_op(message=sample_input1)
+                clean_up = print_op(message=task.output)
+                task.set_exit_task(exit_task=clean_up)
+        """
         from kfp.components import pipeline_context
-        from kfp.components.tasks_group import ExitHandler
+        from kfp.components import tasks_group
 
         for _, input_spec in exit_task.component_spec.inputs.items():
-            if not input_spec.default:
+            if not input_spec.optional:
                 raise ValueError(
                     f'Clean up task {exit_task.name} requires a default value to make sure the Exit handler never fails.'
                 )
 
         for task in pipeline_context.Pipeline.get_default_pipeline(
         ).tasks.values():
-            if isinstance(task, ExitHandler) and task.exit_task == exit_task:
+            if isinstance(
+                    task,
+                    tasks_group.ExitHandler) and task.exit_task == exit_task:
                 raise ValueError(
                     f'Clean up task can not be used for multiple worker tasks. Clean up task {exit_task.name} already used for {task.name}'
                 )
@@ -486,15 +503,18 @@ class PipelineTask:
         pipeline_context.Pipeline.get_default_pipeline(
         ).remove_task_from_groups(self)
 
-        with ExitHandler(exit_task=exit_task) as exit_handler:
+        with tasks_group.ExitHandler(exit_task=exit_task) as exit_handler:
             pipeline_context.Pipeline.get_default_pipeline().add_task(
                 task=self,
-                add_to_group=not getattr(self, 'is_exit_handler', False))
+                add_to_group=not getattr(self, 'is_task_group_dependent',
+                                         False))
 
-        exit_handler.surface_outputs(self)
-        exit_task.change_inputs(exit_handler.outputs, exit_handler.name)
+        exit_handler._surface_outputs(self)
+        exit_task._change_inputs(exit_handler.outputs, exit_handler.name)
         pipeline_context.Pipeline.get_default_pipeline().tasks[
             exit_handler.name] = exit_handler
+
+        return self
 
 
 # TODO: this function should ideally be in the function kfp.components.structures.check_placeholder_references_valid_io_name, which does something similar, but this causes the exception to be raised at component definition time, rather than compile time. This would break tests that load v1 component YAML, even though that YAML is invalid.
