@@ -1,2 +1,1 @@
-uritemplate
 components/google-cloud/
