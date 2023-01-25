@@ -137,7 +137,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   public async load(): Promise<void> {
     this.clearBanner();
-    const runId = this.props.match.params[RouteParams.runId];
+    const runId = this.props.match.params[RouteParams.recurringRunId];
 
     let run: ApiJob;
     try {
