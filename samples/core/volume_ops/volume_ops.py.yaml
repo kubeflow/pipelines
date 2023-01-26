@@ -1,0 +1,105 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: volumeop-basic-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.18, pipelines.kubeflow.org/pipeline_compilation_time: '2023-01-25T15:55:41.389920',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on VolumeOp
+      Usage.", "inputs": [{"default": "1Gi", "name": "size", "optional": true, "type":
+      "String"}], "name": "volumeop-basic"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.18}
+spec:
+  entrypoint: volumeop-basic
+  templates:
+  - name: create-pvc
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: '{{workflow.name}}-my-pvc'
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: '{{inputs.parameters.size}}'
+    inputs:
+      parameters:
+      - {name: size}
+    outputs:
+      parameters:
+      - name: create-pvc-manifest
+        valueFrom: {jsonPath: '{}'}
+      - name: create-pvc-name
+        valueFrom: {jsonPath: '{.metadata.name}'}
+      - name: create-pvc-size
+        valueFrom: {jsonPath: '{.status.capacity.storage}'}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: volumeop-basic
+    inputs:
+      parameters:
+      - {name: size}
+    dag:
+      tasks:
+      - name: create-pvc
+        template: create-pvc
+        arguments:
+          parameters:
+          - {name: size, value: '{{inputs.parameters.size}}'}
+      - name: write-to-volume
+        template: write-to-volume
+        dependencies: [create-pvc]
+        arguments:
+          parameters:
+          - {name: create-pvc-name, value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'}
+  - name: write-to-volume
+    container:
+      args: []
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def write_to_volume():
+            with open("/mnt/file.txt", "w") as file:
+                file.write("Hello world")
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Write to volume', description='')
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = write_to_volume(**_parsed_args)
+      image: python:3.7
+      volumeMounts:
+      - {mountPath: /mnt', name: create-pvc}
+    inputs:
+      parameters:
+      - {name: create-pvc-name}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": [], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
+          write_to_volume():\n    with open(\"/mnt/file.txt\", \"w\") as file:\n        file.write(\"Hello
+          world\")\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Write
+          to volume'', description='''')\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
+          = write_to_volume(**_parsed_args)\n"], "image": "python:3.7"}}, "name":
+          "Write to volume"}', pipelines.kubeflow.org/component_ref: '{}'}
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.create-pvc-name}}'}
+  arguments:
+    parameters:
+    - {name: size, value: 1Gi}
+  serviceAccountName: pipeline-runner
