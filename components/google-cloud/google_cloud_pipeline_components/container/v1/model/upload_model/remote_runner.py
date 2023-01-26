@@ -85,8 +85,8 @@ def upload_model(
         upload_model_url, json.dumps(upload_model_request), gcp_resources)
     upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
     model_resource_name = upload_model_lro['response']['model']
-    if 'model_version_id' in upload_model_lro['response']:
-      model_resource_name += f'@{upload_model_lro["response"]["model_version_id"]}'
+    if 'modelVersionId' in upload_model_lro['response']:
+      model_resource_name += f'@{upload_model_lro["response"]["modelVersionId"]}'
 
     vertex_model = VertexModel('model', vertex_uri_prefix + model_resource_name,
                                model_resource_name)
