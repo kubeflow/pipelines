@@ -35,47 +35,82 @@ type ResourceReferenceRelationshipTriplet struct {
 	RelationshipType Relationship
 }
 
+// Describes all possible relationship types between resources.
 var validResourceReferenceRelationship map[ResourceReferenceRelationshipTriplet]bool = map[ResourceReferenceRelationshipTriplet]bool{
-	// NAMESPACE
+	// Experiment
 	{
 		ResourceType:     ExperimentResourceType,
 		ReferenceType:    NamespaceResourceType,
 		RelationshipType: OwnerRelationship,
 	}: true,
+
+	// Pipeline
 	{
 		ResourceType:     PipelineResourceType,
 		ReferenceType:    NamespaceResourceType,
 		RelationshipType: OwnerRelationship,
 	}: true,
+
+	// PipelineVersion
 	{
 		ResourceType:     PipelineVersionResourceType,
 		ReferenceType:    NamespaceResourceType,
 		RelationshipType: OwnerRelationship,
 	}: true,
 	{
+		ResourceType:     PipelineVersionResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+
+	// Job
+	{
 		ResourceType:     JobResourceType,
 		ReferenceType:    NamespaceResourceType,
 		RelationshipType: OwnerRelationship,
 	}: true,
-	{
-		ResourceType:     RecurringRunResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     RunResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	// EXPERIMENT
 	{
 		ResourceType:     JobResourceType,
 		ReferenceType:    ExperimentResourceType,
 		RelationshipType: OwnerRelationship,
 	}: true,
 	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+
+	// RecurringRon
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
 		ResourceType:     RecurringRunResourceType,
 		ReferenceType:    ExperimentResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+
+	// Run
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    NamespaceResourceType,
 		RelationshipType: OwnerRelationship,
 	}: true,
 	{
@@ -83,52 +118,23 @@ var validResourceReferenceRelationship map[ResourceReferenceRelationshipTriplet]
 		ReferenceType:    ExperimentResourceType,
 		RelationshipType: OwnerRelationship,
 	}: true,
-	// JOB
 	{
 		ResourceType:     RunResourceType,
 		ReferenceType:    JobResourceType,
 		RelationshipType: CreatorRelationship,
 	}: true,
-	// RECURRING_RUN
 	{
 		ResourceType:     RunResourceType,
 		ReferenceType:    RecurringRunResourceType,
 		RelationshipType: CreatorRelationship,
 	}: true,
-	// PIPELINE
 	{
 		ResourceType:     RunResourceType,
 		ReferenceType:    PipelineResourceType,
 		RelationshipType: CreatorRelationship,
 	}: true,
 	{
-		ResourceType:     JobResourceType,
-		ReferenceType:    PipelineResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     RecurringRunResourceType,
-		ReferenceType:    PipelineResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     PipelineVersionResourceType,
-		ReferenceType:    PipelineResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	// PIPELINE_VERSION
-	{
 		ResourceType:     RunResourceType,
-		ReferenceType:    PipelineVersionResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     JobResourceType,
-		ReferenceType:    PipelineVersionResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     RecurringRunResourceType,
 		ReferenceType:    PipelineVersionResourceType,
 		RelationshipType: CreatorRelationship,
 	}: true,

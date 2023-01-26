@@ -58,25 +58,25 @@ func (t Task) GetKeyFieldPrefix() string {
 }
 
 var taskAPIToModelFieldMap = map[string]string{
-	"task_id":         "UUID",
-	"id":              "UUID",
+	"task_id":         "UUID", // v2beta1 API
+	"id":              "UUID", // v1beta1 API
 	"namespace":       "Namespace",
-	"pipeline_name":   "PipelineName",
-	"pipelineName":    "PipelineName",
-	"run_id":          "RunId",
-	"runId":           "RunId",
-	"display_name":    "Name",
-	"execution_id":    "MLMDExecutionID",
-	"create_time":     "CreatedTimestamp",
-	"start_time":      "StartedTimestamp",
-	"end_time":        "FinishedTimestamp",
+	"pipeline_name":   "PipelineName",      // v2beta1 API
+	"pipelineName":    "PipelineName",      // v1beta1 API
+	"run_id":          "RunId",             // v2beta1 API
+	"runId":           "RunId",             // v1beta1 API
+	"display_name":    "Name",              // v2beta1 API
+	"execution_id":    "MLMDExecutionID",   // v2beta1 API
+	"create_time":     "CreatedTimestamp",  // v2beta1 API
+	"start_time":      "StartedTimestamp",  // v2beta1 API
+	"end_time":        "FinishedTimestamp", // v2beta1 API
 	"fingerprint":     "Fingerprint",
-	"state":           "State",
-	"state_history":   "StateHistory",
-	"parent_task_id":  "ParentTaskId",
-	"mlmdExecutionID": "MLMDExecutionID",
-	"created_at":      "CreatedTimestamp",
-	"finished_at":     "FinishedTimestamp",
+	"state":           "State",             // v2beta1 API
+	"state_history":   "StateHistory",      // v2beta1 API
+	"parent_task_id":  "ParentTaskId",      // v2beta1 API
+	"mlmdExecutionID": "MLMDExecutionID",   // v1beta1 API
+	"created_at":      "CreatedTimestamp",  // v1beta1 API
+	"finished_at":     "FinishedTimestamp", // v1beta1 API
 }
 
 func (t Task) GetField(name string) (string, bool) {

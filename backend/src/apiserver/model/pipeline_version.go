@@ -16,8 +16,6 @@ package model
 
 import (
 	"fmt"
-
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // PipelineVersionStatus a label for the status of the Pipeline.
@@ -68,14 +66,14 @@ func (p *PipelineVersion) DefaultSortField() string {
 // PipelineVersion.
 func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 	return map[string]string{
-		"id":                  "UUID",
-		"pipeline_version_id": "UUID", // Added for KFP v2
-		"name":                "Name",
-		"display_name":        "Name", // Added for KFP v2
+		"id":                  "UUID", // v1beta1 API
+		"pipeline_version_id": "UUID", // v2beta1 API
+		"name":                "Name", // v1beta1 API
+		"display_name":        "Name", // v2beta1 API
 		"created_at":          "CreatedAtInSec",
 		"status":              "Status",
-		"description":         "Description",  // Added for KFP v2
-		"pipeline_spec":       "PipelineSpec", // Added for KFP v2
+		"description":         "Description",  // v2beta1 API
+		"pipeline_spec":       "PipelineSpec", // v2beta1 API
 	}
 }
 
@@ -136,52 +134,4 @@ func (p *PipelineVersion) GetSortByFieldPrefix(name string) string {
 
 func (p *PipelineVersion) GetKeyFieldPrefix() string {
 	return "pipeline_versions."
-}
-
-// Sets a value based on the field's name provided.
-// Returns NewInvalidInputError if does not exist.
-func (p *PipelineVersion) SetFieldValue(name string, value interface{}) error {
-	switch name {
-	case "UUID":
-		p.UUID = value.(string)
-		return nil
-	case "Name":
-		p.Name = value.(string)
-		return nil
-	case "CreatedAtInSec":
-		p.CreatedAtInSec = value.(int64)
-		return nil
-	case "Status":
-		p.Status = value.(PipelineVersionStatus)
-		return nil
-	case "Description":
-		p.Description = value.(string)
-		return nil
-	case "CodeSourceUrl":
-		p.CodeSourceUrl = value.(string)
-		return nil
-	case "PipelineSpec":
-		p.PipelineSpec = value.(string)
-		return nil
-	case "PipelineSpecURI":
-		p.PipelineSpecURI = value.(string)
-		return nil
-	default:
-		return util.NewInvalidInputError(fmt.Sprintf("Error setting field '%s' to '%v' in PipelineVersion object: not found or not allowed to set", name, value))
-	}
-}
-
-// Sets a value based on the field's name provided.
-// If not found, checks for proto-style names based on APIToModelFieldMap.
-// Returns NewInvalidInputError if does not exist.
-func (p *PipelineVersion) SetProtoFieldValue(name string, value interface{}) error {
-	if err := p.SetFieldValue(name, value); err != nil {
-		newKey, ok := p.APIToModelFieldMap()[name]
-		if ok {
-			return p.SetFieldValue(newKey, value)
-		} else {
-			return err
-		}
-	}
-	return nil
 }

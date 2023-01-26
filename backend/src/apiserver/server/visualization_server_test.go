@@ -276,7 +276,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 	defer clientManager.Close()
 
 	server := &VisualizationServer{
@@ -316,7 +316,7 @@ func TestCreateVisualization_Unauthenticated(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 	defer clientManager.Close()
 
 	server := &VisualizationServer{

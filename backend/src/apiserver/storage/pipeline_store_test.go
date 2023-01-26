@@ -177,6 +177,7 @@ func TestListPipelinesAndVersions_FilterOutNotReady(t *testing.T) {
 	pipelinesVersionsExpected2 := []*model.PipelineVersion{expectedPipelineVersion2}
 	pipelinesVersionsExpected3 := []*model.PipelineVersion{expectedPipelineVersion3, expectedPipelineVersion4}
 	opts2, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	assert.Nil(t, err)
 
 	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(_p1.UUID, opts2)
 	assert.Nil(t, err)
@@ -354,6 +355,7 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
 	p := createPipelineV1("pipeline1")
 	p1, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
 	pipelineStore.CreatePipelineVersion(
 		createPipelineVersion(
 			p1.UUID,
@@ -462,6 +464,7 @@ func TestGetPipelineByNameAndNamespace(t *testing.T) {
 	p := createPipelineV1("pipeline1")
 	p.Namespace = "ns1"
 	resPipeline, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
 	pipeline, err := pipelineStore.GetPipelineByNameAndNamespace("pipeline1", "ns1")
 	assert.Nil(t, err)
 	assert.Equal(t, resPipeline, pipeline)
@@ -488,8 +491,10 @@ func TestGetPipelineByNameAndNamespaceV1(t *testing.T) {
 	p := createPipelineV1("pipeline1")
 	p.Namespace = "ns1"
 	resPipeline, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
 	pv := createPipelineVersion(resPipeline.UUID, "pipeline1", "", "", "", "")
 	resPipelineV, err := pipelineStore.CreatePipelineVersion(pv)
+	assert.Nil(t, err)
 	pipeline, pipelineVersion, err := pipelineStore.GetPipelineByNameAndNamespaceV1("pipeline1", "ns1")
 	assert.Nil(t, err)
 	assert.Equal(t, resPipeline, pipeline)
@@ -554,22 +559,28 @@ func TestDeletePipeline(t *testing.T) {
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
 	_, err := pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
+	assert.Nil(t, err)
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
 	p2, err := pipelineStore.CreatePipeline(createPipelineV1("pipeline2"))
+	assert.Nil(t, err)
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
 	_, err = pipelineStore.CreatePipeline(createPipelineV1("pipeline3"))
+	assert.Nil(t, err)
 
 	p1v1 := createPipelineVersion(defaultFakeExpId, "pipeline1/v1", "pipeline one v1", "url://pipeline1/v1", "yaml:spec", "uri://p1/v1.yaml")
 	p1v2 := createPipelineVersion(defaultFakeExpId, "pipeline1/v2", "pipeline one v2", "url://pipeline1/v2", "yaml:spec", "uri://p1/v2.yaml")
 	p2v1 := createPipelineVersion(DefaultFakePipelineIdTwo, "pipeline2/v1", "pipeline two v1", "url://pipeline2/v1", "yaml:spec", "uri://p2/v1.yaml")
-	p2v1.SetFieldValue("Pipeline", p2)
+	p2v1.PipelineId = p2.UUID
 
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil)
 	_, err = pipelineStore.CreatePipelineVersion(p1v1)
+	assert.Nil(t, err)
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
 	_, err = pipelineStore.CreatePipelineVersion(p1v2)
+	assert.Nil(t, err)
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
 	_, err = pipelineStore.CreatePipelineVersion(p2v1)
+	assert.Nil(t, err)
 
 	// Delete pipeline # 2
 	err = pipelineStore.DeletePipeline(DefaultFakePipelineIdTwo)
@@ -673,6 +684,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 	_, err := pipelineStore.CreatePipeline(
 		createPipeline("p1", "pipeline one", "user1"),
 	)
+	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)

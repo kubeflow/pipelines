@@ -522,14 +522,14 @@ func setupWriter(text string) (*bytes.Buffer, *multipart.Writer) {
 
 func setupClientManagerAndServer() (*resource.FakeClientManager, PipelineUploadServer) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return clientManager, server
 }
 
 func updateClientManager(clientManager *resource.FakeClientManager, uuid util.UUIDGeneratorInterface) PipelineUploadServer {
 	clientManager.UpdateUUID(uuid)
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return server
 }

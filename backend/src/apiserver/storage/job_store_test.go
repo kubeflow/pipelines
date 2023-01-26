@@ -40,6 +40,9 @@ func initializeDbAndStore() (*DB, *JobStore) {
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "n1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
+	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{
 		UUID:        "1",
@@ -56,7 +59,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 			},
 		},
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
 		CreatedAtInSec: 1,
@@ -70,7 +73,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		K8SName:     "pp2",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
 		Conditions: "ready",
@@ -102,7 +105,7 @@ func TestListJobs_Pagination(t *testing.T) {
 			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   "1",
+				PipelineId:   DefaultFakePipelineIdTwo,
 				PipelineName: "p1",
 			},
 			Conditions: "ready",
@@ -123,11 +126,13 @@ func TestListJobs_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Job{}, 1, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
+	jobs[0] = jobs[0].ToV1()
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected, jobs)
+
 	jobsExpected2 := []*model.Job{
 		{
 			UUID:        "2",
@@ -135,7 +140,7 @@ func TestListJobs_Pagination(t *testing.T) {
 			K8SName:     "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   "1",
+				PipelineId:   DefaultFakePipelineIdTwo,
 				PipelineName: "p1",
 			},
 			Enabled: true,
@@ -158,6 +163,7 @@ func TestListJobs_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
+	jobs[0] = jobs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, 2, total_size)
@@ -212,7 +218,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			K8SName:     "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   "1",
+				PipelineId:   DefaultFakePipelineIdTwo,
 				PipelineName: "p1",
 			},
 			Enabled:    true,
@@ -234,6 +240,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 	opts, err := list.NewOptions(&model.Job{}, 1, "name desc", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
+	jobs[0] = jobs[0].ToV1()
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 2, total_size)
@@ -246,7 +253,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   "1",
+				PipelineId:   DefaultFakePipelineIdTwo,
 				PipelineName: "p1",
 			},
 			Enabled:    true,
@@ -268,6 +275,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
+	jobs[0] = jobs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, 2, total_size)
@@ -285,7 +293,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   "1",
+				PipelineId:   DefaultFakePipelineIdTwo,
 				PipelineName: "p1",
 			},
 			Enabled:    true,
@@ -307,7 +315,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			K8SName:     "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   "1",
+				PipelineId:   DefaultFakePipelineIdTwo,
 				PipelineName: "p1",
 			},
 			Enabled:    true,
@@ -330,6 +338,8 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
+	jobs[0] = jobs[0].ToV1()
+	jobs[1] = jobs[1].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, total_size)
@@ -347,7 +357,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 			K8SName:     "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   "1",
+				PipelineId:   DefaultFakePipelineIdTwo,
 				PipelineName: "p1",
 			},
 			Enabled:    true,
@@ -369,6 +379,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	jobs[0] = jobs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -376,6 +387,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 
 	jobs, total_size, nextPageToken, err = jobStore.ListJobs(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "n1"}}, opts)
+	jobs[0] = jobs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, total_size) // both test jobs belong to namespace `n1`
@@ -398,13 +410,13 @@ func TestGetJob(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobExpected := model.Job{
+	jobExpected := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 		},
 		Conditions: "ready",
@@ -420,10 +432,10 @@ func TestGetJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = *jobExpected.ToV1()
+	jobExpected = jobExpected.ToV1()
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job, "Got unexpected job")
+	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected job")
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
@@ -449,7 +461,9 @@ func TestCreateJob(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	experiment, _ := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job := &model.Job{
 		UUID:        "1",
@@ -457,8 +471,61 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
+		},
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+		Enabled:        true,
+		ExperimentId:   experiment.UUID,
+	}
+
+	job, err := jobStore.CreateJob(job.ToV1())
+	assert.Nil(t, err)
+	jobExpected := &model.Job{
+		UUID:        "1",
+		DisplayName: "pp 1",
+		K8SName:     "pp1",
+		Namespace:   "n1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   pipeline.UUID,
+			PipelineName: "p1",
+		},
+		Enabled:        true,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+		ExperimentId:   experiment.UUID,
+	}
+	jobExpected = jobExpected.ToV1()
+	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
+
+	// Check resource reference exists
+	resourceReferenceStore := NewResourceReferenceStore(db)
+	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
+	assert.Nil(t, err)
+	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+}
+
+func TestCreateJob_V2(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	job := &model.Job{
+		UUID:        "1",
+		DisplayName: "pp 1",
+		K8SName:     "pp1",
+		Namespace:   "n1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   pipeline.UUID,
+			PipelineName: "p1",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `[{"name":"param1","value":"world1"}]`,
+				PipelineRoot: "gs://my-bucket/path/to/root/run1",
+			},
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -474,58 +541,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-		},
-		Enabled:        true,
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-		ExperimentId:   defaultFakeExpId,
-	}
-	jobExpected = jobExpected.ToV1()
-	assert.Equal(t, jobExpected, job, "Got unexpected jobs")
-
-	// Check resource reference exists
-	resourceReferenceStore := NewResourceReferenceStore(db)
-	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
-	assert.Nil(t, err)
-	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
-}
-
-func TestCreateJob_V2(t *testing.T) {
-	db := NewFakeDBOrFatal()
-	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
-	job := &model.Job{
-		UUID:        "1",
-		DisplayName: "pp 1",
-		K8SName:     "pp1",
-		Namespace:   "n1",
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   `[{"name":"param1","value":"world1"}]`,
-				PipelineRoot: "gs://my-bucket/path/to/root/run1",
-			},
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-		Enabled:        true,
-		ExperimentId:   defaultFakeExpId,
-	}
-
-	job, err := jobStore.CreateJob(job.ToV2())
-	assert.Nil(t, err)
-	jobExpected := &model.Job{
-		UUID:        "1",
-		DisplayName: "pp 1",
-		K8SName:     "pp1",
-		Namespace:   "n1",
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 			RuntimeConfig: model.RuntimeConfig{
 				Parameters:   `[{"name":"param1","value":"world1"}]`,
@@ -538,7 +554,7 @@ func TestCreateJob_V2(t *testing.T) {
 		ExperimentId:   defaultFakeExpId,
 	}
 	jobExpected = jobExpected.ToV1()
-	assert.Equal(t, jobExpected, job, "Got unexpected jobs")
+	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
 	resourceReferenceStore := NewResourceReferenceStore(db)
@@ -583,7 +599,7 @@ func TestEnableJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 		},
 		Conditions: "ENABLED",
@@ -599,11 +615,10 @@ func TestEnableJob(t *testing.T) {
 		UpdatedAtInSec: 3,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, job, "Got unexpected job")
+	assert.Equal(t, jobExpected.ToV1(), job.ToV1(), "Got unexpected job")
 
 	err = jobStore.ChangeJobMode("1", true)
 	assert.Nil(t, err)
@@ -614,7 +629,7 @@ func TestEnableJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 		},
 		Conditions: "ENABLED",
@@ -630,11 +645,10 @@ func TestEnableJob(t *testing.T) {
 		UpdatedAtInSec: 4,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected2 = jobExpected2.ToV1()
 
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected2, job, "Got unexpected job")
+	assert.Equal(t, jobExpected2.ToV1(), job.ToV1(), "Got unexpected job")
 }
 
 func TestEnableJob_SkipUpdate(t *testing.T) {
@@ -644,13 +658,13 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 	err := jobStore.ChangeJobMode("1", true)
 	assert.Nil(t, err)
 
-	jobExpected := model.Job{
+	jobExpected := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 		},
 		Conditions: "ready",
@@ -666,11 +680,10 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = *jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job, "Got unexpected job")
+	assert.Equal(t, jobExpected.ToV1(), job.ToV1(), "Got unexpected job")
 }
 
 func TestEnableJob_DatabaseError(t *testing.T) {
@@ -688,13 +701,13 @@ func TestUpdateJob_Success(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobExpected := model.Job{
+	jobExpected := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 		},
 		Conditions: "ready",
@@ -710,11 +723,10 @@ func TestUpdateJob_Success(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = *jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job)
+	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -761,7 +773,7 @@ func TestUpdateJob_Success(t *testing.T) {
 	err = jobStore.UpdateJob(swf)
 	assert.Nil(t, err)
 
-	jobExpected = model.Job{
+	jobExpected = &model.Job{
 		UUID:           "1",
 		DisplayName:    "pp 1",
 		K8SName:        "MY_NAME",
@@ -773,7 +785,7 @@ func TestUpdateJob_Success(t *testing.T) {
 		MaxConcurrency: 200,
 		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 			Parameters:   "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
 		},
@@ -791,23 +803,22 @@ func TestUpdateJob_Success(t *testing.T) {
 		},
 		ExperimentId: defaultFakeExpId,
 	}
-	jobExpected = *jobExpected.ToV1()
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job)
+	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 }
 
 func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobExpected := model.Job{
+	jobExpected := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 		},
 		Conditions: "ready",
@@ -823,11 +834,10 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = *jobExpected.ToV1()
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job)
+	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -840,7 +850,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	err = jobStore.UpdateJob(swf)
 	assert.Nil(t, err)
 
-	jobExpected = model.Job{
+	jobExpected = &model.Job{
 		UUID:           "1",
 		DisplayName:    "pp 1",
 		K8SName:        "MY_NAME",
@@ -850,7 +860,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 3,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
+			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
 			Parameters:   "[]",
 		},
@@ -868,11 +878,10 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		},
 		ExperimentId: defaultFakeExpId,
 	}
-	jobExpected = *jobExpected.ToV1()
 
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job)
+	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 }
 
 func TestUpdateJob_RecordNotFound(t *testing.T) {

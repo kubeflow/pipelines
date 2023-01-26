@@ -328,40 +328,39 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference")
 		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
-		runs = append(
-			runs,
-			&model.Run{
-				UUID:           uuid,
-				ExperimentId:   experimentUUID,
-				DisplayName:    displayName,
-				K8SName:        name,
-				StorageState:   model.StorageState(storageState),
-				Namespace:      namespace,
-				ServiceAccount: serviceAccount,
-				Description:    description,
-				RecurringRunId: jobId.String,
-				RunDetails: model.RunDetails{
-					CreatedAtInSec:          createdAtInSec,
-					ScheduledAtInSec:        scheduledAtInSec,
-					FinishedAtInSec:         finishedAtInSec,
-					Conditions:              conditions,
-					State:                   model.RuntimeState(state.String),
-					PipelineRuntimeManifest: pipelineRuntimeManifest,
-					WorkflowRuntimeManifest: workflowRuntimeManifest,
-				},
-				Metrics:            metrics,
-				ResourceReferences: resourceReferences,
-				PipelineSpec: model.PipelineSpec{
-					PipelineId:           pipelineId,
-					PipelineVersionId:    pipelineVersionId.String,
-					PipelineName:         pipelineName,
-					PipelineSpecManifest: pipelineSpecManifest,
-					WorkflowSpecManifest: workflowSpecManifest,
-					Parameters:           parameters,
-					RuntimeConfig:        runtimeConfig,
-				},
+		run := &model.Run{
+			UUID:           uuid,
+			ExperimentId:   experimentUUID,
+			DisplayName:    displayName,
+			K8SName:        name,
+			StorageState:   model.StorageState(storageState),
+			Namespace:      namespace,
+			ServiceAccount: serviceAccount,
+			Description:    description,
+			RecurringRunId: jobId.String,
+			RunDetails: model.RunDetails{
+				CreatedAtInSec:          createdAtInSec,
+				ScheduledAtInSec:        scheduledAtInSec,
+				FinishedAtInSec:         finishedAtInSec,
+				Conditions:              conditions,
+				State:                   model.RuntimeState(state.String),
+				PipelineRuntimeManifest: pipelineRuntimeManifest,
+				WorkflowRuntimeManifest: workflowRuntimeManifest,
 			},
-		)
+			Metrics:            metrics,
+			ResourceReferences: resourceReferences,
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:           pipelineId,
+				PipelineVersionId:    pipelineVersionId.String,
+				PipelineName:         pipelineName,
+				PipelineSpecManifest: pipelineSpecManifest,
+				WorkflowSpecManifest: workflowSpecManifest,
+				Parameters:           parameters,
+				RuntimeConfig:        runtimeConfig,
+			},
+		}
+		run = run.ToV2()
+		runs = append(runs, run)
 	}
 	return runs, nil
 }
@@ -420,6 +419,7 @@ func (s *RunStore) GetMetrics(runId string) ([]*model.RunMetric, error) {
 }
 
 func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
+	r = r.ToV2()
 	if r.StorageState == "" || r.StorageState == model.StorageStateUnspecified || r.StorageState == model.StorageStateUnspecifiedV1 {
 		r.StorageState = model.StorageStateAvailable
 	}

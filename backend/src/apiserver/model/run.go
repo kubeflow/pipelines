@@ -49,12 +49,61 @@ const (
 	RunTerminatingConditionsV1 string       = "Terminating"
 )
 
-func (s RuntimeState) ToV2() RuntimeState {
-	return RuntimeState(s.ToString())
+func (s RuntimeState) toUpper() RuntimeState {
+	return RuntimeState(strings.ToUpper(string(s)))
 }
 
-func (s RuntimeState) ToV1() RuntimeState {
+// Converts the runtime state into a string.
+// This should be called before saving data to the database.
+// The returned string is one of [RUNTIME_STATE_UNSPECIFIED,
+// PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, CANCELING,
+// CANCELED, PAUSED]
+func (s RuntimeState) ToString() string {
+	return string(s.ToV2())
+}
+
+// Checks is the runtime state contains a valid value.
+// This should be called before converting the data.
+func (s RuntimeState) IsValid() bool {
 	switch s {
+	case RuntimeStateUnspecified, RuntimeStatePending, RuntimeStateRunning, RuntimeStateSucceeded, RuntimeStateSkipped, RuntimeStateFailed, RuntimeStateCancelling, RuntimeStateCanceled, RuntimeStatePaused, RuntimeStateErrorV1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Converts to v2beta1-compatible internal representation of runtime state.
+// This should be called before converting to v2beta1 API type.
+func (s RuntimeState) ToV2() RuntimeState {
+	switch s.toUpper() {
+	case RuntimeStateErrorV1, RuntimeStateUnspecified, "NO_STATUS", "":
+		return RuntimeStateUnspecified
+	case RuntimeStatePending:
+		return RuntimeStatePending
+	case RuntimeStateRunning, "ENABLED", "READY":
+		return RuntimeStateRunning
+	case RuntimeStateSucceeded, "DONE":
+		return RuntimeStateSucceeded
+	case RuntimeStateSkipped:
+		return RuntimeStateSkipped
+	case RuntimeStateFailed:
+		return RuntimeStateFailed
+	case RuntimeStateCancelling:
+		return RuntimeStateCancelling
+	case RuntimeStateCanceled, "DISABLED":
+		return RuntimeStateCanceled
+	case RuntimeStatePaused:
+		return RuntimeStatePaused
+	default:
+		return RuntimeStateUnspecified
+	}
+}
+
+// Converts to v1beta1-compatible internal representation of runtime state.
+// This should be called before converting to v1beta1 API type.
+func (s RuntimeState) ToV1() RuntimeState {
+	switch s.toUpper() {
 	case RuntimeStateUnspecified, "":
 		return RuntimeStateErrorV1
 	case RuntimeStatePending:
@@ -74,54 +123,52 @@ func (s RuntimeState) ToV1() RuntimeState {
 	case RuntimeStatePaused:
 		return RuntimeStatePendingV1
 	default:
-		return ""
+		return RuntimeStateErrorV1
 	}
 }
 
-func (s RuntimeState) ToUpper() RuntimeState {
-	return RuntimeState(strings.ToUpper(string(s)))
+func (s StorageState) toUpper() StorageState {
+	return StorageState(strings.ToUpper(string(s)))
 }
 
-func (s RuntimeState) ToString() string {
-	switch s.ToUpper() {
-	case RuntimeStateErrorV1, RuntimeStateUnspecified, "NO_STATUS", "":
-		return string(RuntimeStateUnspecified)
-	case RuntimeStatePending:
-		return string(RuntimeStatePending)
-	case RuntimeStateRunning, "ENABLED", "READY":
-		return string(RuntimeStateRunning)
-	case RuntimeStateSucceeded, "DONE":
-		return string(RuntimeStateSucceeded)
-	case RuntimeStateSkipped:
-		return string(RuntimeStateSkipped)
-	case RuntimeStateFailed:
-		return string(RuntimeStateFailed)
-	case RuntimeStateCancelling:
-		return string(RuntimeStateCancelling)
-	case RuntimeStateCanceled, "DISABLED":
-		return string(RuntimeStateCanceled)
-	case RuntimeStatePaused:
-		return string(RuntimeStatePaused)
-	default:
-		return ""
-	}
+// Converts the storage state into a string.
+// This should be called before saving data to the database.
+// The returned string is one of [STORAGE_STATE_UNSPECIFIED,
+// AVAILABLE, ARCHIVED]
+func (s StorageState) ToString() string {
+	return string(s.ToV2())
 }
 
-func (s RuntimeState) IsValid() bool {
+// Checks is the storage state contains a valid value.
+// This should be called before converting the data.
+func (s StorageState) IsValid() bool {
 	switch s {
-	case RuntimeStateUnspecified, RuntimeStatePending, RuntimeStateRunning, RuntimeStateSucceeded, RuntimeStateSkipped, RuntimeStateFailed, RuntimeStateCancelling, RuntimeStateCanceled, RuntimeStatePaused, RuntimeStateErrorV1:
+	case StorageStateAvailable, StorageStateArchived, StorageStateUnspecified, StorageStateAvailableV1, StorageStateArchivedV1, StorageStateUnspecifiedV1:
 		return true
 	default:
 		return false
 	}
 }
 
+// Converts to v2beta1-compatible internal representation of storage state.
+// This should be called before converting to v2beta1 API type.
 func (s StorageState) ToV2() StorageState {
-	return StorageState(s.ToString())
+	switch s.toUpper() {
+	case StorageStateUnspecified, StorageStateUnspecifiedV1, "NO_STATUS", "ERROR", "":
+		return StorageStateUnspecified
+	case StorageStateAvailable, StorageStateAvailableV1, "ENABLED", "READY":
+		return StorageStateAvailable
+	case StorageStateArchived, StorageStateArchivedV1, "DISABLED":
+		return StorageStateArchived
+	default:
+		return StorageStateUnspecified
+	}
 }
 
+// Converts to v1beta1-compatible internal representation of storage state.
+// This should be called before converting to v1beta1 API type.
 func (s StorageState) ToV1() StorageState {
-	switch s {
+	switch s.toUpper() {
 	case StorageStateAvailable:
 		return StorageStateAvailableV1
 	case StorageStateArchived:
@@ -135,33 +182,7 @@ func (s StorageState) ToV1() StorageState {
 	case StorageStateUnspecifiedV1, "":
 		return StorageStateUnspecifiedV1
 	default:
-		return ""
-	}
-}
-
-func (s StorageState) ToUpper() StorageState {
-	return StorageState(strings.ToUpper(string(s)))
-}
-
-func (s StorageState) ToString() string {
-	switch s.ToUpper() {
-	case StorageStateUnspecified, StorageStateUnspecifiedV1, "NO_STATUS", "ERROR", "":
-		return string(StorageStateUnspecified)
-	case StorageStateAvailable, StorageStateAvailableV1, "ENABLED", "READY":
-		return string(StorageStateAvailable)
-	case StorageStateArchived, StorageStateArchivedV1, "DISABLED":
-		return string(StorageStateArchived)
-	default:
-		return ""
-	}
-}
-
-func (s StorageState) IsValid() bool {
-	switch s {
-	case StorageStateAvailable, StorageStateArchived, StorageStateUnspecified, StorageStateAvailableV1, StorageStateArchivedV1, StorageStateUnspecifiedV1:
-		return true
-	default:
-		return false
+		return StorageStateUnspecifiedV1
 	}
 }
 
@@ -197,30 +218,34 @@ type Run struct {
 	RunDetails
 }
 
+// Converts to v1beta1-compatible internal representation of run.
+// This should be called before converting to v1beta1 API type.
 func (r *Run) ToV1() *Run {
-	if r.ResourceReferences == nil {
-		r.ResourceReferences = make([]*ResourceReference, 0)
+	r.ResourceReferences = make([]*ResourceReference, 0)
+	if r.ExperimentId != "" {
+		r.ResourceReferences = append(
+			r.ResourceReferences,
+			&ResourceReference{
+				ResourceUUID:  r.UUID,
+				ResourceType:  RunResourceType,
+				ReferenceUUID: r.ExperimentId,
+				ReferenceType: ExperimentResourceType,
+				Relationship:  OwnerRelationship,
+			},
+		)
 	}
-	r.ResourceReferences = append(
-		r.ResourceReferences,
-		&ResourceReference{
-			ResourceUUID:  r.UUID,
-			ResourceType:  RunResourceType,
-			ReferenceUUID: r.ExperimentId,
-			ReferenceType: ExperimentResourceType,
-			Relationship:  OwnerRelationship,
-		},
-	)
-	r.ResourceReferences = append(
-		r.ResourceReferences,
-		&ResourceReference{
-			ResourceUUID:  r.UUID,
-			ResourceType:  RunResourceType,
-			ReferenceUUID: r.Namespace,
-			ReferenceType: NamespaceResourceType,
-			Relationship:  OwnerRelationship,
-		},
-	)
+	if r.Namespace != "" {
+		r.ResourceReferences = append(
+			r.ResourceReferences,
+			&ResourceReference{
+				ResourceUUID:  r.UUID,
+				ResourceType:  RunResourceType,
+				ReferenceUUID: r.Namespace,
+				ReferenceType: NamespaceResourceType,
+				Relationship:  OwnerRelationship,
+			},
+		)
+	}
 	if r.RecurringRunId != "" {
 		r.ResourceReferences = append(
 			r.ResourceReferences,
@@ -234,30 +259,34 @@ func (r *Run) ToV1() *Run {
 		)
 	}
 	if r.State == "" && r.Conditions != "" {
-		state := RuntimeState(r.Conditions).ToV2()
-		r.Conditions = string(state.ToV1())
+		r.State = RuntimeState(r.Conditions).ToV2()
+		r.Conditions = string(r.State.ToV1())
 	} else if r.State != "" {
 		r.Conditions = string(r.State.ToV1())
 	}
+	r.State = r.State.ToV1()
+	r.StorageState = r.StorageState.ToV1()
 	return r
 }
 
+// Converts to v2beta1-compatible internal representation of run.
+// This should be called before converting to v2beta1 API type.
 func (r *Run) ToV2() *Run {
-	if r.ResourceReferences != nil {
-		for _, ref := range r.ResourceReferences {
-			switch ref.ReferenceType {
-			case ExperimentResourceType:
-				r.ExperimentId = ref.ReferenceUUID
-			case NamespaceResourceType:
-				r.Namespace = ref.ReferenceUUID
-			case JobResourceType:
-				r.RecurringRunId = ref.ReferenceUUID
-			}
+	for _, ref := range r.ResourceReferences {
+		switch ref.ReferenceType {
+		case ExperimentResourceType:
+			r.ExperimentId = ref.ReferenceUUID
+		case NamespaceResourceType:
+			r.Namespace = ref.ReferenceUUID
+		case JobResourceType:
+			r.RecurringRunId = ref.ReferenceUUID
 		}
 	}
 	if r.Conditions != "" && r.State == "" {
-		r.State = RuntimeState(r.Conditions).ToV2()
+		r.State = RuntimeState(r.Conditions)
 	}
+	r.State = r.State.ToV2()
+	r.StorageState = r.StorageState.ToV2()
 	return r
 }
 
@@ -315,22 +344,22 @@ func (r *Run) DefaultSortField() string {
 }
 
 var runAPIToModelFieldMap = map[string]string{
-	"run_id":           "UUID", // added in API v2
-	"id":               "UUID",
-	"display_name":     "DisplayName", // added in API v2
-	"name":             "DisplayName",
+	"run_id":           "UUID",        // v2beta1 API
+	"id":               "UUID",        // v1beta1 API
+	"display_name":     "DisplayName", // v2beta1 API
+	"name":             "DisplayName", // v1beta1 API
 	"created_at":       "CreatedAtInSec",
 	"finished_at":      "FinishedAtInSec",
 	"description":      "Description",
 	"scheduled_at":     "ScheduledAtInSec",
 	"storage_state":    "StorageState",
 	"status":           "Conditions",
-	"namespace":        "Namespace",               // added in API v2
-	"experiment_id":    "ExperimentId",            // added in API v2
-	"state":            "State",                   // added in API v2
-	"state_history":    "StateHistory",            // added in API v2
-	"runtime_details":  "PipelineRuntimeManifest", // added in API v2
-	"recurring_run_id": "RecurringRunId",          // added in API v2
+	"namespace":        "Namespace",               // v2beta1 API
+	"experiment_id":    "ExperimentId",            // v2beta1 API
+	"state":            "State",                   // v2beta1 API
+	"state_history":    "StateHistory",            // v2beta1 API
+	"runtime_details":  "PipelineRuntimeManifest", // v2beta1 API
+	"recurring_run_id": "RecurringRunId",          // v2beta1 API
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.
@@ -366,6 +395,8 @@ func (r *Run) GetFieldValue(name string) interface{} {
 		return r.DisplayName
 	case "CreatedAtInSec":
 		return r.RunDetails.CreatedAtInSec
+	case "FinishedAtInSec":
+		return r.RunDetails.FinishedAtInSec
 	case "Description":
 		return r.Description
 	case "ScheduledAtInSec":

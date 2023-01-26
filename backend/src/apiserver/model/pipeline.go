@@ -16,8 +16,6 @@ package model
 
 import (
 	"fmt"
-
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // PipelineStatus a label for the status of the Pipeline.
@@ -64,10 +62,10 @@ func (p *Pipeline) DefaultSortField() string {
 }
 
 var pipelineAPIToModelFieldMap = map[string]string{
-	"id":           "UUID",
-	"pipeline_id":  "UUID", // Added for KFP v2
-	"name":         "Name",
-	"display_name": "Name", // Added for KFP v2
+	"id":           "UUID", // v1beta1 API
+	"pipeline_id":  "UUID", // v2beta1 API
+	"name":         "Name", // v1beta1 API
+	"display_name": "Name", // v2beta1 API
 	"created_at":   "CreatedAtInSec",
 	"description":  "Description",
 	"namespace":    "Namespace",
@@ -130,43 +128,4 @@ func (p *Pipeline) GetSortByFieldPrefix(name string) string {
 
 func (p *Pipeline) GetKeyFieldPrefix() string {
 	return "pipelines."
-}
-
-// Sets a value based on the field's name provided.
-// Returns NewInvalidInputError if does not exist.
-func (p *Pipeline) SetFieldValue(name string, value interface{}) error {
-	switch name {
-	case "UUID":
-		p.UUID = value.(string)
-		return nil
-	case "Name":
-		p.Name = value.(string)
-		return nil
-	case "CreatedAtInSec":
-		p.CreatedAtInSec = value.(int64)
-		return nil
-	case "Description":
-		p.Description = value.(string)
-		return nil
-	case "Namespace":
-		p.Namespace = value.(string)
-		return nil
-	default:
-		return util.NewInvalidInputError(fmt.Sprintf("Error setting field '%s' to '%v' in Pipeline object: not found or not allowed to set", name, value))
-	}
-}
-
-// Sets a value based on the field's name provided.
-// If not found, checks for proto-style names based on APIToModelFieldMap.
-// Returns NewInvalidInputError if does not exist.
-func (p *Pipeline) SetProtoFieldValue(name string, value interface{}) error {
-	if err := p.SetFieldValue(name, value); err != nil {
-		newKey, ok := p.APIToModelFieldMap()[name]
-		if ok {
-			return p.SetFieldValue(newKey, value)
-		} else {
-			return err
-		}
-	}
-	return nil
 }

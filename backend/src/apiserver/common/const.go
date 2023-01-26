@@ -57,7 +57,6 @@ const (
 	ProjectIDEnvVar                     = "PROJECT_ID"
 )
 
-// These are valid conditions of a ScheduledWorkflow.
 const (
 	MaxFileNameLength = 100
 	MaxFileLength     = 32 << 20 // 32Mb

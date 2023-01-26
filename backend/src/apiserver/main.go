@@ -53,7 +53,6 @@ var (
 
 	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
 	defaultNamespace   = flag.String("defaultNamespace", "", "Default namespace used in ApiServer.")
-	apiVersion         = flag.String("apiversion", "v2beta1", "API version of the ApiServer.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -65,11 +64,7 @@ func main() {
 	clientManager := newClientManager()
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
-		map[string]interface{}{
-			"CollectMetrics":   *collectMetricsFlag,
-			"ApiVersion":       *apiVersion,
-			"DefaultNamespace": *defaultNamespace,
-		},
+		*defaultNamespace,
 	)
 	err := loadSamples(resourceManager)
 	if err != nil {

@@ -125,7 +125,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		}
 		resourceReferences, _ := parseResourceReferences(resourceReferencesInString)
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
-		jobs = append(jobs, &model.Job{
+		job := &model.Job{
 			UUID:               uuid,
 			DisplayName:        displayName,
 			K8SName:            name,
@@ -161,7 +161,9 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			},
 			CreatedAtInSec: createdAtInSec,
 			UpdatedAtInSec: updatedAtInSec,
-		})
+		}
+		job = job.ToV2()
+		jobs = append(jobs, job)
 	}
 	return jobs, nil
 }
@@ -205,6 +207,7 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	// Add creation/update time.
+	j = j.ToV2()
 	now := s.time.Now().Unix()
 	j.CreatedAtInSec = now
 	j.UpdatedAtInSec = now
@@ -258,24 +261,6 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 
 	// TODO(gkcalat): remove this workflow once we fully deprecate resource references
 	// and provide logic for data migration for v1beta1 data.
-	if j.ResourceReferences == nil {
-		j.ResourceReferences = []*model.ResourceReference{
-			{
-				ResourceUUID:  j.UUID,
-				ResourceType:  model.JobResourceType,
-				ReferenceUUID: j.ExperimentId,
-				ReferenceType: model.ExperimentResourceType,
-				Relationship:  model.OwnerRelationship,
-			},
-			{
-				ResourceUUID:  j.UUID,
-				ResourceType:  model.JobResourceType,
-				ReferenceUUID: j.Namespace,
-				ReferenceType: model.NamespaceResourceType,
-				Relationship:  model.OwnerRelationship,
-			},
-		}
-	}
 	err = s.resourceReferenceStore.CreateResourceReferences(tx, j.ResourceReferences)
 	if err != nil {
 		tx.Rollback()

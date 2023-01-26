@@ -101,7 +101,7 @@ func TestValidateExperimentResourceReference_UnexpectedRelationship(t *testing.T
 
 func TestValidateExperimentResourceReference_ExperimentNotExist(t *testing.T) {
 	clients := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	manager := resource.NewResourceManager(clients, "default")
 	defer clients.Close()
 	err := ValidateExperimentResourceReference(manager, validReference)
 	assert.NotNil(t, err)
@@ -176,7 +176,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *t
 
 func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipelineVersionId(t *testing.T) {
 	clients := initWithExperimentsAndTwoPipelineVersions(t)
-	manager := resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	manager := resource.NewResourceManager(clients, "default")
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
 		PipelineId: NonDefaultFakeUUID,

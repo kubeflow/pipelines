@@ -44,11 +44,13 @@ func (e *Experiment) DefaultSortField() string {
 }
 
 var experimentAPIToModelFieldMap = map[string]string{
-	"id":            "UUID",
-	"name":          "Name",
+	"id":            "UUID", // v1beta1 API
+	"experiment_id": "UUID", // v2beta1 API
+	"name":          "Name", // v1beta1 API
+	"display_name":  "Name", // v2beta1 API
 	"created_at":    "CreatedAtInSec",
 	"description":   "Description",
-	"namespace":     "Namespace",
+	"namespace":     "Namespace", // v2beta1 API
 	"storage_state": "StorageState",
 }
 

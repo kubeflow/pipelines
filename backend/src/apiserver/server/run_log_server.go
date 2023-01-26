@@ -26,7 +26,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 )
 
-// These are valid conditions of a ScheduledWorkflow.
 const (
 	RunKey  = "run_id"
 	NodeKey = "node_id"

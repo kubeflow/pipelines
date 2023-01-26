@@ -35,7 +35,6 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
-// These are valid conditions of a ScheduledWorkflow.
 const (
 	FormFileKey               = "uploadfile"
 	NameQueryStringKey        = "name"

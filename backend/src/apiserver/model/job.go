@@ -30,37 +30,55 @@ const (
 	StatusStateDisabledV1    StatusState = "DISABLED"
 )
 
-func (s StatusState) ToV1() StatusState {
-	return s.ToV2()
-}
-
-func (s StatusState) ToV2() StatusState {
-	return StatusState(s.ToString())
-}
-
-func (s StatusState) ToUpper() StatusState {
-	return StatusState(strings.ToUpper(string(s)))
-}
-
-func (s StatusState) ToString() string {
-	switch s.ToUpper() {
-	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "":
-		return string(StatusStateUnspecified)
-	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
-		return string(StatusStateEnabled)
-	case StatusStateDisabled, "DISABLE":
-		return string(StatusStateDisabled)
-	default:
-		return ""
-	}
-}
-
+// Checks is the status contains a valid value.
+// This should be called before converting the data.
 func (s StatusState) IsValid() bool {
 	switch s {
 	case StatusStateUnspecified, StatusStateEnabled, StatusStateDisabled:
 		return true
 	default:
 		return false
+	}
+}
+
+func (s StatusState) toUpper() StatusState {
+	return StatusState(strings.ToUpper(string(s)))
+}
+
+// Converts the status into a string.
+// This should be called before saving data to the database.
+// The returned string is one of [STATUS_UNSPECIFIED, ENABLED, DISABLED]
+func (s StatusState) ToString() string {
+	return string(s.ToV2())
+}
+
+// Converts to v1beta1-compatible internal representation of job status.
+// This should be called before converting to v1beta1 API type.
+func (s StatusState) ToV1() StatusState {
+	switch s.toUpper() {
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "":
+		return StatusStateUnspecifiedV1
+	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
+		return StatusStateEnabledV1
+	case StatusStateDisabled, "DISABLE":
+		return StatusStateDisabledV1
+	default:
+		return StatusStateUnspecifiedV1
+	}
+}
+
+// Converts to v2beta1-compatible internal representation of job status.
+// This should be called before converting to v2beta1 API type.
+func (s StatusState) ToV2() StatusState {
+	switch s.toUpper() {
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "":
+		return StatusStateUnspecified
+	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
+		return StatusStateEnabled
+	case StatusStateDisabled, "DISABLE":
+		return StatusStateDisabled
+	default:
+		return StatusStateUnspecified
 	}
 }
 
@@ -85,43 +103,75 @@ type Job struct {
 	Conditions string `gorm:"column:Conditions; not null;"`
 }
 
+// Converts to v1beta1-compatible internal representation of job.
+// This should be called before converting to v1beta1 API type.
 func (j *Job) ToV1() *Job {
-	if j.ResourceReferences == nil {
-		j.ResourceReferences = make([]*ResourceReference, 0)
+	j.ResourceReferences = make([]*ResourceReference, 0)
+	if j.Namespace != "" {
+		j.ResourceReferences = append(
+			j.ResourceReferences,
+			&ResourceReference{
+				ResourceUUID:  j.UUID,
+				ResourceType:  JobResourceType,
+				ReferenceUUID: j.Namespace,
+				ReferenceType: NamespaceResourceType,
+				Relationship:  OwnerRelationship,
+			},
+		)
 	}
-	j.ResourceReferences = append(
-		j.ResourceReferences,
-		&ResourceReference{
-			ResourceUUID:  j.UUID,
-			ResourceType:  JobResourceType,
-			ReferenceUUID: j.ExperimentId,
-			ReferenceType: ExperimentResourceType,
-			Relationship:  OwnerRelationship,
-		},
-	)
-	j.ResourceReferences = append(
-		j.ResourceReferences,
-		&ResourceReference{
-			ResourceUUID:  j.UUID,
-			ResourceType:  JobResourceType,
-			ReferenceUUID: j.Namespace,
-			ReferenceType: NamespaceResourceType,
-			Relationship:  OwnerRelationship,
-		},
-	)
+	if j.ExperimentId != "" {
+		j.ResourceReferences = append(
+			j.ResourceReferences,
+			&ResourceReference{
+				ResourceUUID:  j.UUID,
+				ResourceType:  JobResourceType,
+				ReferenceUUID: j.ExperimentId,
+				ReferenceType: ExperimentResourceType,
+				Relationship:  OwnerRelationship,
+			},
+		)
+	}
+	if j.PipelineSpec.PipelineId != "" {
+		j.ResourceReferences = append(
+			j.ResourceReferences,
+			&ResourceReference{
+				ResourceUUID:  j.UUID,
+				ResourceType:  JobResourceType,
+				ReferenceUUID: j.PipelineSpec.PipelineId,
+				ReferenceType: PipelineResourceType,
+				Relationship:  CreatorRelationship,
+			},
+		)
+	}
+	if j.PipelineSpec.PipelineVersionId != "" {
+		j.ResourceReferences = append(
+			j.ResourceReferences,
+			&ResourceReference{
+				ResourceUUID:  j.UUID,
+				ResourceType:  JobResourceType,
+				ReferenceUUID: j.PipelineSpec.PipelineVersionId,
+				ReferenceType: PipelineVersionResourceType,
+				Relationship:  CreatorRelationship,
+			},
+		)
+	}
 	j.Conditions = string(StatusState(j.Conditions).ToV1())
 	return j
 }
 
+// Converts to v2beta1-compatible internal representation of job.
+// This should be called before converting to v2beta1 API type.
 func (j *Job) ToV2() *Job {
-	if j.ResourceReferences != nil {
-		for _, ref := range j.ResourceReferences {
-			switch ref.ReferenceType {
-			case ExperimentResourceType:
-				j.ExperimentId = ref.ReferenceUUID
-			case NamespaceResourceType:
-				j.Namespace = ref.ReferenceUUID
-			}
+	for _, ref := range j.ResourceReferences {
+		switch ref.ReferenceType {
+		case NamespaceResourceType:
+			j.Namespace = ref.ReferenceUUID
+		case ExperimentResourceType:
+			j.ExperimentId = ref.ReferenceUUID
+		case PipelineResourceType:
+			j.PipelineSpec.PipelineId = ref.ReferenceUUID
+		case PipelineVersionResourceType:
+			j.PipelineSpec.PipelineVersionId = ref.ReferenceUUID
 		}
 	}
 	j.Conditions = StatusState(j.Conditions).ToString()
@@ -183,11 +233,13 @@ func (j *Job) DefaultSortField() string {
 }
 
 var jobAPIToModelFieldMap = map[string]string{
-	"id":          "UUID",
-	"name":        "DisplayName",
-	"created_at":  "CreatedAtInSec",
-	"updated_at":  "UpdatedAtInSec",
-	"description": "Description",
+	"id":               "UUID",        // v1beta1 API
+	"recurring_run_id": "UUID",        // v2beta1 API
+	"name":             "DisplayName", // v1beta1 API
+	"display_name":     "DisplayName", // v2beta1 API
+	"created_at":       "CreatedAtInSec",
+	"updated_at":       "UpdatedAtInSec",
+	"description":      "Description",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Job.
@@ -215,8 +267,12 @@ func (j *Job) GetFieldValue(name string) interface{} {
 		return j.DisplayName
 	case "CreatedAtInSec":
 		return j.CreatedAtInSec
+	case "UpdatedAtInSec":
+		return j.UpdatedAtInSec
 	case "PipelineId":
 		return j.PipelineId
+	case "Description":
+		return j.Description
 	default:
 		return nil
 	}

@@ -480,7 +480,7 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	manager = resource.NewResourceManager(clients, "default")
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.GetJob(ctx, &apiv1beta1.GetJobRequest{Id: job.Id})
@@ -692,7 +692,7 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	manager = resource.NewResourceManager(clients, "default")
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.EnableJob(ctx, &apiv1beta1.EnableJobRequest{Id: job.Id})
@@ -737,7 +737,7 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	manager = resource.NewResourceManager(clients, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	manager = resource.NewResourceManager(clients, "default")
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.DisableJob(ctx, &apiv1beta1.DisableJobRequest{Id: job.Id})

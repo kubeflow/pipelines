@@ -79,6 +79,8 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 		selectBuilder = sq.Select("1").From("experiments").Where(sq.Eq{"uuid": referenceId})
 	case model.PipelineVersionResourceType:
 		selectBuilder = sq.Select("1").From("pipeline_versions").Where(sq.Eq{"uuid": referenceId})
+	case model.PipelineResourceType:
+		selectBuilder = sq.Select("1").From("pipelines").Where(sq.Eq{"uuid": referenceId})
 	case model.NamespaceResourceType:
 		// This function is called to check the data validity when the data are transformed according to the DB schema.
 		// Since there is not a separate table to store the namespace data, thus always returning true.

@@ -95,10 +95,10 @@ type ResourceManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
-	serverOptions             map[string]interface{}
+	defaultNamespace          string
 }
 
-func NewResourceManager(clientManager ClientManagerInterface, opts map[string]interface{}) *ResourceManager {
+func NewResourceManager(clientManager ClientManagerInterface, defaultNamespace string) *ResourceManager {
 	return &ResourceManager{
 		experimentStore:           clientManager.ExperimentStore(),
 		pipelineStore:             clientManager.PipelineStore(),
@@ -118,7 +118,7 @@ func NewResourceManager(clientManager ClientManagerInterface, opts map[string]in
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
 		authenticators:            clientManager.Authenticators(),
-		serverOptions:             opts,
+		defaultNamespace:          defaultNamespace,
 	}
 }
 
@@ -244,12 +244,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersionId(pipelineVersionId s
 
 // Fetches the default namespace for resources.
 func (r *ResourceManager) GetDefaultNamespace() string {
-	if namespace, ok := r.serverOptions["DefaultNamespace"]; ok {
-		if namespace.(string) != "" && namespace.(string) != model.NoNamespace {
-			return namespace.(string)
-		}
-	}
-	return ""
+	return r.defaultNamespace
 }
 
 // Checks if the namespace is empty or equal to one of {`-`, `POD_NAMESPACE`, or the default value}.
@@ -541,7 +536,7 @@ func (r *ResourceManager) DeleteExperiment(experimentId string) error {
 func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
 	// Assign the default namespace if it is empty
 	if p.Namespace == "" {
-		p.Namespace = r.serverOptions["DefaultNamespace"].(string)
+		p.Namespace = r.defaultNamespace
 	}
 
 	// Create a record in KFP DB (only pipelines table)

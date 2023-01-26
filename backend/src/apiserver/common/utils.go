@@ -34,6 +34,7 @@ func CreateArtifactPath(runID string, nodeID string, artifactName string) string
 //	  PipelineId        : p1
 //	  PipelineVersionId : p1.1
 func ParseResourceIdsFromFullName(p string) map[string]string {
+	p = strings.TrimPrefix(strings.TrimSuffix(p, "/"), "/")
 	results := map[string]string{
 		"Namespace":         "",
 		"ExperimentId":      "",
@@ -47,23 +48,25 @@ func ParseResourceIdsFromFullName(p string) map[string]string {
 	names := strings.Split(p, "/")
 	i := 0
 	for i < len(names) {
-		switch strings.ToLower(names[i]) {
-		case "namespaces", "namespace":
-			results["Namespace"] = names[i+1]
-		case "pipelines", "pipeline":
-			results["PipelineId"] = names[i+1]
-		case "versions", "version", "pipelineversions", "pipelineversion", "pipeline_versions", "pipeline_version":
-			results["PipelineVersionId"] = names[i+1]
-		case "experiments", "experiment":
-			results["ExperimentId"] = names[i+1]
-		case "runs", "run":
-			results["RunId"] = names[i+1]
-		case "jobs", "job", "recurringruns", "recurringrun", "recurring_runs", "recurring_run":
-			results["RecurringRunId"] = names[i+1]
-		case "artifacts", "artifact":
-			results["ArtifactId"] = names[i+1]
-		case "executions", "execution":
-			results["ExecutionId"] = names[i+1]
+		if i+1 < len(names) {
+			switch strings.ToLower(names[i]) {
+			case "namespaces", "namespace":
+				results["Namespace"] = names[i+1]
+			case "pipelines", "pipeline":
+				results["PipelineId"] = names[i+1]
+			case "versions", "version", "pipelineversions", "pipelineversion", "pipeline_versions", "pipeline_version":
+				results["PipelineVersionId"] = names[i+1]
+			case "experiments", "experiment":
+				results["ExperimentId"] = names[i+1]
+			case "runs", "run":
+				results["RunId"] = names[i+1]
+			case "jobs", "job", "recurringruns", "recurringrun", "recurring_runs", "recurring_run":
+				results["RecurringRunId"] = names[i+1]
+			case "artifacts", "artifact":
+				results["ArtifactId"] = names[i+1]
+			case "executions", "execution":
+				results["ExecutionId"] = names[i+1]
+			}
 		}
 		i = i + 2
 	}

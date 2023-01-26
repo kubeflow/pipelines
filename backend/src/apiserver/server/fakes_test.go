@@ -143,7 +143,7 @@ func initEnvVars() {
 func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 	var apiExperiment *apiv1beta1.Experiment
 	if common.IsMultiUserMode() {
 		apiExperiment = &apiv1beta1.Experiment{
@@ -177,7 +177,7 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
 	if common.IsMultiUserMode() {
 		apiExperiment = &apiv1beta1.Experiment{
@@ -201,7 +201,7 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 
 	// Create an experiment.
 	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
@@ -240,7 +240,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClientManager {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager := resource.NewResourceManager(clientManager, "default")
 
 	// Create an experiment.
 	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
@@ -267,7 +267,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	)
 	assert.Nil(t, err)
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441001", nil))
-	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager = resource.NewResourceManager(clientManager, "default")
 	_, err = resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version",
@@ -276,7 +276,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	)
 	assert.Nil(t, err)
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
-	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager = resource.NewResourceManager(clientManager, "default")
 	// Create another pipeline and then pipeline version.
 	p1, err := resourceManager.CreatePipeline(
 		&model.Pipeline{
@@ -298,7 +298,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	assert.Nil(t, err)
 
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441002", nil))
-	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager = resource.NewResourceManager(clientManager, "default")
 	_, err = resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "another_pipeline_version",

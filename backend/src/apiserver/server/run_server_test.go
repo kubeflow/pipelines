@@ -1080,7 +1080,7 @@ func TestReportRunMetricsV1_Unauthorized(t *testing.T) {
 	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
 	defer clientManager.Close()
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	resourceManager = resource.NewResourceManager(clientManager, "default")
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	_, err := runServer.ReportRunMetricsV1(ctx, &apiv1beta1.ReportRunMetricsRequest{
@@ -1335,7 +1335,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 
 	// make the following request unauthorized
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"ApiVersion": "v2beta1", "DefaultNamespace": ""})
+	resourceManager = resource.NewResourceManager(clientManager, "")
 
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &apiv1beta1.ReadArtifactRequest{
@@ -1363,7 +1363,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 
 func TestReadArtifactsV1_Run_NotFound(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clientManager, map[string]interface{}{"ApiVersion": "v2beta1", "DefaultNamespace": ""})
+	manager := resource.NewResourceManager(clientManager, "")
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &apiv1beta1.ReadArtifactRequest{
 		RunId:        "Wrong_RUN_UUID",
