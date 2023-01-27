@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pdisk
+spec:
+  storageClassName: "pv"
+  capacity:
+    storage: persistentdisk
+  accessModes:
+    - ReadWriteOnce
+  claimRef:
+    namespace: default
+    name: pdisk-claim
+  csi:
+    driver: pd.csi.storage.gke.io
+    volumeHandle: DISK_ID
+    fsType: FS_TYPE
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: kubeflow
+  name: pdisk-claim
+spec:
+  storageClassName: ""
+  volumeName: pdisk
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: persistentdisk

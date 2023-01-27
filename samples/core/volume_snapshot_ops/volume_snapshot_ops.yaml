@@ -1,15 +1,15 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: volume-snapshotop-sequential-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.18, pipelines.kubeflow.org/pipeline_compilation_time: '2023-01-25T16:22:59.563704',
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "The fourth example of
-      the design doc.", "inputs": [{"name": "url"}], "name": "volume-snapshotop-sequential"}'}
+  generateName: volume-example-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.18, pipelines.kubeflow.org/pipeline_compilation_time: '2023-01-26T18:10:04.201586',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"name": "url", "type": "String"}],
+      "name": "volume-example"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.18}
 spec:
-  entrypoint: volume-snapshotop-sequential
+  entrypoint: volume-example
   templates:
-  - name: create-volume
+  - name: create-volume-from-snapshot
     resource:
       action: create
       manifest: |
@@ -19,17 +19,24 @@ spec:
           name: '{{workflow.name}}-vol1'
         spec:
           accessModes:
-          - ReadWriteMany
+          - ReadWriteOnce
+          dataSource:
+            apiGroup: snapshot.storage.k8s.io
+            kind: VolumeSnapshot
+            name: '{{inputs.parameters.step1-snap-name}}'
           resources:
             requests:
               storage: 1Gi
+    inputs:
+      parameters:
+      - {name: step1-snap-name}
     outputs:
       parameters:
-      - name: create-volume-manifest
+      - name: create-volume-from-snapshot-manifest
         valueFrom: {jsonPath: '{}'}
-      - name: create-volume-name
+      - name: create-volume-from-snapshot-name
         valueFrom: {jsonPath: '{.metadata.name}'}
-      - name: create-volume-size
+      - name: create-volume-from-snapshot-size
         valueFrom: {jsonPath: '{.status.capacity.storage}'}
     metadata:
       labels:
@@ -41,21 +48,21 @@ spec:
       args: ['mkdir /data/step1 && gsutil cat {{inputs.parameters.url}} | gzip -c
           >/data/step1/file1.gz']
       command: [sh, -c]
-      image: google/cloud-sdk:279.0.0
+      image: alpine
       volumeMounts:
-      - {mountPath: /data, name: create-volume}
+      - {mountPath: /data, name: workflow-name-kfp-pvc}
     inputs:
       parameters:
-      - {name: create-volume-name}
       - {name: url}
+      - {name: workflow-name-kfp-pvc-name}
     metadata:
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
     volumes:
-    - name: create-volume
-      persistentVolumeClaim: {claimName: '{{inputs.parameters.create-volume-name}}'}
+    - name: workflow-name-kfp-pvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.workflow-name-kfp-pvc-name}}'}
   - name: step1-snap
     resource:
       action: create
@@ -68,10 +75,10 @@ spec:
         spec:
           source:
             kind: PersistentVolumeClaim
-            name: '{{inputs.parameters.create-volume-name}}'
+            name: '{{inputs.parameters.workflow-name-kfp-pvc-name}}'
     inputs:
       parameters:
-      - {name: create-volume-name}
+      - {name: workflow-name-kfp-pvc-name}
     outputs:
       parameters:
       - name: step1-snap-manifest
@@ -85,26 +92,86 @@ spec:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
-  - name: volume-snapshotop-sequential
+  - name: step2-gunzip
+    container:
+      args: [mkdir /data/step2 && gunzip /data/step1/file1.gz -c >/data/step2/file1]
+      command: [sh, -c]
+      image: alpine
+      volumeMounts:
+      - {mountPath: /data, name: workflow-name-kfp-pvc}
+    inputs:
+      parameters:
+      - {name: workflow-name-kfp-pvc-name}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: workflow-name-kfp-pvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.workflow-name-kfp-pvc-name}}'}
+  - name: volume-example
     inputs:
       parameters:
       - {name: url}
     dag:
       tasks:
-      - {name: create-volume, template: create-volume}
+      - name: create-volume-from-snapshot
+        template: create-volume-from-snapshot
+        dependencies: [step1-snap]
+        arguments:
+          parameters:
+          - {name: step1-snap-name, value: '{{tasks.step1-snap.outputs.parameters.step1-snap-name}}'}
       - name: step1-ingest
         template: step1-ingest
-        dependencies: [create-volume]
+        dependencies: [workflow-name-kfp-pvc]
         arguments:
           parameters:
-          - {name: create-volume-name, value: '{{tasks.create-volume.outputs.parameters.create-volume-name}}'}
           - {name: url, value: '{{inputs.parameters.url}}'}
+          - {name: workflow-name-kfp-pvc-name, value: '{{tasks.workflow-name-kfp-pvc.outputs.parameters.workflow-name-kfp-pvc-name}}'}
       - name: step1-snap
         template: step1-snap
-        dependencies: [create-volume, step1-ingest]
+        dependencies: [step1-ingest, workflow-name-kfp-pvc]
         arguments:
           parameters:
-          - {name: create-volume-name, value: '{{tasks.create-volume.outputs.parameters.create-volume-name}}'}
+          - {name: workflow-name-kfp-pvc-name, value: '{{tasks.workflow-name-kfp-pvc.outputs.parameters.workflow-name-kfp-pvc-name}}'}
+      - name: step2-gunzip
+        template: step2-gunzip
+        dependencies: [workflow-name-kfp-pvc]
+        arguments:
+          parameters:
+          - {name: workflow-name-kfp-pvc-name, value: '{{tasks.workflow-name-kfp-pvc.outputs.parameters.workflow-name-kfp-pvc-name}}'}
+      - {name: workflow-name-kfp-pvc, template: workflow-name-kfp-pvc}
+  - name: workflow-name-kfp-pvc
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: '{{workflow.name}}-vol1'
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: manual
+          volumeName: task-pv-volume
+    outputs:
+      parameters:
+      - name: workflow-name-kfp-pvc-manifest
+        valueFrom: {jsonPath: '{}'}
+      - name: workflow-name-kfp-pvc-name
+        valueFrom: {jsonPath: '{.metadata.name}'}
+      - name: workflow-name-kfp-pvc-size
+        valueFrom: {jsonPath: '{.status.capacity.storage}'}
+    metadata:
+      annotations: {pipelines.kubeflow.org/max_cache_staleness: P0D}
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
   arguments:
     parameters:
     - {name: url}
