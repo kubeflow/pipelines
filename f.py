@@ -59,3 +59,47 @@ def p():
     # I think this would be sufficient for task/snapshot scheduling
     t2 = comp().after(t1)
     kubernetes.add_pvc(t2, pvc=pvc)
+
+
+# --- secret ---
+# convenience
+@dsl.pipeline
+def p():
+    t1 = comp()
+    kubernetes.use_k8s_secret(
+        t1,
+        secret_name='s3-secret',
+        secret_key_to_env_var={'secret_key': 'AWS_SECRET_ACCESS_KEY'})
+
+
+# fully parameterized
+@dsl.pipeline
+def p():
+    t1 = comp()
+    kubernetes.secret_as_env_var(
+        t1,
+        secret_name='secret1',
+        secret_key_to_env_var={'secret_key': 'AWS_SECRET_ACCESS_KEY'})
+
+
+# k8s object
+@dsl.pipeline
+def p():
+    t1 = comp()
+    kubernetes.add_env_var(
+        t1,
+        env_var=k8s_client.V1EnvVar(
+            name='MY_SECRET',
+            value_from=k8s_client.V1EnvVarSource(
+                secret_key_ref=k8s_client.V1SecretKeySelector(
+                    name='secret1', key='secret_key'))))
+
+
+# In most cases, three options
+# - convenience
+# - fully parameterized
+# - k8s object
+
+# in volume case, there is actioning and sequencing associated
+# - create ops?
+# - declarative
