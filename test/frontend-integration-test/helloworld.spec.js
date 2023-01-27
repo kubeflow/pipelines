@@ -25,12 +25,11 @@ const runWithoutExperimentDescription = 'test run without experiment description
 const waitTimeout = 5000;
 const outputParameterValue = 'Hello world in test'
 
-function getValueFromRunDetailsByKey(key) {
+function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
-  // get that row's inner text
-  arr = Array.from(document.querySelectorAll('Span'));
-  keyIndex = arr.findIndex(el => el.textContent === key);
-  return arr[keyIndex+1].textContent;
+  // get that row's inner text, and remove the key
+  const row = $(`span=${key}`).$('..');
+  return row.getText().substr(`${key}\n`.length);
 }
 
 describe('deploy helloworld sample run', () => {
@@ -47,7 +46,6 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('uploads the sample pipeline', () => {
-    $('#localPackageBtn').waitForVisible(waitTimeout);
     $('#localPackageBtn').click();
     browser.chooseFile('#dropZone input[type="file"]', './helloworld.yaml');
     $('#newPipelineName').setValue(pipelineName);
@@ -65,28 +63,28 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new experiment out of this pipeline', () => {
-    $('#newExperimentBtn').waitForVisible(waitTimeout);
     $('#newExperimentBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
     }, waitTimeout);
 
-    $('#experimentName').waitForVisible(waitTimeout);
     $('#experimentName').setValue(experimentName);
     $('#experimentDescription').setValue(experimentDescription);
+
     $('#createExperimentBtn').click();
   });
 
   it('creates a new run in the experiment', () => {
     $('#choosePipelineBtn').waitForVisible(waitTimeout);
     $('#choosePipelineBtn').click();
-
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout);
     $('.tableRow').waitForVisible(waitTimeout);
     // TODO(gkcalat): choose based on the name of the pipeline
     $('.tableRow').click();
-    $('#usePipelineBtn').waitForVisible(waitTimeout);
+
     $('#usePipelineBtn').click();
+
+    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
 
     $('#choosePipelineVersionBtn').waitForVisible(waitTimeout);
     $('#choosePipelineVersionBtn').click();
@@ -95,10 +93,11 @@ describe('deploy helloworld sample run', () => {
     $('.tableRow').waitForVisible(waitTimeout);
     // TODO(gkcalat): choose based on the name of the pipeline version
     $('.tableRow').click();
-    $('#usePipelineVersionBtn').waitForVisible(waitTimeout);
+
     $('#usePipelineVersionBtn').click();
 
-    $('#startNewRunBtn').waitForVisible(waitTimeout);
+    $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
+
     browser.keys('Tab');
     browser.keys(runName);
 
@@ -147,13 +146,13 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('switches to config tab', () => {
-    browser.pause(waitTimeout);
-    Array.from(document.querySelectorAll('button')).find(el => el.textContent === 'Config').click();
+    $('button=Config').waitForVisible(waitTimeout);
+    $('button=Config').click();
   });
 
   it('waits for run to finish', () => {
     browser.pause(waitTimeout);
-    let status = getValueFromRunDetailsByKey('Status');
+    let status = getValueFromDetailsTable('Status');
 
     let attempts = 0;
     const maxAttempts = 120;
@@ -161,7 +160,7 @@ describe('deploy helloworld sample run', () => {
     // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
       browser.pause(1000);
-      status = getValueFromRunDetailsByKey('Status');
+      status = getValueFromDetailsTable('Status');
       attempts++;
     }
 
@@ -170,40 +169,40 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays run created at date correctly', () => {
-    const date = getValueFromRunDetailsByKey('Created at');
+    const date = getValueFromDetailsTable('Created at');
     assert(Date.now() - new Date(date) < 10 * 60 * 1000,
       'run created date should be within the last 10 minutes');
   });
 
   it('displays run inputs correctly', () => {
-    const paramValue = getValueFromRunDetailsByKey('message');
+    const paramValue = getValueFromDetailsTable('message');
     assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
   });
 
   it('switches back to graph tab', () => {
-    Array.from(document.querySelectorAll('button')).find(el => el.textContent === 'Graph').click();
+    $('button=Graph').click();
   });
 
   it('has a 4-node graph', () => {
     browser.pause(waitTimeout);
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible(waitTimeout);
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
   it('opens the side panel when graph node is clicked', () => {
     browser.pause(waitTimeout);
-    $('.graphNode').waitForVisible(waitTimeout);
     $('.graphNode').click();
+    browser.pause(waitTimeout);
+    $('button=Logs').waitForVisible(waitTimeout);
   });
 
   it('shows logs from node', () => {
-    browser.pause(waitTimeout);
-    Array.from(document.querySelectorAll('button')).find(el => el.textContent === 'Logs').click();
+    $('button=Logs').click();
     $('#logViewer').waitForVisible(waitTimeout);
     browser.waitUntil(() => {
-      return $('#logViewer').textContent.includes(outputParameterValue + ' from node: ');
+      const logs = $('#logViewer').getText();
+      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
     }, waitTimeout);
   });
 
@@ -223,12 +222,11 @@ describe('deploy helloworld sample run', () => {
     $('#choosePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout);
-    // TODO(gkcalat): choose based on the name of the pipeline
     $('.tableRow').waitForVisible(waitTimeout);
+    // TODO(gkcalat): choose based on the name of the pipeline
     $('.tableRow').click();
     $('#usePipelineBtn').click(); 
-
-    $("#startNewRunBtn").waitForVisible(waitTimeout);
+    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
     browser.keys('Tab');
     browser.keys('Tab');
     browser.keys(runWithoutExperimentName);
@@ -250,37 +248,15 @@ describe('deploy helloworld sample run', () => {
 
     // Deploy
     $('#startNewRunBtn').click();
-    
-    // Creating runs without parent experiment is prohibited in kFP v2beta1
-    browser.pause(waitTimeout);
-    $('.dialog').waitForVisible(waitTimeout);
-    assert($('.dialog').textContent.includes("Run creation failed"), 'Creating run without parent experiment must be prohibited. Shown error: ' + $('.dialog').textContent);
-    $('.dialogButton').click();
-
-    // Choose the same experiment
-    $("#chooseExperimentBtn").waitForVisible(waitTimeout);
-    $("#chooseExperimentBtn").click();
-    $("#experimentSelectorDialog").waitForVisible(waitTimeout);
-    // TODO(gkcalat): choose based on the name of the experiment
-    $('.tableRow').waitForVisible(waitTimeout);
-    $('.tableRow').click();
-    $('#useExperimentBtn').waitForVisible(waitTimeout);
-    $("#useExperimentBtn").click();
-    $('#startNewRunBtn').waitForVisible(waitTimeout);
-    $('#startNewRunBtn').click();
   });
 
-  it('redirects back to experiment page', () => {
-    browser.pause(waitTimeout);
+  it('redirects back to all runs page', () => {
     browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments/details/');
-    }, waitTimeout);
+      return (new URL(browser.getUrl())).hash === '#/runs';
+    }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
   });
 
   it('displays both runs in all runs page', () => {
-    $('#runsBtn').waitForVisible(waitTimeout);
-    $("#runsBtn").click();
-    browser.pause(waitTimeout);
     $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
@@ -294,10 +270,10 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
   });
 
-  it('displays a single experiment in the list', () => {
+  it('displays both experiments in the list', () => {
     $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
-    assert(rows === 1, 'there should be one experiment in the table, instead there are: ' + rows);
+    assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
   });
 
   it('filters the experiment list', () => {
