@@ -18,11 +18,10 @@ description: |
           Required. An artifact with its URI pointing toward a GCS directory with prediction files
           to be used for this evaluation. `jsonl` is currently the only allowed format.
           For prediction results, the files should be named "prediction.results-*" or "predictions_*".
-      ground_truth_storage_source(Sequence[str]):
-          Required. The GCS URIs representing where the preprocessed dataset is located. The dataset
-          must contain the ground truth annotations.
-          This field must be the output from DatasetPreprocessorErrorAnalysis component. `jsonl`
-          is currently the only allowed format.
+      ground_truth_storage_source(str):
+          Required. The GCS URI representing where the preprocessed test dataset is located.
+          The dataset must contain the ground truth annotations.This field must be the output from
+          DatasetPreprocessorErrorAnalysis component. `jsonl` is currently the only allowed format.
       model (Optional[google.VertexModel]):
           The Model used for predictions job. Must share the same ancestor Location.
       dataflow_service_account (Optional[str]):
@@ -59,8 +58,7 @@ inputs:
   - { name: location, type: String, default: "us-central1" }
   - { name: root_dir, type: String }
   - { name: predictions_storage_source, type: Artifact }
-  - { name: ground_truth_storage_source, type: JsonArray, default: "{}" }
-  - { name: model, type: google.VertexModel, optional: True }
+  - { name: ground_truth_storage_source, type: String, default: "" }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_disk_size, type: Integer, default: 50 }
   - { name: dataflow_machine_type, type: String, default: "n1-standard-4" }
@@ -100,11 +98,6 @@ implementation:
       - "jsonl"
       - --ground_truth_storage_source
       - { inputValue: ground_truth_storage_source }
-      - if:
-          cond: { isPresent: model }
-          then:
-            - --model_name
-            - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --dataflow_job_prefix
       - "evaluated-annotation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --dataflow_service_account

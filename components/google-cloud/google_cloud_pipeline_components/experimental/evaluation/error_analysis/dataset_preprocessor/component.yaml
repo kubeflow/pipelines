@@ -100,7 +100,7 @@ implementation:
           then:
           - --training_dataset
           - "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
-          - training_dataset_annotation_set_name
+          - --training_dataset_annotation_set_name
           - { inputValue: training_dataset_annotation_set_name }
       - --test_dataset_storage_source_uris
       - { inputValue: test_dataset_storage_source_uris }
