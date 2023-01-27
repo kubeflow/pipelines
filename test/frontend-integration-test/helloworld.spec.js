@@ -47,6 +47,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('uploads the sample pipeline', () => {
+    $('#localPackageBtn').waitForVisible(waitTimeout);
     $('#localPackageBtn').click();
     browser.chooseFile('#dropZone input[type="file"]', './helloworld.yaml');
     $('#newPipelineName').setValue(pipelineName);
@@ -58,43 +59,46 @@ describe('deploy helloworld sample run', () => {
 
   it('shows a 4-node static graph', () => {
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible();
+    $(nodeSelector).waitForVisible(waitTimeout);
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
   it('creates a new experiment out of this pipeline', () => {
+    $('#newExperimentBtn').waitForVisible(waitTimeout);
     $('#newExperimentBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
     }, waitTimeout);
 
+    $('#experimentName').waitForVisible(waitTimeout);
     $('#experimentName').setValue(experimentName);
     $('#experimentDescription').setValue(experimentDescription);
-
     $('#createExperimentBtn').click();
   });
 
   it('creates a new run in the experiment', () => {
-    $('#choosePipelineBtn').waitForVisible();
+    $('#choosePipelineBtn').waitForVisible(waitTimeout);
     $('#choosePipelineBtn').click();
 
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-    $('.tableRow').waitForVisible();
+    $('#pipelineSelectorDialog').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible(waitTimeout);
+    // TODO(gkcalat): choose based on the name of the pipeline
     $('.tableRow').click();
-
+    $('#usePipelineBtn').waitForVisible(waitTimeout);
     $('#usePipelineBtn').click();
 
-    $('#choosePipelineVersionBtn').waitForVisible();
+    $('#choosePipelineVersionBtn').waitForVisible(waitTimeout);
     $('#choosePipelineVersionBtn').click();
 
-    $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
-    $('.tableRow').waitForVisible();
+    $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible(waitTimeout);
+    // TODO(gkcalat): choose based on the name of the pipeline version
     $('.tableRow').click();
-
+    $('#usePipelineVersionBtn').waitForVisible(waitTimeout);
     $('#usePipelineVersionBtn').click();
-    $('#choosePipelineBtn').waitForVisible();
 
+    $('#startNewRunBtn').waitForVisible(waitTimeout);
     browser.keys('Tab');
     browser.keys(runName);
 
@@ -137,7 +141,8 @@ describe('deploy helloworld sample run', () => {
 
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
-    // Navigate to details of the deployed run by clicking its anchor element
+    // Navigate to details of the deployed run by clicking its anchor element.
+    // Filter by runName as there is also pipeline version's link in the same row
     browser.execute('document.querySelector(".tableRow a[title='+runName+']").click()');
   });
 
@@ -182,26 +187,28 @@ describe('deploy helloworld sample run', () => {
   it('has a 4-node graph', () => {
     browser.pause(waitTimeout);
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible();
+    $(nodeSelector).waitForVisible(waitTimeout);
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
   it('opens the side panel when graph node is clicked', () => {
     browser.pause(waitTimeout);
+    $('.graphNode').waitForVisible(waitTimeout);
     $('.graphNode').click();
   });
 
   it('shows logs from node', () => {
     browser.pause(waitTimeout);
     Array.from(document.querySelectorAll('button')).find(el => el.textContent === 'Logs').click();
-    $('#logViewer').waitForVisible();
+    $('#logViewer').waitForVisible(waitTimeout);
     browser.waitUntil(() => {
       return $('#logViewer').textContent.includes(outputParameterValue + ' from node: ');
     }, waitTimeout);
   });
 
   it('navigates to the runs page', () => {
+    browser.pause(waitTimeout);
     $('#runsBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/runs');
@@ -209,19 +216,19 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new run without selecting an experiment', () => {
-    $('#createNewRunBtn').waitForVisible();
+    $('#createNewRunBtn').waitForVisible(waitTimeout);
     $('#createNewRunBtn').click();
 
-    $('#choosePipelineBtn').waitForVisible();
+    $('#choosePipelineBtn').waitForVisible(waitTimeout);
     $('#choosePipelineBtn').click();
 
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-    $('.tableRow').waitForVisible();
+    $('#pipelineSelectorDialog').waitForVisible(waitTimeout);
+    // TODO(gkcalat): choose based on the name of the pipeline
+    $('.tableRow').waitForVisible(waitTimeout);
     $('.tableRow').click();
-
     $('#usePipelineBtn').click(); 
-    $('#choosePipelineBtn').waitForVisible();
 
+    $("#startNewRunBtn").waitForVisible(waitTimeout);
     browser.keys('Tab');
     browser.keys('Tab');
     browser.keys(runWithoutExperimentName);
@@ -244,39 +251,43 @@ describe('deploy helloworld sample run', () => {
     // Deploy
     $('#startNewRunBtn').click();
     
+    // Creating runs without parent experiment is prohibited in kFP v2beta1
     browser.pause(waitTimeout);
-    $('.dialog').waitForVisible();
+    $('.dialog').waitForVisible(waitTimeout);
     assert($('.dialog').textContent.includes("Run creation failed"), 'Creating run without parent experiment must be prohibited. Shown error: ' + $('.dialog').textContent);
-
     $('.dialogButton').click();
-    $('#choosePipelineBtn').waitForVisible();
 
+    // Choose the same experiment
+    $("#chooseExperimentBtn").waitForVisible(waitTimeout);
     $("#chooseExperimentBtn").click();
-    $("#experimentSelectorDialog").waitForVisible(waitTimeout, true);
-    $('.tableRow').waitForVisible();
+    $("#experimentSelectorDialog").waitForVisible(waitTimeout);
+    // TODO(gkcalat): choose based on the name of the experiment
+    $('.tableRow').waitForVisible(waitTimeout);
     $('.tableRow').click();
-
+    $('#useExperimentBtn').waitForVisible(waitTimeout);
     $("#useExperimentBtn").click();
-    $('#choosePipelineBtn').waitForVisible();
+    $('#startNewRunBtn').waitForVisible(waitTimeout);
     $('#startNewRunBtn').click();
   });
 
   it('redirects back to experiment page', () => {
+    browser.pause(waitTimeout);
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments/details/');
     }, waitTimeout);
   });
 
   it('displays both runs in all runs page', () => {
-    $('.tableRow').waitForVisible();
-    $("##runsBtn").click();
+    $('#runsBtn').waitForVisible(waitTimeout);
+    $("#runsBtn").click();
     browser.pause(waitTimeout);
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
   });
 
   it('navigates back to the experiment list', () => {
+    $('#experimentsBtn').waitForVisible(waitTimeout);
     $('#experimentsBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments');
@@ -284,7 +295,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays a single experiment in the list', () => {
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
     assert(rows === 1, 'there should be one experiment in the table, instead there are: ' + rows);
   });
@@ -296,7 +307,7 @@ describe('deploy helloworld sample run', () => {
     // Wait for the list to refresh
     browser.pause(waitTimeout);
 
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
     assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
   });
