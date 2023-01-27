@@ -103,7 +103,7 @@ func drive() (err error) {
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := jsonpb.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, componentSpecJson)
+		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, prettyPrint(*componentSpecJson))
 	}
 	var taskSpec *pipelinespec.PipelineTaskSpec
 	if *taskSpecJson != "" {

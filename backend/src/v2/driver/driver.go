@@ -671,7 +671,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				}
 			}
 			value, hasValue := inputs.GetParameterValues()[name]
-			if !hasValue {
+			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
 				if spec.GetDefaultValue() == nil {
 					return fmt.Errorf("input parameter %q is required", name)
 				}
