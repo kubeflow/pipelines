@@ -26,6 +26,7 @@ from google_cloud_pipeline_components.types.artifact_types import VertexModel
 ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
 API_KEY_PREDICT_SCHEMATA = 'predict_schemata'
 API_KEY_CONTAINER_SPEC = 'container_spec'
+API_KEY_VERSION_ALIASES = 'version_aliases'
 API_KEY_ARTIFACT_URI = 'artifact_uri'
 _LABELS_PAYLOAD_KEY = 'labels'
 
@@ -41,6 +42,9 @@ def append_unmanaged_model_artifact_into_payload(executor_input, model_spec):
     model_spec[
         API_KEY_CONTAINER_SPEC] = json_util.camel_case_to_snake_case_recursive(
             artifact[0].get('metadata', {}).get('containerSpec', {}))
+    model_spec[
+        API_KEY_VERSION_ALIASES] = json_util.camel_case_to_snake_case_recursive(
+            artifact[0].get('metadata', {}).get('versionAliases', ["default"]))
     model_spec[API_KEY_ARTIFACT_URI] = artifact[0].get('uri')
   return model_spec
 
