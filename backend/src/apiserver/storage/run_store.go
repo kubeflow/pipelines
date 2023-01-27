@@ -107,13 +107,75 @@ type RunStore struct {
 	time                   util.TimeInterface
 }
 
-// Returns a new RunStore.
-func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
-	return &RunStore{
-		db:                     db,
-		resourceReferenceStore: NewResourceReferenceStore(db),
-		time:                   time,
+// Runs two SQL queries in a transaction to return a list of matching runs, as well as their
+// total_size. The total_size does not reflect the page size, but it does reflect the number of runs
+// matching the supplied filters and resource references.
+func (s *RunStore) ListRuns(
+	filterContext *model.FilterContext, opts *list.Options,
+) ([]*model.Run, int, string, error) {
+	errorF := func(err error) ([]*model.Run, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
+
+	rowsSql, rowsArgs, err := s.buildSelectRunsQuery(false, opts, filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+
+	sizeSql, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		glog.Error("Failed to start transaction to list runs")
+		return errorF(err)
+	}
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		return errorF(err)
+	}
+	if err := rows.Err(); err != nil {
+		return errorF(err)
+	}
+	runs, err := s.scanRowsToRuns(rows)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	defer rows.Close()
+
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	if err := sizeRow.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	defer sizeRow.Close()
+
+	err = tx.Commit()
+	if err != nil {
+		glog.Error("Failed to commit transaction to list runs")
+		return errorF(err)
+	}
+
+	if len(runs) <= opts.PageSize {
+		return runs, total_size, "", nil
+	}
+
+	npt, err := opts.NextPageToken(runs[opts.PageSize])
+	return runs[:opts.PageSize], total_size, npt, err
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
@@ -156,19 +218,44 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	return sql, args, err
 }
 
-// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
-// With the metric as a field in the select clause enable sorting on this metric afterwards.
-// TODO(jingzhang36): example of resulting SQL query and explanation for it.
-func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
-	var r model.Run
-	if r.IsRegularField(opts.SortByFieldName) {
-		return sqlBuilder
+// GetRun Get the run manifest from Workflow CRD.
+func (s *RunStore) GetRun(runId string) (*model.Run, error) {
+	sql, args, err := s.addMetricsAndResourceReferences(
+		sq.Select(runColumns...).
+			From("run_details").
+			Where(sq.Eq{"UUID": runId}).
+			Limit(1), nil).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
-	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
-	return sq.
-		Select("selected_runs.*, run_metrics.numbervalue as "+opts.SortByFieldName).
-		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name='" + opts.SortByFieldName + "'")
+	r, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+	}
+	defer r.Close()
+	runs, err := s.scanRowsToRuns(r)
+
+	if err != nil || len(runs) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+	}
+	if len(runs) == 0 {
+		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
+	}
+	if runs[0].RunDetails.WorkflowRuntimeManifest == "" && runs[0].WorkflowSpecManifest != "" {
+		// This can only happen when workflow reporting is failed.
+		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
+	}
+	return runs[0], nil
+}
+
+// Apples a func f to every string in a given string slice.
+func apply(f func(string) string, vs []string) []string {
+	vsm := make([]string, len(vs))
+	for i, v := range vs {
+		vsm[i] = f(v)
+	}
+	return vsm
 }
 
 func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
@@ -197,81 +284,6 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 		FromSelect(subQ, "subq").
 		LeftJoin("run_metrics AS rm ON subq.UUID=rm.RunUUID").
 		GroupBy("subq.UUID")
-}
-
-// Apples a func f to every string in a given string slice.
-func apply(f func(string) string, vs []string) []string {
-	vsm := make([]string, len(vs))
-	for i, v := range vs {
-		vsm[i] = f(v)
-	}
-	return vsm
-}
-
-func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
-	var runtimeParametersString, pipelineRootString string
-	if runtimeParameters.Valid {
-		runtimeParametersString = runtimeParameters.String
-	}
-	if pipelineRoot.Valid {
-		pipelineRootString = pipelineRoot.String
-	}
-	return model.RuntimeConfig{Parameters: runtimeParametersString, PipelineRoot: pipelineRootString}
-}
-
-func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {
-	if !resourceRefString.Valid {
-		return nil, nil
-	}
-	var refs []*model.ResourceReference
-	if err := json.Unmarshal([]byte(resourceRefString.String), &refs); err != nil {
-		return nil, util.Wrapf(err, "Failed to parse resource references '%s'", resourceRefString.String)
-	}
-	return refs, nil
-}
-
-func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
-	if !metricsInString.Valid {
-		return nil, nil
-	}
-	var metrics []*model.RunMetric
-	if err := json.Unmarshal([]byte(metricsInString.String), &metrics); err != nil {
-		return nil, util.Wrapf(err, "Failed to parse a run metric '%s'", metricsInString.String)
-	}
-	return metrics, nil
-}
-
-func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, error) {
-	var metrics []*model.RunMetric
-	for rows.Next() {
-		var runId, nodeId, name, form, payload string
-		var val float64
-		err := rows.Scan(
-			&runId,
-			&nodeId,
-			&name,
-			&val,
-			&form,
-			&payload,
-		)
-		if err != nil {
-			glog.Errorf("Failed to scan row into a run metric: %v", err)
-			return metrics, nil
-		}
-
-		metrics = append(
-			metrics,
-			&model.RunMetric{
-				RunUUID:     runId,
-				NodeID:      nodeId,
-				Name:        name,
-				NumberValue: val,
-				Format:      form,
-				Payload:     payload,
-			},
-		)
-	}
-	return metrics, nil
 }
 
 func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
@@ -365,57 +377,37 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 	return runs, nil
 }
 
-// Creates a new metric in run_metrics table if does not exist.
-func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
-	payloadBytes, err := json.Marshal(metric)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to marshal a run metric to json: %+v", metric)
+func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
+	if !metricsInString.Valid {
+		return nil, nil
 	}
-	sql, args, err := sq.
-		Insert("run_metrics").
-		SetMap(sq.Eq{
-			"RunUUID":     metric.RunUUID,
-			"NodeID":      metric.NodeID,
-			"Name":        metric.Name,
-			"NumberValue": metric.NumberValue,
-			"Format":      metric.Format,
-			"Payload":     string(payloadBytes),
-		}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query for inserting a run metric: %+v", metric)
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		if s.db.IsDuplicateError(err) {
-			return util.NewAlreadyExistError(
-				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
-		}
-		return util.NewInternalServerError(err, "Failed to insert a run metric: %v", metric)
-	}
-	return nil
-}
-
-// Fetches run metrics for a given run id.
-func (s *RunStore) GetMetrics(runId string) ([]*model.RunMetric, error) {
-	sql, args, err := sq.Select(runMetricsColumns...).
-		From("run_metrics").
-		Where(sq.Eq{"RunUUID": runId}).
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
-	}
-	defer r.Close()
-	metrics, err := s.scanRowsToRunMetrics(r)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
+	var metrics []*model.RunMetric
+	if err := json.Unmarshal([]byte(metricsInString.String), &metrics); err != nil {
+		return nil, util.Wrapf(err, "Failed to parse a run metric '%s'", metricsInString.String)
 	}
 	return metrics, nil
+}
+
+func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
+	var runtimeParametersString, pipelineRootString string
+	if runtimeParameters.Valid {
+		runtimeParametersString = runtimeParameters.String
+	}
+	if pipelineRoot.Valid {
+		pipelineRootString = pipelineRoot.String
+	}
+	return model.RuntimeConfig{Parameters: runtimeParametersString, PipelineRoot: pipelineRootString}
+}
+
+func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {
+	if !resourceRefString.Valid {
+		return nil, nil
+	}
+	var refs []*model.ResourceReference
+	if err := json.Unmarshal([]byte(resourceRefString.String), &refs); err != nil {
+		return nil, util.Wrapf(err, "Failed to parse resource references '%s'", resourceRefString.String)
+	}
+	return refs, nil
 }
 
 func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
@@ -519,108 +511,6 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	return r, nil
 }
 
-// GetRun Get the run manifest from Workflow CRD.
-func (s *RunStore) GetRun(runId string) (*model.Run, error) {
-	sql, args, err := s.addMetricsAndResourceReferences(
-		sq.Select(runColumns...).
-			From("run_details").
-			Where(sq.Eq{"UUID": runId}).
-			Limit(1), nil).
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
-	}
-	defer r.Close()
-	runs, err := s.scanRowsToRuns(r)
-
-	if err != nil || len(runs) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
-	}
-	if len(runs) == 0 {
-		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
-	}
-	if runs[0].RunDetails.WorkflowRuntimeManifest == "" && runs[0].WorkflowSpecManifest != "" {
-		// This can only happen when workflow reporting is failed.
-		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
-	}
-	return runs[0], nil
-}
-
-// Runs two SQL queries in a transaction to return a list of matching runs, as well as their
-// total_size. The total_size does not reflect the page size, but it does reflect the number of runs
-// matching the supplied filters and resource references.
-func (s *RunStore) ListRuns(
-	filterContext *model.FilterContext, opts *list.Options,
-) ([]*model.Run, int, string, error) {
-	errorF := func(err error) ([]*model.Run, int, string, error) {
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
-	}
-
-	rowsSql, rowsArgs, err := s.buildSelectRunsQuery(false, opts, filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-
-	sizeSql, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-
-	// Use a transaction to make sure we're returning the total_size of the same rows queried
-	tx, err := s.db.Begin()
-	if err != nil {
-		glog.Error("Failed to start transaction to list runs")
-		return errorF(err)
-	}
-
-	rows, err := tx.Query(rowsSql, rowsArgs...)
-	if err != nil {
-		return errorF(err)
-	}
-	if err := rows.Err(); err != nil {
-		return errorF(err)
-	}
-	runs, err := s.scanRowsToRuns(rows)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	defer rows.Close()
-
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	if err := sizeRow.Err(); err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	defer sizeRow.Close()
-
-	err = tx.Commit()
-	if err != nil {
-		glog.Error("Failed to commit transaction to list runs")
-		return errorF(err)
-	}
-
-	if len(runs) <= opts.PageSize {
-		return runs, total_size, "", nil
-	}
-
-	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], total_size, npt, err
-}
-
 func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int64, workflowRuntimeManifest string, state string) error {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
@@ -712,30 +602,6 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 	return nil
 }
 
-func (s *RunStore) TerminateRun(runId string) error {
-	result, err := s.db.Exec(`
-		UPDATE run_details
-		SET Conditions = ?, State = ?
-		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		string(model.RuntimeStateCancelling.ToV1()),
-		model.RuntimeStateCancelling.ToString(),
-		runId,
-		model.RuntimeStatePaused.ToString(),
-		model.RuntimeStatePending.ToString(),
-		model.RuntimeStateRunning.ToString(),
-		model.RuntimeStateUnspecified.ToString(),
-	)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
-	}
-
-	if r, _ := result.RowsAffected(); r != 1 {
-		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
-	}
-	return nil
-}
-
 func (s *RunStore) DeleteRun(id string) error {
 	runSql, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
 	if err != nil {
@@ -763,4 +629,139 @@ func (s *RunStore) DeleteRun(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete run %v and its resource references from table", id)
 	}
 	return nil
+}
+
+// Creates a new metric in run_metrics table if does not exist.
+func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
+	payloadBytes, err := json.Marshal(metric)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to marshal a run metric to json: %+v", metric)
+	}
+	sql, args, err := sq.
+		Insert("run_metrics").
+		SetMap(sq.Eq{
+			"RunUUID":     metric.RunUUID,
+			"NodeID":      metric.NodeID,
+			"Name":        metric.Name,
+			"NumberValue": metric.NumberValue,
+			"Format":      metric.Format,
+			"Payload":     string(payloadBytes),
+		}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query for inserting a run metric: %+v", metric)
+	}
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		if s.db.IsDuplicateError(err) {
+			return util.NewAlreadyExistError(
+				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
+		}
+		return util.NewInternalServerError(err, "Failed to insert a run metric: %v", metric)
+	}
+	return nil
+}
+
+// Returns a new RunStore.
+func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
+	return &RunStore{
+		db:                     db,
+		resourceReferenceStore: NewResourceReferenceStore(db),
+		time:                   time,
+	}
+}
+
+func (s *RunStore) TerminateRun(runId string) error {
+	result, err := s.db.Exec(`
+		UPDATE run_details
+		SET Conditions = ?, State = ?
+		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
+		string(model.RuntimeStateCancelling.ToV1()),
+		model.RuntimeStateCancelling.ToString(),
+		runId,
+		model.RuntimeStatePaused.ToString(),
+		model.RuntimeStatePending.ToString(),
+		model.RuntimeStateRunning.ToString(),
+		model.RuntimeStateUnspecified.ToString(),
+	)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
+	}
+
+	if r, _ := result.RowsAffected(); r != 1 {
+		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
+	}
+	return nil
+}
+
+// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
+// With the metric as a field in the select clause enable sorting on this metric afterwards.
+// TODO(jingzhang36): example of resulting SQL query and explanation for it.
+func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+	var r model.Run
+	if r.IsRegularField(opts.SortByFieldName) {
+		return sqlBuilder
+	}
+	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
+	return sq.
+		Select("selected_runs.*, run_metrics.numbervalue as "+opts.SortByFieldName).
+		FromSelect(sqlBuilder, "selected_runs").
+		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name='" + opts.SortByFieldName + "'")
+}
+
+func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, error) {
+	var metrics []*model.RunMetric
+	for rows.Next() {
+		var runId, nodeId, name, form, payload string
+		var val float64
+		err := rows.Scan(
+			&runId,
+			&nodeId,
+			&name,
+			&val,
+			&form,
+			&payload,
+		)
+		if err != nil {
+			glog.Errorf("Failed to scan row into a run metric: %v", err)
+			return metrics, nil
+		}
+
+		metrics = append(
+			metrics,
+			&model.RunMetric{
+				RunUUID:     runId,
+				NodeID:      nodeId,
+				Name:        name,
+				NumberValue: val,
+				Format:      form,
+				Payload:     payload,
+			},
+		)
+	}
+	return metrics, nil
+}
+
+// TODO(gkcalat): consider removing this if we no longer support separate metrics API in v2beta1 API.
+// Fetches run metrics for a given run id.
+func (s *RunStore) GetMetrics(runId string) ([]*model.RunMetric, error) {
+	sql, args, err := sq.Select(runMetricsColumns...).
+		From("run_metrics").
+		Where(sq.Eq{"RunUUID": runId}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
+	}
+	defer r.Close()
+	metrics, err := s.scanRowsToRunMetrics(r)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
+	}
+	return metrics, nil
 }

@@ -28,6 +28,8 @@ type TaskServer struct {
 	resourceManager *resource.ResourceManager
 }
 
+// Creates a task.
+// Supports v1beta1 behavior.
 func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
 	err := s.validateCreateTaskRequest(request)
 	if err != nil {
@@ -86,6 +88,8 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	return nil
 }
 
+// Fetches tasks given query parameters.
+// Supports v1beta1 behavior.
 func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequest) (
 	*api.ListTasksResponse, error,
 ) {

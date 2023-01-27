@@ -96,8 +96,6 @@ var (
 
 type PipelineServerOptions struct {
 	CollectMetrics bool `json:"collect_metrics,omitempty"`
-	// ApiVersion       string `default:"v2beta1" json:"api_version,omitempty"`
-	// DefaultNamespace string `default:"" json:"default_namespace,omitempty"`
 }
 
 type PipelineServer struct {
@@ -106,113 +104,8 @@ type PipelineServer struct {
 	options         *PipelineServerOptions
 }
 
-func NewPipelineServer(resourceManager *resource.ResourceManager, options *PipelineServerOptions) *PipelineServer {
-	return &PipelineServer{resourceManager: resourceManager, httpClient: http.DefaultClient, options: options}
-}
-
-// This method extract the common logic of naming the pipeline.
-// API caller can either explicitly name the pipeline through query string ?name=foobar.
-// or API server can use the file name by default.
-func buildPipelineName(queryString string, fileName string) (string, error) {
-	pipelineName, err := url.QueryUnescape(queryString)
-	if err != nil {
-		return "", util.NewInvalidInputErrorWithDetails(err, fmt.Sprintf("Failed to extract pipeline's name fro the query as it has invalid format: %s", queryString))
-	}
-	if pipelineName == "" {
-		pipelineName = fileName
-	}
-	if len(pipelineName) > common.MaxFileNameLength {
-		return "", util.NewInvalidInputError("Failed to extract pipeline's name as it is too long. Maximum length is %v", common.MaxFileNameLength)
-	}
-	return pipelineName, nil
-}
-
-// Checks at the resource manager whether a user has access to a resource.
-func (s *PipelineServer) checkAccess(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	resourceAttributes.Group = common.RbacPipelinesGroup
-	resourceAttributes.Version = common.RbacPipelinesVersion
-	resourceAttributes.Resource = common.RbacResourceTypePipelines
-	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API")
-	}
-	return nil
-}
-
-// Checks if a user can access a pipeline version.
-func (s *PipelineServer) canAccessPipelineVersion(ctx context.Context, versionId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if !common.IsMultiUserMode() {
-		// Skip authorization if not multi-user mode.
-		return nil
-	}
-	if versionId != "" {
-		namespace, err := s.resourceManager.FetchNamespaceFromPipelineVersionId(versionId)
-		if err != nil {
-			return util.Wrapf(err, "Failed to access pipeline version %s. Check if it exists and have a namespace assigned", versionId)
-		}
-		// Allow users to access pipelines in the default namespace.
-		if s.resourceManager.IsDefaultNamespace(namespace) {
-			return nil
-		}
-		resourceAttributes.Namespace = namespace
-	}
-	err := s.checkAccess(ctx, resourceAttributes)
-	if err != nil {
-		return util.Wrapf(err, "Failed to access pipeline version %s. Check if you have access to namespace %s", versionId, resourceAttributes.Namespace)
-	}
-	return nil
-}
-
-// Checks if a user can access a pipeline.
-func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if !common.IsMultiUserMode() {
-		// Skip authorization if not multi-user mode.
-		return nil
-	}
-	if pipelineId != "" {
-		namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
-		if err != nil {
-			return util.Wrapf(err, "Failed to access pipeline %s. Check if it exists and have a namespace assigned", pipelineId)
-		}
-		// Allow users to access pipelines in the default namespace.
-		if s.resourceManager.IsDefaultNamespace(namespace) {
-			return nil
-		}
-		resourceAttributes.Namespace = namespace
-	}
-	err := s.checkAccess(ctx, resourceAttributes)
-	if err != nil {
-		return util.Wrapf(err, "Failed to access pipeline %s. Check if you have access to namespace %s", pipelineId, resourceAttributes.Namespace)
-	}
-	return nil
-}
-
-// Validates a pipeline version before creating a record in the DB.
-// Requires Name and PipelineId to be non-empty and presence of PipelineSpec or a valid URI to the pipeline spec.
-func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.PipelineVersion) error {
-	if p.Name == "" {
-		return util.NewInvalidInputError("Pipeline version's name cannot be empty")
-	}
-	if p.PipelineId == "" {
-		return util.NewInvalidInputError("Pipeline version cannot have empty parent pipeline id")
-	}
-	if p.PipelineSpec != "" {
-		return nil
-	}
-	if p.PipelineSpecURI != "" {
-		if _, err := url.ParseRequestURI(p.PipelineSpecURI); err == nil {
-			return nil
-		}
-	}
-	if p.CodeSourceUrl != "" {
-		if _, err := url.ParseRequestURI(p.CodeSourceUrl); err == nil {
-			return nil
-		}
-	}
-	return util.NewInvalidInputError("Pipeline version must have a pipeline spec or a valid source code's URL. PipelineSpec: %s. PipelineSpecURI: %s. CodeSourceUrl: %s. At least one of them must have a valid pipeline spec", p.PipelineSpec, p.PipelineSpecURI, p.CodeSourceUrl)
-}
-
-// Create a pipeline from a model.Pipeline. Not exported.
+// Creates a pipeline. Not exported.
+// Applies common logic on v1beta1 and v2beta1 API.
 func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pipeline) (*model.Pipeline, error) {
 	// Validate the pipeline. Fail fast if this is corrupted.
 	if pipeline.Name == "" {
@@ -234,249 +127,11 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pip
 	return s.resourceManager.CreatePipeline(pipeline)
 }
 
-// Create a pipeline version from a model.PipelineVersion. Not exported.
-func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.PipelineVersion) (*model.PipelineVersion, error) {
-	// Fail if pipeline spec is missing
-	if (pv.PipelineSpec == "") && (pv.CodeSourceUrl == "") && (pv.PipelineSpecURI == "") {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline spec")
-	}
-
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbList,
-	}
-	if err := s.canAccessPipeline(ctx, pv.PipelineId, resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a pipeline version due authorization error for pipeline id %v", pv.PipelineId)
-	}
-
-	// Read pipeline file
-	if pv.PipelineSpec == "" {
-		pipelineUrl, err := url.ParseRequestURI(pv.CodeSourceUrl)
-		if err != nil {
-			pipelineUrl, err = url.ParseRequestURI(pv.PipelineSpecURI)
-			if err != nil {
-				return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. CodeSourceUrl: %v. Please specify a valid URL", pv.PipelineSpecURI, pv.CodeSourceUrl)
-			}
-		}
-		resp, err := s.httpClient.Get(pipelineUrl.String())
-		if err != nil || resp.StatusCode != http.StatusOK {
-			return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
-		}
-		defer resp.Body.Close()
-		pipelineFileName := path.Base(pipelineUrl.String())
-		pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
-		}
-		pv.PipelineSpec = string(pipelineFile)
-		if pv.Name == "" {
-			pv.Name = pipelineFileName
-		}
-	}
-
-	// Validate the pipeline version
-	if err := s.validatePipelineVersionBeforeCreating(pv); err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline version due to data validation error. Check the error stack")
-	}
-
-	return s.resourceManager.CreatePipelineVersion(pv)
-}
-
-// Fetches a model.Pipeline.
-func (s *PipelineServer) getPipeline(ctx context.Context, pipelineId string) (*model.Pipeline, error) {
-	if pipelineId == "" {
-		return nil, util.NewInvalidInputError("Failed to get a pipeline. Pipeline id cannot be empty")
-	}
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbGet,
-	}
-	if err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline due authorization error for pipeline id %v", pipelineId)
-	}
-
-	return s.resourceManager.GetPipeline(pipelineId)
-}
-
-// Fetches a model.PipelineVersion for given pipeline id.
-func (s *PipelineServer) getPipelineVersion(ctx context.Context, pipelineVersionId string) (*model.PipelineVersion, error) {
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbList,
-	}
-	err := s.canAccessPipelineVersion(ctx, pipelineVersionId, resourceAttributes)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline version due to authorization error for pipeline version id %v", pipelineVersionId)
-	}
-	return s.resourceManager.GetPipelineVersion(pipelineVersionId)
-}
-
-// Fetches a model.PipelineVersion.
-func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineId string) (*model.PipelineVersion, error) {
-	if pipelineId == "" {
-		return nil, util.NewInvalidInputError("Failed to get the latest pipeline version as pipeline id is empty")
-	}
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbGet,
-	}
-	if err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to get the latest pipeline version due authorization error for pipeline id %v", pipelineId)
-	}
-	return s.resourceManager.GetLatestPipelineVersion(pipelineId)
-}
-
-// Fetches pipeline and (optionally) pipeline version for a given name and namespace.
-func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, namespace string, apiRequestVersion string) (*model.Pipeline, *model.PipelineVersion, error) {
-	namespace = s.resourceManager.ReplaceNamespace(namespace)
-	if common.IsMultiUserMode() {
-		if !s.resourceManager.IsDefaultNamespace(namespace) {
-			resourceAttributes := &authorizationv1.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      common.RbacResourceVerbGet,
-			}
-			if err := s.checkAccess(ctx, resourceAttributes); err != nil {
-				return nil, nil, util.Wrapf(err, "Failed to fetch a pipeline due to authorization error. Check if you have read permission to namespace %v", namespace)
-			}
-		}
-	}
-	switch apiRequestVersion {
-	case "v1beta1":
-		return s.resourceManager.GetPipelineByNameAndNamespaceV1(name, namespace)
-	case "V2beta1":
-		p, err := s.resourceManager.GetPipelineByNameAndNamespace(name, namespace)
-		return p, nil, err
-	default:
-		return nil, nil, util.NewInternalServerError(
-			util.NewInvalidInputError("Invalid api version detected"),
-			"Failed to get a pipeline by name and namespace. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
-			apiRequestVersion)
-	}
-}
-
-// Fetches an array of []model.Pipeline and an array of []model.PipelineVersion for given search query parameters.
-func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, filter string, apiRequestVersion string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	// Fill in the default namespace
-	namespace = s.resourceManager.ReplaceNamespace(namespace)
-	if common.IsMultiUserMode() {
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: namespace,
-			Verb:      common.RbacResourceVerbGet,
-		}
-		if err := s.checkAccess(ctx, resourceAttributes); err != nil {
-			return nil, nil, 0, "", util.Wrapf(err, "Failed to list pipelines due to authorization error. Check if you have read permission to namespace %v", namespace)
-		}
-	}
-	filterContext := &model.FilterContext{
-		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
-	}
-
-	// Validate list options
-	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, filter)
-	if err != nil {
-		return nil, nil, 0, "", util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
-	}
-
-	// List pipelines
-	switch apiRequestVersion {
-	case "v1beta1":
-		return s.resourceManager.ListPipelinesV1(filterContext, opts)
-	case "v2beta1":
-		pipelines, size, token, err := s.resourceManager.ListPipelines(filterContext, opts)
-		return pipelines, nil, size, token, err
-	default:
-		return nil, nil, 0, "", util.NewInternalServerError(
-			util.NewInvalidInputError("Invalid api version detected"),
-			"Failed to list pipelines due to unsupported API request. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
-			apiRequestVersion)
-	}
-}
-
-// Fetches an array of []model.PipelineVersion for given search query parameters.
-func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId string, pageToken string, pageSize int32, sortBy string, filter string) ([]*model.PipelineVersion, int, string, error) {
-	// Fail fast of pipeline id or namespace are missing
-	if pipelineId == "" {
-		return nil, 0, "", util.NewInvalidInputError("Failed to list pipeline versions. Pipeline id cannot be empty")
-	}
-
-	// Validate query parameters
-	opts, err := validatedListOptions(
-		&model.PipelineVersion{},
-		pageToken,
-		int(pageSize),
-		sortBy,
-		filter,
-	)
-	if err != nil {
-		return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
-	}
-
-	// Check authorization
-	if common.IsMultiUserMode() {
-		namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
-		if err != nil {
-			return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due to error fetching the namespace for pipeline %v", pipelineId)
-		}
-		if !s.resourceManager.IsDefaultNamespace(namespace) {
-			resourceAttributes := &authorizationv1.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      common.RbacResourceVerbGet,
-			}
-			if err := s.checkAccess(ctx, resourceAttributes); err != nil {
-				return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due to authorization error. Check if you have read permission to namespace %v", namespace)
-			}
-		}
-	}
-
-	// Get pipeline versions
-	return s.resourceManager.ListPipelineVersions(pipelineId, opts)
-}
-
-// Removes a model.Pipeline.
-func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string) error {
-	// Fail fast
-	if pipelineId == "" {
-		return util.NewInvalidInputError("Failed to delete a pipeline due missing pipeline id")
-	}
-
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbDelete,
-	}
-	err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes)
-	if err != nil {
-		return util.Wrapf(err, "Failed to delete a pipeline due authorization error for pipeline id %v", pipelineId)
-	}
-
-	return s.resourceManager.DeletePipeline(pipelineId)
-}
-
-// Removes a model.PipelineVersion.
-func (s *PipelineServer) deletePipelineVersion(ctx context.Context, pipelineId string, pipelineVersionId string) error {
-	// Fail fast
-	if pipelineId == "" {
-		return util.NewInvalidInputError("Failed to delete a pipeline version id %v due missing pipeline id", pipelineVersionId)
-	}
-	if pipelineVersionId == "" {
-		return util.NewInvalidInputError("Failed to delete a pipeline version due missing pipeline version id")
-	}
-
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbList,
-	}
-	err := s.canAccessPipelineVersion(ctx, pipelineVersionId, resourceAttributes)
-	if err != nil {
-		return util.Wrapf(err, "Failed to delete a pipeline version id %v due to authorization error for pipeline id %v", pipelineVersionId, pipelineId)
-	}
-
-	return s.resourceManager.DeletePipelineVersion(pipelineVersionId)
-}
-
-// Creates a v1beta1 pipeline and a v1beta1 pipeline version.
+// Creates a pipeline and a pipeline version.
 // If the pipeline already exists, creates a new pipeline version.
 // Note, this allows partial creation (pipeline or pipeline version only,
 // which is different from v1beta1 behavior.
+// Supports v1beta1 behavior.
 func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1beta1.CreatePipelineRequest) (*apiv1beta1.Pipeline, error) {
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
@@ -541,7 +196,8 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	return nil, util.Wrap(perr, util.Wrap(pverr, "Failed to create a pipeline and a pipeline version (v1beta1)").Error())
 }
 
-// Creates a v2beta1 pipeline, but does not create a pipeline version.
+// Creates a pipeline, but does not create a pipeline version.
+// Supports v2beta1 behavior.
 func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1.CreatePipelineRequest) (*apiv2beta1.Pipeline, error) {
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
@@ -565,7 +221,413 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1
 	return toApiPipeline(createdPipeline), nil
 }
 
-// Creates a v1beta1 pipeline version.
+// TODO(gkcalat): consider removing as default version is deprecated. This requires changes to v1beta1 proto.
+// Updates default pipeline version for a given pipeline.
+// Supports v1beta1 behavior.
+func (s *PipelineServer) UpdatePipelineDefaultVersionV1(ctx context.Context, request *apiv1beta1.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		updatePipelineDefaultVersionRequests.Inc()
+	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUpdate,
+	}
+	err := s.canAccessPipeline(ctx, request.GetPipelineId(), resourceAttributes)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to update (v1beta1) default pipeline version to %s for pipeline %s due to authorization error", request.GetVersionId(), request.GetPipelineId())
+	}
+	err = s.resourceManager.UpdatePipelineDefaultVersion(request.GetPipelineId(), request.GetVersionId())
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to update (v1beta1) default pipeline version to %s for pipeline %s. Check error stack", request.GetVersionId(), request.GetPipelineId())
+	}
+	return &empty.Empty{}, nil
+}
+
+// Fetches a pipeline.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) getPipeline(ctx context.Context, pipelineId string) (*model.Pipeline, error) {
+	if pipelineId == "" {
+		return nil, util.NewInvalidInputError("Failed to get a pipeline. Pipeline id cannot be empty")
+	}
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbGet,
+	}
+	if err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline due authorization error for pipeline id %v", pipelineId)
+	}
+
+	return s.resourceManager.GetPipeline(pipelineId)
+}
+
+// Returns a pipeline.
+// Note, the default pipeline version will be set to be the latest pipeline version.
+// Supports v1beta behavior.
+func (s *PipelineServer) GetPipelineV1(ctx context.Context, request *apiv1beta1.GetPipelineRequest) (*apiv1beta1.Pipeline, error) {
+	if s.options.CollectMetrics {
+		getPipelineRequests.Inc()
+	}
+	pipelineId := request.GetId()
+	pipeline, err := s.getPipeline(ctx, pipelineId)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s. Check error stack", pipelineId)
+	}
+
+	pipelineVersion, err := s.getLatestPipelineVersion(ctx, pipelineId)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s due to error fetching the latest pipeline version", pipelineId)
+	}
+
+	return toApiPipelineV1(pipeline, pipelineVersion), nil
+}
+
+// Returns a pipeline.
+// Supports v2beta behavior.
+func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.GetPipelineRequest) (*apiv2beta1.Pipeline, error) {
+	if s.options.CollectMetrics {
+		getPipelineRequests.Inc()
+	}
+	pipelineId := request.GetPipelineId()
+	pipeline, err := s.getPipeline(ctx, pipelineId)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline %s. Check error stack", pipelineId)
+	}
+	return toApiPipeline(pipeline), nil
+}
+
+// Fetches pipeline and (optionally) pipeline version for a given name and namespace.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, namespace string, apiRequestVersion string) (*model.Pipeline, *model.PipelineVersion, error) {
+	namespace = s.resourceManager.ReplaceNamespace(namespace)
+	if common.IsMultiUserMode() {
+		if !s.resourceManager.IsDefaultNamespace(namespace) {
+			resourceAttributes := &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      common.RbacResourceVerbGet,
+			}
+			if err := s.checkAccess(ctx, resourceAttributes); err != nil {
+				return nil, nil, util.Wrapf(err, "Failed to fetch a pipeline due to authorization error. Check if you have read permission to namespace %v", namespace)
+			}
+		}
+	}
+	switch apiRequestVersion {
+	case "v1beta1":
+		return s.resourceManager.GetPipelineByNameAndNamespaceV1(name, namespace)
+	case "V2beta1":
+		p, err := s.resourceManager.GetPipelineByNameAndNamespace(name, namespace)
+		return p, nil, err
+	default:
+		return nil, nil, util.NewInternalServerError(
+			util.NewInvalidInputError("Invalid api version detected"),
+			"Failed to get a pipeline by name and namespace. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
+			apiRequestVersion)
+	}
+}
+
+// Returns a pipeline with the default (latest) pipeline version given a name and a namespace.
+// Supports v1beta behavior.
+func (s *PipelineServer) GetPipelineByNameV1(ctx context.Context, request *apiv1beta1.GetPipelineByNameRequest) (*apiv1beta1.Pipeline, error) {
+	if s.options.CollectMetrics {
+		getPipelineRequests.Inc()
+	}
+
+	namespace := request.GetNamespace()
+	name := request.GetName()
+
+	pipeline, pipelineVersion, err := s.getPipelineByName(ctx, name, namespace, "v1beta1")
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) with name %s and namespace %s. Check error stack.", name, namespace)
+	}
+	return toApiPipelineV1(pipeline, pipelineVersion), nil
+}
+
+// Returns a pipeline given name and namespace.
+// Supports v2beta behavior.
+func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2beta1.GetPipelineByNameRequest) (*apiv2beta1.Pipeline, error) {
+	if s.options.CollectMetrics {
+		getPipelineRequests.Inc()
+	}
+
+	namespace := request.GetNamespace()
+	name := request.GetName()
+
+	pipeline, _, err := s.getPipelineByName(ctx, name, namespace, "v2beta1")
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline with name %s and namespace %s. Check error stack.", name, namespace)
+	}
+	return toApiPipeline(pipeline), nil
+}
+
+// Fetches an array of pipelines and an array of pipeline versions for given search query parameters.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, filter string, apiRequestVersion string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
+	// Fill in the default namespace
+	namespace = s.resourceManager.ReplaceNamespace(namespace)
+	if common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbGet,
+		}
+		if err := s.checkAccess(ctx, resourceAttributes); err != nil {
+			return nil, nil, 0, "", util.Wrapf(err, "Failed to list pipelines due to authorization error. Check if you have read permission to namespace %v", namespace)
+		}
+	}
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
+	}
+
+	// Validate list options
+	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, filter)
+	if err != nil {
+		return nil, nil, 0, "", util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
+	}
+
+	// List pipelines
+	switch apiRequestVersion {
+	case "v1beta1":
+		return s.resourceManager.ListPipelinesV1(filterContext, opts)
+	case "v2beta1":
+		pipelines, size, token, err := s.resourceManager.ListPipelines(filterContext, opts)
+		return pipelines, nil, size, token, err
+	default:
+		return nil, nil, 0, "", util.NewInternalServerError(
+			util.NewInvalidInputError("Invalid api version detected"),
+			"Failed to list pipelines due to unsupported API request. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
+			apiRequestVersion)
+	}
+}
+
+// Returns pipelines with default pipeline versions for a given query.
+// Supports v1beta behavior.
+func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta1.ListPipelinesRequest) (*apiv1beta1.ListPipelinesResponse, error) {
+	if s.options.CollectMetrics {
+		listPipelineRequests.Inc()
+	}
+	/*
+		Override namespace to support v1beta behavior
+		Assume 3 scenarios and ensure backwards compatibility:
+		1. User does not provide resource reference
+		2. User provides resource reference to public namespace ""
+		3. User provides resource reference to namespace
+	*/
+	namespace := ""
+	filterContext, err := validateFilterV1(request.GetResourceReferenceKey())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list pipelines (v1beta1) due to filter validation error")
+	}
+	refKey := filterContext.ReferenceKey
+	if refKey != nil && refKey.Type != model.NamespaceResourceType {
+		return nil, util.NewInvalidInputError("Failed to list pipelines (v1beta1) due to invalid resource references for pipelines: %v", refKey)
+	}
+	if refKey != nil && refKey.Type == model.NamespaceResourceType {
+		namespace = refKey.ID
+	}
+
+	pageToken := request.GetPageToken()
+	pageSize := request.GetPageSize()
+	sortBy := request.GetSortBy()
+	filter := request.GetFilter()
+
+	pipelines, pipelineVersions, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, filter, "v1beta1")
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to list pipelines (v1beta1) in namespace %s. Check error stack", namespace)
+	}
+
+	apiPipelines := toApiPipelinesV1(pipelines, pipelineVersions)
+	return &apiv1beta1.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
+}
+
+// Returns pipelines for a given query.
+// Supports v2beta1 behavior.
+func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.ListPipelinesRequest) (*apiv2beta1.ListPipelinesResponse, error) {
+	if s.options.CollectMetrics {
+		listPipelineRequests.Inc()
+	}
+
+	namespace := request.GetNamespace()
+	pageToken := request.GetPageToken()
+	pageSize := request.GetPageSize()
+	sortBy := request.GetSortBy()
+	filter := request.GetFilter()
+
+	pipelines, _, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, filter, "v2beta1")
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
+	}
+	return &apiv2beta1.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
+}
+
+// Removes a pipeline.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string) error {
+	// Fail fast
+	if pipelineId == "" {
+		return util.NewInvalidInputError("Failed to delete a pipeline due missing pipeline id")
+	}
+
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbDelete,
+	}
+	err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes)
+	if err != nil {
+		return util.Wrapf(err, "Failed to delete a pipeline due authorization error for pipeline id %v", pipelineId)
+	}
+
+	return s.resourceManager.DeletePipeline(pipelineId)
+}
+
+// Deletes a pipeline.
+// Supports v1beta1 behavior.
+func (s *PipelineServer) DeletePipelineV1(ctx context.Context, request *apiv1beta1.DeletePipelineRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deletePipelineRequests.Inc()
+	}
+
+	if err := s.deletePipeline(ctx, request.GetId()); err != nil {
+		return nil, util.Wrapf(err, "Failed to delete pipeline (v1beta1) %s. Check error stack", request.GetId())
+	}
+
+	if s.options.CollectMetrics {
+		pipelineCount.Dec()
+	}
+
+	return &empty.Empty{}, nil
+}
+
+// Deletes a pipeline.
+// Supports v2beta1 behavior.
+func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1.DeletePipelineRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deletePipelineRequests.Inc()
+	}
+
+	if err := s.deletePipeline(ctx, request.GetPipelineId()); err != nil {
+		return nil, util.Wrapf(err, "Failed to delete pipeline %s. Check error stack", request.GetPipelineId())
+	}
+
+	if s.options.CollectMetrics {
+		pipelineCount.Dec()
+	}
+
+	return &empty.Empty{}, nil
+}
+
+// Returns the default (latest) pipeline template for a given pipeline id.
+// Supports v1beta1 behavior.
+func (s *PipelineServer) GetTemplate(ctx context.Context, request *apiv1beta1.GetTemplateRequest) (*apiv1beta1.GetTemplateResponse, error) {
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	pipelineId := request.GetId()
+	if pipelineId == "" {
+		return nil, util.NewInvalidInputError("Failed to get the default pipeline template (v1beta1). Pipeline id cannot be empty")
+	}
+
+	err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get the default template (v1beta1) due to authorization error. Verify that you have access to pipeline id %s", pipelineId)
+	}
+	template, err := s.resourceManager.GetPipelineLatestTemplate(pipelineId)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get the default template (v1beta1) for pipeline %s. Check error stack", pipelineId)
+	}
+	return &apiv1beta1.GetTemplateResponse{Template: string(template)}, nil
+}
+
+// Fetches the latest pipeline version for a given pipeline id.
+func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineId string) (*model.PipelineVersion, error) {
+	if pipelineId == "" {
+		return nil, util.NewInvalidInputError("Failed to get the latest pipeline version as pipeline id is empty")
+	}
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbGet,
+	}
+	if err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to get the latest pipeline version due authorization error for pipeline id %v", pipelineId)
+	}
+	return s.resourceManager.GetLatestPipelineVersion(pipelineId)
+}
+
+// Validates a pipeline version before creating a record in the DB.
+// Requires Name and PipelineId to be non-empty and presence of PipelineSpec or a valid URI to the pipeline spec.
+func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.PipelineVersion) error {
+	if p.Name == "" {
+		return util.NewInvalidInputError("Pipeline version's name cannot be empty")
+	}
+	if p.PipelineId == "" {
+		return util.NewInvalidInputError("Pipeline version cannot have empty parent pipeline id")
+	}
+	if p.PipelineSpec != "" {
+		return nil
+	}
+	if p.PipelineSpecURI != "" {
+		if _, err := url.ParseRequestURI(p.PipelineSpecURI); err == nil {
+			return nil
+		}
+	}
+	if p.CodeSourceUrl != "" {
+		if _, err := url.ParseRequestURI(p.CodeSourceUrl); err == nil {
+			return nil
+		}
+	}
+	return util.NewInvalidInputError("Pipeline version must have a pipeline spec or a valid source code's URL. PipelineSpec: %s. PipelineSpecURI: %s. CodeSourceUrl: %s. At least one of them must have a valid pipeline spec", p.PipelineSpec, p.PipelineSpecURI, p.CodeSourceUrl)
+}
+
+func NewPipelineServer(resourceManager *resource.ResourceManager, options *PipelineServerOptions) *PipelineServer {
+	return &PipelineServer{resourceManager: resourceManager, httpClient: http.DefaultClient, options: options}
+}
+
+// Creates a pipeline version from. Not exported.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.PipelineVersion) (*model.PipelineVersion, error) {
+	// Fail if pipeline spec is missing
+	if (pv.PipelineSpec == "") && (pv.CodeSourceUrl == "") && (pv.PipelineSpecURI == "") {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline spec")
+	}
+
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	if err := s.canAccessPipeline(ctx, pv.PipelineId, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to create a pipeline version due authorization error for pipeline id %v", pv.PipelineId)
+	}
+
+	// Read pipeline file
+	if pv.PipelineSpec == "" {
+		pipelineUrl, err := url.ParseRequestURI(pv.CodeSourceUrl)
+		if err != nil {
+			pipelineUrl, err = url.ParseRequestURI(pv.PipelineSpecURI)
+			if err != nil {
+				return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. CodeSourceUrl: %v. Please specify a valid URL", pv.PipelineSpecURI, pv.CodeSourceUrl)
+			}
+		}
+		resp, err := s.httpClient.Get(pipelineUrl.String())
+		if err != nil || resp.StatusCode != http.StatusOK {
+			return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
+		}
+		defer resp.Body.Close()
+		pipelineFileName := path.Base(pipelineUrl.String())
+		pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
+		}
+		pv.PipelineSpec = string(pipelineFile)
+		if pv.Name == "" {
+			pv.Name = pipelineFileName
+		}
+	}
+
+	// Validate the pipeline version
+	if err := s.validatePipelineVersionBeforeCreating(pv); err != nil {
+		return nil, util.Wrap(err, "Failed to create a pipeline version due to data validation error. Check the error stack")
+	}
+
+	return s.resourceManager.CreatePipelineVersion(pv)
+}
+
+// Creates a pipeline version.
 // Supports v1beta behavior.
 func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *apiv1beta1.CreatePipelineVersionRequest) (*apiv1beta1.PipelineVersion, error) {
 	if s.options.CollectMetrics {
@@ -614,7 +676,8 @@ func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *a
 	return result, nil
 }
 
-// Creates a v2beta1 pipeline version.
+// Creates a pipeline version.
+// Supports v2beta1 behavior.
 func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *apiv2beta1.CreatePipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
 	if s.options.CollectMetrics {
 		createPipelineVersionRequests.Inc()
@@ -656,74 +719,21 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 	return toApiPipelineVersion(newPipelineVersion), nil
 }
 
-// Returns a v1beta1 pipeline.
-// Default pipeline version is set to be the latest pipeline version.
-// Supports v1beta behavior.
-func (s *PipelineServer) GetPipelineV1(ctx context.Context, request *apiv1beta1.GetPipelineRequest) (*apiv1beta1.Pipeline, error) {
-	if s.options.CollectMetrics {
-		getPipelineRequests.Inc()
+// Fetches a pipeline version for given pipeline id.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) getPipelineVersion(ctx context.Context, pipelineVersionId string) (*model.PipelineVersion, error) {
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
 	}
-	pipelineId := request.GetId()
-	pipeline, err := s.getPipeline(ctx, pipelineId)
+	err := s.canAccessPipelineVersion(ctx, pipelineVersionId, resourceAttributes)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s. Check error stack", pipelineId)
+		return nil, util.Wrapf(err, "Failed to get a pipeline version due to authorization error for pipeline version id %v", pipelineVersionId)
 	}
-
-	pipelineVersion, err := s.getLatestPipelineVersion(ctx, pipelineId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s due to error fetching the latest pipeline version", pipelineId)
-	}
-
-	return toApiPipelineV1(pipeline, pipelineVersion), nil
+	return s.resourceManager.GetPipelineVersion(pipelineVersionId)
 }
 
-// Returns a v2beta1 pipeline.
-func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.GetPipelineRequest) (*apiv2beta1.Pipeline, error) {
-	if s.options.CollectMetrics {
-		getPipelineRequests.Inc()
-	}
-	pipelineId := request.GetPipelineId()
-	pipeline, err := s.getPipeline(ctx, pipelineId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline %s. Check error stack", pipelineId)
-	}
-	return toApiPipeline(pipeline), nil
-}
-
-// Returns a v1beta1 pipeline with the default (latest) pipeline version given name and namespace.
-// Supports v1beta behavior.
-func (s *PipelineServer) GetPipelineByNameV1(ctx context.Context, request *apiv1beta1.GetPipelineByNameRequest) (*apiv1beta1.Pipeline, error) {
-	if s.options.CollectMetrics {
-		getPipelineRequests.Inc()
-	}
-
-	namespace := request.GetNamespace()
-	name := request.GetName()
-
-	pipeline, pipelineVersion, err := s.getPipelineByName(ctx, name, namespace, "v1beta1")
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) with name %s and namespace %s. Check error stack.", name, namespace)
-	}
-	return toApiPipelineV1(pipeline, pipelineVersion), nil
-}
-
-// Returns a v2beta1 pipeline given name and namespace.
-func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2beta1.GetPipelineByNameRequest) (*apiv2beta1.Pipeline, error) {
-	if s.options.CollectMetrics {
-		getPipelineRequests.Inc()
-	}
-
-	namespace := request.GetNamespace()
-	name := request.GetName()
-
-	pipeline, _, err := s.getPipelineByName(ctx, name, namespace, "v2beta1")
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline with name %s and namespace %s. Check error stack.", name, namespace)
-	}
-	return toApiPipeline(pipeline), nil
-}
-
-// Return a v2beta1 pipeline version.
+// Returns a pipeline version.
 // Supports v1beta behavior.
 func (s *PipelineServer) GetPipelineVersionV1(ctx context.Context, request *apiv1beta1.GetPipelineVersionRequest) (*apiv1beta1.PipelineVersion, error) {
 	if s.options.CollectMetrics {
@@ -741,7 +751,8 @@ func (s *PipelineServer) GetPipelineVersionV1(ctx context.Context, request *apiv
 	return apiPipelineVersion, nil
 }
 
-// Return a v2beta1 pipeline version.
+// Returns a pipeline version.
+// Supports v2beta1 behavior.
 func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2beta1.GetPipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
 	if s.options.CollectMetrics {
 		getPipelineVersionRequests.Inc()
@@ -754,106 +765,48 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2b
 	return toApiPipelineVersion(pipelineVersion), nil
 }
 
-// Return the default (latest) pipeline template for a given pipeline id.
-// Supports v1beta behavior.
-func (s *PipelineServer) GetTemplate(ctx context.Context, request *apiv1beta1.GetTemplateRequest) (*apiv1beta1.GetTemplateResponse, error) {
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbList,
-	}
-	pipelineId := request.GetId()
+// Fetches an array of pipeline versions for given search query parameters.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId string, pageToken string, pageSize int32, sortBy string, filter string) ([]*model.PipelineVersion, int, string, error) {
+	// Fail fast of pipeline id or namespace are missing
 	if pipelineId == "" {
-		return nil, util.NewInvalidInputError("Failed to get the default pipeline template (v1beta1). Pipeline id cannot be empty")
+		return nil, 0, "", util.NewInvalidInputError("Failed to list pipeline versions. Pipeline id cannot be empty")
 	}
 
-	err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes)
+	// Validate query parameters
+	opts, err := validatedListOptions(
+		&model.PipelineVersion{},
+		pageToken,
+		int(pageSize),
+		sortBy,
+		filter,
+	)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get the default template (v1beta1) due to authorization error. Verify that you have access to pipeline id %s", pipelineId)
+		return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
 	}
-	template, err := s.resourceManager.GetPipelineLatestTemplate(pipelineId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get the default template (v1beta1) for pipeline %s. Check error stack", pipelineId)
+
+	// Check authorization
+	if common.IsMultiUserMode() {
+		namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
+		if err != nil {
+			return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due to error fetching the namespace for pipeline %v", pipelineId)
+		}
+		if !s.resourceManager.IsDefaultNamespace(namespace) {
+			resourceAttributes := &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      common.RbacResourceVerbGet,
+			}
+			if err := s.checkAccess(ctx, resourceAttributes); err != nil {
+				return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due to authorization error. Check if you have read permission to namespace %v", namespace)
+			}
+		}
 	}
-	return &apiv1beta1.GetTemplateResponse{Template: string(template)}, nil
+
+	// Get pipeline versions
+	return s.resourceManager.ListPipelineVersions(pipelineId, opts)
 }
 
-// Returns pipeline template.
-// Supports v1beta1 behavior.
-func (s *PipelineServer) GetPipelineVersionTemplate(ctx context.Context, request *apiv1beta1.GetPipelineVersionTemplateRequest) (*apiv1beta1.GetTemplateResponse, error) {
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbList,
-	}
-	err := s.canAccessPipelineVersion(ctx, request.GetVersionId(), resourceAttributes)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline template due to authorization error. Verify that you have access to pipeline version %s", request.GetVersionId())
-	}
-	template, err := s.resourceManager.GetPipelineVersionTemplate(request.VersionId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline template for pipeline version %s", request.GetVersionId())
-	}
-
-	return &apiv1beta1.GetTemplateResponse{Template: string(template)}, nil
-}
-
-// Returns v1beta1 pipelines with default v1beta1 pipeline versions for a given query.
-// Supports v1beta behavior.
-func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta1.ListPipelinesRequest) (*apiv1beta1.ListPipelinesResponse, error) {
-	if s.options.CollectMetrics {
-		listPipelineRequests.Inc()
-	}
-	/*
-		Override namespace to support v1beta behavior
-		Assume 3 scenarios and ensure backwards compatibility:
-		1. User does not provide resource reference
-		2. User provides resource reference to public namespace ""
-		3. User provides resource reference to namespace
-	*/
-	namespace := ""
-	filterContext, err := validateFilterV1(request.GetResourceReferenceKey())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to list pipelines (v1beta1) due to filter validation error")
-	}
-	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type != model.NamespaceResourceType {
-		return nil, util.NewInvalidInputError("Failed to list pipelines (v1beta1) due to invalid resource references for pipelines: %v", refKey)
-	}
-	if refKey != nil && refKey.Type == model.NamespaceResourceType {
-		namespace = refKey.ID
-	}
-
-	pageToken := request.GetPageToken()
-	pageSize := request.GetPageSize()
-	sortBy := request.GetSortBy()
-	filter := request.GetFilter()
-
-	pipelines, pipelineVersions, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, filter, "v1beta1")
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to list pipelines (v1beta1) in namespace %s. Check error stack", namespace)
-	}
-
-	apiPipelines := toApiPipelinesV1(pipelines, pipelineVersions)
-	return &apiv1beta1.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
-}
-
-// Returns v2beta1 pipelines for a given query.
-func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.ListPipelinesRequest) (*apiv2beta1.ListPipelinesResponse, error) {
-	if s.options.CollectMetrics {
-		listPipelineRequests.Inc()
-	}
-
-	namespace := request.GetNamespace()
-	pageToken := request.GetPageToken()
-	pageSize := request.GetPageSize()
-	sortBy := request.GetSortBy()
-	filter := request.GetFilter()
-
-	pipelines, _, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, filter, "v2beta1")
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
-	}
-	return &apiv2beta1.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
-}
-
-// Returns a list of v1beta1 pipeline versions for a given query.
+// Returns an array of pipeline versions for a given query.
 // Supports v1beta1 behavior.
 func (s *PipelineServer) ListPipelineVersionsV1(ctx context.Context, request *apiv1beta1.ListPipelineVersionsRequest) (*apiv1beta1.ListPipelineVersionsResponse, error) {
 	if s.options.CollectMetrics {
@@ -885,7 +838,8 @@ func (s *PipelineServer) ListPipelineVersionsV1(ctx context.Context, request *ap
 	}, nil
 }
 
-// Returns a list of v2beta1 pipeline versions for a given query.
+// Returns an array of pipeline versions for a given query.
+// Supports v2beta1 behavior.
 func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv2beta1.ListPipelineVersionsRequest) (*apiv2beta1.ListPipelineVersionsResponse, error) {
 	if s.options.CollectMetrics {
 		listPipelineVersionRequests.Inc()
@@ -909,62 +863,31 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 	}, nil
 }
 
-// TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
-// Updates default pipeline version for a given pipeline.
-// Supports v1beta1 behavior.
-func (s *PipelineServer) UpdatePipelineDefaultVersionV1(ctx context.Context, request *apiv1beta1.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
-	if s.options.CollectMetrics {
-		updatePipelineDefaultVersionRequests.Inc()
+// Removes a pipeline version.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) deletePipelineVersion(ctx context.Context, pipelineId string, pipelineVersionId string) error {
+	// Fail fast
+	if pipelineId == "" {
+		return util.NewInvalidInputError("Failed to delete a pipeline version id %v due missing pipeline id", pipelineVersionId)
 	}
+	if pipelineVersionId == "" {
+		return util.NewInvalidInputError("Failed to delete a pipeline version due missing pipeline version id")
+	}
+
+	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbUpdate,
+		Verb: common.RbacResourceVerbList,
 	}
-	err := s.canAccessPipeline(ctx, request.GetPipelineId(), resourceAttributes)
+	err := s.canAccessPipelineVersion(ctx, pipelineVersionId, resourceAttributes)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to update (v1beta1) default pipeline version to %s for pipeline %s due to authorization error", request.GetVersionId(), request.GetPipelineId())
+		return util.Wrapf(err, "Failed to delete a pipeline version id %v due to authorization error for pipeline id %v", pipelineVersionId, pipelineId)
 	}
-	err = s.resourceManager.UpdatePipelineDefaultVersion(request.GetPipelineId(), request.GetVersionId())
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to update (v1beta1) default pipeline version to %s for pipeline %s. Check error stack", request.GetVersionId(), request.GetPipelineId())
-	}
-	return &empty.Empty{}, nil
+
+	return s.resourceManager.DeletePipelineVersion(pipelineVersionId)
 }
 
-// Deletes a v1beta1 pipeline.
-func (s *PipelineServer) DeletePipelineV1(ctx context.Context, request *apiv1beta1.DeletePipelineRequest) (*empty.Empty, error) {
-	if s.options.CollectMetrics {
-		deletePipelineRequests.Inc()
-	}
-
-	if err := s.deletePipeline(ctx, request.GetId()); err != nil {
-		return nil, util.Wrapf(err, "Failed to delete pipeline (v1beta1) %s. Check error stack", request.GetId())
-	}
-
-	if s.options.CollectMetrics {
-		pipelineCount.Dec()
-	}
-
-	return &empty.Empty{}, nil
-}
-
-// Deletes a v2beta1 pipeline.
-func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1.DeletePipelineRequest) (*empty.Empty, error) {
-	if s.options.CollectMetrics {
-		deletePipelineRequests.Inc()
-	}
-
-	if err := s.deletePipeline(ctx, request.GetPipelineId()); err != nil {
-		return nil, util.Wrapf(err, "Failed to delete pipeline %s. Check error stack", request.GetPipelineId())
-	}
-
-	if s.options.CollectMetrics {
-		pipelineCount.Dec()
-	}
-
-	return &empty.Empty{}, nil
-}
-
-// Deletes a v1beta1 pipeline version.
+// Deletes a pipeline version.
+// Supports v1beta1 behavior.
 func (s *PipelineServer) DeletePipelineVersionV1(ctx context.Context, request *apiv1beta1.DeletePipelineVersionRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineVersionRequests.Inc()
@@ -993,7 +916,8 @@ func (s *PipelineServer) DeletePipelineVersionV1(ctx context.Context, request *a
 	return &empty.Empty{}, nil
 }
 
-// Deletes a v2beta1 pipeline version.
+// Deletes a pipeline version.
+// Supports v2beta1 behavior.
 func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *apiv2beta1.DeletePipelineVersionRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineVersionRequests.Inc()
@@ -1018,4 +942,100 @@ func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api
 		pipelineVersionCount.Dec()
 	}
 	return &empty.Empty{}, nil
+}
+
+// Returns pipeline template.
+// Supports v1beta1 behavior.
+func (s *PipelineServer) GetPipelineVersionTemplate(ctx context.Context, request *apiv1beta1.GetPipelineVersionTemplateRequest) (*apiv1beta1.GetTemplateResponse, error) {
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	err := s.canAccessPipelineVersion(ctx, request.GetVersionId(), resourceAttributes)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline template due to authorization error. Verify that you have access to pipeline version %s", request.GetVersionId())
+	}
+	template, err := s.resourceManager.GetPipelineVersionTemplate(request.VersionId)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline template for pipeline version %s", request.GetVersionId())
+	}
+
+	return &apiv1beta1.GetTemplateResponse{Template: string(template)}, nil
+}
+
+// Checks if a user can access a pipeline version.
+func (s *PipelineServer) canAccessPipelineVersion(ctx context.Context, versionId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	if !common.IsMultiUserMode() {
+		// Skip authorization if not multi-user mode.
+		return nil
+	}
+	if versionId != "" {
+		namespace, err := s.resourceManager.FetchNamespaceFromPipelineVersionId(versionId)
+		if err != nil {
+			return util.Wrapf(err, "Failed to access pipeline version %s. Check if it exists and have a namespace assigned", versionId)
+		}
+		// Allow users to access pipelines in the default namespace.
+		if s.resourceManager.IsDefaultNamespace(namespace) {
+			return nil
+		}
+		resourceAttributes.Namespace = namespace
+	}
+	err := s.checkAccess(ctx, resourceAttributes)
+	if err != nil {
+		return util.Wrapf(err, "Failed to access pipeline version %s. Check if you have access to namespace %s", versionId, resourceAttributes.Namespace)
+	}
+	return nil
+}
+
+// Checks if a user can access a pipeline.
+func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	if !common.IsMultiUserMode() {
+		// Skip authorization if not multi-user mode.
+		return nil
+	}
+	if pipelineId != "" {
+		namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
+		if err != nil {
+			return util.Wrapf(err, "Failed to access pipeline %s. Check if it exists and have a namespace assigned", pipelineId)
+		}
+		// Allow users to access pipelines in the default namespace.
+		if s.resourceManager.IsDefaultNamespace(namespace) {
+			return nil
+		}
+		resourceAttributes.Namespace = namespace
+	}
+	err := s.checkAccess(ctx, resourceAttributes)
+	if err != nil {
+		return util.Wrapf(err, "Failed to access pipeline %s. Check if you have access to namespace %s", pipelineId, resourceAttributes.Namespace)
+	}
+	return nil
+}
+
+// Checks at the resource manager whether a user has access to a resource.
+func (s *PipelineServer) checkAccess(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypePipelines
+	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API")
+	}
+	return nil
+}
+
+// TODO(gkcalat): consider updating this when changing the naming logic for an uploaded pipeline (#8695).
+// This method extract the common logic of naming the pipeline.
+// API caller can either explicitly name the pipeline through query string ?name=foobar.
+// or API server can use the file name by default.
+func buildPipelineName(queryString string, fileName string) (string, error) {
+	pipelineName, err := url.QueryUnescape(queryString)
+	if err != nil {
+		return "", util.NewInvalidInputErrorWithDetails(err, fmt.Sprintf("Failed to extract pipeline's name fro the query as it has invalid format: %s", queryString))
+	}
+	if pipelineName == "" {
+		pipelineName = fileName
+	}
+	if len(pipelineName) > common.MaxFileNameLength {
+		return "", util.NewInvalidInputError("Failed to extract pipeline's name as it is too long. Maximum length is %v", common.MaxFileNameLength)
+	}
+	return pipelineName, nil
 }

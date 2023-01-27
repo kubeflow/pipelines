@@ -52,113 +52,6 @@ var experimentColumns = []string{
 	"StorageState",
 }
 
-// factory function for experiment store.
-func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
-	return &ExperimentStore{
-		db:                     db,
-		time:                   time,
-		uuid:                   uuid,
-		resourceReferenceStore: NewResourceReferenceStore(db),
-		defaultExperimentStore: NewDefaultExperimentStore(db),
-	}
-}
-
-func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
-	var experiments []*model.Experiment
-	for rows.Next() {
-		var uuid, name, description, namespace, storageState string
-		var createdAtInSec int64
-		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace, &storageState)
-		if err != nil {
-			return experiments, err
-		}
-		experiment := &model.Experiment{
-			UUID:           uuid,
-			Name:           name,
-			Description:    description,
-			CreatedAtInSec: createdAtInSec,
-			Namespace:      namespace,
-			StorageState:   model.StorageState(storageState).ToV2(),
-		}
-		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
-		if experiment.StorageState == "" || experiment.StorageState == model.StorageStateUnspecified {
-			experiment.StorageState = model.StorageStateAvailable
-		}
-		experiments = append(experiments, experiment)
-	}
-	return experiments, nil
-}
-
-func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
-	newExperiment := *experiment
-	now := s.time.Now().Unix()
-	newExperiment.CreatedAtInSec = now
-	id, err := s.uuid.NewRandom()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create an experiment id")
-	}
-	newExperiment.UUID = id.String()
-
-	if newExperiment.StorageState == "" || newExperiment.StorageState == model.StorageStateUnspecified {
-		newExperiment.StorageState = model.StorageStateAvailable
-	}
-	if !newExperiment.StorageState.IsValid() {
-		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q", newExperiment.StorageState)
-	}
-
-	sql, args, err := sq.
-		Insert("experiments").
-		SetMap(sq.Eq{
-			"UUID":           newExperiment.UUID,
-			"CreatedAtInSec": newExperiment.CreatedAtInSec,
-			"Name":           newExperiment.Name,
-			"Description":    newExperiment.Description,
-			"Namespace":      newExperiment.Namespace,
-			"StorageState":   newExperiment.StorageState.ToV2().ToString(),
-		}).
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to insert experiment to experiment table: %v",
-			err.Error())
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		if s.db.IsDuplicateError(err) {
-			return nil, util.NewAlreadyExistError(
-				"Failed to create a new experiment. The name %v already exists. Please specify a new name", experiment.Name)
-		}
-		return nil, util.NewInternalServerError(err, "Failed to add experiment to experiment table: %v",
-			err.Error())
-	}
-	return &newExperiment, nil
-}
-
-func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
-	sql, args, err := sq.
-		Select(experimentColumns...).
-		From("experiments").
-		Where(sq.Eq{"uuid": uuid}).
-		Limit(1).
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
-	}
-	defer r.Close()
-	experiments, err := s.scanRows(r)
-
-	if err != nil || len(experiments) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
-	}
-	if len(experiments) == 0 {
-		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
-	}
-	return experiments[0], nil
-}
-
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
 // total_size. The total_size does not reflect the page size.
 func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error) {
@@ -240,6 +133,102 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 
 	npt, err := opts.NextPageToken(exps[opts.PageSize])
 	return exps[:opts.PageSize], totalSize, npt, err
+}
+
+func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
+	sql, args, err := sq.
+		Select(experimentColumns...).
+		From("experiments").
+		Where(sq.Eq{"uuid": uuid}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
+	}
+	defer r.Close()
+	experiments, err := s.scanRows(r)
+
+	if err != nil || len(experiments) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
+	}
+	if len(experiments) == 0 {
+		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
+	}
+	return experiments[0], nil
+}
+
+func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
+	var experiments []*model.Experiment
+	for rows.Next() {
+		var uuid, name, description, namespace, storageState string
+		var createdAtInSec int64
+		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace, &storageState)
+		if err != nil {
+			return experiments, err
+		}
+		experiment := &model.Experiment{
+			UUID:           uuid,
+			Name:           name,
+			Description:    description,
+			CreatedAtInSec: createdAtInSec,
+			Namespace:      namespace,
+			StorageState:   model.StorageState(storageState).ToV2(),
+		}
+		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
+		if experiment.StorageState == "" || experiment.StorageState == model.StorageStateUnspecified {
+			experiment.StorageState = model.StorageStateAvailable
+		}
+		experiments = append(experiments, experiment)
+	}
+	return experiments, nil
+}
+
+func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+	newExperiment := *experiment
+	now := s.time.Now().Unix()
+	newExperiment.CreatedAtInSec = now
+	id, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create an experiment id")
+	}
+	newExperiment.UUID = id.String()
+
+	if newExperiment.StorageState == "" || newExperiment.StorageState == model.StorageStateUnspecified {
+		newExperiment.StorageState = model.StorageStateAvailable
+	}
+	if !newExperiment.StorageState.IsValid() {
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q", newExperiment.StorageState)
+	}
+
+	sql, args, err := sq.
+		Insert("experiments").
+		SetMap(sq.Eq{
+			"UUID":           newExperiment.UUID,
+			"CreatedAtInSec": newExperiment.CreatedAtInSec,
+			"Name":           newExperiment.Name,
+			"Description":    newExperiment.Description,
+			"Namespace":      newExperiment.Namespace,
+			"StorageState":   newExperiment.StorageState.ToV2().ToString(),
+		}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to insert experiment to experiment table: %v",
+			err.Error())
+	}
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		if s.db.IsDuplicateError(err) {
+			return nil, util.NewAlreadyExistError(
+				"Failed to create a new experiment. The name %v already exists. Please specify a new name", experiment.Name)
+		}
+		return nil, util.NewInternalServerError(err, "Failed to add experiment to experiment table: %v",
+			err.Error())
+	}
+	return &newExperiment, nil
 }
 
 func (s *ExperimentStore) DeleteExperiment(id string) error {
@@ -423,4 +412,15 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 	}
 
 	return nil
+}
+
+// factory function for experiment store.
+func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
+	return &ExperimentStore{
+		db:                     db,
+		time:                   time,
+		uuid:                   uuid,
+		resourceReferenceStore: NewResourceReferenceStore(db),
+		defaultExperimentStore: NewDefaultExperimentStore(db),
+	}
 }

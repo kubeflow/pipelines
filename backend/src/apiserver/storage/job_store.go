@@ -82,13 +82,137 @@ type JobStore struct {
 	time                   util.TimeInterface
 }
 
-// factory function for job store.
-func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
-	return &JobStore{
-		db:                     db,
-		resourceReferenceStore: NewResourceReferenceStore(db),
-		time:                   time,
+// Runs two SQL queries in a transaction to return a list of matching jobs, as well as their
+// total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
+// matching the supplied filters and resource references.
+func (s *JobStore) ListJobs(
+	filterContext *model.FilterContext, opts *list.Options,
+) ([]*model.Job, int, string, error) {
+	errorF := func(err error) ([]*model.Job, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
+
+	rowsSql, rowsArgs, err := s.buildSelectJobsQuery(false, opts, filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+
+	sizeSql, sizeArgs, err := s.buildSelectJobsQuery(true, opts, filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		glog.Errorf("Failed to start transaction to list jobs")
+		return errorF(err)
+	}
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		return errorF(err)
+	}
+	if err := rows.Err(); err != nil {
+		return errorF(err)
+	}
+	jobs, err := s.scanRows(rows)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	defer rows.Close()
+
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	if err := sizeRow.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	totalSize, err := list.ScanRowToTotalSize(sizeRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	defer sizeRow.Close()
+
+	err = tx.Commit()
+	if err != nil {
+		glog.Errorf("Failed to commit transaction to list jobs")
+		return errorF(err)
+	}
+
+	if len(jobs) <= opts.PageSize {
+		return jobs, totalSize, "", nil
+	}
+
+	npt, err := opts.NextPageToken(jobs[opts.PageSize])
+	return jobs[:opts.PageSize], totalSize, npt, err
+}
+
+func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
+	filterContext *model.FilterContext,
+) (string, []interface{}, error) {
+	var filteredSelectBuilder sq.SelectBuilder
+	var err error
+
+	refKey := filterContext.ReferenceKey
+	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
+		filteredSelectBuilder, err = list.FilterOnExperiment("jobs", jobColumns,
+			selectCount, refKey.ID)
+	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
+		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
+			selectCount, refKey.ID)
+	} else {
+		filteredSelectBuilder, err = list.FilterOnResourceReference("jobs", jobColumns,
+			model.JobResourceType, selectCount, filterContext)
+	}
+	if err != nil {
+		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
+	}
+	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
+
+	// If we're not just counting, then also add select columns and perform a left join
+	// to get resource reference information. Also add pagination.
+	if !selectCount {
+		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
+		sqlBuilder = s.addResourceReferences(sqlBuilder)
+		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
+	}
+	sql, args, err := sqlBuilder.ToSql()
+	if err != nil {
+		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
+	}
+
+	return sql, args, err
+}
+
+func (s *JobStore) GetJob(id string) (*model.Job, error) {
+	sql, args, err := s.addResourceReferences(sq.Select(jobColumns...).From("jobs")).
+		Where(sq.Eq{"uuid": id}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get job: %v",
+			err.Error())
+	}
+	row, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get job: %v",
+			err.Error())
+	}
+	defer row.Close()
+	jobs, err := s.scanRows(row)
+	if err != nil || len(jobs) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get job: %v", err.Error())
+	}
+	if len(jobs) == 0 {
+		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(id))
+	}
+	return jobs[0], nil
 }
 
 func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
@@ -168,41 +292,33 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 	return jobs, nil
 }
 
-func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
-	filterContext *model.FilterContext,
-) (string, []interface{}, error) {
-	var filteredSelectBuilder sq.SelectBuilder
-	var err error
-
-	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = list.FilterOnExperiment("jobs", jobColumns,
-			selectCount, refKey.ID)
-	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
-			selectCount, refKey.ID)
-	} else {
-		filteredSelectBuilder, err = list.FilterOnResourceReference("jobs", jobColumns,
-			model.JobResourceType, selectCount, filterContext)
-	}
+func (s *JobStore) DeleteJob(id string) error {
+	jobSql, jobArgs, err := sq.Delete("jobs").Where(sq.Eq{"UUID": id}).ToSql()
 	if err != nil {
-		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
+		return util.NewInternalServerError(err,
+			"Failed to create query to delete job: %s", id)
 	}
-	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
-
-	// If we're not just counting, then also add select columns and perform a left join
-	// to get resource reference information. Also add pagination.
-	if !selectCount {
-		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
-		sqlBuilder = s.addResourceReferences(sqlBuilder)
-		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
-	}
-	sql, args, err := sqlBuilder.ToSql()
+	// Use a transaction to make sure both run and its resource references are stored.
+	tx, err := s.db.Begin()
 	if err != nil {
-		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job")
 	}
-
-	return sql, args, err
+	_, err = tx.Exec(jobSql, jobArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete job %s from table", id)
+	}
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.JobResourceType)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete resource references from table for job %v ", id)
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete job %v and its resource references from table", id)
+	}
+	return nil
 }
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
@@ -273,102 +389,6 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 		return nil, util.NewInternalServerError(err, "Failed to store job %v and its resource references to table", j.DisplayName)
 	}
 	return j, nil
-}
-
-func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	sql, args, err := s.addResourceReferences(sq.Select(jobColumns...).From("jobs")).
-		Where(sq.Eq{"uuid": id}).
-		Limit(1).
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to get job: %v",
-			err.Error())
-	}
-	row, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get job: %v",
-			err.Error())
-	}
-	defer row.Close()
-	jobs, err := s.scanRows(row)
-	if err != nil || len(jobs) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get job: %v", err.Error())
-	}
-	if len(jobs) == 0 {
-		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(id))
-	}
-	return jobs[0], nil
-}
-
-// Runs two SQL queries in a transaction to return a list of matching jobs, as well as their
-// total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
-// matching the supplied filters and resource references.
-func (s *JobStore) ListJobs(
-	filterContext *model.FilterContext, opts *list.Options,
-) ([]*model.Job, int, string, error) {
-	errorF := func(err error) ([]*model.Job, int, string, error) {
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
-	}
-
-	rowsSql, rowsArgs, err := s.buildSelectJobsQuery(false, opts, filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-
-	sizeSql, sizeArgs, err := s.buildSelectJobsQuery(true, opts, filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-
-	// Use a transaction to make sure we're returning the total_size of the same rows queried
-	tx, err := s.db.Begin()
-	if err != nil {
-		glog.Errorf("Failed to start transaction to list jobs")
-		return errorF(err)
-	}
-
-	rows, err := tx.Query(rowsSql, rowsArgs...)
-	if err != nil {
-		return errorF(err)
-	}
-	if err := rows.Err(); err != nil {
-		return errorF(err)
-	}
-	jobs, err := s.scanRows(rows)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	defer rows.Close()
-
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	if err := sizeRow.Err(); err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	totalSize, err := list.ScanRowToTotalSize(sizeRow)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	defer sizeRow.Close()
-
-	err = tx.Commit()
-	if err != nil {
-		glog.Errorf("Failed to commit transaction to list jobs")
-		return errorF(err)
-	}
-
-	if len(jobs) <= opts.PageSize {
-		return jobs, totalSize, "", nil
-	}
-
-	npt, err := opts.NextPageToken(jobs[opts.PageSize])
-	return jobs[:opts.PageSize], totalSize, npt, err
 }
 
 func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
@@ -447,31 +467,11 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	return nil
 }
 
-func (s *JobStore) DeleteJob(id string) error {
-	jobSql, jobArgs, err := sq.Delete("jobs").Where(sq.Eq{"UUID": id}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to delete job: %s", id)
+// factory function for job store.
+func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
+	return &JobStore{
+		db:                     db,
+		resourceReferenceStore: NewResourceReferenceStore(db),
+		time:                   time,
 	}
-	// Use a transaction to make sure both run and its resource references are stored.
-	tx, err := s.db.Begin()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job")
-	}
-	_, err = tx.Exec(jobSql, jobArgs...)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to delete job %s from table", id)
-	}
-	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.JobResourceType)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to delete resource references from table for job %v ", id)
-	}
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to delete job %v and its resource references from table", id)
-	}
-	return nil
 }

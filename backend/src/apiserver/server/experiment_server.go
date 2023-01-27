@@ -80,47 +80,6 @@ type ExperimentServer struct {
 	options         *ExperimentServerOptions
 }
 
-func NewExperimentServer(resourceManager *resource.ResourceManager, options *ExperimentServerOptions) *ExperimentServer {
-	return &ExperimentServer{resourceManager: resourceManager, options: options}
-}
-
-// TODO(chensun): consider refactoring the code to get rid of double-query of experiment.
-func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if !common.IsMultiUserMode() {
-		// Skip authorization if not multi-user mode.
-		return nil
-	}
-
-	if len(experimentID) > 0 {
-		experiment, err := s.resourceManager.GetExperiment(experimentID)
-		if err != nil {
-			return util.Wrap(err, "Failed to authorize with the experiment ID")
-		}
-		if len(resourceAttributes.Namespace) == 0 {
-			if len(experiment.Namespace) == 0 {
-				return util.NewInternalServerError(
-					errors.New("Empty namespace"),
-					"The experiment doesn't have a valid namespace",
-				)
-			}
-			resourceAttributes.Namespace = experiment.Namespace
-		}
-		if len(resourceAttributes.Name) == 0 {
-			resourceAttributes.Name = experiment.Name
-		}
-	}
-
-	resourceAttributes.Group = common.RbacPipelinesGroup
-	resourceAttributes.Version = common.RbacPipelinesVersion
-	resourceAttributes.Resource = common.RbacResourceTypeExperiments
-
-	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API")
-	}
-	return nil
-}
-
 func (s *ExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
 	experiment.Namespace = s.resourceManager.ReplaceNamespace(experiment.Namespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -318,6 +277,81 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 	}, nil
 }
 
+func (s *ExperimentServer) deleteExperiment(ctx context.Context, experimentId string) error {
+	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize the request")
+	}
+	return s.resourceManager.DeleteExperiment(experimentId)
+}
+
+func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deleteExperimentRequests.Inc()
+	}
+
+	if err := s.deleteExperiment(ctx, request.GetId()); err != nil {
+		return nil, util.Wrap(err, "Failed to delete v1beta1 experiment")
+	}
+
+	if s.options.CollectMetrics {
+		experimentCount.Dec()
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2beta1.DeleteExperimentRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deleteExperimentRequests.Inc()
+	}
+
+	if err := s.deleteExperiment(ctx, request.GetExperimentId()); err != nil {
+		return nil, util.Wrap(err, "Failed to delete experiment")
+	}
+
+	if s.options.CollectMetrics {
+		experimentCount.Dec()
+	}
+	return &empty.Empty{}, nil
+}
+
+// TODO(chensun): consider refactoring the code to get rid of double-query of experiment.
+func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	if !common.IsMultiUserMode() {
+		// Skip authorization if not multi-user mode.
+		return nil
+	}
+
+	if len(experimentID) > 0 {
+		experiment, err := s.resourceManager.GetExperiment(experimentID)
+		if err != nil {
+			return util.Wrap(err, "Failed to authorize with the experiment ID")
+		}
+		if len(resourceAttributes.Namespace) == 0 {
+			if len(experiment.Namespace) == 0 {
+				return util.NewInternalServerError(
+					errors.New("Empty namespace"),
+					"The experiment doesn't have a valid namespace",
+				)
+			}
+			resourceAttributes.Namespace = experiment.Namespace
+		}
+		if len(resourceAttributes.Name) == 0 {
+			resourceAttributes.Name = experiment.Name
+		}
+	}
+
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypeExperiments
+
+	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API")
+	}
+	return nil
+}
+
 func (s *ExperimentServer) archiveExperiment(ctx context.Context, experimentId string) error {
 	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
@@ -377,40 +411,6 @@ func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *api
 	return &empty.Empty{}, nil
 }
 
-func (s *ExperimentServer) deleteExperiment(ctx context.Context, experimentId string) error {
-	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize the request")
-	}
-	return s.resourceManager.DeleteExperiment(experimentId)
-}
-
-func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*empty.Empty, error) {
-	if s.options.CollectMetrics {
-		deleteExperimentRequests.Inc()
-	}
-
-	if err := s.deleteExperiment(ctx, request.GetId()); err != nil {
-		return nil, util.Wrap(err, "Failed to delete v1beta1 experiment")
-	}
-
-	if s.options.CollectMetrics {
-		experimentCount.Dec()
-	}
-	return &empty.Empty{}, nil
-}
-
-func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2beta1.DeleteExperimentRequest) (*empty.Empty, error) {
-	if s.options.CollectMetrics {
-		deleteExperimentRequests.Inc()
-	}
-
-	if err := s.deleteExperiment(ctx, request.GetExperimentId()); err != nil {
-		return nil, util.Wrap(err, "Failed to delete experiment")
-	}
-
-	if s.options.CollectMetrics {
-		experimentCount.Dec()
-	}
-	return &empty.Empty{}, nil
+func NewExperimentServer(resourceManager *resource.ResourceManager, options *ExperimentServerOptions) *ExperimentServer {
+	return &ExperimentServer{resourceManager: resourceManager, options: options}
 }
