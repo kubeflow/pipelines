@@ -106,7 +106,7 @@ func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerO
 	return &RunServer{resourceManager: resourceManager, options: options}
 }
 
-// Creates a run. Not exported. Not exported.
+// Creates a run. Not exported.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, error) {
 	if run.ExperimentId == "" {

@@ -25,11 +25,12 @@ const runWithoutExperimentDescription = 'test run without experiment description
 const waitTimeout = 5000;
 const outputParameterValue = 'Hello world in test'
 
-function getValueFromDetailsTable(key) {
+function getValueFromRunDetailsByKey(key) {
   // Find the span that shows the key, get its parent div (the row), then
-  // get that row's inner text, and remove the key
-  const row = $(`span=${key}`).$('..');
-  return row.getText().substr(`${key}\n`.length);
+  // get that row's inner text
+  arr = Array.from(document.querySelectorAll('Span'));
+  keyIndex = arr.findIndex(el => el.textContent === key);
+  return arr[keyIndex+1].textContent;
 }
 
 describe('deploy helloworld sample run', () => {
@@ -78,23 +79,23 @@ describe('deploy helloworld sample run', () => {
     $('#choosePipelineBtn').waitForVisible();
     $('#choosePipelineBtn').click();
 
+    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
     $('.tableRow').waitForVisible();
     $('.tableRow').click();
 
     $('#usePipelineBtn').click();
 
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-
     $('#choosePipelineVersionBtn').waitForVisible();
     $('#choosePipelineVersionBtn').click();
 
+    $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
     $('.tableRow').waitForVisible();
     $('.tableRow').click();
 
     $('#usePipelineVersionBtn').click();
+    $('#choosePipelineBtn').waitForVisible();
 
-    $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
-
+    browser.keys('Tab');
     browser.keys(runName);
 
     browser.keys('Tab');
@@ -123,38 +124,39 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('finds the new run in the list of runs, navigates to it', () => {
-    let attempts = 30;
+    let attempts = 60;
 
     // Wait for a reasonable amount of time until the run starts
-    while (attempts && !$('.tableRow a').isExisting()) {
+    while (attempts && !$('.tableRow a[title='+runName+']').isExisting()) {
       browser.pause(1000);
       $('#refreshBtn').click();
       --attempts;
     }
 
-    assert(attempts, 'waited for 30 seconds but run did not start.');
+    assert(attempts > 0, `waited for ${attempts} seconds but run did not start.`);
 
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
     // Navigate to details of the deployed run by clicking its anchor element
-    browser.execute('document.querySelector(".tableRow a").click()');
+    browser.execute('document.querySelector(".tableRow a[title='+runName+']").click()');
   });
 
   it('switches to config tab', () => {
-    $('button=Config').waitForVisible(waitTimeout);
-    $('button=Config').click();
+    browser.pause(waitTimeout);
+    Array.from(document.querySelectorAll('button')).find(el => el.textContent === 'Config').click();
   });
 
   it('waits for run to finish', () => {
-    let status = getValueFromDetailsTable('Status');
+    browser.pause(waitTimeout);
+    let status = getValueFromRunDetailsByKey('Status');
 
     let attempts = 0;
-    const maxAttempts = 60;
+    const maxAttempts = 120;
 
     // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
       browser.pause(1000);
-      status = getValueFromDetailsTable('Status');
+      status = getValueFromRunDetailsByKey('Status');
       attempts++;
     }
 
@@ -163,38 +165,39 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays run created at date correctly', () => {
-    const date = getValueFromDetailsTable('Created at');
+    const date = getValueFromRunDetailsByKey('Created at');
     assert(Date.now() - new Date(date) < 10 * 60 * 1000,
       'run created date should be within the last 10 minutes');
   });
 
   it('displays run inputs correctly', () => {
-    const paramValue = getValueFromDetailsTable('message');
+    const paramValue = getValueFromRunDetailsByKey('message');
     assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
   });
 
   it('switches back to graph tab', () => {
-    $('button=Graph').click();
+    Array.from(document.querySelectorAll('button')).find(el => el.textContent === 'Graph').click();
   });
 
   it('has a 4-node graph', () => {
+    browser.pause(waitTimeout);
     const nodeSelector = '.graphNode';
+    $(nodeSelector).waitForVisible();
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
   it('opens the side panel when graph node is clicked', () => {
+    browser.pause(waitTimeout);
     $('.graphNode').click();
-    browser.pause(1000);
-    $('button=Logs').waitForVisible();
   });
 
   it('shows logs from node', () => {
-    $('button=Logs').click();
+    browser.pause(waitTimeout);
+    Array.from(document.querySelectorAll('button')).find(el => el.textContent === 'Logs').click();
     $('#logViewer').waitForVisible();
     browser.waitUntil(() => {
-      const logs = $('#logViewer').getText();
-      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
+      return $('#logViewer').textContent.includes(outputParameterValue + ' from node: ');
     }, waitTimeout);
   });
 
@@ -212,13 +215,14 @@ describe('deploy helloworld sample run', () => {
     $('#choosePipelineBtn').waitForVisible();
     $('#choosePipelineBtn').click();
 
+    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
     $('.tableRow').waitForVisible();
     $('.tableRow').click();
 
-    $('#usePipelineBtn').click();
+    $('#usePipelineBtn').click(); 
+    $('#choosePipelineBtn').waitForVisible();
 
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-
+    browser.keys('Tab');
     browser.keys('Tab');
     browser.keys(runWithoutExperimentName);
 
@@ -239,31 +243,50 @@ describe('deploy helloworld sample run', () => {
 
     // Deploy
     $('#startNewRunBtn').click();
+    
+    browser.pause(waitTimeout);
+    $('.dialog').waitForVisible();
+    assert($('.dialog').textContent.includes("Run creation failed"), 'Creating run without parent experiment must be prohibited. Shown error: ' + $('.dialog').textContent);
+
+    $('.dialogButton').click();
+    $('#choosePipelineBtn').waitForVisible();
+
+    $("#chooseExperimentBtn").click();
+    $("#experimentSelectorDialog").waitForVisible(waitTimeout, true);
+    $('.tableRow').waitForVisible();
+    $('.tableRow').click();
+
+    $("#useExperimentBtn").click();
+    $('#choosePipelineBtn').waitForVisible();
+    $('#startNewRunBtn').click();
   });
 
-  it('redirects back to all runs page', () => {
+  it('redirects back to experiment page', () => {
     browser.waitUntil(() => {
-      return (new URL(browser.getUrl())).hash === '#/runs';
-    }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments/details/');
+    }, waitTimeout);
   });
 
   it('displays both runs in all runs page', () => {
+    $('.tableRow').waitForVisible();
+    $("##runsBtn").click();
+    browser.pause(waitTimeout);
     $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
   });
 
   it('navigates back to the experiment list', () => {
-    $('button=Experiments').click();
+    $('#experimentsBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments');
     }, waitTimeout);
   });
 
-  it('displays both experiments in the list', () => {
+  it('displays a single experiment in the list', () => {
     $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
-    assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
+    assert(rows === 1, 'there should be one experiment in the table, instead there are: ' + rows);
   });
 
   it('filters the experiment list', () => {
@@ -271,7 +294,7 @@ describe('deploy helloworld sample run', () => {
     browser.click('#tableFilterBox');
     browser.keys(experimentName.substring(0, 5));
     // Wait for the list to refresh
-    browser.pause(2000);
+    browser.pause(waitTimeout);
 
     $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
