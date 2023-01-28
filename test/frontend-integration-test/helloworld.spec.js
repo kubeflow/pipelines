@@ -48,6 +48,7 @@ describe('deploy helloworld sample run', () => {
   it('uploads the sample pipeline', () => {
     $('#localPackageBtn').click();
     browser.chooseFile('#dropZone input[type="file"]', './helloworld.yaml');
+    $('#newPipelineName').clearValue()
     $('#newPipelineName').setValue(pipelineName);
     $('#createNewPipelineOrVersionBtn').click();
     browser.waitUntil(() => {
@@ -95,6 +96,7 @@ describe('deploy helloworld sample run', () => {
 
     $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
 
+    browser.keys('Tab');
     browser.keys(runName);
 
     browser.keys('Tab');
@@ -143,6 +145,7 @@ describe('deploy helloworld sample run', () => {
   it('switches to config tab', () => {
     $('button=Config').waitForVisible(waitTimeout);
     $('button=Config').click();
+    browser.pause(waitTimeout);
   });
 
   it('waits for run to finish', () => {
@@ -174,24 +177,28 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('switches back to graph tab', () => {
+    $('button=Graph').waitForVisible(waitTimeout);
     $('button=Graph').click();
+    browser.pause(waitTimeout);
   });
 
   it('has a 4-node graph', () => {
     const nodeSelector = '.graphNode';
+    $(nodeSelector).waitForVisible(waitTimeout);
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
   it('opens the side panel when graph node is clicked', () => {
+    $('.graphNode').waitForVisible(waitTimeout);
     $('.graphNode').click();
-    browser.pause(1000);
-    $('button=Logs').waitForVisible();
+    browser.pause(waitTimeout);
   });
 
   it('shows logs from node', () => {
+    $('button=Logs').waitForVisible(waitTimeout);
     $('button=Logs').click();
-    $('#logViewer').waitForVisible();
+    $('#logViewer').waitForVisible(waitTimeout);
     browser.waitUntil(() => {
       const logs = $('#logViewer').getText();
       return logs.indexOf(outputParameterValue + ' from node: ') > -1;
@@ -218,7 +225,7 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-
+    browser.keys('Tab');
     browser.keys('Tab');
     browser.keys(runWithoutExperimentName);
 
