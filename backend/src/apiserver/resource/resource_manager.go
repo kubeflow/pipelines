@@ -474,7 +474,14 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	executionSpec.SetExecutionNamespace(run.Namespace)
 
 	// Create argo workflow CR resource
-	newExecSpec, err := r.getWorkflowClient(run.Namespace).Create(ctx, executionSpec, v1.CreateOptions{})
+	k8sNamespace := run.Namespace
+	if k8sNamespace == "" {
+		k8sNamespace = common.GetPodNamespace()
+	}
+	if k8sNamespace == "" {
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
+	}
+	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
 	}
@@ -975,7 +982,14 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	}
 
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
-	newScheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Create(ctx, scheduledWorkflow)
+	k8sNamespace := job.Namespace
+	if k8sNamespace == "" {
+		k8sNamespace = common.GetPodNamespace()
+	}
+	if k8sNamespace == "" {
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo scheduled workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a recurring run due to empty namespace")
+	}
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
 	}
@@ -1759,9 +1773,6 @@ func (r *ResourceManager) FetchNamespaceFromPipelineVersionId(versionId string) 
 
 // Fetches the default namespace for resources.
 func (r *ResourceManager) GetDefaultNamespace() string {
-	if r.defaultNamespace == "" {
-		return common.GetPodNamespace()
-	}
 	return r.defaultNamespace
 }
 
