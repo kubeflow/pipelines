@@ -3762,7 +3762,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
-		Description:    "All runs created without specifying an experiment will be grouped here",
+		Description:    "All runs created without specifying an experiment will be grouped here.",
 		Namespace:      "default",
 		StorageState:   "AVAILABLE",
 	}
@@ -3786,7 +3786,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
-		Description:    "All runs created without specifying an experiment will be grouped here",
+		Description:    "All runs created without specifying an experiment will be grouped here.",
 		Namespace:      "default",
 		StorageState:   "AVAILABLE",
 	}
