@@ -87,7 +87,7 @@ func TestCreateRunV1_invalid_pipeline_version(t *testing.T) {
 }
 
 func TestCreateRunV1_no_experiment(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
+	clients, manager, exp := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &apiv1beta1.Run{
@@ -97,10 +97,19 @@ func TestCreateRunV1_no_experiment(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
+	manager.SetDefaultExperimentId(exp.UUID)
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Nil(t, runDetail)
-	assert.Contains(t, err.Error(), "Failed to create a run due to missing parent experiment id")
+	assert.Nil(t, err)
+	assert.NotNil(t, runDetail)
+	check := false
+	for _, ref := range runDetail.GetRun().GetResourceReferences() {
+		if ref.GetKey().GetId() == exp.UUID {
+			check = true
+			break
+		}
+	}
+	assert.True(t, check)
+	assert.Empty(t, runDetail.GetRun().GetError())
 }
 
 func TestCreateRunV1_no_pipeline_source(t *testing.T) {
@@ -185,7 +194,7 @@ func TestCreateRunV1_pipeline(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
-	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
+	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
 }
@@ -202,7 +211,7 @@ func TestCreateRunV1_pipelineversion(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
-	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
+	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
 }
@@ -223,7 +232,7 @@ func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
-	assert.Equal(t, "ns1", runDetail.Run.ResourceReferences[1].Key.Id)
+	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
 	assert.Equal(t, testWorkflow2.ToStringForStore(), runDetail.Run.PipelineSpec.PipelineManifest)
@@ -549,6 +558,10 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 				{
 					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
 					Name: "exp1", Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+					Name: "ns1", Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},
 		},

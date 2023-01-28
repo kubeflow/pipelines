@@ -151,6 +151,13 @@ func (r *ResourceManager) DeleteExperiment(experimentId string) error {
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching it", experimentId)
 	}
+	defaultExperimentId, err := r.GetDefaultExperimentId()
+	if err != nil {
+		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching the default experiment id", experimentId)
+	}
+	if defaultExperimentId != "" && experimentId == defaultExperimentId {
+		return util.NewBadRequestError(util.NewInvalidInputError("Experiment id cannot be equal to the default id %v", defaultExperimentId), "Failed to delete experiment %v. The default experiment cannot be deleted", experimentId)
+	}
 	return r.experimentStore.DeleteExperiment(experimentId)
 }
 
@@ -380,7 +387,14 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run with empty experiment id. Specify experiment id for the run or check if the default experiment exists")
+			return nil, util.Wrapf(err, "Failed to create a run with empty experiment id. Specify experiment id for the run or check if the default experiment table exists")
+		}
+		// Create the default experiment if it is missing
+		if defaultExperimentId == "" {
+			defaultExperimentId, err = r.CreateDefaultExperiment()
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a run with empty experiment id due to error creating the default experiment")
+			}
 		}
 		run.ExperimentId = defaultExperimentId
 	}
@@ -900,7 +914,14 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	if job.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id. Specify experiment id for the recurring run or check if the default experiment exists")
+			return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id. Specify experiment id for the recurring run or check if the default experiment table exists")
+		}
+		// Create the default experiment if it is missing
+		if defaultExperimentId == "" {
+			defaultExperimentId, err = r.CreateDefaultExperiment()
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id due to error creating the default experiment")
+			}
 		}
 		job.ExperimentId = defaultExperimentId
 	}
@@ -1681,6 +1702,9 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 
 // Fetches namespace that an experiment belongs to.
 func (r *ResourceManager) GetNamespaceFromExperimentId(experimentId string) (string, error) {
+	if experimentId == "" {
+		return r.GetDefaultNamespace(), nil
+	}
 	experiment, err := r.GetExperiment(experimentId)
 	if err != nil {
 		return "", util.Wrapf(err, "Failed to fetch namespace from experiment %v", experimentId)
@@ -1696,7 +1720,7 @@ func (r *ResourceManager) GetNamespaceFromExperimentId(experimentId string) (str
 			}
 			experiment.Namespace = namespaceRef.ReferenceUUID
 		} else {
-			experiment.Namespace = common.GetPodNamespace()
+			experiment.Namespace = r.GetDefaultNamespace()
 		}
 	}
 	return experiment.Namespace, nil

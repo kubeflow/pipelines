@@ -100,7 +100,9 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	experiments, _, _, err := ListAllExperiment(client, namespace)
 	assert.Nil(t, err)
 	for _, e := range experiments {
-		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
+		if e.Name != "Default" {
+			assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
+		}
 	}
 }
 

@@ -192,3 +192,13 @@ func ValidateResourceReferenceRelationship(resType ResourceType, refType Resourc
 	}
 	return false
 }
+
+// Fetches the first reference id of a given type
+func GetRefIdFromResourceReferences(resRefs []*ResourceReference, refType ResourceType) string {
+	for _, ref := range resRefs {
+		if ref.ReferenceUUID != "" && ref.ReferenceType == refType {
+			return ref.ReferenceUUID
+		}
+	}
+	return ""
+}

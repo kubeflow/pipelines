@@ -103,7 +103,7 @@ func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, 
 		}
 		job.ExperimentId = expId
 	}
-	if job.ExperimentId == "" {
+	if job.ExperimentId == "" && common.IsMultiUserMode() {
 		return nil, util.NewInvalidInputError("Failed to create a recurring run due to missing parent experiment id")
 	}
 	if err := s.resourceManager.ValidateExperimentNamespace(job.ExperimentId, job.Namespace); err != nil {

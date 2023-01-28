@@ -159,7 +159,7 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store, "")
-	apiExperiment := &model.Experiment{Name: "e1"}
+	apiExperiment := &model.Experiment{Name: "e1", Namespace: "ns1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 	return store, manager, experiment
@@ -1509,6 +1509,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.ObjectMeta.Namespace = ""
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1519,7 +1520,6 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
@@ -1710,6 +1710,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
+	expectedRuntimeWorkflow.Namespace = ""
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1721,7 +1722,6 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "sa1",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
@@ -1784,6 +1784,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
+	expectedRuntimeWorkflow.Namespace = ""
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1795,7 +1796,6 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "sa1",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -2036,16 +2036,8 @@ func TestDeleteExperiment_ClearsDefaultExperiment(t *testing.T) {
 	assert.Equal(t, experiment.UUID, defaultExperimentId)
 
 	err = manager.DeleteExperiment(experiment.UUID)
-	assert.Nil(t, err)
-
-	_, err = manager.GetExperiment(experiment.UUID)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "not found")
-
-	// Verify that default experiment ID has been cleared
-	defaultExperimentId, err = manager.GetDefaultExperimentId()
-	assert.Nil(t, err)
-	assert.Equal(t, "", defaultExperimentId)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Experiment id cannot be equal to the default id")
 }
 
 func TestDeleteExperiment_ExperimentNotExist(t *testing.T) {
@@ -2255,7 +2247,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 	expectedJob.PipelineSpec.PipelineId = job.PipelineSpec.PipelineId
 	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
 	expectedJob.PipelineSpec.PipelineVersionId = job.PipelineSpec.PipelineVersionId
-	assert.Equal(t, expectedJob, job)
+	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
 	fetchedJob, err := manager.GetJob(job.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJob.ToV1(), fetchedJob.ToV1(), "CreateJob stored invalid data in database")
@@ -3804,7 +3796,6 @@ func TestCreateTask(t *testing.T) {
 
 	expectedTask := &model.Task{
 		UUID:              DefaultFakeUUID,
-		Namespace:         "ns1",
 		PipelineName:      "pipeline/my-pipeline",
 		RunId:             runDetail.UUID,
 		MLMDExecutionID:   "1",

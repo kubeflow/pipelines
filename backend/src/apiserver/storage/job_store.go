@@ -248,20 +248,36 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			return nil, err
 		}
 		resourceReferences, _ := parseResourceReferences(resourceReferencesInString)
+		expId := experimentId.String
+		pvId := pipelineVersionId.String
+		if len(resourceReferences) > 0 {
+			if expId == "" {
+				expId = model.GetRefIdFromResourceReferences(resourceReferences, model.ExperimentResourceType)
+			}
+			if namespace == "" {
+				namespace = model.GetRefIdFromResourceReferences(resourceReferences, model.NamespaceResourceType)
+			}
+			if pipelineId == "" {
+				pipelineId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineResourceType)
+			}
+			if pvId == "" {
+				pvId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
+			}
+		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 		job := &model.Job{
-			UUID:               uuid,
-			DisplayName:        displayName,
-			K8SName:            name,
-			Namespace:          namespace,
-			ServiceAccount:     serviceAccount,
-			Description:        description,
-			Enabled:            enabled,
-			Conditions:         conditions,
-			ExperimentId:       experimentId.String,
-			MaxConcurrency:     maxConcurrency,
-			NoCatchup:          noCatchup,
-			ResourceReferences: resourceReferences,
+			UUID:           uuid,
+			DisplayName:    displayName,
+			K8SName:        name,
+			Namespace:      namespace,
+			ServiceAccount: serviceAccount,
+			Description:    description,
+			Enabled:        enabled,
+			Conditions:     conditions,
+			ExperimentId:   expId,
+			MaxConcurrency: maxConcurrency,
+			NoCatchup:      noCatchup,
+			// ResourceReferences: resourceReferences,
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: NullInt64ToPointer(cronScheduleStartTimeInSec),
@@ -276,7 +292,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			},
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
-				PipelineVersionId:    pipelineVersionId.String,
+				PipelineVersionId:    pvId,
 				PipelineName:         pipelineName,
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
@@ -286,7 +302,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			CreatedAtInSec: createdAtInSec,
 			UpdatedAtInSec: updatedAtInSec,
 		}
-		job = job.ToV2()
+		job = job.ToV1().ToV2()
 		jobs = append(jobs, job)
 	}
 	return jobs, nil
@@ -323,7 +339,7 @@ func (s *JobStore) DeleteJob(id string) error {
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	// Add creation/update time.
-	j = j.ToV2()
+	j = j.ToV1().ToV2()
 	now := s.time.Now().Unix()
 	j.CreatedAtInSec = now
 	j.UpdatedAtInSec = now

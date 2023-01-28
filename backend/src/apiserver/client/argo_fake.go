@@ -15,6 +15,7 @@
 package client
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 )
@@ -28,7 +29,7 @@ func NewFakeExecClient() *FakeExecClient {
 }
 
 func (c *FakeExecClient) Execution(namespace string) util.ExecutionInterface {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && common.IsMultiUserMode() {
 		panic(util.NewResourceNotFoundError("Namespace", namespace))
 	}
 	return c.workflowClientFake

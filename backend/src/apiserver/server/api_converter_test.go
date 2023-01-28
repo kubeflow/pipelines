@@ -1576,7 +1576,7 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 			},
 		},
 	}
-	apiJob := toApiJobV1(&modelJob)
+	apiJob := toApiJobV1(modelJob.ToV2())
 	expectedJob := &apiv1beta1.Job{
 		Id:             "job1",
 		Name:           "name 1",
@@ -1597,8 +1597,8 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
-				Name: "e1", Relationship: apiv1beta1.Relationship_OWNER,
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
+				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},

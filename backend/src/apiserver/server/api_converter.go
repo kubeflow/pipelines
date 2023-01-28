@@ -589,16 +589,16 @@ func toApiPipelineVersions(pv []*model.PipelineVersion) []*apiv2beta1.PipelineVe
 // Supports v1beta1 API.
 func toModelResourceTypeV1(rt apiv1beta1.ResourceType) (model.ResourceType, error) {
 	switch rt {
-	case apiv1beta1.ResourceType_EXPERIMENT:
-		return model.ExperimentResourceType, nil
-	case apiv1beta1.ResourceType_JOB:
-		return model.JobResourceType, nil
-	case apiv1beta1.ResourceType_PIPELINE_VERSION:
-		return model.PipelineVersionResourceType, nil
 	case apiv1beta1.ResourceType_NAMESPACE:
 		return model.NamespaceResourceType, nil
-	// case apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE:
-	// 	return model.RunResourceType, nil
+	case apiv1beta1.ResourceType_EXPERIMENT:
+		return model.ExperimentResourceType, nil
+	case apiv1beta1.ResourceType_PIPELINE:
+		return model.PipelineResourceType, nil
+	case apiv1beta1.ResourceType_PIPELINE_VERSION:
+		return model.PipelineVersionResourceType, nil
+	case apiv1beta1.ResourceType_JOB:
+		return model.JobResourceType, nil
 	default:
 		return "", util.NewInvalidInputError("Failed to convert unsupported v1beta1 API resource type %s", apiv1beta1.ResourceType_name[int32(rt)])
 	}
@@ -608,14 +608,16 @@ func toModelResourceTypeV1(rt apiv1beta1.ResourceType) (model.ResourceType, erro
 // Supports v1beta1 API.
 func toApiResourceTypeV1(rt model.ResourceType) apiv1beta1.ResourceType {
 	switch rt {
-	case model.ExperimentResourceType:
-		return apiv1beta1.ResourceType_EXPERIMENT
-	case model.JobResourceType:
-		return apiv1beta1.ResourceType_JOB
-	case model.PipelineVersionResourceType:
-		return apiv1beta1.ResourceType_PIPELINE_VERSION
 	case model.NamespaceResourceType:
 		return apiv1beta1.ResourceType_NAMESPACE
+	case model.ExperimentResourceType:
+		return apiv1beta1.ResourceType_EXPERIMENT
+	case model.PipelineResourceType:
+		return apiv1beta1.ResourceType_PIPELINE
+	case model.PipelineVersionResourceType:
+		return apiv1beta1.ResourceType_PIPELINE_VERSION
+	case model.JobResourceType:
+		return apiv1beta1.ResourceType_JOB
 	default:
 		return apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE
 	}
@@ -2088,7 +2090,7 @@ func toApiJobStatus(s string) string {
 // Converts recurring run's internal representation to its API counterpart.
 // Supports v1beta1 API.
 func toApiJobV1(j *model.Job) *apiv1beta1.Job {
-	j = j.ToV2()
+	j = j.ToV1()
 	specParams := toApiParametersV1(j.PipelineSpec.Parameters)
 	if specParams == nil {
 		return &apiv1beta1.Job{
@@ -2168,12 +2170,6 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 		resRefs = nil
 	}
 	trigger := toApiTriggerV1(&j.Trigger)
-	// if trigger == nil {
-	// 	return &apiv1beta1.Job{
-	// 		Id:    j.UUID,
-	// 		Error: util.NewInternalServerError(util.NewInvalidInputError("Trigger was not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
-	// 	}
-	// }
 	if trigger.GetTrigger() == nil {
 		trigger = nil
 	}

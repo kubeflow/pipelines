@@ -212,6 +212,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 		}
 	}
 	fmt.Printf("All experiments: %v", allExperiments)
+	assert.Equal(t, 5, len(experiments))
 
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "my first experiment", experiments[0].Description)
@@ -232,14 +233,12 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.Equal(t, "", experiments[3].Description)
 	assert.NotEmpty(t, experiments[3].ID)
 	assert.NotEmpty(t, experiments[3].CreatedAt)
-	// This case happens in the upgrade test as it creates the default experiment
-	if len(experiments) > 4 {
-		assert.Equal(t, 5, len(experiments))
-		assert.Equal(t, "Default", experiments[4].Name)
-		assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[4].Description)
-		assert.NotEmpty(t, experiments[4].ID)
-		assert.NotEmpty(t, experiments[4].CreatedAt)
-	}
+
+	// Default experiment is no longer deletable
+	assert.Equal(t, "Default", experiments[4].Name)
+	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[4].Description)
+	assert.NotEmpty(t, experiments[4].ID)
+	assert.NotEmpty(t, experiments[4].CreatedAt)
 }
 
 // TODO(jingzhang36): prepare pipeline versions.

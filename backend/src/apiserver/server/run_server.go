@@ -109,8 +109,10 @@ func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerO
 // Creates a run. Not exported.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, error) {
-	if run.ExperimentId == "" {
-		return nil, util.NewInvalidInputError("Failed to create a run due to missing parent experiment id")
+	if common.IsMultiUserMode() {
+		if run.ExperimentId == "" {
+			return nil, util.NewInvalidInputError("Failed to create a run due to missing parent experiment id")
+		}
 	}
 	if err := s.resourceManager.ValidateExperimentNamespace(run.ExperimentId, run.Namespace); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", run.Namespace, run.ExperimentId)
@@ -663,10 +665,7 @@ func (s *RunServer) validateRun(r *model.Run) error {
 	if r.DisplayName == "" {
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name")
 	}
-	// if r.PipelineSpec.PipelineId == "" && r.PipelineSpec.PipelineVersionId == "" {
-	// 	return util.NewInvalidInputError("Failed to validate a run. At least one of pipeline id or pipeline version id must be non-empty")
-	// }
-	if r.ExperimentId == "" {
+	if r.ExperimentId == "" && common.IsMultiUserMode() {
 		return util.NewInvalidInputError("Experiment id can not be empty in run")
 	}
 	return nil

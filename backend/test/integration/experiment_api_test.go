@@ -118,11 +118,11 @@ func (s *ExperimentApiTest) SetupTest() {
 func (s *ExperimentApiTest) TestExperimentAPI() {
 	t := s.T()
 
-	/* ---------- Verify no experiment exist ---------- */
+	/* ---------- Verify only default experiment exists ---------- */
 	experiments, totalSize, _, err := test.ListAllExperiment(s.experimentClient, s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, totalSize)
-	assert.True(t, len(experiments) == 0)
+	assert.Equal(t, 1, totalSize)
+	assert.True(t, len(experiments) == 1)
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
@@ -162,8 +162,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments works ---------- */
 	experiments, totalSize, nextPageToken, err := test.ListAllExperiment(s.experimentClient, s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 3, len(experiments))
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 4, len(experiments))
 	for _, e := range experiments {
 		// Sampling one of the experiments and verify the result is expected.
 		if e.Name == "training" {
@@ -180,10 +180,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, 2, len(experiments))
-	assert.Equal(t, "moonshot", experiments[0].Name)
-	assert.Equal(t, "prediction", experiments[1].Name)
+	assert.Equal(t, "Default", experiments[0].Name)
+	assert.Equal(t, "moonshot", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
@@ -195,9 +195,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 1, len(experiments))
-	assert.Equal(t, "training", experiments[0].Name)
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 2, len(experiments))
+	assert.Equal(t, "prediction", experiments[0].Name)
+	assert.Equal(t, "training", experiments[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
@@ -209,10 +210,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, 2, len(experiments))
-	assert.Equal(t, "training", experiments[0].Name)
-	assert.Equal(t, "prediction", experiments[1].Name)
+	assert.Equal(t, "Default", experiments[0].Name)
+	assert.Equal(t, "training", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
@@ -224,9 +225,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 1, len(experiments))
-	assert.Equal(t, "moonshot", experiments[0].Name)
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 2, len(experiments))
+	assert.Equal(t, "prediction", experiments[0].Name)
+	assert.Equal(t, "moonshot", experiments[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
@@ -248,7 +250,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, 2, len(experiments))
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "prediction", experiments[1].Name)
@@ -263,9 +265,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 1, len(experiments))
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 2, len(experiments))
 	assert.Equal(t, "moonshot", experiments[0].Name)
+	assert.Equal(t, "Default", experiments[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get experiment works ---------- */

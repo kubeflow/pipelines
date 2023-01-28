@@ -339,6 +339,25 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference")
 		}
+		jId := jobId.String
+		pvId := pipelineVersionId.String
+		if len(resourceReferences) > 0 {
+			if experimentUUID == "" {
+				experimentUUID = model.GetRefIdFromResourceReferences(resourceReferences, model.ExperimentResourceType)
+			}
+			if namespace == "" {
+				namespace = model.GetRefIdFromResourceReferences(resourceReferences, model.NamespaceResourceType)
+			}
+			if pipelineId == "" {
+				pipelineId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineResourceType)
+			}
+			if pvId == "" {
+				pvId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
+			}
+			if jId == "" {
+				jId = model.GetRefIdFromResourceReferences(resourceReferences, model.JobResourceType)
+			}
+		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 		run := &model.Run{
 			UUID:           uuid,
@@ -349,7 +368,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			Namespace:      namespace,
 			ServiceAccount: serviceAccount,
 			Description:    description,
-			RecurringRunId: jobId.String,
+			RecurringRunId: jId,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec,
 				ScheduledAtInSec:        scheduledAtInSec,
@@ -363,7 +382,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
-				PipelineVersionId:    pipelineVersionId.String,
+				PipelineVersionId:    pvId,
 				PipelineName:         pipelineName,
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
@@ -411,7 +430,7 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 }
 
 func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
-	r = r.ToV2()
+	r = r.ToV1().ToV2()
 	if r.StorageState == "" || r.StorageState == model.StorageStateUnspecified || r.StorageState == model.StorageStateUnspecifiedV1 {
 		r.StorageState = model.StorageStateAvailable
 	}
@@ -465,39 +484,8 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)
 	}
 
-	// TODO(gkcalat): remove this workflow once we fully deprecate resource references
 	// TODO(gkcalat): consider moving resource reference management to ResourceManager
 	// and provide logic for data migration for v1beta1 data.
-	if r.ResourceReferences == nil {
-		r.ResourceReferences = []*model.ResourceReference{
-			{
-				ResourceUUID:  r.UUID,
-				ResourceType:  model.RunResourceType,
-				ReferenceUUID: r.ExperimentId,
-				ReferenceType: model.ExperimentResourceType,
-				Relationship:  model.OwnerRelationship,
-			},
-			{
-				ResourceUUID:  r.UUID,
-				ResourceType:  model.RunResourceType,
-				ReferenceUUID: r.Namespace,
-				ReferenceType: model.NamespaceResourceType,
-				Relationship:  model.OwnerRelationship,
-			},
-		}
-		if r.RecurringRunId != "" {
-			r.ResourceReferences = append(
-				r.ResourceReferences,
-				&model.ResourceReference{
-					ResourceUUID:  r.UUID,
-					ResourceType:  model.RunResourceType,
-					ReferenceUUID: r.RecurringRunId,
-					ReferenceType: model.JobResourceType,
-					Relationship:  model.CreatorRelationship,
-				},
-			)
-		}
-	}
 	err = s.resourceReferenceStore.CreateResourceReferences(tx, r.ResourceReferences)
 	if err != nil {
 		tx.Rollback()
