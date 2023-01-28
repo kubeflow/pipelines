@@ -1,5 +1,9 @@
 import kfp.dsl as dsl
 
+from kubernetes import client
+
+client.CoreV1Api
+
 
 @dsl.pipeline(name='volume-example')
 def volume_pipeline(url: str):
@@ -24,12 +28,12 @@ def volume_pipeline(url: str):
         ],
         pvolumes={'/data': create_volume_task.volume})
 
-    # take a snapshot of the PVC with file1.gz
-    snapshot_volume_task = dsl.VolumeSnapshotOp(name='step1_snap',
-                                                resource_name='step1_snap',
-                                                volume=task_a.pvolume)
+    # # take a snapshot of the PVC with file1.gz
+    # snapshot_volume_task = dsl.VolumeSnapshotOp(name='step1_snap',
+    #                                             resource_name='step1_snap',
+    #                                             volume=task_a.pvolume)
 
-    # use the same PVC again; unzip file1.gz
+    # # use the same PVC again; unzip file1.gz
     task_b = dsl.ContainerOp(
         name='step2_gunzip',
         image='alpine',
@@ -38,14 +42,15 @@ def volume_pipeline(url: str):
             'mkdir /data/step2 && '
             'gunzip /data/step1/file1.gz -c >/data/step2/file1'
         ],
-        pvolumes={'/data': create_volume_task.volume})
+        pvolumes={'/data': create_volume_task.volume},
+    )
 
-    create_volume_task = dsl.VolumeOp(
-        name='create_volume_from_snapshot',
-        resource_name='vol1',
-        size='1Gi',
-        modes=dsl.VOLUME_MODE_RWO,
-        data_source=snapshot_volume_task.snapshot)
+    # create_volume_task = dsl.VolumeOp(
+    #     name='create_volume_from_snapshot',
+    #     resource_name='vol1',
+    #     size='1Gi',
+    #     modes=dsl.VOLUME_MODE_RWO,
+    #     data_source=snapshot_volume_task.snapshot)
 
 
 if __name__ == '__main__':
