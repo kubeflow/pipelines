@@ -214,31 +214,32 @@ func (s *UpgradeTests) VerifyExperiments() {
 	fmt.Printf("All experiments: %v", allExperiments)
 	assert.Equal(t, 5, len(experiments))
 
-	assert.Equal(t, "training", experiments[0].Name)
-	assert.Equal(t, "my first experiment", experiments[0].Description)
+	// Default experiment is no longer deletable
+	assert.Equal(t, "Default", experiments[0].Name)
+	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[0].Description)
 	assert.NotEmpty(t, experiments[0].ID)
 	assert.NotEmpty(t, experiments[0].CreatedAt)
 
-	assert.Equal(t, "prediction", experiments[1].Name)
-	assert.Equal(t, "my second experiment", experiments[1].Description)
+	assert.Equal(t, "training", experiments[1].Name)
+	assert.Equal(t, "my first experiment", experiments[1].Description)
 	assert.NotEmpty(t, experiments[1].ID)
 	assert.NotEmpty(t, experiments[1].CreatedAt)
 
-	assert.Equal(t, "moonshot", experiments[2].Name)
-	assert.Equal(t, "my third experiment", experiments[2].Description)
+	assert.Equal(t, "prediction", experiments[2].Name)
+	assert.Equal(t, "my second experiment", experiments[2].Description)
 	assert.NotEmpty(t, experiments[2].ID)
 	assert.NotEmpty(t, experiments[2].CreatedAt)
 
-	assert.Equal(t, "hello world experiment", experiments[3].Name)
-	assert.Equal(t, "", experiments[3].Description)
+	assert.Equal(t, "moonshot", experiments[3].Name)
+	assert.Equal(t, "my third experiment", experiments[3].Description)
 	assert.NotEmpty(t, experiments[3].ID)
 	assert.NotEmpty(t, experiments[3].CreatedAt)
 
-	// Default experiment is no longer deletable
-	assert.Equal(t, "Default", experiments[4].Name)
-	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[4].Description)
+	assert.Equal(t, "hello world experiment", experiments[4].Name)
+	assert.Equal(t, "", experiments[4].Description)
 	assert.NotEmpty(t, experiments[4].ID)
 	assert.NotEmpty(t, experiments[4].CreatedAt)
+
 }
 
 // TODO(jingzhang36): prepare pipeline versions.
