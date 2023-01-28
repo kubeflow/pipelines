@@ -316,7 +316,7 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
 	// Assign the default namespace if it is empty
 	if p.Namespace == "" {
-		p.Namespace = r.defaultNamespace
+		p.Namespace = r.GetDefaultNamespace()
 	}
 
 	// Create a record in KFP DB (only pipelines table)
@@ -1759,6 +1759,9 @@ func (r *ResourceManager) FetchNamespaceFromPipelineVersionId(versionId string) 
 
 // Fetches the default namespace for resources.
 func (r *ResourceManager) GetDefaultNamespace() string {
+	if r.defaultNamespace == "" {
+		return common.GetPodNamespace()
+	}
 	return r.defaultNamespace
 }
 

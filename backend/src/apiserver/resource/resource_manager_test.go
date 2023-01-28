@@ -495,6 +495,7 @@ func TestCreatePipeline(t *testing.T) {
 
 // Tests CreatePipelineVersion
 func TestCreatePipelineVersion(t *testing.T) {
+	initEnvVars()
 	tt := []struct {
 		msg            string
 		template       string                 // pipeline template
@@ -651,6 +652,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 
 // Tests CreatePipelineVersion, GetPipelineVersionTemplate and GetPipelineLatestTemplate
 func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
+	initEnvVars()
 	tests := []struct {
 		// inputs
 		name      string
@@ -659,11 +661,11 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 		// expected
 		pipelineName string
 	}{
-		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
-		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
+		{name: "v2-compat", namespace: "", pipelineName: "namespace/ns1/pipeline/v2-compat"},
+		{name: "pipe3", namespace: "", pipelineName: "namespace/ns1/pipeline/pipe3"},
 		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
 		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
-		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "pipeline/v2-spec1"},
+		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "namespace/ns1/pipeline/v2-spec1"},
 		{name: "v2-spec2", namespace: "user", template: v2SpecHelloWorld, pipelineName: "namespace/user/pipeline/v2-spec2"},
 	}
 	for _, test := range tests {
@@ -886,6 +888,7 @@ func TestGetPipelineTemplate(t *testing.T) {
 
 // Tests GetPipelineLatestTemplate (from PipelineSpecURI)
 func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -907,6 +910,7 @@ func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
 
 // Tests GetPipelineLatestTemplate (from PipelineVersionId)
 func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -934,6 +938,7 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 
 // Tests GetPipelineLatestTemplate (from PipelineId)
 func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -1101,6 +1106,7 @@ func TestListPipelinesV1(t *testing.T) {
 
 // Tests ListPipelineVersions
 func TestListPipelineVersions(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -1183,6 +1189,7 @@ func TestListPipelineVersions(t *testing.T) {
 
 // Tests UpdatePipelineStatus
 func TestUpdatePipelineStatus(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -1252,6 +1259,7 @@ func TestUpdatePipelineStatus(t *testing.T) {
 
 // Tests UpdatePipelineVersionStatus
 func TestUpdatePipelineVersionStatus(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -1320,6 +1328,7 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 }
 
 func TestDeletePipelineVersion(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -1380,6 +1389,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 
 // Tests DeletePipelineVersion (NotFound)
 func TestDeletePipelineVersion_FileError(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -1421,6 +1431,7 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 
 // Tests DeletePipeline
 func TestDeletePipeline(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, "")
@@ -1509,7 +1520,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
-	expectedRuntimeWorkflow.ObjectMeta.Namespace = ""
+	expectedRuntimeWorkflow.ObjectMeta.Namespace = "ns1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1521,6 +1532,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
 		ServiceAccount: "pipeline-runner",
+		Namespace:      "ns1",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
 			PipelineVersionId:    version.UUID,
@@ -1710,7 +1722,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	expectedRuntimeWorkflow.Namespace = ""
+	expectedRuntimeWorkflow.Namespace = "ns1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1723,6 +1735,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
 		ServiceAccount: "sa1",
+		Namespace:      "ns1",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
 			PipelineVersionId:    version.UUID,
@@ -1784,7 +1797,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	expectedRuntimeWorkflow.Namespace = ""
+	expectedRuntimeWorkflow.Namespace = "ns1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1796,6 +1809,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
+		Namespace:      "ns1",
 		ServiceAccount: "sa1",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -3799,6 +3813,7 @@ func TestCreateTask(t *testing.T) {
 		PipelineName:      "pipeline/my-pipeline",
 		RunId:             runDetail.UUID,
 		MLMDExecutionID:   "1",
+		Namespace:         "ns1",
 		CreatedTimestamp:  1462875553,
 		FinishedTimestamp: 1462875663,
 		Fingerprint:       "123",
