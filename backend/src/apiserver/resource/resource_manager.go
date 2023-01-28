@@ -183,7 +183,11 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 				"Failed to list jobs of to-be-archived experiment %v", experimentId)
 		}
 		for _, job := range jobs {
-			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+			k8sNamespace := job.Namespace
+			if k8sNamespace == "" {
+				k8sNamespace = common.GetPodNamespace()
+			}
+			_, err = r.getScheduledWorkflowClient(k8sNamespace).Patch(
 				ctx,
 				job.K8SName,
 				types.MergePatchType,
@@ -581,7 +585,11 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 		}
 		run.Namespace = namespace
 	}
-	err = r.getWorkflowClient(run.Namespace).Delete(ctx, run.K8SName, v1.DeleteOptions{})
+	k8sNamespace := run.Namespace
+	if k8sNamespace == "" {
+		k8sNamespace = common.GetPodNamespace()
+	}
+	err = r.getWorkflowClient(k8sNamespace).Delete(ctx, run.K8SName, v1.DeleteOptions{})
 	if err != nil {
 		// API won't need to delete the workflow CR
 		// once persistent agent sync the state to DB and set TTL for it.
@@ -686,6 +694,9 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 		return util.Wrapf(err, "Failed to terminate run %s", runId)
 	}
 
+	if namespace == "" {
+		namespace = common.GetPodNamespace()
+	}
 	err = TerminateWorkflow(ctx, r.getWorkflowClient(namespace), run.K8SName)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate run %s due to error terminating its workflow", runId)
@@ -732,6 +743,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 	// First try to update workflow
 	// If fail to get the workflow, return error.
+	if namespace == "" {
+		namespace = common.GetPodNamespace()
+	}
 	latestWorkflow, updateError := r.getWorkflowClient(namespace).Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
 	if updateError == nil {
 		// Update the workflow's resource version to latest.
@@ -1023,8 +1037,12 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 	if err != nil {
 		return util.Wrapf(err, "Failed to change recurring run's mode to enable:%v. Check if recurring run %v exists", enable, jobId)
 	}
+	k8sNamespace := job.Namespace
+	if k8sNamespace == "" {
+		k8sNamespace = common.GetPodNamespace()
+	}
 	if enable {
-		scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(ctx, job.K8SName, v1.GetOptions{})
+		scheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Get(ctx, job.K8SName, v1.GetOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to enable recurring run %v. Check if the scheduled workflow exists", jobId)
 		}
@@ -1033,7 +1051,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		}
 	}
 
-	_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+	_, err = r.getScheduledWorkflowClient(k8sNamespace).Patch(
 		ctx,
 		job.K8SName,
 		types.MergePatchType,
@@ -1057,13 +1075,17 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
 		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobId)
 	}
 
-	err = r.getScheduledWorkflowClient(job.Namespace).Delete(ctx, job.K8SName, &v1.DeleteOptions{})
+	k8sNamespace := job.Namespace
+	if k8sNamespace == "" {
+		k8sNamespace = common.GetPodNamespace()
+	}
+	err = r.getScheduledWorkflowClient(k8sNamespace).Delete(ctx, job.K8SName, &v1.DeleteOptions{})
 	if err != nil {
 		if !util.IsNotFound(err) {
 			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists", jobId)
 		}
 		// The ScheduledWorkflow was not found.
-		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' because it was not found", jobId, job.K8SName, job.Namespace)
+		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' (k8s namespace %v) because it was not found", jobId, job.K8SName, job.Namespace, k8sNamespace)
 		// Continue the execution, because we want to delete the
 		// ScheduledWorkflow. We can skip deleting the ScheduledWorkflow
 		// when it no longer exists.

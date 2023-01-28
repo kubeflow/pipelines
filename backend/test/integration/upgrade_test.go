@@ -216,7 +216,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 
 	// Default experiment is no longer deletable
 	assert.Equal(t, "Default", experiments[0].Name)
-	assert.Equal(t, "All runs created without specifying an experiment will be grouped here", experiments[0].Description)
+	assert.Equal(t, "All runs created without specifying an experiment will be grouped here.", experiments[0].Description)
 	assert.NotEmpty(t, experiments[0].ID)
 	assert.NotEmpty(t, experiments[0].CreatedAt)
 
