@@ -48,7 +48,6 @@ describe('deploy helloworld sample run', () => {
   it('uploads the sample pipeline', () => {
     $('#localPackageBtn').click();
     browser.chooseFile('#dropZone input[type="file"]', './helloworld.yaml');
-    $('#newPipelineName').clearValue()
     $('#newPipelineName').setValue(pipelineName);
     $('#createNewPipelineOrVersionBtn').click();
     browser.waitUntil(() => {
@@ -58,7 +57,7 @@ describe('deploy helloworld sample run', () => {
 
   it('shows a 4-node static graph', () => {
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible();
+    $(nodeSelector).waitForVisible(waitTimeout);
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
@@ -76,20 +75,20 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new run in the experiment', () => {
-    $('#choosePipelineBtn').waitForVisible();
+    $('#choosePipelineBtn').waitForVisible(waitTimeout);
     $('#choosePipelineBtn').click();
 
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     $('.tableRow').click();
 
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
 
-    $('#choosePipelineVersionBtn').waitForVisible();
+    $('#choosePipelineVersionBtn').waitForVisible(waitTimeout);
     $('#choosePipelineVersionBtn').click();
 
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     $('.tableRow').click();
 
     $('#usePipelineVersionBtn').click();
@@ -152,12 +151,14 @@ describe('deploy helloworld sample run', () => {
     let status = getValueFromDetailsTable('Status');
 
     let attempts = 0;
-    const maxAttempts = 120;
+    const maxAttempts = 90;
 
     // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
       browser.pause(1000);
+      $('button=Config').waitForVisible(waitTimeout);
       status = getValueFromDetailsTable('Status');
+      browser.refresh();
       attempts++;
     }
 
@@ -213,13 +214,13 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new run without selecting an experiment', () => {
-    $('#createNewRunBtn').waitForVisible();
+    $('#createNewRunBtn').waitForVisible(waitTimeout);
     $('#createNewRunBtn').click();
 
-    $('#choosePipelineBtn').waitForVisible();
+    $('#choosePipelineBtn').waitForVisible(waitTimeout);
     $('#choosePipelineBtn').click();
 
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     $('.tableRow').click();
 
     $('#usePipelineBtn').click();
@@ -255,7 +256,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays both runs in all runs page', () => {
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
   });
@@ -268,7 +269,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays both experiments in the list', () => {
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
   });
@@ -278,9 +279,9 @@ describe('deploy helloworld sample run', () => {
     browser.click('#tableFilterBox');
     browser.keys(experimentName.substring(0, 5));
     // Wait for the list to refresh
-    browser.pause(2000);
+    browser.pause(waitTimeout);
 
-    $('.tableRow').waitForVisible();
+    $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
     assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
   });
