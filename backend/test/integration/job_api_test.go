@@ -616,7 +616,6 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 		MaxConcurrency: 10,
 		Enabled:        false,
 	}}
-	parentExperimentId := 
 	// In multi-user mode, jobs must be associated with an experiment.
 	if *isKubeflowMode {
 		experiment := test.GetExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
