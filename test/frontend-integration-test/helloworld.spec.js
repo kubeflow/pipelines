@@ -141,24 +141,18 @@ describe('deploy helloworld sample run', () => {
     browser.execute('document.querySelector(".tableRow a").click()');
   });
 
-  it('switches to config tab', () => {
-    $('button=Config').waitForVisible(waitTimeout);
-    $('button=Config').click();
-    browser.pause(waitTimeout);
-  });
-
-  it('waits for run to finish', () => {
-    let status = getValueFromDetailsTable('Status');
-
+  it('confirms run to succeed', () => {
     let attempts = 0;
-    const maxAttempts = 90;
+    const maxAttempts = 30;
+    let status = "unknown";
 
-    // Wait for a reasonable amount of time until the run is done
+    // Run details page does not get updated (bug?)
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
-      browser.pause(1000);
-      $('button=Config').waitForVisible(waitTimeout);
-      status = getValueFromDetailsTable('Status');
       browser.refresh();
+      $('button=Config').waitForVisible(waitTimeout);
+      $('button=Config').click();
+      browser.pause(1000);
+      status = getValueFromDetailsTable('Status');
       attempts++;
     }
 
@@ -244,6 +238,7 @@ describe('deploy helloworld sample run', () => {
 
     browser.keys('Tab');
     browser.keys(outputParameterValue);
+    $('#startNewRunBtn').waitForVisible(waitTimeout);
 
     // Deploy
     $('#startNewRunBtn').click();
@@ -279,7 +274,7 @@ describe('deploy helloworld sample run', () => {
     browser.click('#tableFilterBox');
     browser.keys(experimentName.substring(0, 5));
     // Wait for the list to refresh
-    browser.pause(waitTimeout);
+    browser.pause(2000);
 
     $('.tableRow').waitForVisible(waitTimeout);
     const rows = $$('.tableRow').length;
