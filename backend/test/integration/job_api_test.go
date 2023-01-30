@@ -562,9 +562,6 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences))
 	expectedJob.ResourceReferences = job.ResourceReferences
 
-	// Need to sort resource references before equality check as the order is non-deterministic
-	// sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
-	// sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -610,26 +607,28 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	require.Nil(t, err)
 
-	/* ---------- Create a parent experiment for all jobs ---------- */
-	experiment := test.GetExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
-	parentExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
-	assert.Nil(t, err)
-
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
 	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
 		Name: "test-swf-not-found",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			PipelineID: pipeline.ID,
 		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: parentExperiment.ID},
-				Relationship: job_model.APIRelationshipOWNER,
-			},
-		},
 		MaxConcurrency: 10,
 		Enabled:        false,
 	}}
+	parentExperimentId := 
+	// In multi-user mode, jobs must be associated with an experiment.
+	if *isKubeflowMode {
+		experiment := test.GetExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
+		swfNotFoundExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+		assert.Nil(t, err)
+
+		createJobRequest.Body.ResourceReferences = []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: swfNotFoundExperiment.ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
+		}
+	}
 	job, err := s.jobClient.Create(createJobRequest)
 	require.Nil(t, err)
 
@@ -696,10 +695,7 @@ func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID
 	if !test.VerifyRunResourceReferences(run.ResourceReferences, resourceReferences) {
 		return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
 	}
-	// resourceReferences = run.ResourceReferences
-	// if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
-	// 	return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
-	// }
+
 	return nil
 }
 
@@ -721,9 +717,6 @@ func (s *JobApiTestSuite) checkArgParamsRun(run *run_model.APIRun, experimentID 
 	if !test.VerifyRunResourceReferences(run.ResourceReferences, resourceReferences) {
 		return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
 	}
-	// if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
-	// 	return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
-	// }
 	return nil
 }
 

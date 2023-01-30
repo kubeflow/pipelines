@@ -98,6 +98,7 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineVersionBtn').click();
 
     $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
+    browser.pause(1000);
 
     
     browser.keys("\uE004")
@@ -229,6 +230,7 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
+    browser.pause(1000);
 
     browser.keys("\uE004")
     browser.keys("\uE004")
