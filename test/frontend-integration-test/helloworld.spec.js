@@ -57,7 +57,7 @@ describe('deploy helloworld sample run', () => {
 
   it('shows a 4-node static graph', () => {
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible(waitTimeout);
+    $(nodeSelector).waitForVisible();
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
@@ -75,20 +75,20 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new run in the experiment', () => {
-    $('#choosePipelineBtn').waitForVisible(waitTimeout);
+    $('#choosePipelineBtn').waitForVisible();
     $('#choosePipelineBtn').click();
 
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible();
     $('.tableRow').click();
 
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
 
-    $('#choosePipelineVersionBtn').waitForVisible(waitTimeout);
+    $('#choosePipelineVersionBtn').waitForVisible();
     $('#choosePipelineVersionBtn').click();
 
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible();
     $('.tableRow').click();
 
     $('#usePipelineVersionBtn').click();
@@ -136,28 +136,32 @@ describe('deploy helloworld sample run', () => {
     assert(attempts, 'waited for 30 seconds but run did not start.');
 
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
-
-    // Navigate to details of the deployed run by clicking its anchor element
-    browser.execute('document.querySelector(".tableRow a").click()');
   });
 
-  it('confirms run to succeed', () => {
+  // Wait for a reasonable amount of time until the run is done
+  // and navigate to the run details page
+  it('waits for run to finish', () => {
     let attempts = 0;
-    const maxAttempts = 30;
-    let status = "unknown";
+    const maxAttempts = 90;
 
-    // Run details page does not get updated (bug?)
-    while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
-      browser.refresh();
-      $('button=Config').waitForVisible(waitTimeout);
-      $('button=Config').click();
+    while (attempts < maxAttempts) {
       browser.pause(1000);
-      status = getValueFromDetailsTable('Status');
       attempts++;
     }
 
-    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not succeed. ` +
-      'Current status is: ' + status);
+    browser.execute('document.querySelector(".tableRow a").click()');
+  });
+
+  it('switches to config tab', () => {
+    $('button=Config').waitForVisible();
+    $('button=Config').click();
+    browser.pause(waitTimeout);
+  });
+
+  it('verifies run status', () => {
+    const status = getValueFromDetailsTable('Status');
+    assert.equal(status.trim(), 'Succeeded',
+      'run has not finished on time. Current status is: ' + status);
   });
 
   it('displays run created at date correctly', () => {
@@ -172,28 +176,26 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('switches back to graph tab', () => {
-    $('button=Graph').waitForVisible(waitTimeout);
     $('button=Graph').click();
     browser.pause(waitTimeout);
   });
 
   it('has a 4-node graph', () => {
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible(waitTimeout);
+    $(nodeSelector).waitForVisible();
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
   it('opens the side panel when graph node is clicked', () => {
-    $('.graphNode').waitForVisible(waitTimeout);
     $('.graphNode').click();
     browser.pause(waitTimeout);
+    $('button=Logs').waitForVisible();
   });
 
   it('shows logs from node', () => {
-    $('button=Logs').waitForVisible(waitTimeout);
     $('button=Logs').click();
-    $('#logViewer').waitForVisible(waitTimeout);
+    $('#logViewer').waitForVisible();
     browser.waitUntil(() => {
       const logs = $('#logViewer').getText();
       return logs.indexOf(outputParameterValue + ' from node: ') > -1;
@@ -208,18 +210,19 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new run without selecting an experiment', () => {
-    $('#createNewRunBtn').waitForVisible(waitTimeout);
+    $('#createNewRunBtn').waitForVisible();
     $('#createNewRunBtn').click();
 
-    $('#choosePipelineBtn').waitForVisible(waitTimeout);
+    $('#choosePipelineBtn').waitForVisible();
     $('#choosePipelineBtn').click();
 
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible();
     $('.tableRow').click();
 
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
+
     browser.keys('Tab');
     browser.keys('Tab');
     browser.keys(runWithoutExperimentName);
@@ -238,7 +241,6 @@ describe('deploy helloworld sample run', () => {
 
     browser.keys('Tab');
     browser.keys(outputParameterValue);
-    $('#startNewRunBtn').waitForVisible(waitTimeout);
 
     // Deploy
     $('#startNewRunBtn').click();
@@ -251,7 +253,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays both runs in all runs page', () => {
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
   });
@@ -264,7 +266,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays both experiments in the list', () => {
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
   });
@@ -274,9 +276,9 @@ describe('deploy helloworld sample run', () => {
     browser.click('#tableFilterBox');
     browser.keys(experimentName.substring(0, 5));
     // Wait for the list to refresh
-    browser.pause(2000);
+    browser.pause(waitTimeout);
 
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
     assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
   });
