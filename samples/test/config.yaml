@@ -126,6 +126,8 @@
   path: samples.v2.pipeline_container_no_input_test
 - name: two_step_pipeline_containerized
   path: samples.v2.two_step_pipeline_containerized_test
+- name: component_with_optional_inputs
+  path: samples.v2.component_with_optional_inputs_test
 # TODO(capri-xiyue): Re-enable after figuring out V2 Engine
 # and protobuf.Value support.
 # - name: cache_v2
