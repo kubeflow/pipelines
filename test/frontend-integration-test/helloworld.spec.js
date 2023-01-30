@@ -72,6 +72,10 @@ describe('deploy helloworld sample run', () => {
     $('#experimentDescription').setValue(experimentDescription);
 
     $('#createExperimentBtn').click();
+
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/runs/new');
+    }, waitTimeout);
   });
 
   it('creates a new run in the experiment', () => {
@@ -95,22 +99,23 @@ describe('deploy helloworld sample run', () => {
 
     $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
 
-    browser.keys('Tab');
+    
+    browser.keys("\uE004")
     browser.keys(runName);
 
-    browser.keys('Tab');
+    browser.keys("\uE004")
     browser.keys(runDescription);
 
     // Skip over "choose experiment" button
-    browser.keys('Tab');
+    browser.keys("\uE004")
     // Skip over service account help button
-    browser.keys('Tab');
+    browser.keys("\uE004")
     // Skip over "service account" textbox
-    browser.keys('Tab');
+    browser.keys("\uE004")
     // Skip over "Run Type" radio button
-    browser.keys('Tab');
+    browser.keys("\uE004")
 
-    browser.keys('Tab');
+    browser.keys("\uE004")
     browser.keys(outputParameterValue);
 
     // Deploy
@@ -150,6 +155,9 @@ describe('deploy helloworld sample run', () => {
     }
 
     browser.execute('document.querySelector(".tableRow a").click()');
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/runs/details');
+    }, waitTimeout);
   });
 
   it('switches to config tab', () => {
@@ -177,7 +185,6 @@ describe('deploy helloworld sample run', () => {
 
   it('switches back to graph tab', () => {
     $('button=Graph').click();
-    browser.pause(waitTimeout);
   });
 
   it('has a 4-node graph', () => {
@@ -189,7 +196,7 @@ describe('deploy helloworld sample run', () => {
 
   it('opens the side panel when graph node is clicked', () => {
     $('.graphNode').click();
-    browser.pause(waitTimeout);
+    browser.pause(1000);
     $('button=Logs').waitForVisible();
   });
 
@@ -223,23 +230,23 @@ describe('deploy helloworld sample run', () => {
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
 
-    browser.keys('Tab');
-    browser.keys('Tab');
+    browser.keys("\uE004")
+    browser.keys("\uE004")
     browser.keys(runWithoutExperimentName);
 
-    browser.keys('Tab');
+    browser.keys("\uE004")
     browser.keys(runWithoutExperimentDescription);
 
     // Skip over "choose experiment" button
-    browser.keys('Tab');
+    browser.keys("\uE004")
     // Skip over service account help button
-    browser.keys('Tab');
+    browser.keys("\uE004")
     // Skip over "service account" textbox
-    browser.keys('Tab');
+    browser.keys("\uE004")
     // Skip over "Run Type" radio button
-    browser.keys('Tab');
+    browser.keys("\uE004")
 
-    browser.keys('Tab');
+    browser.keys("\uE004")
     browser.keys(outputParameterValue);
 
     // Deploy
@@ -276,7 +283,7 @@ describe('deploy helloworld sample run', () => {
     browser.click('#tableFilterBox');
     browser.keys(experimentName.substring(0, 5));
     // Wait for the list to refresh
-    browser.pause(waitTimeout);
+    browser.pause(2000);
 
     $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
