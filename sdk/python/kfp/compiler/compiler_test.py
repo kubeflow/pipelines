@@ -2663,7 +2663,6 @@ class TestIllegalFanInCollection(unittest.TestCase):
         def add(nums: List[int]) -> int:
             return sum(nums)
 
-        # the annotation is correct, but the user didn't use dsl.Collected
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
                 'Argument type "NUMBER_INTEGER" is incompatible with the input type "LIST"'
