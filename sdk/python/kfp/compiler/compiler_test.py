@@ -2808,7 +2808,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                         t = double(num=v)
                 add(nums=dsl.Collected(t.output))
 
-    def test_parallelfor_nested_legal1(self):
+    def test_parallelfor_nested_legal_params1(self):
 
         @dsl.component
         def add_two_ints(num1: int, num2: int) -> int:
@@ -2827,7 +2827,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
             x = add(nums=dsl.Collected(t.output))
 
-    def test_parallelfor_nested_legal2(self):
+    def test_parallelfor_nested_legal_params2(self):
 
         @dsl.component
         def add_two_ints(num1: int, num2: int) -> int:
