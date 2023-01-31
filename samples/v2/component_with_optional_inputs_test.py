@@ -32,7 +32,8 @@ from .component_with_optional_inputs import pipeline
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
-    component_op_dict = tasks['component_op'].get_dict()
+    component_op_dict = tasks['v2-component-optional-input'].get_dict()
+    print(tasks)
     for artifact in component_op_dict.get('outputs').get('artifacts'):
         # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
         if artifact.get('metadata') is not None:
