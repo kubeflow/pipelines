@@ -10,6 +10,7 @@ def volume_pipeline(url: str):
     # create PersistentVolumeClaim (PVC)
     create_volume_task = dsl.VolumeOp(
         name='{{{{workflow.name}}}}-kfp-pvc',
+        generate_unique_name=True,
         resource_name='vol1',
         volume_name='task-pv-volume',
         storage_class='manual',

@@ -120,11 +120,11 @@ class VolumeOp(ResourceOp):
             kind="PersistentVolumeClaim",
             metadata=pvc_metadata,
             spec=pvc_spec)
-
         super().__init__(
             k8s_resource=k8s_resource,
             **kwargs,
         )
+        print("PVC NAME", self.outputs["name"])
         self.volume = PipelineVolume(
             name=sanitize_k8s_name(self.name), pvc=self.outputs["name"])
 

@@ -1,0 +1,118 @@
+# PIPELINE DEFINITION
+# Name: my-pipeline
+# Inputs:
+#    string: str [Default: 'string']
+components:
+  comp-identity:
+    executorLabel: exec-identity
+    inputDefinitions:
+      parameters:
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-identity-2:
+    executorLabel: exec-identity-2
+    inputDefinitions:
+      parameters:
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-identity:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - identity
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef identity(string: str) -> str:\n    return string\n\n"
+        image: python:3.7
+    exec-identity-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - identity
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef identity(string: str) -> str:\n    return string\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks:
+      identity:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-identity
+        inputs:
+          parameters:
+            string:
+              componentInputParameter: string
+        taskInfo:
+          name: identity
+      identity-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-identity-2
+        dependentTasks:
+        - identity
+        inputs:
+          parameters:
+            string:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: identity
+        taskInfo:
+          name: identity-2
+  inputDefinitions:
+    parameters:
+      string:
+        defaultValue: string
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.11
