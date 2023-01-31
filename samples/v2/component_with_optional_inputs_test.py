@@ -43,14 +43,9 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'name': 'component_op',
             'inputs': {
                 'parameters': {
-                    'text': 'hi'
+                    'input1': 'Hello',
+                    'input2': 'World'
                 }
-            },
-            'outputs': {
-                'artifacts': [{
-                    'name': 'output_gcs',
-                    'type': 'system.Dataset'
-                }],
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
