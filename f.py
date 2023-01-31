@@ -1,15 +1,29 @@
-from kubernetes.client import V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim
+from kubernetes.client import V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim, V1VolumeMount, V1Volume, V1VolumeMount, V1ObjectMeta
 
-pvc_spec = V1PersistentVolumeClaimSpec(access_modes=["ReadWriteOnce"],
-                                       resources=requested_resources,
-                                       storage_class_name=storage_class,
-                                       data_source=data_source,
-                                       volume_name=volume_name)
+pvc_spec = V1PersistentVolumeClaimSpec(
+    access_modes=['ReadWriteMany'],
+    resources='1Gi',
+    storage_class_name='standard',
+)
+pvc = V1PersistentVolumeClaim(
+    api_version='v1',
+    kind='PersistentVolumeClaim',
+    metadata=V1ObjectMeta(generate_name='my-pvc-prefix-'),
+    spec=pvc_spec,
+)
+volume = V1Volume(
+    name="osm-config",
+    persistent_volume_claim=pvc,
+)
+volume_mount = V1VolumeMount(
+    name='osm-config',
+    mount_path='/data',
+    sub_path=None,
+    read_only=False,
+)
 
-pvc = V1PersistentVolumeClaim(api_version="v1",
-                              kind="PersistentVolumeClaim",
-                              metadata=pvc_metadata,
-                              spec=pvc_spec)
+volume_mount = volume_mount
+volume = volume
 
 
 @dsl.component
