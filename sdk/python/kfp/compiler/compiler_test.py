@@ -2648,7 +2648,7 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
                 comp()
 
 
-class TestIllegalFanInCollection(unittest.TestCase):
+class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
     def test_missing_collected_with_correct_annotation(self):
         from typing import List
@@ -2807,6 +2807,44 @@ class TestIllegalFanInCollection(unittest.TestCase):
                     with dsl.ParallelFor([1, 2, 3]) as v:
                         t = double(num=v)
                 add(nums=dsl.Collected(t.output))
+
+    def test_parallelfor_nested_legal1(self):
+
+        @dsl.component
+        def add_two_ints(num1: int, num2: int) -> int:
+            return num1 + num2
+
+        @dsl.component
+        def add(nums: List[List[int]]) -> int:
+            import itertools
+            return sum(itertools.chain(*nums))
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]) as v1:
+                with dsl.ParallelFor([1, 2, 3]) as v2:
+                    t = add_two_ints(num1=v1, num2=v2)
+
+            x = add(nums=dsl.Collected(t.output))
+
+    def test_parallelfor_nested_legal2(self):
+
+        @dsl.component
+        def add_two_ints(num1: int, num2: int) -> int:
+            return num1 + num2
+
+        @dsl.component
+        def add(nums: List[List[int]]) -> int:
+            import itertools
+            return sum(itertools.chain(*nums))
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]) as v1:
+                with dsl.ParallelFor([1, 2, 3]) as v2:
+                    t = add_two_ints(num1=v1, num2=v2)
+
+                x = add(nums=dsl.Collected(t.output))
 
 
 if __name__ == '__main__':
