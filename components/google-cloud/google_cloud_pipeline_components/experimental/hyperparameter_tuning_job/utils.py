@@ -256,9 +256,9 @@ def serialize_parameters(parameters: dict) -> list:
         parameters={
             'decay': hpt.DoubleParameterSpec(min=1e-7, max=1, scale='linear'),
             'learning_rate': hpt.DoubleParameterSpec(min=1e-7, max=1, scale='linear')
-            'batch_size': hpt.DiscreteParamterSpec(values=[4, 8, 16, 32, 64, 128], scale='linear') } Supported parameter specifications can be found in aiplatform.hyperparameter_tuning.
-        These parameter specification are currently supported:
-          DoubleParameterSpec, IntegerParameterSpec,
+            'batch_size': hpt.DiscreteParamterSpec(values=[4, 8, 16, 32, 64, 128], scale='linear') }
+        Supported parameter specifications can be found in aiplatform.hyperparameter_tuning.
+        These parameter specification are currently supported: DoubleParameterSpec, IntegerParameterSpec,
           CategoricalParameterSpace, DiscreteParameterSpec
         Note: The to_dict function is used here instead of the to_json
         function for compatibility with GAPIC.
