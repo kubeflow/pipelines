@@ -2728,12 +2728,12 @@ class TestIllegalFanInCollection(unittest.TestCase):
             return sum(nums)
 
         @dsl.pipeline
-        def my_pipeline(text: str = ''):
+        def my_pipeline(a: str):
             with dsl.ParallelFor([1, 2, 3]) as f:
-                with dsl.Condition(text == 'text'):
+                with dsl.Condition(f == 1):
                     t = double(num=f)
 
-            with dsl.Condition(text == 'text'):
+            with dsl.Condition(a == 'a'):
                 x = add(nums=dsl.Collected(t.output))
 
     def test_producer_condition_illegal1(self):
@@ -2752,12 +2752,12 @@ class TestIllegalFanInCollection(unittest.TestCase):
         ):
 
             @dsl.pipeline
-            def my_pipeline(text: str = ''):
-                with dsl.Condition(text == 'text'):
+            def my_pipeline(a: str = '', b: str = ''):
+                with dsl.Condition(a == 'a'):
                     with dsl.ParallelFor([1, 2, 3]) as f:
                         t = double(num=f)
 
-                with dsl.Condition(text == 'text'):
+                with dsl.Condition(b == 'b'):
                     x = add(nums=dsl.Collected(t.output))
 
     def test_producer_condition_illegal2(self):
@@ -2776,12 +2776,11 @@ class TestIllegalFanInCollection(unittest.TestCase):
         ):
 
             @dsl.pipeline
-            def my_pipeline(text: str = ''):
-                with dsl.Condition(text == 'a'):
-                    with dsl.Condition(text == 'b'):
-                        with dsl.ParallelFor([1, 2, 3]) as f:
-                            t = double(num=f)
-                    add(nums=dsl.Collected(t.output))
+            def my_pipeline(a: str = ''):
+                with dsl.Condition(a == 'a'):
+                    with dsl.ParallelFor([1, 2, 3]) as f:
+                        t = double(num=f)
+                add(nums=dsl.Collected(t.output))
 
     def test_producer_exit_handler_illegal1(self):
 
@@ -2803,7 +2802,7 @@ class TestIllegalFanInCollection(unittest.TestCase):
         ):
 
             @dsl.pipeline
-            def my_pipeline(text: str = ''):
+            def my_pipeline():
                 with dsl.ExitHandler(exit_comp()):
                     with dsl.ParallelFor([1, 2, 3]) as f:
                         t = double(num=f)
