@@ -429,7 +429,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		manifestBytes = tempBytes
 	}
-	run.PipelineSpec.PipelineSpecManifest = string(manifestBytes)
 
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Proposed flow:
@@ -486,8 +485,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// persistence agent update the runtime data.
 	if tmpl.GetTemplateType() == template.V1 && run.RunDetails.WorkflowRuntimeManifest == "" {
 		run.RunDetails.WorkflowRuntimeManifest = newExecSpec.ToStringForStore()
-	} else {
+		run.PipelineSpec.WorkflowSpecManifest = string(manifestBytes)
+	} else if tmpl.GetTemplateType() == template.V2 {
 		run.RunDetails.PipelineRuntimeManifest = newExecSpec.ToStringForStore()
+		run.PipelineSpec.PipelineSpecManifest = string(manifestBytes)
+	} else {
+		run.PipelineSpec.PipelineSpecManifest = string(manifestBytes)
 	}
 
 	// Assign the scheduled at time
@@ -968,11 +971,15 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		}
 		manifestBytes = tempBytes
 	}
-	job.PipelineSpec.PipelineSpecManifest = string(manifestBytes)
 
 	tmpl, err := template.New(manifestBytes)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run during template creation")
+	}
+	if tmpl.GetTemplateType() == template.V1 {
+		job.PipelineSpec.WorkflowSpecManifest = string(manifestBytes)
+	} else {
+		job.PipelineSpec.PipelineSpecManifest = string(manifestBytes)
 	}
 
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
@@ -1131,7 +1138,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
-		// TODO(gkcalat): consider removing UpdateRUn call as it fail anyways
+		// TODO(gkcalat): consider removing UpdateRun call as it fails anyways
 		if updateError := r.runStore.UpdateRun(runId, string(state.ToV1()), execStatus.FinishedAt(), execSpec.ToStringForStore(), state.ToString()); updateError != nil {
 			if !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
 				return util.Wrap(updateError, "Failed to update the run")

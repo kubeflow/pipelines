@@ -1537,14 +1537,13 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			PipelineVersionId:    version.UUID,
 			PipelineId:           p.UUID,
 			PipelineName:         "version_for_run",
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
-			Conditions:       "Running",
-
+			CreatedAtInSec:          5,
+			ScheduledAtInSec:        5,
+			Conditions:              "Running",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
@@ -1616,7 +1615,6 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			PipelineId:           "123e4567-e89b-12d3-a456-426655440000",
 			PipelineVersionId:    "123e4567-e89b-12d3-a456-426655440000",
 			PipelineName:         "run1",
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
@@ -1669,7 +1667,6 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		},
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
 		},
 	}
@@ -1739,7 +1736,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			PipelineVersionId:    version.UUID,
 			PipelineId:           version.PipelineId,
 			PipelineName:         version.Name,
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
@@ -1819,7 +1816,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			PipelineId:           pipeline.UUID,
 			PipelineVersionId:    version.UUID,
 			PipelineName:         version.Name,
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
@@ -2223,7 +2220,6 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		UpdatedAtInSec: 4,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 		},
 	}
@@ -2312,7 +2308,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 			PipelineId:           pipeline.UUID,
 			PipelineName:         version.Name,
 			PipelineVersionId:    version.UUID,
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		ExperimentId: experiment.UUID,
@@ -2365,7 +2361,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 			PipelineId:           version.PipelineId,
 			PipelineName:         version.Name,
 			PipelineVersionId:    version.UUID,
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
@@ -2420,7 +2416,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			PipelineName:         version.Name,
 			PipelineId:           pipeline.UUID,
 			PipelineVersionId:    version.UUID,
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
@@ -2539,7 +2535,6 @@ func TestEnableJob(t *testing.T) {
 			PipelineId:           job.PipelineSpec.PipelineId,
 			PipelineName:         job.PipelineSpec.PipelineName,
 			PipelineVersionId:    job.PipelineSpec.PipelineVersionId,
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 		},
 	}
@@ -2692,7 +2687,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		},
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			PipelineSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
