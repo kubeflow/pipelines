@@ -4,7 +4,7 @@ import json
 import math
 import os
 import pathlib
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import warnings
 
 _DEFAULT_NUM_PARALLEL_TRAILS = 35
@@ -1926,6 +1926,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     seed: int = 1,
     eval_steps: int = 0,
     batch_size: int = 100,
+    measurement_selection_type: Optional[str] = None,
+    optimization_metric: Optional[str] = None,
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
@@ -2055,6 +2057,14 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       to 0, it means run evaluation for a fixed number of samples.
     batch_size:
       Batch size for training.
+    measurement_selection_type:
+      Which measurement to use if/when the service automatically
+      selects the final measurement from previously
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
+    optimization_metric:
+      Optimization metric used for `measurement_selection_type`.
+      Default is "rmse" for regression and "auc" for classification.
     eval_frequency_secs:
       Frequency at which evaluation and checkpointing will
       take place.
@@ -2128,7 +2138,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
-  parameter_values = {
+  parameter_values = {}
+  training_and_eval_parameters = {
       'project':
           project,
       'location':
@@ -2189,6 +2200,10 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           eval_steps,
       'batch_size':
           batch_size,
+      'measurement_selection_type':
+          measurement_selection_type,
+      'optimization_metric':
+          optimization_metric,
       'eval_frequency_secs':
           eval_frequency_secs,
       'weight_column':
@@ -2224,6 +2239,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+  _update_parameters(parameter_values, training_and_eval_parameters)
 
   fte_params = {
       'dataset_level_custom_transformation_definitions':
@@ -3198,6 +3214,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
     seed: int = 1,
     eval_steps: int = 0,
     batch_size: int = 100,
+    measurement_selection_type: Optional[str] = None,
+    optimization_metric: Optional[str] = None,
     eval_frequency_secs: int = 600,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
@@ -3334,6 +3352,14 @@ def get_tabnet_trainer_pipeline_and_parameters(
       to 0, it means run evaluation for a fixed number of samples.
     batch_size:
       Batch size for training.
+    measurement_selection_type:
+      Which measurement to use if/when the service automatically
+      selects the final measurement from previously
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
+    optimization_metric:
+      Optimization metric used for `measurement_selection_type`.
+      Default is "rmse" for regression and "auc" for classification.
     eval_frequency_secs:
       Frequency at which evaluation and checkpointing will
       take place.
@@ -3407,7 +3433,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
   if not worker_pool_specs_override:
     worker_pool_specs_override = []
 
-  parameter_values = {
+  parameter_values = {}
+  training_and_eval_parameters = {
       'project':
           project,
       'location':
@@ -3472,6 +3499,10 @@ def get_tabnet_trainer_pipeline_and_parameters(
           eval_steps,
       'batch_size':
           batch_size,
+      'measurement_selection_type':
+          measurement_selection_type,
+      'optimization_metric':
+          optimization_metric,
       'eval_frequency_secs':
           eval_frequency_secs,
       'weight_column':
@@ -3507,6 +3538,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+  _update_parameters(parameter_values, training_and_eval_parameters)
 
   fte_params = {
       'dataset_level_custom_transformation_definitions':
@@ -3745,4 +3777,678 @@ def get_model_comparison_pipeline_and_parameters(
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'model_comparison_pipeline.json')
+  return pipeline_definition_path, parameter_values
+
+
+def get_xgboost_trainer_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    objective: str,
+    eval_metric: Optional[str] = None,
+    num_boost_round: Optional[int] = None,
+    early_stopping_rounds: Optional[int] = None,
+    base_score: Optional[float] = None,
+    disable_default_eval_metric: Optional[int] = None,
+    seed: Optional[int] = None,
+    seed_per_iteration: Optional[bool] = None,
+    booster: Optional[str] = None,
+    eta: Optional[float] = None,
+    gamma: Optional[float] = None,
+    max_depth: Optional[int] = None,
+    min_child_weight: Optional[float] = None,
+    max_delta_step: Optional[float] = None,
+    subsample: Optional[float] = None,
+    colsample_bytree: Optional[float] = None,
+    colsample_bylevel: Optional[float] = None,
+    colsample_bynode: Optional[float] = None,
+    reg_lambda: Optional[float] = None,
+    reg_alpha: Optional[float] = None,
+    tree_method: Optional[str] = None,
+    scale_pos_weight: Optional[float] = None,
+    updater: Optional[str] = None,
+    refresh_leaf: Optional[int] = None,
+    process_type: Optional[str] = None,
+    grow_policy: Optional[str] = None,
+    sampling_method: Optional[str] = None,
+    monotone_constraints: Optional[str] = None,
+    interaction_constraints: Optional[str] = None,
+    sample_type: Optional[str] = None,
+    normalize_type: Optional[str] = None,
+    rate_drop: Optional[float] = None,
+    one_drop: Optional[int] = None,
+    skip_drop: Optional[float] = None,
+    num_parallel_tree: Optional[int] = None,
+    feature_selector: Optional[str] = None,
+    top_k: Optional[int] = None,
+    max_cat_to_onehot: Optional[int] = None,
+    max_leaves: Optional[int] = None,
+    max_bin: Optional[int] = None,
+    tweedie_variance_power: Optional[float] = None,
+    huber_slope: Optional[float] = None,
+    dataset_level_custom_transformation_definitions: Optional[List[Dict[
+        str, Any]]] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: Optional[bool] = None,
+    feature_selection_algorithm: Optional[str] = None,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
+    tf_transformations_path: Optional[str] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
+    weight_column: Optional[str] = None,
+    training_machine_type: Optional[str] = None,
+    training_total_replica_count: Optional[int] = None,
+    training_accelerator_type: Optional[str] = None,
+    training_accelerator_count: Optional[int] = None,
+    transform_dataflow_machine_type: Optional[str] = None,
+    transform_dataflow_max_num_workers: Optional[int] = None,
+    transform_dataflow_disk_size_gb: Optional[int] = None,
+    run_evaluation: Optional[bool] = None,
+    evaluation_batch_predict_machine_type: Optional[str] = None,
+    evaluation_batch_predict_starting_replica_count: Optional[int] = None,
+    evaluation_batch_predict_max_replica_count: Optional[int] = None,
+    evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_max_num_workers: Optional[int] = None,
+    evaluation_dataflow_disk_size_gb: Optional[int] = None,
+    dataflow_service_account: Optional[str] = None,
+    dataflow_subnetwork: Optional[str] = None,
+    dataflow_use_public_ips: Optional[bool] = None,
+    encryption_spec_key_name: Optional[str] = None):
+  """Get the XGBoost training pipeline.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    objective: Specifies the learning task and the learning
+      objective. Must be one of [reg:squarederror, reg:squaredlogerror,
+      reg:logistic, reg:gamma, reg:tweedie, reg:pseudohubererror,
+      binary:logistic, multi:softprob].
+    eval_metric: Evaluation metrics for validation data represented as a
+      comma-separated string.
+    num_boost_round: Number of boosting iterations.
+    early_stopping_rounds: Activates early stopping. Validation
+      error needs to decrease at least every early_stopping_rounds round(s) to
+      continue training.
+    base_score: The initial prediction score of all instances, global
+      bias.
+    disable_default_eval_metric: Flag to disable default metric. Set to >0
+      to disable. Default to 0.
+    seed: Random seed.
+    seed_per_iteration: Seed PRNG determnisticly via iterator number.
+    booster: Which booster to use, can be gbtree, gblinear or dart.
+      gbtree and dart use tree based model while gblinear uses linear function.
+    eta: Learning rate.
+    gamma: Minimum loss reduction required to make a further partition
+      on a leaf node of the tree.
+    max_depth: Maximum depth of a tree.
+    min_child_weight: Minimum sum of instance weight(hessian) needed in
+      a child.
+    max_delta_step: Maximum delta step we allow each tree's weight
+      estimation to be.
+    subsample: Subsample ratio of the training instance.
+    colsample_bytree: Subsample ratio of columns when constructing each
+      tree.
+    colsample_bylevel: Subsample ratio of columns for each split, in
+      each level.
+    colsample_bynode: Subsample ratio of columns for each node (split).
+    reg_lambda: L2 regularization term on weights.
+    reg_alpha: L1 regularization term on weights.
+    tree_method: The tree construction algorithm used in XGBoost. Choices:
+      ["auto", "exact", "approx", "hist", "gpu_exact", "gpu_hist"].
+    scale_pos_weight: Control the balance of positive and negative
+      weights.
+    updater: A comma separated string defining the sequence of tree
+      updaters to run.
+    refresh_leaf: Refresh updater plugin. Update tree leaf and nodes's
+      stats if True. When it is False, only node stats are updated.
+    process_type: A type of boosting process to run. Choices:["default",
+      "update"]
+    grow_policy: Controls a way new nodes are added to the tree. Only
+      supported if tree_method is hist. Choices:["depthwise", "lossguide"]
+    sampling_method: The method to use to sample the training instances.
+    monotone_constraints: Constraint of variable
+      monotonicity.
+    interaction_constraints: Constraints for
+      interaction representing permitted interactions.
+    sample_type: [dart booster only] Type of sampling algorithm.
+      Choices:["uniform", "weighted"]
+    normalize_type: [dart booster only] Type of normalization algorithm,
+      Choices:["tree", "forest"]
+    rate_drop: [dart booster only] Dropout rate.'
+    one_drop: [dart booster only] When this flag is enabled, at least one
+      tree is always dropped during the dropout (allows Binomial-plus-one or
+      epsilon-dropout from the original DART paper).
+    skip_drop: [dart booster only] Probability of skipping the dropout
+      procedure during a boosting iteration.
+    num_parallel_tree: Number of parallel trees constructed during each
+      iteration. This option is used to support boosted random forest.
+    feature_selector: [linear booster only] Feature selection and
+      ordering method.
+    top_k: The number of top features to select in greedy and thrifty
+      feature selector. The value of 0 means using all the features.
+    max_cat_to_onehot: A threshold for deciding whether XGBoost should
+      use one-hot encoding based split for categorical data.
+    max_leaves: Maximum number of nodes to be added.
+    max_bin: Maximum number of discrete bins to bucket continuous features.
+    tweedie_variance_power: Parameter that controls the variance of the Tweedie
+      distribution.
+    huber_slope: A parameter used for Pseudo-Huber loss to define the delta
+      term.
+    dataset_level_custom_transformation_definitions: Dataset-level custom
+      transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in
+      string format.
+    run_feature_selection: Whether to enable feature selection.
+    feature_selection_algorithm: Feature selection algorithm.
+    max_selected_features: Maximum number of features to select.
+    predefined_split_key: Predefined split key.
+    stratified_split_key: Stratified split key.
+    training_fraction: Training fraction.
+    validation_fraction: Validation fraction.
+    test_fraction: Test fraction.
+    tf_auto_transform_features: List of auto transform features in the
+      comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions
+      in string format.
+    tf_transformations_path: Path to TF transformation configuration.
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
+      storing intermediate tables.
+    weight_column: The weight column name.
+    training_machine_type: Machine type.
+    training_total_replica_count: Number of workers.
+    training_accelerator_type: Accelerator type.
+    training_accelerator_count: Accelerator count.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name: The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
+  """
+  parameter_values = {}
+  training_and_eval_parameters = {
+      'project':
+          project,
+      'location':
+          location,
+      'root_dir':
+          root_dir,
+      'target_column':
+          target_column,
+      'objective':
+          objective,
+      'eval_metric':
+          eval_metric,
+      'num_boost_round':
+          num_boost_round,
+      'early_stopping_rounds':
+          early_stopping_rounds,
+      'base_score':
+          base_score,
+      'disable_default_eval_metric':
+          disable_default_eval_metric,
+      'seed':
+          seed,
+      'seed_per_iteration':
+          seed_per_iteration,
+      'booster':
+          booster,
+      'eta':
+          eta,
+      'gamma':
+          gamma,
+      'max_depth':
+          max_depth,
+      'min_child_weight':
+          min_child_weight,
+      'max_delta_step':
+          max_delta_step,
+      'subsample':
+          subsample,
+      'colsample_bytree':
+          colsample_bytree,
+      'colsample_bylevel':
+          colsample_bylevel,
+      'colsample_bynode':
+          colsample_bynode,
+      'reg_lambda':
+          reg_lambda,
+      'reg_alpha':
+          reg_alpha,
+      'tree_method':
+          tree_method,
+      'scale_pos_weight':
+          scale_pos_weight,
+      'updater':
+          updater,
+      'refresh_leaf':
+          refresh_leaf,
+      'process_type':
+          process_type,
+      'grow_policy':
+          grow_policy,
+      'sampling_method':
+          sampling_method,
+      'monotone_constraints':
+          monotone_constraints,
+      'interaction_constraints':
+          interaction_constraints,
+      'sample_type':
+          sample_type,
+      'normalize_type':
+          normalize_type,
+      'rate_drop':
+          rate_drop,
+      'one_drop':
+          one_drop,
+      'skip_drop':
+          skip_drop,
+      'num_parallel_tree':
+          num_parallel_tree,
+      'feature_selector':
+          feature_selector,
+      'top_k':
+          top_k,
+      'max_cat_to_onehot':
+          max_cat_to_onehot,
+      'max_leaves':
+          max_leaves,
+      'max_bin':
+          max_bin,
+      'tweedie_variance_power':
+          tweedie_variance_power,
+      'huber_slope':
+          huber_slope,
+      'weight_column':
+          weight_column,
+      'training_machine_type':
+          training_machine_type,
+      'training_total_replica_count':
+          training_total_replica_count,
+      'training_accelerator_type':
+          training_accelerator_type,
+      'training_accelerator_count':
+          training_accelerator_count,
+      'transform_dataflow_machine_type':
+          transform_dataflow_machine_type,
+      'transform_dataflow_max_num_workers':
+          transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
+      'encryption_spec_key_name':
+          encryption_spec_key_name,
+  }
+  _update_parameters(parameter_values, training_and_eval_parameters)
+
+  fte_params = {
+      'dataset_level_custom_transformation_definitions':
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions else [],
+      'dataset_level_transformations':
+          dataset_level_transformations
+          if dataset_level_transformations else [],
+      'run_feature_selection':
+          run_feature_selection,
+      'feature_selection_algorithm':
+          feature_selection_algorithm,
+      'max_selected_features':
+          max_selected_features,
+      'predefined_split_key':
+          predefined_split_key,
+      'stratified_split_key':
+          stratified_split_key,
+      'training_fraction':
+          training_fraction,
+      'validation_fraction':
+          validation_fraction,
+      'test_fraction':
+          test_fraction,
+      'tf_auto_transform_features':
+          tf_auto_transform_features if tf_auto_transform_features else [],
+      'tf_custom_transformation_definitions':
+          tf_custom_transformation_definitions
+          if tf_custom_transformation_definitions else [],
+      'tf_transformations_path':
+          tf_transformations_path,
+  }
+  _update_parameters(parameter_values, fte_params)
+
+  data_source_and_split_parameters = {
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id,
+  }
+  _update_parameters(parameter_values, data_source_and_split_parameters)
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(), 'xgboost_trainer_pipeline.json')
+
+  return pipeline_definition_path, parameter_values
+
+
+def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    objective: str,
+    study_spec_metric_id: str,
+    study_spec_metric_goal: str,
+    max_trial_count: int,
+    parallel_trial_count: int,
+    study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
+    eval_metric: Optional[str] = None,
+    disable_default_eval_metric: Optional[int] = None,
+    seed: Optional[int] = None,
+    seed_per_iteration: Optional[bool] = None,
+    dataset_level_custom_transformation_definitions: Optional[List[Dict[
+        str, Any]]] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: Optional[bool] = None,
+    feature_selection_algorithm: Optional[str] = None,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
+    tf_transformations_path: Optional[str] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
+    weight_column: Optional[str] = None,
+    max_failed_trial_count: Optional[int] = None,
+    training_machine_type: Optional[str] = None,
+    training_total_replica_count: Optional[int] = None,
+    training_accelerator_type: Optional[str] = None,
+    training_accelerator_count: Optional[int] = None,
+    study_spec_algorithm: Optional[str] = None,
+    study_spec_measurement_selection_type: Optional[str] = None,
+    transform_dataflow_machine_type: Optional[str] = None,
+    transform_dataflow_max_num_workers: Optional[int] = None,
+    transform_dataflow_disk_size_gb: Optional[int] = None,
+    run_evaluation: Optional[bool] = None,
+    evaluation_batch_predict_machine_type: Optional[str] = None,
+    evaluation_batch_predict_starting_replica_count: Optional[int] = None,
+    evaluation_batch_predict_max_replica_count: Optional[int] = None,
+    evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_max_num_workers: Optional[int] = None,
+    evaluation_dataflow_disk_size_gb: Optional[int] = None,
+    dataflow_service_account: Optional[str] = None,
+    dataflow_subnetwork: Optional[str] = None,
+    dataflow_use_public_ips: Optional[bool] = None,
+    encryption_spec_key_name: Optional[str] = None):
+  """Get the XGBoost HyperparameterTuningJob pipeline.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    objective: Specifies the learning task and the learning
+      objective. Must be one of [reg:squarederror, reg:squaredlogerror,
+      reg:logistic, reg:gamma, reg:tweedie, reg:pseudohubererror,
+      binary:logistic, multi:softprob].
+    study_spec_metric_id: Metric to optimize. For options, please look under
+      'eval_metric' at
+      https://xgboost.readthedocs.io/en/stable/parameter.html#learning-task-parameters.
+    study_spec_metric_goal: Optimization goal of the metric, possible values:
+      "MAXIMIZE", "MINIMIZE".
+    max_trial_count: The desired total number of trials.
+    parallel_trial_count: The desired number of trials to run in parallel.
+    study_spec_parameters_override: List of dictionaries representing parameters
+      to optimize. The dictionary key is the parameter_id, which is passed to
+      training job as a command line argument, and the dictionary value is the
+      parameter specification of the metric.
+    eval_metric: Evaluation metrics for validation data represented as a
+      comma-separated string.
+    disable_default_eval_metric: Flag to disable default metric. Set to >0
+      to disable. Default to 0.
+    seed: Random seed.
+    seed_per_iteration: Seed PRNG determnisticly via iterator number.
+    dataset_level_custom_transformation_definitions: Dataset-level custom
+      transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in
+      string format.
+    run_feature_selection: Whether to enable feature selection.
+    feature_selection_algorithm: Feature selection algorithm.
+    max_selected_features: Maximum number of features to select.
+    predefined_split_key: Predefined split key.
+    stratified_split_key: Stratified split key.
+    training_fraction: Training fraction.
+    validation_fraction: Validation fraction.
+    test_fraction: Test fraction.
+    tf_auto_transform_features: List of auto transform features in the
+      comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions
+      in string format.
+    tf_transformations_path: Path to TF transformation configuration.
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
+      storing intermediate tables.
+    weight_column: The weight column name.
+    max_failed_trial_count: The number of failed trials that need to be seen
+      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
+      how many trials must fail before the whole job fails.
+    training_machine_type: Machine type.
+    training_total_replica_count: Number of workers.
+    training_accelerator_type: Accelerator type.
+    training_accelerator_count: Accelerator count.
+    study_spec_algorithm: The search algorithm specified for the study. One of
+      'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+    study_spec_measurement_selection_type:  Which measurement to use if/when the
+      service automatically selects the final measurement from previously
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name: The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
+  """
+  parameter_values = {}
+  training_and_eval_parameters = {
+      'project':
+          project,
+      'location':
+          location,
+      'root_dir':
+          root_dir,
+      'target_column':
+          target_column,
+      'objective':
+          objective,
+      'eval_metric':
+          eval_metric,
+      'study_spec_metric_id':
+          study_spec_metric_id,
+      'study_spec_metric_goal':
+          study_spec_metric_goal,
+      'max_trial_count':
+          max_trial_count,
+      'parallel_trial_count':
+          parallel_trial_count,
+      'study_spec_parameters_override':
+          study_spec_parameters_override
+          if study_spec_parameters_override else [],
+      'disable_default_eval_metric':
+          disable_default_eval_metric,
+      'seed':
+          seed,
+      'seed_per_iteration':
+          seed_per_iteration,
+      'weight_column':
+          weight_column,
+      'max_failed_trial_count':
+          max_failed_trial_count,
+      'training_machine_type':
+          training_machine_type,
+      'training_total_replica_count':
+          training_total_replica_count,
+      'training_accelerator_type':
+          training_accelerator_type,
+      'training_accelerator_count':
+          training_accelerator_count,
+      'study_spec_algorithm':
+          study_spec_algorithm,
+      'study_spec_measurement_selection_type':
+          study_spec_measurement_selection_type,
+      'transform_dataflow_machine_type':
+          transform_dataflow_machine_type,
+      'transform_dataflow_max_num_workers':
+          transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
+      'encryption_spec_key_name':
+          encryption_spec_key_name,
+  }
+  _update_parameters(parameter_values, training_and_eval_parameters)
+
+  fte_params = {
+      'dataset_level_custom_transformation_definitions':
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions else [],
+      'dataset_level_transformations':
+          dataset_level_transformations
+          if dataset_level_transformations else [],
+      'run_feature_selection':
+          run_feature_selection,
+      'feature_selection_algorithm':
+          feature_selection_algorithm,
+      'max_selected_features':
+          max_selected_features,
+      'predefined_split_key':
+          predefined_split_key,
+      'stratified_split_key':
+          stratified_split_key,
+      'training_fraction':
+          training_fraction,
+      'validation_fraction':
+          validation_fraction,
+      'test_fraction':
+          test_fraction,
+      'tf_auto_transform_features':
+          tf_auto_transform_features if tf_auto_transform_features else [],
+      'tf_custom_transformation_definitions':
+          tf_custom_transformation_definitions
+          if tf_custom_transformation_definitions else [],
+      'tf_transformations_path':
+          tf_transformations_path,
+  }
+  _update_parameters(parameter_values, fte_params)
+
+  data_source_and_split_parameters = {
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id,
+  }
+  _update_parameters(parameter_values, data_source_and_split_parameters)
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'xgboost_hyperparameter_tuning_job_pipeline.json')
+
   return pipeline_definition_path, parameter_values

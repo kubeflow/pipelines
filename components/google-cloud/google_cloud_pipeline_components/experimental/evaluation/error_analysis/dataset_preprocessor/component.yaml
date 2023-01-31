@@ -10,12 +10,12 @@ description: |
           If not set, defaulted to `us-central1`.
       output_dir (str):
           Required. The Google Cloud Storage location where the outputs will be saved to.
-      test_dataset (Optional[str])
+      test_dataset (Optional[google.VertexDataset])
           Optional. A google.VertexDataset artifact of the test dataset. If `test_dataset_storage_source_uris` is
           also provided, this Vertex Dataset argument will override the GCS source.
       test_dataset_annotation_set_name (Optional[str])
           Optional. A string of the annotation_set name containing the ground truth of the test datset used for evaluation.
-      training_dataset (Optional[str])
+      training_dataset (Optional[google.VertexDataset])
           Optional. A google.VertexDataset artifact of the training dataset. If `training_dataset_storage_source_uris` is
           also provided, this Vertex Dataset argument will override the GCS source.
       training_dataset_annotation_set_name (Optional[str])
@@ -62,7 +62,9 @@ inputs:
   - { name: location, type: String, default: "us-central1" }
   - { name: output_dir, type: String }
   - { name: test_dataset, type: google.VertexDataset, optional: True }
+  - { name: test_dataset_annotation_set_name, type: String, optional: True }
   - { name: training_dataset, type: google.VertexDataset, optional: True }
+  - { name: training_dataset_annotation_set_name, type: String, optional: True }
   - { name: test_dataset_storage_source_uris, type: JsonArray, default: "[]", optional: True }
   - { name: training_dataset_storage_source_uris, type: JsonArray, default: "[]", optional: True }
 outputs:
@@ -73,10 +75,10 @@ outputs:
   - { name: training_data_items_storage_source, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.8
+    image: gcr.io/ml-pipeline/model-evaluation:v0.8.1
     command:
       - python
-      - /dataset_preprocessor.py
+      - /main.py
     args:
       - --task
       - "dataset_preprocessor"
@@ -85,17 +87,21 @@ implementation:
       - --location
       - { inputValue: location }
       - --output_dir
-      - { inputValue: output_dir}
+      - { inputValue: output_dir }
       - if:
-          cond: {isPresent: test_dataset}
+          cond: { isPresent: test_dataset }
           then:
           - --test_dataset
           - "{{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}"
+          - --test_dataset_annotation_set_name
+          - { inputValue: test_dataset_annotation_set_name }
       - if:
-          cond: {isPresent: training_dataset}
+          cond: { isPresent: training_dataset }
           then:
           - --training_dataset
           - "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
+          - --training_dataset_annotation_set_name
+          - { inputValue: training_dataset_annotation_set_name }
       - --test_dataset_storage_source_uris
       - { inputValue: test_dataset_storage_source_uris }
       - --training_dataset_storage_source_uris

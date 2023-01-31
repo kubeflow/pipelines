@@ -33,6 +33,8 @@ description: |
             The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
         num_selected_trials (int):
             Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
+        num_selected_features (int):
+            Number of selected features. The number of features to learn in the NN models.
         deadline_hours (float):
             Number of hours the cross-validation trainer should run.
         disable_early_stopping (bool):
@@ -70,6 +72,7 @@ inputs:
 - {name: worker_pool_specs_override_json, type: JsonArray, default: "[]"}
 - {name: reduce_search_space_mode, type: String, default: "regular"}
 - {name: num_selected_trials, type: Integer}
+- {name: num_selected_features, type: Integer, default: 0}
 - {name: deadline_hours, type: Float}
 - {name: disable_early_stopping, type: Boolean, default: "false"}
 - {name: num_parallel_trials, type: Integer}
@@ -103,11 +106,11 @@ implementation:
         '{"display_name": "automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230110_1125_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
         '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--training_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230110_1125_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
         '", ',
         {if: {
           cond: {isPresent: feature_ranking},
@@ -132,6 +135,8 @@ implementation:
         {inputValue: deadline_hours},
         '", "--num_selected_trials=',
         {inputValue: num_selected_trials},
+        '", "--num_selected_features=',
+        {inputValue: num_selected_features},
         '", "--lro_job_info=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/lro", "--error_file_path=',

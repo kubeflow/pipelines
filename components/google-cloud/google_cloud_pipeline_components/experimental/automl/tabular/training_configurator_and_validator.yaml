@@ -122,7 +122,7 @@ outputs:
 
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230110_1125_RC00
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230123_2125
     args: [
       training_configurator_and_validator,
       concat: [

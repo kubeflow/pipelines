@@ -95,7 +95,6 @@ export function getArtifactsHandler({
           peek,
         )(req, res);
         break;
-
       case 's3':
         getMinioArtifactHandler(
           {

@@ -20,9 +20,9 @@ def make_required_install_packages():
         # Pin google-api-core version for the bug fixing in 1.31.5
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
-        "google-cloud-storage>=1.20.0,<3",
-        "kfp>=1.8.9",
-        "google-cloud-aiplatform>=1.11.0,<2",
+        "google-cloud-storage<3,>=2.2.1",
+        "kfp>=2.0.0b10",
+        "google-cloud-aiplatform>=1.14.0,<2",
         "google-cloud-notebooks>=0.4.0",
     ]
 

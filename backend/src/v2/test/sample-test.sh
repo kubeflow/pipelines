@@ -23,6 +23,9 @@ source "${DIR}/scripts/ci-env.sh"
 
 # Install required packages from commit
 python3 -m pip install --upgrade pip
+
+# TODO: remove deprecated dependency
+python3 -m pip install -r $source_root/sdk/python/requirements-deprecated.txt
 python3 -m pip install $source_root/sdk/python
 
 # Install KFP server API from commit.

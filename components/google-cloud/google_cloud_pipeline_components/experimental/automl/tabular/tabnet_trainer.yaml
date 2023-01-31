@@ -97,6 +97,14 @@ description: |
             dataset. If set to 0, it means run evaluation for a fixed number of samples.
         batch_size (Optional[int]):
             Batch size for training.
+        measurement_selection_type (Optional[str]):
+            Which measurement to use if/when the service automatically
+            selects the final measurement from previously
+            reported intermediate measurements. One of "BEST_MEASUREMENT" or
+            "LAST_MEASUREMENT".
+        optimization_metric (Optional[str]):
+            Optimization metric used for `measurement_selection_type`.
+            Default is "rmse" for regression and "auc" for classification.
         eval_frequency_secs (Optional[int]):
             Frequency at which evaluation and checkpointing will take place.
         training_machine_spec (Optional[Dict[str, Any]]):
@@ -158,6 +166,8 @@ inputs:
   - { name: seed, type: Integer, default: 1 }
   - { name: eval_steps, type: Integer, default: 0 }
   - { name: batch_size, type: Integer, default: 100 }
+  - { name: measurement_selection_type, type: String, default: "BEST_MEASUREMENT" }
+  - { name: optimization_metric, type: String, default: "" }
   - { name: eval_frequency_secs, type: Integer, default: 600 }
   - { name: training_machine_spec, type: JsonObject, default: '{"machine_type": "c2-standard-16"}' }
   - { name: training_disk_spec, type: JsonObject, default: '{"boot_disk_type": "pd-ssd", "boot_disk_size_gb": 100}' }
@@ -193,7 +203,7 @@ implementation:
           ', "disk_spec": ',
           { inputValue: training_disk_spec },
           ', "container_spec": {"image_uri":"',
-          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230110_1125_RC00',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230123_2125',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -201,7 +211,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230110_1125_RC00',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230123_2125',
           '", "--baseline_path=',
           { inputUri: instance_baseline },
           '", "--metadata_path=',
@@ -270,6 +280,10 @@ implementation:
           { inputValue: eval_steps },
           '", "--batch_size=',
           { inputValue: batch_size },
+          '", "--measurement_selection_type=',
+          { inputValue: measurement_selection_type },
+          '", "--optimization_metric=',
+          { inputValue: optimization_metric },
           '", "--eval_frequency_secs=',
           { inputValue: eval_frequency_secs },
           '", "--generate_feature_importance=true", "--executor_input={{$.json_escape[1]}}"]}}]}}',

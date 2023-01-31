@@ -136,5 +136,11 @@
     "categorical_value_spec": {
       "values": ["weighted_cross_entropy"]
     }
+  },
+  {
+    "parameter_id": "yeo_johnson_transform",
+    "categorical_value_spec": {
+      "values": ["false"]
+    }
   }
 ]

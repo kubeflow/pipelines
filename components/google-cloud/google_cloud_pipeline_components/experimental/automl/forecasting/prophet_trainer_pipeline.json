@@ -638,7 +638,7 @@
                   "worker_pool_specs": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "[{\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, \"replica_count\": 1, \"container_spec\": {\"image_uri\": \"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/prophet:20230110_1125_RC00\", \"args\": [\"train\", \"--job_name\", \"{{$.pipeline_job_name}}\", \"--prophet_backtest_start_time\", \"0001-01-01T00:00:00\", \"--prophet_dataflow_worker_container_image\", \"us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230110_1125_RC00\", \"--prophet_root_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}/prophet_{{$.inputs.parameters['pipelineparam--generate-iso8601-underscore-datetime-format-Output']}}\", \"--prophet_region\", \"{{$.inputs.parameters['pipelineparam--location']}}\", \"--prophet_source_bigquery_uri\", \"bq://{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}\", \"--prophet_target_column\", \"{{$.inputs.parameters['pipelineparam--target_column']}}\", \"--prophet_time_column\", \"{{$.inputs.parameters['pipelineparam--time_column']}}\", \"--prophet_time_series_identifier_column\", \"{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\", \"--prophet_forecast_horizon\", \"{{$.inputs.parameters['pipelineparam--forecast_horizon']}}\", \"--prophet_window_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}\", \"--prophet_optimization_objective\", \"{{$.inputs.parameters['pipelineparam--optimization_objective']}}\", \"--prophet_data_granularity_unit\", \"{{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\", \"--prophet_predefined_split_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-Output']}}\", \"--prophet_max_num_trials\", \"{{$.inputs.parameters['pipelineparam--max_num_trials']}}\", \"--dataflow_project\", \"{{$.inputs.parameters['pipelineparam--project']}}\", \"--dataflow_tmp_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_staging_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_max_num_workers\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_max_num_workers']}}\", \"--dataflow_machine_type\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_machine_type']}}\", \"--dataflow_disk_size_gb\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_disk_size_gb']}}\", \"--dataflow_service_account\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-7-Output']}}\", \"--dataflow_subnetwork\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-8-Output']}}\", \"--dataflow_use_public_ips\", \"{{$.inputs.parameters['pipelineparam--dataflow_use_public_ips']}}\"]}}]"
+                        "stringValue": "[{\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, \"replica_count\": 1, \"container_spec\": {\"image_uri\": \"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/prophet:20230123_2125\", \"args\": [\"train\", \"--job_name\", \"{{$.pipeline_job_name}}\", \"--prophet_backtest_start_time\", \"0001-01-01T00:00:00\", \"--prophet_dataflow_worker_container_image\", \"us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125\", \"--prophet_root_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}/prophet_{{$.inputs.parameters['pipelineparam--generate-iso8601-underscore-datetime-format-Output']}}\", \"--prophet_region\", \"{{$.inputs.parameters['pipelineparam--location']}}\", \"--prophet_source_bigquery_uri\", \"bq://{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}\", \"--prophet_target_column\", \"{{$.inputs.parameters['pipelineparam--target_column']}}\", \"--prophet_time_column\", \"{{$.inputs.parameters['pipelineparam--time_column']}}\", \"--prophet_time_series_identifier_column\", \"{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\", \"--prophet_forecast_horizon\", \"{{$.inputs.parameters['pipelineparam--forecast_horizon']}}\", \"--prophet_window_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}\", \"--prophet_optimization_objective\", \"{{$.inputs.parameters['pipelineparam--optimization_objective']}}\", \"--prophet_data_granularity_unit\", \"{{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\", \"--prophet_predefined_split_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-Output']}}\", \"--prophet_max_num_trials\", \"{{$.inputs.parameters['pipelineparam--max_num_trials']}}\", \"--dataflow_project\", \"{{$.inputs.parameters['pipelineparam--project']}}\", \"--dataflow_tmp_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_staging_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_max_num_workers\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_max_num_workers']}}\", \"--dataflow_machine_type\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_machine_type']}}\", \"--dataflow_disk_size_gb\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_disk_size_gb']}}\", \"--dataflow_service_account\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-7-Output']}}\", \"--dataflow_subnetwork\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-8-Output']}}\", \"--dataflow_use_public_ips\", \"{{$.inputs.parameters['pipelineparam--dataflow_use_public_ips']}}\"]}}]"
                       }
                     }
                   }
@@ -2493,7 +2493,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-build-preprocessing-query-parameters": {
@@ -2556,7 +2556,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-generate-iso8601-underscore-datetime-format": {
@@ -2647,7 +2647,7 @@
             "metadata": {
               "containerSpec": {
                 "healthRoute": "/health",
-                "imageUri": "us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230110_1125_RC00",
+                "imageUri": "us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230123_2125",
                 "ports": [
                   {
                     "containerPort": 8080.0
@@ -2961,7 +2961,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.model.upload_model.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-parse-data-source": {
