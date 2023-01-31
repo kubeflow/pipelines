@@ -276,13 +276,7 @@ def get_inputs_for_all_groups(
                             channels_to_add.pop()
                             if not channels_to_add:
                                 break
-            elif isinstance(channel, for_loop.Collected):
-                # Don't create compiler-injected inputs for fan-in.
-                # This is data passing in the opposite direction: instead of
-                # passing inputs from a parent task group to a child task
-                # group/task (what this function handles), instead surface
-                # outputs from inner tasks to one or more parent groups
-                pass
+
             else:
                 # The PipelineChannel is not produced by a task. It's either
                 # a top-level pipeline input, or a constant value to loop
@@ -581,7 +575,6 @@ def get_dependencies(
             uncommon_upstream_groups.remove(
                 upstream_task.name
             )  # because a task's `upstream_groups` contains the task's name
-
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
