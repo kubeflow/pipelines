@@ -2670,8 +2670,8 @@ class TestIllegalFanInCollection(unittest.TestCase):
 
             @dsl.pipeline
             def math_pipeline() -> int:
-                with dsl.ParallelFor([1, 2, 3]) as f:
-                    t = double(num=f)
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
 
                 return add(nums=t.output).output
 
@@ -2693,8 +2693,8 @@ class TestIllegalFanInCollection(unittest.TestCase):
 
             @dsl.pipeline
             def math_pipeline() -> int:
-                with dsl.ParallelFor([1, 2, 3]) as f:
-                    t = double(num=f)
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
 
                 return add(nums=t.output).output
 
@@ -2712,8 +2712,8 @@ class TestIllegalFanInCollection(unittest.TestCase):
         @dsl.pipeline
         def math_pipeline(text: str) -> int:
             with dsl.Condition(text == 'text'):
-                with dsl.ParallelFor([1, 2, 3]) as f:
-                    t = double(num=f)
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
 
                 return add(nums=dsl.Collected(t.output)).output
 
@@ -2729,9 +2729,9 @@ class TestIllegalFanInCollection(unittest.TestCase):
 
         @dsl.pipeline
         def my_pipeline(a: str):
-            with dsl.ParallelFor([1, 2, 3]) as f:
-                with dsl.Condition(f == 1):
-                    t = double(num=f)
+            with dsl.ParallelFor([1, 2, 3]) as v:
+                with dsl.Condition(v == 1):
+                    t = double(num=v)
 
             with dsl.Condition(a == 'a'):
                 x = add(nums=dsl.Collected(t.output))
@@ -2754,8 +2754,8 @@ class TestIllegalFanInCollection(unittest.TestCase):
             @dsl.pipeline
             def my_pipeline(a: str = '', b: str = ''):
                 with dsl.Condition(a == 'a'):
-                    with dsl.ParallelFor([1, 2, 3]) as f:
-                        t = double(num=f)
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
 
                 with dsl.Condition(b == 'b'):
                     x = add(nums=dsl.Collected(t.output))
@@ -2778,8 +2778,8 @@ class TestIllegalFanInCollection(unittest.TestCase):
             @dsl.pipeline
             def my_pipeline(a: str = ''):
                 with dsl.Condition(a == 'a'):
-                    with dsl.ParallelFor([1, 2, 3]) as f:
-                        t = double(num=f)
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
                 add(nums=dsl.Collected(t.output))
 
     def test_producer_exit_handler_illegal1(self):
@@ -2804,8 +2804,8 @@ class TestIllegalFanInCollection(unittest.TestCase):
             @dsl.pipeline
             def my_pipeline():
                 with dsl.ExitHandler(exit_comp()):
-                    with dsl.ParallelFor([1, 2, 3]) as f:
-                        t = double(num=f)
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
                 add(nums=dsl.Collected(t.output))
 
 
