@@ -273,19 +273,6 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineId)
 	}
 
-	// if apiVersion == "v1beta1" {
-	// 	// Mark pipeline versions as deleting so they are not visible to user.
-	// 	err = r.pipelineStore.UpdateAllPipelineVersionsStatus(pipelineId, model.PipelineVersionDeleting)
-	// 	if err != nil {
-	// 		return util.Wrapf(err, "Failed to change the status of all pipeline versions under pipeline id %v to DELETING", pipelineId)
-	// 	}
-	// 	// Delete all pipeline versions.
-	// 	err = r.pipelineStore.DeleteAllPipelineVersions(pipelineId)
-	// 	if err != nil {
-	// 		return util.Wrapf(err, "Failed to delete all pipeline version DB entries for pipeline id %v", pipelineId)
-	// 	}
-	// }
-
 	// Check if it has no pipeline versions in Ready state
 	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
 	if latestPipelineVersion != nil {
@@ -1833,7 +1820,7 @@ func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, names
 	return nil
 }
 
-// Creates a task entry.
+// Fetches a task entry.
 func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 	task, err := r.taskStore.GetTask(taskId)
 	if err != nil {

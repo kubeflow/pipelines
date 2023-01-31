@@ -114,11 +114,6 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsV1Params{ResourceKeyID: &pipelineId, SortBy: &sortBy})
 	require.Nil(t, err)
 
-	// TODO(gkcalat): remove this workflow as we no longer support default version. Instead, we use the latest version as the default.
-	// err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionV1Params{PipelineID: pipelineId,
-	// 	VersionID: versions[0].ID})
-	// require.Nil(t, err)
-
 	time.Sleep(1 * time.Second)
 	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineV1Params{ID: pipelineId})
 	require.Nil(t, err)

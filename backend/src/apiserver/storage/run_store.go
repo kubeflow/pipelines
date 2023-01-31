@@ -249,7 +249,7 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	return runs[0], nil
 }
 
-// Apples a func f to every string in a given string slice.
+// Applies a func f to every string in a given string slice.
 func apply(f func(string) string, vs []string) []string {
 	vsm := make([]string, len(vs))
 	for i, v := range vs {

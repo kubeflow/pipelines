@@ -179,7 +179,7 @@ func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, "default")
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	existingPipeline, err := pipelineServer.CreatePipelineV1(
+	existingPipeline, _ := pipelineServer.CreatePipelineV1(
 		context.Background(), &api.CreatePipelineRequest{
 			Pipeline: &api.Pipeline{
 				Name: "argument-parameters",

@@ -430,14 +430,12 @@ func (s *UpgradeTests) VerifyJobs() {
 
 	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences), "Inconsistent resource references: %v does not contain %v", job.ResourceReferences, expectedJob.ResourceReferences)
 	expectedJob.ResourceReferences = job.ResourceReferences
-	// sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
-	// sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
 func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 	// Check workflow manifest contains the correct name
-	// Check runtime workflow manifest may be empty if the run was created via pipeline or pipeline version id
+	// Runtime workflow manifest may be empty if the run was created via pipeline or pipeline version id
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay", "Pipeline manifest does not contain workflow's name: %v", runDetail.Run.PipelineSpec)
 
 	expectedExperimentID := test.GetExperimentIDFromV1beta1ResourceReferences(runDetail.Run.ResourceReferences)

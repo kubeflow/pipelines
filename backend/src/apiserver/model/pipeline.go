@@ -106,22 +106,6 @@ func (p *Pipeline) GetFieldValue(name string) interface{} {
 	}
 }
 
-// Returns a value of a field in a Pipeline object.
-// If not found, checks for proto-style names based on APIToModelFieldMap.
-// Returns nil if does not exist.
-func (p *Pipeline) GetProtoFieldValue(name string) interface{} {
-	if val := p.GetFieldValue(name); val == nil {
-		newKey, ok := p.APIToModelFieldMap()[name]
-		if ok {
-			return p.GetFieldValue(newKey)
-		} else {
-			return nil
-		}
-	} else {
-		return val
-	}
-}
-
 func (p *Pipeline) GetSortByFieldPrefix(name string) string {
 	return "pipelines."
 }

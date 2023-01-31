@@ -1,6 +1,6 @@
 # Frontend integration test
 
-This test gets triggered by backend and frontend end-to-end testing workflows.
+This test gets triggered by the end-to-end testing workflows.
 
 ## Local run
 

@@ -719,6 +719,40 @@ func TestCreatePipelineVersion(t *testing.T) {
 		"Got unexpected pipeline")
 }
 
+func TestUpdatePipelineDefaultVersion(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+	)
+
+	// Create a pipeline first.
+	p, err := pipelineStore.CreatePipeline(
+		createPipeline("p1", "pipeline one", "user1"),
+	)
+	assert.Nil(t, err)
+	// Create a version under the above pipeline.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	pipelineVersion := &model.PipelineVersion{
+		Name:          "pipeline_version_1",
+		Parameters:    `[{"Name": "param1"}]`,
+		Description:   "pipeline_version_description",
+		PipelineId:    DefaultFakePipelineId,
+		Status:        model.PipelineVersionCreating,
+		CodeSourceUrl: "code_source_url",
+	}
+	pipelineVersionCreated, err := pipelineStore.CreatePipelineVersion(
+		pipelineVersion,
+	)
+	assert.Nil(t, err)
+	err = pipelineStore.UpdatePipelineDefaultVersion(p.UUID, pipelineVersionCreated.UUID)
+	assert.Nil(t, err)
+	err = pipelineStore.UpdatePipelineDefaultVersion(p.UUID, "something else")
+	assert.Nil(t, err)
+}
+
 func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()

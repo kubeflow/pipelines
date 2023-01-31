@@ -28,6 +28,10 @@ const (
 	StatusStateEnabledV1     StatusState = "ENABLED"
 	StatusStateDisabled      StatusState = "DISABLED"
 	StatusStateDisabledV1    StatusState = "DISABLED"
+	StatusNoStatusV1         StatusState = "NO_STATUS"
+	StatusReady              StatusState = "READY"
+	StatusRunning            StatusState = "RUNNING"
+	StatusSucceeded          StatusState = "SUCCEEDED"
 )
 
 // Checks is the status contains a valid value.
@@ -56,11 +60,11 @@ func (s StatusState) ToString() string {
 // This should be called before converting to v1beta1 API type.
 func (s StatusState) ToV1() StatusState {
 	switch s.toUpper() {
-	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "":
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusNoStatusV1, "":
 		return StatusStateUnspecifiedV1
-	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
+	case StatusStateEnabled, StatusReady, StatusRunning, StatusSucceeded:
 		return StatusStateEnabledV1
-	case StatusStateDisabled, "DISABLE":
+	case StatusStateDisabled:
 		return StatusStateDisabledV1
 	default:
 		return StatusStateUnspecifiedV1
@@ -71,11 +75,11 @@ func (s StatusState) ToV1() StatusState {
 // This should be called before converting to v2beta1 API type.
 func (s StatusState) ToV2() StatusState {
 	switch s.toUpper() {
-	case StatusStateUnspecified, StatusStateUnspecifiedV1, "MODE_UNSPECIFIED", "NO_STATUS", "":
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusNoStatusV1, "":
 		return StatusStateUnspecified
-	case StatusStateEnabled, "ENABLE", "READY", "RUNNING", "SUCCEEDED":
+	case StatusStateEnabled, StatusReady, StatusRunning, StatusSucceeded:
 		return StatusStateEnabled
-	case StatusStateDisabled, "DISABLE":
+	case StatusStateDisabled:
 		return StatusStateDisabled
 	default:
 		return StatusStateUnspecified

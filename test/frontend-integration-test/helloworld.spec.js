@@ -72,10 +72,6 @@ describe('deploy helloworld sample run', () => {
     $('#experimentDescription').setValue(experimentDescription);
 
     $('#createExperimentBtn').click();
-
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/runs/new');
-    }, waitTimeout);
   });
 
   it('creates a new run in the experiment', () => {
@@ -98,25 +94,22 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineVersionBtn').click();
 
     $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
-    browser.pause(1000);
 
-    
-    browser.keys("\uE004")
     browser.keys(runName);
 
-    browser.keys("\uE004")
+    browser.keys('Tab');
     browser.keys(runDescription);
 
     // Skip over "choose experiment" button
-    browser.keys("\uE004")
+    browser.keys('Tab');
     // Skip over service account help button
-    browser.keys("\uE004")
+    browser.keys('Tab');
     // Skip over "service account" textbox
-    browser.keys("\uE004")
+    browser.keys('Tab');
     // Skip over "Run Type" radio button
-    browser.keys("\uE004")
+    browser.keys('Tab');
 
-    browser.keys("\uE004")
+    browser.keys('Tab');
     browser.keys(outputParameterValue);
 
     // Deploy
@@ -142,35 +135,31 @@ describe('deploy helloworld sample run', () => {
     assert(attempts, 'waited for 30 seconds but run did not start.');
 
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
-  });
 
-  // Wait for a reasonable amount of time until the run is done
-  // and navigate to the run details page
-  it('waits for run to finish', () => {
-    let attempts = 0;
-    const maxAttempts = 90;
-
-    while (attempts < maxAttempts) {
-      browser.pause(1000);
-      attempts++;
-    }
-
+    // Navigate to details of the deployed run by clicking its anchor element
     browser.execute('document.querySelector(".tableRow a").click()');
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/runs/details');
-    }, waitTimeout);
   });
 
   it('switches to config tab', () => {
-    $('button=Config').waitForVisible();
+    $('button=Config').waitForVisible(waitTimeout);
     $('button=Config').click();
-    browser.pause(waitTimeout);
   });
 
-  it('verifies run status', () => {
-    const status = getValueFromDetailsTable('Status');
-    assert.equal(status.trim(), 'Succeeded',
-      'run has not finished on time. Current status is: ' + status);
+  it('waits for run to finish', () => {
+    let status = getValueFromDetailsTable('Status');
+
+    let attempts = 0;
+    const maxAttempts = 60;
+
+    // Wait for a reasonable amount of time until the run is done
+    while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
+      browser.pause(1000);
+      status = getValueFromDetailsTable('Status');
+      attempts++;
+    }
+
+    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not succeed. ` +
+      'Current status is: ' + status);
   });
 
   it('displays run created at date correctly', () => {
@@ -190,7 +179,6 @@ describe('deploy helloworld sample run', () => {
 
   it('has a 4-node graph', () => {
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible();
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
@@ -230,25 +218,23 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-    browser.pause(1000);
 
-    browser.keys("\uE004")
-    browser.keys("\uE004")
+    browser.keys('Tab');
     browser.keys(runWithoutExperimentName);
 
-    browser.keys("\uE004")
+    browser.keys('Tab');
     browser.keys(runWithoutExperimentDescription);
 
     // Skip over "choose experiment" button
-    browser.keys("\uE004")
+    browser.keys('Tab');
     // Skip over service account help button
-    browser.keys("\uE004")
+    browser.keys('Tab');
     // Skip over "service account" textbox
-    browser.keys("\uE004")
+    browser.keys('Tab');
     // Skip over "Run Type" radio button
-    browser.keys("\uE004")
+    browser.keys('Tab');
 
-    browser.keys("\uE004")
+    browser.keys('Tab');
     browser.keys(outputParameterValue);
 
     // Deploy

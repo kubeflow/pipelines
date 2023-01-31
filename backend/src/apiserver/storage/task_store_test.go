@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -201,4 +202,74 @@ func TestListTasks(t *testing.T) {
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageTasks, tasks, "Unexpected Tasks listed")
 	assert.Empty(t, nextPageToken)
+}
+
+func TestTaskStore_GetTask(t *testing.T) {
+	db, taskStore := initializeTaskStore()
+	defer db.Close()
+
+	task1 := &model.Task{
+		UUID:              defaultFakeTaskIdFour,
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "4",
+		StartedTimestamp:  5,
+		FinishedTimestamp: 6,
+		Fingerprint:       "1",
+	}
+	task2 := &model.Task{
+		UUID:              defaultFakeTaskIdFive,
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "5",
+		StartedTimestamp:  7,
+		FinishedTimestamp: 8,
+		Fingerprint:       "10",
+	}
+
+	tests := []struct {
+		name    string
+		id      string
+		want    *model.Task
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"valid -task 1",
+			defaultFakeTaskIdFour,
+			task1,
+			false,
+			"",
+		},
+		{
+			"valid -task 2",
+			defaultFakeTaskIdFive,
+			task2,
+			false,
+			"",
+		},
+		{
+			"not found",
+			"This does not exist",
+			nil,
+			true,
+			"not found",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := taskStore.GetTask(tt.id)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("TaskStore.GetTask() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
