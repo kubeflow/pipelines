@@ -7,6 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Fix upload_pipeline method on client when no name is provided [\#8695](https://github.com/kubeflow/pipelines/pull/8695)
 
 ## Documentation updates
 # 2.0.0-beta.11
