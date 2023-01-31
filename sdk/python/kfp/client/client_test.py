@@ -284,6 +284,45 @@ class TestClient(unittest.TestCase):
             self.client.get_kfp_healthz(sleep_duration=0)
             mock_get_kfp_healthz.assert_called()
 
+    def test_upload_pipeline_without_name(self):
+
+        @component
+        def return_bool(boolean: bool) -> bool:
+            return boolean
+
+        @pipeline(name='test-upload-without-name', description='description')
+        def pipeline_test_upload_without_name(boolean: bool = True):
+            return_bool(boolean=boolean)
+
+        with patch.object(self.client._upload_api,
+                          'upload_pipeline') as mock_upload_pipeline:
+            with patch.object(self.client, '_is_ipython', return_value=False):
+                with tempfile.TemporaryDirectory() as tmp_path:
+                    pipeline_test_path = os.path.join(tmp_path, 'test.yaml')
+                    Compiler().compile(
+                        pipeline_func=pipeline_test_upload_without_name,
+                        package_path=pipeline_test_path)
+                    self.client.upload_pipeline(
+                        pipeline_package_path=pipeline_test_path,
+                        description='description')
+                    mock_upload_pipeline.assert_called_once_with(
+                        pipeline_test_path,
+                        name='test-upload-without-name',
+                        description='description')
+
+    def test_upload_pipeline_with_name(self):
+        with patch.object(self.client._upload_api,
+                          'upload_pipeline') as mock_upload_pipeline:
+            with patch.object(self.client, '_is_ipython', return_value=False):
+                self.client.upload_pipeline(
+                    pipeline_package_path='fake.yaml',
+                    pipeline_name='overwritten-name',
+                    description='description')
+                mock_upload_pipeline.assert_called_once_with(
+                    'fake.yaml',
+                    name='overwritten-name',
+                    description='description')
+
 
 if __name__ == '__main__':
     unittest.main()

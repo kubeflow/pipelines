@@ -1372,9 +1372,8 @@ class Client:
             ``ApiPipeline`` object.
         """
         if pipeline_name is None:
-            pipeline_name = os.path.splitext(
-                os.path.basename('something/file.txt'))[0]
-
+            pipeline_yaml = self._extract_pipeline_yaml(pipeline_package_path)
+            pipeline_name = pipeline_yaml['pipelineInfo']['name']
         validate_pipeline_resource_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path, name=pipeline_name, description=description)
