@@ -25,6 +25,8 @@ from kfp.components import tasks_group
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
+ILLEGAL_CROSS_DAG_ERROR_PREFIX = 'Illegal task dependency across DSL context managers.'
+
 
 def get_all_groups(
     root_group: tasks_group.TasksGroup,) -> List[tasks_group.TasksGroup]:
@@ -335,7 +337,7 @@ class InvalidTopologyException(Exception):
     pass
 
 
-def validate_collected_consumption_legal(
+def validate_parallel_for_fan_in_consumption_legal(
     consumer_task_name: str,
     upstream_groups: List[str],
     group_name_to_group: Dict[str, tasks_group.TasksGroup],
@@ -367,7 +369,7 @@ def validate_collected_consumption_legal(
                 tasks_group.TasksGroupType.EXIT_HANDLER,
         ]:
             raise InvalidTopologyException(
-                f'Tasks cannot depend on an upstream task inside {group.__class__.__name__} that is not a common ancestor of both tasks. Task {consumer_task_name} depends on upstream task {upstream_groups[-1]}.'
+                f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} When using dsl.{for_loop.Collected.__name__} to fan-in outputs from a task within a dsl.{tasks_group.ParallelFor.__name__} context, the dsl.{tasks_group.ParallelFor.__name__} context manager cannot be nested within a dsl.{group.__class__.__name__} context manager unless the consumer task is too. Task {consumer_task_name} consumes from {upstream_groups[-1]} within a dsl.{group.__class__.__name__} context.'
             )
 
 
@@ -411,7 +413,7 @@ def get_outputs_for_all_groups(
                         task1=producer_task,
                         task2=consumer_task,
                     ))
-                validate_collected_consumption_legal(
+                validate_parallel_for_fan_in_consumption_legal(
                     consumer_task_name=consumer_task.name,
                     upstream_groups=upstream_groups,
                     group_name_to_group=group_name_to_group,
@@ -583,21 +585,16 @@ def get_dependencies(
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
-                if isinstance(dependent_group, tasks_group.ExitHandler):
-                    task_group_type = 'an ' + tasks_group.ExitHandler.__name__
-                    additional_suggestion = ''
 
-                elif isinstance(dependent_group, tasks_group.Condition):
-                    task_group_type = 'a ' + tasks_group.Condition.__name__
-                    additional_suggestion = ''
-
-                else:
-                    task_group_type = 'a ' + tasks_group.ParallelFor.__name__
-                    additional_suggestion = ' Did you mean to use dsl.Collected to fan-in outputs from a ParallelFor sub-DAG?'
-
-                raise RuntimeError(
-                    f'Tasks cannot depend on an upstream task inside {task_group_type} that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
-                    + additional_suggestion)
+                if isinstance(dependent_group,
+                              (tasks_group.Condition, tasks_group.ExitHandler)):
+                    raise InvalidTopologyException(
+                        f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
+                    )
+                elif isinstance(dependent_group, tasks_group.ParallelFor):
+                    raise InvalidTopologyException(
+                        f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl.{for_loop.Collected.__name__}. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
+                    )
 
             # ParralelFor Nested Check
             # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
@@ -615,8 +612,9 @@ def get_dependencies(
                             if isinstance(
                                     group_name_to_group.get(parent_task, None),
                                     tasks_group.ParallelFor):
-                                raise RuntimeError(
-                                    f'Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
+
+                                raise InvalidTopologyException(
+                                    f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
                                 )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
