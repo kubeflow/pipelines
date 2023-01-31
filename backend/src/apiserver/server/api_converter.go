@@ -1556,12 +1556,6 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 	}
 	specManifest := r.PipelineSpec.PipelineSpecManifest
 	wfManifest := r.PipelineSpec.WorkflowSpecManifest
-	if wfManifest == "" {
-		wfManifest = r.PipelineSpec.PipelineSpecManifest
-	}
-	if specManifest == "" {
-		specManifest = r.PipelineSpec.WorkflowSpecManifest
-	}
 	return &apiv1beta1.Run{
 		CreatedAt:      &timestamp.Timestamp{Seconds: r.RunDetails.CreatedAtInSec},
 		Id:             r.UUID,
@@ -1696,11 +1690,9 @@ func toApiRunDetailV1(r *model.Run) *apiv1beta1.RunDetail {
 	if r.RunDetails.WorkflowRuntimeManifest == "" {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
 			PipelineManifest: r.RunDetails.PipelineRuntimeManifest,
-			WorkflowManifest: r.RunDetails.PipelineRuntimeManifest,
 		}
 	} else if r.RunDetails.PipelineRuntimeManifest == "" {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
-			PipelineManifest: r.RunDetails.WorkflowRuntimeManifest,
 			WorkflowManifest: r.RunDetails.WorkflowRuntimeManifest,
 		}
 	} else {
@@ -2176,12 +2168,6 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 
 	specManifest := j.PipelineSpec.PipelineSpecManifest
 	wfManifest := j.PipelineSpec.WorkflowSpecManifest
-	if wfManifest == "" {
-		wfManifest = j.PipelineSpec.PipelineSpecManifest
-	}
-	if specManifest == "" {
-		specManifest = j.PipelineSpec.WorkflowSpecManifest
-	}
 	return &apiv1beta1.Job{
 		Id:             j.UUID,
 		Name:           j.DisplayName,

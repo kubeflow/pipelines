@@ -235,7 +235,6 @@ func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
 	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
-	assert.Equal(t, testWorkflow2.ToStringForStore(), runDetail.Run.PipelineSpec.PipelineManifest)
 	assert.Equal(t, testWorkflow2.ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
 }
 
@@ -294,7 +293,6 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
-			PipelineManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
 
@@ -311,7 +309,6 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 
 	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
 	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
-	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
 	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
 	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
 	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
@@ -319,7 +316,7 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
-func TestCreateRunV1_RuntimeParams(t *testing.T) {
+func TestCreateRunV1_RuntimeParams_V2Spec(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -364,7 +361,6 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 			Status:         "Error",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				PipelineManifest: v2SpecHelloWorld,
-				WorkflowManifest: v2SpecHelloWorld,
 				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",
@@ -376,6 +372,9 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 					Name: "exp1", Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},
+		},
+		PipelineRuntime: &apiv1beta1.PipelineRuntime{
+			PipelineManifest: v2SpecHelloWorld,
 		},
 	}
 
@@ -392,7 +391,6 @@ func TestCreateRunV1_RuntimeParams(t *testing.T) {
 
 	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
 	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
-	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
 	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
 	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
 	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
@@ -444,7 +442,6 @@ func TestCreateRunV1Patch(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"default\",\"uid\":\"workflow2\",\"creationTimestamp\":null,\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
-			PipelineManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"default\",\"uid\":\"workflow2\",\"creationTimestamp\":null,\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
 
@@ -464,7 +461,6 @@ func TestCreateRunV1Patch(t *testing.T) {
 
 	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
 	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
-	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
 	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
 	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
 	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
@@ -567,7 +563,6 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
-			PipelineManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
 
@@ -584,7 +579,6 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 
 	expectedRunDetail.Run.PipelineSpec.PipelineId = runDetail.GetRun().GetPipelineSpec().GetPipelineId()
 	expectedRunDetail.Run.PipelineSpec.PipelineName = runDetail.GetRun().GetPipelineSpec().GetPipelineName()
-	expectedRunDetail.Run.PipelineSpec.PipelineManifest = runDetail.GetRun().GetPipelineSpec().GetPipelineManifest()
 	expectedRunDetail.Run.CreatedAt = runDetail.GetRun().GetCreatedAt()
 	expectedRunDetail.Run.ScheduledAt = runDetail.GetRun().GetScheduledAt()
 	expectedRunDetail.Run.FinishedAt = runDetail.GetRun().GetFinishedAt()
@@ -882,7 +876,6 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			PipelineId:       createdRun.Run.PipelineSpec.GetPipelineId(),
 			PipelineName:     createdRun.Run.PipelineSpec.GetPipelineName(),
 			WorkflowManifest: testWorkflow.ToStringForStore(),
-			PipelineManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{

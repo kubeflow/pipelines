@@ -461,7 +461,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", executionSpec.ExecutionName())
 	}
-	executionSpec.SetExecutionNamespace(run.Namespace)
 
 	// Create argo workflow CR resource
 	k8sNamespace := run.Namespace
@@ -471,6 +470,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if k8sNamespace == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
+	executionSpec.SetExecutionNamespace(k8sNamespace)
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())

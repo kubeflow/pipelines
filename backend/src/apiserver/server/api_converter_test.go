@@ -1259,7 +1259,6 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
-				PipelineManifest: "manifest",
 				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",
@@ -1282,7 +1281,6 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: "workflow123",
-			PipelineManifest: "workflow123",
 		},
 	}
 	// Compare the string representation of ApiRuns, since these structs have internal fields
@@ -1329,7 +1327,6 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
-				PipelineManifest: "manifest",
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
@@ -1346,7 +1343,6 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
 			WorkflowManifest: "workflow123",
-			PipelineManifest: "workflow123",
 		},
 	}
 	assert.Equal(t, expectedApiRun, apiRun)
@@ -1433,7 +1429,6 @@ func TestToApiRunsV1(t *testing.T) {
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
-				PipelineManifest: "manifest",
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1467,7 +1462,6 @@ func TestToApiRunsV1(t *testing.T) {
 			},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
-				PipelineManifest: "manifest",
 			},
 			Metrics: []*apiv1beta1.RunMetric{apiMetric2},
 		},

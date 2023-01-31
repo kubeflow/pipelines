@@ -406,7 +406,6 @@ func TestCreateJob_V2(t *testing.T) {
 		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
 		Status:    "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: v2SpecHelloWorld,
 			PipelineManifest: v2SpecHelloWorld,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 				Parameters:   v2RuntimeParams,
@@ -436,7 +435,6 @@ func TestCreateJob_V2(t *testing.T) {
 
 	expectedJob_V2.PipelineSpec.PipelineId = job.GetPipelineSpec().GetPipelineId()
 	expectedJob_V2.PipelineSpec.PipelineName = job.GetPipelineSpec().GetPipelineName()
-	expectedJob_V2.PipelineSpec.PipelineManifest = job.GetPipelineSpec().GetPipelineManifest()
 	expectedJob_V2.CreatedAt = job.GetCreatedAt()
 	expectedJob_V2.UpdatedAt = job.GetUpdatedAt()
 
@@ -581,7 +579,6 @@ func TestListJobs_Multiuser(t *testing.T) {
 	var expectedJobs []*apiv1beta1.Job
 	commonExpectedJob.PipelineSpec.PipelineId = "123e4567-e89b-12d3-a456-426655440000"
 	commonExpectedJob.PipelineSpec.PipelineName = "job1"
-	commonExpectedJob.PipelineSpec.PipelineManifest = commonExpectedJob.PipelineSpec.WorkflowManifest
 	commonExpectedJob.CreatedAt = &timestamp.Timestamp{Seconds: 4}
 	commonExpectedJob.UpdatedAt = &timestamp.Timestamp{Seconds: 4}
 	commonExpectedJob.ResourceReferences = []*apiv1beta1.ResourceReference{

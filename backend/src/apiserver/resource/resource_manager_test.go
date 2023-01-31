@@ -1520,7 +1520,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
-	expectedRuntimeWorkflow.ObjectMeta.Namespace = ""
+	expectedRuntimeWorkflow.ObjectMeta.Namespace = "ns1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1718,7 +1718,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	expectedRuntimeWorkflow.Namespace = ""
+	expectedRuntimeWorkflow.Namespace = "ns1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -1792,7 +1792,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	expectedRuntimeWorkflow.Namespace = ""
+	expectedRuntimeWorkflow.Namespace = "ns1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
