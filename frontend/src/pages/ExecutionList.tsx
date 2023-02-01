@@ -44,6 +44,7 @@ import {
   serviceErrorToString,
 } from '../lib/Utils';
 import { Page } from './Page';
+import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -102,7 +103,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           ref={this.tableRef}
           columns={columns}
           rows={rows}
-          disablePaging={true}
+          disablePaging={false}
           disableSelection={true}
           reload={this.reload}
           initialSortColumn='pipelineName'
@@ -122,32 +123,38 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
+    const listOperationOpts = new ListOperationOptions();
+    if (request.pageToken) {
+      listOperationOpts.setNextPageToken(request.pageToken);
+    }
+    if (request.pageSize) {
+      listOperationOpts.setMaxResultSize(request.pageSize);
+    }
     try {
       // TODO: Consider making an Api method for returning and caching types
       if (!this.executionTypesMap || !this.executionTypesMap.size) {
         this.executionTypesMap = await this.getExecutionTypes();
       }
-      if (!this.state.executions.length) {
-        const executions = await this.getExecutions();
-        this.setState({ executions });
-        this.clearBanner();
-        const collapsedAndExpandedRows = this.getRowsFromExecutions(request, executions);
-        this.setState({
-          expandedRows: collapsedAndExpandedRows.expandedRows,
-          rows: collapsedAndExpandedRows.collapsedRows,
-        });
-      }
+      const executions = await this.getExecutions(listOperationOpts);
+      this.setState({ executions });
+      this.clearBanner();
+      const collapsedAndExpandedRows = this.getRowsFromExecutions(request, executions);
+      this.setState({
+        expandedRows: collapsedAndExpandedRows.expandedRows,
+        rows: collapsedAndExpandedRows.collapsedRows,
+      });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));
     }
-    return '';
+    return listOperationOpts.getNextPageToken();
   }
 
-  private async getExecutions(): Promise<Execution[]> {
+  private async getExecutions(listOperationOpts: ListOperationOptions): Promise<Execution[]> {
     try {
       const response = await this.api.metadataStoreService.getExecutions(
-        new GetExecutionsRequest(),
+        new GetExecutionsRequest().setOptions(listOperationOpts),
       );
+      listOperationOpts.setNextPageToken(response.getNextPageToken());
       return response.getExecutionsList();
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
