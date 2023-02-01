@@ -42,7 +42,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 
     t.assertEqual(
         {
-            'name': 'component_op',
+            'name': 'component-op',
             'inputs': {
                 'parameters': {
                     'input1': 'Hello',
