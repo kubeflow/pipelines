@@ -1543,7 +1543,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
-			Conditions:              "Running",
+			Conditions:              "Pending",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
@@ -1575,8 +1575,8 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:   5,
 			ScheduledAtInSec: 5,
-			Conditions:       "Error",
-			State:            model.RuntimeStateUnspecified,
+			Conditions:       "Pending",
+			State:            model.RuntimeStatePending,
 		},
 	}
 	expectedRunDetail.PipelineSpec.PipelineSpecManifest = runDetail.PipelineSpec.PipelineSpecManifest
@@ -1621,8 +1621,8 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
-			Conditions:              "Running",
-			State:                   "RUNNING",
+			Conditions:              "Pending",
+			State:                   "PENDING",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
@@ -1662,7 +1662,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
-			Conditions:              "Running",
+			Conditions:              "Pending",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 		PipelineSpec: model.PipelineSpec{
@@ -1799,7 +1799,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
-			Conditions:              "Running",
+			Conditions:              "Pending",
 		},
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
@@ -1866,7 +1866,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
-			Conditions:              "Running",
+			Conditions:              "Pending",
 		},
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,

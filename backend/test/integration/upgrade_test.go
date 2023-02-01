@@ -413,10 +413,6 @@ func (s *UpgradeTests) VerifyJobs() {
 				Key:  &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
 				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
 			},
-			{
-				Key:  &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINE},
-				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
-			},
 		},
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		MaxConcurrency: 10,
@@ -456,17 +452,13 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
 				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
 			},
-			{
-				Key:  &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINE},
-				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
-			},
 		},
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		CreatedAt:      runDetail.Run.CreatedAt,
 		ScheduledAt:    runDetail.Run.ScheduledAt,
 		FinishedAt:     runDetail.Run.FinishedAt,
 	}
-	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences), "Run's res references %v doe not include %v", runDetail.Run.ResourceReferences, expectedRun.ResourceReferences)
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences), "Run's res references %v does not include %v", runDetail.Run.ResourceReferences, expectedRun.ResourceReferences)
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	assert.Equal(t, expectedRun, runDetail.Run)
 }

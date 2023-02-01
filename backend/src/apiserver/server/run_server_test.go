@@ -279,7 +279,7 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 4},
 			ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
 			FinishedAt:     &timestamp.Timestamp{},
-			Status:         "Running",
+			Status:         "Pending",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
@@ -358,7 +358,7 @@ func TestCreateRunV1_RuntimeParams_V2Spec(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 			FinishedAt:     &timestamp.Timestamp{},
-			Status:         "Error",
+			Status:         "Pending",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				PipelineManifest: v2SpecHelloWorld,
 				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
@@ -421,7 +421,7 @@ func TestCreateRunV1Patch(t *testing.T) {
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
 			ServiceAccount: "pipeline-runner",
-			Status:         "Error",
+			Status:         "Pending",
 			StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
@@ -540,7 +540,7 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 		Run: &apiv1beta1.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
-			Status:         "Running",
+			Status:         "Pending",
 			ServiceAccount: "default-editor",
 			StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 4},
@@ -638,6 +638,7 @@ func TestCreateRun(t *testing.T) {
 			Parameters:   v2RuntimeParams,
 			PipelineRoot: "model-pipeline-root",
 		},
+		State: apiv2beta1.RuntimeState_PENDING,
 	}
 	assert.EqualValues(t, expectedRun, run)
 }
@@ -730,6 +731,7 @@ func TestGetRun(t *testing.T) {
 			Parameters:   v2RuntimeParams,
 			PipelineRoot: "model-pipeline-root",
 		},
+		State: apiv2beta1.RuntimeState_PENDING,
 	}
 
 	newRun, err := server.GetRun(nil, &apiv2beta1.GetRunRequest{RunId: returnedRun.RunId})
@@ -760,7 +762,7 @@ func TestListRunsV1(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
-		Status:         "Running",
+		Status:         "Pending",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
@@ -871,7 +873,7 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
 		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
 		FinishedAt:     &timestamp.Timestamp{},
-		Status:         "Running",
+		Status:         "Pending",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       createdRun.Run.PipelineSpec.GetPipelineId(),
 			PipelineName:     createdRun.Run.PipelineSpec.GetPipelineName(),
@@ -1014,6 +1016,7 @@ func TestListRuns(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 			Parameters:   make(map[string]*structpb.Value, 0),
 		},
+		State: apiv2beta1.RuntimeState_PENDING,
 	}
 
 	listRunsResponse, err := server.ListRuns(nil, &apiv2beta1.ListRunsRequest{

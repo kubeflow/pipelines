@@ -482,6 +482,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
 		run.RunDetails.ScheduledAtInSec = run.RunDetails.CreatedAtInSec
 	}
+	run.State = model.RuntimeStatePending
 	newRun, err := r.runStore.CreateRun(run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a run")

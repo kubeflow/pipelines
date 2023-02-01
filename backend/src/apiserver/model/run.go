@@ -40,6 +40,7 @@ const (
 	RuntimeStateTerminatingV1  RuntimeState = "Terminating"
 	RuntimeStateFailedV1       RuntimeState = "Failed"
 	RuntimeStateErrorV1        RuntimeState = "Error"
+	RuntimeStateUnknownV1      RuntimeState = "Unknown"
 	StorageStateUnspecified    StorageState = "STORAGE_STATE_UNSPECIFIED"
 	StorageStateAvailable      StorageState = "AVAILABLE"
 	StorageStateArchived       StorageState = "ARCHIVED"
@@ -66,7 +67,7 @@ func (s RuntimeState) ToString() string {
 // This should be called before converting the data.
 func (s RuntimeState) IsValid() bool {
 	switch s {
-	case RuntimeStateUnspecified, RuntimeStatePending, RuntimeStateRunning, RuntimeStateSucceeded, RuntimeStateSkipped, RuntimeStateFailed, RuntimeStateCancelling, RuntimeStateCanceled, RuntimeStatePaused, RuntimeStateErrorV1:
+	case RuntimeStateUnspecified, RuntimeStatePending, RuntimeStateRunning, RuntimeStateSucceeded, RuntimeStateSkipped, RuntimeStateFailed, RuntimeStateCancelling, RuntimeStateCanceled, RuntimeStatePaused, RuntimeStateErrorV1, RuntimeStateUnknownV1:
 		return true
 	default:
 		return false
@@ -77,7 +78,7 @@ func (s RuntimeState) IsValid() bool {
 // This should be called before converting to v2beta1 API type.
 func (s RuntimeState) ToV2() RuntimeState {
 	switch s.toUpper() {
-	case RuntimeStateErrorV1, RuntimeStateUnspecified, "NO_STATUS", "":
+	case RuntimeStateUnspecified, RuntimeStateUnknownV1, "NO_STATUS", "":
 		return RuntimeStateUnspecified
 	case RuntimeStatePending:
 		return RuntimeStatePending
@@ -87,7 +88,7 @@ func (s RuntimeState) ToV2() RuntimeState {
 		return RuntimeStateSucceeded
 	case RuntimeStateSkipped:
 		return RuntimeStateSkipped
-	case RuntimeStateFailed:
+	case RuntimeStateFailed, RuntimeStateErrorV1:
 		return RuntimeStateFailed
 	case RuntimeStateCancelling:
 		return RuntimeStateCancelling
@@ -105,7 +106,7 @@ func (s RuntimeState) ToV2() RuntimeState {
 func (s RuntimeState) ToV1() RuntimeState {
 	switch s.toUpper() {
 	case RuntimeStateUnspecified, "":
-		return RuntimeStateErrorV1
+		return RuntimeStateUnknownV1
 	case RuntimeStatePending:
 		return RuntimeStatePendingV1
 	case RuntimeStateRunning:
@@ -123,7 +124,7 @@ func (s RuntimeState) ToV1() RuntimeState {
 	case RuntimeStatePaused:
 		return RuntimeStatePendingV1
 	default:
-		return RuntimeStateErrorV1
+		return RuntimeStateUnknownV1
 	}
 }
 
