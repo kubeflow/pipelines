@@ -26,6 +26,7 @@ import {
   getResourcePropertyViaFallBack,
 } from 'src/mlmd/library';
 import { Artifact, ArtifactType, GetArtifactsRequest } from 'src/third_party/mlmd';
+import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { classes } from 'typestyle';
 import { ArtifactLink } from '../components/ArtifactLink';
 import CustomTable, {
@@ -113,7 +114,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           ref={this.tableRef}
           columns={columns}
           rows={rows}
-          disablePaging={true}
+          disablePaging={false}
           disableSelection={true}
           reload={this.reload}
           initialSortColumn='pipelineName'
@@ -133,6 +134,14 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
+    const listOperationOpts = new ListOperationOptions();
+    if (request.pageSize) {
+      listOperationOpts.setMaxResultSize(request.pageSize);
+    }
+    if (request.pageToken) {
+      listOperationOpts.setNextPageToken(request.pageToken);
+    }
+
     // TODO: Consider making an Api method for returning and caching types
     if (!this.artifactTypesMap || !this.artifactTypesMap.size) {
       this.artifactTypesMap = await getArtifactTypes(
@@ -140,17 +149,15 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError.bind(this),
       );
     }
-    if (!this.state.artifacts.length) {
-      const artifacts = await this.getArtifacts();
-      this.clearBanner();
-      const collapsedAndExpandedRows = await this.getRowsFromArtifacts(request, artifacts);
-      if (collapsedAndExpandedRows) {
-        this.setState({
-          artifacts,
-          expandedRows: collapsedAndExpandedRows.expandedRows,
-          rows: collapsedAndExpandedRows.collapsedRows,
-        });
-      }
+    const artifacts = await this.getArtifacts(listOperationOpts);
+    this.clearBanner();
+    const collapsedAndExpandedRows = await this.getRowsFromArtifacts(request, artifacts);
+    if (collapsedAndExpandedRows) {
+      this.setState({
+        artifacts,
+        expandedRows: collapsedAndExpandedRows.expandedRows,
+        rows: collapsedAndExpandedRows.collapsedRows,
+      });
     }
     return '';
   }
@@ -173,9 +180,13 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     <ArtifactLink artifactUri={value} />
   );
 
-  private async getArtifacts(): Promise<Artifact[]> {
+  private async getArtifacts(listOperationOpts: ListOperationOptions): Promise<Artifact[]> {
     try {
-      const response = await this.api.metadataStoreService.getArtifacts(new GetArtifactsRequest());
+      const response = await this.api.metadataStoreService.getArtifacts(
+        new GetArtifactsRequest().setOptions(listOperationOpts),
+      );
+      console.log(response);
+      listOperationOpts.setNextPageToken(response.getNextPageToken());
       return response.getArtifactsList();
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
