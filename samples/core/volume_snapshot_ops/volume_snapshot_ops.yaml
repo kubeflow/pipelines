@@ -1,0 +1,120 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: volume-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.18, pipelines.kubeflow.org/pipeline_compilation_time: '2023-01-31T15:49:01.010355',
+    pipelines.kubeflow.org/pipeline_spec: '{"name": "volume"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.18}
+spec:
+  entrypoint: volume
+  templates:
+  - name: create-volume
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: '{{workflow.name}}-vol1'
+        spec:
+          accessModes:
+          - ReadWriteMany
+          resources:
+            requests:
+              storage: 1Gi
+    outputs:
+      parameters:
+      - name: create-volume-manifest
+        valueFrom: {jsonPath: '{}'}
+      - name: create-volume-name
+        valueFrom: {jsonPath: '{.metadata.name}'}
+      - name: create-volume-size
+        valueFrom: {jsonPath: '{.status.capacity.storage}'}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: create-volume2
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: '{{workflow.name}}-vol1'
+        spec:
+          accessModes:
+          - ReadWriteMany
+          resources:
+            requests:
+              storage: 1Gi
+    outputs:
+      parameters:
+      - name: create-volume2-manifest
+        valueFrom: {jsonPath: '{}'}
+      - name: create-volume2-name
+        valueFrom: {jsonPath: '{.metadata.name}'}
+      - name: create-volume2-size
+        valueFrom: {jsonPath: '{.status.capacity.storage}'}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: step1-ingest
+    container:
+      args: [mkdir /data/step1 && echo hello > /data/step1/file1.txt]
+      command: [sh, -c]
+      image: alpine
+      volumeMounts:
+      - {mountPath: /data, name: create-volume2}
+    inputs:
+      parameters:
+      - {name: create-volume2-name}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: create-volume2
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.create-volume2-name}}'}
+  - name: step2-gunzip
+    container:
+      args: [cat /data/step1/file.txt]
+      command: [sh, -c]
+      image: library/bash:4.4.23
+      volumeMounts:
+      - {mountPath: /data, name: create-volume2}
+    inputs:
+      parameters:
+      - {name: create-volume2-name}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.18
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: create-volume2
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.create-volume2-name}}'}
+  - name: volume
+    dag:
+      tasks:
+      - {name: create-volume, template: create-volume}
+      - {name: create-volume2, template: create-volume2}
+      - name: step1-ingest
+        template: step1-ingest
+        dependencies: [create-volume2]
+        arguments:
+          parameters:
+          - {name: create-volume2-name, value: '{{tasks.create-volume2.outputs.parameters.create-volume2-name}}'}
+      - name: step2-gunzip
+        template: step2-gunzip
+        dependencies: [create-volume2]
+        arguments:
+          parameters:
+          - {name: create-volume2-name, value: '{{tasks.create-volume2.outputs.parameters.create-volume2-name}}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
