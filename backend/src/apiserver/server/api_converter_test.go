@@ -453,8 +453,7 @@ func TestToModelRunDetail(t *testing.T) {
 						// Note: for some versions of structpb.Value.MarshalJSON(), there is a trailing space after array items or struct items
 						Parameters: "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
 					},
-					PipelineId:   "p1",
-					PipelineName: "pipelines/",
+					PipelineId: "p1",
 				},
 				StorageState: model.StorageStateAvailable,
 			},
@@ -511,9 +510,8 @@ func TestToModelJob(t *testing.T) {
 				MaxConcurrency: 1,
 				NoCatchup:      true,
 				PipelineSpec: model.PipelineSpec{
-					PipelineId:   "p1",
-					PipelineName: "pipelines/",
-					Parameters:   `[{"name":"param2","value":"world"}]`,
+					PipelineId: "p1",
+					Parameters: `[{"name":"param2","value":"world"}]`,
 				},
 				ResourceReferences: make([]*model.ResourceReference, 0),
 			},
@@ -557,8 +555,7 @@ func TestToModelJob(t *testing.T) {
 				MaxConcurrency:     1,
 				NoCatchup:          true,
 				PipelineSpec: model.PipelineSpec{
-					PipelineId:   "p1",
-					PipelineName: "pipelines/",
+					PipelineId: "p1",
 					RuntimeConfig: model.RuntimeConfig{
 						Parameters: "{\"param2\":\"world\"}",
 					},

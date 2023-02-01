@@ -1569,12 +1569,12 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           "123e4567-e89b-12d3-a456-426655440000",
 			PipelineVersionId:    "123e4567-e89b-12d3-a456-426655440000",
-			PipelineName:         "run1",
+			PipelineName:         "hello-world-3",
 			PipelineSpecManifest: v2SpecHelloWorld,
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   4,
-			ScheduledAtInSec: 4,
+			CreatedAtInSec:   5,
+			ScheduledAtInSec: 5,
 			Conditions:       "Error",
 			State:            model.RuntimeStateUnspecified,
 		},
@@ -1614,13 +1614,13 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           "123e4567-e89b-12d3-a456-426655440000",
 			PipelineVersionId:    "123e4567-e89b-12d3-a456-426655440000",
-			PipelineName:         "run1",
+			PipelineName:         "run1-3",
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:          4,
-			ScheduledAtInSec:        4,
+			CreatedAtInSec:          5,
+			ScheduledAtInSec:        5,
 			Conditions:              "Running",
 			State:                   "RUNNING",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
@@ -1660,8 +1660,8 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:          4,
-			ScheduledAtInSec:        4,
+			CreatedAtInSec:          5,
+			ScheduledAtInSec:        5,
 			Conditions:              "Running",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
@@ -1679,6 +1679,62 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
+	viper.Set(common.HasDefaultBucketEnvVar, "true")
+	viper.Set(common.ProjectIDEnvVar, "test-project-id")
+	viper.Set(common.DefaultBucketNameEnvVar, "test-default-bucket")
+	_, manager, runDetail := initWithPatchedRun(t)
+
+	manager.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	pipelineStore, _ := manager.pipelineStore.(*storage.PipelineStore)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
+
+	newRun, err := manager.CreateRun(
+		context.Background(),
+		&model.Run{
+			DisplayName: "run1",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+				Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
+			},
+			ExperimentId: runDetail.ExperimentId,
+		},
+	)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, newRun.PipelineVersionId)
+	assert.NotEmpty(t, newRun.PipelineId)
+	assert.Equal(t, "run1", newRun.DisplayName)
+	assert.Equal(t, runDetail.PipelineId, newRun.PipelineId)
+	assert.Equal(t, runDetail.PipelineVersionId, newRun.PipelineVersionId)
+	assert.NotEqual(t, runDetail.WorkflowRuntimeManifest, newRun.WorkflowRuntimeManifest)
+	assert.Equal(t, runDetail.WorkflowSpecManifest, newRun.WorkflowSpecManifest)
+	assert.Equal(t, runDetail.PipelineSpecManifest, newRun.PipelineSpecManifest)
+
+	manager.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
+	newRun2, err := manager.CreateRun(
+		context.Background(),
+		&model.Run{
+			DisplayName: "run1",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: v2SpecHelloWorld,
+				Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
+			},
+			ExperimentId: runDetail.ExperimentId,
+		},
+	)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, newRun2.PipelineVersionId)
+	assert.NotEmpty(t, newRun2.PipelineId)
+	assert.Equal(t, "run1", newRun2.DisplayName)
+	assert.Equal(t, newRun.PipelineId, newRun2.PipelineId)
+	assert.NotEqual(t, newRun.PipelineVersionId, newRun2.PipelineVersionId)
+	assert.NotEqual(t, newRun.WorkflowRuntimeManifest, newRun2.WorkflowRuntimeManifest)
+	assert.NotEqual(t, newRun.WorkflowSpecManifest, newRun2.WorkflowSpecManifest)
+	assert.NotEqual(t, newRun.PipelineSpecManifest, newRun2.PipelineSpecManifest)
+	assert.Equal(t, v2SpecHelloWorld, newRun2.PipelineSpecManifest)
 }
 
 func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
@@ -1884,7 +1940,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err = manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Pipeline spec source is missing")
+	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
 }
 
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
@@ -2216,8 +2272,8 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		ExperimentId:   DefaultFakeUUID,
 		Enabled:        true,
-		CreatedAtInSec: 4,
-		UpdatedAtInSec: 4,
+		CreatedAtInSec: 5,
+		UpdatedAtInSec: 5,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
@@ -2240,8 +2296,8 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		ExperimentId:   DefaultFakeUUID,
-		CreatedAtInSec: 4,
-		UpdatedAtInSec: 4,
+		CreatedAtInSec: 5,
+		UpdatedAtInSec: 5,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
@@ -2439,7 +2495,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err = manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "spec source is missing")
+	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
 }
 
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
@@ -2527,8 +2583,8 @@ func TestEnableJob(t *testing.T) {
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        false,
-		CreatedAtInSec: 4,
-		UpdatedAtInSec: 5,
+		CreatedAtInSec: 5,
+		UpdatedAtInSec: 6,
 		Conditions:     "STATUS_UNSPECIFIED",
 		ExperimentId:   DefaultFakeUUID,
 		PipelineSpec: model.PipelineSpec{
@@ -2681,8 +2737,8 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   4,
-			ScheduledAtInSec: 4,
+			CreatedAtInSec:   5,
+			ScheduledAtInSec: 5,
 			Conditions:       "Running",
 		},
 		PipelineSpec: model.PipelineSpec{
@@ -2981,8 +3037,8 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			PipelineName:         actualJob.PipelineSpec.PipelineName,
 			PipelineVersionId:    actualJob.PipelineSpec.PipelineVersionId,
 		},
-		CreatedAtInSec: 4,
-		UpdatedAtInSec: 5,
+		CreatedAtInSec: 5,
+		UpdatedAtInSec: 6,
 	}
 	expectedJob.Conditions = "STATUS_UNSPECIFIED"
 	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())

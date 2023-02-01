@@ -76,7 +76,7 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	}
 
 	// Save this Workflow to the database.
-	err = s.pipelineClient.ReportWorkflowV1(wf)
+	err = s.pipelineClient.ReportWorkflow(wf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
 
 	// Failure

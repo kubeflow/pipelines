@@ -123,7 +123,7 @@ func TestCreateRunV1_no_pipeline_source(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Nil(t, runDetail)
-	assert.Contains(t, err.Error(), "Pipeline spec source is missing")
+	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
 }
 
 func TestCreateRunV1_invalid_spec(t *testing.T) {
@@ -628,8 +628,8 @@ func TestCreateRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: run.GetPipelineSpec(),
@@ -720,8 +720,8 @@ func TestGetRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: returnedRun.GetPipelineSpec(),
@@ -868,8 +868,8 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 		Name:           "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Running",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -1008,8 +1008,8 @@ func TestListRuns(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 4},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: createdRun.GetPipelineSpec(),

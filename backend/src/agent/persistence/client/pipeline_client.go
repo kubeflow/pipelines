@@ -35,10 +35,10 @@ const (
 )
 
 type PipelineClientInterface interface {
-	ReportWorkflowV1(workflow util.ExecutionSpec) error
-	ReportScheduledWorkflowV1(swf *util.ScheduledWorkflow) error
-	ReadArtifactV1(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
-	ReportRunMetricsV1(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error)
+	ReportWorkflow(workflow util.ExecutionSpec) error
+	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
+	ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
+	ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error)
 }
 
 type PipelineClient struct {
@@ -76,7 +76,7 @@ func NewPipelineClient(
 	}, nil
 }
 
-func (p *PipelineClient) ReportWorkflowV1(workflow util.ExecutionSpec) error {
+func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -109,7 +109,7 @@ func (p *PipelineClient) ReportWorkflowV1(workflow util.ExecutionSpec) error {
 	return nil
 }
 
-func (p *PipelineClient) ReportScheduledWorkflowV1(swf *util.ScheduledWorkflow) error {
+func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -143,7 +143,7 @@ func (p *PipelineClient) ReportScheduledWorkflowV1(swf *util.ScheduledWorkflow) 
 
 // ReadArtifact reads artifact content from run service. If the artifact is not present, returns
 // nil response.
-func (p *PipelineClient) ReadArtifactV1(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
+func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
 	pctx := context.Background()
 	if user != "" {
 		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),
@@ -162,7 +162,7 @@ func (p *PipelineClient) ReadArtifactV1(request *api.ReadArtifactRequest, user s
 }
 
 // ReportRunMetrics reports run metrics to run service.
-func (p *PipelineClient) ReportRunMetricsV1(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
+func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
 	pctx := context.Background()
 	if user != "" {
 		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),

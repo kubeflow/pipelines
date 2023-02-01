@@ -19,7 +19,8 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -30,7 +31,21 @@ type ReportServer struct {
 }
 
 func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
-	request *api.ReportWorkflowRequest,
+	request *apiv1beta1.ReportWorkflowRequest,
+) (*empty.Empty, error) {
+	execSpec, err := validateReportWorkflowRequestV1(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Report workflow failed")
+	}
+	err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	if err != nil {
+		return nil, util.Wrap(err, "Report workflow failed")
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *ReportServer) ReportWorkflow(ctx context.Context,
+	request *apiv2beta1.ReportWorkflowRequest,
 ) (*empty.Empty, error) {
 	execSpec, err := validateReportWorkflowRequest(request)
 	if err != nil {
@@ -44,7 +59,21 @@ func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 }
 
 func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
-	request *api.ReportScheduledWorkflowRequest,
+	request *apiv1beta1.ReportScheduledWorkflowRequest,
+) (*empty.Empty, error) {
+	scheduledWorkflow, err := validateReportScheduledWorkflowRequestV1(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Report scheduled workflow failed")
+	}
+	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
+	request *apiv2beta1.ReportScheduledWorkflowRequest,
 ) (*empty.Empty, error) {
 	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(request)
 	if err != nil {
@@ -57,7 +86,7 @@ func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func validateReportWorkflowRequest(request *api.ReportWorkflowRequest) (*util.ExecutionSpec, error) {
+func validateReportWorkflowRequestV1(request *apiv1beta1.ReportWorkflowRequest) (*util.ExecutionSpec, error) {
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(request.Workflow))
 	if err != nil {
 		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
@@ -74,7 +103,44 @@ func validateReportWorkflowRequest(request *api.ReportWorkflowRequest) (*util.Ex
 	return &execSpec, nil
 }
 
-func validateReportScheduledWorkflowRequest(request *api.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
+func validateReportWorkflowRequest(request *apiv2beta1.ReportWorkflowRequest) (*util.ExecutionSpec, error) {
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(request.Workflow))
+	if err != nil {
+		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
+	}
+	if execSpec.ExecutionName() == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a name: %+v", execSpec)
+	}
+	if execSpec.ExecutionNamespace() == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a namespace: %+v", execSpec)
+	}
+	if execSpec.ExecutionUID() == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", execSpec)
+	}
+	return &execSpec, nil
+}
+
+func validateReportScheduledWorkflowRequestV1(request *apiv1beta1.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
+	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
+	err := json.Unmarshal([]byte(request.ScheduledWorkflow), &scheduledWorkflow)
+	if err != nil {
+		return nil, util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
+			err, request.ScheduledWorkflow)
+	}
+	swf := util.NewScheduledWorkflow(&scheduledWorkflow)
+	if swf.Name == "" {
+		return nil, util.NewInvalidInputError("The resource must have a name: %+v", swf.ScheduledWorkflow)
+	}
+	if swf.Namespace == "" {
+		return nil, util.NewInvalidInputError("The resource must have a namespace: %+v", swf.ScheduledWorkflow)
+	}
+	if swf.UID == "" {
+		return nil, util.NewInvalidInputError("The resource must have a UID: %+v", swf.UID)
+	}
+	return swf, nil
+}
+
+func validateReportScheduledWorkflowRequest(request *apiv2beta1.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
 	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
 	err := json.Unmarshal([]byte(request.ScheduledWorkflow), &scheduledWorkflow)
 	if err != nil {

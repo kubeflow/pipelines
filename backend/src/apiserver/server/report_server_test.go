@@ -19,12 +19,78 @@ import (
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+func TestReportWorkflowV1(t *testing.T) {
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServer(resourceManager)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "run1",
+			Namespace: "default",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Spec: v1alpha1.WorkflowSpec{
+			Entrypoint: "testy",
+			Templates: []v1alpha1.Template{{
+				Name: "testy",
+				Container: &corev1.Container{
+					Image:   "docker/whalesay",
+					Command: []string{"cowsay"},
+					Args:    []string{"hello world"},
+				},
+			}},
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		},
+	})
+	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
+		Workflow: workflow.ToStringForStore(),
+	})
+	assert.Nil(t, err)
+	run, err = resourceManager.GetRun(run.UUID)
+	assert.Nil(t, err)
+	assert.NotNil(t, run)
+}
+
+func TestReportWorkflowV1_ValidationFailed(t *testing.T) {
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServer(resourceManager)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			UID:       types.UID(run.UUID),
+		},
+	})
+
+	_, err := reportServer.ReportWorkflow(nil, &apiv2.ReportWorkflowRequest{
+		Workflow: workflow.ToStringForStore(),
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "must have a name")
+}
 
 func TestReportWorkflow(t *testing.T) {
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
@@ -59,7 +125,7 @@ func TestReportWorkflow(t *testing.T) {
 			},
 		},
 	})
-	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflow(nil, &apiv2.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)

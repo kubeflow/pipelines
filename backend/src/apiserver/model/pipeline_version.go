@@ -29,8 +29,7 @@ const (
 )
 
 type PipelineVersion struct {
-	// gorm.Model
-	UUID           string `gorm:"column:UUID; not null; primary_key; unique_index:idx_pipelineid_name;"`
+	UUID           string `gorm:"column:UUID; not null; primary_key;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
 	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.

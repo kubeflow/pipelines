@@ -579,9 +579,9 @@ func TestListJobs_Multiuser(t *testing.T) {
 
 	var expectedJobs []*apiv1beta1.Job
 	commonExpectedJob.PipelineSpec.PipelineId = "123e4567-e89b-12d3-a456-426655440000"
-	commonExpectedJob.PipelineSpec.PipelineName = "job1"
-	commonExpectedJob.CreatedAt = &timestamp.Timestamp{Seconds: 4}
-	commonExpectedJob.UpdatedAt = &timestamp.Timestamp{Seconds: 4}
+	commonExpectedJob.PipelineSpec.PipelineName = "job1-3"
+	commonExpectedJob.CreatedAt = &timestamp.Timestamp{Seconds: 5}
+	commonExpectedJob.UpdatedAt = &timestamp.Timestamp{Seconds: 5}
 	commonExpectedJob.ResourceReferences = []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakePipelineId}, Relationship: apiv1beta1.Relationship_OWNER},
@@ -844,8 +844,8 @@ func TestCreateRecurringRun(t *testing.T) {
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 4},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 5},
 		Status:         apiv2beta1.RecurringRun_ENABLED,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: recurringRun.GetPipelineVersionId()},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
@@ -898,8 +898,8 @@ func TestGetRecurringRun(t *testing.T) {
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 4},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 5},
 		Status:         apiv2beta1.RecurringRun_ENABLED,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: createdRecurringRun.GetPipelineVersionId()},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
@@ -955,8 +955,8 @@ func TestListRecurringRuns(t *testing.T) {
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 4},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 4},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 5},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: createdRecurringRun.GetPipelineVersionId()},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",

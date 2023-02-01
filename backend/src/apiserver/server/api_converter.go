@@ -1294,9 +1294,6 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			pipelineId = getPipelineIdFromResourceReferencesV1(apiRunV1.GetResourceReferences())
 		}
 		pipelineVersionId = getPipelineVersionFromResourceReferencesV1(apiRunV1.GetResourceReferences())
-		// if pipelineId == "" && pipelineVersionId == "" {
-		// 	return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline and pipeline version ids cannot be empty"), "Failed to convert a v1beta1 API run detail to its internal representation")
-		// }
 
 		runName = apiRunV1.GetName()
 		if runName == "" {
@@ -1409,9 +1406,9 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	default:
 		return nil, util.NewUnknownApiVersionError("Run", r)
 	}
-	if namespace != "" {
+	if namespace != "" && pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("namespaces/%v/pipelines/%v", namespace, pipelineVersionId)
-	} else {
+	} else if pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
 	modelRun := model.Run{
@@ -1968,9 +1965,9 @@ func toModelJob(j interface{}) (*model.Job, error) {
 				"Found invalid period schedule interval %v. Set at interval to least 1 second", *trigger.PeriodicSchedule.IntervalSecond)
 		}
 	}
-	if namespace != "" {
+	if namespace != "" && pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("namespaces/%v/pipelines/%v", namespace, pipelineVersionId)
-	} else {
+	} else if pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
 	return &model.Job{
