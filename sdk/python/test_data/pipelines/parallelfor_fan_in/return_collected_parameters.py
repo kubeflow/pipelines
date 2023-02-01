@@ -1,3 +1,5 @@
+from typing import List
+
 from kfp import compiler
 from kfp import dsl
 
@@ -7,8 +9,13 @@ def double(num: int) -> int:
     return 2 * num
 
 
+@dsl.component
+def sum(num: List[int]) -> int:
+    return sum(num)
+
+
 @dsl.pipeline
-def math_pipeline():
+def math_pipeline() -> List[int]:
     with dsl.ParallelFor([1, 2, 3]) as f:
         t = double(num=f)
     return dsl.Collected(t.output)

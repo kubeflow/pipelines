@@ -54,8 +54,7 @@ def get_all_groups(
 
 def get_parent_groups(
     root_group: tasks_group.TasksGroup,
-) -> Tuple[Mapping[str, List[GroupOrTaskType]], Mapping[str,
-                                                        List[GroupOrTaskType]]]:
+) -> Tuple[Mapping[str, List[str]], Mapping[str, List[str]]]:
     """Get parent groups that contain the specified tasks.
 
     Each pipeline has a root group. Each group has a list of tasks (leaf)
@@ -367,12 +366,31 @@ def validate_parallel_for_fan_in_consumption_legal(
             )
 
 
+def make_new_channel_for_collected_outputs(
+    channel_name: str,
+    starting_channel: pipeline_channel.PipelineChannel,
+    task_name: str,
+) -> pipeline_channel.PipelineChannel:
+    """Creates a new PipelineParameterChannel or PipelineArtifactChannel from a
+    Collected channel, a PipelineParameterChannel, or a
+    PipelineArtifactChannel."""
+    return starting_channel.__class__(
+        channel_name,
+        channel_type=starting_channel.channel_type if isinstance(
+            starting_channel, pipeline_channel.PipelineArtifactChannel) else
+        'LIST',
+        task_name=task_name,
+    )
+
+
 def get_outputs_for_all_groups(
     pipeline: pipeline_context.Pipeline,
     task_name_to_parent_groups: Mapping[str, List[str]],
     group_name_to_parent_groups: Mapping[str, List[str]],
     all_groups: List[tasks_group.TasksGroup],
-) -> DefaultDict[str, Dict[str, pipeline_channel.PipelineChannel]]:
+    pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel]
+) -> Tuple[DefaultDict[str, Dict[str, pipeline_channel.PipelineChannel]], Dict[
+        str, pipeline_channel.PipelineChannel]]:
     """Gets a dictionary of all task groups keys to an inner dictionary, which
     maps the channel the task group should surface (value) the name by which to
     surface it (key)."""
@@ -387,13 +405,15 @@ def get_outputs_for_all_groups(
     from kfp.compiler.pipeline_spec_builder import \
         _additional_input_name_for_pipeline_channel
 
-    outputs = collections.defaultdict(dict)
     group_name_to_group = {group.name: group for group in all_groups}
     group_name_to_children = {
         group.name: [group.name for group in group.groups] +
         [task.name for task in group.tasks] for group in all_groups
     }
 
+    outputs = collections.defaultdict(dict)
+
+    # handle dsl.Collected consumed by tasks
     for task in pipeline.tasks.values():
         for channel in task.channel_inputs:
             if isinstance(channel, for_loop.Collected):
@@ -413,23 +433,6 @@ def get_outputs_for_all_groups(
                     group_name_to_group=group_name_to_group,
                 )
 
-                def make_new_channel_for_group(
-                    channel_name: str,
-                    starting_channel: pipeline_channel.PipelineChannel,
-                    task_name: str,
-                ) -> pipeline_channel.PipelineChannel:
-                    """Creates a new PipelineParameterChannel or
-                    PipelineArtifactChannel from a Collected channel, a
-                    PipelineParameterChannel, or a PipelineArtifactChannel."""
-                    return starting_channel.__class__(
-                        channel_name,
-                        channel_type=starting_channel.channel_type
-                        if isinstance(starting_channel,
-                                      pipeline_channel.PipelineArtifactChannel)
-                        else 'LIST',
-                        task_name=task_name,
-                    )
-
                 # producer_task's immediate parent group and the name by which
                 # to surface the channel
                 surfaced_output_name = _additional_input_name_for_pipeline_channel(
@@ -443,7 +446,7 @@ def get_outputs_for_all_groups(
                 # process from the upstream groups from the inside out
                 for upstream_name in reversed(upstream_groups):
                     outputs[upstream_name][
-                        surfaced_output_name] = make_new_channel_for_group(
+                        surfaced_output_name] = make_new_channel_for_collected_outputs(
                             channel_name=channel.name,
                             starting_channel=channel.output,
                             task_name=producer_task_name,
@@ -464,7 +467,40 @@ def get_outputs_for_all_groups(
                             parent_of_current_surfacer]:
                         break
 
-    return outputs
+        # handle dsl.Collected returned from pipeline
+        for output_key, channel in pipeline_outputs_dict.items():
+            if isinstance(channel, for_loop.Collected):
+                surfaced_output_name = _additional_input_name_for_pipeline_channel(
+                    channel)
+                upstream_groups = task_name_to_parent_groups[
+                    channel.task_name][1:]
+                producer_task_name = upstream_groups.pop()
+                # process upstream groups from the inside out, until getting to the pipeline level
+                for upstream_name in reversed(upstream_groups):
+                    new_channel = make_new_channel_for_collected_outputs(
+                        channel_name=channel.name,
+                        starting_channel=channel.output,
+                        task_name=producer_task_name,
+                    )
+
+                    # on each iteration, mutate the channel being consumed so
+                    # that it references the last parent group surfacer
+                    channel.name = surfaced_output_name
+                    channel.task_name = upstream_name
+
+                    # for the next iteration, set the consumer to the current
+                    # surfacer (parent group)
+                    producer_task_name = upstream_name
+                    outputs[upstream_name][surfaced_output_name] = new_channel
+
+                # after surfacing from all inner TasksGroup, change the PipelineChannel output to also return from the correct TasksGroup
+                pipeline_outputs_dict[
+                    output_key] = make_new_channel_for_collected_outputs(
+                        channel_name=surfaced_output_name,
+                        starting_channel=channel.output,
+                        task_name=upstream_name,
+                    )
+    return outputs, pipeline_outputs_dict
 
 
 def _get_uncommon_ancestors(

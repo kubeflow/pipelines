@@ -1511,12 +1511,7 @@ def create_pipeline_spec(
     # TODO: add validation of returned outputs -- it's possible to return
     # an output from a task in a condition group, for example, which isn't
     # caught until submission time using Vertex SDK client
-    dag_outputs = convert_pipeline_outputs_to_dict(pipeline_outputs)
-    _build_dag_outputs(
-        component_spec=pipeline_spec.root,
-        dag_outputs=dag_outputs,
-    )
-
+    pipeline_outputs_dict = convert_pipeline_outputs_to_dict(pipeline_outputs)
     root_group = pipeline.groups[0]
 
     all_groups = compiler_utils.get_all_groups(root_group)
@@ -1537,11 +1532,12 @@ def create_pipeline_spec(
         condition_channels=condition_channels,
         name_to_for_loop_group=name_to_for_loop_group,
     )
-    outputs = compiler_utils.get_outputs_for_all_groups(
+    outputs, modified_pipeline_outputs_dict = compiler_utils.get_outputs_for_all_groups(
         pipeline=pipeline,
         task_name_to_parent_groups=task_name_to_parent_groups,
         group_name_to_parent_groups=group_name_to_parent_groups,
-        all_groups=all_groups)
+        all_groups=all_groups,
+        pipeline_outputs_dict=pipeline_outputs_dict)
     dependencies = compiler_utils.get_dependencies(
         pipeline=pipeline,
         task_name_to_parent_groups=task_name_to_parent_groups,
@@ -1568,6 +1564,11 @@ def create_pipeline_spec(
         parent_group=root_group,
         pipeline_spec=pipeline_spec,
         deployment_config=deployment_config,
+    )
+
+    _build_dag_outputs(
+        component_spec=pipeline_spec.root,
+        dag_outputs=modified_pipeline_outputs_dict,
     )
 
     return pipeline_spec

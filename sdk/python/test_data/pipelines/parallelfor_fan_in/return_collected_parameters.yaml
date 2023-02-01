@@ -1,5 +1,9 @@
 # PIPELINE DEFINITION
 # Name: math-pipeline
+# Inputs:
+#    x: int
+# Outputs:
+#    Output: list
 components:
   comp-double:
     executorLabel: exec-double
@@ -13,6 +17,12 @@ components:
           parameterType: NUMBER_INTEGER
   comp-for-loop-2:
     dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double
       tasks:
         double:
           cachingOptions:
@@ -29,6 +39,10 @@ components:
       parameters:
         pipelinechannel--loop-item-param-1:
           parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-Output:
+          parameterType: NUMBER_INTEGER
 deploymentSpec:
   executors:
     exec-double:
@@ -43,7 +57,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -61,6 +75,12 @@ pipelineInfo:
   name: math-pipeline
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: double
     tasks:
       for-loop-2:
         componentRef:
@@ -71,5 +91,13 @@ root:
             raw: '[1, 2, 3]'
         taskInfo:
           name: for-loop-2
+  inputDefinitions:
+    parameters:
+      x:
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.9
+sdkVersion: kfp-2.0.0-beta.11
