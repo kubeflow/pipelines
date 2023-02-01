@@ -550,7 +550,7 @@ func (s *RunStore) ArchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"StorageState": string(model.StorageStateArchived),
+			"StorageState": model.StorageStateArchived.ToString(),
 		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()

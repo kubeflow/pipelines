@@ -1523,26 +1523,24 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 				Relationship: apiv1beta1.Relationship_CREATOR,
 			},
 		)
-	}
-	if rrPipelineId := getPipelineIdFromResourceReferencesV1(resRefs); rrPipelineId == "" && r.PipelineSpec.PipelineId != "" {
-		resRefs = append(
-			resRefs,
-			&apiv1beta1.ResourceReference{
-				Key: &apiv1beta1.ResourceKey{
-					Type: apiv1beta1.ResourceType_PIPELINE,
-					Id:   r.PipelineSpec.PipelineId,
-				},
-				Relationship: apiv1beta1.Relationship_CREATOR,
-			},
-		)
-	}
-	if rrPipelineVersionId := getPipelineVersionFromResourceReferencesV1(resRefs); rrPipelineVersionId == "" && r.PipelineSpec.PipelineVersionId != "" {
+	} else if rrPipelineVersionId := getPipelineVersionFromResourceReferencesV1(resRefs); rrPipelineVersionId == "" && r.PipelineSpec.PipelineVersionId != "" {
 		resRefs = append(
 			resRefs,
 			&apiv1beta1.ResourceReference{
 				Key: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_PIPELINE_VERSION,
 					Id:   r.PipelineSpec.PipelineVersionId,
+				},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
+		)
+	} else if rrPipelineId := getPipelineIdFromResourceReferencesV1(resRefs); rrPipelineId == "" && r.PipelineSpec.PipelineId != "" {
+		resRefs = append(
+			resRefs,
+			&apiv1beta1.ResourceReference{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_PIPELINE,
+					Id:   r.PipelineSpec.PipelineId,
 				},
 				Relationship: apiv1beta1.Relationship_CREATOR,
 			},
@@ -2127,18 +2125,6 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 			},
 		)
 	}
-	if rrPipelineId := getPipelineIdFromResourceReferencesV1(resRefs); rrPipelineId == "" && j.PipelineSpec.PipelineId != "" {
-		resRefs = append(
-			resRefs,
-			&apiv1beta1.ResourceReference{
-				Key: &apiv1beta1.ResourceKey{
-					Type: apiv1beta1.ResourceType_PIPELINE,
-					Id:   j.PipelineSpec.PipelineId,
-				},
-				Relationship: apiv1beta1.Relationship_CREATOR,
-			},
-		)
-	}
 	if rrPipelineVersionId := getPipelineVersionFromResourceReferencesV1(resRefs); rrPipelineVersionId == "" && j.PipelineSpec.PipelineVersionId != "" {
 		resRefs = append(
 			resRefs,
@@ -2146,6 +2132,17 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 				Key: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_PIPELINE_VERSION,
 					Id:   j.PipelineSpec.PipelineVersionId,
+				},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
+		)
+	} else if rrPipelineId := getPipelineIdFromResourceReferencesV1(resRefs); rrPipelineId == "" && j.PipelineSpec.PipelineId != "" {
+		resRefs = append(
+			resRefs,
+			&apiv1beta1.ResourceReference{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_PIPELINE,
+					Id:   j.PipelineSpec.PipelineId,
 				},
 				Relationship: apiv1beta1.Relationship_CREATOR,
 			},
