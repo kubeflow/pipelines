@@ -75,10 +75,6 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new run in the experiment', () => {
-    // browser.waitUntil(() => {
-    //   return new URL(browser.getUrl()).hash.startsWith('#/runs/new');
-    // }, waitTimeout);
-
     $('#choosePipelineBtn').waitForVisible();
     $('#choosePipelineBtn').click();
 
@@ -98,7 +94,7 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineVersionBtn').click();
 
     $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
-    // browser.pause(1000);
+    browser.pause(1000);
     browser.keys(runName);
 
     browser.keys('Tab');
@@ -140,26 +136,15 @@ describe('deploy helloworld sample run', () => {
 
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
-    // browser.pause(60000);
     // Navigate to details of the deployed run by clicking its anchor element
     browser.execute('document.querySelector(".tableRow a").click()');
   });
 
   it('switches to config tab', () => {
-    // browser.waitUntil(() => {
-    //   return new URL(browser.getUrl()).hash.startsWith('#/runs/details/');
-    // }, waitTimeout);
-
     $('button=Config').waitForVisible(waitTimeout);
     $('button=Config').click();
-    // browser.pause(1000);
   });
 
-  // it('displays run status correctly', () => {
-  //   let status = getValueFromDetailsTable('Status');
-  //   assert.equal(status.trim(), 'Succeeded',
-  //   'run has not finished on time. Current status is: ' + status);
-  // });
   it('waits for run to finish', () => {
     let status = getValueFromDetailsTable('Status');
 
@@ -190,12 +175,10 @@ describe('deploy helloworld sample run', () => {
 
   it('switches back to graph tab', () => {
     $('button=Graph').click();
-    // browser.pause(1000);
   });
 
   it('has a 4-node graph', () => {
     const nodeSelector = '.graphNode';
-    // $(nodeSelector).waitForVisible();
     const nodes = $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
@@ -235,7 +218,7 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-    // browser.pause(1000);
+
     browser.keys('Tab');
     browser.keys(runWithoutExperimentName);
 
