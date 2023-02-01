@@ -48,14 +48,13 @@ describe('ExecutionList', () => {
 
   beforeEach(() => {
     getExecutionTypesSpy.mockImplementation(() => {
-        const map = new Map<number, ExecutionType>();
-        const executionType = new ExecutionType();
-        executionType.setId(6);
-        executionType.setName('String');
-        const response = new GetExecutionTypesResponse();
-        response.setArtifactTypesList([executionType]);
-        return Promise.resolve(response);
-      });
+      const executionType = new ExecutionType();
+      executionType.setId(6);
+      executionType.setName('String');
+      const response = new GetExecutionTypesResponse();
+      response.setExecutionTypesList([executionType]);
+      return Promise.resolve(response);
+    });
 
     getExecutionsSpy.mockImplementation(() => {
       const execution = new Execution();
@@ -64,7 +63,7 @@ describe('ExecutionList', () => {
       execution.getPropertiesMap().set('pipeline_name', pipelineValue);
       const executionValue = new Value();
       executionValue.setStringValue(executionName);
-      execution.getPropertiesMap().set('name', executionValue);
+      execution.getPropertiesMap().set('Name', executionValue);
       execution.setName(executionName);
       execution.setId(executionId);
       const response = new GetExecutionsResponse();
@@ -88,20 +87,19 @@ describe('ExecutionList', () => {
 
   it('renders one execution', async () => {
     getExecutionsSpy.mockImplementation(() => {
-        const execution = new Execution();
-        const pipelineValue = new Value();
-        pipelineValue.setStringValue(pipelineName);
-        execution.getPropertiesMap().set('pipeline_name', pipelineName);
-        const executionValue = new Value();
-        executionValue.setStringValue(executionName);
-        execution.getPropertiesMap().set('name', executionValue);
-        execution.setName(executionName);
-        execution.setId(executionId);
-        const response = new GetExecutionsResponse();
-        response.setExecutionsList([execution]);
-        return Promise.resolve(response);
-      });
-
+      const execution = new Execution();
+      const pipelineValue = new Value();
+      pipelineValue.setStringValue(pipelineName);
+      execution.getPropertiesMap().set('pipeline_name', pipelineName);
+      const executionValue = new Value();
+      executionValue.setStringValue(executionName);
+      execution.getPropertiesMap().set('Name', executionValue);
+      execution.setName(executionName);
+      execution.setId(executionId);
+      const response = new GetExecutionsResponse();
+      response.setExecutionsList([execution]);
+      return Promise.resolve(response);
+    });
 
     render(<ExecutionList {...generateProps()} />);
     await waitFor(() => {
@@ -113,7 +111,7 @@ describe('ExecutionList', () => {
     screen.getByText(executionId);
   });
 
-/*
+  /*
   it('renders at most 10 execution in one page by default.', async () => {
     // getExecutionsSpy.mockClear();
     getExecutionsSpy.mockImplementation(() => {
@@ -146,11 +144,10 @@ describe('ExecutionList', () => {
     getExecutionsSpy.mockClear();
     getExecutionsSpy.mockImplementation(() => {
       const response = new GetExecutionsResponse();
-      response.setArtifactsList([]);
+      response.setExecutionsList([]);
       return Promise.resolve(response);
     });
-    render(
-        <ExecutionList {...generateProps()} />);
+    render(<ExecutionList {...generateProps()} />);
     await waitFor(() => {
       expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
     });
