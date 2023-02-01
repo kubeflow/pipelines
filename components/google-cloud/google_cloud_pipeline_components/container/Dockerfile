@@ -23,6 +23,7 @@ RUN pip3 install --upgrade pip
 # Required by gcp_launcher
 RUN pip3 install -U google-cloud-aiplatform
 RUN pip3 install -U google-cloud-storage
+RUN pip3 install -U google-api-python-client
 
 # Required by dataflow_launcher
 # b/238481913: Pinning the version of apache_beam to below 2.34 for now
