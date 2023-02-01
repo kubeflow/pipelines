@@ -28,7 +28,7 @@ def make_required_install_packages():
         "google-cloud-storage<3,>=2.2.1",
         "kfp>=1.8.9,<2.0.0",
         "google-cloud-notebooks>=0.4.0",
-        "google-cloud-aiplatform==1.14.0,<2",
+        "google-cloud-aiplatform>=1.14.0,<2",
     ]
 
 def make_required_test_packages():
