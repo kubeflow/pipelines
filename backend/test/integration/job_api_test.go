@@ -237,9 +237,9 @@ func (s *JobApiTestSuite) TestJobApis() {
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(jobs), "Incorrect number of recurring runs sorted by creation time in the namespace %v", s.resourceNamespace)
-	assert.Equal(t, 2, totalSize, "Incorrect total number of recurring runs sorted by creation time in the namespace %v", s.resourceNamespace)
-	assert.Equal(t, "hello world", jobs[0].Name, "Job: %v", jobs[0])
+	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, "hello world", jobs[0].Name)
 	jobs, totalSize, _, err = test.ListJobs(
 		s.jobClient,
 		&jobparams.ListJobsParams{
@@ -250,7 +250,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, "argument parameter", jobs[0].Name, "Job: %v", jobs[0])
+	assert.Equal(t, "argument parameter", jobs[0].Name)
 
 	/* ---------- List the jobs, paginated, sort by name ---------- */
 	jobs, totalSize, nextPageToken, err = test.ListJobs(
@@ -302,7 +302,6 @@ func (s *JobApiTestSuite) TestJobApis() {
 	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous jobs are created at a different timestamp
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
-	// This must fail as duplicate jobs are not allowed
 	createJobRequestNew := &jobparams.CreateJobParams{Body: &job_model.APIJob{
 		Name:        "new hello world job",
 		Description: "this is a new hello world",
@@ -530,7 +529,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
-	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay", "Job: %v", job.PipelineSpec)
+	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 
 	expectedJob := &job_model.APIJob{
 		ID:             job.ID,
@@ -541,7 +540,6 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 			PipelineID:       job.PipelineSpec.PipelineID,
 			PipelineName:     job.PipelineSpec.PipelineName,
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-			PipelineManifest: job.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
@@ -577,7 +575,6 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 			PipelineID:       job.PipelineSpec.PipelineID,
 			PipelineName:     job.PipelineSpec.PipelineName,
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-			PipelineManifest: job.PipelineSpec.PipelineManifest,
 			Parameters: []*job_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},

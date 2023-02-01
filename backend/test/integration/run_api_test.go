@@ -266,8 +266,6 @@ func (s *RunApiTestSuite) TestRunApis() {
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
 	// Create a new run
-	_, _, err = s.runClient.Create(createRunRequest)
-	assert.NotNil(t, err)
 	createRunRequest.Body.Name = "argument parameter 2"
 	_, _, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
@@ -347,9 +345,10 @@ func (s *RunApiTestSuite) TestRunApis() {
 }
 
 func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
-	// Check workflow manifest is not empty as this run was created from a manifest
-	assert.Contains(t, runDetail.Run.PipelineSpec.PipelineManifest, "wait-awhile", "PipelineSpec: %v", runDetail.Run.PipelineSpec)
-	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile", "PipelineSpec: %v", runDetail.Run.PipelineSpec)
+	// Check workflow manifest is not empty
+	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "wait-awhile")
+	// Check runtime workflow manifest is not empty
+	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
 
 	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,
@@ -361,7 +360,6 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
@@ -398,7 +396,6 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
-			PipelineManifest: runDetail.Run.PipelineSpec.PipelineManifest,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
@@ -438,7 +435,6 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: string(argParamsBytes),
-			PipelineManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},

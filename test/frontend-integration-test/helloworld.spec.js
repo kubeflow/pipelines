@@ -140,7 +140,7 @@ describe('deploy helloworld sample run', () => {
 
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
-    // browser.pause(60000);
+    browser.pause(60000);
     // Navigate to details of the deployed run by clicking its anchor element
     browser.execute('document.querySelector(".tableRow a").click()');
   });
@@ -155,27 +155,10 @@ describe('deploy helloworld sample run', () => {
     browser.pause(1000);
   });
 
-  // it('waits for run to finish', () => {
-  //   let status = getValueFromDetailsTable('Status');
-  //   assert.equal(status.trim(), 'Succeeded',
-  //   'run has not finished on time. Current status is: ' + status);
-  // });
-
-  it('waits for run to finish', () => {
+  it('displays run status correctly', () => {
     let status = getValueFromDetailsTable('Status');
-
-    let attempts = 0;
-    const maxAttempts = 60;
-
-    // Wait for a reasonable amount of time until the run is done
-    while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
-      browser.pause(1000);
-      status = getValueFromDetailsTable('Status');
-      attempts++;
-    }
-
-    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not succeed. ` +
-      'Current status is: ' + status);
+    assert.equal(status.trim(), 'Succeeded',
+    'run has not finished on time. Current status is: ' + status);
   });
 
   it('displays run created at date correctly', () => {

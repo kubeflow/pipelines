@@ -1854,11 +1854,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		if pipelineId == "" {
 			pipelineId = getPipelineIdFromResourceReferencesV1(apiJob.GetResourceReferences())
 		}
-
 		pipelineVersionId = getPipelineVersionFromResourceReferencesV1(apiJob.GetResourceReferences())
-		// if pipelineId == "" && pipelineVersionId == "" {
-		// 	return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline and pipeline version ids cannot be empty"), "Failed to convert a v1beta1 API recurring run to its internal representation")
-		// }
 
 		jobName = apiJob.GetName()
 		if jobName == "" {
