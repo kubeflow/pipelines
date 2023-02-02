@@ -24,7 +24,9 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
@@ -597,4 +599,91 @@ func getBadMockServer() *httptest.Server {
 		rw.WriteHeader(404)
 	}))
 	return httpServer
+}
+
+func TestPipelineServer_CreatePipeline(t *testing.T) {
+	httpServer := getMockServer(t)
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, "default")
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+
+	type args struct {
+		pipeline *model.Pipeline
+	}
+	tests := []struct {
+		name    string
+		id      string
+		arg     *apiv2.Pipeline
+		want    *apiv2.Pipeline
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"Valid - single user",
+			DefaultFakePipelineId,
+			&apiv2.Pipeline{
+				DisplayName: "pipeline 1",
+				Namespace:   "namespace1",
+			},
+			&apiv2.Pipeline{
+				DisplayName: "pipeline 1",
+				Namespace:   "default",
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - empty namespace",
+			DefaultFakePipelineIdTwo,
+			&apiv2.Pipeline{
+				DisplayName: "pipeline 2",
+			},
+			&apiv2.Pipeline{
+				DisplayName: "pipeline 2",
+				Namespace:   "default",
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid - duplicate name",
+			DefaultFakePipelineIdThree,
+			&apiv2.Pipeline{
+				DisplayName: "pipeline 2",
+			},
+			nil,
+			true,
+			"The name pipeline 2 already exist. Please specify a new name",
+		},
+		{
+			"Invalid - missing name",
+			DefaultFakePipelineIdFour,
+			&apiv2.Pipeline{
+				Namespace: "namespace1",
+			},
+			nil,
+			true,
+			"Failed create to a pipeline due to empty name. Please specify a valid name",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(tt.id, nil))
+			resourceManager = resource.NewResourceManager(clientManager, "default")
+			pipelineServer = PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+			got, err := pipelineServer.CreatePipeline(context.Background(), &apiv2.CreatePipelineRequest{Pipeline: tt.arg})
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.NotEmpty(t, got.GetPipelineId())
+				assert.NotEmpty(t, got.GetCreatedAt())
+				tt.want.CreatedAt = got.GetCreatedAt()
+				tt.want.PipelineId = got.GetPipelineId()
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
