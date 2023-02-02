@@ -156,7 +156,7 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	pipelineFileName := path.Base(pipelineVersion.CodeSourceUrl)
 	pipelineName, err := buildPipelineName(pipeline.Name, pipelineFileName)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v). Please, file a bug on github: https://github.com/kubeflow/pipelines/issues", pipeline.Name, pipelineFileName)
+		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", pipeline.Name, pipelineFileName)
 	}
 	pipeline.Name = pipelineName
 
@@ -171,7 +171,7 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 		createdPipeline, err = s.resourceManager.GetPipelineByNameAndNamespace(pipeline.Name, pipeline.Namespace)
 		if err != nil {
 			// This should never happen
-			return nil, util.Wrap(perr, util.Wrap(err, "Failed to create a new pipeline (v1beta1), but an existing pipeline was not found. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues").Error())
+			return nil, util.Wrap(perr, util.Wrap(err, "Failed to create a new pipeline (v1beta1), but an existing pipeline was not found").Error())
 		}
 	} else {
 		return nil, util.Wrap(perr, "Failed to create a new pipeline (v1beta1). Check the error stack")
@@ -318,7 +318,7 @@ func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, nam
 	default:
 		return nil, nil, util.NewInternalServerError(
 			util.NewInvalidInputError("Invalid api version detected"),
-			"Failed to get a pipeline by name and namespace. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
+			"Failed to get a pipeline by name and namespace. API request version %v",
 			apiRequestVersion)
 	}
 }
@@ -391,7 +391,7 @@ func (s *PipelineServer) listPipelines(ctx context.Context, namespace string, pa
 	default:
 		return nil, nil, 0, "", util.NewInternalServerError(
 			util.NewInvalidInputError("Invalid api version detected"),
-			"Failed to list pipelines due to unsupported API request. API request version %v. Please, file a bug on github: https://github.com/kubeflow/pipelines/issues",
+			"Failed to list pipelines due to unsupported API request. API request version %v",
 			apiRequestVersion)
 	}
 }

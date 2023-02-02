@@ -172,7 +172,7 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 	opts, err := list.NewOptions(&model.Job{}, 50, "name", nil)
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Failed to archive experiment %v. Report this backend error by creating a new issue on GitHub: https://github.com/kubeflow/pipelines/issues/new/choose", experimentId)
+			"Failed to archive experiment %v", experimentId)
 	}
 	for {
 		jobs, _, newToken, err := r.jobStore.ListJobs(&model.FilterContext{
