@@ -427,7 +427,7 @@ def _connect_dag_outputs(
                 ))
     elif isinstance(output_channel, pipeline_channel.PipelineParameterChannel):
         if output_name not in component_spec.output_definitions.parameters:
-            raise ValueError(f'DAG output not defined: {output_name}.')
+            raise ValueError(f'Pipeline output not defined: {output_name}.')
         component_spec.dag.outputs.parameters[
             output_name].value_from_parameter.producer_subtask = output_channel.task_name
         component_spec.dag.outputs.parameters[

@@ -371,8 +371,8 @@ def make_new_channel_for_collected_outputs(
     starting_channel: pipeline_channel.PipelineChannel,
     task_name: str,
 ) -> pipeline_channel.PipelineChannel:
-    """Creates a new PipelineParameterChannel or PipelineArtifactChannel from a
-    Collected channel, a PipelineParameterChannel, or a
+    """Creates a new PipelineParameterChannel/PipelineArtifactChannel (with
+    type List) from a Collected channel, a PipelineParameterChannel, or a
     PipelineArtifactChannel."""
     return starting_channel.__class__(
         channel_name,
@@ -391,9 +391,14 @@ def get_outputs_for_all_groups(
     pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel]
 ) -> Tuple[DefaultDict[str, Dict[str, pipeline_channel.PipelineChannel]], Dict[
         str, pipeline_channel.PipelineChannel]]:
-    """Gets a dictionary of all task groups keys to an inner dictionary, which
-    maps the channel the task group should surface (value) the name by which to
-    surface it (key)."""
+    """Gets a dictionary of all TasksGroup names to an inner dictionary. The
+    inner dictionary is TasksGroup output keys to channels corresponding to
+    those keys.
+
+    It constructs this dictionary from both data passing within the pipeline body, as well as the outputs returned from the pipeline (e.g., return dsl.Collected(...)).
+
+    Also returns as the second item of tuple the updated pipeline_outputs_dict. This dict is modified so that the values (PipelineChannel) references the group that surfaces the task output, instead of the original task that produced it.
+    """
 
     # unlike inputs, which will be surfaced as component input parameters,
     # consumers of surfaced outputs need to have a reference to what the parent

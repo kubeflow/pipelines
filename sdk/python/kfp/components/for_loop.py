@@ -275,18 +275,19 @@ class LoopArgumentVariable(pipeline_channel.PipelineChannel):
 
 
 class Collected(pipeline_channel.PipelineChannel):
-    """For collecting outputs from dsl.ParallelFor.
+    """For collecting into a list the output from a task in dsl.ParallelFor
+    loops.
 
     Args:
-        output: The output of an upstream task within a dsl.ParallelFor sub-DAG.
+        output: The output of an upstream task within a dsl.ParallelFor loop.
 
     Example:
       ::
 
         @dsl.pipeline
         def math_pipeline() -> int:
-            with dsl.ParallelFor([1, 2, 3]) as f:
-                t = double(num=f)
+            with dsl.ParallelFor([1, 2, 3]) as x:
+                t = double(num=x)
 
         return add(nums=dsl.Collected(t.output)).output
     """

@@ -673,7 +673,8 @@ implementation:
                                 pipeline_spec['deploymentSpec']['executors'])
 
     def test_pipeline_with_invalid_output(self):
-        with self.assertRaisesRegex(ValueError, 'DAG output not defined: msg1'):
+        with self.assertRaisesRegex(ValueError,
+                                    'Pipeline output not defined: msg1'):
 
             @dsl.component
             def print_op(msg: str) -> str:
