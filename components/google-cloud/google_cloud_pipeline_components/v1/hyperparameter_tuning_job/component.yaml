@@ -139,7 +139,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.37
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job.launcher]
     args: [
       --type, HyperparameterTuningJob,

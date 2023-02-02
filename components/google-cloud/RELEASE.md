@@ -1,3 +1,6 @@
+# Release 1.0.38
+* Fix default value issue in bigquery query API 
+
 # Release 1.0.36
 * Cherrypick e358dee2f8d5c01580438ee54988f01fc3f16a7c and snap a new release
 

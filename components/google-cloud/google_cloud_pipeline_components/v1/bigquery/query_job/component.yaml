@@ -68,13 +68,13 @@ inputs:
 - {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
 - {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
-- {name: encryption_spec_key_name, type: String, optional: true}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
 outputs:
 - {name: destination_table, type: google.BQTable}
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.37
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher]
     args: [
       --type, BigqueryQueryJob,
