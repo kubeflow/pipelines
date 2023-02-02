@@ -15,11 +15,11 @@ def add(nums: List[int]) -> int:
 
 
 @dsl.pipeline
-def math_pipeline() -> int:
-    with dsl.ParallelFor([1, 2, 3]) as f:
-        t = double(num=f)
-
-    return add(nums=dsl.Collected(t.output)).output
+def math_pipeline() -> List[int]:
+    with dsl.ParallelFor([1, 2, 3]) as x:
+        t = double(num=x)
+    add(nums=dsl.Collected(t.output))
+    return dsl.Collected(t.output)
 
 
 if __name__ == '__main__':

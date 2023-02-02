@@ -3,18 +3,59 @@
 # Outputs:
 #    Output: int
 components:
-  comp-add-two-numbers:
-    executorLabel: exec-add-two-numbers
+  comp-add:
+    executorLabel: exec-add
     inputDefinitions:
       parameters:
-        x:
-          parameterType: LIST
-        y:
+        nums:
           parameterType: LIST
     outputDefinitions:
       parameters:
         Output:
           parameterType: NUMBER_INTEGER
+  comp-add-pipeline:
+    dag:
+      outputs:
+        parameters:
+          out1:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: add
+          out2:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--echo-and-return-Output
+              producerSubtask: for-loop-2
+      tasks:
+        add:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add
+          inputs:
+            parameters:
+              nums:
+                componentInputParameter: nums
+          taskInfo:
+            name: add
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2-2
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-1
+            items:
+              raw: '["m", "a", "t", "h"]'
+          taskInfo:
+            name: for-loop-2
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        out1:
+          parameterType: NUMBER_INTEGER
+        out2:
+          parameterType: LIST
   comp-double:
     executorLabel: exec-double
     inputDefinitions:
@@ -25,25 +66,11 @@ components:
       parameters:
         Output:
           parameterType: NUMBER_INTEGER
-  comp-double-2:
-    executorLabel: exec-double-2
-    inputDefinitions:
-      parameters:
-        num:
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
-  comp-for-loop-2:
+  comp-double-pipeline:
     dag:
       outputs:
         parameters:
-          pipelinechannel--double-2-Output:
-            valueFromParameter:
-              outputParameterKey: pipelinechannel--double-2-Output
-              producerSubtask: for-loop-4
-          pipelinechannel--double-Output:
+          Output:
             valueFromParameter:
               outputParameterKey: Output
               producerSubtask: double
@@ -56,16 +83,43 @@ components:
           inputs:
             parameters:
               num:
-                componentInputParameter: pipelinechannel--loop-item-param-1
+                componentInputParameter: num
           taskInfo:
             name: double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-echo-and-return:
+    executorLabel: exec-echo-and-return
+    inputDefinitions:
+      parameters:
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-pipeline-Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--double-pipeline-Output
+              producerSubtask: for-loop-4
+      tasks:
         for-loop-4:
           componentRef:
             name: comp-for-loop-4
           parameterIterator:
             itemInput: pipelinechannel--loop-item-param-3
             items:
-              raw: '[4, 5, 6]'
+              raw: '[1, 2, 3]'
           taskInfo:
             name: for-loop-4
     inputDefinitions:
@@ -74,122 +128,85 @@ components:
           parameterType: NUMBER_INTEGER
     outputDefinitions:
       parameters:
-        pipelinechannel--double-2-Output:
+        pipelinechannel--double-pipeline-Output:
           parameterType: NUMBER_INTEGER
-        pipelinechannel--double-Output:
-          parameterType: NUMBER_INTEGER
+  comp-for-loop-2-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--echo-and-return-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: echo-and-return
+      tasks:
+        echo-and-return:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-echo-and-return
+          inputs:
+            parameters:
+              string:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: echo-and-return
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--echo-and-return-Output:
+          parameterType: STRING
   comp-for-loop-4:
     dag:
       outputs:
         parameters:
-          pipelinechannel--double-2-Output:
+          pipelinechannel--double-pipeline-Output:
             valueFromParameter:
               outputParameterKey: Output
-              producerSubtask: double-2
+              producerSubtask: double-pipeline
       tasks:
-        double-2:
+        double-pipeline:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-double-2
+            name: comp-double-pipeline
           inputs:
             parameters:
               num:
                 componentInputParameter: pipelinechannel--loop-item-param-3
           taskInfo:
-            name: double-2
+            name: double-pipeline
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
           parameterType: NUMBER_INTEGER
     outputDefinitions:
       parameters:
-        pipelinechannel--double-2-Output:
+        pipelinechannel--double-pipeline-Output:
           parameterType: NUMBER_INTEGER
-  comp-for-loop-6:
-    dag:
-      outputs:
-        parameters:
-          pipelinechannel--nested-add-Output:
-            valueFromParameter:
-              outputParameterKey: Output
-              producerSubtask: nested-add
-          pipelinechannel--simple-add-Output:
-            valueFromParameter:
-              outputParameterKey: Output
-              producerSubtask: simple-add
-      tasks:
-        nested-add:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-nested-add
-          inputs:
-            parameters:
-              nums:
-                componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-2-Output
-          taskInfo:
-            name: nested-add
-        simple-add:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-simple-add
-          inputs:
-            parameters:
-              nums:
-                componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-Output
-          taskInfo:
-            name: simple-add
+  comp-join-and-print:
+    executorLabel: exec-join-and-print
     inputDefinitions:
       parameters:
-        pipelinechannel--for-loop-2-pipelinechannel--double-2-Output:
+        strings:
           parameterType: LIST
-        pipelinechannel--for-loop-2-pipelinechannel--double-Output:
-          parameterType: LIST
-        pipelinechannel--loop-item-param-5:
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      parameters:
-        pipelinechannel--nested-add-Output:
-          parameterType: NUMBER_INTEGER
-        pipelinechannel--simple-add-Output:
-          parameterType: NUMBER_INTEGER
-  comp-nested-add:
-    executorLabel: exec-nested-add
-    inputDefinitions:
-      parameters:
-        nums:
-          parameterType: LIST
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
-  comp-simple-add:
-    executorLabel: exec-simple-add
-    inputDefinitions:
-      parameters:
-        nums:
-          parameterType: LIST
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
 deploymentSpec:
   executors:
-    exec-add-two-numbers:
+    exec-add:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - add_two_numbers
+        - add
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -201,8 +218,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef add_two_numbers(x: List[int], y: List[int]) -> int:\n    return\
-          \ sum(x) + sum(y)\n\n"
+          \ *\n\ndef add(nums: List[List[int]]) -> int:\n    import itertools\n  \
+          \  return sum(itertools.chain(*nums))\n\n"
         image: python:3.7
     exec-double:
       container:
@@ -216,7 +233,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -230,19 +247,19 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
         image: python:3.7
-    exec-double-2:
+    exec-echo-and-return:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - double
+        - echo_and_return
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -254,21 +271,22 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+          \ *\n\ndef echo_and_return(string: str) -> str:\n    print(string)\n   \
+          \ return string\n\n"
         image: python:3.7
-    exec-nested-add:
+    exec-join-and-print:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - nested_add
+        - join_and_print
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -280,34 +298,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
-          \    return sum(itertools.chain(*nums))\n\n"
-        image: python:3.7
-    exec-simple-add:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - simple_add
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+          \ *\n\ndef join_and_print(strings: List[str]):\n    print(''.join(strings))\n\
+          \n"
         image: python:3.7
 pipelineInfo:
   name: math-pipeline
@@ -317,28 +309,24 @@ root:
       parameters:
         Output:
           valueFromParameter:
-            outputParameterKey: Output
-            producerSubtask: add-two-numbers
+            outputParameterKey: out1
+            producerSubtask: add-pipeline
     tasks:
-      add-two-numbers:
+      add-pipeline:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-add-two-numbers
+          name: comp-add-pipeline
         dependentTasks:
-        - for-loop-6
+        - for-loop-2
         inputs:
           parameters:
-            x:
+            nums:
               taskOutputParameter:
-                outputParameterKey: pipelinechannel--simple-add-Output
-                producerTask: for-loop-6
-            y:
-              taskOutputParameter:
-                outputParameterKey: pipelinechannel--nested-add-Output
-                producerTask: for-loop-6
+                outputParameterKey: pipelinechannel--double-pipeline-Output
+                producerTask: for-loop-2
         taskInfo:
-          name: add-two-numbers
+          name: add-pipeline
       for-loop-2:
         componentRef:
           name: comp-for-loop-2
@@ -348,30 +336,24 @@ root:
             raw: '[1, 2, 3]'
         taskInfo:
           name: for-loop-2
-      for-loop-6:
+      join-and-print:
+        cachingOptions:
+          enableCache: true
         componentRef:
-          name: comp-for-loop-6
+          name: comp-join-and-print
         dependentTasks:
-        - for-loop-2
+        - add-pipeline
         inputs:
           parameters:
-            pipelinechannel--for-loop-2-pipelinechannel--double-2-Output:
+            strings:
               taskOutputParameter:
-                outputParameterKey: pipelinechannel--double-2-Output
-                producerTask: for-loop-2
-            pipelinechannel--for-loop-2-pipelinechannel--double-Output:
-              taskOutputParameter:
-                outputParameterKey: pipelinechannel--double-Output
-                producerTask: for-loop-2
-        parameterIterator:
-          itemInput: pipelinechannel--loop-item-param-5
-          items:
-            raw: '[7, 8, 9]'
+                outputParameterKey: out2
+                producerTask: add-pipeline
         taskInfo:
-          name: for-loop-6
+          name: join-and-print
   outputDefinitions:
     parameters:
       Output:
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.9
+sdkVersion: kfp-2.0.0-beta.11

@@ -23,12 +23,12 @@ def add(datasets: Input[List[Dataset]]) -> int:
 
 
 @dsl.pipeline
-def math_pipeline() -> int:
-    with dsl.ParallelFor([1, 2, 3]) as f:
-        with dsl.ParallelFor([1, 2, 3]) as f:
-            t = double(num=f)
-
-    return add(datasets=dsl.Collected(t.outputs['dataset'])).output
+def math_pipeline() -> List[int]:
+    with dsl.ParallelFor([1, 2, 3]) as x:
+        with dsl.ParallelFor([1, 2, 3]) as _:
+            t = double(num=x)
+    add(datasets=dsl.Collected(t.outputs['dataset']))
+    return dsl.Collected(t.outputs['dataset'])
 
 
 if __name__ == '__main__':

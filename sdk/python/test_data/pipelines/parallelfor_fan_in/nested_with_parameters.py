@@ -15,13 +15,20 @@ def add(nums: List[List[int]]) -> int:
     return sum(itertools.chain(*nums))
 
 
-@dsl.pipeline
-def math_pipeline() -> int:
-    with dsl.ParallelFor([1, 2, 3]) as f:
-        with dsl.ParallelFor([1, 2, 3]) as f:
-            t = double(num=f)
+@dsl.component
+def add_two_nums(x: int, y: int) -> int:
+    return x + y
 
-    return add(nums=dsl.Collected(t.output)).output
+
+@dsl.pipeline
+def math_pipeline() -> List[int]:
+    with dsl.ParallelFor([1, 2, 3]) as x:
+        with dsl.ParallelFor([1, 2, 3]) as y:
+            t1 = double(num=x)
+            t2 = double(num=y)
+            t3 = add_two_nums(x=t1.output, y=t2.output)
+    t4 = add(nums=dsl.Collected(t3.output))
+    return dsl.Collected(t3.output)
 
 
 if __name__ == '__main__':

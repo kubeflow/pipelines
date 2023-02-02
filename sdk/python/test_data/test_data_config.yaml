@@ -144,10 +144,10 @@ pipelines:
     - module: components_with_optional_artifacts
       name: pipeline
       execute: false
-    - module: parallelfor_fan_in/layered_fan_in
+    - module: parallelfor_fan_in/fan_in_complex
       name: math_pipeline
       execute: false
-    - module: parallelfor_fan_in/pipeline_producer
+    - module: parallelfor_fan_in/pipeline_producer_consumer
       name: math_pipeline
       execute: false
     - module: parallelfor_fan_in/simple_with_parameters
@@ -157,34 +157,13 @@ pipelines:
     # - module: parallelfor_fan_in/simple_with_artifacts
     #   name: math_pipeline
     #   execute: false
-    - module: parallelfor_fan_in/pipeline_producer
-      name: math_pipeline
-      execute: false
-    - module: parallelfor_fan_in/return_collected_parameters
-      name: math_pipeline
-      execute: false
-    - module: parallelfor_fan_in/parameters_with_inner_condition
-      name: math_pipeline
-      execute: false
-    - module: parallelfor_fan_in/nested_with_parameters
-      name: math_pipeline
-      execute: false
-    - module: parallelfor_fan_in/collection_at_different_levels
-      name: math_pipeline
-      execute: false
-    - module: parallelfor_fan_in/cross_dag_collection
-      name: math_pipeline
-      execute: false
     # TODO: uncomment to support artifact fan-in
-    # - module: parallelfor_fan_in/return_collected_from_nested
+    # - module: parallelfor_fan_in/return_collected_artifacts_from_nested
     #   name: math_pipeline
     #   execute: false
-    - module: parallelfor_fan_in/parameters_with_conditional_consumer
+    - module: parallelfor_fan_in/conditional_producer_and_consumers
       name: math_pipeline
       execute: false
-    # TODO: uncomment to support artifact fan-in
-    # - module: parallelfor_fan_in/nested_with_artifact
-    #   name: math_pipeline
 components:
   test_data_dir: sdk/python/test_data/components
   read: true

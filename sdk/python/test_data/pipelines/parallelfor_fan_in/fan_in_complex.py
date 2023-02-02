@@ -32,7 +32,11 @@ def math_pipeline() -> int:
         with dsl.ParallelFor([4, 5, 6]) as b:
             t2 = double(num=b)
 
-    with dsl.ParallelFor([7, 8, 9]) as c:
+        simple_add(nums=dsl.Collected(t2.output))
+
+    nested_add(nums=dsl.Collected(t2.output))
+
+    with dsl.ParallelFor([0, 0, 0]) as _:
         t3 = simple_add(nums=dsl.Collected(t1.output))
         t4 = nested_add(nums=dsl.Collected(t2.output))
 
