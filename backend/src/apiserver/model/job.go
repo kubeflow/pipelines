@@ -22,16 +22,15 @@ import (
 type StatusState string
 
 const (
-	StatusStateUnspecified   StatusState = "STATUS_UNSPECIFIED"
+	// V2 statuses
+	StatusStateUnspecified StatusState = "STATUS_UNSPECIFIED"
+	StatusStateEnabled     StatusState = "ENABLED"
+	StatusStateDisabled    StatusState = "DISABLED"
+
+	// V1 statuses
 	StatusStateUnspecifiedV1 StatusState = "UNKNOWN_MODE"
-	StatusStateEnabled       StatusState = "ENABLED"
 	StatusStateEnabledV1     StatusState = "ENABLED"
-	StatusStateDisabled      StatusState = "DISABLED"
 	StatusStateDisabledV1    StatusState = "DISABLED"
-	StatusNoStatusV1         StatusState = "NO_STATUS"
-	StatusReady              StatusState = "READY"
-	StatusRunning            StatusState = "RUNNING"
-	StatusSucceeded          StatusState = "SUCCEEDED"
 )
 
 // Checks is the status contains a valid value.
@@ -60,9 +59,9 @@ func (s StatusState) ToString() string {
 // This should be called before converting to v1beta1 API type.
 func (s StatusState) ToV1() StatusState {
 	switch s.toUpper() {
-	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusNoStatusV1, "":
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusState(LegacyStateNoStatus).toUpper(), StatusState(LegacyStateEmpty).toUpper():
 		return StatusStateUnspecifiedV1
-	case StatusStateEnabled, StatusReady, StatusRunning, StatusSucceeded:
+	case StatusStateEnabled, StatusState(LegacyStateReady).toUpper(), StatusState(LegacyStateDone).toUpper(), StatusState(LegacyStateRunning).toUpper(), StatusState(LegacyStateSucceeded).toUpper():
 		return StatusStateEnabledV1
 	case StatusStateDisabled:
 		return StatusStateDisabledV1
@@ -72,12 +71,12 @@ func (s StatusState) ToV1() StatusState {
 }
 
 // Converts to v2beta1-compatible internal representation of job status.
-// This should be called before converting to v2beta1 API type.
+// This should be called before converting to v2beta1 API type or writing to a store.
 func (s StatusState) ToV2() StatusState {
 	switch s.toUpper() {
-	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusNoStatusV1, "":
+	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusState(LegacyStateNoStatus).toUpper(), StatusState(LegacyStateEmpty).toUpper():
 		return StatusStateUnspecified
-	case StatusStateEnabled, StatusReady, StatusRunning, StatusSucceeded:
+	case StatusStateEnabled, StatusState(LegacyStateReady).toUpper(), StatusState(LegacyStateDone).toUpper(), StatusState(LegacyStateRunning).toUpper(), StatusState(LegacyStateSucceeded).toUpper():
 		return StatusStateEnabled
 	case StatusStateDisabled:
 		return StatusStateDisabled

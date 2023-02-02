@@ -24,30 +24,48 @@ type (
 )
 
 const (
-	RuntimeStateUnspecified    RuntimeState = "RUNTIME_STATE_UNSPECIFIED"
-	RuntimeStatePending        RuntimeState = "PENDING"
-	RuntimeStateRunning        RuntimeState = "RUNNING"
-	RuntimeStateSucceeded      RuntimeState = "SUCCEEDED"
-	RuntimeStateSkipped        RuntimeState = "SKIPPED"
-	RuntimeStateFailed         RuntimeState = "FAILED"
-	RuntimeStateCancelling     RuntimeState = "CANCELING"
-	RuntimeStateCanceled       RuntimeState = "CANCELED"
-	RuntimeStatePaused         RuntimeState = "PAUSED"
-	RuntimeStatePendingV1      RuntimeState = "Pending"
-	RuntimeStateRunningV1      RuntimeState = "Running"
-	RuntimeStateSucceededV1    RuntimeState = "Succeeded"
-	RuntimeStateSkippedV1      RuntimeState = "Skipped"
-	RuntimeStateTerminatingV1  RuntimeState = "Terminating"
-	RuntimeStateFailedV1       RuntimeState = "Failed"
-	RuntimeStateErrorV1        RuntimeState = "Error"
-	RuntimeStateUnknownV1      RuntimeState = "Unknown"
-	StorageStateUnspecified    StorageState = "STORAGE_STATE_UNSPECIFIED"
-	StorageStateAvailable      StorageState = "AVAILABLE"
-	StorageStateArchived       StorageState = "ARCHIVED"
-	StorageStateUnspecifiedV1  StorageState = "STORAGESTATE_UNSPECIFIED"
-	StorageStateAvailableV1    StorageState = "STORAGESTATE_AVAILABLE"
-	StorageStateArchivedV1     StorageState = "STORAGESTATE_ARCHIVED"
-	RunTerminatingConditionsV1 string       = "Terminating"
+	// V2 runtime states
+	RuntimeStateUnspecified RuntimeState = "RUNTIME_STATE_UNSPECIFIED"
+	RuntimeStatePending     RuntimeState = "PENDING"
+	RuntimeStateRunning     RuntimeState = "RUNNING"
+	RuntimeStateSucceeded   RuntimeState = "SUCCEEDED"
+	RuntimeStateSkipped     RuntimeState = "SKIPPED"
+	RuntimeStateFailed      RuntimeState = "FAILED"
+	RuntimeStateCancelling  RuntimeState = "CANCELING"
+	RuntimeStateCanceled    RuntimeState = "CANCELED"
+	RuntimeStatePaused      RuntimeState = "PAUSED"
+
+	// V1 runtime states
+	RuntimeStatePendingV1     RuntimeState = "Pending"
+	RuntimeStateRunningV1     RuntimeState = "Running"
+	RuntimeStateSucceededV1   RuntimeState = "Succeeded"
+	RuntimeStateSkippedV1     RuntimeState = "Skipped"
+	RuntimeStateTerminatingV1 RuntimeState = "Terminating"
+	RuntimeStateFailedV1      RuntimeState = "Failed"
+	RuntimeStateErrorV1       RuntimeState = "Error"
+	RuntimeStateUnknownV1     RuntimeState = "Unknown"
+
+	// V2 storage states
+	StorageStateUnspecified StorageState = "STORAGE_STATE_UNSPECIFIED"
+	StorageStateAvailable   StorageState = "AVAILABLE"
+	StorageStateArchived    StorageState = "ARCHIVED"
+
+	// V1 storage states
+	StorageStateUnspecifiedV1 StorageState = "STORAGESTATE_UNSPECIFIED"
+	StorageStateAvailableV1   StorageState = "STORAGESTATE_AVAILABLE"
+	StorageStateArchivedV1    StorageState = "STORAGESTATE_ARCHIVED"
+
+	// TODO(gkcalat): verify if some of these v1 states can be safely removed
+	RunTerminatingConditionsV1 string = "Terminating"
+	LegacyStateNoStatus        string = "NO_STATUS"
+	LegacyStateEnabled         string = "ENABLED"
+	LegacyStateDisabled        string = "DISABLED"
+	LegacyStateError           string = "Error"
+	LegacyStateReady           string = "Ready"
+	LegacyStateRunning         string = "Running"
+	LegacyStateSucceeded       string = "Succeeded"
+	LegacyStateDone            string = "Done"
+	LegacyStateEmpty           string = ""
 )
 
 func (s RuntimeState) toUpper() RuntimeState {
@@ -63,11 +81,11 @@ func (s RuntimeState) ToString() string {
 	return string(s.ToV2())
 }
 
-// Checks is the runtime state contains a valid value.
+// Checks is the runtime state contains a v2-compatible value that can be written to a store.
 // This should be called before converting the data.
 func (s RuntimeState) IsValid() bool {
 	switch s {
-	case RuntimeStateUnspecified, RuntimeStatePending, RuntimeStateRunning, RuntimeStateSucceeded, RuntimeStateSkipped, RuntimeStateFailed, RuntimeStateCancelling, RuntimeStateCanceled, RuntimeStatePaused, RuntimeStateErrorV1, RuntimeStateUnknownV1:
+	case RuntimeStateUnspecified, RuntimeStatePending, RuntimeStateRunning, RuntimeStateSucceeded, RuntimeStateSkipped, RuntimeStateFailed, RuntimeStateCancelling, RuntimeStateCanceled, RuntimeStatePaused:
 		return true
 	default:
 		return false
@@ -75,24 +93,24 @@ func (s RuntimeState) IsValid() bool {
 }
 
 // Converts to v2beta1-compatible internal representation of runtime state.
-// This should be called before converting to v2beta1 API type.
+// This should be called before converting to v2beta1 API type or writing to a store.
 func (s RuntimeState) ToV2() RuntimeState {
 	switch s.toUpper() {
-	case RuntimeStateUnspecified, RuntimeStateUnknownV1, "NO_STATUS", "":
+	case RuntimeStateUnspecified, RuntimeStateUnknownV1.toUpper(), RuntimeState(LegacyStateNoStatus).toUpper(), RuntimeState(LegacyStateEmpty).toUpper():
 		return RuntimeStateUnspecified
 	case RuntimeStatePending:
 		return RuntimeStatePending
-	case RuntimeStateRunning, "ENABLED", "READY":
+	case RuntimeStateRunning, RuntimeState(LegacyStateEnabled).toUpper(), RuntimeState(LegacyStateReady).toUpper():
 		return RuntimeStateRunning
-	case RuntimeStateSucceeded, "DONE":
+	case RuntimeStateSucceeded, RuntimeState(LegacyStateDone).toUpper():
 		return RuntimeStateSucceeded
 	case RuntimeStateSkipped:
 		return RuntimeStateSkipped
-	case RuntimeStateFailed, RuntimeStateErrorV1:
+	case RuntimeStateFailed, RuntimeStateErrorV1.toUpper():
 		return RuntimeStateFailed
-	case RuntimeStateCancelling:
+	case RuntimeStateCancelling, RuntimeState(RunTerminatingConditionsV1).toUpper():
 		return RuntimeStateCancelling
-	case RuntimeStateCanceled, "DISABLED":
+	case RuntimeStateCanceled, RuntimeState(LegacyStateDisabled).toUpper():
 		return RuntimeStateCanceled
 	case RuntimeStatePaused:
 		return RuntimeStatePaused
@@ -105,24 +123,20 @@ func (s RuntimeState) ToV2() RuntimeState {
 // This should be called before converting to v1beta1 API type.
 func (s RuntimeState) ToV1() RuntimeState {
 	switch s.toUpper() {
-	case RuntimeStateUnspecified, "":
+	case RuntimeStateUnspecified, RuntimeStateUnknownV1.toUpper(), RuntimeState(LegacyStateNoStatus).toUpper(), RuntimeState(LegacyStateEmpty).toUpper():
 		return RuntimeStateUnknownV1
-	case RuntimeStatePending:
+	case RuntimeStatePending, RuntimeStatePendingV1.toUpper(), RuntimeStatePaused:
 		return RuntimeStatePendingV1
-	case RuntimeStateRunning:
+	case RuntimeStateRunning, RuntimeStateRunningV1.toUpper(), RuntimeState(LegacyStateEnabled).toUpper(), RuntimeState(LegacyStateReady).toUpper():
 		return RuntimeStateRunningV1
-	case RuntimeStateSucceeded:
+	case RuntimeStateSucceeded, RuntimeStateSucceededV1.toUpper():
 		return RuntimeStateSucceededV1
-	case RuntimeStateSkipped:
+	case RuntimeStateSkipped, RuntimeStateSkippedV1.toUpper():
 		return RuntimeStateSkippedV1
-	case RuntimeStateFailed:
+	case RuntimeStateFailed, RuntimeStateFailedV1.toUpper(), RuntimeStateCanceled, RuntimeStateErrorV1.toUpper(), RuntimeState(LegacyStateDisabled).toUpper():
 		return RuntimeStateFailedV1
-	case RuntimeStateCancelling:
+	case RuntimeStateCancelling, RuntimeStateTerminatingV1.toUpper():
 		return RuntimeStateTerminatingV1
-	case RuntimeStateCanceled:
-		return RuntimeStateFailedV1
-	case RuntimeStatePaused:
-		return RuntimeStatePendingV1
 	default:
 		return RuntimeStateUnknownV1
 	}
@@ -140,11 +154,11 @@ func (s StorageState) ToString() string {
 	return string(s.ToV2())
 }
 
-// Checks is the storage state contains a valid value.
+// Checks is the storage state contains a v2-compatible value that can be written to a store.
 // This should be called before converting the data.
 func (s StorageState) IsValid() bool {
 	switch s {
-	case StorageStateAvailable, StorageStateArchived, StorageStateUnspecified, StorageStateAvailableV1, StorageStateArchivedV1, StorageStateUnspecifiedV1:
+	case StorageStateAvailable, StorageStateArchived, StorageStateUnspecified:
 		return true
 	default:
 		return false
@@ -152,14 +166,14 @@ func (s StorageState) IsValid() bool {
 }
 
 // Converts to v2beta1-compatible internal representation of storage state.
-// This should be called before converting to v2beta1 API type.
+// This should be called before converting to v2beta1 API type or writing to a store.
 func (s StorageState) ToV2() StorageState {
 	switch s.toUpper() {
-	case StorageStateUnspecified, StorageStateUnspecifiedV1, "NO_STATUS", "ERROR", "":
+	case StorageStateUnspecified, StorageStateUnspecifiedV1, StorageState(LegacyStateNoStatus).toUpper(), StorageState(LegacyStateError).toUpper(), StorageState(LegacyStateEmpty).toUpper():
 		return StorageStateUnspecified
-	case StorageStateAvailable, StorageStateAvailableV1, "ENABLED", "READY":
+	case StorageStateAvailable, StorageStateAvailableV1, StorageState(LegacyStateEnabled).toUpper(), StorageState(LegacyStateReady).toUpper():
 		return StorageStateAvailable
-	case StorageStateArchived, StorageStateArchivedV1, "DISABLED":
+	case StorageStateArchived, StorageStateArchivedV1, StorageState(LegacyStateDisabled).toUpper():
 		return StorageStateArchived
 	default:
 		return StorageStateUnspecified
@@ -170,17 +184,11 @@ func (s StorageState) ToV2() StorageState {
 // This should be called before converting to v1beta1 API type.
 func (s StorageState) ToV1() StorageState {
 	switch s.toUpper() {
-	case StorageStateAvailable:
+	case StorageStateAvailable, StorageStateAvailableV1:
 		return StorageStateAvailableV1
-	case StorageStateArchived:
+	case StorageStateArchived, StorageStateArchivedV1:
 		return StorageStateArchivedV1
-	case StorageStateUnspecified:
-		return StorageStateUnspecifiedV1
-	case StorageStateAvailableV1:
-		return StorageStateAvailableV1
-	case StorageStateArchivedV1:
-		return StorageStateArchivedV1
-	case StorageStateUnspecifiedV1, "":
+	case StorageStateUnspecified, StorageStateUnspecifiedV1, StorageState(LegacyStateDisabled).toUpper():
 		return StorageStateUnspecifiedV1
 	default:
 		return StorageStateUnspecifiedV1
@@ -271,7 +279,7 @@ func (r *Run) ToV1() *Run {
 }
 
 // Converts to v2beta1-compatible internal representation of run.
-// This should be called before converting to v2beta1 API type.
+// This should be called before converting to v2beta1 API type or writing to a store.
 func (r *Run) ToV2() *Run {
 	for _, ref := range r.ResourceReferences {
 		switch ref.ReferenceType {
