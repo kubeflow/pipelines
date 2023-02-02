@@ -159,7 +159,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         rows: collapsedAndExpandedRows.collapsedRows,
       });
     }
-    return '';
+    return listOperationOpts.getNextPageToken();
   }
 
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
@@ -185,7 +185,6 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
       const response = await this.api.metadataStoreService.getArtifacts(
         new GetArtifactsRequest().setOptions(listOperationOpts),
       );
-      console.log(response);
       listOperationOpts.setNextPageToken(response.getNextPageToken());
       return response.getArtifactsList();
     } catch (err) {
