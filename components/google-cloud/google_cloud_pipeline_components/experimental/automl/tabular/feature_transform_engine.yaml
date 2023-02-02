@@ -726,7 +726,9 @@ description: |
             max-relevance, and min-redundancy."
             IEEE Transactions on pattern analysis and machine intelligence 27,
             no. 8 (2005): 1226-1238.
-
+      materialized_examples_format (Optional[str]):
+          The format to use for the materialized examples. Should be either
+          'tfrecords_gzip' (default) or 'parquet'.
       max_selected_features (Optional[int]):
           Maximum number of features to select.
 
@@ -833,6 +835,7 @@ inputs:
 - {name: run_distill, type: Boolean, default: "false"}
 - {name: run_feature_selection, type: Boolean, default: "false"}
 - {name: feature_selection_algorithm, type: String, default: "AMI"}
+- {name: materialized_examples_format, type: String, default: "tfrecords_gzip"}
 - {name: max_selected_features, type: Integer, default: 1000}
 - {name: data_source_csv_filenames, type: String, default: ""}
 - {name: data_source_bigquery_table_path, type: String, default: ""}
@@ -998,6 +1001,10 @@ implementation:
       concat: [
         "--run_feature_selection=",
         {inputValue: run_feature_selection}
+      ],
+      concat: [
+        "--materialized_examples_format=",
+        {inputValue: materialized_examples_format}
       ],
       concat: [
         "--max_selected_features=",
