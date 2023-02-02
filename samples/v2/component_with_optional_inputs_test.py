@@ -33,12 +33,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
     component_op_dict = tasks['component-op'].get_dict()
-    print(tasks)
-
-    #for artifact in component_op_dict.get('outputs').get('artifacts'):
-    #    # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
-    #    if artifact.get('metadata') is not None:
-    #        artifact.pop('metadata')
 
     t.assertEqual(
         {
@@ -46,9 +40,11 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'inputs': {
                 'parameters': {
                     'input1': 'Hello',
-                    'input2': 'World'
+                    'input2': 'World',
+                    'input3': ''
                 }
             },
+            'outputs': {},
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
         }, component_op_dict)
