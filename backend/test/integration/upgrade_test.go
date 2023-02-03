@@ -156,10 +156,10 @@ func (s *UpgradeTests) TearDownSuite() {
 			// Clean up after the suite to unblock other tests. (Not needed for upgrade
 			// tests because it needs changes in prepare tests to persist and verified
 			// later.)
-			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
-			test.DeleteAllPipelines(s.pipelineClient, t)
-			test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
 			test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
+			test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
+			test.DeleteAllPipelines(s.pipelineClient, t)
+			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
 		}
 	}
 }
