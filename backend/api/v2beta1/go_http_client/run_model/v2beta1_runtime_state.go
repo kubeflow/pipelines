@@ -16,7 +16,7 @@ import (
 
 // V2beta1RuntimeState Describes the runtime state of an entity.
 //
-//  - RUNTIMESTATE_UNSPECIFIED: Default value. This value is not used.
+//  - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.
 //  - PENDING: Service is preparing to execute an entity.
 //  - RUNNING: Entity execution is in progress.
 //  - SUCCEEDED: Entity completed successfully.
@@ -31,8 +31,8 @@ type V2beta1RuntimeState string
 
 const (
 
-	// V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED captures enum value "RUNTIMESTATE_UNSPECIFIED"
-	V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED V2beta1RuntimeState = "RUNTIMESTATE_UNSPECIFIED"
+	// V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED captures enum value "RUNTIME_STATE_UNSPECIFIED"
+	V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED V2beta1RuntimeState = "RUNTIME_STATE_UNSPECIFIED"
 
 	// V2beta1RuntimeStatePENDING captures enum value "PENDING"
 	V2beta1RuntimeStatePENDING V2beta1RuntimeState = "PENDING"
@@ -64,7 +64,7 @@ var v2beta1RuntimeStateEnum []interface{}
 
 func init() {
 	var res []V2beta1RuntimeState
-	if err := json.Unmarshal([]byte(`["RUNTIMESTATE_UNSPECIFIED","PENDING","RUNNING","SUCCEEDED","SKIPPED","FAILED","CANCELING","CANCELED","PAUSED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["RUNTIME_STATE_UNSPECIFIED","PENDING","RUNNING","SUCCEEDED","SKIPPED","FAILED","CANCELING","CANCELED","PAUSED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

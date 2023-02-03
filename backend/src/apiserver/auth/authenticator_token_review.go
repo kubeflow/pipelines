@@ -57,7 +57,7 @@ func (tra *TokenReviewAuthenticator) GetUserIdentity(ctx context.Context) (strin
 	return userInfo.Username, err
 }
 
-// ensureAudience makes sure all audience of the authenticator is found in the provided audience list
+// ensureAudience makes sure all audience of the authenticator is found in the provided audience list.
 func (tra *TokenReviewAuthenticator) ensureAudience(audience []string) bool {
 	// Create a set (map) to check fast whether something is part of the list
 	audienceSet := make(map[string]struct{}, len(audience))

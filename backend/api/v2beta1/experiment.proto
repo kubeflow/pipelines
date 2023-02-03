@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ message Experiment {
   // Describes whether an entity is available or archived.
   enum StorageState {
     // Default state. This state in not used
-    STORAGESTATE_UNSPECIFIED = 0;
+    STORAGE_STATE_UNSPECIFIED = 0;
 
     // Entity is available.
     AVAILABLE = 1;

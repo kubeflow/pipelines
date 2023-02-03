@@ -17,10 +17,11 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"google.golang.org/grpc/metadata"
 	"os"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"google.golang.org/grpc/metadata"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"

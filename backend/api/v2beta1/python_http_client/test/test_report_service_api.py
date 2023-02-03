@@ -28,14 +28,14 @@ class TestReportServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_report_scheduled_workflow_v1(self):
-        """Test case for report_scheduled_workflow_v1
+    def test_report_scheduled_workflow(self):
+        """Test case for report_scheduled_workflow
 
         """
         pass
 
-    def test_report_workflow_v1(self):
-        """Test case for report_workflow_v1
+    def test_report_workflow(self):
+        """Test case for report_workflow
 
         """
         pass

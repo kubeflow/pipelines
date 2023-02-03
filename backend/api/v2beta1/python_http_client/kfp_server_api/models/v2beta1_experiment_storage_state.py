@@ -28,11 +28,11 @@ class V2beta1ExperimentStorageState(object):
     """
     allowed enum values
     """
-    STORAGESTATE_UNSPECIFIED = "STORAGESTATE_UNSPECIFIED"
+    STORAGE_STATE_UNSPECIFIED = "STORAGE_STATE_UNSPECIFIED"
     AVAILABLE = "AVAILABLE"
     ARCHIVED = "ARCHIVED"
 
-    allowable_values = [STORAGESTATE_UNSPECIFIED, AVAILABLE, ARCHIVED]  # noqa: E501
+    allowable_values = [STORAGE_STATE_UNSPECIFIED, AVAILABLE, ARCHIVED]  # noqa: E501
 
     """
     Attributes:

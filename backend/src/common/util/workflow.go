@@ -115,7 +115,8 @@ func UnmarshParametersWorkflow(paramsString string) (SpecParameters, error) {
 		rev = append(rev, SpecParameter{
 			Name:    param.Name,
 			Default: (*string)(param.Default),
-			Value:   (*string)(param.Value)})
+			Value:   (*string)(param.Value),
+		})
 	}
 	return rev, nil
 }
@@ -172,7 +173,8 @@ func (w *Workflow) SpecParameters() SpecParameters {
 		rev = append(rev, SpecParameter{
 			Name:    currentParam.Name,
 			Default: (*string)(currentParam.Default),
-			Value:   (*string)(currentParam.Value)})
+			Value:   (*string)(currentParam.Value),
+		})
 	}
 	return rev
 }
@@ -459,7 +461,8 @@ func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact, user str
 }
 
 func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact, user string) (
-	[]*api.RunMetric, error) {
+	[]*api.RunMetric, error,
+) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
@@ -496,8 +499,8 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
-	retrieveArtifact RetrieveArtifact, user string) (string, error) {
-
+	retrieveArtifact RetrieveArtifact, user string,
+) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
 	}
@@ -532,7 +535,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		return "", NewCustomError(err, CUSTOM_CODE_PERMANENT,
 			"Unable to extract metrics tgz file read from (%+v): %v", artifactRequest, err)
 	}
-	//There needs to be exactly one metrics file in the artifact archive. We load that file.
+	// There needs to be exactly one metrics file in the artifact archive. We load that file.
 	if len(archivedFiles) == 1 {
 		for _, value := range archivedFiles {
 			return value, nil

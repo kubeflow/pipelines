@@ -14,7 +14,9 @@
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // PipelineStatus a label for the status of the Pipeline.
 // This is intend to make pipeline creation and deletion atomic.
@@ -29,19 +31,16 @@ const (
 )
 
 type Pipeline struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
-	Name           string `gorm:"column:Name; not null"`
-	Description    string `gorm:"column:Description; not null; size:65535"` // Same as below, set size to large number so it will be stored as longtext
-	// TODO(jingzhang36): remove Parameters when no code is accessing this
-	// field. Should use PipelineVersion.Parameters instead.
-	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
-	Parameters string         `gorm:"column:Parameters; not null; size:65535"`
-	Status     PipelineStatus `gorm:"column:Status; not null"`
-	// Default version of this pipeline. It could be null.
-	DefaultVersionId string           `gorm:"column:DefaultVersionId;"`
-	DefaultVersion   *PipelineVersion `gorm:"-"`
-	Namespace        string           `gorm:"column:Namespace; size:63; default:''"`
+	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
+	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
+	Description    string `gorm:"column:Description; not null; size:65535;"`           // Same as below, set size to large number so it will be stored as longtext
+	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
+	Parameters string         `gorm:"column:Parameters; size:65535;"`
+	Status     PipelineStatus `gorm:"column:Status; not null;"`
+	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
+	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated
+	Namespace        string `gorm:"column:Namespace; unique_index:namespace_name; size:63;"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -63,13 +62,13 @@ func (p *Pipeline) DefaultSortField() string {
 }
 
 var pipelineAPIToModelFieldMap = map[string]string{
-	"id":          "UUID",
-	"name":        "Name",
-	"created_at":  "CreatedAtInSec",
-	"description": "Description",
-	"namespace":   "Namespace",
-	// TODO(jingzhang36): uncomment this field when we expose it to API
-	// "default_version_id": "DefaultVersionId",
+	"id":           "UUID", // v1beta1 API
+	"pipeline_id":  "UUID", // v2beta1 API
+	"name":         "Name", // v1beta1 API
+	"display_name": "Name", // v2beta1 API
+	"created_at":   "CreatedAtInSec",
+	"description":  "Description",
+	"namespace":    "Namespace",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model
@@ -78,7 +77,7 @@ func (p *Pipeline) APIToModelFieldMap() map[string]string {
 	return pipelineAPIToModelFieldMap
 }
 
-// GetModelName returns table name used as sort field prefix
+// GetModelName returns table name used as sort field prefix.
 func (p *Pipeline) GetModelName() string {
 	return "pipelines"
 }

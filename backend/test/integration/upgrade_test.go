@@ -1,16 +1,12 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
-	"sort"
 	"testing"
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-
 	experimentParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
 	jobparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
@@ -24,6 +20,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 // Methods are organized into two types: "prepare" and "verify".
@@ -157,10 +156,10 @@ func (s *UpgradeTests) TearDownSuite() {
 			// Clean up after the suite to unblock other tests. (Not needed for upgrade
 			// tests because it needs changes in prepare tests to persist and verified
 			// later.)
-			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
-			test.DeleteAllPipelines(s.pipelineClient, t)
-			test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
 			test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
+			test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
+			test.DeleteAllPipelines(s.pipelineClient, t)
+			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
 		}
 	}
 }
@@ -196,29 +195,51 @@ func (s *UpgradeTests) VerifyExperiments() {
 	t := s.T()
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
+	// This should have the hello-world experiment in addition to the old experiments.
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
 		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
-		s.resourceNamespace)
+		"",
+	)
 	require.Nil(t, err)
-	// after upgrade, default experiment may be inserted, but the oldest 3
-	// experiments should be the ones created in this test
-	require.True(t, len(experiments) >= 3)
 
-	assert.Equal(t, "training", experiments[0].Name)
-	assert.Equal(t, "my first experiment", experiments[0].Description)
+	allExperiments := make([]string, len(experiments))
+	for i, exp := range experiments {
+		if len(exp.ResourceReferences) > 0 && exp.ResourceReferences[0].Key != nil {
+			allExperiments[i] = fmt.Sprintf("%v: %v/%v", i, exp.ResourceReferences[0].Key.ID, exp.Name)
+		} else {
+			allExperiments[i] = fmt.Sprintf("%v: %v", i, exp.Name)
+		}
+	}
+	fmt.Printf("All experiments: %v", allExperiments)
+	assert.Equal(t, 5, len(experiments))
+
+	// Default experiment is no longer deletable
+	assert.Equal(t, "Default", experiments[0].Name)
+	assert.Contains(t, experiments[0].Description, "All runs created without specifying an experiment will be grouped here")
 	assert.NotEmpty(t, experiments[0].ID)
 	assert.NotEmpty(t, experiments[0].CreatedAt)
 
-	assert.Equal(t, "prediction", experiments[1].Name)
-	assert.Equal(t, "my second experiment", experiments[1].Description)
+	assert.Equal(t, "training", experiments[1].Name)
+	assert.Equal(t, "my first experiment", experiments[1].Description)
 	assert.NotEmpty(t, experiments[1].ID)
 	assert.NotEmpty(t, experiments[1].CreatedAt)
 
-	assert.Equal(t, "moonshot", experiments[2].Name)
-	assert.Equal(t, "my third experiment", experiments[2].Description)
+	assert.Equal(t, "prediction", experiments[2].Name)
+	assert.Equal(t, "my second experiment", experiments[2].Description)
 	assert.NotEmpty(t, experiments[2].ID)
 	assert.NotEmpty(t, experiments[2].CreatedAt)
+
+	assert.Equal(t, "moonshot", experiments[3].Name)
+	assert.Equal(t, "my third experiment", experiments[3].Description)
+	assert.NotEmpty(t, experiments[3].ID)
+	assert.NotEmpty(t, experiments[3].CreatedAt)
+
+	assert.Equal(t, "hello world experiment", experiments[4].Name)
+	assert.Equal(t, "", experiments[4].Description)
+	assert.NotEmpty(t, experiments[4].ID)
+	assert.NotEmpty(t, experiments[4].CreatedAt)
+
 }
 
 // TODO(jingzhang36): prepare pipeline versions.
@@ -236,7 +257,9 @@ func (s *UpgradeTests) PreparePipelines() {
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
+		}},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
@@ -251,7 +274,9 @@ func (s *UpgradeTests) PreparePipelines() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
+		}},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 
@@ -305,8 +330,10 @@ func (s *UpgradeTests) PrepareRuns() {
 			PipelineID: helloWorldPipeline.ID,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER,
+			},
 		},
 	}}
 	_, _, err := s.runClient.Create(createRunRequest)
@@ -345,8 +372,10 @@ func (s *UpgradeTests) PrepareJobs() {
 			PipelineID: pipeline.ID,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -380,11 +409,9 @@ func (s *UpgradeTests) VerifyJobs() {
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+			{
+				Key:  &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
 				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
-			},
-			{Key: &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINEVERSION},
-				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
@@ -394,11 +421,10 @@ func (s *UpgradeTests) VerifyJobs() {
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Trigger:        &job_model.APITrigger{},
 	}
 
-	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
-	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
+	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences), "Inconsistent resource references: %v does not contain %v", job.ResourceReferences, expectedJob.ResourceReferences)
+	expectedJob.ResourceReferences = job.ResourceReferences
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -422,11 +448,9 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
 				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
-			},
-			{Key: &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINEVERSION},
-				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
@@ -434,8 +458,8 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 		ScheduledAt:    runDetail.Run.ScheduledAt,
 		FinishedAt:     runDetail.Run.FinishedAt,
 	}
-	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
-	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences), "Run's res references %v does not include %v", runDetail.Run.ResourceReferences, expectedRun.ResourceReferences)
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 

@@ -22,3 +22,10 @@ This test gets triggered by the end-to-end testing workflows.
     ```bash
     docker run --net=host kfp-frontend-integration-test:local --remote-run true
     ```
+
+1. Once completed, you can kill the background process of port-forwarding:
+
+    ```
+    ps aux | grep '[k]ubectl port-forward'
+    kill <PID>
+    ```

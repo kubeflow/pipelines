@@ -199,35 +199,6 @@ func (a *Client) ReadArtifact(params *ReadArtifactParams, authInfo runtime.Clien
 }
 
 /*
-ReportRunMetrics reports metrics of a run each metric is reported in its own transaction so this API accepts partial failures metric can be uniquely identified by experiment id run id node id name duplicate reporting will be ignored by the API first reporting wins
-*/
-func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runtime.ClientAuthInfoWriter) (*ReportRunMetricsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewReportRunMetricsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ReportRunMetrics",
-		Method:             "POST",
-		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &ReportRunMetricsReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ReportRunMetricsOK), nil
-
-}
-
-/*
 TerminateRun terminates an active run
 */
 func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error) {

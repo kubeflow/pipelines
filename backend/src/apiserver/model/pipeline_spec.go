@@ -15,26 +15,34 @@
 package model
 
 type PipelineSpec struct {
-	// Pipeline ID will be optional. It's available only if the resource is created through
-	// a pipeline ID.
-	PipelineId string `gorm:"column:PipelineId; not null"`
+	// Creation of runs via pipeline ID was deprecated in v2beta1.
+	// It is available only in older resources created through a pipeline ID.
+	PipelineId string `gorm:"column:PipelineId; not null;"`
 
-	// Pipeline Name will be required if ID is not empty.
-	PipelineName string `gorm:"column:PipelineName; not null"`
+	// Pipeline version's id.
+	PipelineVersionId string `gorm:"column:PipelineVersionId; default:null;"`
+
+	// TODO(gkcalat): consider adding PipelineVersionName to avoid confusion.
+	// Pipeline versions's Name will be required if ID is not empty.
+	// This carries the name of the pipeline version in v2beta1.
+	PipelineName string `gorm:"column:PipelineName; not null;"`
 
 	// Pipeline YAML definition. This is the pipeline interface for creating a pipeline.
 	// Set size to 65535 so it will be stored as longtext.
 	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
-	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; size:65535"`
+	// TODO(gkcalat): consider increasing the size limit > 32MB (<4GB for MySQL, and <1GB for PostgreSQL).
+	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; size:33554432;"`
 
 	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
-	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:65535"`
+	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:33554432;"`
 
 	// Store parameters key-value pairs as serialized string.
 	// This field is only used for V1 API. For V2, use the `Parameters` field in RuntimeConfig.
 	// At most one of the fields `Parameters` and `RuntimeConfig` can be non-empty
-	Parameters string `gorm:"column:Parameters; size:65535"`
+	// This string stores an array of map[string]value. For example:
+	//  {"param1": Value1} will be stored as [{"name": "param1", "value":"value1"}].
+	Parameters string `gorm:"column:Parameters; size:65535;"`
 
-	// Runtime config of the pipeline, only used for v2 API.
+	// Runtime config of the pipeline, only used for v2 template in API v1beta1 API.
 	RuntimeConfig
 }

@@ -39,7 +39,7 @@ class TestV2beta1RecurringRun(unittest.TestCase):
                 recurring_run_id = '0', 
                 display_name = '0', 
                 description = '0', 
-                pipeline_id = '0', 
+                pipeline_version_id = '0', 
                 pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
                 runtime_config = kfp_server_api.models.v2beta1_runtime_config.v2beta1RuntimeConfig(
                     parameters = {
@@ -61,7 +61,14 @@ class TestV2beta1RecurringRun(unittest.TestCase):
                 created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 status = 'STATUS_UNSPECIFIED', 
-                error = '0', 
+                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                    code = 56, 
+                    message = '0', 
+                    details = [
+                        kfp_server_api.models.protobuf_any.protobufAny(
+                            type_url = '0', 
+                            value = 'YQ==', )
+                        ], ), 
                 no_catchup = True, 
                 namespace = '0', 
                 experiment_id = '0'

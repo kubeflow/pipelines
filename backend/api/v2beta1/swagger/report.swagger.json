@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v2beta1/scheduledworkflows": {
       "post": {
-        "operationId": "ReportScheduledWorkflowV1",
+        "operationId": "ReportScheduledWorkflow",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -44,7 +44,7 @@
     },
     "/apis/v2beta1/workflows": {
       "post": {
-        "operationId": "ReportWorkflowV1",
+        "operationId": "ReportWorkflow",
         "responses": {
           "200": {
             "description": "A successful response.",

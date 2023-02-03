@@ -1,17 +1,30 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package filter
 
 import (
 	"encoding/json"
-	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
-
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestValidNewFilters(t *testing.T) {
@@ -85,7 +98,7 @@ func TestValidNewFilters(t *testing.T) {
 
 		got, err := New(filterProto)
 		if !cmp.Equal(got, test.want, opts...) || err != nil {
-			t.Errorf("New(%+v) = %+v, %v\nWant %+v, nil", *filterProto, got, err, test.want)
+			t.Errorf("New(%+v) = %+v, %v\nWant %+v, nil", filterProto, got, err, test.want)
 		}
 	}
 }
@@ -140,7 +153,7 @@ func TestValidNewFiltersWithKeyMap(t *testing.T) {
 		modelName := "pipelines"
 		got, err := NewWithKeyMap(filterProto, keyMap, modelName)
 		if !cmp.Equal(got, test.want, opts...) || err != nil {
-			t.Errorf("New(%+v) = %+v, %v\nWant %+v, nil", *filterProto, got, err, test.want)
+			t.Errorf("New(%+v) = %+v, %v\nWant %+v, nil", filterProto, got, err, test.want)
 		}
 	}
 }
@@ -218,7 +231,7 @@ func TestInvalidFilters(t *testing.T) {
 
 		got, err := New(filterProto)
 		if err == nil {
-			t.Errorf("New(%+v) = %+v, <nil>\nWant non-nil error ", *filterProto, got)
+			t.Errorf("New(%+v) = %+v, <nil>\nWant non-nil error ", filterProto, got)
 		}
 	}
 }
@@ -300,7 +313,7 @@ func TestAddToSelect(t *testing.T) {
 
 		filter, err := New(filterProto)
 		if err != nil {
-			t.Errorf("New(%+v) = %+v, %v\nWant nil error", *filterProto, filter, err)
+			t.Errorf("New(%+v) = %+v, %v\nWant nil error", filterProto, filter, err)
 			continue
 		}
 
@@ -316,7 +329,7 @@ func TestMarshalJSON(t *testing.T) {
 	f := &Filter{
 		filterProto: &api.Filter{
 			Predicates: []*api.Predicate{
-				&api.Predicate{
+				{
 					Key: "Name", Op: api.Predicate_EQUALS,
 					Value: &api.Predicate_StringValue{StringValue: "SomeName"},
 				},
@@ -339,7 +352,7 @@ func TestUnmarshalJSON(t *testing.T) {
 	want := &Filter{
 		filterProto: &api.Filter{
 			Predicates: []*api.Predicate{
-				&api.Predicate{
+				{
 					Key: "Name", Op: api.Predicate_EQUALS,
 					Value: &api.Predicate_StringValue{StringValue: "SomeName"},
 				},
@@ -358,7 +371,7 @@ func TestUnmarshalJSON(t *testing.T) {
 func TestNewWithKeyMap(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key:   "finished_at",
 				Op:    api.Predicate_GREATER_THAN,
 				Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
@@ -369,7 +382,7 @@ func TestNewWithKeyMap(t *testing.T) {
 	want := &Filter{
 		filterProto: &api.Filter{
 			Predicates: []*api.Predicate{
-				&api.Predicate{
+				{
 					Key: "runs.FinishedAtInSec", Op: api.Predicate_GREATER_THAN,
 					Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
 				},
