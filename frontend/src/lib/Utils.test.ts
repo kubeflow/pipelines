@@ -24,6 +24,7 @@ import {
   getRunDuration,
   getRunDurationFromWorkflow,
   logger,
+  mergeApiParametersByNames,
 } from './Utils';
 
 describe('Utils', () => {
@@ -279,6 +280,48 @@ describe('Utils', () => {
       await expect(decodeCompressedNodes(compressedNodes)).rejects.toEqual(
         'failed to ungzip data: incorrect header check',
       );
+    });
+  });
+
+  describe('mergeApiParametersByNames', () => {
+    it('empty main params', () => {
+      expect(
+        mergeApiParametersByNames([], [{ name: 'testParam1', value: 'overwrittenValue1' }]),
+      ).toEqual([]);
+    });
+
+    it('redundant params in extra', () => {
+      expect(
+        mergeApiParametersByNames(
+          [{ name: 'testParam1', value: 'value1' }],
+          [
+            { name: 'testParam1', value: 'overwrittenValue1' },
+            { name: 'testParam2', value: 'overwrittenValue2' },
+          ],
+        ),
+      ).toEqual([{ name: 'testParam1', value: 'overwrittenValue1' }]);
+    });
+    it('empty extra params', () => {
+      expect(mergeApiParametersByNames([{ name: 'testParam1', value: 'value1' }], [])).toEqual([
+        { name: 'testParam1', value: 'value1' },
+      ]);
+    });
+    it('different params', () => {
+      expect(
+        mergeApiParametersByNames(
+          [
+            { name: 'testParam1', value: 'value1' },
+            { name: 'testParam2', value: 'value2' },
+          ],
+          [
+            { name: 'testParam3', value: 'overwrittenValue3' },
+            { name: 'testParam4', value: 'overwrittenValue4' },
+          ],
+        ),
+      ).toEqual([
+        { name: 'testParam1', value: 'value1' },
+        { name: 'testParam2', value: 'value2' },
+      ]);
     });
   });
 });
