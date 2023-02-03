@@ -60,6 +60,15 @@ interface NewRunParametersProps {
   setIsValidInput?: (isValid: boolean) => void;
 }
 
+const protoMap = new Map<string, string>([
+  ['NUMBER_DOUBLE', 'float/double'],
+  ['NUMBER_INTEGER', 'integer'],
+  ['STRING', 'string'],
+  ['BOOLEAN', 'boolean'],
+  ['LIST', 'list'],
+  ['STRUCT', 'map/dict'],
+]);
+
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
   // TBD (jlyaoyuli): Currently, empty string is not allowed.
   if (paramStr === '') {
@@ -122,7 +131,7 @@ function generateInputValidationErrMsg(
     case null:
       errorMessage =
         'Invalid input. This parameter should be in ' +
-        ParameterType_ParameterTypeEnum[paramType] +
+        protoMap.get(ParameterType_ParameterTypeEnum[paramType]) +
         ' type';
       break;
     default:
