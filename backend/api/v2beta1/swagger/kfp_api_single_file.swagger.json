@@ -1251,6 +1251,45 @@
         ]
       }
     },
+    "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry": {
+      "post": {
+        "summary": "Re-initiates a failed or terminated run.",
+        "operationId": "RetryRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "experiment_id",
+            "description": "The ID of the parent experiment.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "run_id",
+            "description": "The ID of the run to be Retried.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
     "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate": {
       "post": {
         "summary": "Terminates an active run.",
