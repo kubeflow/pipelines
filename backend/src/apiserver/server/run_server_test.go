@@ -1337,3 +1337,42 @@ func TestReadArtifacts_Succeed(t *testing.T) {
 	}
 	assert.Equal(t, expectedResponse, response)
 }
+
+func TestRetryRun(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+	}
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	run := &apiv2beta1.Run{
+		DisplayName:  "run1",
+		ExperimentId: experiment.UUID,
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: pipelineSpecStruct,
+		},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			Parameters:   v2RuntimeParams,
+			PipelineRoot: "model-pipeline-root",
+		},
+	}
+	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	_, err = server.RetryRun(nil, &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+}

@@ -532,6 +532,22 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.Unarch
 	return &empty.Empty{}, nil
 }
 
+func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		retryRunRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.RetryRun(ctx, request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
 func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteRunRequests.Inc()
