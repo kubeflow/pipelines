@@ -719,7 +719,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 						return typeMismatch("struct")
 					}
 				default:
-					return fmt.Errorf("unknown protobuf.Value type: %T", v)
+					return fmt.Errorf("parameter %s has unknown protobuf.Value type: %T", name, v)
 				}
 			}
 		}
