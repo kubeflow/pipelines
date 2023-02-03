@@ -355,7 +355,7 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
       expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
-        'test pipeline name',
+        'file_name',
         'test pipeline description',
         file,
       );

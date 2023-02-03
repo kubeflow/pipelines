@@ -699,7 +699,9 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         dropzoneActive: false,
         file: files[0],
         fileName: files[0].name,
-        pipelineName: this.state.pipelineName || files[0].name.split('.')[0],
+        pipelineName: this.state.newPipeline
+          ? files[0].name.split('.')[0]
+          : this.state.pipelineName || files[0].name.split('.')[0],
       },
       () => {
         this._validate();
