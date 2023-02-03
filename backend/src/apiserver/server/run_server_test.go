@@ -168,7 +168,7 @@ func TestCreateRunV1_too_many_params(t *testing.T) {
 }
 
 func TestCreateRunV1_pipeline(t *testing.T) {
-	clients, manager, exp := initWithExperimentAndPipelineVersion(t)
+	clients, manager, exp, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &apiv1beta1.Run{
@@ -200,7 +200,7 @@ func TestCreateRunV1_pipeline(t *testing.T) {
 }
 
 func TestCreateRunV1_pipelineversion(t *testing.T) {
-	clients, manager, exp := initWithExperimentAndPipelineVersion(t)
+	clients, manager, exp, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &apiv1beta1.Run{
@@ -216,8 +216,8 @@ func TestCreateRunV1_pipelineversion(t *testing.T) {
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
 }
 
-func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
-	clients, manager, exp := initWithExperimentAndPipelineVersion(t)
+func TestCreateRunV1_MismatchedManifests(t *testing.T) {
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &apiv1beta1.Run{
@@ -229,13 +229,31 @@ func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
 		},
 	}
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Nil(t, runDetail)
+	assert.Contains(t, err.Error(), "Invalid input error: Failed to create a run due to mismatch in the provided manifest and pipeline version")
+}
+
+func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
+	clients, manager, exp, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
 	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
-	assert.Equal(t, testWorkflow2.ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
+	assert.Equal(t, testWorkflow.ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
 }
 
 func TestCreateRunV1_V1Params(t *testing.T) {
@@ -644,7 +662,7 @@ func TestCreateRun(t *testing.T) {
 }
 
 func TestGetRunV1(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &apiv1beta1.Run{

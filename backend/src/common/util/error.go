@@ -157,7 +157,7 @@ func NewNotFoundError(err error, externalMessageFormat string,
 }
 
 func NewResourceNotFoundError(resourceType string, resourceName string) *UserError {
-	externalMessage := fmt.Sprintf("%s %s not found.", resourceType, resourceName)
+	externalMessage := fmt.Sprintf("%s %s not found", resourceType, resourceName)
 	return newUserError(
 		errors.New(fmt.Sprintf("ResourceNotFoundError: %v", externalMessage)),
 		externalMessage,
@@ -165,7 +165,7 @@ func NewResourceNotFoundError(resourceType string, resourceName string) *UserErr
 }
 
 func NewResourcesNotFoundError(resourceTypesFormat string, resourceNames ...interface{}) *UserError {
-	externalMessage := fmt.Sprintf("%s not found.", fmt.Sprintf(resourceTypesFormat, resourceNames...))
+	externalMessage := fmt.Sprintf("%s not found", fmt.Sprintf(resourceTypesFormat, resourceNames...))
 	return newUserError(
 		errors.New(fmt.Sprintf("ResourceNotFoundError: %v", externalMessage)),
 		externalMessage,
@@ -222,7 +222,7 @@ func NewPermissionDeniedError(err error, externalFormat string, a ...interface{}
 }
 
 func NewUnknownApiVersionError(a string, o interface{}) *UserError {
-	externalMessage := fmt.Sprintf("Error using %s with %T.", a, o)
+	externalMessage := fmt.Sprintf("Error using %s with %T", a, o)
 	return newUserError(
 		fmt.Errorf("UnknownApiVersionError: %v", externalMessage),
 		externalMessage,
@@ -297,7 +297,7 @@ func ToRpcStatus(e error) *status.Status {
 	if !ok {
 		grpcStatus = status1.Newf(
 			codes.Unknown,
-			"Failed to convert %T to GRPC Status. Check implementation of GRPCStatus(). %v.",
+			"Failed to convert %T to GRPC Status. Check implementation of GRPCStatus(). %v",
 			e,
 			e,
 		)

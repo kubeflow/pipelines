@@ -98,36 +98,27 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to add experiment to experiment table")
 }
 
-// func TestCreateExperimentV1_SingleUser_NamespaceNotAllowed(t *testing.T) {
-// 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-// 	resourceManager := resource.NewResourceManager(clientManager, "default")
-// 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-// 	resourceReferences := []*apiv1beta1.ResourceReference{
-// 		{
-// 			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-// 			Relationship: apiv1beta1.Relationship_OWNER,
-// 		},
-// 	}
-// 	experiment := &apiv1beta1.Experiment{
-// 		Name:               "exp1",
-// 		Description:        "first experiment",
-// 		ResourceReferences: resourceReferences,
-// 	}
+func TestCreateExperiment_EmptyName(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, "default")
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "", Description: "first experiment"}
+	clientManager.DB().Close()
+	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Invalid input error: Experiment must have a non-empty name")
+}
 
-// 	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain resource references")
-// }
-//
-// func TestCreateExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
-// 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-// 	resourceManager := resource.NewResourceManager(clientManager, "default")
-// 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-// 	experiment := &apiV2beta1.Experiment{DisplayName: "exp1", Description: "first experiment", Namespace: "ns1"}
-// 	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain namespace")
-// }
+func TestCreateExperimentV1_EmptyName(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, "default")
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiv1beta1.Experiment{Name: "", Description: "first experiment"}
+	clientManager.DB().Close()
+	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Invalid input error: Experiment must have a non-empty name")
+}
 
 func TestCreateExperimentV1_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
@@ -197,29 +188,191 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, "default")
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	resourceReferences := []*apiv1beta1.ResourceReference{
+
+	tests := []struct {
+		name       string
+		fakeId     string
+		experiment *apiv1beta1.Experiment
+		want       *apiv1beta1.Experiment
+		wantError  bool
+		errMsg     string
+	}{
 		{
-			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-			Relationship: apiv1beta1.Relationship_OWNER,
+			"Valid - first experiment",
+			DefaultFakeIdOne,
+			&apiv1beta1.Experiment{
+				Name:        "exp1",
+				Description: "first experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			&apiv1beta1.Experiment{
+				Id:          DefaultFakeIdOne,
+				Name:        "exp1",
+				Description: "first experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+				StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - second experiment",
+			DefaultFakeIdTwo,
+			&apiv1beta1.Experiment{
+				Name:        "exp2",
+				Description: "second experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			&apiv1beta1.Experiment{
+				Id:          DefaultFakeIdTwo,
+				Name:        "exp2",
+				Description: "second experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+				StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid - same name",
+			DefaultFakeIdThree,
+			&apiv1beta1.Experiment{
+				Name:        "exp1",
+				Description: "first experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			nil,
+			true,
+			"The name exp1 already exists. Please specify a new name",
+		},
+		{
+			"Invalid - missing namespace",
+			DefaultFakeIdFour,
+			&apiv1beta1.Experiment{
+				Name:        "exp3",
+				Description: "first experiment",
+			},
+			nil,
+			true,
+			"Namespace cannot be empty",
+		},
+		{
+			"Invalid - missing name",
+			DefaultFakeIdFive,
+			&apiv1beta1.Experiment{
+				Description: "first experiment",
+			},
+			nil,
+			true,
+			"Invalid input error: Experiment must have a non-empty name",
+		},
+		{
+			"Invalid - empty namespace",
+			DefaultFakeIdSix,
+			&apiv1beta1.Experiment{
+				Name:        "exp4",
+				Description: "first experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			nil,
+			true,
+			"Namespace cannot be empty",
+		},
+		{
+			"Valid - multiple namespaces",
+			DefaultFakeIdSeven,
+			&apiv1beta1.Experiment{
+				Name:        "exp5",
+				Description: "first experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			&apiv1beta1.Experiment{
+				Id:          DefaultFakeIdSeven,
+				Name:        "exp5",
+				Description: "first experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+				StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid - wrong owner",
+			DefaultFakeIdEight,
+			&apiv1beta1.Experiment{
+				Name:        "exp6",
+				Description: "first experiment",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp2"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			nil,
+			true,
+			"Invalid input error: Namespace cannot be empty",
 		},
 	}
-	experiment := &apiv1beta1.Experiment{
-		Name:               "exp1",
-		Description:        "first experiment",
-		ResourceReferences: resourceReferences,
+	for _, tt := range tests {
+		clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(tt.fakeId, nil))
+		resourceManager = resource.NewResourceManager(clientManager, "default")
+		server = ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+		got, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: tt.experiment})
+		if tt.wantError {
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), tt.errMsg)
+		} else {
+			assert.Nil(t, err)
+			assert.NotNil(t, got.CreatedAt)
+			tt.want.CreatedAt = got.CreatedAt
+		}
+		assert.Equal(t, tt.want, got)
 	}
-
-	result, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
-	assert.Nil(t, err)
-	expectedExperiment := &apiv1beta1.Experiment{
-		Id:                 DefaultFakeUUID,
-		Name:               "exp1",
-		Description:        "first experiment",
-		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
-		ResourceReferences: resourceReferences,
-		StorageState:       apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
-	}
-	assert.Equal(t, expectedExperiment, result)
 }
 
 func TestCreateExperiment_Multiuser(t *testing.T) {
@@ -231,23 +384,64 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, "default")
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-	experiment := &apiV2beta1.Experiment{
-		DisplayName: "exp1",
-		Description: "first experiment",
-		Namespace:   "ns1",
-	}
 
-	result, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
-	assert.Nil(t, err)
-	expectedExperiment := &apiV2beta1.Experiment{
-		ExperimentId: DefaultFakeUUID,
-		DisplayName:  "exp1",
-		Description:  "first experiment",
-		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		Namespace:    "ns1",
-		StorageState: apiV2beta1.Experiment_AVAILABLE,
+	tests := []struct {
+		name       string
+		experiment *apiV2beta1.Experiment
+		want       *apiV2beta1.Experiment
+		wantError  bool
+		errMsg     string
+	}{
+		{
+			"Valid",
+			&apiV2beta1.Experiment{
+				DisplayName: "exp1",
+				Description: "first experiment",
+				Namespace:   "ns1",
+			},
+			&apiV2beta1.Experiment{
+				ExperimentId: DefaultFakeUUID,
+				DisplayName:  "exp1",
+				Description:  "first experiment",
+				Namespace:    "ns1",
+				StorageState: apiV2beta1.Experiment_AVAILABLE,
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid - missing namespace",
+			&apiV2beta1.Experiment{
+				DisplayName: "exp1",
+				Description: "first experiment",
+			},
+			nil,
+			true,
+			"Namespace cannot be empty",
+		},
+		{
+			"Invalid - missing name",
+			&apiV2beta1.Experiment{
+				Description: "first experiment",
+				Namespace:   "ns1",
+			},
+			nil,
+			true,
+			"Invalid input error: Experiment must have a non-empty name",
+		},
 	}
-	assert.Equal(t, expectedExperiment, result)
+	for _, tt := range tests {
+		got, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: tt.experiment})
+		if tt.wantError {
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), tt.errMsg)
+		} else {
+			assert.Nil(t, err)
+			assert.NotNil(t, got.CreatedAt)
+			tt.want.CreatedAt = got.CreatedAt
+		}
+		assert.Equal(t, tt.want, got)
+	}
 }
 
 func TestGetExperimentV1(t *testing.T) {
@@ -512,37 +706,6 @@ func TestListExperiments_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "List experiments failed")
 }
 
-// func TestListExperimentsV1_SingleUser_NamespaceNotAllowed(t *testing.T) {
-// 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-// 	resourceManager := resource.NewResourceManager(clientManager, "default")
-// 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-// 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
-
-// 	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
-// 	assert.Nil(t, err)
-// 	_, err = server.ListExperimentsV1(nil, &apiv1beta1.ListExperimentsRequest{
-// 		ResourceReferenceKey: &apiv1beta1.ResourceKey{
-// 			Type: apiv1beta1.ResourceType_NAMESPACE,
-// 			Id:   "ns1",
-// 		},
-// 	})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "In single-user mode, ListExperimentsV1 cannot filter by namespace")
-// }
-
-// func TestListExperiments_SingleUser_NamespaceNotAllowed(t *testing.T) {
-// 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-// 	resourceManager := resource.NewResourceManager(clientManager, "default")
-// 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
-// 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
-
-// 	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
-// 	assert.Nil(t, err)
-// 	_, err = server.ListExperiments(nil, &apiV2beta1.ListExperimentsRequest{Namespace: "ns1"})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.Error(), "Invalid ListExperiments request. Namespace should not be provided in single-user mode")
-// }
-
 func TestListExperimentsV1_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -792,225 +955,9 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 	}
 }
 
-// func TestValidateCreateExperimentRequestV1(t *testing.T) {
-// 	tests := []struct {
-// 		name         string
-// 		experiment   *apiv1beta1.Experiment
-// 		wantError    bool
-// 		errorMessage string
-// 	}{
-// 		{
-// 			"Valid",
-// 			&apiv1beta1.Experiment{Name: "exp1", Description: "first experiment"},
-// 			false,
-// 			"",
-// 		},
-// 		{
-// 			"Empty name",
-// 			&apiv1beta1.Experiment{Description: "first experiment"},
-// 			true,
-// 			"name is empty",
-// 		},
-// 	}
-
-// 	for _, tc := range tests {
-// 		err := validateCreateExperimentRequestV1(&apiv1beta1.CreateExperimentRequest{Experiment: tc.experiment})
-// 		if !tc.wantError && err != nil {
-// 			t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect no error but got %v", tc.name, err)
-// 		}
-// 		if tc.wantError {
-// 			if err == nil {
-// 				t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect error but got nil", tc.name)
-// 			} else if !strings.Contains(err.Error(), tc.errorMessage) {
-// 				t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
-// 			}
-// 		}
-// 	}
-// // }
-
-// func TestValidateCreateExperimentRequest(t *testing.T) {
-// 	tests := []struct {
-// 		name         string
-// 		experiment   *apiV2beta1.Experiment
-// 		wantError    bool
-// 		errorMessage string
-// 	}{
-// 		{
-// 			"Valid",
-// 			&apiV2beta1.Experiment{DisplayName: "exp1", Description: "first experiment"},
-// 			false,
-// 			"",
-// 		},
-// 		{
-// 			"Empty name",
-// 			&apiV2beta1.Experiment{Description: "first experiment"},
-// 			true,
-// 			"name is empty",
-// 		},
-// 	}
-
-// 	for _, tc := range tests {
-// 		err := ValidateCreateExperimentRequest(&apiV2beta1.CreateExperimentRequest{Experiment: tc.experiment})
-// 		if !tc.wantError && err != nil {
-// 			t.Errorf("TestValidateCreateExperimentRequest(%v) expect no error but got %v", tc.name, err)
-// 		}
-// 		if tc.wantError {
-// 			if err == nil {
-// 				t.Errorf("TestValidateCreateExperimentRequest(%v) expect error but got nil", tc.name)
-// 			} else if !strings.Contains(err.Error(), tc.errorMessage) {
-// 				t.Errorf("TestValidateCreateExperimentRequest(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
-// 			}
-// 		}
-// 	}
-// }
-
-// func TestValidateCreateExperimentRequestV1_Multiuser(t *testing.T) {
-// 	viper.Set(common.MultiUserMode, "true")
-// 	defer viper.Set(common.MultiUserMode, "false")
-// 	tests := []struct {
-// 		name         string
-// 		experiment   *apiv1beta1.Experiment
-// 		wantError    bool
-// 		errorMessage string
-// 	}{
-// 		{
-// 			"Valid",
-// 			&apiv1beta1.Experiment{
-// 				Name:        "exp1",
-// 				Description: "first experiment",
-// 				ResourceReferences: []*apiv1beta1.ResourceReference{
-// 					{
-// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-// 						Relationship: apiv1beta1.Relationship_OWNER,
-// 					},
-// 				},
-// 			},
-// 			false,
-// 			"",
-// 		},
-// 		{
-// 			"Missing namespace",
-// 			&apiv1beta1.Experiment{
-// 				Name:        "exp1",
-// 				Description: "first experiment",
-// 			},
-// 			true,
-// 			"Invalid resource references for experiment",
-// 		},
-// 		{
-// 			"Empty namespace",
-// 			&apiv1beta1.Experiment{
-// 				Name:        "exp1",
-// 				Description: "first experiment",
-// 				ResourceReferences: []*apiv1beta1.ResourceReference{
-// 					{
-// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
-// 						Relationship: apiv1beta1.Relationship_OWNER,
-// 					},
-// 				},
-// 			},
-// 			true,
-// 			"Invalid resource references for experiment. Namespace is empty",
-// 		},
-// 		{
-// 			"Multiple namespace",
-// 			&apiv1beta1.Experiment{
-// 				Name:        "exp1",
-// 				Description: "first experiment",
-// 				ResourceReferences: []*apiv1beta1.ResourceReference{
-// 					{
-// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-// 						Relationship: apiv1beta1.Relationship_OWNER,
-// 					},
-// 					{
-// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
-// 						Relationship: apiv1beta1.Relationship_OWNER,
-// 					},
-// 				},
-// 			},
-// 			true,
-// 			"Invalid resource references for experiment",
-// 		},
-// 		{
-// 			"Invalid resource type",
-// 			&apiv1beta1.Experiment{
-// 				Name:        "exp1",
-// 				Description: "first experiment",
-// 				ResourceReferences: []*apiv1beta1.ResourceReference{
-// 					{
-// 						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp2"},
-// 						Relationship: apiv1beta1.Relationship_OWNER,
-// 					},
-// 				},
-// 			},
-// 			true,
-// 			"Invalid resource references for experiment",
-// 		},
-// 	}
-
-// 	for _, tc := range tests {
-// 		err := ValidateCreateExperimentRequestV1(&apiv1beta1.CreateExperimentRequest{Experiment: tc.experiment})
-// 		if !tc.wantError && err != nil {
-// 			t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect no error but got %v", tc.name, err)
-// 		}
-// 		if tc.wantError {
-// 			if err == nil {
-// 				t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect error but got nil", tc.name)
-// 			} else if !strings.Contains(err.Error(), tc.errorMessage) {
-// 				t.Errorf("TestValidateCreateExperimentRequestV1(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
-// 			}
-// 		}
-// 	}
-// }
-
-// func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
-// 	viper.Set(common.MultiUserMode, "true")
-// 	defer viper.Set(common.MultiUserMode, "false")
-// 	tests := []struct {
-// 		name         string
-// 		experiment   *apiV2beta1.Experiment
-// 		wantError    bool
-// 		errorMessage string
-// 	}{
-// 		{
-// 			"Valid",
-// 			&apiV2beta1.Experiment{
-// 				DisplayName: "exp1",
-// 				Description: "first experiment",
-// 				Namespace:   "ns1",
-// 			},
-// 			false,
-// 			"",
-// 		},
-// 		{
-// 			"Missing namespace",
-// 			&apiV2beta1.Experiment{
-// 				DisplayName: "exp1",
-// 				Description: "first experiment",
-// 			},
-// 			true,
-// 			"In multi-user mode, experiment namespace is empty. Please specify a valid namespace",
-// 		},
-// 	}
-
-// 	for _, tc := range tests {
-// 		err := ValidateCreateExperimentRequest(&apiV2beta1.CreateExperimentRequest{Experiment: tc.experiment})
-// 		if !tc.wantError && err != nil {
-// 			t.Errorf("TestValidateCreateExperimentRequest(%v) expect no error but got %v", tc.name, err)
-// 		}
-// 		if tc.wantError {
-// 			if err == nil {
-// 				t.Errorf("TestValidateCreateExperimentRequest(%v) expect error but got nil", tc.name)
-// 			} else if !strings.Contains(err.Error(), tc.errorMessage) {
-// 				t.Errorf("TestValidateCreateExperimentRequest(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
-// 			}
-// 		}
-// 	}
-// }
-
 func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 	// Create experiment and runs/jobs under it.
-	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
+	clients, manager, experiment, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run1 := &apiv1beta1.Run{
@@ -1086,15 +1033,13 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 
 func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// Create experiment and runs/jobs under it.
-	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
+	clients, manager, experiment, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run1 := &apiv1beta1.Run{
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	// err := runServer.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run1})
-	// assert.Nil(t, err)
 	_, err := runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
@@ -1104,8 +1049,6 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		Name:               "run2",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	// err = runServer.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run2})
-	// assert.Nil(t, err)
 	_, err = runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil))
@@ -1123,8 +1066,6 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		},
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	// err = jobServer.validateCreateJobRequest(&apiv1beta1.CreateJobRequest{Job: job1})
-	// assert.Nil(t, err)
 	_, err = jobServer.CreateJob(nil, &apiv1beta1.CreateJobRequest{Job: job1})
 	assert.Nil(t, err)
 

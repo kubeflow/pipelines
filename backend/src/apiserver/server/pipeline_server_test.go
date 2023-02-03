@@ -621,7 +621,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 	}{
 		{
 			"Valid - single user",
-			DefaultFakePipelineId,
+			DefaultFakeIdOne,
 			&apiv2.Pipeline{
 				DisplayName: "pipeline 1",
 				Namespace:   "namespace1",
@@ -635,7 +635,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		},
 		{
 			"Valid - empty namespace",
-			DefaultFakePipelineIdTwo,
+			DefaultFakeIdTwo,
 			&apiv2.Pipeline{
 				DisplayName: "pipeline 2",
 			},
@@ -648,7 +648,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		},
 		{
 			"Invalid - duplicate name",
-			DefaultFakePipelineIdThree,
+			DefaultFakeIdThree,
 			&apiv2.Pipeline{
 				DisplayName: "pipeline 2",
 			},
@@ -658,7 +658,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		},
 		{
 			"Invalid - missing name",
-			DefaultFakePipelineIdFour,
+			DefaultFakeIdFour,
 			&apiv2.Pipeline{
 				Namespace: "namespace1",
 			},

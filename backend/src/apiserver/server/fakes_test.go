@@ -36,17 +36,18 @@ import (
 )
 
 const (
-	invalidPipelineVersionId   = "not_exist_pipeline_version"
-	DefaultFakeUUID            = "123e4567-e89b-12d3-a456-426655440000"
-	NonDefaultFakeUUID         = "123e4567-e89b-12d3-a456-426655441000"
-	FakeUUIDOne                = "123e4567-e89b-12d3-a456-426655440001"
-	DefaultFakePipelineId      = "123e4567-e89b-12d3-a456-426655440000"
-	DefaultFakePipelineIdTwo   = "123e4567-e89b-12d3-a456-426655440001"
-	DefaultFakePipelineIdThree = "123e4567-e89b-12d3-a456-426655440002"
-	DefaultFakePipelineIdFour  = "123e4567-e89b-12d3-a456-426655440003"
-	DefaultFakePipelineIdFive  = "123e4567-e89b-12d3-a456-426655440004"
-	DefaultFakePipelineIdSix   = "123e4567-e89b-12d3-a456-426655440005"
-	DefaultFakePipelineIdSeven = "123e4567-e89b-12d3-a456-426655440006"
+	invalidPipelineVersionId = "not_exist_pipeline_version"
+	DefaultFakeUUID          = "123e4567-e89b-12d3-a456-426655440000"
+	NonDefaultFakeUUID       = "123e4567-e89b-12d3-a456-426655441000"
+	FakeUUIDOne              = "123e4567-e89b-12d3-a456-426655440001"
+	DefaultFakeIdOne         = "123e4567-e89b-12d3-a456-426655440000"
+	DefaultFakeIdTwo         = "123e4567-e89b-12d3-a456-426655440001"
+	DefaultFakeIdThree       = "123e4567-e89b-12d3-a456-426655440002"
+	DefaultFakeIdFour        = "123e4567-e89b-12d3-a456-426655440003"
+	DefaultFakeIdFive        = "123e4567-e89b-12d3-a456-426655440004"
+	DefaultFakeIdSix         = "123e4567-e89b-12d3-a456-426655440005"
+	DefaultFakeIdSeven       = "123e4567-e89b-12d3-a456-426655440006"
+	DefaultFakeIdEight       = "123e4567-e89b-12d3-a456-426655440007"
 )
 
 var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
@@ -198,7 +199,7 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 	return clientManager, resourceManager, experiment
 }
 
-func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
+func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment, *model.PipelineVersion) {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, "default")
@@ -219,7 +220,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 		},
 	)
 	assert.Nil(t, err)
-	_, err = resourceManager.CreatePipelineVersion(
+	pv, err := resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:         "p1",
 			PipelineId:   p.UUID,
@@ -234,7 +235,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 			PipelineId: DefaultFakeUUID,
 		},
 	)
-	return clientManager, resourceManager, experiment
+	return clientManager, resourceManager, experiment, pv
 }
 
 func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClientManager {

@@ -15,13 +15,16 @@
 package server
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -157,156 +160,157 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 	assert.Contains(t, err.Error(), "must have a name")
 }
 
-// func TestValidateReportWorkflowRequest(t *testing.T) {
-// 	// Name
-// 	workflow := &v1alpha1.Workflow{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Workflow",
-// 			APIVersion: "argoproj.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "MY_NAME",
-// 			Namespace: "MY_NAMESPACE",
-// 			UID:       "1",
-// 			OwnerReferences: []metav1.OwnerReference{{
-// 				APIVersion: "kubeflow.org/v1beta1",
-// 				Kind:       "ScheduledWorkflow",
-// 				Name:       "SCHEDULE_NAME",
-// 				UID:        types.UID("1"),
-// 			}},
-// 		},
-// 	}
-// 	marshalledWorkflow, _ := json.Marshal(workflow)
-// 	generatedWorkflow, err := ValidateReportWorkflowRequest(&api.ReportWorkflowRequest{Workflow: string(marshalledWorkflow)})
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, util.NewWorkflow(workflow), generatedWorkflow)
-// }
+func TestValidateReportWorkflowRequest(t *testing.T) {
+	// Name
+	workflow := &v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	}
+	marshalledWorkflow, _ := json.Marshal(workflow)
+	expectedExecSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(string(marshalledWorkflow)))
+	generatedWorkflow, err := validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: string(marshalledWorkflow)})
+	assert.Nil(t, err)
+	assert.Equal(t, &expectedExecSpec, generatedWorkflow)
+}
 
-// func TestValidateReportWorkflowRequest_UnmarshalError(t *testing.T) {
-// 	_, err := ValidateReportWorkflowRequest(&api.ReportWorkflowRequest{Workflow: "WRONG WORKFLOW"})
-// 	assert.NotNil(t, err)
-// 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
-// 	assert.Contains(t, err.Error(), "Could not unmarshal")
-// // }
+func TestValidateReportWorkflowRequest_UnmarshalError(t *testing.T) {
+	_, err := validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: "WRONG WORKFLOW"})
+	assert.NotNil(t, err)
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+	assert.Contains(t, err.Error(), "Could not unmarshal")
+}
 
-// func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
-// 	// Name
-// 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Workflow",
-// 			APIVersion: "argoproj.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Namespace: "MY_NAMESPACE",
-// 			UID:       "1",
-// 			OwnerReferences: []metav1.OwnerReference{{
-// 				APIVersion: "kubeflow.org/v1beta1",
-// 				Kind:       "ScheduledWorkflow",
-// 				Name:       "SCHEDULE_NAME",
-// 				UID:        types.UID("1"),
-// 			}},
-// 		},
-// 	})
-// 	_, err := ValidateReportWorkflowRequest(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a name")
-// 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
+	// Name
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+	_, err := validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a name")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 
-// 	// Namespace
-// 	workflow = util.NewWorkflow(&v1alpha1.Workflow{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Workflow",
-// 			APIVersion: "argoproj.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name: "MY_NAME",
-// 			UID:  "1",
-// 			OwnerReferences: []metav1.OwnerReference{{
-// 				APIVersion: "kubeflow.org/v1beta1",
-// 				Kind:       "ScheduledWorkflow",
-// 				Name:       "SCHEDULE_NAME",
-// 				UID:        types.UID("1"),
-// 			}},
-// 		},
-// 	})
+	// Namespace
+	workflow = util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_NAME",
+			UID:  "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
 
-// 	_, err = ValidateReportWorkflowRequest(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a namespace")
-// 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+	_, err = validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a namespace")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 
-// 	// UID
-// 	workflow = util.NewWorkflow(&v1alpha1.Workflow{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Workflow",
-// 			APIVersion: "argoproj.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "MY_NAME",
-// 			Namespace: "MY_NAMESPACE",
-// 			OwnerReferences: []metav1.OwnerReference{{
-// 				APIVersion: "kubeflow.org/v1beta1",
-// 				Kind:       "ScheduledWorkflow",
-// 				Name:       "SCHEDULE_NAME",
-// 				UID:        types.UID("1"),
-// 			}},
-// 		},
-// 	})
+	// UID
+	workflow = util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
 
-// 	_, err = ValidateReportWorkflowRequest(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a UID")
-// 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
-// }
+	_, err = validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a UID")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+}
 
-// func TestValidateReportScheduledWorkflowRequest_UnmarshalError(t *testing.T) {
-// 	_, err := ValidateReportScheduledWorkflowRequest(
-// 		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: "WRONG_SCHEDULED_WORKFLOW"})
-// 	assert.NotNil(t, err)
-// 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-// 	assert.Contains(t, err.Error(), "Could not unmarshal")
-// }
+func TestValidateReportScheduledWorkflowRequest_UnmarshalError(t *testing.T) {
+	_, err := validateReportScheduledWorkflowRequestV1(
+		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: "WRONG_SCHEDULED_WORKFLOW"})
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Could not unmarshal")
+}
 
-// func TestValidateReportScheduledWorkflowRequest_MissingField(t *testing.T) {
-// 	// Name
-// 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Namespace: "MY_NAMESPACE",
-// 			UID:       "1",
-// 		},
-// 	})
+func TestValidateReportScheduledWorkflowRequest_MissingField(t *testing.T) {
+	// Name
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
 
-// 	_, err := ValidateReportScheduledWorkflowRequest(
-// 		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a name")
-// 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+	_, err := validateReportScheduledWorkflowRequestV1(
+		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a name")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 
-// 	// Namespace
-// 	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name: "MY_NAME",
-// 			UID:  "1",
-// 		},
-// 	})
+	// Namespace
+	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_NAME",
+			UID:  "1",
+		},
+	})
 
-// 	_, err = ValidateReportScheduledWorkflowRequest(
-// 		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a namespace")
-// 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+	_, err = validateReportScheduledWorkflowRequestV1(
+		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a namespace")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 
-// 	// UID
-// 	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "MY_NAME",
-// 			Namespace: "MY_NAMESPACE",
-// 		},
-// 	})
+	// UID
+	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+		},
+	})
 
-// 	_, err = ValidateReportScheduledWorkflowRequest(
-// 		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
-// 	assert.NotNil(t, err)
-// 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a UID")
-// 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
-// }
+	_, err = validateReportScheduledWorkflowRequestV1(
+		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a UID")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+}

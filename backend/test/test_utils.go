@@ -221,16 +221,14 @@ func GetDefaultPipelineRunnerServiceAccount(isKubeflowMode bool) string {
 func VerifyExperimentResourceReferences(resRefs []*experiment_model.APIResourceReference, targets []*experiment_model.APIResourceReference) bool {
 	matches := 0
 	for _, target := range targets {
+		if target.Key == nil {
+			matches++
+			continue
+		}
 		for _, resRef := range resRefs {
-			if target.Key == nil {
+			if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
 				matches++
 				break
-			}
-			if resRef.Key != nil {
-				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
-					matches++
-					break
-				}
 			}
 		}
 	}

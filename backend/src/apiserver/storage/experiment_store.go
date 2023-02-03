@@ -29,6 +29,7 @@ import (
 type ExperimentStoreInterface interface {
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
+	GetExperimentByName(name string) (*model.Experiment, error)
 	ListExperiments(filterContext *model.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error)
 	ArchiveExperiment(expId string) error
 	UnarchiveExperiment(expId string) error
@@ -157,6 +158,32 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 	}
 	if len(experiments) == 0 {
 		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
+	}
+	return experiments[0], nil
+}
+
+func (s *ExperimentStore) GetExperimentByName(name string) (*model.Experiment, error) {
+	sql, args, err := sq.
+		Select(experimentColumns...).
+		From("experiments").
+		Where(sq.Eq{"Name": name}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
+	}
+	defer r.Close()
+	experiments, err := s.scanRows(r)
+
+	if err != nil || len(experiments) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
+	}
+	if len(experiments) == 0 {
+		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(name))
 	}
 	return experiments[0], nil
 }

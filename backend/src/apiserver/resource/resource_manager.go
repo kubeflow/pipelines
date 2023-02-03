@@ -132,6 +132,11 @@ func (r *ResourceManager) getScheduledWorkflowClient(namespace string) scheduled
 
 // Creates a new experiment.
 func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+	if common.IsMultiUserMode() {
+		if experiment.Namespace == "" {
+			return nil, util.NewInvalidInputError("Namespace cannot be empty")
+		}
+	}
 	return r.experimentStore.CreateExperiment(experiment)
 }
 
@@ -411,13 +416,16 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
 	var tmpl template.Template
 	if wfTemplate == nil {
-		tempBytes, err2 := r.fetchTemplateFromPipelineVersionId(run.PipelineSpec.PipelineVersionId)
-		if err2 != nil {
-			return nil, util.Wrap(util.Wrap(err, err2.Error()), "Failed to create a run with an empty pipeline spec manifest")
+		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec manifest")
+		}
+		if string(tempBytes) != manifest {
+			return nil, util.NewInvalidInputError("Failed to create a run due to mismatch in the provided manifest and pipeline version")
 		}
 		tmpl, err = template.New(tempBytes)
 		if err != nil {
-			return nil, err
+			return nil, util.Wrap(err, "Failed to create a run with an invalid pipeline spec manifest")
 		}
 	} else {
 		tmpl = *wfTemplate
@@ -1063,13 +1071,16 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
 	var tmpl template.Template
 	if wfTemplate == nil {
-		tempBytes, err2 := r.fetchTemplateFromPipelineVersionId(job.PipelineSpec.PipelineVersionId)
-		if err2 != nil {
-			return nil, util.Wrap(util.Wrap(err, err2.Error()), "Failed to create a recurring run with an empty pipeline spec manifest")
+		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec manifest")
+		}
+		if string(tempBytes) != manifest {
+			return nil, util.NewInvalidInputError("Failed to create a recurring run due to mismatch in the provided manifest and pipeline version")
 		}
 		tmpl, err = template.New(tempBytes)
 		if err != nil {
-			return nil, err
+			return nil, util.Wrap(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
 	} else {
 		tmpl = *wfTemplate
@@ -1462,21 +1473,6 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 	}
 }
 
-// Fetches PipelineSpec's manifest as []byte array from pipeline version's id.
-func (r *ResourceManager) fetchTemplateFromPipelineVersionId(pipelineVersionId string) ([]byte, error) {
-	if len(pipelineVersionId) == 0 {
-		return nil, util.NewInvalidInputError("Failed to get manifest as pipeline version id is empty")
-	}
-	pv, err := r.GetPipelineVersion(pipelineVersionId)
-	if err == nil {
-		bytes, _, err := r.fetchTemplateFromPipelineVersion(pv)
-		if err == nil {
-			return bytes, nil
-		}
-	}
-	return nil, util.Wrapf(err, "Failed to read pipeline spec for pipeline version id %v", pipelineVersionId)
-}
-
 // Creates the default experiment entry.
 func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	// First check that we don't already have a default experiment ID in the DB.
@@ -1487,30 +1483,34 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	// If default experiment ID is already present, don't fail, simply return.
 	if defaultExperimentId != "" {
 		glog.Infof("Default experiment already exists! ID: %v", defaultExperimentId)
-		return "", nil
+		return defaultExperimentId, nil
 	}
 
 	// TODO(gkcalat): consider moving the default namespace and experiment to server config.
-	// Create default experiment
-	defaultExperiment := &model.Experiment{
-		Name:         "Default",
-		Description:  "All runs created without specifying an experiment will be grouped here.",
-		Namespace:    r.GetDefaultNamespace(),
-		StorageState: model.StorageStateAvailable,
-	}
-	experiment, err := r.CreateExperiment(defaultExperiment)
-	if err != nil {
-		return "", util.Wrap(err, "Failed to create the default experiment")
+	// Check if an experiment named Default exists
+	defaultExperiment, err := r.experimentStore.GetExperimentByName("Default")
+	if err != nil || defaultExperiment == nil {
+		// Create default experiment
+		defaultExperiment = &model.Experiment{
+			Name:         "Default",
+			Description:  "All runs created without specifying an experiment will be grouped here.",
+			Namespace:    r.GetDefaultNamespace(),
+			StorageState: model.StorageStateAvailable,
+		}
+		defaultExperiment, err = r.CreateExperiment(defaultExperiment)
+		if err != nil {
+			return "", util.Wrap(err, "Failed to create the default experiment")
+		}
 	}
 
 	// Set default experiment ID in the DB
-	err = r.SetDefaultExperimentId(experiment.UUID)
+	err = r.SetDefaultExperimentId(defaultExperiment.UUID)
 	if err != nil {
 		return "", util.Wrap(err, "Failed to set default experiment ID")
 	}
 
-	glog.Infof("Default experiment is set. ID is: %v", experiment.UUID)
-	return experiment.UUID, nil
+	glog.Infof("Default experiment is set. ID is: %v", defaultExperiment.UUID)
+	return defaultExperiment.UUID, nil
 }
 
 // TODO(gkcalat): deprecate this as we no longer have metrics in the v2beta1 run message.

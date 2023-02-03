@@ -145,16 +145,6 @@ func yamlStringToProtobufStruct(s string) (*structpb.Struct, error) {
 		return nil, util.Wrap(err, "Failed to convert a yaml string into a protobuf struct")
 	}
 	return st, nil
-	// j, err := yaml.YAMLToJSON([]byte(s))
-	// if err != nil {
-	// 	return nil, util.Wrap(err, "Failed to convert a yaml string to json string")
-	// }
-	// pipelineSpec := &structpb.Struct{}
-	// err = pipelineSpec.UnmarshalJSON(j)
-	// if err != nil {
-	// 	return nil, util.Wrap(err, "Failed to convert a json string into a protobuf struct")
-	// }
-	// return pipelineSpec, nil
 }
 
 // Fetches a PipelineRoot from a Run.

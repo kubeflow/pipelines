@@ -18,9 +18,11 @@ import (
 	"testing"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 )
 
 func TestValidateExperimentResourceReference(t *testing.T) {
@@ -109,7 +111,7 @@ func TestValidateExperimentResourceReference_ExperimentNotExist(t *testing.T) {
 }
 
 func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVersion(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
 		WorkflowManifest: testWorkflow.ToStringForStore(),
@@ -120,7 +122,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVe
 }
 
 func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
 		PipelineId:       DefaultFakeUUID,
@@ -141,7 +143,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidWorkflowManifest(t *te
 }
 
 func TestValidatePipelineSpecAndResourceReferences_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	err := ValidatePipelineSpecAndResourceReferences(manager, nil, validReference)
 	assert.NotNil(t, err)
@@ -149,7 +151,7 @@ func TestValidatePipelineSpecAndResourceReferences_NilPipelineSpecAndEmptyPipeli
 }
 
 func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
@@ -158,7 +160,7 @@ func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipe
 }
 
 func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineId(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{PipelineId: "not-found"}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
@@ -167,7 +169,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineId(t *testing.
 }
 
 func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	err := ValidatePipelineSpecAndResourceReferences(manager, nil, referencesOfInvalidPipelineVersion)
 	assert.NotNil(t, err)
@@ -187,7 +189,7 @@ func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipeline
 }
 
 func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineId(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	var params []*apiv1beta1.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
@@ -201,7 +203,7 @@ func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineI
 }
 
 func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithWorkflowManifest(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	var params []*apiv1beta1.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
@@ -215,7 +217,7 @@ func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithWorkflowM
 }
 
 func TestValidatePipelineSpecAndResourceReferences_ValidPipelineIdAndPipelineVersionId(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
 		PipelineId: DefaultFakeUUID,
@@ -320,157 +322,51 @@ func TestGetExperimentIDFromResourceReferences(t *testing.T) {
 	}
 }
 
-// func TestValidateRunMetricV1_Pass(t *testing.T) {
-// 	metric := &apiv1beta1.RunMetric{
-// 		Name:   "foo",
-// 		NodeId: "node-1",
-// 	}
+func TestValidateRunMetric_Pass(t *testing.T) {
+	metric := &model.RunMetric{
+		Name:   "foo",
+		NodeID: "node-1",
+	}
+	err := validateRunMetric(metric)
 
-// 	err := ValidateRunMetricV1(metric)
+	assert.Nil(t, err)
+}
 
-// 	assert.Nil(t, err)
-// }
+func TestValidateRunMetric_InvalidNames(t *testing.T) {
+	metric := &model.RunMetric{
+		NodeID: "node-1",
+	}
 
-// func TestValidateRunMetricV1_InvalidNames(t *testing.T) {
-// 	metric := &apiv1beta1.RunMetric{
-// 		NodeId: "node-1",
-// 	}
+	// Empty name
+	err := validateRunMetric(metric)
+	AssertUserError(t, err, codes.InvalidArgument)
 
-// 	// Empty name
-// 	err := ValidateRunMetricV1(metric)
-// 	AssertUserError(t, err, codes.InvalidArgument)
+	// Unallowed character
+	metric.Name = "$"
+	err = validateRunMetric(metric)
+	AssertUserError(t, err, codes.InvalidArgument)
 
-// 	// Unallowed character
-// 	metric.Name = "$"
-// 	err = ValidateRunMetricV1(metric)
-// 	AssertUserError(t, err, codes.InvalidArgument)
+	// Name is too long
+	bytes := make([]byte, 65)
+	for i := range bytes {
+		bytes[i] = 'a'
+	}
+	metric.Name = string(bytes)
+	err = validateRunMetric(metric)
+	AssertUserError(t, err, codes.InvalidArgument)
+}
 
-// 	// Name is too long
-// 	bytes := make([]byte, 65)
-// 	for i := range bytes {
-// 		bytes[i] = 'a'
-// 	}
-// 	metric.Name = string(bytes)
-// 	err = ValidateRunMetricV1(metric)
-// 	AssertUserError(t, err, codes.InvalidArgument)
-// }
+func TestValidateRunMetric_InvalidNodeIDs(t *testing.T) {
+	metric := &model.RunMetric{
+		Name: "a",
+	}
 
-// func TestValidateRunMetricV1_InvalidNodeIDs(t *testing.T) {
-// 	metric := &apiv1beta1.RunMetric{
-// 		Name: "a",
-// 	}
+	// Empty node ID
+	err := validateRunMetric(metric)
+	AssertUserError(t, err, codes.InvalidArgument)
 
-// 	// Empty node ID
-// 	err := ValidateRunMetricV1(metric)
-// 	AssertUserError(t, err, codes.InvalidArgument)
-
-// 	// Node ID is too long
-// 	metric.NodeId = string(make([]byte, 129))
-// 	err = ValidateRunMetricV1(metric)
-// 	AssertUserError(t, err, codes.InvalidArgument)
-// }
-
-// func TestnewReportRunMetricResultV1_OK(t *testing.T) {
-// 	tests := []struct {
-// 		metricName string
-// 	}{
-// 		{"metric-1"},
-// 		{"Metric_2"},
-// 		{"Metric3Name"},
-// 	}
-
-// 	for _, tc := range tests {
-// 		expected := newReportRunMetricResultV1(tc.metricName, "node-1")
-// 		expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_OK
-// 		actual := newReportRunMetricResultV1(expected.GetMetricName(), expected.GetMetricNodeId(), nil)
-
-// 		assert.Equalf(t, expected, actual, "TestNewReportRunMetricResult_OK metric name '%s' should be OK", tc.metricName)
-// 	}
-// }
-
-// func TestnewReportRunMetricResultV1_UnknownError(t *testing.T) {
-// 	expected := newReportRunMetricResultV1("metric-1", "node-1")
-// 	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR
-
-// 	actual := newReportRunMetricResultV1(
-// 		expected.GetMetricName(), expected.GetMetricNodeId())
-
-// 	assert.Equal(t, expected, actual)
-// }
-
-// func TestnewReportRunMetricResultV1_InternalError(t *testing.T) {
-// 	expected := newReportRunMetricResultV1("metric-1", "node-1")
-// 	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR
-// 	expected.Message = "Internal Server Error"
-// 	actual := newReportRunMetricResultV1(
-// 		expected.GetMetricName(), expected.GetMetricNodeId())
-
-// 	assert.Equal(t, expected, actual)
-// }
-
-// func TestnewReportRunMetricResultV1_InvalidArgument(t *testing.T) {
-// 	expected := newReportRunMetricResultV1("metric-1", "node-1")
-// 	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT
-// 	expected.Message = "Foo is invalid"
-// 	error := util.NewInvalidInputError(expected.Message)
-
-// 	actual := newReportRunMetricResultV1(
-// 		expected.GetMetricName(), expected.GetMetricNodeId(), error)
-
-// 	assert.Equal(t, expected, actual)
-// }
-
-// func TestnewReportRunMetricResultV1_AlreadyExist(t *testing.T) {
-// 	expected := newReportRunMetricResultV1("metric-1", "node-1")
-// 	expected.Status = apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_DUPLICATE_REPORTING
-// 	expected.Message = "Foo is duplicate"
-// 	error := util.NewAlreadyExistError(expected.Message)
-
-// 	actual := newReportRunMetricResultV1(
-// 		expected.GetMetricName(), expected.GetMetricNodeId(), error)
-
-// 	assert.Equal(t, expected, actual)
-// }
-
-// func newReportRunMetricResultV1(metricName string, nodeID string) *apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult {
-// 	return &apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult{
-// 		MetricName:   metricName,
-// 		MetricNodeId: nodeID,
-// 	}
-// }
-
-// func newReportRunMetricResult(metricName string, nodeID string) *apiv2beta1.ReportRunMetricsResponse_ReportRunMetricResult {
-// 	return &apiv2beta1.ReportRunMetricsResponse_ReportRunMetricResult{
-// 		MetricName:   metricName,
-// 		MetricNodeId: nodeID,
-// 	}
-// }
-
-// func TestValidateRunMetric_Pass(t *testing.T) {
-// 	metric := &apiv2beta1.RunMetric{
-// 		DisplayName: "foo",
-// 		NodeId:      "node-1",
-// 	}
-
-// 	err := ValidateRunMetric(metric)
-
-// 	assert.Nil(t, err)
-// }
-
-// func TestNewReportRunMetricResult_OK(t *testing.T) {
-// 	tests := []struct {
-// 		metricName string
-// 	}{
-// 		{"metric-1"},
-// 		{"Metric_2"},
-// 		{"Metric3Name"},
-// 	}
-
-// 	for _, tc := range tests {
-// 		expected := newReportRunMetricResult(tc.metricName, "node-1")
-// 		expected.Status = apiv2beta1.ReportRunMetricsResponse_ReportRunMetricResult_OK
-// 		actual := NewReportRunMetricResult(expected.GetMetricName(), expected.GetMetricNodeId(), nil)
-
-// 		assert.Equalf(t, expected, actual, "TestNewReportRunMetricResult_OK metric name '%s' should be OK", tc.metricName)
-// 	}
-// }
+	// Node ID is too long
+	metric.NodeID = string(make([]byte, 129))
+	err = validateRunMetric(metric)
+	AssertUserError(t, err, codes.InvalidArgument)
+}
