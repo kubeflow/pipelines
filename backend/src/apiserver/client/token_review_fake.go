@@ -23,8 +23,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type FakeTokenReviewClient struct {
-}
+type FakeTokenReviewClient struct{}
 
 func (FakeTokenReviewClient) Create(context.Context, *authv1.TokenReview, v1.CreateOptions) (*authv1.TokenReview, error) {
 	return &authv1.TokenReview{Status: authv1.TokenReviewStatus{
@@ -39,8 +38,7 @@ func NewFakeTokenReviewClient() FakeTokenReviewClient {
 	return FakeTokenReviewClient{}
 }
 
-type FakeTokenReviewClientUnauthenticated struct {
-}
+type FakeTokenReviewClientUnauthenticated struct{}
 
 func (FakeTokenReviewClientUnauthenticated) Create(context.Context, *authv1.TokenReview, v1.CreateOptions) (*authv1.TokenReview, error) {
 	return &authv1.TokenReview{Status: authv1.TokenReviewStatus{
@@ -55,8 +53,7 @@ func NewFakeTokenReviewClientUnauthenticated() FakeTokenReviewClientUnauthentica
 	return FakeTokenReviewClientUnauthenticated{}
 }
 
-type FakeTokenReviewClientError struct {
-}
+type FakeTokenReviewClientError struct{}
 
 func (FakeTokenReviewClientError) Create(context.Context, *authv1.TokenReview, v1.CreateOptions) (*authv1.TokenReview, error) {
 	return nil, errors.New("failed to create token review")

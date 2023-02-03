@@ -19,10 +19,10 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/pkg/errors"
+	status "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	status1 "google.golang.org/grpc/status"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	k8metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -50,7 +50,7 @@ type CustomError struct {
 func NewCustomError(err error, code CustomCode, format string, a ...interface{}) *CustomError {
 	message := fmt.Sprintf(format, a...)
 	return &CustomError{
-		error: errors.Wrapf(err, fmt.Sprintf("CustomError (code: %v): %v", code, message)),
+		error: errors.Wrapf(err, "CustomError (code: %v): %v", code, message),
 		code:  code,
 	}
 }
@@ -71,9 +71,9 @@ func HasCustomCode(err error, code CustomCode) bool {
 	if err == nil {
 		return false
 	}
-	switch err.(type) {
+	switch err := err.(type) {
 	case *CustomError:
-		return err.(*CustomError).code == code
+		return err.code == code
 	default:
 		return false
 	}
@@ -89,7 +89,8 @@ type UserError struct {
 }
 
 func newUserError(internalError error, externalMessage string,
-	externalStatusCode codes.Code) *UserError {
+	externalStatusCode codes.Code,
+) *UserError {
 	return &UserError{
 		internalError:      internalError,
 		externalMessage:    externalMessage,
@@ -136,25 +137,27 @@ func ExtractErrorForCLI(err error, isDebugMode bool) error {
 }
 
 func NewInternalServerError(err error, internalMessageFormat string,
-	a ...interface{}) *UserError {
+	a ...interface{},
+) *UserError {
 	internalMessage := fmt.Sprintf(internalMessageFormat, a...)
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("InternalServerError: %v", internalMessage)),
+		errors.Wrapf(err, "InternalServerError: %v", internalMessage),
 		"Internal Server Error",
 		codes.Internal)
 }
 
 func NewNotFoundError(err error, externalMessageFormat string,
-	a ...interface{}) *UserError {
+	a ...interface{},
+) *UserError {
 	externalMessage := fmt.Sprintf(externalMessageFormat, a...)
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("NotFoundError: %v", externalMessage)),
+		errors.Wrapf(err, "NotFoundError: %v", externalMessage),
 		externalMessage,
 		codes.NotFound)
 }
 
 func NewResourceNotFoundError(resourceType string, resourceName string) *UserError {
-	externalMessage := fmt.Sprintf("%s %s not found.", resourceType, resourceName)
+	externalMessage := fmt.Sprintf("%s %s not found", resourceType, resourceName)
 	return newUserError(
 		errors.New(fmt.Sprintf("ResourceNotFoundError: %v", externalMessage)),
 		externalMessage,
@@ -162,7 +165,7 @@ func NewResourceNotFoundError(resourceType string, resourceName string) *UserErr
 }
 
 func NewResourcesNotFoundError(resourceTypesFormat string, resourceNames ...interface{}) *UserError {
-	externalMessage := fmt.Sprintf("%s not found.", fmt.Sprintf(resourceTypesFormat, resourceNames...))
+	externalMessage := fmt.Sprintf("%s not found", fmt.Sprintf(resourceTypesFormat, resourceNames...))
 	return newUserError(
 		errors.New(fmt.Sprintf("ResourceNotFoundError: %v", externalMessage)),
 		externalMessage,
@@ -176,7 +179,7 @@ func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
 
 func NewInvalidInputErrorWithDetails(err error, externalMessage string) *UserError {
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("InvalidInputError: %v", externalMessage)),
+		errors.Wrapf(err, "InvalidInputError: %v", externalMessage),
 		externalMessage,
 		codes.InvalidArgument)
 }
@@ -189,7 +192,7 @@ func NewAlreadyExistError(messageFormat string, a ...interface{}) *UserError {
 func NewBadRequestError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("BadRequestError: %v", externalMessage)),
+		errors.Wrapf(err, "BadRequestError: %v", externalMessage),
 		externalMessage,
 		codes.Aborted)
 }
@@ -197,7 +200,7 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 func NewFailedPreconditionError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("FailedPreconditionError: %v", externalMessage)),
+		errors.Wrapf(err, "FailedPreconditionError: %v", externalMessage),
 		externalMessage,
 		codes.FailedPrecondition)
 }
@@ -205,7 +208,7 @@ func NewFailedPreconditionError(err error, externalFormat string, a ...interface
 func NewUnauthenticatedError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("Unauthenticated: %v", externalMessage)),
+		errors.Wrapf(err, "Unauthenticated: %v", externalMessage),
 		externalMessage,
 		codes.Unauthenticated)
 }
@@ -213,9 +216,17 @@ func NewUnauthenticatedError(err error, externalFormat string, a ...interface{})
 func NewPermissionDeniedError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("PermissionDenied: %v", externalMessage)),
+		errors.Wrapf(err, "PermissionDenied: %v", externalMessage),
 		externalMessage,
 		codes.PermissionDenied)
+}
+
+func NewUnknownApiVersionError(a string, o interface{}) *UserError {
+	externalMessage := fmt.Sprintf("Error using %s with %T", a, o)
+	return newUserError(
+		fmt.Errorf("UnknownApiVersionError: %v", externalMessage),
+		externalMessage,
+		codes.InvalidArgument)
 }
 
 func (e *UserError) ExternalMessage() string {
@@ -262,14 +273,60 @@ func (e *UserError) Log() {
 	}
 }
 
+// Convert UserError to GRPCStatus.
+// Required by https://pkg.go.dev/google.golang.org/grpc/status#FromError
+func (e *UserError) GRPCStatus() *status1.Status {
+	stat := status1.New(e.externalStatusCode, e.internalError.Error())
+	statWithDetail, statErr := stat.
+		WithDetails(&status.Status{
+			Code:    int32(e.externalStatusCode),
+			Message: e.externalMessage,
+		})
+	if statErr != nil {
+		// Failed to stream error message as proto.
+		glog.Errorf("Failed to convert UserError to GRPCStatus. Error to be streamed: %v. Error thrown: %v",
+			e.externalMessage, statErr)
+		return stat
+	}
+	return statWithDetail
+}
+
+// Converts an error to google.rpc.Status.
+func ToRpcStatus(e error) *status.Status {
+	grpcStatus, ok := status1.FromError(e)
+	if !ok {
+		grpcStatus = status1.Newf(
+			codes.Unknown,
+			"Failed to convert %T to GRPC Status. Check implementation of GRPCStatus(). %v",
+			e,
+			e,
+		)
+	}
+	proto := grpcStatus.Proto()
+	rpcStatus := status.Status{
+		Code:    proto.GetCode(),
+		Message: proto.GetMessage(),
+		Details: proto.GetDetails(),
+	}
+	return &rpcStatus
+}
+
+// Converts google.rpc.Status to an error.
+func ToError(s *status.Status) error {
+	if s == nil {
+		return nil
+	}
+	return status1.ErrorProto(s)
+}
+
 func Wrapf(err error, format string, args ...interface{}) error {
 	if err == nil {
 		return nil
 	}
 
-	switch err.(type) {
+	switch err := err.(type) {
 	case *UserError:
-		return err.(*UserError).wrapf(format, args...)
+		return err.wrapf(format, args...)
 	default:
 		return errors.Wrapf(err, format, args...)
 	}
@@ -280,18 +337,18 @@ func Wrap(err error, message string) error {
 		return nil
 	}
 
-	switch err.(type) {
+	switch err := err.(type) {
 	case *UserError:
-		return err.(*UserError).wrap(message)
+		return err.wrap(message)
 	default:
 		return errors.Wrapf(err, message)
 	}
 }
 
 func LogError(err error) {
-	switch err.(type) {
+	switch err := err.(type) {
 	case *UserError:
-		err.(*UserError).Log()
+		err.Log()
 	default:
 		// We log all the details.
 		glog.Errorf("InternalError: %+v", err)
@@ -301,26 +358,21 @@ func LogError(err error) {
 func ToGRPCError(err error) error {
 	switch err.(type) {
 	case *UserError:
-		userError := err.(*UserError)
-		stat := status.New(userError.externalStatusCode, userError.internalError.Error())
-		statWithDetail, statErr := stat.
-			WithDetails(&api.Error{
-				ErrorMessage: userError.externalMessage,
-				ErrorDetails: userError.internalError.Error(),
-			})
-
-		if statErr != nil {
+		if stat, ok := status1.FromError(err); !ok {
 			// Failed to stream error message as proto.
-			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
-				userError.String(), statErr)
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v", err.Error(), stat)
+			return stat.Err()
+		} else {
 			return stat.Err()
 		}
-		return statWithDetail.Err()
 	default:
 		externalMessage := fmt.Sprintf("Internal error: %+v", err)
-		stat := status.New(codes.Internal, externalMessage)
+		stat := status1.New(codes.Internal, externalMessage)
 		statWithDetail, statErr := stat.
-			WithDetails(&api.Error{ErrorMessage: externalMessage, ErrorDetails: externalMessage})
+			WithDetails(&status.Status{
+				Code:    int32(codes.Unknown),
+				Message: externalMessage,
+			})
 		if statErr != nil {
 			// Failed to stream error message as proto.
 			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
@@ -328,6 +380,34 @@ func ToGRPCError(err error) error {
 			return stat.Err()
 		}
 		return statWithDetail.Err()
+	}
+}
+
+func ToGRPCStatus(err error) *status1.Status {
+	switch err.(type) {
+	case *UserError:
+		if stat, ok := status1.FromError(err); !ok {
+			// Failed to stream error message as proto.
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v", err.Error(), stat)
+			return stat
+		} else {
+			return stat
+		}
+	default:
+		externalMessage := fmt.Sprintf("Internal error: %+v", err)
+		stat := status1.New(codes.Internal, externalMessage)
+		statWithDetail, statErr := stat.
+			WithDetails(&status.Status{
+				Code:    int32(codes.Unknown),
+				Message: externalMessage,
+			})
+		if statErr != nil {
+			// Failed to stream error message as proto.
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
+				externalMessage, statErr)
+			return stat
+		}
+		return statWithDetail
 	}
 }
 
@@ -353,10 +433,11 @@ func IsUserErrorCodeMatch(err error, code codes.Code) bool {
 // ReasonForError returns the HTTP status for a particular error.
 func reasonForError(err error) k8metav1.StatusReason {
 	switch t := err.(type) {
-	case k8errors.APIStatus:
-		return t.Status().Reason
 	case *k8errors.StatusError:
 		return t.Status().Reason
+	case k8errors.APIStatus:
+		return t.Status().Reason
+	default:
+		return k8metav1.StatusReasonUnknown
 	}
-	return k8metav1.StatusReasonUnknown
 }

@@ -1,37 +1,59 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
 	"context"
+	"strings"
+
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"strings"
 )
 
 type TaskServer struct {
 	resourceManager *resource.ResourceManager
 }
 
+// Creates a task.
+// Supports v1beta1 behavior.
 func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
 	err := s.validateCreateTaskRequest(request)
 	if err != nil {
-		return nil, util.Wrap(err, "Validate create task request failed.")
+		return nil, util.Wrap(err, "Failed to create a new task due to validation error")
 	}
 
-	task, err := s.resourceManager.CreateTask(ctx, request.Task)
+	modelTask, err := toModelTask(request.GetTask())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a new task.")
+		return nil, util.Wrap(err, "Failed to create a new task due to conversion error")
 	}
 
-	return ToApiTask(task), nil
+	task, err := s.resourceManager.CreateTask(modelTask)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a new task")
+	}
+
+	return toApiTaskV1(task), nil
 }
 
 func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) error {
 	if request == nil {
-		return util.NewInvalidInputError("CreatTaskRequst is nil")
+		return util.NewInvalidInputError("CreatTaskRequest is nil")
 	}
-	task := *request.Task
+	task := request.GetTask()
 
 	errMustSpecify := func(s string) error { return util.NewInvalidInputError("Invalid task: must specify %s", s) }
 
@@ -66,28 +88,30 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	return nil
 }
 
+// Fetches tasks given query parameters.
+// Supports v1beta1 behavior.
 func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequest) (
-	*api.ListTasksResponse, error) {
-
+	*api.ListTasksResponse, error,
+) {
 	opts, err := validatedListOptions(&model.Task{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
-
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	filterContext, err := ValidateFilterV1(request.ResourceReferenceKey)
+	filterContext, err := validateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
-		return nil, util.Wrap(err, "Validating filter failed.")
+		return nil, util.Wrap(err, "Validating filter failed")
 	}
 
 	tasks, total_size, nextPageToken, err := s.resourceManager.ListTasks(filterContext, opts)
 	if err != nil {
-		return nil, util.Wrap(err, "List tasks failed.")
+		return nil, util.Wrap(err, "List tasks failed")
 	}
 	return &api.ListTasksResponse{
-			Tasks:         ToApiTasks(tasks),
+			Tasks:         toApiTasksV1(tasks),
 			TotalSize:     int32(total_size),
-			NextPageToken: nextPageToken},
+			NextPageToken: nextPageToken,
+		},
 		nil
 }
 

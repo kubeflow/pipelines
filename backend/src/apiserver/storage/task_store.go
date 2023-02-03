@@ -1,11 +1,25 @@
+// Copyright 2021 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.package storage
+
 package storage
 
 import (
 	"database/sql"
 	"fmt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -13,26 +27,33 @@ import (
 
 const table_name = "tasks"
 
-var (
-	taskColumns = []string{
-		"UUID",
-		"Namespace",
-		"PipelineName",
-		"RunUUID",
-		"MLMDExecutionID",
-		"CreatedTimestamp",
-		"FinishedTimestamp",
-		"Fingerprint",
-	}
-)
+var taskColumns = []string{
+	"UUID",
+	"Namespace",
+	"PipelineName",
+	"RunUUID",
+	"MLMDExecutionID",
+	"CreatedTimestamp",
+	"StartedTimestamp",
+	"FinishedTimestamp",
+	"Fingerprint",
+	"Name",
+	"ParentTaskUUID",
+	"State",
+	"StateHistory",
+	"MLMDInputs",
+	"MLMDOutputs",
+}
 
 type TaskStoreInterface interface {
-	// Create a task entry in the database
+	// Create a task entry in the database.
 	CreateTask(task *model.Task) (*model.Task, error)
 
-	ListTasks(filterContext *common.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
-
+	// Fetches a task with a given id.
 	GetTask(id string) (*model.Task, error)
+
+	// Fetches tasks for given filtering and listing options.
+	ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
 }
 
 type TaskStore struct {
@@ -55,22 +76,31 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	newTask := *task
 	id, err := s.uuid.NewRandom()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create an task id.")
+		return nil, util.NewInternalServerError(err, "Failed to create an task id")
 	}
 	newTask.UUID = id.String()
 
 	sql, args, err := sq.
 		Insert(table_name).
-		SetMap(sq.Eq{
-			"UUID":              newTask.UUID,
-			"Namespace":         newTask.Namespace,
-			"PipelineName":      newTask.PipelineName,
-			"RunUUID":           newTask.RunUUID,
-			"MLMDExecutionID":   newTask.MLMDExecutionID,
-			"CreatedTimestamp":  newTask.CreatedTimestamp,
-			"FinishedTimestamp": newTask.FinishedTimestamp,
-			"Fingerprint":       newTask.Fingerprint,
-		}).
+		SetMap(
+			sq.Eq{
+				"UUID":              newTask.UUID,
+				"Namespace":         newTask.Namespace,
+				"PipelineName":      newTask.PipelineName,
+				"RunUUID":           newTask.RunId,
+				"MLMDExecutionID":   newTask.MLMDExecutionID,
+				"CreatedTimestamp":  newTask.CreatedTimestamp,
+				"StartedTimestamp":  newTask.StartedTimestamp,
+				"FinishedTimestamp": newTask.FinishedTimestamp,
+				"Fingerprint":       newTask.Fingerprint,
+				"Name":              newTask.Name,
+				"ParentTaskUUID":    newTask.ParentTaskId,
+				"State":             newTask.State,
+				"StateHistory":      newTask.StateHistory,
+				"MLMDInputs":        newTask.MLMDInputs,
+				"MLMDOutputs":       newTask.MLMDOutputs,
+			},
+		).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert task to task table: %v",
@@ -88,8 +118,25 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	var tasks []*model.Task
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, mlmdExecutionID, fingerprint string
-		var createdTimestamp, finishedTimestamp int64
-		err := rows.Scan(&uuid, &namespace, &pipelineName, &runUUID, &mlmdExecutionID, &createdTimestamp, &finishedTimestamp, &fingerprint)
+		var name, parentTaskId, state, stateHistory, inputs, outputs sql.NullString
+		var createdTimestamp, startedTimestamp, finishedTimestamp int64
+		err := rows.Scan(
+			&uuid,
+			&namespace,
+			&pipelineName,
+			&runUUID,
+			&mlmdExecutionID,
+			&createdTimestamp,
+			&startedTimestamp,
+			&finishedTimestamp,
+			&fingerprint,
+			&name,
+			&parentTaskId,
+			&state,
+			&stateHistory,
+			&inputs,
+			&outputs,
+		)
 		if err != nil {
 			fmt.Printf("scan error is %v", err)
 			return tasks, err
@@ -98,11 +145,17 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			UUID:              uuid,
 			Namespace:         namespace,
 			PipelineName:      pipelineName,
-			RunUUID:           runUUID,
+			RunId:             runUUID,
 			MLMDExecutionID:   mlmdExecutionID,
 			CreatedTimestamp:  createdTimestamp,
+			StartedTimestamp:  startedTimestamp,
 			FinishedTimestamp: finishedTimestamp,
 			Fingerprint:       fingerprint,
+			Name:              name.String,
+			ParentTaskId:      parentTaskId.String,
+			StateHistory:      stateHistory.String,
+			MLMDInputs:        inputs.String,
+			MLMDOutputs:       outputs.String,
 		}
 		tasks = append(tasks, task)
 	}
@@ -111,15 +164,18 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
 // total_size. The total_size does not reflect the page size.
-func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Options) ([]*model.Task, int, string, error) {
+func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error) {
 	errorF := func(err error) ([]*model.Task, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
 
 	// SQL for getting the filtered and paginated rows
 	sqlBuilder := sq.Select(taskColumns...).From("tasks")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Pipeline {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+	}
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
 	}
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
 
@@ -131,8 +187,11 @@ func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Op
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
 	sqlBuilder = sq.Select("count(*)").From("tasks")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Pipeline {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+	}
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
 	}
 	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
 	if err != nil {
@@ -151,15 +210,23 @@ func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Op
 		tx.Rollback()
 		return errorF(err)
 	}
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
 	exps, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
@@ -168,7 +235,7 @@ func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Op
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
+	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {

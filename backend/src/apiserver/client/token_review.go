@@ -18,10 +18,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -42,7 +41,7 @@ func createTokenReviewClient(clientParams util.ClientParameters) (TokenReviewInt
 func CreateTokenReviewClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) TokenReviewInterface {
 	var client TokenReviewInterface
 	var err error
-	var operation = func() error {
+	operation := func() error {
 		client, err = createTokenReviewClient(clientParams)
 		return err
 	}

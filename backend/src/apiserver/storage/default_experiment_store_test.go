@@ -21,7 +21,7 @@ import (
 )
 
 func TestInitializeDefaultExperimentTable(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
 	// Initialize for the first time
@@ -42,7 +42,7 @@ func TestInitializeDefaultExperimentTable(t *testing.T) {
 }
 
 func TestGetAndSetDefaultExperimentId(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
 	// Initialize for the first time
@@ -71,7 +71,7 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 }
 
 func TestUnsetDefaultExperimentIdIfIdMatches(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
 	// Initialize for the first time

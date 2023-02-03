@@ -55,7 +55,7 @@ class TestV2beta1RunDetails(unittest.TestCase):
                             failed_pre_caching_check_jobs = [
                                 '0'
                                 ], ), 
-                        state = 'RUNTIMESTATE_UNSPECIFIED', 
+                        state = 'RUNTIME_STATE_UNSPECIFIED', 
                         execution_id = '0', 
                         error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                             code = 56, 

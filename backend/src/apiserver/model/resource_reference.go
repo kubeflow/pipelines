@@ -14,6 +14,132 @@
 
 package model
 
+const (
+	NamespaceResourceType       ResourceType = "Namespace"
+	ExperimentResourceType      ResourceType = "Experiment"
+	JobResourceType             ResourceType = "Job"
+	RecurringRunResourceType    ResourceType = "RecurringRun"
+	RunResourceType             ResourceType = "Run"
+	PipelineResourceType        ResourceType = "pipeline"
+	PipelineVersionResourceType ResourceType = "PipelineVersion"
+)
+
+const (
+	OwnerRelationship   Relationship = "Owner"
+	CreatorRelationship Relationship = "Creator"
+)
+
+type ResourceReferenceRelationshipTriplet struct {
+	ResourceType     ResourceType
+	ReferenceType    ResourceType
+	RelationshipType Relationship
+}
+
+// Describes all possible relationship types between resources.
+var validResourceReferenceRelationship map[ResourceReferenceRelationshipTriplet]bool = map[ResourceReferenceRelationshipTriplet]bool{
+	// Experiment
+	{
+		ResourceType:     ExperimentResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+
+	// Pipeline
+	{
+		ResourceType:     PipelineResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+
+	// PipelineVersion
+	{
+		ResourceType:     PipelineVersionResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     PipelineVersionResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+
+	// Job
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    ExperimentResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     JobResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+
+	// RecurringRon
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    ExperimentResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     RecurringRunResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+
+	// Run
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    NamespaceResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    ExperimentResourceType,
+		RelationshipType: OwnerRelationship,
+	}: true,
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    JobResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    RecurringRunResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    PipelineResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+	{
+		ResourceType:     RunResourceType,
+		ReferenceType:    PipelineVersionResourceType,
+		RelationshipType: CreatorRelationship,
+	}: true,
+}
+
 // The type of a resource object.
 type ResourceType string
 
@@ -23,23 +149,56 @@ type Relationship string
 // Resource reference table models the relationship between resources in a loosely coupled way.
 type ResourceReference struct {
 	// ID of the resource object
-	ResourceUUID string `gorm:"column:ResourceUUID; not null; primary_key"`
+	ResourceUUID string `gorm:"column:ResourceUUID; not null; primary_key;"`
 
 	// The type of the resource object
-	ResourceType ResourceType `gorm:"column:ResourceType; not null; primary_key; index:referencefilter"`
+	ResourceType ResourceType `gorm:"column:ResourceType; not null; primary_key; index:referencefilter;"`
 
 	// The ID of the resource that been referenced to.
-	ReferenceUUID string `gorm:"column:ReferenceUUID; not null; index:referencefilter"`
+	ReferenceUUID string `gorm:"column:ReferenceUUID; not null; index:referencefilter;"`
 
 	// The name of the resource that been referenced to.
-	ReferenceName string `gorm:"column:ReferenceName; not null; "`
+	ReferenceName string `gorm:"column:ReferenceName; not null;"`
 
 	// The type of the resource that been referenced to.
-	ReferenceType ResourceType `gorm:"column:ReferenceType; not null; primary_key; index:referencefilter"`
+	ReferenceType ResourceType `gorm:"column:ReferenceType; not null; primary_key; index:referencefilter;"`
 
 	// The relationship between the resource object and the resource that been referenced to.
-	Relationship Relationship `gorm:"column:Relationship; not null; "`
+	Relationship Relationship `gorm:"column:Relationship; not null;"`
 
 	// The json formatted blob of the resource reference.
-	Payload string `gorm:"column:Payload; not null; size:65535 "`
+	Payload string `gorm:"column:Payload; not null; size:65535;"`
+}
+
+type ReferenceKey struct {
+	Type ResourceType
+	ID   string
+}
+
+type FilterContext struct {
+	// Filter by a specific reference key
+	*ReferenceKey
+}
+
+// Checks whether the resource-reference relationship combination is valid.
+func ValidateResourceReferenceRelationship(resType ResourceType, refType ResourceType, relType Relationship) bool {
+	check, err := validResourceReferenceRelationship[ResourceReferenceRelationshipTriplet{
+		ResourceType:     resType,
+		ReferenceType:    refType,
+		RelationshipType: relType,
+	}]
+	if err {
+		return check
+	}
+	return false
+}
+
+// Fetches the first reference id of a given type
+func GetRefIdFromResourceReferences(resRefs []*ResourceReference, refType ResourceType) string {
+	for _, ref := range resRefs {
+		if ref.ReferenceUUID != "" && ref.ReferenceType == refType {
+			return ref.ReferenceUUID
+		}
+	}
+	return ""
 }

@@ -5,10 +5,12 @@ import (
 	"time"
 )
 
-var namespace = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
-var initializeTimeout = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
-var runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
-var runUpgradeTests = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
+var (
+	namespace           = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
+	initializeTimeout   = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
+	runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
+	runUpgradeTests     = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
+)
 
 /**
  * Differences in dev mode:
@@ -19,5 +21,7 @@ var isDevMode = flag.Bool("isDevMode", false, "Dev mode helps local development 
 
 var isDebugMode = flag.Bool("isDebugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")
 
-var isKubeflowMode = flag.Bool("isKubeflowMode", false, "Runs tests in full Kubeflow mode")
-var resourceNamespace = flag.String("resourceNamespace", "", "The namespace that will store the test resources in Kubeflow mode")
+var (
+	isKubeflowMode    = flag.Bool("isKubeflowMode", false, "Runs tests in full Kubeflow mode")
+	resourceNamespace = flag.String("resourceNamespace", "", "The namespace that will store the test resources in Kubeflow mode")
+)

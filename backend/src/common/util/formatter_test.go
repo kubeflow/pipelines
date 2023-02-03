@@ -68,7 +68,6 @@ func TestCreateSubstitute(t *testing.T) {
 	result, err = formatter.createSubtitute("[[something]]")
 	assert.Nil(t, err)
 	assert.Equal(t, "[[something]]", result)
-
 }
 
 func TestCreateSubstituteError(t *testing.T) {
@@ -163,7 +162,9 @@ func TestFormatNothingToDoExceptAddUUID(t *testing.T) {
 					{Name: "param1", Value: v1alpha1.AnyStringPtr("value1")},
 					{Name: "param2", Value: v1alpha1.AnyStringPtr("value2")},
 				},
-			}}}
+			},
+		},
+	}
 
 	expected := &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-name-"},
@@ -173,7 +174,9 @@ func TestFormatNothingToDoExceptAddUUID(t *testing.T) {
 					{Name: "param1", Value: v1alpha1.AnyStringPtr("value1")},
 					{Name: "param2", Value: v1alpha1.AnyStringPtr("value2")},
 				},
-			}}}
+			},
+		},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -194,7 +197,9 @@ func TestFormatEverytingToChange(t *testing.T) {
 					{Name: "param1", Value: v1alpha1.AnyStringPtr("value1-[[schedule]]")},
 					{Name: "param2", Value: v1alpha1.AnyStringPtr("value2-[[now]]-suffix")},
 				},
-			}}}
+			},
+		},
+	}
 
 	expected := &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"},
@@ -204,7 +209,9 @@ func TestFormatEverytingToChange(t *testing.T) {
 					{Name: "param1", Value: v1alpha1.AnyStringPtr("value1-20170706050403")},
 					{Name: "param2", Value: v1alpha1.AnyStringPtr("value2-20180807060504-suffix")},
 				},
-			}}}
+			},
+		},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -218,10 +225,12 @@ func TestFormatOnlyWorkflowName(t *testing.T) {
 		getDefaultCreatedAtSec())
 
 	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[schedule]]-name"}}
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[schedule]]-name"},
+	}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -235,10 +244,12 @@ func TestFormatOnlyWorkflowGeneratedName(t *testing.T) {
 		getDefaultCreatedAtSec())
 
 	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-[[schedule]]-name-"}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-[[schedule]]-name-"},
+	}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -254,7 +265,8 @@ func TestFormatNoWorkflowNames(t *testing.T) {
 	workflow := &v1alpha1.Workflow{}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -270,10 +282,13 @@ func TestFormat2WorkflowNames(t *testing.T) {
 	workflow := &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:         "workflow-[[schedule]]-name",
-			GenerateName: "workflow-[[schedule]]-generated-name-"}}
+			GenerateName: "workflow-[[schedule]]-generated-name-",
+		},
+	}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-generated-name-"}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-generated-name-"},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -293,7 +308,9 @@ func TestFormatOnlyWorkflowParameters(t *testing.T) {
 					{Name: "param1", Value: v1alpha1.AnyStringPtr("value1-[[schedule]]")},
 					{Name: "param2", Value: v1alpha1.AnyStringPtr("value2-[[now]]-suffix")},
 				},
-			}}}
+			},
+		},
+	}
 
 	expected := &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"},
@@ -303,7 +320,9 @@ func TestFormatOnlyWorkflowParameters(t *testing.T) {
 					{Name: "param1", Value: v1alpha1.AnyStringPtr("value1-20170706050403")},
 					{Name: "param2", Value: v1alpha1.AnyStringPtr("value2-20180807060504-suffix")},
 				},
-			}}}
+			},
+		},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -319,7 +338,8 @@ func TestFormatEmptyWorkflow(t *testing.T) {
 	workflow := &v1alpha1.Workflow{}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -340,7 +360,9 @@ func TestFormatError(t *testing.T) {
 					{Name: "param1", Value: v1alpha1.AnyStringPtr("value1-[[schedule]]-[[uuid]]")},
 					{Name: "param2", Value: v1alpha1.AnyStringPtr("value2-[[now]]-suffix")},
 				},
-			}}}
+			},
+		},
+	}
 
 	err := formatter.Format(workflow)
 	assert.Contains(t, err.Error(), "UUID generation failed")

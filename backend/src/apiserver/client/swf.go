@@ -45,7 +45,7 @@ func (swfClient *SwfClient) ScheduledWorkflow(namespace string) v1beta1.Schedule
 // creates a new client for the Kubernetes ScheduledWorkflow CRD.
 func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) *SwfClient {
 	var swfClient v1beta1.ScheduledworkflowV1beta1Interface
-	var operation = func() error {
+	operation := func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return err
@@ -74,7 +74,7 @@ func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration, clie
 	return &SwfClient{swfClient}
 }
 
-// Use out of cluster config for local testing purposes
+// Use out of cluster config for local testing purposes.
 func newOutOfClusterSwfClient() (*SwfClient, error) {
 	home := homedir.HomeDir()
 	if home == "" {

@@ -3,11 +3,8 @@ package integration
 import (
 	"fmt"
 	"io/ioutil"
-	"sort"
 	"testing"
 	"time"
-
-	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -17,6 +14,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -137,10 +135,14 @@ func (s *RunApiTestSuite) TestRunApis() {
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
 	}}
 	helloWorldRunDetail, _, err := s.runClient.Create(createRunRequest)
@@ -154,7 +156,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experimentparams.CreateExperimentV1Params{
-		Body: test.GetExperiment("argument parameter experiment", "", s.resourceNamespace)}
+		Body: test.GetExperiment("argument parameter experiment", "", s.resourceNamespace),
+	}
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
 
@@ -174,8 +177,10 @@ func (s *RunApiTestSuite) TestRunApis() {
 			},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
-				Relationship: run_model.APIRelationshipOWNER},
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
 		},
 	}}
 	argParamsRunDetail, _, err := s.runClient.Create(createRunRequest)
@@ -193,7 +198,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 		s.runClient,
 		&runparams.ListRunsV1Params{
 			PageSize: util.Int32Pointer(1),
-			SortBy:   util.StringPointer("created_at")},
+			SortBy:   util.StringPointer("created_at"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
@@ -204,7 +210,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 		s.runClient,
 		&runparams.ListRunsV1Params{
 			PageSize:  util.Int32Pointer(1),
-			PageToken: util.StringPointer(nextPageToken)},
+			PageToken: util.StringPointer(nextPageToken),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
@@ -217,7 +224,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 		s.runClient,
 		&runparams.ListRunsV1Params{
 			PageSize: util.Int32Pointer(1),
-			SortBy:   util.StringPointer("name")},
+			SortBy:   util.StringPointer("name"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
@@ -228,7 +236,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 		&runparams.ListRunsV1Params{
 			PageSize:  util.Int32Pointer(1),
 			SortBy:    util.StringPointer("name"),
-			PageToken: util.StringPointer(nextPageToken)},
+			PageToken: util.StringPointer(nextPageToken),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
@@ -245,7 +254,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
 	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsV1Params{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
+		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID),
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
@@ -256,6 +266,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
 	// Create a new run
+	createRunRequest.Body.Name = "argument parameter 2"
 	_, _, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Check total number of runs is 3
@@ -267,7 +278,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 	runs, totalSize, _, err = test.ListRuns(
 		s.runClient,
 		&runparams.ListRunsV1Params{
-			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "op": 6, "string_value": "` + fmt.Sprint(filterTime) + `"}]}`)},
+			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "op": 6, "string_value": "` + fmt.Sprint(filterTime) + `"}]}`),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
@@ -282,7 +294,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- List runs for hello world experiment. The same run should still be returned, but should be archived ---------- */
 	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsV1Params{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
+		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID),
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
@@ -306,10 +319,14 @@ func (s *RunApiTestSuite) TestRunApis() {
 		Name:        "long running",
 		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Relationship: run_model.APIRelationshipOWNER},
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: longRunningPipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR},
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: longRunningPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
 	}}
 	longRunningRunDetail, _, err := s.runClient.Create(createLongRunningRunRequest)
@@ -340,23 +357,27 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		Status:         "Terminating",
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
 				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
-	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -373,13 +394,17 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
 				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
 				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
@@ -388,9 +413,8 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
-	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -408,6 +432,8 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
@@ -415,7 +441,8 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 			},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
 				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
 		},
@@ -424,6 +451,8 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
+	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
+	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -441,7 +470,7 @@ func (s *RunApiTestSuite) TearDownSuite() {
 
 func (s *RunApiTestSuite) cleanUp() {
 	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
 }

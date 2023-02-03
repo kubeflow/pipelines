@@ -114,20 +114,16 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsV1Params{ResourceKeyID: &pipelineId, SortBy: &sortBy})
 	require.Nil(t, err)
 
-	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionV1Params{PipelineID: pipelineId,
-		VersionID: versions[0].ID})
-	require.Nil(t, err)
-
 	time.Sleep(1 * time.Second)
 	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineV1Params{ID: pipelineId})
 	require.Nil(t, err)
-	assert.Equal(t, pipelineSelected.DefaultVersion.ID, versions[0].ID)
+	assert.Equal(t, pipelineSelected.DefaultVersion.ID, versions[1].ID)
 
 	/* ---------- Upload the same pipeline version again. Should fail due to name uniqueness ---------- */
 	time.Sleep(1 * time.Second)
 	_, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineVersionParams())
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to upload pipeline version.")
+	assert.Contains(t, err.Error(), "Failed to upload pipeline version")
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
@@ -143,7 +139,8 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 					Relationship: pipeline_model.APIRelationshipOWNER,
 				},
 			},
-		}})
+		},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipelineVersion.Name)
 
@@ -171,7 +168,8 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 					Relationship: pipeline_model.APIRelationshipOWNER,
 				},
 			},
-		}})
+		},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments", argumentUrlPipelineVersion.Name)
 
@@ -351,7 +349,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
 	expected.OverrideV2PipelineName("test_v2_pipeline", "")
-	assert.Equal(t, expected, template)
+	assert.Equal(t, expected, template, "Discrepancy found in template's pipeline name. Created pipeline's name - %s.", pipeline.Name)
 }
 
 func TestPipelineVersionAPI(t *testing.T) {
@@ -367,6 +365,6 @@ func (s *PipelineVersionApiTest) TearDownSuite() {
 }
 
 func (s *PipelineVersionApiTest) cleanUp() {
-	// Delete pipelines will delete pipelines and their versions.
+	// Delete pipelines and their pipeline versions
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }

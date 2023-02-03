@@ -51,7 +51,7 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                     failed_pre_caching_check_jobs = [
                         '0'
                         ], ), 
-                state = 'RUNTIMESTATE_UNSPECIFIED', 
+                state = 'RUNTIME_STATE_UNSPECIFIED', 
                 execution_id = '0', 
                 error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                     code = 56, 
@@ -77,7 +77,7 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                 state_history = [
                     kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                         update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                        state = 'RUNTIMESTATE_UNSPECIFIED', 
+                        state = 'RUNTIME_STATE_UNSPECIFIED', 
                         error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                             code = 56, 
                             message = '0', 

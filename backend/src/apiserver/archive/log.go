@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -46,7 +47,7 @@ type LogArchiveInterface interface {
 	CopyLogFromArchive(logContent []byte, dst io.Writer, opts ExtractLogOptions) error
 }
 
-// Log Archive
+// Log Archive.
 type RunLogEntry struct {
 	Log       string    `json:"log"`
 	Timestamp time.Time `json:"timestamp,omitempty"`
@@ -231,8 +232,10 @@ type RunLogEntry struct {
 //	   of your accepting any such warranty or additional liability.
 //
 //	END OF TERMS AND CONDITIONS
-var k8sLogPrefixExp = regexp.MustCompile(`(?m)^(\d{4}-\d{2}-\d{2}T\S+)\s(.+)$`)
-var crioLogPrefixExp = regexp.MustCompile(`(?m)^(.+)\s(stdout|stderr)\s\w\s(.+)$`)
+var (
+	k8sLogPrefixExp  = regexp.MustCompile(`(?m)^(\d{4}-\d{2}-\d{2}T\S+)\s(.+)$`)
+	crioLogPrefixExp = regexp.MustCompile(`(?m)^(.+)\s(stdout|stderr)\s\w\s(.+)$`)
+)
 
 type LogArchive struct {
 	logFileName   string
@@ -246,13 +249,12 @@ func NewLogArchive(logPathPrefix, logFileName string) *LogArchive {
 	}
 }
 
-func (a *LogArchive) GetLogObjectKey(workflow util.ExecutionSpec, nodeID string) (key string, err error) {
+func (a *LogArchive) GetLogObjectKey(workflow util.ExecutionSpec, nodeID string) (string, error) {
 	if a.logPathPrefix == "" || a.logFileName == "" || workflow == nil {
-		err = fmt.Errorf("invalid log archive configuration: %v", a)
+		return "", util.Wrapf(errors.New("invalid log archive configuration"), "configuration: %v", a)
 	} else {
-		key = strings.Join([]string{a.logPathPrefix, workflow.ExecutionName(), nodeID, a.logFileName}, "/")
+		return strings.Join([]string{a.logPathPrefix, workflow.ExecutionName(), nodeID, a.logFileName}, "/"), nil
 	}
-	return
 }
 
 // CopyLogFromArchive copies a task run archived log into expected format.
@@ -279,9 +281,9 @@ func (a *LogArchive) CopyLogFromArchive(logContent []byte, dst io.Writer, opts E
 			} else {
 				_, err = fmt.Fprintln(dst, entry.Log)
 			}
-		} else if result := crioLogPrefixExp.FindSubmatch(bytes); result != nil && len(result) == 4 {
+		} else if result := crioLogPrefixExp.FindSubmatch(bytes); len(result) == 4 {
 			err = writeLogLn(dst, result[3], result[1], opts)
-		} else if result := k8sLogPrefixExp.FindSubmatch(bytes); result != nil && len(result) == 3 {
+		} else if result := k8sLogPrefixExp.FindSubmatch(bytes); len(result) == 3 {
 			err = writeLogLn(dst, result[2], result[1], opts)
 		} else {
 			err = writeLogLn(dst, bytes, nil, opts)
@@ -294,15 +296,14 @@ func (a *LogArchive) CopyLogFromArchive(logContent []byte, dst io.Writer, opts E
 	return nil
 }
 
-func decompressLogArchive(logContent []byte) (reader io.Reader, err error) {
+func decompressLogArchive(logContent []byte) (io.Reader, error) {
 	// Decompress tar archive
 	compressedReader := bytes.NewReader(logContent)
 	decompressedLogs, gzipErr := gzip.NewReader(compressedReader)
 	if gzipErr != nil {
 		// err = util.NewInternalServerError(gzipErr, "Failed to decompress the archived log file")
 		// It's not compressed - use original content
-		reader = bytes.NewReader(logContent)
-		return
+		return bytes.NewReader(logContent), nil
 	}
 
 	archiveReader := tar.NewReader(decompressedLogs)
@@ -310,15 +311,14 @@ func decompressLogArchive(logContent []byte) (reader io.Reader, err error) {
 	if tarErr != nil || header.Typeflag != tar.TypeReg {
 		// It's not a tar archive - use decompressed content
 		compressedReader.Reset(logContent)
-		decompressedLogs.Reset(compressedReader)
-		reader = decompressedLogs
+		err := decompressedLogs.Reset(compressedReader)
+		return decompressedLogs, err
 	} else {
-		reader = archiveReader
+		return archiveReader, nil
 	}
-	return
 }
 
-func writeLogLn(dst io.Writer, log []byte, timestamp []byte, opts ExtractLogOptions) (err error) {
+func writeLogLn(dst io.Writer, log []byte, timestamp []byte, opts ExtractLogOptions) error {
 	if opts.LogFormat == LogFormatJSON {
 		var ts time.Time
 		if timestamp != nil {
@@ -326,23 +326,21 @@ func writeLogLn(dst io.Writer, log []byte, timestamp []byte, opts ExtractLogOpti
 		}
 		entry := RunLogEntry{Timestamp: ts, Log: string(log)}
 		if m, err := json.Marshal(entry); err == nil {
-			err = writeBytesLn(dst, m)
+			return writeBytesLn(dst, m)
 		}
 	} else if opts.Timestamps && timestamp != nil {
-		err = writeBytesLn(dst, timestamp, []byte{' '}, log)
-	} else {
-		err = writeBytesLn(dst, log)
+		return writeBytesLn(dst, timestamp, []byte{' '}, log)
 	}
-	return
+	return writeBytesLn(dst, log)
 }
 
-func writeBytesLn(dst io.Writer, bs ...[]byte) (err error) {
+func writeBytesLn(dst io.Writer, bs ...[]byte) error {
 	for _, b := range bs {
-		_, err = dst.Write(b)
+		_, err := dst.Write(b)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	_, err = dst.Write([]byte{'\n'})
-	return
+	_, err := dst.Write([]byte{'\n'})
+	return err
 }

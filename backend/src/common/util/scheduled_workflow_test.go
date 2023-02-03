@@ -63,21 +63,21 @@ func TestScheduledWorkflow_Getters(t *testing.T) {
 	assert.Equal(t, (*int64)(nil), workflow.PeriodicScheduleStartTimeInSecOrNull())
 	assert.Equal(t, (*int64)(nil), workflow.PeriodicScheduleEndTimeInSecOrNull())
 	assert.Equal(t, int64(0), workflow.IntervalSecondOr0())
-
 }
 
 func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 	// Base case
 	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
-			Conditions: []swfapi.ScheduledWorkflowCondition{{
-				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
-				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled.",
-			},
+			Conditions: []swfapi.ScheduledWorkflowCondition{
+				{
+					Type:               swfapi.ScheduledWorkflowEnabled,
+					Status:             core.ConditionTrue,
+					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
+					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
+					Reason:             string(swfapi.ScheduledWorkflowEnabled),
+					Message:            "The schedule is enabled.",
+				},
 			},
 		},
 	})
@@ -86,21 +86,22 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 	// Multiple conditions
 	workflow = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
-			Conditions: []swfapi.ScheduledWorkflowCondition{{
-				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
-				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled.",
-			}, {
-				Type:               swfapi.ScheduledWorkflowDisabled,
-				Status:             core.ConditionTrue,
-				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled.",
-			},
+			Conditions: []swfapi.ScheduledWorkflowCondition{
+				{
+					Type:               swfapi.ScheduledWorkflowEnabled,
+					Status:             core.ConditionTrue,
+					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
+					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
+					Reason:             string(swfapi.ScheduledWorkflowEnabled),
+					Message:            "The schedule is enabled.",
+				}, {
+					Type:               swfapi.ScheduledWorkflowDisabled,
+					Status:             core.ConditionTrue,
+					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
+					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
+					Reason:             string(swfapi.ScheduledWorkflowEnabled),
+					Message:            "The schedule is enabled.",
+				},
 			},
 		},
 	})
@@ -156,5 +157,4 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, "[]", result)
-
 }

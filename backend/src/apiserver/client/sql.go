@@ -21,8 +21,8 @@ import (
 )
 
 func CreateMySQLConfig(user, password string, mysqlServiceHost string,
-	mysqlServicePort string, dbName string, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string) *mysql.Config {
-
+	mysqlServicePort string, dbName string, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string,
+) *mysql.Config {
 	params := map[string]string{
 		"charset":              "utf8",
 		"parseTime":            "True",

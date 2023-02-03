@@ -16,12 +16,10 @@ package test
 
 import (
 	"fmt"
-	"os"
-	"time"
-
-	"testing"
-
 	"net/http"
+	"os"
+	"testing"
+	"time"
 
 	"github.com/cenkalti/backoff"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -42,7 +40,7 @@ import (
 )
 
 func WaitForReady(namespace string, initializeTimeout time.Duration) error {
-	var operation = func() error {
+	operation := func() error {
 		response, err := http.Get(fmt.Sprintf("http://ml-pipeline.%s.svc.cluster.local:8888/apis/v1beta1/healthz", namespace))
 		if err != nil {
 			return err
@@ -74,8 +72,27 @@ func GetClientConfig(namespace string) clientcmd.ClientConfig {
 func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
+	deletedPipelines := make(map[string]bool)
 	for _, p := range pipelines {
-		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineV1Params{ID: p.ID}))
+		deletedPipelines[p.ID] = false
+	}
+	for pId, isRemoved := range deletedPipelines {
+		if !isRemoved {
+			DeleteAllPipelineVersions(client, t, pId)
+			deletedPipelines[pId] = true
+		}
+		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineV1Params{ID: pId}))
+	}
+	for _, isRemoved := range deletedPipelines {
+		assert.True(t, isRemoved)
+	}
+}
+
+func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T, pipelineId string) {
+	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineId)
+	assert.Nil(t, err)
+	for _, pv := range pipelineVersions {
+		assert.Nil(t, client.DeletePipelineVersion(&pipelineparams.DeletePipelineVersionV1Params{VersionID: pv.ID}))
 	}
 }
 
@@ -83,7 +100,9 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	experiments, _, _, err := ListAllExperiment(client, namespace)
 	assert.Nil(t, err)
 	for _, e := range experiments {
-		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
+		if e.Name != "Default" {
+			assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
+		}
 	}
 }
 
@@ -114,10 +133,19 @@ func GetExperimentIDFromV1beta1ResourceReferences(resourceRefs []*run_model.APIR
 	return experimentID
 }
 
-func ListPipelines(client *api_server.PipelineClient) (
-	[]*pipeline_model.APIPipeline, int, string, error) {
-	parameters := &pipelineparams.ListPipelinesV1Params{}
+func ListPipelineVersions(client *api_server.PipelineClient, pipelineId string) (
+	[]*pipeline_model.APIPipelineVersion, int, string, error,
+) {
+	parameters := &pipelineparams.ListPipelineVersionsV1Params{}
+	parameters.WithResourceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_PIPELINE)]))
+	parameters.SetResourceKeyID(&pipelineId)
+	return client.ListPipelineVersions(parameters)
+}
 
+func ListPipelines(client *api_server.PipelineClient) (
+	[]*pipeline_model.APIPipeline, int, string, error,
+) {
+	parameters := &pipelineparams.ListPipelinesV1Params{}
 	return client.List(parameters)
 }
 
@@ -130,7 +158,6 @@ func ListExperiment(client *api_server.ExperimentClient, parameters *experimentp
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
 	}
-
 	return client.List(parameters)
 }
 
@@ -164,7 +191,8 @@ func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams
 func GetExperiment(name string, description string, namespace string) *experiment_model.APIExperiment {
 	experiment := &experiment_model.APIExperiment{
 		Name:        name,
-		Description: description}
+		Description: description,
+	}
 
 	if namespace != "" {
 		experiment.ResourceReferences = []*experiment_model.APIResourceReference{
@@ -187,4 +215,82 @@ func GetDefaultPipelineRunnerServiceAccount(isKubeflowMode bool) string {
 	} else {
 		return "pipeline-runner"
 	}
+}
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyExperimentResourceReferences(resRefs []*experiment_model.APIResourceReference, targets []*experiment_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		if target.Key == nil {
+			matches++
+			continue
+		}
+		for _, resRef := range resRefs {
+			if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+				matches++
+				break
+			}
+		}
+	}
+	return matches == len(targets)
+}
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyJobResourceReferences(resRefs []*job_model.APIResourceReference, targets []*job_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		for _, resRef := range resRefs {
+			if target.Key == nil {
+				matches++
+				break
+			}
+			if resRef.Key != nil {
+				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+					matches++
+					break
+				}
+			}
+		}
+	}
+	return matches == len(targets)
+}
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyPipelineResourceReferences(resRefs []*pipeline_model.APIResourceReference, targets []*pipeline_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		for _, resRef := range resRefs {
+			if target.Key == nil {
+				matches++
+				break
+			}
+			if resRef.Key != nil {
+				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+					matches++
+					break
+				}
+			}
+		}
+	}
+	return matches == len(targets)
+}
+
+// Checks if the resRefs contain the targets. Ignores resource's Name. Ignores duplicate or nil entries in targets.
+func VerifyRunResourceReferences(resRefs []*run_model.APIResourceReference, targets []*run_model.APIResourceReference) bool {
+	matches := 0
+	for _, target := range targets {
+		for _, resRef := range resRefs {
+			if target.Key == nil {
+				matches++
+				break
+			}
+			if resRef.Key != nil {
+				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+					matches++
+					break
+				}
+			}
+		}
+	}
+	return matches == len(targets)
 }

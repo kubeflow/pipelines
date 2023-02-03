@@ -26,20 +26,54 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "ServiceAccount", "Description", "MaxConcurrency",
-	"NoCatchup", "CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
-	"Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
-	"PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
-	"RuntimeParameters", "PipelineRoot",
+var jobColumns = []string{
+	"UUID",
+	"DisplayName",
+	"Name",
+	"Namespace",
+	"ServiceAccount",
+	"Description",
+	"MaxConcurrency",
+	"NoCatchup",
+	"CreatedAtInSec",
+	"UpdatedAtInSec",
+	"Enabled",
+	"CronScheduleStartTimeInSec",
+	"CronScheduleEndTimeInSec",
+	"Schedule",
+	"PeriodicScheduleStartTimeInSec",
+	"PeriodicScheduleEndTimeInSec",
+	"IntervalSecond",
+	"PipelineId",
+	"PipelineName",
+	"PipelineSpecManifest",
+	"WorkflowSpecManifest",
+	"Parameters",
+	"Conditions",
+	"RuntimeParameters",
+	"PipelineRoot",
+	"ExperimentUUID",
+	"PipelineVersionId",
 }
 
 type JobStoreInterface interface {
-	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
-	GetJob(id string) (*model.Job, error)
+	// Create a recurring run entry in the database.
 	CreateJob(*model.Job) (*model.Job, error)
-	DeleteJob(id string) error
-	EnableJob(id string, enabled bool) error
+
+	// Fetches a recurring run with a given id from the database.
+	GetJob(id string) (*model.Job, error)
+
+	// Fetches recurring runs from the database with the specified filtering and listing options.
+	ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
+
+	// Enable or disables a recurring run in the database.
+	ChangeJobMode(id string, enabled bool) error
+
+	// Update a recurring run entry in the database.
 	UpdateJob(swf *util.ScheduledWorkflow) error
+
+	// Removes a recurring run entry from the database.
+	DeleteJob(id string) error
 }
 
 type JobStore struct {
@@ -52,7 +86,8 @@ type JobStore struct {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
 // matching the supplied filters and resource references.
 func (s *JobStore) ListJobs(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
+	filterContext *model.FilterContext, opts *list.Options,
+) ([]*model.Job, int, string, error) {
 	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -78,24 +113,31 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		return errorF(err)
 	}
+	if err := rows.Err(); err != nil {
+		return errorF(err)
+	}
 	jobs, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err := sizeRow.Err(); err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	totalSize, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
+	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -104,31 +146,33 @@ func (s *JobStore) ListJobs(
 	}
 
 	if len(jobs) <= opts.PageSize {
-		return jobs, total_size, "", nil
+		return jobs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(jobs[opts.PageSize])
-	return jobs[:opts.PageSize], total_size, npt, err
+	return jobs[:opts.PageSize], totalSize, npt, err
 }
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
-	filterContext *common.FilterContext) (string, []interface{}, error) {
-
+	filterContext *model.FilterContext,
+) (string, []interface{}, error) {
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
 
 	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == common.Namespace {
+	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
+		filteredSelectBuilder, err = list.FilterOnExperiment("jobs", jobColumns,
+			selectCount, refKey.ID)
+	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
 		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
 			selectCount, refKey.ID)
 	} else {
 		filteredSelectBuilder, err = list.FilterOnResourceReference("jobs", jobColumns,
-			common.Job, selectCount, filterContext)
+			model.JobResourceType, selectCount, filterContext)
 	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
-
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
 
 	// If we're not just counting, then also add select columns and perform a left join
@@ -189,6 +233,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
 		var cron, resourceReferencesInString, runtimeParameters, pipelineRoot sql.NullString
+		var experimentId, pipelineVersionId sql.NullString
 		var enabled, noCatchup bool
 		var createdAtInSec, updatedAtInSec, maxConcurrency int64
 		err := r.Scan(
@@ -197,24 +242,42 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
 			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
-			&conditions, &runtimeParameters, &pipelineRoot, &resourceReferencesInString)
+			&conditions, &runtimeParameters, &pipelineRoot, &experimentId,
+			&pipelineVersionId, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
 		}
-		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
+		resourceReferences, _ := parseResourceReferences(resourceReferencesInString)
+		expId := experimentId.String
+		pvId := pipelineVersionId.String
+		if len(resourceReferences) > 0 {
+			if expId == "" {
+				expId = model.GetRefIdFromResourceReferences(resourceReferences, model.ExperimentResourceType)
+			}
+			if namespace == "" {
+				namespace = model.GetRefIdFromResourceReferences(resourceReferences, model.NamespaceResourceType)
+			}
+			if pipelineId == "" {
+				pipelineId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineResourceType)
+			}
+			if pvId == "" {
+				pvId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
+			}
+		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
-		jobs = append(jobs, &model.Job{
-			UUID:               uuid,
-			DisplayName:        displayName,
-			Name:               name,
-			Namespace:          namespace,
-			ServiceAccount:     serviceAccount,
-			Description:        description,
-			Enabled:            enabled,
-			Conditions:         conditions,
-			MaxConcurrency:     maxConcurrency,
-			NoCatchup:          noCatchup,
-			ResourceReferences: resourceReferences,
+		job := &model.Job{
+			UUID:           uuid,
+			DisplayName:    displayName,
+			K8SName:        name,
+			Namespace:      namespace,
+			ServiceAccount: serviceAccount,
+			Description:    description,
+			Enabled:        enabled,
+			Conditions:     conditions,
+			ExperimentId:   expId,
+			MaxConcurrency: maxConcurrency,
+			NoCatchup:      noCatchup,
+			// ResourceReferences: resourceReferences,
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: NullInt64ToPointer(cronScheduleStartTimeInSec),
@@ -229,6 +292,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			},
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
+				PipelineVersionId:    pvId,
 				PipelineName:         pipelineName,
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
@@ -237,7 +301,9 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			},
 			CreatedAtInSec: createdAtInSec,
 			UpdatedAtInSec: updatedAtInSec,
-		})
+		}
+		job = job.ToV1().ToV2()
+		jobs = append(jobs, job)
 	}
 	return jobs, nil
 }
@@ -251,14 +317,14 @@ func (s *JobStore) DeleteJob(id string) error {
 	// Use a transaction to make sure both run and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job.")
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job")
 	}
 	_, err = tx.Exec(jobSql, jobArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete job %s from table", id)
 	}
-	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Job)
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.JobResourceType)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete resource references from table for job %v ", id)
@@ -272,12 +338,18 @@ func (s *JobStore) DeleteJob(id string) error {
 }
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
+	// Add creation/update time.
+	j = j.ToV1().ToV2()
+	now := s.time.Now().Unix()
+	j.CreatedAtInSec = now
+	j.UpdatedAtInSec = now
+
 	jobSql, jobArgs, err := sq.
 		Insert("jobs").
 		SetMap(sq.Eq{
 			"UUID":                           j.UUID,
 			"DisplayName":                    j.DisplayName,
-			"Name":                           j.Name,
+			"Name":                           j.K8SName,
 			"Namespace":                      j.Namespace,
 			"ServiceAccount":                 j.ServiceAccount,
 			"Description":                    j.Description,
@@ -285,21 +357,23 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"NoCatchup":                      j.NoCatchup,
 			"Enabled":                        j.Enabled,
 			"Conditions":                     j.Conditions,
-			"CronScheduleStartTimeInSec":     PointerToNullInt64(j.CronScheduleStartTimeInSec),
-			"CronScheduleEndTimeInSec":       PointerToNullInt64(j.CronScheduleEndTimeInSec),
-			"Schedule":                       PointerToNullString(j.Cron),
-			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(j.PeriodicScheduleStartTimeInSec),
-			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(j.PeriodicScheduleEndTimeInSec),
-			"IntervalSecond":                 PointerToNullInt64(j.IntervalSecond),
+			"CronScheduleStartTimeInSec":     PointerToNullInt64(j.Trigger.CronSchedule.CronScheduleStartTimeInSec),
+			"CronScheduleEndTimeInSec":       PointerToNullInt64(j.Trigger.CronSchedule.CronScheduleEndTimeInSec),
+			"Schedule":                       PointerToNullString(j.Trigger.CronSchedule.Cron),
+			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(j.Trigger.PeriodicSchedule.PeriodicScheduleStartTimeInSec),
+			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(j.Trigger.PeriodicSchedule.PeriodicScheduleEndTimeInSec),
+			"IntervalSecond":                 PointerToNullInt64(j.Trigger.PeriodicSchedule.IntervalSecond),
 			"CreatedAtInSec":                 j.CreatedAtInSec,
 			"UpdatedAtInSec":                 j.UpdatedAtInSec,
-			"PipelineId":                     j.PipelineId,
-			"PipelineName":                   j.PipelineName,
-			"PipelineSpecManifest":           j.PipelineSpecManifest,
-			"WorkflowSpecManifest":           j.WorkflowSpecManifest,
+			"PipelineId":                     j.PipelineSpec.PipelineId,
+			"PipelineName":                   j.PipelineSpec.PipelineName,
+			"PipelineSpecManifest":           j.PipelineSpec.PipelineSpecManifest,
+			"WorkflowSpecManifest":           j.PipelineSpec.WorkflowSpecManifest,
 			"Parameters":                     j.Parameters,
 			"RuntimeParameters":              j.PipelineSpec.RuntimeConfig.Parameters,
 			"PipelineRoot":                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
+			"ExperimentUUID":                 j.ExperimentId,
+			"PipelineVersionId":              j.PipelineSpec.PipelineVersionId,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to add job to job table: %v",
@@ -309,34 +383,38 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	// Use a transaction to make sure both job and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create job.")
+		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create job")
 	}
 	_, err = tx.Exec(jobSql, jobArgs...)
 	if err != nil {
 		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store job %v to table", j.Name)
+		return nil, util.NewInternalServerError(err, "Failed to store job %v to table", j.DisplayName)
 	}
+
+	// TODO(gkcalat): remove this workflow once we fully deprecate resource references
+	// and provide logic for data migration for v1beta1 data.
 	err = s.resourceReferenceStore.CreateResourceReferences(tx, j.ResourceReferences)
 	if err != nil {
 		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for job %v ", j.Name)
+		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for job %v ", j.DisplayName)
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store job %v and its resource references to table", j.Name)
+		return nil, util.NewInternalServerError(err, "Failed to store job %v and its resource references to table", j.DisplayName)
 	}
 	return j, nil
 }
 
-func (s *JobStore) EnableJob(id string, enabled bool) error {
+func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
 	now := s.time.Now().Unix()
 	sql, args, err := sq.
 		Update("jobs").
 		SetMap(sq.Eq{
 			"Enabled":        enabled,
-			"UpdatedAtInSec": now}).
+			"UpdatedAtInSec": now,
+		}).
 		Where(sq.Eq{"UUID": string(id)}).
 		Where(sq.Eq{"Enabled": !enabled}).
 		ToSql()
@@ -360,10 +438,11 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	sql, args, err := sq.
 		Update("jobs").
 		SetMap(sq.Eq{
-			"Name":                           swf.Name,
-			"Namespace":                      swf.Namespace,
+			"Name": swf.Name,
+			// Namespace changes for recurring runs is forbidden
+			// "Namespace":                      swf.Namespace,
 			"Enabled":                        swf.Spec.Enabled,
-			"Conditions":                     swf.ConditionSummary(),
+			"Conditions":                     model.StatusState(swf.ConditionSummary()).ToString(),
 			"MaxConcurrency":                 swf.MaxConcurrencyOr0(),
 			"NoCatchup":                      swf.NoCatchupOrFalse(),
 			"Parameters":                     parameters,
@@ -373,7 +452,8 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			"Schedule":                       swf.CronOrEmpty(),
 			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
 			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
-			"IntervalSecond":                 swf.IntervalSecondOr0()}).
+			"IntervalSecond":                 swf.IntervalSecondOr0(),
+		}).
 		Where(sq.Eq{"UUID": string(swf.UID)}).
 		ToSql()
 	if err != nil {
@@ -382,7 +462,6 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			err, swf.ScheduledWorkflow)
 	}
 	r, err := s.db.Exec(sql, args...)
-
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Error while updating job with scheduled workflow: %v: %+v",
@@ -404,7 +483,7 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	return nil
 }
 
-// factory function for job store
+// factory function for job store.
 func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
 	return &JobStore{
 		db:                     db,

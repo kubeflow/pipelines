@@ -26,7 +26,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// createCredentialProvidersChain creates a chained providers credential for a minio client
+// createCredentialProvidersChain creates a chained providers credential for a minio client.
 func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *credentials.Credentials {
 	// first try with static api key
 	if accessKey != "" && secretKey != "" {
@@ -46,8 +46,8 @@ func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *cred
 }
 
 func CreateMinioClient(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string, secure bool, region string) (*minio.Client, error) {
-
+	accessKey string, secretKey string, secure bool, region string,
+) (*minio.Client, error) {
 	endpoint := joinHostPort(minioServiceHost, minioServicePort)
 	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
 	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
@@ -58,10 +58,11 @@ func CreateMinioClient(minioServiceHost string, minioServicePort string,
 }
 
 func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string, secure bool, region string, initConnectionTimeout time.Duration) *minio.Client {
+	accessKey string, secretKey string, secure bool, region string, initConnectionTimeout time.Duration,
+) *minio.Client {
 	var minioClient *minio.Client
 	var err error
-	var operation = func() error {
+	operation := func() error {
 		minioClient, err = CreateMinioClient(minioServiceHost, minioServicePort,
 			accessKey, secretKey, secure, region)
 		if err != nil {
@@ -80,7 +81,7 @@ func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
 
 // joinHostPort combines host and port into a network address of the form "host:port".
 //
-// An empty port value results in "host" instead of "host:" (which net.JoinHostPort would return)
+// An empty port value results in "host" instead of "host:" (which net.JoinHostPort would return).
 func joinHostPort(host, port string) string {
 	if port == "" {
 		return host

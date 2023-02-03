@@ -36,7 +36,7 @@ func (c *KubernetesCore) GetNamespaceOwner(namespace string) (string, error) {
 	}
 	ns, err := c.NamespaceClient().Get(context.Background(), namespace, metav1.GetOptions{})
 	if err != nil {
-		return "", errors.Wrapf(err, fmt.Sprintf("failed to get namespace '%v'", namespace))
+		return "", errors.Wrapf(err, "failed to get namespace '%v'", namespace)
 	}
 	owner, ok := ns.Annotations["owner"]
 	if !ok {

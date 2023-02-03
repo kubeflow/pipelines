@@ -3,13 +3,12 @@ package integration
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client/visualization_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -51,6 +51,8 @@ class PipelineUploadServiceApi(object):
         :type name: str
         :param description:
         :type description: str
+        :param namespace:
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -83,6 +85,8 @@ class PipelineUploadServiceApi(object):
         :type name: str
         :param description:
         :type description: str
+        :param namespace:
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -107,7 +111,8 @@ class PipelineUploadServiceApi(object):
         all_params = [
             'uploadfile',
             'name',
-            'description'
+            'description',
+            'namespace'
         ]
         all_params.extend(
             [
@@ -140,6 +145,8 @@ class PipelineUploadServiceApi(object):
             query_params.append(('name', local_var_params['name']))  # noqa: E501
         if 'description' in local_var_params and local_var_params['description'] is not None:  # noqa: E501
             query_params.append(('description', local_var_params['description']))  # noqa: E501
+        if 'namespace' in local_var_params and local_var_params['namespace'] is not None:  # noqa: E501
+            query_params.append(('namespace', local_var_params['namespace']))  # noqa: E501
 
         header_params = {}
 
@@ -193,6 +200,8 @@ class PipelineUploadServiceApi(object):
         :type pipelineid: str
         :param description:
         :type description: str
+        :param namespace:
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -227,6 +236,8 @@ class PipelineUploadServiceApi(object):
         :type pipelineid: str
         :param description:
         :type description: str
+        :param namespace:
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -252,7 +263,8 @@ class PipelineUploadServiceApi(object):
             'uploadfile',
             'name',
             'pipelineid',
-            'description'
+            'description',
+            'namespace'
         ]
         all_params.extend(
             [
@@ -287,6 +299,8 @@ class PipelineUploadServiceApi(object):
             query_params.append(('pipelineid', local_var_params['pipelineid']))  # noqa: E501
         if 'description' in local_var_params and local_var_params['description'] is not None:  # noqa: E501
             query_params.append(('description', local_var_params['description']))  # noqa: E501
+        if 'namespace' in local_var_params and local_var_params['namespace'] is not None:  # noqa: E501
+            query_params.append(('namespace', local_var_params['namespace']))  # noqa: E501
 
         header_params = {}
 

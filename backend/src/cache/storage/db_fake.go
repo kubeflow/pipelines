@@ -23,7 +23,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func NewFakeDb() (*DB, error) {
+func NewFakeDB() (*DB, error) {
 	// Initialize GORM
 	db, err := gorm.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -35,8 +35,8 @@ func NewFakeDb() (*DB, error) {
 	return NewDB(db), nil
 }
 
-func NewFakeDbOrFatal() *DB {
-	db, err := NewFakeDb()
+func NewFakeDBOrFatal() *DB {
+	db, err := NewFakeDB()
 	if err != nil {
 		glog.Fatalf("The fake DB doesn't create successfully. Fail fast.")
 	}
