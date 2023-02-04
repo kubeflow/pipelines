@@ -2847,6 +2847,47 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
                 x = add(nums=dsl.Collected(t.output))
 
+    def test_producer_and_consumer_in_same_context(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline():
+                with dsl.ParallelFor([1, 2, 3]) as x:
+                    t = double(num=x)
+                    add(nums=dsl.Collected(t.output))
+
+    def test_no_parallelfor_context(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline():
+                t = double(num=1)
+                add(nums=dsl.Collected(t.output))
+
 
 if __name__ == '__main__':
     unittest.main()

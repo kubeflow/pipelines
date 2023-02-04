@@ -355,27 +355,49 @@ def validate_parallel_for_fan_in_consumption_legal(
         upstream_groups: The names of the producer task's upstream groups, ordered from outermost group at beginning to producer task at end. This is produced by produced by _get_uncommon_ancestors.
         group_name_to_group: Map of group name to TasksGroup, for fast lookups.
     """
+    # handles cases like this:
+    # @dsl.pipeline
+    # def my_pipeline():
+    #     with dsl.ParallelFor([1, 2, 3]) as x:
+    #         t = double(num=x)
+    #         x = add(dsl.Collected(t.output))
+    #
+    # and this:
+    # @dsl.pipeline
+    # def my_pipeline():
+    #     t = double(num=1)
+    #     x = add(dsl.Collected(t.output))
+    producer_task_idx = -1
+    producer_task_name = upstream_groups[producer_task_idx]
+    if all(group_name_to_group[group_name].group_type !=
+           tasks_group.TasksGroupType.FOR_LOOP
+           for group_name in upstream_groups[:producer_task_idx]):
+        raise InvalidTopologyException(
+            f'dsl.{for_loop.Collected.__name__} can only be used to fan-in outputs produced by a task within a dsl.{tasks_group.ParallelFor.__name__} context to a task outside of the dsl.{tasks_group.ParallelFor.__name__} context. Producer task {producer_task_name} is either not in a dsl.{tasks_group.ParallelFor.__name__} context or is only in a dsl.{tasks_group.ParallelFor.__name__} that also contains consumer task {consumer_task_name}.'
+        )
+
     # illegal if the producer has a parent conditional outside of its outermost for loop, since the for loop may or may not be executed
     # for example, what happens if text == 'b'? the resulting execution behavior is ambiguous.
     #
     # @dsl.pipeline
     # def my_pipeline(text: str = ''):
     #     with dsl.Condition(text == 'a'):
-    #         with dsl.ParallelFor([1, 2, 3]) as f:
-    #             t = double(num=f)
+    #         with dsl.ParallelFor([1, 2, 3]) as x:
+    #             t = double(num=x)
     #     x = add(nums=dsl.Collected(t.output))
-
-    for group_name in upstream_groups:
-        group = group_name_to_group[group_name]
-        if group.group_type == tasks_group.TasksGroupType.FOR_LOOP:
-            break
-        if group.group_type in [
-                tasks_group.TasksGroupType.CONDITION,
-                tasks_group.TasksGroupType.EXIT_HANDLER,
-        ]:
-            raise InvalidTopologyException(
-                f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} When using dsl.{for_loop.Collected.__name__} to fan-in outputs from a task within a dsl.{tasks_group.ParallelFor.__name__} context, the dsl.{tasks_group.ParallelFor.__name__} context manager cannot be nested within a dsl.{group.__class__.__name__} context manager unless the consumer task is too. Task {consumer_task_name} consumes from {upstream_groups[-1]} within a dsl.{group.__class__.__name__} context.'
-            )
+    outermost_uncommon_upstream_group = upstream_groups[0]
+    group = group_name_to_group[outermost_uncommon_upstream_group]
+    if group.group_type in [
+            tasks_group.TasksGroupType.CONDITION,
+            tasks_group.TasksGroupType.EXIT_HANDLER,
+    ]:
+        raise InvalidTopologyException(
+            f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} When using dsl.{for_loop.Collected.__name__} to fan-in outputs from a task within a dsl.{tasks_group.ParallelFor.__name__} context, the dsl.{tasks_group.ParallelFor.__name__} context manager cannot be nested within a dsl.{group.__class__.__name__} context manager unless the consumer task is too. Task {consumer_task_name} consumes from {producer_task_name} within a dsl.{group.__class__.__name__} context.'
+        )
+    elif group.group_type != tasks_group.TasksGroupType.FOR_LOOP:
+        raise ValueError(
+            f'Got unexpected group type when validating fanning-in outputs from task in dsl.{tasks_group.ParallelFor.__name__}: {group.group_type}'
+        )
 
 
 def make_new_channel_for_collected_outputs(
