@@ -343,7 +343,7 @@ def validate_parallel_for_fan_in_consumption_legal(
         upstream_groups: The names of the producer task's upstream groups, ordered from outermost group at beginning to producer task at end. This is produced by produced by _get_uncommon_ancestors.
         group_name_to_group: Map of group name to TasksGroup, for fast lookups.
     """
-    # illegal if the producer has a parent conditional outside of its outermost for loop, since the for loop may or may or may not be executed
+    # illegal if the producer has a parent conditional outside of its outermost for loop, since the for loop may or may not be executed
     # for example, what happens if text == 'b'? the resulting execution behavior is ambiguous.
     #
     # @dsl.pipeline
@@ -421,56 +421,57 @@ def get_outputs_for_all_groups(
     # handle dsl.Collected consumed by tasks
     for task in pipeline.tasks.values():
         for channel in task.channel_inputs:
-            if isinstance(channel, for_loop.Collected):
-                producer_task = pipeline.tasks[channel.task_name]
-                consumer_task = task
+            if not isinstance(channel, for_loop.Collected):
+                continue
+            producer_task = pipeline.tasks[channel.task_name]
+            consumer_task = task
 
-                upstream_groups, downstream_groups = (
-                    _get_uncommon_ancestors(
-                        task_name_to_parent_groups=task_name_to_parent_groups,
-                        group_name_to_parent_groups=group_name_to_parent_groups,
-                        task1=producer_task,
-                        task2=consumer_task,
-                    ))
-                validate_parallel_for_fan_in_consumption_legal(
-                    consumer_task_name=consumer_task.name,
-                    upstream_groups=upstream_groups,
-                    group_name_to_group=group_name_to_group,
-                )
+            upstream_groups, downstream_groups = (
+                _get_uncommon_ancestors(
+                    task_name_to_parent_groups=task_name_to_parent_groups,
+                    group_name_to_parent_groups=group_name_to_parent_groups,
+                    task1=producer_task,
+                    task2=consumer_task,
+                ))
+            validate_parallel_for_fan_in_consumption_legal(
+                consumer_task_name=consumer_task.name,
+                upstream_groups=upstream_groups,
+                group_name_to_group=group_name_to_group,
+            )
 
-                # producer_task's immediate parent group and the name by which
-                # to surface the channel
-                surfaced_output_name = _additional_input_name_for_pipeline_channel(
-                    channel)
+            # producer_task's immediate parent group and the name by which
+            # to surface the channel
+            surfaced_output_name = _additional_input_name_for_pipeline_channel(
+                channel)
 
-                # the highest-level task group that "consumes" the
-                # collected output
-                parent_consumer = downstream_groups[0]
-                producer_task_name = upstream_groups.pop()
+            # the highest-level task group that "consumes" the
+            # collected output
+            parent_consumer = downstream_groups[0]
+            producer_task_name = upstream_groups.pop()
 
-                # process from the upstream groups from the inside out
-                for upstream_name in reversed(upstream_groups):
-                    outputs[upstream_name][
-                        surfaced_output_name] = make_new_channel_for_collected_outputs(
-                            channel_name=channel.name,
-                            starting_channel=channel.output,
-                            task_name=producer_task_name,
-                        )
+            # process from the upstream groups from the inside out
+            for upstream_name in reversed(upstream_groups):
+                outputs[upstream_name][
+                    surfaced_output_name] = make_new_channel_for_collected_outputs(
+                        channel_name=channel.name,
+                        starting_channel=channel.output,
+                        task_name=producer_task_name,
+                    )
 
-                    # on each iteration, mutate the channel being consumed so
-                    # that it references the last parent group surfacer
-                    channel.name = surfaced_output_name
-                    channel.task_name = upstream_name
+                # on each iteration, mutate the channel being consumed so
+                # that it references the last parent group surfacer
+                channel.name = surfaced_output_name
+                channel.task_name = upstream_name
 
-                    # for the next iteration, set the consumer to the current
-                    # surfacer (parent group)
-                    producer_task_name = upstream_name
+                # for the next iteration, set the consumer to the current
+                # surfacer (parent group)
+                producer_task_name = upstream_name
 
-                    parent_of_current_surfacer = group_name_to_parent_groups[
-                        upstream_name][-2]
-                    if parent_consumer in group_name_to_children[
-                            parent_of_current_surfacer]:
-                        break
+                parent_of_current_surfacer = group_name_to_parent_groups[
+                    upstream_name][-2]
+                if parent_consumer in group_name_to_children[
+                        parent_of_current_surfacer]:
+                    break
 
         # handle dsl.Collected returned from pipeline
         for output_key, channel in pipeline_outputs_dict.items():
