@@ -232,7 +232,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               <Input
                 id='pipelineDescription'
                 value={pipelineDescription}
-                required={true}
+                required={false}
                 label='Pipeline Description'
                 variant='outlined'
                 inputRef={this._pipelineDescriptionRef}

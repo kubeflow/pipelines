@@ -62,7 +62,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
       }
       label="Pipeline Description"
       onChange={[Function]}
-      required={true}
+      required={false}
       value=""
       variant="outlined"
     />
