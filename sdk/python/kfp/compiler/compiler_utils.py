@@ -28,6 +28,18 @@ GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 ILLEGAL_CROSS_DAG_ERROR_PREFIX = 'Illegal task dependency across DSL context managers.'
 
 
+def additional_input_name_for_pipeline_channel(
+        channel_or_name: Union[pipeline_channel.PipelineChannel, str]) -> str:
+    """Gets the name for an additional (compiler-injected) input."""
+
+    # Adding a prefix to avoid (reduce chance of) name collision between the
+    # original component inputs and the injected input.
+    return 'pipelinechannel--' + (
+        channel_or_name.full_name if isinstance(
+            channel_or_name, pipeline_channel.PipelineChannel) else
+        channel_or_name)
+
+
 def get_all_groups(
     root_group: tasks_group.TasksGroup,) -> List[tasks_group.TasksGroup]:
     """Gets all groups (not including tasks) in a pipeline.
@@ -405,9 +417,8 @@ def get_outputs_for_all_groups(
     # component calls them when they surface them, which will be different than
     # the producer task name and channel name (the information contained in the
     # pipeline channel)
-    # for this reason, we use _additional_input_name_for_pipeline_channel here
+    # for this reason, we use additional_input_name_for_pipeline_channel here
     # to set the name of the surfaced output once
-    from kfp.compiler import pipeline_spec_builder
 
     group_name_to_group = {group.name: group for group in all_groups}
     group_name_to_children = {
@@ -440,7 +451,7 @@ def get_outputs_for_all_groups(
 
             # producer_task's immediate parent group and the name by which
             # to surface the channel
-            surfaced_output_name = pipeline_spec_builder.additional_input_name_for_pipeline_channel(
+            surfaced_output_name = additional_input_name_for_pipeline_channel(
                 channel)
 
             # the highest-level task group that "consumes" the
@@ -475,7 +486,7 @@ def get_outputs_for_all_groups(
         # handle dsl.Collected returned from pipeline
         for output_key, channel in pipeline_outputs_dict.items():
             if isinstance(channel, for_loop.Collected):
-                surfaced_output_name = pipeline_spec_builder.additional_input_name_for_pipeline_channel(
+                surfaced_output_name = additional_input_name_for_pipeline_channel(
                     channel)
                 upstream_groups = task_name_to_parent_groups[
                     channel.task_name][1:]
