@@ -407,8 +407,7 @@ def get_outputs_for_all_groups(
     # pipeline channel)
     # for this reason, we use _additional_input_name_for_pipeline_channel here
     # to set the name of the surfaced output once
-    from kfp.compiler.pipeline_spec_builder import \
-        _additional_input_name_for_pipeline_channel
+    from kfp.compiler import pipeline_spec_builder
 
     group_name_to_group = {group.name: group for group in all_groups}
     group_name_to_children = {
@@ -441,7 +440,7 @@ def get_outputs_for_all_groups(
 
             # producer_task's immediate parent group and the name by which
             # to surface the channel
-            surfaced_output_name = _additional_input_name_for_pipeline_channel(
+            surfaced_output_name = pipeline_spec_builder.additional_input_name_for_pipeline_channel(
                 channel)
 
             # the highest-level task group that "consumes" the
@@ -476,7 +475,7 @@ def get_outputs_for_all_groups(
         # handle dsl.Collected returned from pipeline
         for output_key, channel in pipeline_outputs_dict.items():
             if isinstance(channel, for_loop.Collected):
-                surfaced_output_name = _additional_input_name_for_pipeline_channel(
+                surfaced_output_name = pipeline_spec_builder.additional_input_name_for_pipeline_channel(
                     channel)
                 upstream_groups = task_name_to_parent_groups[
                     channel.task_name][1:]

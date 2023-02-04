@@ -47,7 +47,7 @@ group_type_to_dsl_class = {
 _SINGLE_OUTPUT_NAME = 'Output'
 
 
-def _additional_input_name_for_pipeline_channel(
+def additional_input_name_for_pipeline_channel(
         channel_or_name: Union[pipeline_channel.PipelineChannel, str]) -> str:
     """Gets the name for an additional (compiler-injected) input."""
 
@@ -158,8 +158,7 @@ def build_task_spec_for_task(
                 else:
                     # Dependent task not from the same DAG.
                     component_input_artifact = (
-                        _additional_input_name_for_pipeline_channel(input_value)
-                    )
+                        additional_input_name_for_pipeline_channel(input_value))
                     assert component_input_artifact in parent_component_inputs.artifacts, \
                         f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.artifacts[
@@ -169,8 +168,7 @@ def build_task_spec_for_task(
                 component_input_artifact = input_value.full_name
                 if component_input_artifact not in parent_component_inputs.artifacts:
                     component_input_artifact = (
-                        _additional_input_name_for_pipeline_channel(input_value)
-                    )
+                        additional_input_name_for_pipeline_channel(input_value))
                 pipeline_task_spec.inputs.artifacts[
                     input_name].component_input_artifact = (
                         component_input_artifact)
@@ -193,8 +191,7 @@ def build_task_spec_for_task(
                 else:
                     # Dependent task not from the same DAG.
                     component_input_parameter = (
-                        _additional_input_name_for_pipeline_channel(input_value)
-                    )
+                        additional_input_name_for_pipeline_channel(input_value))
                     assert component_input_parameter in parent_component_inputs.parameters, \
                         f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.parameters[
@@ -205,8 +202,7 @@ def build_task_spec_for_task(
                 component_input_parameter = input_value.full_name
                 if component_input_parameter not in parent_component_inputs.parameters:
                     component_input_parameter = (
-                        _additional_input_name_for_pipeline_channel(input_value)
-                    )
+                        additional_input_name_for_pipeline_channel(input_value))
                 pipeline_task_spec.inputs.parameters[
                     input_name].component_input_parameter = (
                         component_input_parameter)
@@ -214,7 +210,7 @@ def build_task_spec_for_task(
         elif isinstance(input_value, for_loop.LoopArgument):
 
             component_input_parameter = (
-                _additional_input_name_for_pipeline_channel(input_value))
+                additional_input_name_for_pipeline_channel(input_value))
             assert component_input_parameter in parent_component_inputs.parameters, \
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.parameters[
@@ -224,7 +220,7 @@ def build_task_spec_for_task(
         elif isinstance(input_value, for_loop.LoopArgumentVariable):
 
             component_input_parameter = (
-                _additional_input_name_for_pipeline_channel(
+                additional_input_name_for_pipeline_channel(
                     input_value.loop_argument))
             assert component_input_parameter in parent_component_inputs.parameters, \
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
@@ -247,7 +243,7 @@ def build_task_spec_for_task(
                 # Form the name for the compiler injected input, and make sure it
                 # doesn't collide with any existing input names.
                 additional_input_name = (
-                    _additional_input_name_for_pipeline_channel(channel))
+                    additional_input_name_for_pipeline_channel(channel))
 
                 # We don't expect collision to happen because we prefix the name
                 # of additional input with 'pipelinechannel--'. But just in case
@@ -277,8 +273,7 @@ def build_task_spec_for_task(
                     else:
                         # Dependent task not from the same DAG.
                         component_input_parameter = (
-                            _additional_input_name_for_pipeline_channel(channel)
-                        )
+                            additional_input_name_for_pipeline_channel(channel))
                         assert component_input_parameter in parent_component_inputs.parameters, \
                             f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                         pipeline_task_spec.inputs.parameters[
@@ -289,8 +284,7 @@ def build_task_spec_for_task(
                     component_input_parameter = channel.full_name
                     if component_input_parameter not in parent_component_inputs.parameters:
                         component_input_parameter = (
-                            _additional_input_name_for_pipeline_channel(channel)
-                        )
+                            additional_input_name_for_pipeline_channel(channel))
                     pipeline_task_spec.inputs.parameters[
                         additional_input_name].component_input_parameter = (
                             component_input_parameter)
@@ -573,7 +567,7 @@ def build_component_spec_for_group(
     component_spec = pipeline_spec_pb2.ComponentSpec()
 
     for channel in input_pipeline_channels:
-        input_name = _additional_input_name_for_pipeline_channel(channel)
+        input_name = additional_input_name_for_pipeline_channel(channel)
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             component_spec.input_definitions.artifacts[
@@ -630,9 +624,9 @@ def _update_task_spec_for_loop_group(
     """
     if group.items_is_pipeline_channel:
         loop_items_channel = group.loop_argument.items_or_pipeline_channel
-        input_parameter_name = _additional_input_name_for_pipeline_channel(
+        input_parameter_name = additional_input_name_for_pipeline_channel(
             loop_items_channel)
-        loop_argument_item_name = _additional_input_name_for_pipeline_channel(
+        loop_argument_item_name = additional_input_name_for_pipeline_channel(
             group.loop_argument.full_name)
 
         loop_arguments_item = f'{input_parameter_name}-{for_loop.LoopArgument.LOOP_ITEM_NAME_BASE}'
@@ -652,11 +646,11 @@ def _update_task_spec_for_loop_group(
                 )
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].component_input_parameter = (
-                    _additional_input_name_for_pipeline_channel(
+                    additional_input_name_for_pipeline_channel(
                         loop_items_channel.loop_argument))
 
     else:
-        input_parameter_name = _additional_input_name_for_pipeline_channel(
+        input_parameter_name = additional_input_name_for_pipeline_channel(
             group.loop_argument)
         raw_values = group.loop_argument.items_or_pipeline_channel
 
@@ -700,7 +694,7 @@ def _resolve_condition_operands(
                     pipeline_spec_pb2.ParameterType
                     .PARAMETER_TYPE_ENUM_UNSPECIFIED,
             ]:
-                input_name = _additional_input_name_for_pipeline_channel(
+                input_name = additional_input_name_for_pipeline_channel(
                     value_or_reference)
                 raise ValueError(
                     f'Conditional requires scalar parameter values for comparison. Found input "{input_name}" of type {value_or_reference.channel_type} in pipeline definition instead.'
@@ -743,7 +737,7 @@ def _resolve_condition_operands(
     operand_values = []
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
-            input_name = _additional_input_name_for_pipeline_channel(
+            input_name = additional_input_name_for_pipeline_channel(
                 value_or_reference)
             operand_value = f"inputs.parameter_values['{input_name}']"
             parameter_type = type_utils.get_parameter_type(
@@ -876,7 +870,7 @@ def build_task_spec_for_group(
             channel_full_name = channel.loop_argument.full_name
             subvar_name = channel.subvar_name
 
-        input_name = _additional_input_name_for_pipeline_channel(channel)
+        input_name = additional_input_name_for_pipeline_channel(channel)
 
         channel_name = channel.name
         if subvar_name:
@@ -910,7 +904,7 @@ def build_task_spec_for_group(
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
                     channel_full_name if is_parent_component_root else
-                    _additional_input_name_for_pipeline_channel(
+                    additional_input_name_for_pipeline_channel(
                         channel_full_name))
 
     if isinstance(group, tasks_group.ParallelFor):
