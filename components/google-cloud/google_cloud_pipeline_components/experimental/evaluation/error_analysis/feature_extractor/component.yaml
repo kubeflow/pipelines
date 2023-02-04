@@ -73,7 +73,7 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/cloud-aiplatform-private/starburst/v5/feature_extractor:v0.1
+    image: gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230203_1221_RC00
     args:
       - --project_id
       - { inputValue: project }
