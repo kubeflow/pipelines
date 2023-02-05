@@ -15,7 +15,7 @@
 
 import collections
 from copy import deepcopy
-from typing import Dict, List, Mapping, Set, Tuple, Union
+from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
@@ -24,6 +24,20 @@ from kfp.components import pipeline_task
 from kfp.components import tasks_group
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
+
+ILLEGAL_CROSS_DAG_ERROR_PREFIX = 'Illegal task dependency across DSL context managers.'
+
+
+def additional_input_name_for_pipeline_channel(
+        channel_or_name: Union[pipeline_channel.PipelineChannel, str]) -> str:
+    """Gets the name for an additional (compiler-injected) input."""
+
+    # Adding a prefix to avoid (reduce chance of) name collision between the
+    # original component inputs and the injected input.
+    return 'pipelinechannel--' + (
+        channel_or_name.full_name if isinstance(
+            channel_or_name, pipeline_channel.PipelineChannel) else
+        channel_or_name)
 
 
 def get_all_groups(
@@ -52,8 +66,7 @@ def get_all_groups(
 
 def get_parent_groups(
     root_group: tasks_group.TasksGroup,
-) -> Tuple[Mapping[str, List[GroupOrTaskType]], Mapping[str,
-                                                        List[GroupOrTaskType]]]:
+) -> Tuple[Mapping[str, List[str]], Mapping[str, List[str]]]:
     """Get parent groups that contain the specified tasks.
 
     Each pipeline has a root group. Each group has a list of tasks (leaf)
@@ -149,8 +162,8 @@ def get_condition_channels_for_tasks(
 
 def get_inputs_for_all_groups(
     pipeline: pipeline_context.Pipeline,
-    task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
-    group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
+    task_name_to_parent_groups: Mapping[str, List[str]],
+    group_name_to_parent_groups: Mapping[str, List[str]],
     condition_channels: Mapping[str,
                                 Set[pipeline_channel.PipelineParameterChannel]],
     name_to_for_loop_group: Mapping[str, tasks_group.ParallelFor],
@@ -325,9 +338,212 @@ def get_inputs_for_all_groups(
     return inputs
 
 
+class InvalidTopologyException(Exception):
+    pass
+
+
+def validate_parallel_for_fan_in_consumption_legal(
+    consumer_task_name: str,
+    upstream_groups: List[str],
+    group_name_to_group: Dict[str, tasks_group.TasksGroup],
+) -> None:
+    """Checks that a dsl.Collected object is being used results in an
+    unambiguous pipeline topology and is therefore legal.
+
+    Args:
+        consumer_task_name: The name of the consumer task.
+        upstream_groups: The names of the producer task's upstream groups, ordered from outermost group at beginning to producer task at end. This is produced by produced by _get_uncommon_ancestors.
+        group_name_to_group: Map of group name to TasksGroup, for fast lookups.
+    """
+    # handles cases like this:
+    # @dsl.pipeline
+    # def my_pipeline():
+    #     with dsl.ParallelFor([1, 2, 3]) as x:
+    #         t = double(num=x)
+    #         x = add(dsl.Collected(t.output))
+    #
+    # and this:
+    # @dsl.pipeline
+    # def my_pipeline():
+    #     t = double(num=1)
+    #     x = add(dsl.Collected(t.output))
+    producer_task_idx = -1
+    producer_task_name = upstream_groups[producer_task_idx]
+    if all(group_name_to_group[group_name].group_type !=
+           tasks_group.TasksGroupType.FOR_LOOP
+           for group_name in upstream_groups[:producer_task_idx]):
+        raise InvalidTopologyException(
+            f'dsl.{for_loop.Collected.__name__} can only be used to fan-in outputs produced by a task within a dsl.{tasks_group.ParallelFor.__name__} context to a task outside of the dsl.{tasks_group.ParallelFor.__name__} context. Producer task {producer_task_name} is either not in a dsl.{tasks_group.ParallelFor.__name__} context or is only in a dsl.{tasks_group.ParallelFor.__name__} that also contains consumer task {consumer_task_name}.'
+        )
+
+    # illegal if the producer has a parent conditional outside of its outermost for loop, since the for loop may or may not be executed
+    # for example, what happens if text == 'b'? the resulting execution behavior is ambiguous.
+    #
+    # @dsl.pipeline
+    # def my_pipeline(text: str = ''):
+    #     with dsl.Condition(text == 'a'):
+    #         with dsl.ParallelFor([1, 2, 3]) as x:
+    #             t = double(num=x)
+    #     x = add(nums=dsl.Collected(t.output))
+    outermost_uncommon_upstream_group = upstream_groups[0]
+    group = group_name_to_group[outermost_uncommon_upstream_group]
+    if group.group_type in [
+            tasks_group.TasksGroupType.CONDITION,
+            tasks_group.TasksGroupType.EXIT_HANDLER,
+    ]:
+        raise InvalidTopologyException(
+            f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} When using dsl.{for_loop.Collected.__name__} to fan-in outputs from a task within a dsl.{tasks_group.ParallelFor.__name__} context, the dsl.{tasks_group.ParallelFor.__name__} context manager cannot be nested within a dsl.{group.__class__.__name__} context manager unless the consumer task is too. Task {consumer_task_name} consumes from {producer_task_name} within a dsl.{group.__class__.__name__} context.'
+        )
+    elif group.group_type != tasks_group.TasksGroupType.FOR_LOOP:
+        raise ValueError(
+            f'Got unexpected group type when validating fanning-in outputs from task in dsl.{tasks_group.ParallelFor.__name__}: {group.group_type}'
+        )
+
+
+def make_new_channel_for_collected_outputs(
+    channel_name: str,
+    starting_channel: pipeline_channel.PipelineChannel,
+    task_name: str,
+) -> pipeline_channel.PipelineChannel:
+    """Creates a new PipelineParameterChannel/PipelineArtifactChannel (with
+    type List) from a Collected channel, a PipelineParameterChannel, or a
+    PipelineArtifactChannel."""
+    return starting_channel.__class__(
+        channel_name,
+        channel_type=starting_channel.channel_type if isinstance(
+            starting_channel, pipeline_channel.PipelineArtifactChannel) else
+        'LIST',
+        task_name=task_name,
+    )
+
+
+def get_outputs_for_all_groups(
+    pipeline: pipeline_context.Pipeline,
+    task_name_to_parent_groups: Mapping[str, List[str]],
+    group_name_to_parent_groups: Mapping[str, List[str]],
+    all_groups: List[tasks_group.TasksGroup],
+    pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel]
+) -> Tuple[DefaultDict[str, Dict[str, pipeline_channel.PipelineChannel]], Dict[
+        str, pipeline_channel.PipelineChannel]]:
+    """Gets a dictionary of all TasksGroup names to an inner dictionary. The
+    inner dictionary is TasksGroup output keys to channels corresponding to
+    those keys.
+
+    It constructs this dictionary from both data passing within the pipeline body, as well as the outputs returned from the pipeline (e.g., return dsl.Collected(...)).
+
+    Also returns as the second item of tuple the updated pipeline_outputs_dict. This dict is modified so that the values (PipelineChannel) references the group that surfaces the task output, instead of the original task that produced it.
+    """
+
+    # unlike inputs, which will be surfaced as component input parameters,
+    # consumers of surfaced outputs need to have a reference to what the parent
+    # component calls them when they surface them, which will be different than
+    # the producer task name and channel name (the information contained in the
+    # pipeline channel)
+    # for this reason, we use additional_input_name_for_pipeline_channel here
+    # to set the name of the surfaced output once
+
+    group_name_to_group = {group.name: group for group in all_groups}
+    group_name_to_children = {
+        group.name: [group.name for group in group.groups] +
+        [task.name for task in group.tasks] for group in all_groups
+    }
+
+    outputs = collections.defaultdict(dict)
+
+    # handle dsl.Collected consumed by tasks
+    for task in pipeline.tasks.values():
+        for channel in task.channel_inputs:
+            if not isinstance(channel, for_loop.Collected):
+                continue
+            producer_task = pipeline.tasks[channel.task_name]
+            consumer_task = task
+
+            upstream_groups, downstream_groups = (
+                _get_uncommon_ancestors(
+                    task_name_to_parent_groups=task_name_to_parent_groups,
+                    group_name_to_parent_groups=group_name_to_parent_groups,
+                    task1=producer_task,
+                    task2=consumer_task,
+                ))
+            validate_parallel_for_fan_in_consumption_legal(
+                consumer_task_name=consumer_task.name,
+                upstream_groups=upstream_groups,
+                group_name_to_group=group_name_to_group,
+            )
+
+            # producer_task's immediate parent group and the name by which
+            # to surface the channel
+            surfaced_output_name = additional_input_name_for_pipeline_channel(
+                channel)
+
+            # the highest-level task group that "consumes" the
+            # collected output
+            parent_consumer = downstream_groups[0]
+            producer_task_name = upstream_groups.pop()
+
+            # process from the upstream groups from the inside out
+            for upstream_name in reversed(upstream_groups):
+                outputs[upstream_name][
+                    surfaced_output_name] = make_new_channel_for_collected_outputs(
+                        channel_name=channel.name,
+                        starting_channel=channel.output,
+                        task_name=producer_task_name,
+                    )
+
+                # on each iteration, mutate the channel being consumed so
+                # that it references the last parent group surfacer
+                channel.name = surfaced_output_name
+                channel.task_name = upstream_name
+
+                # for the next iteration, set the consumer to the current
+                # surfacer (parent group)
+                producer_task_name = upstream_name
+
+                parent_of_current_surfacer = group_name_to_parent_groups[
+                    upstream_name][-2]
+                if parent_consumer in group_name_to_children[
+                        parent_of_current_surfacer]:
+                    break
+
+        # handle dsl.Collected returned from pipeline
+        for output_key, channel in pipeline_outputs_dict.items():
+            if isinstance(channel, for_loop.Collected):
+                surfaced_output_name = additional_input_name_for_pipeline_channel(
+                    channel)
+                upstream_groups = task_name_to_parent_groups[
+                    channel.task_name][1:]
+                producer_task_name = upstream_groups.pop()
+                # process upstream groups from the inside out, until getting to the pipeline level
+                for upstream_name in reversed(upstream_groups):
+                    new_channel = make_new_channel_for_collected_outputs(
+                        channel_name=channel.name,
+                        starting_channel=channel.output,
+                        task_name=producer_task_name,
+                    )
+
+                    # on each iteration, mutate the channel being consumed so
+                    # that it references the last parent group surfacer
+                    channel.name = surfaced_output_name
+                    channel.task_name = upstream_name
+
+                    # for the next iteration, set the consumer to the current
+                    # surfacer (parent group)
+                    producer_task_name = upstream_name
+                    outputs[upstream_name][surfaced_output_name] = new_channel
+
+                # after surfacing from all inner TasksGroup, change the PipelineChannel output to also return from the correct TasksGroup
+                pipeline_outputs_dict[
+                    output_key] = make_new_channel_for_collected_outputs(
+                        channel_name=surfaced_output_name,
+                        starting_channel=channel.output,
+                        task_name=upstream_name,
+                    )
+    return outputs, pipeline_outputs_dict
+
+
 def _get_uncommon_ancestors(
-    task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
-    group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
+    task_name_to_parent_groups: Mapping[str, List[str]],
+    group_name_to_parent_groups: Mapping[str, List[str]],
     task1: GroupOrTaskType,
     task2: GroupOrTaskType,
 ) -> Tuple[List[GroupOrTaskType], List[GroupOrTaskType]]:
@@ -372,8 +588,8 @@ def _get_uncommon_ancestors(
 
 def get_dependencies(
     pipeline: pipeline_context.Pipeline,
-    task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
-    group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
+    task_name_to_parent_groups: Mapping[str, List[str]],
+    group_name_to_parent_groups: Mapping[str, List[str]],
     group_name_to_group: Mapping[str, tasks_group.TasksGroup],
     condition_channels: Dict[str, pipeline_channel.PipelineChannel],
 ) -> Mapping[str, List[GroupOrTaskType]]:
@@ -436,34 +652,37 @@ def get_dependencies(
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
-                if isinstance(dependent_group, tasks_group.ExitHandler):
-                    task_group_type = 'an ' + tasks_group.ExitHandler.__name__
 
-                elif isinstance(dependent_group, tasks_group.Condition):
-                    task_group_type = 'a ' + tasks_group.Condition.__name__
-
-                else:
-                    task_group_type = 'a ' + tasks_group.ParallelFor.__name__
-
-                raise RuntimeError(
-                    f'Tasks cannot depend on an upstream task inside {task_group_type} that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
-                )
+                if isinstance(dependent_group,
+                              (tasks_group.Condition, tasks_group.ExitHandler)):
+                    raise InvalidTopologyException(
+                        f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
+                    )
+                elif isinstance(dependent_group, tasks_group.ParallelFor):
+                    raise InvalidTopologyException(
+                        f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl.{for_loop.Collected.__name__}. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
+                    )
 
             # ParralelFor Nested Check
             # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
-            upstream_parent_tasks = task_name_to_parent_groups[
-                upstream_task.name]
-            for group in downstream_groups:
-                if isinstance(
-                        group_name_to_group.get(group, None),
-                        tasks_group.ParallelFor):
-                    for parent_task in upstream_parent_tasks:
-                        if isinstance(
-                                group_name_to_group.get(parent_task, None),
-                                tasks_group.ParallelFor):
-                            raise RuntimeError(
-                                f'Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
-                            )
+            # only check when upstream_task is a PipelineTask, since checking
+            # for TasksGroup results in catching dsl.Collected cases.
+            if isinstance(upstream_task, pipeline_task.PipelineTask):
+                upstream_parent_tasks = task_name_to_parent_groups[
+                    upstream_task.name]
+
+                for group in downstream_groups:
+                    if isinstance(
+                            group_name_to_group.get(group, None),
+                            tasks_group.ParallelFor):
+                        for parent_task in upstream_parent_tasks:
+                            if isinstance(
+                                    group_name_to_group.get(parent_task, None),
+                                    tasks_group.ParallelFor):
+
+                                raise InvalidTopologyException(
+                                    f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
+                                )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
 

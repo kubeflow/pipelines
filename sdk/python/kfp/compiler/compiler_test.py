@@ -29,6 +29,7 @@ from kfp import components
 from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
+from kfp.compiler import compiler_utils
 from kfp.components.types import type_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
@@ -443,8 +444,9 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.ParallelFor context\.'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -452,27 +454,6 @@ class TestCompilePipeline(parameterized.TestCase):
                     producer_task = producer_op()
 
                 dummy_op(msg=producer_task.output)
-
-    def test_valid_data_dependency_loop(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(val: bool):
-            with dsl.ParallelFor(['a, b']):
-                producer_task = producer_op()
-                dummy_op(msg=producer_task.output)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            package_path = os.path.join(tmpdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
 
     def test_invalid_data_dependency_condition(self):
 
@@ -485,8 +466,9 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -527,8 +509,9 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -1533,8 +1516,9 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_upstream_inside_deeper_condition_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1587,8 +1571,9 @@ class TestValidLegalTopologies(unittest.TestCase):
             self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1627,8 +1612,9 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_upstream_inside_deeper_nested_condition_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1663,8 +1649,9 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1683,8 +1670,9 @@ class TestValidLegalTopologies(unittest.TestCase):
             self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1704,7 +1692,7 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
+                compiler_utils.InvalidTopologyException,
                 r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
         ):
 
@@ -1775,7 +1763,10 @@ class TestValidLegalTopologies(unittest.TestCase):
 class TestCannotUseAfterCrossDAG(unittest.TestCase):
 
     def test_inner_task_prevented(self):
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -1800,7 +1791,10 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                     pipeline_func=my_pipeline, package_path=package_path)
 
     def test_exit_handler_task_prevented(self):
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -1851,7 +1845,10 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_outside_of_condition_blocked(self):
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -2650,6 +2647,246 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
             def my_pipeline(x: Input[Artifact] = Artifact(
                 name='', uri='', metadata={})):
                 comp()
+
+
+class TestCrossTasksGroupFanInCollection(unittest.TestCase):
+
+    def test_missing_collected_with_correct_annotation(self):
+        from typing import List
+
+        from kfp import dsl
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                'Argument type "NUMBER_INTEGER" is incompatible with the input type "LIST"'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline() -> int:
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
+
+                return add(nums=t.output).output
+
+    def test_missing_collected_with_incorrect_annotation(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: int) -> int:
+            return nums
+
+        # the annotation is incorrect, but the user didn't use dsl.Collected
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task add which depends on upstream task double within an uncommon dsl\.ParallelFor context\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline() -> int:
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
+
+                return add(nums=t.output).output
+
+    def test_producer_condition_legal1(self):
+        from kfp import dsl
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        @dsl.pipeline
+        def math_pipeline(text: str) -> int:
+            with dsl.Condition(text == 'text'):
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
+
+                return add(nums=dsl.Collected(t.output)).output
+
+    def test_producer_condition_legal2(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        @dsl.pipeline
+        def my_pipeline(a: str):
+            with dsl.ParallelFor([1, 2, 3]) as v:
+                with dsl.Condition(v == 1):
+                    t = double(num=v)
+
+            with dsl.Condition(a == 'a'):
+                x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_condition_illegal1(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(a: str = '', b: str = ''):
+                with dsl.Condition(a == 'a'):
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
+
+                with dsl.Condition(b == 'b'):
+                    x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_condition_illegal2(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(a: str = ''):
+                with dsl.Condition(a == 'a'):
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
+                add(nums=dsl.Collected(t.output))
+
+    def test_producer_exit_handler_illegal1(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def exit_comp():
+            print('Running exit task!')
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.ExitHandler context manager unless the consumer task is too\. Task add consumes from double within a dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                with dsl.ExitHandler(exit_comp()):
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
+                add(nums=dsl.Collected(t.output))
+
+    def test_parallelfor_nested_legal_params1(self):
+
+        @dsl.component
+        def add_two_ints(num1: int, num2: int) -> int:
+            return num1 + num2
+
+        @dsl.component
+        def add(nums: List[List[int]]) -> int:
+            import itertools
+            return sum(itertools.chain(*nums))
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]) as v1:
+                with dsl.ParallelFor([1, 2, 3]) as v2:
+                    t = add_two_ints(num1=v1, num2=v2)
+
+            x = add(nums=dsl.Collected(t.output))
+
+    def test_parallelfor_nested_legal_params2(self):
+
+        @dsl.component
+        def add_two_ints(num1: int, num2: int) -> int:
+            return num1 + num2
+
+        @dsl.component
+        def add(nums: List[List[int]]) -> int:
+            import itertools
+            return sum(itertools.chain(*nums))
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]) as v1:
+                with dsl.ParallelFor([1, 2, 3]) as v2:
+                    t = add_two_ints(num1=v1, num2=v2)
+
+                x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_and_consumer_in_same_context(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline():
+                with dsl.ParallelFor([1, 2, 3]) as x:
+                    t = double(num=x)
+                    add(nums=dsl.Collected(t.output))
+
+    def test_no_parallelfor_context(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline():
+                t = double(num=1)
+                add(nums=dsl.Collected(t.output))
 
 
 if __name__ == '__main__':
