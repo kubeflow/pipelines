@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,8 +28,6 @@ from kfp.dsl import OutputPath
 def bigquery_ml_arima_coefficients(
     project: str,
     model: Input[BQMLModel],
-    # TODO(b/243411151): misalignment of arguments in documentation vs function
-    # signature.
     arima_coefficients: Output[Artifact],
     gcp_resources: OutputPath(str),
     location: str = 'us-central1',
@@ -43,21 +41,27 @@ def bigquery_ml_arima_coefficients(
   This function only applies to the time-series ARIMA_PLUS and ARIMA models.
 
     Args:
-        project (str): Required. Project to run the BigQuery job.
-        location (Optional[str]): Location to run the BigQuery job. If not set,
+        project (str):
+          Required. Project to run the BigQuery job.
+        location (Optional[str]):
+          Location to run the BigQuery job. If not set,
           default to `US` multi-region. For more details, see
           https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-        model (google.BQMLModel): Required. BigQuery ML model for
+        model (google.BQMLModel):
+          Required. BigQuery ML model for
           ML.ARIMA_COEFFICIENTS. For more details, see
           https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients
-        query_parameters (Optional[Sequence]): jobs.query parameters for
+        query_parameters (Optional[Sequence]):
+          Query parameters for
           standard SQL queries. If query_parameters are both specified in here
           and in job_configuration_query, the value in here will override the
           other one.
-        job_configuration_query (Optional[dict]): A json formatted string
+        job_configuration_query (Optional[dict]):
+          A json formatted string
           describing the rest of the job configuration. For more details, see
           https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-        encryption_spec_key_name(Optional[List[str]]): Describes the Cloud
+        encryption_spec_key_name(Optional[List[str]]):
+          Describes the Cloud
           KMS encryption key that will be used to protect destination
           BigQuery table. The BigQuery Service Account associated with your
           project requires access to this encryption key. If
@@ -78,8 +82,10 @@ def bigquery_ml_arima_coefficients(
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
       command=[
-          'python3', '-u', '-m',
-          'google_cloud_pipeline_components.container.v1.bigquery.ml_arima_coefficients.launcher'
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.bigquery.ml_arima_coefficients.launcher',
       ],
       args=[
           '--type',
@@ -90,23 +96,37 @@ def bigquery_ml_arima_coefficients(
           location,
           '--model_name',
           ConcatPlaceholder([
-              "{{$.inputs.artifacts['model'].metadata['projectId']}}", '.',
-              "{{$.inputs.artifacts['model'].metadata['datasetId']}}", '.',
-              "{{$.inputs.artifacts['model'].metadata['modelId']}}"
+              "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+              '.',
+              "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+              '.',
+              "{{$.inputs.artifacts['model'].metadata['modelId']}}",
           ]),
           '--payload',
           ConcatPlaceholder([
-              '{', '"configuration": {', '"query": ', job_configuration_query,
-              ', "labels": ', labels, '}', '}'
+              '{',
+              '"configuration": {',
+              '"query": ',
+              job_configuration_query,
+              ', "labels": ',
+              labels,
+              '}',
+              '}',
           ]),
           '--job_configuration_query_override',
           ConcatPlaceholder([
-              '{', '"query_parameters": ', query_parameters,
-              ', "destination_encryption_configuration": {', '"kmsKeyName": "',
-              encryption_spec_key_name, '"}', '}'
+              '{',
+              '"query_parameters": ',
+              query_parameters,
+              ', "destination_encryption_configuration": {',
+              '"kmsKeyName": "',
+              encryption_spec_key_name,
+              '"}',
+              '}',
           ]),
           '--gcp_resources',
           gcp_resources,
           '--executor_input',
           '{{$}}',
-      ])
+      ],
+  )

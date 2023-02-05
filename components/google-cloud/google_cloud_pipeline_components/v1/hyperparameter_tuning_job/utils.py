@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors
+# Copyright 2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ def serialize_parameters(parameters: dict) -> list:
   """Serializes the hyperparameter tuning parameter spec to dictionary format.
 
   Args:
-      parameters (Dict[str, hyperparameter_tuning._ParameterSpec]): Dictionary
+      parameters (Dict[str, hyperparameter_tuning._ParameterSpec]):
+        Dictionary
         representing parameters to optimize. The dictionary key is the
         parameter_id, which is passed into your training job as a command line
         key word argument, and the dictionary value is the parameter
@@ -41,7 +42,8 @@ def serialize_parameters(parameters: dict) -> list:
   """
   return [
       study.StudySpec.ParameterSpec.to_dict(
-          parameter._to_parameter_spec(parameter_id=parameter_id))
+          parameter._to_parameter_spec(parameter_id=parameter_id)
+      )
       for parameter_id, parameter in parameters.items()
   ]
 
@@ -50,7 +52,8 @@ def serialize_metrics(metric_spec: dict) -> list:
   """Serializes a metric spec to dictionary format.
 
   Args:
-      metric_spec (Dict[str, str]): Required. Dictionary representing metrics to
+      metric_spec (Dict[str, str]):
+        Required. Dictionary representing metrics to
         optimize. The dictionary key is the metric_id, which is reported by your
         training job, and the dictionary value is the optimization goal of the
         metric ('minimize' or 'maximize'). Example: metrics = {'loss':
@@ -61,8 +64,9 @@ def serialize_metrics(metric_spec: dict) -> list:
   """
   return [
       study.StudySpec.MetricSpec.to_dict(
-          study.StudySpec.MetricSpec({
-              'metric_id': metric_id,
-              'goal': goal.upper()
-          })) for metric_id, goal in metric_spec.items()
+          study.StudySpec.MetricSpec(
+              {'metric_id': metric_id, 'goal': goal.upper()}
+          )
+      )
+      for metric_id, goal in metric_spec.items()
   ]

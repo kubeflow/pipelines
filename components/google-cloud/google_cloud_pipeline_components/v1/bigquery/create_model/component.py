@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,8 +27,6 @@ from kfp.dsl import OutputPath
 def bigquery_create_model_job(
     project: str,
     query: str,
-    # TODO(b/243411151): misalignment of arguments in documentation vs function
-    # signature.
     model: Output[BQMLModel],
     gcp_resources: OutputPath(str),
     location: str = 'us-central1',
@@ -38,44 +36,50 @@ def bigquery_create_model_job(
 ):
   """Launch a BigQuery create model job and waits for it to finish.
 
-    Args:
-        project (str): Required. Project to run BigQuery model creation job.
-        location (Optional[str]): Location of the job to create the BigQuery
-          model. If not set, default to `US` multi-region.  For more details,
-          see
-          https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-        query (str): Required. SQL query text to execute. Only standard SQL is
-          supported.  If query are both specified in here and in
-          job_configuration_query, the value in here will override the other
-          one.
-        query_parameters (Optional[Sequence]): jobs.query parameters for
-          standard SQL queries.  If query_parameters are both specified in here
-          and in job_configuration_query, the value in here will override the
-          other one.
-        job_configuration_query (Optional[dict]): A json formatted string
-          describing the rest of the job configuration.  For more details, see
-          https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-        labels (Optional[dict]): The labels associated with this job. You can
-          use these to organize and group your jobs. Label keys and values can
-          be no longer than 63 characters, can only containlowercase letters,
-          numeric characters, underscores and dashes. International characters
-          are allowed. Label values are optional. Label keys must start with a
-          letter and each label in the list must have a different key.
-            Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+  Args:
+      project (str):
+        Required. Project to run BigQuery model creation job.
+      location (Optional[str]):
+        Location of the job to create the BigQuery model. If not set, default to
+        `US` multi-region.  For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      query (str):
+        Required. SQL query text to execute. Only standard SQL is
+        supported.  If query are both specified in here and in
+        job_configuration_query, the value in here will override the other
+        one.
+      query_parameters (Optional[Sequence]):
+        Query parameters for standard SQL queries.
+        If query_parameters are both specified in here and in
+        job_configuration_query, the value in here will override the other one.
+      job_configuration_query (Optional[dict]):
+        A json formatted string describing the rest of the job configuration.
+        For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      labels (Optional[dict]):
+        The labels associated with this job. You can
+        use these to organize and group your jobs. Label keys and values can
+        be no longer than 63 characters, can only containlowercase letters,
+        numeric characters, underscores and dashes. International characters
+        are allowed. Label values are optional. Label keys must start with a
+        letter and each label in the list must have a different key.
+          Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
 
-    Returns:
-        model (google.BQMLModel):
-          Describes the model which is created.
-        gcp_resources (str):
-            Serialized gcp_resources proto tracking the BigQuery job.
-            For more details, see
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+  Returns:
+      model (google.BQMLModel):
+        Describes the model which is created.
+      gcp_resources (str):
+        Serialized gcp_resources proto tracking the BigQuery job.
+        For more details, see
+        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
       command=[
-          'python3', '-u', '-m',
-          'google_cloud_pipeline_components.container.v1.bigquery.create_model.launcher'
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.bigquery.create_model.launcher',
       ],
       args=[
           '--type',
@@ -86,16 +90,28 @@ def bigquery_create_model_job(
           location,
           '--payload',
           ConcatPlaceholder([
-              '{', '"configuration": {', '"query": ', job_configuration_query,
-              ', "labels": ', labels, '}', '}'
+              '{',
+              '"configuration": {',
+              '"query": ',
+              job_configuration_query,
+              ', "labels": ',
+              labels,
+              '}',
+              '}',
           ]),
           '--job_configuration_query_override',
           ConcatPlaceholder([
-              '{', '"query": "', query, '"', ', "query_parameters": ',
-              query_parameters, '}'
+              '{',
+              '"query": "',
+              query,
+              '"',
+              ', "query_parameters": ',
+              query_parameters,
+              '}',
           ]),
           '--gcp_resources',
           gcp_resources,
           '--executor_input',
           '{{$}}',
-      ])
+      ],
+  )
