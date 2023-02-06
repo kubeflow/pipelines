@@ -14,6 +14,7 @@
 """GCP remote runner for batch prediction jobs based on the AI Platform SDK."""
 
 import json
+import logging
 import re
 
 from google.api_core import retry
@@ -47,6 +48,9 @@ def create_batch_prediction_job_with_client(job_client, parent, job_spec):
   job_spec = sanitize_job_spec(job_spec)
   create_batch_prediction_job_fn = None
   try:
+    logging.info(
+        'Creating Batch Prediction job with sanitized job spec: %s', job_spec
+    )
     create_batch_prediction_job_fn = job_client.create_batch_prediction_job(
         parent=parent, batch_prediction_job=job_spec)
   except (ConnectionError, RuntimeError) as err:
@@ -118,10 +122,17 @@ def create_batch_prediction_job(
     # Create batch prediction job if it does not exist
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
+      formatted_batch_prediction_payload = insert_system_labels_into_payload(
+          insert_artifact_into_payload(executor_input, payload)
+      )
+      logging.info(
+          'Batch prediction payload formatted: %s',
+          formatted_batch_prediction_payload,
+      )
       job_name = remote_runner.create_job(
           create_batch_prediction_job_with_client,
-          insert_system_labels_into_payload(
-              insert_artifact_into_payload(executor_input, payload)))
+          formatted_batch_prediction_payload,
+      )
 
     # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
     get_job_response = remote_runner.poll_job(
