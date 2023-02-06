@@ -511,7 +511,7 @@ func (s *RunServer) retryRun(ctx context.Context, runId string, experimentId str
 		return util.Wrap(err, "Failed to fetch a run")
 	}
 	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to terminate a run")
+		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to retry a run")
 	}
 	return s.resourceManager.RetryRun(ctx, runId)
 }
