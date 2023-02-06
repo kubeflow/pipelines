@@ -407,7 +407,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.PipelineSpec.PipelineId = pipelineVersion.PipelineId
 	run.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
 	run.PipelineSpec.PipelineName = pipelineVersion.Name
-	if manifest == "" && pipelineVersion != nil {
+	if manifest == "" {
 		manifest = pipelineVersion.PipelineSpec
 	}
 	// Get manifest from either of the two places:
@@ -421,7 +421,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec manifest")
 		}
-		// If manifest if empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
+		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
 		if manifest == "" {
 			manifest = string(tempBytes)
 		}
@@ -1068,7 +1068,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	job.PipelineSpec.PipelineId = pipelineVersion.PipelineId
 	job.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
 	job.PipelineSpec.PipelineName = pipelineVersion.Name
-	if manifest == "" && pipelineVersion != nil {
+	if manifest == "" {
 		manifest = pipelineVersion.PipelineSpec
 	}
 	// Get manifest from either of the two places:
@@ -1083,7 +1083,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec manifest")
 		}
-		// If manifest if empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
+		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
 		if manifest == "" {
 			manifest = string(tempBytes)
 		}
