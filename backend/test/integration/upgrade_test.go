@@ -62,7 +62,7 @@ func (s *UpgradeTests) TestVerify() {
 	s.VerifyPipelines()
 	s.VerifyRuns()
 	s.VerifyJobs()
-	s.TestCreatingRunsAndJobs()
+	s.VerifyCreatingRunsAndJobs()
 }
 
 // Check the namespace have ML job installed and ready
@@ -359,7 +359,77 @@ func (s *UpgradeTests) VerifyRuns() {
 	checkHelloWorldRunDetail(t, helloWorldRunDetail)
 }
 
-func (s *UpgradeTests) TestCreatingRunsAndJobs() {
+func (s *UpgradeTests) PrepareJobs() {
+	t := s.T()
+
+	pipeline := s.getHelloWorldPipeline(true)
+	experiment := s.getHelloWorldExperiment(true)
+
+	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
+	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+		Name:        "hello world",
+		Description: "this is hello world",
+		PipelineSpec: &job_model.APIPipelineSpec{
+			PipelineID: pipeline.ID,
+		},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
+		},
+		MaxConcurrency: 10,
+		Enabled:        true,
+		NoCatchup:      true,
+	}}
+	_, err := s.jobClient.Create(createJobRequest)
+	require.Nil(t, err)
+}
+
+func (s *UpgradeTests) VerifyJobs() {
+	t := s.T()
+
+	pipeline := s.getHelloWorldPipeline(false)
+	experiment := s.getHelloWorldExperiment(false)
+
+	/* ---------- Get hello world job ---------- */
+	jobs, _, _, err := test.ListAllJobs(s.jobClient, s.resourceNamespace)
+	require.Nil(t, err)
+	require.Len(t, jobs, 1)
+	job := jobs[0]
+
+	// Check workflow manifest is not empty
+	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
+	expectedJob := &job_model.APIJob{
+		ID:          job.ID,
+		Name:        "hello world",
+		Description: "this is hello world",
+		PipelineSpec: &job_model.APIPipelineSpec{
+			PipelineID:       pipeline.ID,
+			PipelineName:     "hello-world.yaml",
+			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{
+				Key:  &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
+			},
+		},
+		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
+		MaxConcurrency: 10,
+		NoCatchup:      true,
+		Enabled:        true,
+		CreatedAt:      job.CreatedAt,
+		UpdatedAt:      job.UpdatedAt,
+		Status:         job.Status,
+	}
+
+	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences), "Inconsistent resource references: %v does not contain %v", job.ResourceReferences, expectedJob.ResourceReferences)
+	expectedJob.ResourceReferences = job.ResourceReferences
+	assert.Equal(t, expectedJob, job)
+}
+
+func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 	t := s.T()
 
 	/* ---------- Get the oldest pipeline and the newest experiment ---------- */
@@ -479,76 +549,6 @@ func (s *UpgradeTests) TestCreatingRunsAndJobs() {
 			},
 		},
 	))
-}
-
-func (s *UpgradeTests) PrepareJobs() {
-	t := s.T()
-
-	pipeline := s.getHelloWorldPipeline(true)
-	experiment := s.getHelloWorldExperiment(true)
-
-	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
-		Name:        "hello world",
-		Description: "this is hello world",
-		PipelineSpec: &job_model.APIPipelineSpec{
-			PipelineID: pipeline.ID,
-		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER,
-			},
-		},
-		MaxConcurrency: 10,
-		Enabled:        true,
-		NoCatchup:      true,
-	}}
-	_, err := s.jobClient.Create(createJobRequest)
-	require.Nil(t, err)
-}
-
-func (s *UpgradeTests) VerifyJobs() {
-	t := s.T()
-
-	pipeline := s.getHelloWorldPipeline(false)
-	experiment := s.getHelloWorldExperiment(false)
-
-	/* ---------- Get hello world job ---------- */
-	jobs, _, _, err := test.ListAllJobs(s.jobClient, s.resourceNamespace)
-	require.Nil(t, err)
-	require.Len(t, jobs, 1)
-	job := jobs[0]
-
-	// Check workflow manifest is not empty
-	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
-	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
-		PipelineSpec: &job_model.APIPipelineSpec{
-			PipelineID:       pipeline.ID,
-			PipelineName:     "hello-world.yaml",
-			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{
-				Key:  &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
-			},
-		},
-		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
-		MaxConcurrency: 10,
-		NoCatchup:      true,
-		Enabled:        true,
-		CreatedAt:      job.CreatedAt,
-		UpdatedAt:      job.UpdatedAt,
-		Status:         job.Status,
-	}
-
-	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences), "Inconsistent resource references: %v does not contain %v", job.ResourceReferences, expectedJob.ResourceReferences)
-	expectedJob.ResourceReferences = job.ResourceReferences
-	assert.Equal(t, expectedJob, job)
 }
 
 func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
