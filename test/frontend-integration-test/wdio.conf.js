@@ -40,15 +40,18 @@ exports.config = {
     timeout: 1200000,
   },
   logLevel: debug ? 'info' : 'silent',
-  reporters: ['spec', 'junit'],
-  reporterOptions: {
-    junit: {
-      outputDir: './',
-      outputFileFormat: function (options) {
-        return 'junit_FrontendIntegrationTestOutput.xml';
+  reporters: [
+    'spec',
+    [
+      'junit',
+      {
+        outputDir: './',
+        outputFileFormat: function (options) {
+          return 'junit_FrontendIntegrationTestOutput.xml';
+        },
       },
-    },
-  },
+    ],
+  ],
   services: debug ? [['selenium-standalone', { drivers: { chrome: 'latest' } }]] : [],
   specs: ['./helloworld.spec.js'],
   sync: true,
