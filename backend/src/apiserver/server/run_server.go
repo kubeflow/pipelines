@@ -499,7 +499,17 @@ func (s *RunServer) terminateRun(ctx context.Context, runId string, experimentId
 	return s.resourceManager.TerminateRun(ctx, runId)
 }
 
-// Terminates a run.
+// Restarts a run. Not exported.
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *RunServer) retryRun(ctx context.Context, runId string, experimentId string) error {
+	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize the request")
+	}
+	return s.resourceManager.RetryRun(ctx, runId)
+}
+
+// Retarts a run.
 // Supports v1beta1 behavior.
 func (s *RunServer) TerminateRunV1(ctx context.Context, request *apiv1beta1.TerminateRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
@@ -519,14 +529,11 @@ func (s *RunServer) RetryRunV1(ctx context.Context, request *apiv1beta1.RetryRun
 		retryRunRequests.Inc()
 	}
 
-	err := s.canAccessRun(ctx, request.GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
+	err := s.retryRun(ctx, request.GetRunId(), "")
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
+		return nil, util.Wrap(err, "Failed to retry a run")
 	}
-	err = s.resourceManager.RetryRun(ctx, request.GetRunId())
-	if err != nil {
-		return nil, err
-	}
+
 	return &empty.Empty{}, nil
 }
 
@@ -658,6 +665,21 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.Termin
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to terminate a run")
 	}
+	return &empty.Empty{}, nil
+}
+
+// Restarts a run.
+// Supports v2beta1 behavior.
+func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		retryRunRequests.Inc()
+	}
+
+	err := s.retryRun(ctx, request.GetRunId(), request.GetExperimentId())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to retry a run")
+	}
+
 	return &empty.Empty{}, nil
 }
 

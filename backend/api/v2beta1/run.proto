@@ -119,6 +119,13 @@ service RunService {
     };
   }
 
+  // Re-initiates a failed or terminated run.
+ rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
+   option (google.api.http) = {
+     post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry"
+    };
+  }
+
 }
 
 message Run {
@@ -436,4 +443,13 @@ message ReadArtifactRequest {
 message ReadArtifactResponse {
   // Byte array of the artifact content.
   bytes data = 1;
+}
+
+message RetryRunRequest {
+ // The ID of the parent experiment.
+ string experiment_id = 1;
+
+
+ // The ID of the run to be Retried.
+ string run_id = 2;
 }
