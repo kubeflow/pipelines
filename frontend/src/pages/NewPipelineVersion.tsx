@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
+import { Button, Checkbox, FormControlLabel, InputAdornment} from '@material-ui/core';
+// import { Checkbox } from '@material-ui/core';
+// import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
+// import FormControlLabel from '@material-ui/core/FormControlLabel';
+// import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import * as React from 'react';
@@ -413,10 +415,30 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                   style: {
                     maxWidth: 2000,
                     width: 455,
+                    // width: 290,
                   },
                 }}
               />
             </Dropzone>
+            {/* </div>
+            <div> */}
+            <FormControlLabel
+            // style={{ padding: '0px 120px', margin: 0, whiteSpace: 'nowrap' }}
+              // style={{adding: '3px 5px'}}
+              label='Override pipeline name'
+              control={
+                <Checkbox
+                  color='primary'
+                  // checked={customPipelineRootChecked}
+                  onChange={(event, checked) => {
+                    // setCustomPipelineRootChecked(checked);
+                    if (!checked) {
+                      // not overrid the pipeline names
+                    }
+                  }}
+                />
+              }
+            />
           </div>
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
