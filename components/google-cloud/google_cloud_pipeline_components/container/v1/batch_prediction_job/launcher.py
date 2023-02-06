@@ -57,7 +57,10 @@ def main(argv):
   if job_type != 'BatchPredictionJob':
     raise ValueError('Incorrect job type: ' + job_type)
 
-  logging.info('Job started for type: ' + job_type)
+  logging.info(
+      'Starting BatchPredictionJob using the following arguments: %s',
+      parsed_args,
+  )
 
   remote_runner.create_batch_prediction_job(**parsed_args)
 
