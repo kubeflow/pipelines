@@ -535,7 +535,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
-run_id = 'run_id_example' # str | The ID of the run to be Retried.
+run_id = 'run_id_example' # str | The ID of the run to be retried.
 
     try:
         # Re-initiates a failed or terminated run.
@@ -550,7 +550,7 @@ run_id = 'run_id_example' # str | The ID of the run to be Retried.
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **experiment_id** | **str**| The ID of the parent experiment. | 
- **run_id** | **str**| The ID of the run to be Retried. | 
+ **run_id** | **str**| The ID of the run to be retried. | 
 
 ### Return type
 

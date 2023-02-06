@@ -1480,7 +1480,7 @@ type RetryRunRequest struct {
 
 	// The ID of the parent experiment.
 	ExperimentId string `protobuf:"bytes,1,opt,name=experiment_id,json=experimentId,proto3" json:"experiment_id,omitempty"`
-	// The ID of the run to be Retried.
+	// The ID of the run to be retried.
 	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 }
 

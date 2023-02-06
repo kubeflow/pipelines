@@ -895,7 +895,7 @@ class RunServiceApi(object):
 
         :param experiment_id: The ID of the parent experiment. (required)
         :type experiment_id: str
-        :param run_id: The ID of the run to be Retried. (required)
+        :param run_id: The ID of the run to be retried. (required)
         :type run_id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -925,7 +925,7 @@ class RunServiceApi(object):
 
         :param experiment_id: The ID of the parent experiment. (required)
         :type experiment_id: str
-        :param run_id: The ID of the run to be Retried. (required)
+        :param run_id: The ID of the run to be retried. (required)
         :type run_id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional

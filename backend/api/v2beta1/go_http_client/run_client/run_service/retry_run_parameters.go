@@ -67,7 +67,7 @@ type RetryRunParams struct {
 	*/
 	ExperimentID string
 	/*RunID
-	  The ID of the run to be Retried.
+	  The ID of the run to be retried.
 
 	*/
 	RunID string

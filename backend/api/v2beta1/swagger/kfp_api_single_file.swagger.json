@@ -1309,7 +1309,7 @@
           },
           {
             "name": "run_id",
-            "description": "The ID of the run to be Retried.",
+            "description": "The ID of the run to be retried.",
             "in": "path",
             "required": true,
             "type": "string"

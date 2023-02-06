@@ -449,7 +449,6 @@ message RetryRunRequest {
  // The ID of the parent experiment.
  string experiment_id = 1;
 
-
- // The ID of the run to be Retried.
+ // The ID of the run to be retried.
  string run_id = 2;
 }
