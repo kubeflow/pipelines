@@ -44,8 +44,8 @@ exports.config = {
   reporterOptions: {
     junit: {
       outputDir: './',
-      outputFileFormat: {
-        single: () => 'junit_FrontendIntegrationTestOutput.xml',
+      outputFileFormat: function (options) {
+        return 'junit_FrontendIntegrationTestOutput.xml';
       },
     },
   },
