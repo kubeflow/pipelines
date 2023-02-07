@@ -364,27 +364,30 @@ describe('NewPipelineVersion', () => {
 
     it('replaces the pipeline name with uploaded file name if override checkbox is checked', async () => {
       // tree = shallow(<NewPipelineVersion {...generateProps()} />);
-      
-      render(<NewPipelineVersion {...generateProps()}/>)
 
-      const pipelineNameInput = await screen.findByLabelText(/Pipeline name/);
+      render(<NewPipelineVersion {...generateProps()} />);
+
+      const pipelineNameInput = await screen.findByLabelText(/Pipeline Name/);
       fireEvent.change(pipelineNameInput, { target: { value: 'test-pipeline-name' } });
 
       const uploadFileBtn = await screen.findByText('Upload a file');
       fireEvent.click(uploadFileBtn);
 
-      const overrideNameBox = await screen.findByText('Overide pipeline name')
+      const overrideNameBox = await screen.findByText('Override pipeline name');
       fireEvent.click(overrideNameBox);
 
-      const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-
       // mock drop file from local.
+      const uploadFile = await screen.findByText(/File/);
+      const file = new File(['file contents'], 'new-file-name', { type: 'text/plain' });
+      Object.defineProperty(uploadFile, 'files', {
+        value: [file],
+      });
+      fireEvent.drop(uploadFile);
 
-
-
-
-
-    })
+      const createBtn = await screen.findByText('Create');
+      fireEvent.click(createBtn);
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith('new-file-name', '', file);
+    });
 
     it('allows updating pipeline version name', async () => {
       render(

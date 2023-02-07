@@ -151,6 +151,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           <WithStyles(Checkbox)
             checked={false}
             color="primary"
+            disabled={true}
             onChange={[Function]}
           />
         }
