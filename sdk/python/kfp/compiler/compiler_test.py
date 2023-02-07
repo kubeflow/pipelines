@@ -2990,6 +2990,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                 t = double(num=1)
                 add(nums=dsl.Collected(t.output))
 
+
 class TestValidExitHandlerSyntax(unittest.TestCase):
 
     def test_clean_up_on_wrapped_pipeline_permitted(self):
