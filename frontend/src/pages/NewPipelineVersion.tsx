@@ -414,14 +414,11 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                   readOnly: true,
                   style: {
                     maxWidth: 2000,
-                    width: 455,
-                    // width: 290,
+                    width: 290,
                   },
                 }}
               />
             </Dropzone>
-            {/* </div>
-            <div> */}
             <FormControlLabel
             // style={{ padding: '0px 120px', margin: 0, whiteSpace: 'nowrap' }}
               // style={{adding: '3px 5px'}}
@@ -459,7 +456,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               // Find a better to align this input box with others
               style={{
                 maxWidth: 2000,
-                width: 465,
+                width: 470,
               }}
             />
           </div>
