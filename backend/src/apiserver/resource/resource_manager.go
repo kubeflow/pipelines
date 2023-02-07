@@ -387,7 +387,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.ExperimentId = expId
 	run.Namespace = expNs
 
-	// Fetch pipeline version from pipeline spec
+	// Fetch pipeline version based on pipeline spec (do not create anything yet)
 	var wfTemplate *template.Template
 	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(run.PipelineSpec, run.DisplayName, run.Description, run.Namespace)
 	if err != nil {
@@ -397,9 +397,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if manifest == "" {
 		manifest = run.PipelineSpec.WorkflowSpecManifest
 	}
-	if manifest == "" && pipelineVersion != nil {
-		manifest = pipelineVersion.PipelineSpec
-	}
+	// If pipeline version does not exist, create it
 	if pipelineVersion == nil {
 		pipelineVersion, wfTemplate, err = r.createPipelineFromSpecIfNoExisting(manifest, run.Namespace, run.DisplayName, run.Description)
 		if err != nil {
@@ -409,6 +407,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.PipelineSpec.PipelineId = pipelineVersion.PipelineId
 	run.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
 	run.PipelineSpec.PipelineName = pipelineVersion.Name
+	if manifest == "" {
+		manifest = pipelineVersion.PipelineSpec
+	}
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
 	// (2) pipeline version in resource_references
@@ -420,8 +421,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec manifest")
 		}
+		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
+		if manifest == "" {
+			manifest = string(tempBytes)
+		}
+		// Prevent creating runs with inconsistent manifests
 		if string(tempBytes) != manifest {
-			return nil, util.NewInvalidInputError("Failed to create a run due to mismatch in the provided manifest and pipeline version")
+			return nil, util.NewInvalidInputError("Failed to create a run due to mismatch in the provided manifest and pipeline version. You need to create a new parent pipeline version. Or submit a run with an empty pipeline spec manifest (or matching one with the parent pipeline version)")
 		}
 		tmpl, err = template.New(tempBytes)
 		if err != nil {
@@ -1042,7 +1048,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	job.ExperimentId = expId
 	job.Namespace = expNs
 
-	// Fetch pipeline version based on pipeline spec
+	// Fetch pipeline version based on pipeline spec (do not create anything yet)
 	var wfTemplate *template.Template
 	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(job.PipelineSpec, job.DisplayName, job.Description, job.Namespace)
 	if err != nil {
@@ -1052,9 +1058,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	if manifest == "" {
 		manifest = job.PipelineSpec.WorkflowSpecManifest
 	}
-	if manifest == "" && pipelineVersion != nil {
-		manifest = pipelineVersion.PipelineSpec
-	}
+	// If pipeline version does not exist, create it
 	if pipelineVersion == nil {
 		pipelineVersion, wfTemplate, err = r.createPipelineFromSpecIfNoExisting(manifest, job.Namespace, job.DisplayName, job.Description)
 		if err != nil {
@@ -1064,19 +1068,28 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	job.PipelineSpec.PipelineId = pipelineVersion.PipelineId
 	job.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
 	job.PipelineSpec.PipelineName = pipelineVersion.Name
+	if manifest == "" {
+		manifest = pipelineVersion.PipelineSpec
+	}
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
 	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
 	var tmpl template.Template
+	// This should only happen when creating a run from an existing pipeline or pipeline version
 	if wfTemplate == nil {
 		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec manifest")
 		}
+		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
+		if manifest == "" {
+			manifest = string(tempBytes)
+		}
+		// Prevent creating runs with inconsistent manifests
 		if string(tempBytes) != manifest {
-			return nil, util.NewInvalidInputError("Failed to create a recurring run due to mismatch in the provided manifest and pipeline version")
+			return nil, util.NewInvalidInputError("Failed to create a recurring run due to mismatch in the provided manifest and pipeline version. You need to create a new parent pipeline version. Or submit a run with an empty pipeline spec manifest (or matching one with the parent pipeline version)")
 		}
 		tmpl, err = template.New(tempBytes)
 		if err != nil {
