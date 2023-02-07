@@ -14,8 +14,8 @@
 """Functions for creating PipelineSpec proto objects."""
 
 import json
-from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
-                    Union)
+from typing import (Any, DefaultDict, Dict, List, Mapping, NamedTuple, Optional,
+                    Tuple, Union)
 import warnings
 
 from google.protobuf import json_format
@@ -1577,8 +1577,7 @@ def create_pipeline_spec(
 
 
 def convert_pipeline_outputs_to_dict(
-    pipeline_outputs: Union[pipeline_channel.PipelineChannel, typing.NamedTuple,
-                            None]
+    pipeline_outputs: Union[pipeline_channel.PipelineChannel, NamedTuple, None]
 ) -> Dict[str, pipeline_channel.PipelineChannel]:
     """Converts the outputs from a pipeline function into a dictionary of
     output name to PipelineChannel."""

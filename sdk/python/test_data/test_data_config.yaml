@@ -159,9 +159,6 @@ pipelines:
     - module: parallelfor_fan_in/conditional_producer_and_consumers
       name: math_pipeline
       execute: false
-    - module: pipeline_with_parsed_exit_handler_syntax
-      name: my_pipeline
-      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true

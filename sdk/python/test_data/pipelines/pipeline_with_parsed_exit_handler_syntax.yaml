@@ -47,6 +47,7 @@ components:
       parameters:
         message:
           defaultValue: msg
+          isOptional: true
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -62,7 +63,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -89,7 +90,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -139,6 +140,7 @@ root:
     parameters:
       sample_input1:
         defaultValue: message
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.11
