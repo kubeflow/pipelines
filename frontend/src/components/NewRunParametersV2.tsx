@@ -61,12 +61,12 @@ interface NewRunParametersProps {
 }
 
 const protoMap = new Map<string, string>([
-  ['NUMBER_DOUBLE', 'float/double'],
+  ['NUMBER_DOUBLE', 'float / double'],
   ['NUMBER_INTEGER', 'integer'],
   ['STRING', 'string'],
   ['BOOLEAN', 'boolean'],
   ['LIST', 'list'],
-  ['STRUCT', 'map/dict'],
+  ['STRUCT', 'map / dict'],
 ]);
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
@@ -268,7 +268,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
         <div>
           {Object.entries(specParameters).map(([k, v]) => {
             const param = {
-              key: `${k} - ${ParameterType_ParameterTypeEnum[v.parameterType]}`,
+              key: `${k} - ${protoMap.get(ParameterType_ParameterTypeEnum[v.parameterType])}`,
               value: updatedParameters[k],
               type: v.parameterType,
               errorMsg: errorMessages[k],
