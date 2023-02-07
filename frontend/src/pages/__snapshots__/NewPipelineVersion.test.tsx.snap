@@ -134,7 +134,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               "readOnly": true,
               "style": Object {
                 "maxWidth": 2000,
-                "width": 455,
+                "width": 290,
               },
             }
           }
@@ -146,6 +146,16 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           variant="outlined"
         />
       </n>
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        control={
+          <WithStyles(Checkbox)
+            checked={false}
+            color="primary"
+            onChange={[Function]}
+          />
+        }
+        label="Override pipeline name"
+      />
     </div>
     <div
       className="flex"
@@ -170,7 +180,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         style={
           Object {
             "maxWidth": 2000,
-            "width": 465,
+            "width": 470,
           }
         }
         value=""

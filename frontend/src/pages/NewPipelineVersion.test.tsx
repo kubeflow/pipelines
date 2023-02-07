@@ -355,12 +355,36 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
       expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
-        'file_name',
+        'test pipeline name',
         'test pipeline description',
         file,
       );
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });
+
+    it('replaces the pipeline name with uploaded file name if override checkbox is checked', async () => {
+      // tree = shallow(<NewPipelineVersion {...generateProps()} />);
+      
+      render(<NewPipelineVersion {...generateProps()}/>)
+
+      const pipelineNameInput = await screen.findByLabelText(/Pipeline name/);
+      fireEvent.change(pipelineNameInput, { target: { value: 'test-pipeline-name' } });
+
+      const uploadFileBtn = await screen.findByText('Upload a file');
+      fireEvent.click(uploadFileBtn);
+
+      const overrideNameBox = await screen.findByText('Overide pipeline name')
+      fireEvent.click(overrideNameBox);
+
+      const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
+
+      // mock drop file from local.
+
+
+
+
+
+    })
 
     it('allows updating pipeline version name', async () => {
       render(
