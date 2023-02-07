@@ -3,13 +3,15 @@
   "version": "0.0.1",
   "description": "Visual regression end to end test package for ML Pipelines",
   "dependencies": {
-    "lodash": ">=4.17.21",
-    "mocha": "^5.2.0",
-    "wait-port": "^0.2.2",
-    "wdio-junit-reporter": "^0.4.4",
-    "wdio-mocha-framework": "^0.6.2",
-    "wdio-selenium-standalone-service": "0.0.10",
-    "webdriverio": "^4.14.1"
+    "@wdio/cli": "^8.3.2",
+    "@wdio/junit-reporter": "^8.3.0",
+    "@wdio/local-runner": "^8.3.3",
+    "@wdio/mocha-framework": "^8.3.0",
+    "@wdio/selenium-standalone-service": "^8.3.2",
+    "@wdio/spec-reporter": "^8.3.0",
+    "mocha": "^10.2.0",
+    "wait-port": "^1.0.4",
+    "webdriverio": "^8.3.2"
   },
   "scripts": {
     "docker": "docker build -t gcr.io/ml-pipeline/e2e-tests .",

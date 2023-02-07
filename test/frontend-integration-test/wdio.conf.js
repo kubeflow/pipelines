@@ -15,41 +15,45 @@
 const debug = process.env.DEBUG == '1' || process.env.DEBUG == 'true';
 
 exports.config = {
+  runner: 'local',
+  host: '127.0.0.1',
+  port: 4444,
   maxInstances: 1,
   baseUrl: 'http://localhost:3000',
-  capabilities: [{
-    maxInstances: 1,
-    browserName: 'chrome',
-    chromeOptions: {
-      args: debug ? [] : ['--headless', '--disable-gpu'],
+  capabilities: [
+    {
+      maxInstances: 1,
+      browserName: 'chrome',
+      'goog:chromeOptions': {
+        args: ['--headless', '--disable-gpu'],
+      },
     },
-  }],
+  ],
   coloredLogs: true,
   connectionRetryCount: 3,
   connectionRetryTimeout: 90000,
   deprecationWarnings: false,
   framework: 'mocha',
-  host: '127.0.0.1',
-  port: 4444,
   mochaOpts: {
+    ui: 'bdd',
     // units: ms
-    //TODO:Reduce the timeout once the tests become shorter
-    timeout: debug ? 99999999 : 1200000,
+    timeout: 1200000,
   },
-  logLevel: 'silent',
-  reporters: debug ? [] : ['dot', 'junit'],
-  reporterOptions: debug ? {} : {
-    junit: {
-      outputDir: './',
-      outputFileFormat: {
-        single: () => 'junit_FrontendIntegrationTestOutput.xml',
-      }
-    },
-  },
-  services: debug ? ['selenium-standalone'] : [],
-  specs: [
-    './helloworld.spec.js',
+  logLevel: debug ? 'info' : 'silent',
+  reporters: [
+    'spec',
+    [
+      'junit',
+      {
+        outputDir: './',
+        outputFileFormat: function (options) {
+          return 'junit_FrontendIntegrationTestOutput.xml';
+        },
+      },
+    ],
   ],
+  services: debug ? [['selenium-standalone', { drivers: { chrome: 'latest' } }]] : [],
+  specs: ['./helloworld.spec.js'],
   sync: true,
   waitforTimeout: 10000,
-}
+};
