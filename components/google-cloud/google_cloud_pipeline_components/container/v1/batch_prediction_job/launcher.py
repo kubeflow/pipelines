@@ -58,7 +58,7 @@ def main(argv):
     raise ValueError('Incorrect job type: ' + job_type)
 
   logging.info(
-      'Starting BatchPredictionJob using the following arguments: %s',
+      'Starting BatchPredictionJob using the following arguments : %s',
       parsed_args,
   )
 

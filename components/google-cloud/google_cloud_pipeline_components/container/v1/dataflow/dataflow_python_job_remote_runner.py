@@ -185,7 +185,7 @@ def download_blob(source_blob_path, destination_file_path):
   with open(destination_file_path, 'wb+') as f:
     blob.download_to_file(f)
 
-  logging.info('Blob %s downloaded to %s.', source_blob_path,
+  logging.info('Blob %s downloaded  to %s.', source_blob_path,
                destination_file_path)
 
 
