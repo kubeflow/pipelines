@@ -61,6 +61,7 @@ def main(argv):
       'Starting BatchPredictionJob using the following arguments: %s',
       parsed_args,
   )
+  logging.info('test')
 
   remote_runner.create_batch_prediction_job(**parsed_args)
 
