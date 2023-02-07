@@ -7,7 +7,7 @@ components:
     dag:
       outputs:
         parameters:
-          Output:
+          pipelinechannel--fail-op-Output:
             valueFromParameter:
               outputParameterKey: Output
               producerSubtask: fail-op
@@ -29,7 +29,7 @@ components:
           parameterType: STRING
     outputDefinitions:
       parameters:
-        Output:
+        pipelinechannel--fail-op-Output:
           parameterType: STRING
   comp-fail-op:
     executorLabel: exec-fail-op
@@ -129,7 +129,7 @@ root:
           parameters:
             message:
               taskOutputParameter:
-                outputParameterKey: Output
+                outputParameterKey: pipelinechannel--fail-op-Output
                 producerTask: exit-handler-1
         taskInfo:
           name: print-op

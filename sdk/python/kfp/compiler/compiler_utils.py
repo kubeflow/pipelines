@@ -452,6 +452,12 @@ def get_outputs_for_all_groups(
 
     # handle dsl.Collected consumed by tasks
     for task in pipeline.tasks.values():
+        if isinstance(task, tasks_group.ExitHandler):
+            for _, channel in task.outputs.items():
+                surfaced_output_name = additional_input_name_for_pipeline_channel(
+                    channel)
+                outputs[task.name] = {surfaced_output_name: channel}
+
         for channel in task.channel_inputs:
             if not isinstance(channel, for_loop.Collected):
                 continue
@@ -625,7 +631,7 @@ def get_dependencies(
     """
     dependencies = collections.defaultdict(set)
     for task in pipeline.tasks.values():
-        if isinstance(task, tasks_group.TasksGroup):
+        if isinstance(task, tasks_group.ExitHandler):
             continue
         upstream_task_names = set()
         task_condition_inputs = list(condition_channels[task.name])
@@ -644,7 +650,7 @@ def get_dependencies(
                 raise ValueError(
                     f'Compiler cannot find task: {upstream_task_name}.')
 
-            if isinstance(upstream_task, tasks_group.TasksGroup):
+            if isinstance(upstream_task, tasks_group.ExitHandler):
                 continue
 
             upstream_groups, downstream_groups = _get_uncommon_ancestors(
@@ -675,8 +681,6 @@ def get_dependencies(
 
             # ParralelFor Nested Check
             # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
-            if isinstance(upstream_task, tasks_group.ExitHandler):
-                continue
             # only check when upstream_task is a PipelineTask, since checking
             # for TasksGroup results in catching dsl.Collected cases.
             if isinstance(upstream_task, pipeline_task.PipelineTask):

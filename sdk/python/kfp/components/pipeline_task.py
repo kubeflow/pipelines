@@ -220,7 +220,11 @@ class PipelineTask:
         for name, value in self._inputs.items():
             if isinstance(value, pipeline_channel.PipelineChannel):
                 if value.task_name in task_group_ouputs:
+                    from kfp.compiler import compiler_utils
+                    surfaced_name = compiler_utils.additional_input_name_for_pipeline_channel(
+                        self._inputs[name])
                     self._inputs[name].task_name = task_group_name
+                    self._inputs[name].name = surfaced_name
 
     def _extract_container_spec_and_convert_placeholders(
         self, component_spec: structures.ComponentSpec

@@ -46,18 +46,6 @@ group_type_to_dsl_class = {
 _SINGLE_OUTPUT_NAME = 'Output'
 
 
-def _additional_input_name_for_pipeline_channel(
-        channel_or_name: Union[pipeline_channel.PipelineChannel, str]) -> str:
-    """Gets the name for an additional (compiler-injected) input."""
-
-    # Adding a prefix to avoid (reduce chance of) name collision between the
-    # original component inputs and the injected input.
-    return 'pipelinechannel--' + (
-        channel_or_name.full_name if isinstance(
-            channel_or_name, pipeline_channel.PipelineChannel) else
-        channel_or_name)
-
-
 def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     """Creates a google.protobuf.struct_pb2.Value message out of a provide
     value.
@@ -443,6 +431,7 @@ def _build_dag_outputs(component_spec: pipeline_spec_pb2.ComponentSpec,
     """Builds DAG output spec."""
     for output_name, output_channel in dag_outputs.items():
         _connect_dag_outputs(component_spec, output_name, output_channel)
+
     # Valid dag outputs covers all outptus in component definition.
     for output_name in component_spec.output_definitions.artifacts:
         if output_name not in component_spec.dag.outputs.artifacts:
@@ -578,7 +567,7 @@ def build_component_spec_for_group(
     for channel in input_pipeline_channels:
         input_name = (
             channel.name if is_root_group else
-            _additional_input_name_for_pipeline_channel(channel))
+            compiler_utils.additional_input_name_for_pipeline_channel(channel))
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             component_spec.input_definitions.artifacts[
@@ -606,7 +595,7 @@ def build_component_spec_for_group(
         else:
             component_spec.output_definitions.parameters[
                 output_name].parameter_type = type_utils.get_parameter_type(
-                    output.channel_type)
+                    channel.channel_type)
 
     return component_spec
 
@@ -1192,7 +1181,7 @@ def build_spec_by_group(
             )
 
             _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels, True)
+                               subgroup_output_channels, False)
 
         elif isinstance(subgroup, tasks_group.Condition):
 
@@ -1219,7 +1208,7 @@ def build_spec_by_group(
             )
 
             _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels, True)
+                               subgroup_output_channels, False)
 
         elif isinstance(subgroup, tasks_group.ExitHandler):
 
@@ -1522,10 +1511,8 @@ def create_pipeline_spec(
     pipeline_spec.root.CopyFrom(
         _build_component_spec_from_component_spec_structure(component_spec))
 
-    # TODO: add validation of returned outputs -- it's possible to return
-    # an output from a task in a condition group, for example, which isn't
-    # caught until submission time using Vertex SDK client
     pipeline_outputs_dict = convert_pipeline_outputs_to_dict(pipeline_outputs)
+
     root_group = pipeline.groups[0]
 
     all_groups = compiler_utils.get_all_groups(root_group)
@@ -1552,6 +1539,7 @@ def create_pipeline_spec(
         group_name_to_parent_groups=group_name_to_parent_groups,
         all_groups=all_groups,
         pipeline_outputs_dict=pipeline_outputs_dict)
+
     dependencies = compiler_utils.get_dependencies(
         pipeline=pipeline,
         task_name_to_parent_groups=task_name_to_parent_groups,
