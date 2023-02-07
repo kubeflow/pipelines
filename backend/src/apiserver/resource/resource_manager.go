@@ -725,15 +725,15 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrapf(err, "Failed to retry run %s", runId)
 	}
 
+	if namespace == "" {
+		namespace = common.GetPodNamespace()
+	}
 	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
 	// First try to update workflow
 	// If fail to get the workflow, return error.
-	if namespace == "" {
-		namespace = common.GetPodNamespace()
-	}
 	latestWorkflow, updateError := r.getWorkflowClient(namespace).Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
 	if updateError == nil {
 		// Update the workflow's resource version to latest.
