@@ -220,14 +220,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes)
+	expected, _ := pipelinetemplate.New(bytes)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, err = pipelinetemplate.New(bytes)
+	expected, _ = pipelinetemplate.New(bytes)
 	expected.OverrideV2PipelineName("v2-hello-world.yaml", "")
 	assert.Equal(t, expected, template)
 }

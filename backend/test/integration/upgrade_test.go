@@ -62,6 +62,7 @@ func (s *UpgradeTests) TestVerify() {
 	s.VerifyPipelines()
 	s.VerifyRuns()
 	s.VerifyJobs()
+	s.VerifyCreatingRunsAndJobs()
 }
 
 // Check the namespace have ML job installed and ready
@@ -426,6 +427,128 @@ func (s *UpgradeTests) VerifyJobs() {
 	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences), "Inconsistent resource references: %v does not contain %v", job.ResourceReferences, expectedJob.ResourceReferences)
 	expectedJob.ResourceReferences = job.ResourceReferences
 	assert.Equal(t, expectedJob, job)
+}
+
+func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
+	t := s.T()
+
+	/* ---------- Get the oldest pipeline and the newest experiment ---------- */
+	pipelines, _, _, err := s.pipelineClient.List(
+		&pipelineParams.ListPipelinesV1Params{SortBy: util.StringPointer("created_at")})
+	require.Nil(t, err)
+	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].Name)
+
+	experiments, _, _, err := test.ListExperiment(
+		s.experimentClient,
+		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
+		"",
+	)
+	require.Nil(t, err)
+	assert.Equal(t, "Default", experiments[0].Name)
+	assert.Equal(t, "training", experiments[1].Name)
+	assert.Equal(t, "hello world experiment", experiments[4].Name)
+
+	/* ---------- Create a new run based on the oldest pipeline and its default pipeline version ---------- */
+	createRunRequest := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
+		Name:        "argument parameter from pipeline",
+		Description: "a run from an old pipeline",
+		PipelineSpec: &run_model.APIPipelineSpec{
+			Parameters: []*run_model.APIParameter{
+				{Name: "param1", Value: "goodbye"},
+				{Name: "param2", Value: "world"},
+			},
+		},
+		// This run should belong to the newest experiment (created after the upgrade)
+		ResourceReferences: []*run_model.APIResourceReference{
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiments[4].ID},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINE, ID: pipelines[0].ID},
+				Relationship: run_model.APIRelationshipCREATOR,
+			},
+		},
+	}}
+	runFromPipeline, _, err := s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+
+	createRunRequestVersion := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
+		Name:        "argument parameter from pipeline version",
+		Description: "a run from an old pipeline version",
+		PipelineSpec: &run_model.APIPipelineSpec{
+			Parameters: []*run_model.APIParameter{
+				{Name: "param1", Value: "goodbye"},
+				{Name: "param2", Value: "world"},
+			},
+		},
+		// This run should be assigned to Default experiment
+		ResourceReferences: []*run_model.APIResourceReference{
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelines[0].DefaultVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR,
+			},
+		},
+	}}
+	runFromPipelineVersion, _, err := s.runClient.Create(createRunRequestVersion)
+	assert.Nil(t, err)
+
+	assert.NotEmpty(t, runFromPipeline.Run.PipelineSpec.WorkflowManifest)
+	assert.Equal(t, runFromPipeline.Run.PipelineSpec.WorkflowManifest, runFromPipelineVersion.Run.PipelineSpec.WorkflowManifest)
+	assert.Contains(t, runFromPipeline.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
+	assert.Contains(t, runFromPipelineVersion.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
+	assert.Empty(t, runFromPipeline.Run.PipelineSpec.PipelineManifest)
+	assert.Empty(t, runFromPipelineVersion.Run.PipelineSpec.PipelineManifest)
+
+	assert.True(t, test.VerifyRunResourceReferences(
+		runFromPipeline.Run.ResourceReferences,
+		[]*run_model.APIResourceReference{
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiments[4].ID},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
+		},
+	))
+	assert.True(t, test.VerifyRunResourceReferences(
+		runFromPipelineVersion.Run.ResourceReferences,
+		[]*run_model.APIResourceReference{
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiments[0].ID},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
+		},
+	))
+
+	/* ---------- Create a new recurring run based on the second oldest pipeline version and belonging to the second oldest experiment ---------- */
+	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+		Name:        "sequential job from pipeline version",
+		Description: "a recurring run from an old pipeline version",
+		ResourceReferences: []*job_model.APIResourceReference{
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiments[1].ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelines[1].DefaultVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR,
+			},
+		},
+		MaxConcurrency: 10,
+		Enabled:        true,
+	}}
+	createdJob, err := s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, createdJob.PipelineSpec.WorkflowManifest)
+	assert.Empty(t, createdJob.PipelineSpec.PipelineManifest)
+	assert.True(t, test.VerifyJobResourceReferences(
+		createdJob.ResourceReferences,
+		[]*job_model.APIResourceReference{
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiments[1].ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
+		},
+	))
 }
 
 func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
