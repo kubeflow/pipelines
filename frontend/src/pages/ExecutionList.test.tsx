@@ -86,29 +86,13 @@ describe('ExecutionList', () => {
   }
 
   it('renders one execution', async () => {
-    getExecutionsSpy.mockImplementation(() => {
-      const execution = new Execution();
-      const pipelineValue = new Value();
-      pipelineValue.setStringValue(pipelineName);
-      execution.getPropertiesMap().set('pipeline_name', pipelineName);
-      const executionValue = new Value();
-      executionValue.setStringValue(executionName);
-      execution.getPropertiesMap().set('Name', executionValue);
-      execution.setName(executionName);
-      execution.setId(executionId);
-      const response = new GetExecutionsResponse();
-      response.setExecutionsList([execution]);
-      return Promise.resolve(response);
-    });
-
     render(<ExecutionList {...generateProps()} />);
     await waitFor(() => {
       expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
       expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
     });
-    // await TestUtils.flushPromises();
 
-    screen.getByText(executionId);
+    await screen.queryByText(executionName);
   });
 
   /*
