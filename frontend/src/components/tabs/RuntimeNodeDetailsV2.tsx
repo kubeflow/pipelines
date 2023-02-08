@@ -263,11 +263,6 @@ function ArtifactInfo({
 
   // Runtime artifact information.
   const createdAt = new Date(linkedArtifact.artifact.getCreateTimeSinceEpoch());
-  const lastUpdatedTime = linkedArtifact.artifact.getLastUpdateTimeSinceEpoch();
-  let finishedAt = '-';
-  if (lastUpdatedTime && linkedArtifact.artifact.getState() !== Artifact.State.LIVE) {
-    finishedAt = new Date(lastUpdatedTime).toString();
-  }
 
   // Artifact info rows.
   const artifactInfo = [
@@ -275,7 +270,6 @@ function ArtifactInfo({
     ['Artifact Name', artifactName],
     ['Artifact Type', artifactTypeName],
     ['Created At', createdAt],
-    ['Finished At', finishedAt],
   ];
 
   return (
