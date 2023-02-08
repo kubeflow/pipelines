@@ -419,7 +419,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               />
             </Dropzone>
             <FormControlLabel
-              label='Override pipeline name'
+              label='Override Pipeline Name'
               control={
                 <Checkbox
                   disabled={importMethod === ImportMethod.URL}

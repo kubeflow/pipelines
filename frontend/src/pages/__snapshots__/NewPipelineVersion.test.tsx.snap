@@ -155,7 +155,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
             onChange={[Function]}
           />
         }
-        label="Override pipeline name"
+        label="Override Pipeline Name"
       />
     </div>
     <div
