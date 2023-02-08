@@ -61,7 +61,7 @@ interface NewRunParametersProps {
 }
 
 const protoMap = new Map<string, string>([
-  ['NUMBER_DOUBLE', 'float / double'],
+  ['NUMBER_DOUBLE', 'double'],
   ['NUMBER_INTEGER', 'integer'],
   ['STRING', 'string'],
   ['BOOLEAN', 'boolean'],
