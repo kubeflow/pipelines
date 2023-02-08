@@ -163,6 +163,13 @@ class ExitHandler(TasksGroup):
         """
         return self._outputs
 
+    @property
+    def wrapped_task(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
+        return self._wrapped_task
+
+    def wrap_task(self, task):
+        self._wrapped_task = task
+
 
 class Condition(TasksGroup):
     """A class for creating conditional control flow within a pipeline

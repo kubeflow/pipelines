@@ -417,6 +417,22 @@ def make_new_channel_for_collected_outputs(
     )
 
 
+def switch_input_reference_for_specified_task(task, previous_input_reference,
+                                              new_input_reference):
+    """Change the channel inputs to the surface output of the taskgroup."""
+
+    for name, value in task._inputs.items():
+        if isinstance(value, pipeline_channel.PipelineChannel):
+            if value.task_name == previous_input_reference:
+                surfaced_name = additional_input_name_for_pipeline_channel(
+                    task._inputs[name])
+                channel_type = task._inputs[name].channel_type
+                task._inputs[name] = pipeline_channel.create_pipeline_channel(
+                    name=surfaced_name,
+                    channel_type=channel_type,
+                    task_name=new_input_reference)
+
+
 def get_outputs_for_all_groups(
     pipeline: pipeline_context.Pipeline,
     task_name_to_parent_groups: Mapping[str, List[str]],
@@ -453,7 +469,15 @@ def get_outputs_for_all_groups(
     # handle dsl.Collected consumed by tasks
     for task in pipeline.tasks.values():
         if isinstance(task, tasks_group.ExitHandler):
-            for _, channel in task.outputs.items():
+            wrapped_task = task.wrapped_task
+            wrapped_task_outputs = wrapped_task.outputs or {}
+
+            for _, output in wrapped_task_outputs.items():
+                channel = pipeline_channel.create_pipeline_channel(
+                    name=output.name,
+                    channel_type=output.channel_type,
+                    task_name=wrapped_task.name)
+
                 surfaced_output_name = additional_input_name_for_pipeline_channel(
                     channel)
                 outputs[task.name] = {surfaced_output_name: channel}
@@ -571,8 +595,7 @@ def _get_uncommon_ancestors(
         A tuple which are lists of uncommon ancestors for each task.
     """
 
-    if getattr(task1, 'is_task_group_dependent', False) or getattr(
-            task2, 'is_task_group_dependent', False):
+    if getattr(task2, 'is_task_group_dependent', False):
         return ([task1.name], [task2.name])
 
     if task1.name in task_name_to_parent_groups:

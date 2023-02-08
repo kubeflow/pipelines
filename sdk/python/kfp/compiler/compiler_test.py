@@ -3040,7 +3040,10 @@ class TestValidExitHandlerSyntax(unittest.TestCase):
             """Prints a message."""
             print(message)
 
-        with self.assertRaisesRegex(ValueError, r'Clean up task'):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'requires a default value to make sure the Exit handler never fails.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline(sample_input1: str = 'message'):
@@ -3065,7 +3068,7 @@ class TestValidExitHandlerSyntax(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Clean up task can not be used for multiple worker tasks.'):
+                r'Exit task can not be used for multiple upstream tasks.'):
 
             @dsl.pipeline()
             def my_pipeline(sample_input1: str = 'message',

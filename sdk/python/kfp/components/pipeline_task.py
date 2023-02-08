@@ -212,20 +212,6 @@ class PipelineTask:
         """A list of the dependent task names."""
         return self._task_spec.dependent_tasks
 
-    def _change_inputs(
-            self, task_group_ouputs: Mapping[str,
-                                             pipeline_channel.PipelineChannel],
-            task_group_name: str):
-        """Change the channel inputs to the surface output of the taskgroup."""
-        for name, value in self._inputs.items():
-            if isinstance(value, pipeline_channel.PipelineChannel):
-                if value.task_name in task_group_ouputs:
-                    from kfp.compiler import compiler_utils
-                    surfaced_name = compiler_utils.additional_input_name_for_pipeline_channel(
-                        self._inputs[name])
-                    self._inputs[name].task_name = task_group_name
-                    self._inputs[name].name = surfaced_name
-
     def _extract_container_spec_and_convert_placeholders(
         self, component_spec: structures.ComponentSpec
     ) -> structures.ContainerSpecImplementation:
@@ -486,13 +472,15 @@ class PipelineTask:
                 clean_up = print_op(message=task.output)
                 task.set_exit_task(exit_task=clean_up)
         """
+        # import modules here to avoid circular imports
+        from kfp.compiler import compiler_utils
         from kfp.components import pipeline_context
         from kfp.components import tasks_group
 
-        for _, input_spec in exit_task.component_spec.inputs.items():
+        for input_spec in exit_task.component_spec.inputs.values():
             if not input_spec.optional:
                 raise ValueError(
-                    f'Clean up task {exit_task.name} requires a default value to make sure the Exit handler never fails.'
+                    f'Exit task {exit_task.name} requires a default value to make sure the Exit handler never fails.'
                 )
 
         for task in pipeline_context.Pipeline.get_default_pipeline(
@@ -501,7 +489,7 @@ class PipelineTask:
                     task,
                     tasks_group.ExitHandler) and task.exit_task == exit_task:
                 raise ValueError(
-                    f'Clean up task can not be used for multiple worker tasks. Clean up task {exit_task.name} already used for {task.name}'
+                    f'Exit task can not be used for multiple upstream tasks. Clean up task {exit_task.name} already used for {task.name}'
                 )
 
         pipeline_context.Pipeline.get_default_pipeline(
@@ -513,8 +501,9 @@ class PipelineTask:
                 add_to_group=not getattr(self, 'is_task_group_dependent',
                                          False))
 
-        exit_handler._surface_outputs(self)
-        exit_task._change_inputs(exit_handler.outputs, exit_handler.name)
+        exit_handler.wrap_task(self)
+        compiler_utils.switch_input_reference_for_specified_task(
+            exit_task, self.name, exit_handler.name)
         pipeline_context.Pipeline.get_default_pipeline().tasks[
             exit_handler.name] = exit_handler
 

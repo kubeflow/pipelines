@@ -425,9 +425,9 @@ def _connect_dag_outputs(
             output_name].value_from_parameter.output_parameter_key = output_channel.name
 
 
-def _build_dag_outputs(component_spec: pipeline_spec_pb2.ComponentSpec,
-                       dag_outputs: Dict[str, pipeline_channel.PipelineChannel],
-                       is_task_group=False) -> None:
+def _build_dag_outputs(
+        component_spec: pipeline_spec_pb2.ComponentSpec,
+        dag_outputs: Dict[str, pipeline_channel.PipelineChannel]) -> None:
     """Builds DAG output spec."""
     for output_name, output_channel in dag_outputs.items():
         _connect_dag_outputs(component_spec, output_name, output_channel)
@@ -550,8 +550,7 @@ def _fill_in_component_input_default_value(
 
 def build_component_spec_for_group(
     input_pipeline_channels: List[pipeline_channel.PipelineChannel],
-    output_pipeline_channels: Dict[str, pipeline_channel.PipelineChannel],
-    is_root_group: bool,
+    output_pipeline_channels: Dict[str, pipeline_channel.PipelineChannel]
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec for a TasksGroup.
 
@@ -565,9 +564,8 @@ def build_component_spec_for_group(
     component_spec = pipeline_spec_pb2.ComponentSpec()
 
     for channel in input_pipeline_channels:
-        input_name = (
-            channel.name if is_root_group else
-            compiler_utils.additional_input_name_for_pipeline_channel(channel))
+        input_name = compiler_utils.additional_input_name_for_pipeline_channel(
+            channel)
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             component_spec.input_definitions.artifacts[
@@ -578,13 +576,6 @@ def build_component_spec_for_group(
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
-
-            if is_root_group:
-                _fill_in_component_input_default_value(
-                    component_spec=component_spec,
-                    input_name=input_name,
-                    default_value=channel.value,
-                )
 
     for output_name, output in output_pipeline_channels.items():
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):
@@ -1170,8 +1161,7 @@ def build_spec_by_group(
 
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=loop_subgroup_channels,
-                output_pipeline_channels=subgroup_output_channels,
-                is_root_group=False)
+                output_pipeline_channels=subgroup_output_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
@@ -1181,7 +1171,7 @@ def build_spec_by_group(
             )
 
             _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels, False)
+                               subgroup_output_channels)
 
         elif isinstance(subgroup, tasks_group.Condition):
 
@@ -1197,8 +1187,7 @@ def build_spec_by_group(
 
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=condition_subgroup_channels,
-                output_pipeline_channels=subgroup_output_channels,
-                is_root_group=False)
+                output_pipeline_channels=subgroup_output_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
@@ -1208,14 +1197,13 @@ def build_spec_by_group(
             )
 
             _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels, False)
+                               subgroup_output_channels)
 
         elif isinstance(subgroup, tasks_group.ExitHandler):
 
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=subgroup_input_channels,
-                output_pipeline_channels=subgroup_output_channels,
-                is_root_group=False)
+                output_pipeline_channels=subgroup_output_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
@@ -1225,7 +1213,7 @@ def build_spec_by_group(
             )
 
             _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels, True)
+                               subgroup_output_channels)
 
         else:
             raise RuntimeError(
@@ -1526,6 +1514,7 @@ def create_pipeline_spec(
         for group_name, group in group_name_to_group.items()
         if isinstance(group, tasks_group.ParallelFor)
     }
+
     inputs = compiler_utils.get_inputs_for_all_groups(
         pipeline=pipeline,
         task_name_to_parent_groups=task_name_to_parent_groups,
@@ -1533,6 +1522,7 @@ def create_pipeline_spec(
         condition_channels=condition_channels,
         name_to_for_loop_group=name_to_for_loop_group,
     )
+
     outputs, modified_pipeline_outputs_dict = compiler_utils.get_outputs_for_all_groups(
         pipeline=pipeline,
         task_name_to_parent_groups=task_name_to_parent_groups,
