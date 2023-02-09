@@ -66,7 +66,7 @@ const protoMap = new Map<string, string>([
   ['STRING', 'string'],
   ['BOOLEAN', 'boolean'],
   ['LIST', 'list'],
-  ['STRUCT', 'map / dict'],
+  ['STRUCT', 'dict'],
 ]);
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {

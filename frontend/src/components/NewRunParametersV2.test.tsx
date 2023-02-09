@@ -463,7 +463,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - map / dict');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -488,7 +488,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - map / dict');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '"A":1,"B":2' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -732,12 +732,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - map / dict');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '123' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123');
-    screen.getByText('Invalid input. This parameter should be in map / dict type');
+    screen.getByText('Invalid input. This parameter should be in dict type');
   });
 
   it('show error message for invalid struct input', () => {
@@ -757,12 +757,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - map / dict');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '[1,2,3]' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('[1,2,3]');
-    screen.getByText('Invalid input. This parameter should be in map / dict type');
+    screen.getByText('Invalid input. This parameter should be in dict type');
   });
 
   it('set input as valid type with valid struct input', () => {
@@ -782,7 +782,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - map / dict');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);
