@@ -17,6 +17,7 @@ import copy
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Union
+import warnings
 
 from kfp.components import constants
 from kfp.components import pipeline_channel
@@ -275,6 +276,33 @@ class PipelineTask:
 
         return self
 
+    def set_accelerator_limit(self, limit: int) -> 'PipelineTask':
+        """Sets accelerator limit (maximum) for the task. Only applies if
+        accelerator type is also set via .add_node_selector_constraint().
+
+        Args:
+            limit: Maximum number of accelerators allowed.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if isinstance(limit, str):
+            if re.match(r'[1-9]\d*$', limit) is None:
+                raise ValueError(f'{"limit"!r} must be positive integer.')
+            limit = int(limit)
+
+        if self.container_spec is None:
+            raise ValueError(
+                'There is no container specified in implementation')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.accelerator_count = limit
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                accelerator_count=limit)
+
+        return self
+
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
         """Sets GPU limit (maximum) for the task. Only applies if accelerator
         type is also set via .add_node_selector_constraint().
@@ -284,23 +312,13 @@ class PipelineTask:
 
         Returns:
             Self return to allow chained setting calls.
+
+        :meta private:
         """
-        if re.match(r'[1-9]\d*$', gpu) is None:
-            raise ValueError('GPU must be positive integer.')
-
-        gpu = int(gpu)
-
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.accelerator_count = gpu
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                accelerator_count=gpu)
-
-        return self
+        warnings.warn(
+            f'{self.set_gpu_limit.__name__!r} is deprecated. Please use {self.set_accelerator_limit.__name__!r} instead.',
+            category=DeprecationWarning)
+        return self.set_accelerator_limit(gpu)
 
     def set_memory_limit(self, memory: str) -> 'PipelineTask':
         """Sets memory limit (maximum) for the task.
