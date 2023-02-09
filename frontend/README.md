@@ -144,7 +144,7 @@ If you made any changes to protos (see backend/README), you'll need to
 regenerate the Typescript client library from swagger. We use
 swagger-codegen-cli@2.4.7, which you can get
 [here](https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/).
-Make sure the jar file is somewhere on your path with the name
+Make sure the jar file is put in the frontend folder on your path with the name
 swagger-codegen-cli.jar, then run `npm run apis`.
 
 After code generation, you should run `npm run format` to format the output and avoid creating a large PR.
