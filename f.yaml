@@ -1,0 +1,72 @@
+# PIPELINE DEFINITION
+# Name: automl-tabular-stage-1-tuner-modified
+# Inputs:
+#    encryption_spec_key_name: str [Default: '']
+#    feature_ranking_str: str [Default: '']
+components:
+  comp-automl-tabular-stage-1-tuner-modified:
+    executorLabel: exec-automl-tabular-stage-1-tuner-modified
+    inputDefinitions:
+      parameters:
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        feature_ranking_str:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        feature_ranking:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-automl-tabular-stage-1-tuner-modified:
+      container:
+        args:
+        - '{"Concat": ["{\"display_name\": \"automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
+          {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:dev", "\",
+          \"args\": [\"l2l_stage_1_tuner\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:dev",
+          "\", ", {"IfPresent": {"InputName": "feature_ranking_str", "Then": {"Concat":
+          ["\"--feature_selection_result_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}",
+          "\","]}}}, "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+        command:
+        - echo
+        - success
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+pipelineInfo:
+  name: automl-tabular-stage-1-tuner-modified
+root:
+  dag:
+    tasks:
+      automl-tabular-stage-1-tuner-modified:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-automl-tabular-stage-1-tuner-modified
+        inputs:
+          parameters:
+            encryption_spec_key_name:
+              componentInputParameter: encryption_spec_key_name
+            feature_ranking_str:
+              componentInputParameter: feature_ranking_str
+        taskInfo:
+          name: automl-tabular-stage-1-tuner-modified
+  inputDefinitions:
+    parameters:
+      encryption_spec_key_name:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      feature_ranking_str:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.12

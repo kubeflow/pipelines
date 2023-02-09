@@ -1,0 +1,33 @@
+name: automl_tabular_stage_1_tuner_modified
+inputs:
+# kept as input to make if present placeholder
+- {name: feature_ranking_str, type: String, default: ""}
+# kept another input, just to see if it had an effect
+- {name: encryption_spec_key_name, type: String, default: ""}
+outputs:
+# modified to output so that it doesn't require an artifact input
+- {name: feature_ranking, type: TabularFeatureRanking}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: ["echo", "success"]
+    args: [
+      concat: [
+        '{"display_name": "automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:dev',
+        '", "args": ["l2l_stage_1_tuner", "--training_docker_uri=',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:dev',
+        '", ',
+        {if: {
+          cond: {isPresent: feature_ranking_str},
+          then: {
+            concat: ['"--feature_selection_result_path=',
+            {outputUri: feature_ranking},
+            '",']}
+        }},
+        # added after to see if it has an effect
+        {inputValue: encryption_spec_key_name},
+      ]]

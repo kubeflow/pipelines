@@ -149,6 +149,9 @@ class ConcatPlaceholder(Placeholder):
                 item._validate_then_and_else_are_only_single_element()
         self.items = items
 
+    def __iter__(self):
+        return iter(self.items)
+
     def _to_dict(self) -> Dict[str, Any]:
         return {
             'Concat': [

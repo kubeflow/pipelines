@@ -1,0 +1,334 @@
+# PIPELINE DEFINITION
+# Name: automl-tabular-stage-1-tuner
+# Description: AutoML Tabular stage 1 tuner
+#              
+#                Args:
+#                    project (str):
+#                        Required. Project to run Cross-validation trainer.
+#                    location (str):
+#                        Location for running the Cross-validation trainer.
+#                    root_dir (str):
+#                        The Cloud Storage location to store the output.
+#                    study_spec_parameters_override (JsonArray):
+#                        JSON study spec. E.g.,
+#                        [{"parameter_id": "model_type","categorical_value_spec": {"values": ["nn"]}}]
+#                    worker_pool_specs_override_json (JsonArray):
+#                        JSON worker pool specs. E.g.,
+#                        [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
+#                    reduce_search_space_mode (str):
+#                        The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
+#                    num_selected_trials (int):
+#                        Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
+#                    num_selected_features (int):
+#                        Number of selected features. The number of features to learn in the NN models.
+#                    deadline_hours (float):
+#                        Number of hours the cross-validation trainer should run.
+#                    disable_early_stopping (bool):
+#                        True if disable early stopping. Default value is false.
+#                    num_parallel_trials (int):
+#                        Number of parallel training trials.
+#                    single_run_max_secs (int):
+#                        Max number of seconds each training trial runs.
+#                    metadata (TabularExampleGenMetadata):
+#                        The tabular example gen metadata.
+#                    transform_output (TransformOutput):
+#                        The transform output artifact.
+#                    materialized_train_split (MaterializedSplit):
+#                        The materialized train split.
+#                    materialized_eval_split (MaterializedSplit):
+#                        The materialized eval split.
+#                    encryption_spec_key_name (Optional[str]):
+#                        Customer-managed encryption key.
+#                    run_distillation (bool):
+#                        True if in distillation mode. The default value is false.
+#              
+#                Returns:
+#                    gcp_resources (str):
+#                        GCP resources created by this component.
+#                        For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+#                    tuning_result_output (AutoMLTabularTuningResult):
+#                        The trained model and architectures.
+#                    execution_metrics (JsonObject):
+#                        Core metrics in dictionary of component execution.
+# Inputs:
+#    deadline_hours: float
+#    disable_early_stopping: bool [Default: False]
+#    encryption_spec_key_name: str [Default: '']
+#    feature_ranking: system.Artifact
+#    location: str
+#    materialized_eval_split: system.Artifact
+#    materialized_train_split: system.Artifact
+#    metadata: system.Artifact
+#    num_parallel_trials: int
+#    num_selected_features: int [Default: 0.0]
+#    num_selected_trials: int
+#    project: str
+#    reduce_search_space_mode: str [Default: 'regular']
+#    root_dir: str
+#    run_distillation: bool [Default: False]
+#    single_run_max_secs: int
+#    study_spec_parameters_override: list [Default: []]
+#    transform_output: system.Artifact
+#    tune_feature_selection_rate: bool [Default: False]
+#    worker_pool_specs_override_json: list [Default: []]
+components:
+  comp-automl-tabular-stage-1-tuner:
+    executorLabel: exec-automl-tabular-stage-1-tuner
+    inputDefinitions:
+      artifacts:
+        feature_ranking:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
+        materialized_eval_split:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        materialized_train_split:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        metadata:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        transform_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        deadline_hours:
+          parameterType: NUMBER_DOUBLE
+        disable_early_stopping:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        num_parallel_trials:
+          parameterType: NUMBER_INTEGER
+        num_selected_features:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        num_selected_trials:
+          parameterType: NUMBER_INTEGER
+        project:
+          parameterType: STRING
+        reduce_search_space_mode:
+          defaultValue: regular
+          isOptional: true
+          parameterType: STRING
+        root_dir:
+          parameterType: STRING
+        run_distillation:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        single_run_max_secs:
+          parameterType: NUMBER_INTEGER
+        study_spec_parameters_override:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        tune_feature_selection_rate:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        worker_pool_specs_override_json:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        tuning_result_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        execution_metrics:
+          parameterType: STRUCT
+        gcp_resources:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-automl-tabular-stage-1-tuner:
+      container:
+        args:
+        - --type
+        - CustomJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --payload
+        - '{"Concat": ["{\"display_name\": \"automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
+          {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:dev", "\",
+          \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:dev",
+          "\", ", {"IfPresent": {"InputName": "feature_ranking", "Then": {"Concat":
+          ["\"--feature_selection_result_path=", "{{$.inputs.artifacts[''feature_ranking''].uri}}",
+          "\","]}}}, "\"--disable_early_stopping=", "{{$.inputs.parameters[''disable_early_stopping'']}}",
+          "\", \"--tune_feature_selection_rate=", "{{$.inputs.parameters[''tune_feature_selection_rate'']}}",
+          "\", \"--reduce_search_space_mode=", "{{$.inputs.parameters[''reduce_search_space_mode'']}}",
+          "\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir=",
+          "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
+          \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
+          "\", \"--single_run_max_secs=", "{{$.inputs.parameters[''single_run_max_secs'']}}",
+          "\", \"--deadline_hours=", "{{$.inputs.parameters[''deadline_hours'']}}",
+          "\", \"--num_selected_trials=", "{{$.inputs.parameters[''num_selected_trials'']}}",
+          "\", \"--num_selected_features=", "{{$.inputs.parameters[''num_selected_features'']}}",
+          "\", \"--lro_job_info=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\",
+          \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\",
+          \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\", \"--materialized_train_split=",
+          "{{$.inputs.artifacts[''materialized_train_split''].uri}}", "\", \"--materialized_eval_split=",
+          "{{$.inputs.artifacts[''materialized_eval_split''].uri}}", "\", \"--is_distill=",
+          "{{$.inputs.parameters[''run_distillation'']}}", "\", \"--tuning_result_output_path=",
+          "{{$.outputs.artifacts[''tuning_result_output''].uri}}", "\", \"--kms_key_name=",
+          "{{$.inputs.parameters[''encryption_spec_key_name'']}}", "\", \"--gcp_resources_path=",
+          "{{$.outputs.parameters[''gcp_resources''].output_file}}", "\", \"--execution_metrics_path=",
+          "{{$.outputs.parameters[''execution_metrics''].output_file}}", "\", \"--use_json=true\",
+          \"--log_level=ERROR\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"]}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+pipelineInfo:
+  name: automl-tabular-stage-1-tuner
+root:
+  dag:
+    tasks:
+      automl-tabular-stage-1-tuner:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-automl-tabular-stage-1-tuner
+        inputs:
+          artifacts:
+            feature_ranking:
+              componentInputArtifact: feature_ranking
+            materialized_eval_split:
+              componentInputArtifact: materialized_eval_split
+            materialized_train_split:
+              componentInputArtifact: materialized_train_split
+            metadata:
+              componentInputArtifact: metadata
+            transform_output:
+              componentInputArtifact: transform_output
+          parameters:
+            deadline_hours:
+              componentInputParameter: deadline_hours
+            disable_early_stopping:
+              componentInputParameter: disable_early_stopping
+            encryption_spec_key_name:
+              componentInputParameter: encryption_spec_key_name
+            location:
+              componentInputParameter: location
+            num_parallel_trials:
+              componentInputParameter: num_parallel_trials
+            num_selected_features:
+              componentInputParameter: num_selected_features
+            num_selected_trials:
+              componentInputParameter: num_selected_trials
+            project:
+              componentInputParameter: project
+            reduce_search_space_mode:
+              componentInputParameter: reduce_search_space_mode
+            root_dir:
+              componentInputParameter: root_dir
+            run_distillation:
+              componentInputParameter: run_distillation
+            single_run_max_secs:
+              componentInputParameter: single_run_max_secs
+            study_spec_parameters_override:
+              componentInputParameter: study_spec_parameters_override
+            tune_feature_selection_rate:
+              componentInputParameter: tune_feature_selection_rate
+            worker_pool_specs_override_json:
+              componentInputParameter: worker_pool_specs_override_json
+        taskInfo:
+          name: automl-tabular-stage-1-tuner
+  inputDefinitions:
+    artifacts:
+      feature_ranking:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+        isOptional: true
+      materialized_eval_split:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      materialized_train_split:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      metadata:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      transform_output:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+    parameters:
+      deadline_hours:
+        parameterType: NUMBER_DOUBLE
+      disable_early_stopping:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      encryption_spec_key_name:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      location:
+        parameterType: STRING
+      num_parallel_trials:
+        parameterType: NUMBER_INTEGER
+      num_selected_features:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      num_selected_trials:
+        parameterType: NUMBER_INTEGER
+      project:
+        parameterType: STRING
+      reduce_search_space_mode:
+        defaultValue: regular
+        isOptional: true
+        parameterType: STRING
+      root_dir:
+        parameterType: STRING
+      run_distillation:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      single_run_max_secs:
+        parameterType: NUMBER_INTEGER
+      study_spec_parameters_override:
+        defaultValue: []
+        isOptional: true
+        parameterType: LIST
+      tune_feature_selection_rate:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      worker_pool_specs_override_json:
+        defaultValue: []
+        isOptional: true
+        parameterType: LIST
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.12
