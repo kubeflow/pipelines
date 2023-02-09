@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Base image to use for this docker
-FROM gcr.io/google-appengine/python:latest
+FROM gcr.io/ml-pipeline/debian-py37:latest
 
 WORKDIR /root
 
@@ -28,6 +28,9 @@ RUN pip3 install -U google-api-python-client
 # Required by dataflow_launcher
 # b/238481913: Pinning the version of apache_beam to below 2.34 for now
 RUN pip3 install -U "apache_beam[gcp]<2.34.0"
+
+# b/267359259:  Pinning the version of google-api-core to below 1.34.0 for now
+RUN pip3 install -U "google-api-core<1.34.0"
 
 # Required for sklearn/train_test_split_jsonl
 RUN pip3 install -U "fsspec>=0.7.4" "gcsfs>=0.6.0" "pandas<=1.3.5" "scikit-learn<=1.0.2"
