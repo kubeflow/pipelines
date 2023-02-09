@@ -5,6 +5,7 @@
 ## Breaking changes
 
 ## Deprecations
+* Deprecate pipeline task `.set_gpu_limit` in favor of `.set_accelerator_limit` [\#8836](https://github.com/kubeflow/pipelines/pull/8836)
 
 ## Bug fixes and other changes
 
