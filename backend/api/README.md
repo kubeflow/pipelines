@@ -60,22 +60,22 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
     Fov `v1beta1`:
 
    ```bash
-   bootprint openapi ./v1beta1/swagger/kfp_api_single_file.swagger.json ./v1beta1/api-reference-docs
-   html-inline ./v1beta1/api-reference-docs/index.html > ./v1beta1/api-reference-docs/kubeflow-pipeline-api-spec.html
+   bootprint openapi ./v1beta1/swagger/kfp_api_single_file.swagger.json ./temp/v1
+   html-inline ./temp/v1/index.html > ./temp/v1/kubeflow-pipeline-api-spec.html
    ```
 
    For `v2beta1`:
 
    ```bash
-   bootprint openapi ./v2beta1/swagger/kfp_api_single_file.swagger.json ./v2beta1/api-reference-docs
-   html-inline ./v2beta1/api-reference-docs/index.html > ./v2beta1/api-reference-docs/kubeflow-pipeline-api-spec.html
+   bootprint openapi ./v2beta1/swagger/kfp_api_single_file.swagger.json ./temp/v2
+   html-inline ./temp/v2/index.html > ./temp/v2/kubeflow-pipeline-api-spec.html
    ```
 
 3. Use the above generated html file(s) to replace the relevant section(s) on kubeflow.org. When copying th content, make sure to **preserve the original headers**.
    - `v1beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec.html).
    - `v2beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec.html).
 
-4. Create a PR with the changes in [kubeflow.org website repository](https://github.com/kubeflow/website). See example here.
+4. Create a PR with the changes in [kubeflow.org website repository](https://github.com/kubeflow/website). See an example [here](https://github.com/kubeflow/website/pull/3444).
 
 ## Updating API generator image
 
