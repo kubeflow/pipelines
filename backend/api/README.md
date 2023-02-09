@@ -71,7 +71,7 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
    html-inline ./v2beta1/api-reference-docs/index.html > ./v2beta1/api-reference-docs/kubeflow-pipeline-api-spec.html
    ```
 
-3. Use the above generated html file(s) to replace the relevant section(s) on kubeflow.org:
+3. Use the above generated html file(s) to replace the relevant section(s) on kubeflow.org. When copying th content, make sure to **preserve the original headers**.
    - `v1beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec.html).
    - `v2beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec.html).
 
