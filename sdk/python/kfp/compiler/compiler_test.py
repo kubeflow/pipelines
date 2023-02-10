@@ -2889,5 +2889,129 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                 add(nums=dsl.Collected(t.output))
 
 
+class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
+
+    def test_basic_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            """Fails."""
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            """Prints a message."""
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(
+                message=task.output).ignore_upstream_failure()
+
+    def test_clean_up_on_wrapped_pipeline_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str = 'msg') -> str:
+            """Fails."""
+            import sys
+            print(msg)
+            sys.exit(1)
+            return input_string
+
+        @dsl.component
+        def print_op(message: str = 'msg'):
+            """Prints a message."""
+            print(msg)
+
+        @dsl.pipeline
+        def wrapped_pipeline(message: str = 'message') -> str:
+            task = fail_op(message=message)
+            return task.output
+
+        @dsl.pipeline
+        def my_pipeline(sample_input1: str = 'message'):
+            task = wrapped_pipeline(message=sample_input1)
+            clean_up_task = print_op(
+                message=task.output).ignore_upstream_failure()
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
+            self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            """Fails."""
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            """Prints a message."""
+            print(message)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'requires a default value to make sure the Exit handler never fails.'
+        ):
+
+            @dsl.pipeline()
+            def my_pipeline(sample_input1: str = 'message'):
+                task = fail_op(message=sample_input1)
+                clean_up_task = print_op(
+                    message=task.output).ignore_upstream_failure()
+
+    def test_clean_up_task_with_no_default_value_for_pipeline_input_permitted(
+            self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            """Fails."""
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            """Prints a message."""
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(
+                message=sample_input1).ignore_upstream_failure()
+
+    def test_clean_up_task_with_no_default_value_for_constant_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            """Fails."""
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            """Prints a message."""
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(message='sample').ignore_upstream_failure()
+
+
 if __name__ == '__main__':
     unittest.main()

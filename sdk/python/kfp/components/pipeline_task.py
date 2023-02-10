@@ -123,6 +123,7 @@ class PipelineTask:
         self.importer_spec = None
         self.container_spec = None
         self.pipeline_spec = None
+        self.ignore_upstream_failure_tag = False
 
         def validate_placeholder_types(
                 component_spec: structures.ComponentSpec) -> None:
@@ -473,6 +474,28 @@ class PipelineTask:
         for task in tasks:
             self._task_spec.dependent_tasks.append(task.name)
         return self
+
+    def ignore_upstream_failure(self) -> 'PipelineTask':
+        """If called, the pipeline task will run when any specified upstream
+        tasks complete, even if unsuccessful.
+
+        This method effectively turns the caller task into an exit task
+        if the caller task has upstream dependencies.
+        """
+
+        from kfp.components import pipeline_context
+        for input_spec_name, input_spec in self.component_spec.inputs.items():
+            for input_name, argument_value in self._inputs.items():
+                if (input_spec_name == input_name) and (isinstance(
+                        argument_value, pipeline_channel.PipelineChannel)) and (
+                            not input_spec.optional) and (
+                                argument_value.task_name in pipeline_context
+                                .Pipeline.get_default_pipeline().tasks):
+                    raise ValueError(
+                        f'Exit task {self.name} requires a default value to make sure the Exit handler never fails.'
+                    )
+
+        self.ignore_upstream_failure_tag = True
 
 
 # TODO: this function should ideally be in the function kfp.components.structures.check_placeholder_references_valid_io_name, which does something similar, but this causes the exception to be raised at component definition time, rather than compile time. This would break tests that load v1 component YAML, even though that YAML is invalid.
