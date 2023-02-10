@@ -123,7 +123,7 @@ class PipelineTask:
         self.importer_spec = None
         self.container_spec = None
         self.pipeline_spec = None
-        self.ignore_upstream_failure_tag = False
+        self._ignore_upstream_failure_tag = False
 
         def validate_placeholder_types(
                 component_spec: structures.ComponentSpec) -> None:
@@ -481,21 +481,35 @@ class PipelineTask:
 
         This method effectively turns the caller task into an exit task
         if the caller task has upstream dependencies.
+
+        "If the task has no upstream tasks, either via data exchange or an explicit dependency via .after(), this method has no effect."
+
+        Returns:
+            Self return to allow chained setting calls.
+
+        Example:
+          ::
+
+            @dsl.pipeline()
+            def my_pipeline(sample_input1: str = 'message'):
+                task = fail_op(message=sample_input1)
+                clean_up_task = print_op(
+                    message=task.output).ignore_upstream_failure()
         """
 
-        from kfp.components import pipeline_context
-        for input_spec_name, input_spec in self.component_spec.inputs.items():
-            for input_name, argument_value in self._inputs.items():
-                if (input_spec_name == input_name) and (isinstance(
-                        argument_value, pipeline_channel.PipelineChannel)) and (
-                            not input_spec.optional) and (
-                                argument_value.task_name in pipeline_context
-                                .Pipeline.get_default_pipeline().tasks):
-                    raise ValueError(
-                        f'Exit task {self.name} requires a default value to make sure the Exit handler never fails.'
-                    )
+        for input_spec_name, input_spec in (self.component_spec.inputs or
+                                            {}).items():
+            argument_value = self._inputs[input_spec_name]
+            if (isinstance(argument_value, pipeline_channel.PipelineChannel)
+               ) and (not input_spec.optional) and (argument_value.task_name
+                                                    is not None):
+                raise ValueError(
+                    f' Task {self.name} requires a default value to make sure it never fails.'
+                )
 
-        self.ignore_upstream_failure_tag = True
+        self._ignore_upstream_failure_tag = True
+
+        return self
 
 
 # TODO: this function should ideally be in the function kfp.components.structures.check_placeholder_references_valid_io_name, which does something similar, but this causes the exception to be raised at component definition time, rather than compile time. This would break tests that load v1 component YAML, even though that YAML is invalid.

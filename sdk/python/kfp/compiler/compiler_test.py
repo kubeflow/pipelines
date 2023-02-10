@@ -2895,7 +2895,6 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
 
         @dsl.component
         def fail_op(message: str) -> str:
-            """Fails."""
             import sys
             print(message)
             sys.exit(1)
@@ -2903,7 +2902,6 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
 
         @dsl.component
         def print_op(message: str = 'default'):
-            """Prints a message."""
             print(message)
 
         @dsl.pipeline()
@@ -2912,20 +2910,50 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             clean_up_task = print_op(
                 message=task.output).ignore_upstream_failure()
 
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertNotEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 2)
+
+    def test_component_with_no_input_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op():
+            print('default')
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op().ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertNotEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 2)
+
     def test_clean_up_on_wrapped_pipeline_permitted(self):
 
         @dsl.component
-        def fail_op(message: str = 'msg') -> str:
-            """Fails."""
+        def fail_op(message: str = 'message') -> str:
             import sys
-            print(msg)
+            print(message)
             sys.exit(1)
-            return input_string
+            return message
 
         @dsl.component
-        def print_op(message: str = 'msg'):
-            """Prints a message."""
-            print(msg)
+        def print_op(message: str = 'message'):
+            print(message)
 
         @dsl.pipeline
         def wrapped_pipeline(message: str = 'message') -> str:
@@ -2943,12 +2971,18 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=package_path)
 
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertNotEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 2)
+
     def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
             self):
 
         @dsl.component
         def fail_op(message: str) -> str:
-            """Fails."""
             import sys
             print(message)
             sys.exit(1)
@@ -2956,13 +2990,11 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
 
         @dsl.component
         def print_op(message: str):
-            """Prints a message."""
             print(message)
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'requires a default value to make sure the Exit handler never fails.'
-        ):
+                r'requires a default value to make sure it never fails.'):
 
             @dsl.pipeline()
             def my_pipeline(sample_input1: str = 'message'):
@@ -2975,7 +3007,6 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
 
         @dsl.component
         def fail_op(message: str) -> str:
-            """Fails."""
             import sys
             print(message)
             sys.exit(1)
@@ -2983,7 +3014,6 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
 
         @dsl.component
         def print_op(message: str):
-            """Prints a message."""
             print(message)
 
         @dsl.pipeline()
@@ -2992,11 +3022,17 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             clean_up_task = print_op(
                 message=sample_input1).ignore_upstream_failure()
 
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertNotEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 2)
+
     def test_clean_up_task_with_no_default_value_for_constant_permitted(self):
 
         @dsl.component
         def fail_op(message: str) -> str:
-            """Fails."""
             import sys
             print(message)
             sys.exit(1)
@@ -3004,13 +3040,19 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
 
         @dsl.component
         def print_op(message: str):
-            """Prints a message."""
             print(message)
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: str = 'message'):
             task = fail_op(message=sample_input1)
             clean_up_task = print_op(message='sample').ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertNotEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 2)
 
 
 if __name__ == '__main__':
