@@ -141,7 +141,7 @@ pipelines:
     - module: pipeline_with_dynamic_importer_metadata
       name: my_pipeline
       execute: false
-    - module: pipeline_with_alternate_exit_handler_syntax
+    - module: pipeline_with_an_exit_task_that_consumes_from_exit_handler_task
       name: my_pipeline
       execute: false
     - module: components_with_optional_artifacts

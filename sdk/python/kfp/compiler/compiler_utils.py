@@ -193,6 +193,8 @@ def get_inputs_for_all_groups(
     for task in pipeline.tasks.values():
         # task's inputs and all channels used in conditions for that task are
         # considered.
+        if isinstance(task, tasks_group.TasksGroup):
+            continue
         task_condition_inputs = list(condition_channels[task.name])
 
         for channel in task.channel_inputs + task_condition_inputs:
@@ -469,7 +471,7 @@ def get_outputs_for_all_groups(
     # handle dsl.Collected consumed by tasks
     for task in pipeline.tasks.values():
         if isinstance(task, tasks_group.ExitHandler):
-            wrapped_task = task.wrapped_task
+            wrapped_task = task._wrapped_task
             wrapped_task_outputs = wrapped_task.outputs or {}
 
             for _, output in wrapped_task_outputs.items():
@@ -481,6 +483,7 @@ def get_outputs_for_all_groups(
                 surfaced_output_name = additional_input_name_for_pipeline_channel(
                     channel)
                 outputs[task.name] = {surfaced_output_name: channel}
+            continue
 
         for channel in task.channel_inputs:
             if not isinstance(channel, for_loop.Collected):
@@ -594,7 +597,6 @@ def _get_uncommon_ancestors(
     Returns:
         A tuple which are lists of uncommon ancestors for each task.
     """
-
     if getattr(task2, 'is_task_group_dependent', False):
         return ([task1.name], [task2.name])
 
@@ -654,7 +656,7 @@ def get_dependencies(
     """
     dependencies = collections.defaultdict(set)
     for task in pipeline.tasks.values():
-        if isinstance(task, tasks_group.ExitHandler):
+        if isinstance(task, tasks_group.TasksGroup):
             continue
         upstream_task_names = set()
         task_condition_inputs = list(condition_channels[task.name])
@@ -672,9 +674,6 @@ def get_dependencies(
             else:
                 raise ValueError(
                     f'Compiler cannot find task: {upstream_task_name}.')
-
-            if isinstance(upstream_task, tasks_group.ExitHandler):
-                continue
 
             upstream_groups, downstream_groups = _get_uncommon_ancestors(
                 task_name_to_parent_groups=task_name_to_parent_groups,

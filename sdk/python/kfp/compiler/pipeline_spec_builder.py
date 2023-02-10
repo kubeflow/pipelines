@@ -426,8 +426,9 @@ def _connect_dag_outputs(
 
 
 def _build_dag_outputs(
-        component_spec: pipeline_spec_pb2.ComponentSpec,
-        dag_outputs: Dict[str, pipeline_channel.PipelineChannel]) -> None:
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+    dag_outputs: Dict[str, pipeline_channel.PipelineChannel],
+) -> None:
     """Builds DAG output spec."""
     for output_name, output_channel in dag_outputs.items():
         _connect_dag_outputs(component_spec, output_name, output_channel)
@@ -1498,6 +1499,10 @@ def create_pipeline_spec(
 
     pipeline_spec.root.CopyFrom(
         _build_component_spec_from_component_spec_structure(component_spec))
+
+    # TODO: add validation of returned outputs -- it's possible to return
+    # an output from a task in a condition group, for example, which isn't
+    # caught until submission time using Vertex SDK client
 
     pipeline_outputs_dict = convert_pipeline_outputs_to_dict(pipeline_outputs)
 

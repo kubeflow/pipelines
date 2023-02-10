@@ -14,7 +14,7 @@
 """Definition for TasksGroup."""
 
 import enum
-from typing import List, Mapping, Optional, Union
+from typing import Optional, Union
 
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
@@ -128,7 +128,7 @@ class ExitHandler(TasksGroup):
         if exit_task.dependent_tasks:
             raise ValueError('exit_task cannot depend on any other tasks.')
 
-        # Removing exit_task form any group
+        # Removing exit_task from any group
         pipeline_context.Pipeline.get_default_pipeline(
         ).remove_task_from_groups(exit_task)
 
@@ -137,37 +137,11 @@ class ExitHandler(TasksGroup):
 
         self.exit_task = exit_task
 
-    def _surface_outputs(
-        self, task: pipeline_task.PipelineTask
-    ) -> Mapping[str, pipeline_channel.PipelineChannel]:
-        # For channels
-        self._outputs = {
-            task.name: pipeline_channel.create_pipeline_channel(
-                name=channel.name,
-                channel_type=channel.channel_type,
-                task_name=task.name,
-            ) for _, channel in (task.outputs or {}).items()
-        }
+    def _wrap_task(self, task):
+        """The list of all channel wrapped by the task.
 
-    @property
-    def channel_inputs(self) -> List[pipeline_channel.PipelineChannel]:
-        """The list of all channel inputs passed to the task."""
-        return []
-
-    @property
-    def outputs(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
-        """The dictionary of outputs of the task.
-
-        Used when a task has more the one output or uses an
-        ``OutputPath`` or ``Output[Artifact]`` type annotation.
+        The exit handlers upstream tasks
         """
-        return self._outputs
-
-    @property
-    def wrapped_task(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
-        return self._wrapped_task
-
-    def wrap_task(self, task):
         self._wrapped_task = task
 
 

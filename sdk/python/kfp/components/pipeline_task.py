@@ -477,11 +477,17 @@ class PipelineTask:
         from kfp.components import pipeline_context
         from kfp.components import tasks_group
 
-        for input_spec in exit_task.component_spec.inputs.values():
-            if not input_spec.optional:
-                raise ValueError(
-                    f'Exit task {exit_task.name} requires a default value to make sure the Exit handler never fails.'
-                )
+        for input_spec_name, input_spec in exit_task.component_spec.inputs.items(
+        ):
+            for input_name, argument_value in exit_task._inputs.items():
+                if (input_spec_name == input_name) and (isinstance(
+                        argument_value, pipeline_channel.PipelineChannel)) and (
+                            not input_spec.optional) and (
+                                argument_value.task_name in pipeline_context
+                                .Pipeline.get_default_pipeline().tasks):
+                    raise ValueError(
+                        f'Exit task {exit_task.name} requires a default value to make sure the Exit handler never fails.'
+                    )
 
         for task in pipeline_context.Pipeline.get_default_pipeline(
         ).tasks.values():
@@ -501,7 +507,7 @@ class PipelineTask:
                 add_to_group=not getattr(self, 'is_task_group_dependent',
                                          False))
 
-        exit_handler.wrap_task(self)
+        exit_handler._wrap_task(self)
         compiler_utils.switch_input_reference_for_specified_task(
             exit_task, self.name, exit_handler.name)
         pipeline_context.Pipeline.get_default_pipeline().tasks[
