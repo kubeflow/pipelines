@@ -3,6 +3,7 @@ extends:
 ignorePatterns:
     - node_modules/
     - src/apis # these are generated api clients
+    - src/apisv2beta1 # these are generated v2 api clients
     - '*.test.ts'
     - '*.test.tsx'
     - src/generated # proto generated definition
