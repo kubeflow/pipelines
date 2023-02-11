@@ -482,7 +482,7 @@ class PipelineTask:
         This method effectively turns the caller task into an exit task
         if the caller task has upstream dependencies.
 
-        "If the task has no upstream tasks, either via data exchange or an explicit dependency via .after(), this method has no effect."
+        If the task has no upstream tasks, either via data exchange or an explicit dependency via .after(), this method has no effect.
 
         Returns:
             Self return to allow chained setting calls.
@@ -491,8 +491,8 @@ class PipelineTask:
           ::
 
             @dsl.pipeline()
-            def my_pipeline(sample_input1: str = 'message'):
-                task = fail_op(message=sample_input1)
+            def my_pipeline(text: str = 'message'):
+                task = fail_op(message=text)
                 clean_up_task = print_op(
                     message=task.output).ignore_upstream_failure()
         """
@@ -504,7 +504,7 @@ class PipelineTask:
                ) and (not input_spec.optional) and (argument_value.task_name
                                                     is not None):
                 raise ValueError(
-                    f' Task {self.name} requires a default value to make sure it never fails.'
+                    f'Tasks can only use .ignore_upstream_failure() if all input parameters that accept arguments created by an upstream task have a default value, \n\tin case the upstream task fails to produce its output. Input parameter task {self.name}`s {input_spec_name!r} argument is an output of an upstream task {argument_value.task_name}, but {input_spec_name} has no default value.'
                 )
 
         self._ignore_upstream_failure_tag = True

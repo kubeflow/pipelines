@@ -2913,9 +2913,9 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
             .strategy, 2)
-        self.assertNotEqual(
+        self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 2)
+            .strategy, 0)
 
     def test_component_with_no_input_permitted(self):
 
@@ -2938,9 +2938,9 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
             .strategy, 2)
-        self.assertNotEqual(
+        self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 2)
+            .strategy, 0)
 
     def test_clean_up_on_wrapped_pipeline_permitted(self):
 
@@ -2974,9 +2974,9 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
             .strategy, 2)
-        self.assertNotEqual(
+        self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 2)
+            .strategy, 0)
 
     def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
             self):
@@ -2993,8 +2993,7 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             print(message)
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'requires a default value to make sure it never fails.'):
+                ValueError, r'Tasks can only use .ignore_upstream_failure()'):
 
             @dsl.pipeline()
             def my_pipeline(sample_input1: str = 'message'):
@@ -3025,9 +3024,9 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
             .strategy, 2)
-        self.assertNotEqual(
+        self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 2)
+            .strategy, 0)
 
     def test_clean_up_task_with_no_default_value_for_constant_permitted(self):
 
@@ -3050,9 +3049,9 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
             .strategy, 2)
-        self.assertNotEqual(
+        self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 2)
+            .strategy, 0)
 
 
 if __name__ == '__main__':
