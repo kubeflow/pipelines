@@ -1,3 +1,17 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package api_server
 
 import (
@@ -150,6 +164,28 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineV1Params) error
 			fmt.Sprintf("Failed to delete pipeline '%v'", parameters.ID))
 	}
 
+	return nil
+}
+
+func (c *PipelineClient) DeletePipelineVersion(parameters *params.DeletePipelineVersionV1Params) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.PipelineService.DeletePipelineVersionV1(parameters, c.authInfoWriter)
+	if err != nil {
+		if defaultError, ok := err.(*params.DeletePipelineVersionV1Default); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to delete pipeline version. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to delete pipeline version '%v'", parameters.VersionID))
+	}
 	return nil
 }
 

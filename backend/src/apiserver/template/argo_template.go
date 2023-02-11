@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,6 +30,10 @@ import (
 func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
+	// Overwrite namespace from the run object
+	if modelRun.Namespace != "" {
+		workflow.SetExecutionNamespace(modelRun.Namespace)
+	}
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
 	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
 	// on every single step/pod so the cache server can understand.
@@ -39,11 +43,11 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	// Convert parameters
 	parameters, err := modelToParametersMap(modelRun.PipelineSpec.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert parameters.")
+		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
 	// Verify no additional parameter provided
 	if err := workflow.VerifyParameters(parameters); err != nil {
-		return nil, util.Wrap(err, "Failed to verify parameters.")
+		return nil, util.Wrap(err, "Failed to verify parameters")
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
@@ -66,7 +70,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.Name)
+	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
 	err = workflow.ReplaceUID(options.RunId)
 	if err != nil {
@@ -84,7 +88,6 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 		}
 	}
 	return workflow, nil
-
 }
 
 type Argo struct {
@@ -93,22 +96,26 @@ type Argo struct {
 
 func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
+	// Overwrite namespace from the job object
+	if modelJob.Namespace != "" {
+		workflow.SetExecutionNamespace(modelJob.Namespace)
+	}
 	parameters, err := modelToParametersMap(modelJob.PipelineSpec.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert parameters.")
+		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
 	// Verify no additional parameter provided
 	if err := workflow.VerifyParameters(parameters); err != nil {
-		return nil, util.Wrap(err, "Failed to verify parameters.")
+		return nil, util.Wrap(err, "Failed to verify parameters")
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 	setDefaultServiceAccount(workflow, modelJob.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.Name)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed.")
+		return nil, util.Wrap(err, "Create job failed")
 	}
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
@@ -207,7 +214,7 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	var wf workflowapi.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Failed to parse the workflow template.")
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Failed to parse the workflow template")
 	}
 	if wf.APIVersion != argoVersion {
 		return nil, util.NewInvalidInputError("Unsupported argo version. Expected: %v. Received: %v", argoVersion, wf.APIVersion)
@@ -224,4 +231,11 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 		return nil, err
 	}
 	return util.NewWorkflow(&wf), nil
+}
+
+func AddRuntimeMetadata(wf *workflowapi.Workflow) {
+	template := wf.Spec.Templates[0]
+	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
+	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
+	wf.Spec.Templates[0] = template
 }

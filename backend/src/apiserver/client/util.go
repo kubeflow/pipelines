@@ -24,14 +24,14 @@ import (
 func getKubernetesClientset(clientParams util.ClientParameters) (*kubernetes.Clientset, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
+		return nil, errors.Wrap(err, "Failed to initialize kubernetes client")
 	}
 	restConfig.QPS = float32(clientParams.QPS)
 	restConfig.Burst = clientParams.Burst
 
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set.")
+		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set")
 	}
 	return clientSet, nil
 }

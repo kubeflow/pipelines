@@ -8,8 +8,8 @@ Name | Type | Description | Notes
 **display_name** | **str** | Required input. Name provided by user, or auto generated if run is created by a recurring run. | [optional] 
 **storage_state** | [**V2beta1RunStorageState**](V2beta1RunStorageState.md) |  | [optional] 
 **description** | **str** | Optional input. Short description of the run. | [optional] 
-**pipeline_id** | **str** | ID of existing pipeline. | [optional] 
-**pipeline_spec** | [**object**](.md) | Pipeline spec. | [optional] 
+**pipeline_version_id** | **str** | ID of an existing pipeline version. | [optional] 
+**pipeline_spec** | [**ProtobufStruct**](ProtobufStruct.md) |  | [optional] 
 **runtime_config** | [**V2beta1RuntimeConfig**](V2beta1RuntimeConfig.md) |  | [optional] 
 **service_account** | **str** | Optional input. Specifies which kubernetes service account is used. | [optional] 
 **created_at** | **datetime** | Output. Creation time of the run. | [optional] 
@@ -19,7 +19,6 @@ Name | Type | Description | Notes
 **error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
 **run_details** | [**V2beta1RunDetails**](V2beta1RunDetails.md) |  | [optional] 
 **recurring_run_id** | **str** | ID of the recurring run that triggered this run. | [optional] 
-**recurring_run_name** | **str** |  | [optional] 
 **state_history** | [**list[V2beta1RuntimeStatus]**](V2beta1RuntimeStatus.md) | Output. A sequence of run statuses. This field keeps a record  of state transitions. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

@@ -884,21 +884,19 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def report_run_metrics(self, experiment_id, run_id, body, **kwargs):  # noqa: E501
-        """Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.  # noqa: E501
+    def retry_run(self, experiment_id, run_id, **kwargs):  # noqa: E501
+        """Re-initiates a failed or terminated run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.report_run_metrics(experiment_id, run_id, body, async_req=True)
+        >>> thread = api.retry_run(experiment_id, run_id, async_req=True)
         >>> result = thread.get()
 
         :param experiment_id: The ID of the parent experiment. (required)
         :type experiment_id: str
-        :param run_id: Required. The parent run ID of the metric. (required)
+        :param run_id: The ID of the run to be retried. (required)
         :type run_id: str
-        :param body: (required)
-        :type body: V2beta1ReportRunMetricsRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -911,26 +909,24 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ReportRunMetricsResponse
+        :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.report_run_metrics_with_http_info(experiment_id, run_id, body, **kwargs)  # noqa: E501
+        return self.retry_run_with_http_info(experiment_id, run_id, **kwargs)  # noqa: E501
 
-    def report_run_metrics_with_http_info(self, experiment_id, run_id, body, **kwargs):  # noqa: E501
-        """Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.  # noqa: E501
+    def retry_run_with_http_info(self, experiment_id, run_id, **kwargs):  # noqa: E501
+        """Re-initiates a failed or terminated run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.report_run_metrics_with_http_info(experiment_id, run_id, body, async_req=True)
+        >>> thread = api.retry_run_with_http_info(experiment_id, run_id, async_req=True)
         >>> result = thread.get()
 
         :param experiment_id: The ID of the parent experiment. (required)
         :type experiment_id: str
-        :param run_id: Required. The parent run ID of the metric. (required)
+        :param run_id: The ID of the run to be retried. (required)
         :type run_id: str
-        :param body: (required)
-        :type body: V2beta1ReportRunMetricsRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -947,15 +943,14 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ReportRunMetricsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(object, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
 
         all_params = [
             'experiment_id',
-            'run_id',
-            'body'
+            'run_id'
         ]
         all_params.extend(
             [
@@ -970,22 +965,18 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method report_run_metrics" % key
+                    " to method retry_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'experiment_id' is set
         if self.api_client.client_side_validation and ('experiment_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['experiment_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `experiment_id` when calling `report_run_metrics`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `experiment_id` when calling `retry_run`")  # noqa: E501
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `report_run_metrics`")  # noqa: E501
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `report_run_metrics`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `retry_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -1003,28 +994,22 @@ class RunServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
-            ['application/json'])  # noqa: E501
-
-        # HTTP header `Content-Type`
-        header_params['Content-Type'] = self.api_client.select_header_content_type(  # noqa: E501
             ['application/json'])  # noqa: E501
 
         # Authentication setting
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics', 'POST',
+            '/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ReportRunMetricsResponse',  # noqa: E501
+            response_type='object',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

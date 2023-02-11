@@ -1,3 +1,17 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -45,9 +59,9 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 			Subresource: "",
 			Name:        "",
 		}
-		err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
+		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize on namespace.")
+			return nil, util.Wrap(err, "Failed to authorize on namespace")
 		}
 	}
 
@@ -90,7 +104,7 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
 	serviceURL := s.getVisualizationServiceURL(request)
 	if err := isVisualizationServiceAlive(serviceURL); err != nil {
-		return nil, util.Wrap(err, "Cannot generate visualization.")
+		return nil, util.Wrap(err, "Cannot generate visualization")
 	}
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
 	urlValues := url.Values{
@@ -100,7 +114,7 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	}
 	resp, err := http.PostForm(serviceURL, urlValues)
 	if err != nil {
-		return nil, util.Wrap(err, "Unable to initialize visualization request.")
+		return nil, util.Wrap(err, "Unable to initialize visualization request")
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf(resp.Status)
@@ -108,7 +122,7 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, util.Wrap(err, "Unable to parse visualization response.")
+		return nil, util.Wrap(err, "Unable to parse visualization response")
 	}
 	return body, nil
 }
@@ -125,12 +139,12 @@ func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.Crea
 
 func isVisualizationServiceAlive(serviceURL string) error {
 	resp, err := http.Get(serviceURL)
-
 	if err != nil {
-		wrappedErr := util.Wrap(err, fmt.Sprintf("Unable to verify visualization service aliveness by sending request to %s", serviceURL))
+		wrappedErr := util.Wrapf(err, "Unable to verify visualization service aliveness by sending request to %s", serviceURL)
 		glog.Error(wrappedErr)
 		return wrappedErr
 	} else if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
 		wrappedErr := errors.New(fmt.Sprintf("Unable to verify visualization service aliveness by sending request to %s and get response code: %s !", serviceURL, resp.Status))
 		glog.Error(wrappedErr)
 		return wrappedErr

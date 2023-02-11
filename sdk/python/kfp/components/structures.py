@@ -964,6 +964,8 @@ class ComponentSpec:
             deployment_config=deployment_config,
             group=root_group,
             inputs=inputs,
+            outputs=collections.defaultdict(
+                dict),  # empty -- no sub-DAG outputs to surface
             dependencies={},  # no dependencies for single-component pipeline
             rootgroup_name=root_group.name,
             task_name_to_parent_groups=task_name_to_parent_groups,

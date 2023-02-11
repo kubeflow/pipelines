@@ -68,7 +68,7 @@ type GetPipelineByNameParams struct {
 	Name string
 	/*Namespace
 	  Optional input. Namespace of the pipeline.
-	It could be empty if default namespaces needs to be used or if  multi-user
+	It could be empty if default namespaces needs to be used or if multi-user
 	support is turned off.
 
 	*/

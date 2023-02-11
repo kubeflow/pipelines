@@ -70,10 +70,10 @@ class TestRunServiceApi(unittest.TestCase):
         """
         pass
 
-    def test_report_run_metrics(self):
-        """Test case for report_run_metrics
+    def test_retry_run(self):
+        """Test case for retry_run
 
-        Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.  # noqa: E501
+        Re-initiates a failed or terminated run.  # noqa: E501
         """
         pass
 

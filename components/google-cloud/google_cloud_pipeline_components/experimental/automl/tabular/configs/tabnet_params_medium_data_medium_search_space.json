@@ -148,5 +148,11 @@
     "discrete_value_spec": {
       "values": [0.0, 0.5, 1.0, 2.0, 3.0, 4.0]
     }
+  },
+  {
+    "parameter_id": "yeo_johnson_transform",
+    "categorical_value_spec": {
+      "values": ["false"]
+    }
   }
 ]

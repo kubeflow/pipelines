@@ -33,7 +33,7 @@ type DB struct {
 	SQLDialect
 }
 
-// NewDB creates a DB
+// NewDB creates a DB.
 func NewDB(db *sql.DB, dialect SQLDialect) *DB {
 	return &DB{db, dialect}
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 )
 
-// These are valid conditions of a ScheduledWorkflow.
 const (
 	RunKey  = "run_id"
 	NodeKey = "node_id"
@@ -72,7 +71,7 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 func (s *RunLogServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
 	glog.Errorf("Failed to read run log. Error: %+v", err)
 	w.WriteHeader(code)
-	errorResponse := api.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
+	errorResponse := &api.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
 	errBytes, err := json.Marshal(errorResponse)
 	if err != nil {
 		w.Write([]byte("Error reading run log"))

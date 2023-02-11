@@ -25,8 +25,7 @@ type TimeInterface interface {
 	Now() time.Time
 }
 
-type RealTime struct {
-}
+type RealTime struct{}
 
 func NewRealTime() TimeInterface {
 	return &RealTime{}

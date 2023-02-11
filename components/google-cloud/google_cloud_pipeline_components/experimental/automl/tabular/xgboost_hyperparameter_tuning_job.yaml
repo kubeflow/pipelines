@@ -1,0 +1,109 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: xgboost_hyperparameter_tuning_job
+description: |
+  Launch a XGBoost hyperparameter tuning job using Vertex HyperparameterTuningJob API.
+
+    Args:
+        project (str):
+            Required. The GCP project that runs the pipeline components.
+        location (str):
+            Required. The GCP region that runs the pipeline components.
+        study_spec_metric_id (str):
+            Required. Metric to optimize. For options, please look under
+            'eval_metric' at https://xgboost.readthedocs.io/en/stable/parameter.html#learning-task-parameters.
+        study_spec_metric_goal (str):
+            Required. Optimization goal of the metric, possible values:
+            "MAXIMIZE", "MINIMIZE".
+        study_spec_parameters_override (list[str]):
+            List of dictionaries representing parameters to
+            optimize. The dictionary key is the parameter_id, which is passed to
+            training job as a command line argument, and the dictionary value is the
+            parameter specification of the metric.
+        max_trial_count (int):
+            Required. The desired total number of trials.
+        parallel_trial_count (int):
+            Required. The desired number of trials to run in parallel.
+        max_failed_trial_count (Optional[int]):
+            The number of failed trials that need to be
+            seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how
+            many trials must fail before the whole job fails.
+        study_spec_algorithm (Optional[str]):
+            The search algorithm specified for the study. One of
+            'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+        study_spec_measurement_selection_type (Optional[str]):
+            Which measurement to use if/when the
+            service automatically selects the final measurement from previously
+            reported intermediate measurements. One of "BEST_MEASUREMENT" or
+            "LAST_MEASUREMENT".
+        worker_pool_specs (JsonArray):
+            The worker pool specs.
+        encryption_spec_key_name (Optional[str]):
+            The KMS key name.
+
+    Returns:
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the custom training job.
+
+inputs:
+  - { name: project, type: String }
+  - { name: location, type: String }
+  - { name: study_spec_metric_id, type: String }
+  - { name: study_spec_metric_goal, type: String }
+  - { name: study_spec_parameters_override, type: JsonArray }
+  - { name: max_trial_count, type: Integer }
+  - { name: parallel_trial_count, type: Integer }
+  - { name: max_failed_trial_count, type: Integer, default: 0, optional: true }
+  - { name: study_spec_algorithm, type: String, default: 'ALGORITHM_UNSPECIFIED', optional: true }
+  - { name: study_spec_measurement_selection_type, type: String, default: 'BEST_MEASUREMENT', optional: true }
+  - { name: worker_pool_specs, type: JsonArray}
+  - { name: encryption_spec_key_name, type: String, default: "" }
+
+outputs:
+  - { name: gcp_resources, type: String }
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job.launcher]
+    args: [
+      --type, HyperparameterTuningJob,
+      --project, { inputValue: project },
+      --location, { inputValue: location },
+      --gcp_resources, { outputPath: gcp_resources },
+      --payload,
+      concat: [
+          '{"display_name": "xgboost-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+          { inputValue: encryption_spec_key_name },
+          '"}, "study_spec": {"metrics": [{"metric_id": "',
+          { inputValue: study_spec_metric_id },
+          '", "goal": "',
+          { inputValue: study_spec_metric_goal },
+          '"}], "parameters": ',
+          { inputValue: study_spec_parameters_override },
+          ', "algorithm": "',
+          { inputValue: study_spec_algorithm },
+          '", "measurement_selection_type": "',
+          { inputValue: study_spec_measurement_selection_type },
+          '"}, "max_trial_count": ',
+          { inputValue: max_trial_count },
+          ', "parallel_trial_count": ',
+          { inputValue: parallel_trial_count },
+          ', "max_failed_trial_count": ',
+          { inputValue: max_failed_trial_count },
+          ', "trial_job_spec": {"worker_pool_specs": ',
+          { inputValue: worker_pool_specs },
+          '}}'
+      ]]

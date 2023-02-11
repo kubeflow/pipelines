@@ -43,17 +43,14 @@ type V2beta1Run struct {
 	// Format: date-time
 	FinishedAt strfmt.DateTime `json:"finished_at,omitempty"`
 
-	// ID of existing pipeline.
-	PipelineID string `json:"pipeline_id,omitempty"`
-
 	// Pipeline spec.
-	PipelineSpec interface{} `json:"pipeline_spec,omitempty"`
+	PipelineSpec *ProtobufStruct `json:"pipeline_spec,omitempty"`
+
+	// ID of an existing pipeline version.
+	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 
 	// ID of the recurring run that triggered this run.
 	RecurringRunID string `json:"recurring_run_id,omitempty"`
-
-	// Name of the recurring run that triggered this run
-	RecurringRunName string `json:"recurring_run_name,omitempty"`
 
 	// Output. Runtime details of a run.
 	RunDetails *V2beta1RunDetails `json:"run_details,omitempty"`
@@ -97,6 +94,10 @@ func (m *V2beta1Run) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateFinishedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePipelineSpec(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -169,6 +170,24 @@ func (m *V2beta1Run) validateFinishedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("finished_at", "body", "date-time", m.FinishedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) validatePipelineSpec(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.PipelineSpec) { // not required
+		return nil
+	}
+
+	if m.PipelineSpec != nil {
+		if err := m.PipelineSpec.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_spec")
+			}
+			return err
+		}
 	}
 
 	return nil

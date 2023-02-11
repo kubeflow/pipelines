@@ -39,20 +39,54 @@ class TestV2beta1Run(unittest.TestCase):
                 experiment_id = '0', 
                 run_id = '0', 
                 display_name = '0', 
-                storage_state = 'STORAGESTATE_UNSPECIFIED', 
+                storage_state = 'STORAGE_STATE_UNSPECIFIED', 
                 description = '0', 
-                pipeline_id = '0', 
-                pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
+                pipeline_version_id = '0', 
+                pipeline_spec = kfp_server_api.models.protobuf_struct.protobufStruct(
+                    fields = {
+                        'key' : kfp_server_api.models.protobuf_value.protobufValue(
+                            null_value = 'NULL_VALUE', 
+                            number_value = 1.337, 
+                            string_value = '0', 
+                            bool_value = True, 
+                            struct_value = kfp_server_api.models.protobuf_struct.protobufStruct(), 
+                            list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
+                                values = [
+                                    kfp_server_api.models.protobuf_value.protobufValue(
+                                        number_value = 1.337, 
+                                        string_value = '0', 
+                                        bool_value = True, )
+                                    ], ), )
+                        }, ), 
                 runtime_config = kfp_server_api.models.v2beta1_runtime_config.v2beta1RuntimeConfig(
                     parameters = {
-                        'key' : None
+                        'key' : kfp_server_api.models.protobuf_value.protobufValue(
+                            null_value = 'NULL_VALUE', 
+                            number_value = 1.337, 
+                            string_value = '0', 
+                            bool_value = True, 
+                            struct_value = kfp_server_api.models.protobuf_struct.protobufStruct(
+                                fields = {
+                                    'key' : kfp_server_api.models.protobuf_value.protobufValue(
+                                        number_value = 1.337, 
+                                        string_value = '0', 
+                                        bool_value = True, 
+                                        list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
+                                            values = [
+                                                kfp_server_api.models.protobuf_value.protobufValue(
+                                                    number_value = 1.337, 
+                                                    string_value = '0', 
+                                                    bool_value = True, )
+                                                ], ), )
+                                    }, ), 
+                            list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
                         }, 
                     pipeline_root = '0', ), 
                 service_account = '0', 
                 created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 scheduled_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 finished_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                state = 'RUNTIMESTATE_UNSPECIFIED', 
+                state = 'RUNTIME_STATE_UNSPECIFIED', 
                 error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                     code = 56, 
                     message = '0', 
@@ -81,7 +115,7 @@ class TestV2beta1Run(unittest.TestCase):
                                 failed_pre_caching_check_jobs = [
                                     '0'
                                     ], ), 
-                            state = 'RUNTIMESTATE_UNSPECIFIED', 
+                            state = 'RUNTIME_STATE_UNSPECIFIED', 
                             execution_id = '0', 
                             error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                                 code = 56, 
@@ -107,11 +141,10 @@ class TestV2beta1Run(unittest.TestCase):
                                 ], )
                         ], ), 
                 recurring_run_id = '0', 
-                recurring_run_name = '0', 
                 state_history = [
                     kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                         update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                        state = 'RUNTIMESTATE_UNSPECIFIED', 
+                        state = 'RUNTIME_STATE_UNSPECIFIED', 
                         error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                             code = 56, 
                             message = '0', 

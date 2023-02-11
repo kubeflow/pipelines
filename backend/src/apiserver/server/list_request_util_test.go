@@ -17,18 +17,18 @@ package server
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var fakeModelFieldsBySortableAPIFields = map[string]string{
@@ -49,66 +49,69 @@ func getFakeModelToken() string {
 
 func TestValidateFilterV1(t *testing.T) {
 	referenceKey := &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "123"}
-	ctx, err := ValidateFilterV1(referenceKey)
+	ctx, err := validateFilterV1(referenceKey)
 	assert.Nil(t, err)
-	assert.Equal(t, &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: "123"}}, ctx)
+	assert.Equal(t, &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: "123"}}, ctx)
 }
 
 func TestValidateFilterV1_ToModelResourceTypeFailed(t *testing.T) {
 	referenceKey := &api.ResourceKey{Type: api.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123"}
-	_, err := ValidateFilterV1(referenceKey)
+	_, err := validateFilterV1(referenceKey)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unrecognized resource reference type")
 }
 
 func TestValidatePagination(t *testing.T) {
 	token := getFakeModelToken()
-	context, err := ValidatePagination(token, 3, "Name",
+	context, err := validatePagination(token, 3, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	assert.Nil(t, err)
 	expected := &common.PaginationContext{
 		PageSize:        3,
 		SortByFieldName: "Name",
 		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"}}
+		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
+	}
 	assert.Equal(t, expected, context)
 }
 
 func TestValidatePagination_NegativePageSizeError(t *testing.T) {
 	token := getFakeModelToken()
-	_, err := ValidatePagination(token, -1, "Name",
+	_, err := validatePagination(token, -1, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestValidatePagination_DefaultPageSize(t *testing.T) {
 	token := getFakeModelToken()
-	context, err := ValidatePagination(token, 0, "Name",
+	context, err := validatePagination(token, 0, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	expected := &common.PaginationContext{
 		PageSize:        defaultPageSize,
 		SortByFieldName: "Name",
 		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"}}
+		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
+	}
 	assert.Nil(t, err)
 	assert.Equal(t, expected, context)
 }
 
 func TestValidatePagination_DefaultSorting(t *testing.T) {
 	token := getFakeModelToken()
-	context, err := ValidatePagination(token, 0, "Name",
+	context, err := validatePagination(token, 0, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	expected := &common.PaginationContext{
 		PageSize:        defaultPageSize,
 		SortByFieldName: "Name",
 		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"}}
+		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
+	}
 	assert.Nil(t, err)
 	assert.Equal(t, expected, context)
 }
 
 func TestValidatePagination_InvalidToken(t *testing.T) {
-	_, err := ValidatePagination("invalid token", 0, "",
+	_, err := validatePagination("invalid token", 0, "",
 		"", fakeModelFieldsBySortableAPIFields)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
@@ -166,19 +169,19 @@ func TestParseSortByQueryString_FieldNameWithAscFlag(t *testing.T) {
 func TestParseSortByQueryString_NotSortableFieldName(t *testing.T) {
 	_, _, err := parseSortByQueryString("foobar", fakeModelFieldsBySortableAPIFields)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Cannot sort on field foobar.")
+	assert.Contains(t, err.Error(), "Cannot sort on field foobar")
 }
 
 func TestParseSortByQueryString_IncorrectDescFlag(t *testing.T) {
 	_, _, err := parseSortByQueryString("id foobar", fakeModelFieldsBySortableAPIFields)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Received invalid sort by format `id foobar`")
+	assert.Contains(t, err.Error(), "Received invalid sort by format 'id foobar'")
 }
 
 func TestParseSortByQueryString_StringTooLong(t *testing.T) {
 	_, _, err := parseSortByQueryString("Name desc foo", fakeModelFieldsBySortableAPIFields)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Received invalid sort by format `Name desc foo`")
+	assert.Contains(t, err.Error(), "Received invalid sort by format 'Name desc foo'")
 }
 
 func TestParseAPIFilter_EmptyStringYieldsNilFilter(t *testing.T) {
@@ -205,7 +208,7 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	// The above should correspond the following filter:
 	want := &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key: "testkey", Op: api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{StringValue: "testvalue"},
 			},

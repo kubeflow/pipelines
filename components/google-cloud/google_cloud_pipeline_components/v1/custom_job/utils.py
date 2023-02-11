@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors
+# Copyright 2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 """Module for supporting Google Vertex AI Custom Training Job Op."""
 
 import copy
+import logging
 from typing import Callable, Dict, Optional, Sequence
 
 from google_cloud_pipeline_components.v1.custom_job import component
@@ -85,76 +86,94 @@ def create_custom_training_job_from_component(
   Args:
     component_spec: The task (ContainerOp) object to run as Vertex AI custom
       job.
-    display_name (Optional[str]): The name of the custom job. If not provided
+    display_name (Optional[str]):
+      The name of the custom job. If not provided
       the component_spec.name will be used instead.
-    replica_count (Optional[int]): The count of instances in the cluster. One
+    replica_count (Optional[int]):
+      The count of instances in the cluster. One
       replica always counts towards the master in worker_pool_spec[0] and the
       remaining replicas will be allocated in worker_pool_spec[1]. For more
       details see
       https://cloud.google.com/vertex-ai/docs/training/distributed-training#configure_a_distributed_training_job.
-    machine_type (Optional[str]): The type of the machine to run the custom job.
+    machine_type (Optional[str]):
+      The type of the machine to run the custom job.
       The default value is "n1-standard-4".  For more details about this input
       config, see
       https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types.
-    accelerator_type (Optional[str]): The type of accelerator(s) that may be
+    accelerator_type (Optional[str]):
+      The type of accelerator(s) that may be
       attached to the machine as per accelerator_count.  For more details about
       this input config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype.
-    accelerator_count (Optional[int]): The number of accelerators to attach to
+    accelerator_count (Optional[int]):
+      The number of accelerators to attach to
       the machine. Defaults to 1 if accelerator_type is set.
-    boot_disk_type (Optional[str]): Type of the boot disk (default is "pd-ssd").
+    boot_disk_type (Optional[str]):
+      Type of the boot disk (default is "pd-ssd").
       Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or
       "pd-standard" (Persistent Disk Hard Disk Drive). boot_disk_type is set as
       a static value and cannot be changed as a pipeline parameter.
-    boot_disk_size_gb (Optional[int]): Size in GB of the boot disk (default is
+    boot_disk_size_gb (Optional[int]):
+      Size in GB of the boot disk (default is
       100GB). boot_disk_size_gb is set as a static value and cannot be changed
       as a pipeline parameter.
-    timeout (Optional[str]): The maximum job running time. The default is 7
+    timeout (Optional[str]):
+      The maximum job running time. The default is 7
       days. A duration in seconds with up to nine fractional digits, terminated
       by 's', for example: "3.5s".
-    restart_job_on_worker_restart (Optional[bool]): Restarts the entire
+    restart_job_on_worker_restart (Optional[bool]):
+      Restarts the entire
       CustomJob if a worker gets restarted. This feature can be used by
       distributed training jobs that are not resilient to workers leaving and
       joining a job.
-    service_account (Optional[str]): Sets the default service account for
+    service_account (Optional[str]):
+      Sets the default service account for
       workload run-as account. The service account running the pipeline
       (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
       submitting jobs must have act-as permission on this run-as account. If
       unspecified, the Vertex AI Custom Code Service
       Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
       for the CustomJob's project.
-    network (Optional[str]): The full name of the Compute Engine network to
+    network (Optional[str]):
+      The full name of the Compute Engine network to
       which the job should be peered. For example,
       projects/12345/global/networks/myVPC. Format is of the form
       projects/{project}/global/networks/{network}. Where {project} is a project
       number, as in 12345, and {network} is a network name. Private services
       access must already be configured for the network. If left unspecified,
       the job is not peered with any network.
-    encryption_spec_key_name (Optional[str]): Customer-managed encryption key
+    encryption_spec_key_name (Optional[str]):
+      Customer-managed encryption key
       options for the CustomJob. If this is set, then all resources created by
       the CustomJob will be encrypted with the provided encryption key.
-    tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
+    tensorboard (Optional[str]):
+      The name of a Vertex AI Tensorboard resource to
       which this CustomJob will upload Tensorboard logs.
-    enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
+    enable_web_access (Optional[bool]):
+      Whether you want Vertex AI to enable
       [interactive shell
       access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
       to training containers. If set to `true`, you can access interactive
       shells at the URIs given by [CustomJob.web_access_uris][].
-    reserved_ip_ranges (Optional[Sequence[str]]): A list of names for the
+    reserved_ip_ranges (Optional[Sequence[str]]):
+      A list of names for the
       reserved ip ranges under the VPC network that can be used for this job. If
       set, we will deploy the job within the provided ip ranges. Otherwise, the
       job will be deployed to any ip ranges under the provided VPC network.
-    nfs_mounts (Optional[Sequence[Dict]]): A list of NFS mount specs in Json
+    nfs_mounts (Optional[Sequence[Dict]]):
+      A list of NFS mount specs in Json
       dict format. nfs_mounts is set as a static value and cannot be changed as
       a pipeline parameter. For API spec, see
       https://cloud.devsite.corp.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount
         For more details about mounting NFS for CustomJob, see
       https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share
-    base_output_directory (Optional[str]): The Cloud Storage location to store
+    base_output_directory (Optional[str]):
+      The Cloud Storage location to store
       the output of this CustomJob or HyperparameterTuningJob. see below for
       more details:
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
-    labels (Optional[Dict[str, str]]): The labels with user-defined metadata to
+    labels (Optional[Dict[str, str]]):
+      The labels with user-defined metadata to
       organize CustomJobs. See https://goo.gl/xmQnxf for more information.
 
   Returns:
@@ -351,4 +370,20 @@ def create_custom_training_job_from_component(
 
 # This alias points to the old "create_custom_training_job_op_from_component" to
 # avoid potential user breakage.
-create_custom_training_job_op_from_component = create_custom_training_job_from_component
+def create_custom_training_job_op_from_component(*args, **kwargs) -> Callable:  # pylint: disable=g-bare-generic
+  """Deprecated. Please use create_custom_training_job_from_component instead.
+
+  Args:
+    *args: Positional arguments for create_custom_training_job_from_component.
+    **kwargs: Keyword arguments for create_custom_training_job_from_component.
+
+  Returns:
+    A Custom Job component operator corresponding to the input component
+    operator.
+  """
+
+  logging.warning(
+      'Deprecated. Please use create_custom_training_job_from_component'
+      ' instead.'
+  )
+  return create_custom_training_job_from_component(*args, **kwargs)

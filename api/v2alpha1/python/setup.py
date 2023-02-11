@@ -14,19 +14,19 @@
 
 import setuptools
 
-NAME = "kfp-pipeline-spec"
-VERSION = "0.1.17"
+NAME = 'kfp-pipeline-spec'
+VERSION = '0.2.0'
 
 setuptools.setup(
     name=NAME,
     version=VERSION,
-    description="Kubeflow Pipelines pipeline spec",
-    author="google",
-    author_email="kubeflow-pipelines@google.com",
-    url="https://github.com/kubeflow/pipelines",
+    description='Kubeflow Pipelines pipeline spec',
+    author='google',
+    author_email='kubeflow-pipelines@google.com',
+    url='https://github.com/kubeflow/pipelines',
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
-    python_requires=">=3.7.0",
-    install_requires=["protobuf>=3.13.0,<4"],
+    python_requires='>=3.7.0',
+    install_requires=['protobuf>=3.13.0,<4'],
     include_package_data=True,
-    license="Apache 2.0",
+    license='Apache 2.0',
 )

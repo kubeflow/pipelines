@@ -1,12 +1,25 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package storage
 
 import (
+	"fmt"
 	"testing"
 
-	"fmt"
-
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -35,7 +48,7 @@ func createExperimentInNamespace(name string, namespace string) *model.Experimen
 }
 
 func TestListExperiments_Pagination(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -63,7 +76,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -89,7 +102,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -97,7 +110,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 }
 
 func TestListExperiments_Pagination_Descend(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -126,7 +139,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -152,7 +165,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -160,7 +173,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 }
 
 func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -176,7 +189,7 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -184,19 +197,19 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListExperimentsError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	db.Close()
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	_, _, _, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetExperiment(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -210,11 +223,11 @@ func TestGetExperiment(t *testing.T) {
 
 	experiment, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 }
 
 func TestGetExperiment_NotFoundError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 
@@ -224,7 +237,7 @@ func TestGetExperiment_NotFoundError(t *testing.T) {
 }
 
 func TestGetExperiment_InternalError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	db.Close()
@@ -234,7 +247,7 @@ func TestGetExperiment_InternalError(t *testing.T) {
 }
 
 func TestCreateExperiment(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentExpected := model.Experiment{
@@ -248,11 +261,11 @@ func TestCreateExperiment(t *testing.T) {
 	experiment := createExperiment("experiment1")
 	experiment, err := experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 }
 
 func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentExpected := model.Experiment{
@@ -267,7 +280,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 	experiment := createExperimentInNamespace("experiment1", "namespace1")
 	experiment, err := experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 
 	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil))
 	experiment = createExperimentInNamespace("experiment1", "namespace2")
@@ -282,11 +295,11 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 
 	experiment, err = experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
-	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 }
 
 func TestCreateExperiment_DuplicatedKey(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experiment := createExperiment("experiment1")
@@ -301,7 +314,7 @@ func TestCreateExperiment_DuplicatedKey(t *testing.T) {
 
 func TestCreateExperiment_InternalServerError(t *testing.T) {
 	experiment := &model.Experiment{Name: "Experiment123"}
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	db.Close()
@@ -313,7 +326,7 @@ func TestCreateExperiment_InternalServerError(t *testing.T) {
 
 func TestCreateExperiment_CreateUUIDFailure(t *testing.T) {
 	experiment := &model.Experiment{Name: "Experiment123"}
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, errors.New("error")))
 	db.Close()
@@ -324,7 +337,7 @@ func TestCreateExperiment_CreateUUIDFailure(t *testing.T) {
 }
 
 func TestDeleteExperiment(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -340,7 +353,7 @@ func TestDeleteExperiment(t *testing.T) {
 }
 
 func TestDeleteExperiment_InternalError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -355,7 +368,7 @@ func TestDeleteExperiment_InternalError(t *testing.T) {
 }
 
 func TestListExperiments_Filtering(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -366,13 +379,13 @@ func TestListExperiments_Filtering(t *testing.T) {
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDFour, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment4"))
 
-	filterProto := &api.Filter{
-		Predicates: []*api.Predicate{
-			&api.Predicate{
+	filterProto := &apiv1beta1.Filter{
+		Predicates: []*apiv1beta1.Predicate{
+			{
 				Key: "name",
-				Op:  api.Predicate_IN,
-				Value: &api.Predicate_StringValues{
-					StringValues: &api.StringValues{
+				Op:  apiv1beta1.Predicate_IN,
+				Value: &apiv1beta1.Predicate_StringValues{
+					StringValues: &apiv1beta1.StringValues{
 						Values: []string{"experiment2", "experiment4", "experiment3"},
 					},
 				},
@@ -382,17 +395,17 @@ func TestListExperiments_Filtering(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", filterProto)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	expected := []*model.Experiment{
-		&model.Experiment{
+		{
 			UUID:           fakeIDTwo,
 			CreatedAtInSec: 2,
 			Name:           "experiment2",
 			Description:    "My name is experiment2",
 			StorageState:   "AVAILABLE",
 		},
-		&model.Experiment{
+		{
 			UUID:           fakeIDThree,
 			CreatedAtInSec: 3,
 			Name:           "experiment3",
@@ -410,10 +423,10 @@ func TestListExperiments_Filtering(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	expected = []*model.Experiment{
-		&model.Experiment{
+		{
 			UUID:           fakeIDFour,
 			CreatedAtInSec: 4,
 			Name:           "experiment4",
@@ -430,7 +443,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 }
 
 func TestArchiveExperiment_InternalError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	db.Close()
@@ -441,71 +454,70 @@ func TestArchiveExperiment_InternalError(t *testing.T) {
 }
 
 func TestArchiveAndUnarchiveExperiment(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	defer db.Close()
 
 	// Initial state: 1 experiment and 2 runs in it.
 	// The experiment is unarchived.
 	// One run is archived and the other is not.
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
-	experimentStore.CreateExperiment(createExperiment("experiment1"))
+	experimentStore := NewExperimentStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(fakeID, nil),
+	)
+	experimentStore.CreateExperiment(
+		createExperiment("experiment1"),
+	)
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
-	run1 := &model.RunDetail{
-		Run: model.Run{
-			UUID:             "1",
-			Name:             "run1",
-			DisplayName:      "run1",
-			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Namespace:        "n1",
-			CreatedAtInSec:   1,
-			ScheduledAtInSec: 1,
-			Conditions:       "Running",
-			ExperimentUUID:   fakeID,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: fakeID, ReferenceName: "experiment1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
-				},
-			},
-		},
-		PipelineRuntime: model.PipelineRuntime{
+	run1 := &model.Run{
+		UUID:         "1",
+		DisplayName:  "run1",
+		K8SName:      "run1",
+		StorageState: model.StorageStateAvailableV1,
+		Namespace:    "n1",
+		ExperimentId: fakeID,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			ScheduledAtInSec:        1,
+			State:                   "RUNNING",
 			WorkflowRuntimeManifest: "workflow1",
 		},
+		PipelineSpec: model.PipelineSpec{},
 	}
-	run2 := &model.RunDetail{
-		Run: model.Run{
-			UUID:             "2",
-			Name:             "run2",
-			DisplayName:      "run2",
-			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
-			Namespace:        "n1",
-			CreatedAtInSec:   2,
-			ScheduledAtInSec: 2,
-			Conditions:       "done",
-			ExperimentUUID:   fakeID,
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: fakeID, ReferenceName: "experiment1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
-				},
-			},
-		},
-		PipelineRuntime: model.PipelineRuntime{
+	run2 := &model.Run{
+		UUID:         "2",
+		DisplayName:  "run2",
+		K8SName:      "run2",
+		StorageState: model.StorageStateArchivedV1,
+		Namespace:    "n1",
+		ExperimentId: fakeID,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          2,
+			ScheduledAtInSec:        2,
+			State:                   "FINISHED",
 			WorkflowRuntimeManifest: "workflow1",
 		},
+		PipelineSpec: model.PipelineSpec{},
 	}
 	runStore.CreateRun(run1)
 	runStore.CreateRun(run2)
+	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	runs, total_run_size, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_run_size)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_AVAILABLE.String(), string(runs[0].StorageState.ToV1()))
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_AVAILABLE.String(), runs[0].StorageState.ToString())
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
+
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
-		Name:        "pp1",
+		K8SName:     "pp1",
 		Namespace:   "n1",
 		Enabled:     true,
-		Conditions:  "ready",
+		Conditions:  "ENABLED",
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -515,18 +527,12 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: common.Job, ReferenceUUID: fakeID,
-				ReferenceName: "experiment1", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
-			},
-		},
+		ExperimentId:   fakeID,
 	}
 	job2 := &model.Job{
 		UUID:        "2",
 		DisplayName: "pp 2",
-		Name:        "pp2",
+		K8SName:     "pp2",
 		Namespace:   "n1",
 		Conditions:  "ready",
 		Trigger: model.Trigger{
@@ -540,32 +546,28 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		Enabled:        false,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "2", ResourceType: common.Job,
-				ReferenceUUID: fakeID, ReferenceName: "experiment2", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
-			},
-		},
+		ExperimentId:   fakeID,
 	}
 	jobStore.CreateJob(job1)
 	jobStore.CreateJob(job2)
 
 	// Archive experiment and verify the experiment and two runs in it are all archived.
-	err := experimentStore.ArchiveExperiment(fakeID)
+	err = experimentStore.ArchiveExperiment(fakeID)
 	assert.Nil(t, err)
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, "ARCHIVED", exp.StorageState)
-	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
-	runs, total_run_size, _, err := runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Equal(t, "ARCHIVED", exp.StorageState.ToString())
+	opts, err = list.NewOptions(&model.Run{}, 10, "id", nil)
+	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, total_run_size, 2)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
-	jobs, total_job_size, _, err := jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Equal(t, 2, total_run_size)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
+	jobs, total_job_size, _, err := jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, total_job_size, 2)
+	assert.Equal(t, 2, total_job_size)
 	assert.Equal(t, false, jobs[0].Enabled)
 	assert.Equal(t, false, jobs[1].Enabled)
 
@@ -574,13 +576,15 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	exp, err = experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, "AVAILABLE", exp.StorageState)
-	runs, total_run_size, _, err = runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Equal(t, "AVAILABLE", exp.StorageState.ToString())
+	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_run_size, 2)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
-	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
-	jobs, total_job_size, _, err = jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
+	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
+	jobs, total_job_size, _, err = jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_job_size, 2)
 	assert.Equal(t, false, jobs[0].Enabled)
@@ -588,7 +592,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 }
 
 func TestUnarchiveExperiment_InternalError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := NewFakeDBOrFatal()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	db.Close()
 

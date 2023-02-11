@@ -36,8 +36,8 @@ class V2beta1RecurringRun(object):
         'recurring_run_id': 'str',
         'display_name': 'str',
         'description': 'str',
-        'pipeline_id': 'str',
-        'pipeline_spec': 'object',
+        'pipeline_version_id': 'str',
+        'pipeline_spec': 'ProtobufStruct',
         'runtime_config': 'V2beta1RuntimeConfig',
         'service_account': 'str',
         'max_concurrency': 'str',
@@ -46,7 +46,7 @@ class V2beta1RecurringRun(object):
         'created_at': 'datetime',
         'updated_at': 'datetime',
         'status': 'V2beta1RecurringRunStatus',
-        'error': 'str',
+        'error': 'GooglerpcStatus',
         'no_catchup': 'bool',
         'namespace': 'str',
         'experiment_id': 'str'
@@ -56,7 +56,7 @@ class V2beta1RecurringRun(object):
         'recurring_run_id': 'recurring_run_id',
         'display_name': 'display_name',
         'description': 'description',
-        'pipeline_id': 'pipeline_id',
+        'pipeline_version_id': 'pipeline_version_id',
         'pipeline_spec': 'pipeline_spec',
         'runtime_config': 'runtime_config',
         'service_account': 'service_account',
@@ -72,7 +72,7 @@ class V2beta1RecurringRun(object):
         'experiment_id': 'experiment_id'
     }
 
-    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_id=None, pipeline_spec=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_version_id=None, pipeline_spec=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1RecurringRun - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -81,7 +81,7 @@ class V2beta1RecurringRun(object):
         self._recurring_run_id = None
         self._display_name = None
         self._description = None
-        self._pipeline_id = None
+        self._pipeline_version_id = None
         self._pipeline_spec = None
         self._runtime_config = None
         self._service_account = None
@@ -103,8 +103,8 @@ class V2beta1RecurringRun(object):
             self.display_name = display_name
         if description is not None:
             self.description = description
-        if pipeline_id is not None:
-            self.pipeline_id = pipeline_id
+        if pipeline_version_id is not None:
+            self.pipeline_version_id = pipeline_version_id
         if pipeline_spec is not None:
             self.pipeline_spec = pipeline_spec
         if runtime_config is not None:
@@ -202,36 +202,35 @@ class V2beta1RecurringRun(object):
         self._description = description
 
     @property
-    def pipeline_id(self):
-        """Gets the pipeline_id of this V2beta1RecurringRun.  # noqa: E501
+    def pipeline_version_id(self):
+        """Gets the pipeline_version_id of this V2beta1RecurringRun.  # noqa: E501
 
-        The ID of the pipeline user uploaded before.  # noqa: E501
+        The ID of the pipeline version used for creating runs.  # noqa: E501
 
-        :return: The pipeline_id of this V2beta1RecurringRun.  # noqa: E501
+        :return: The pipeline_version_id of this V2beta1RecurringRun.  # noqa: E501
         :rtype: str
         """
-        return self._pipeline_id
+        return self._pipeline_version_id
 
-    @pipeline_id.setter
-    def pipeline_id(self, pipeline_id):
-        """Sets the pipeline_id of this V2beta1RecurringRun.
+    @pipeline_version_id.setter
+    def pipeline_version_id(self, pipeline_version_id):
+        """Sets the pipeline_version_id of this V2beta1RecurringRun.
 
-        The ID of the pipeline user uploaded before.  # noqa: E501
+        The ID of the pipeline version used for creating runs.  # noqa: E501
 
-        :param pipeline_id: The pipeline_id of this V2beta1RecurringRun.  # noqa: E501
-        :type pipeline_id: str
+        :param pipeline_version_id: The pipeline_version_id of this V2beta1RecurringRun.  # noqa: E501
+        :type pipeline_version_id: str
         """
 
-        self._pipeline_id = pipeline_id
+        self._pipeline_version_id = pipeline_version_id
 
     @property
     def pipeline_spec(self):
         """Gets the pipeline_spec of this V2beta1RecurringRun.  # noqa: E501
 
-        The pipeline spec.  # noqa: E501
 
         :return: The pipeline_spec of this V2beta1RecurringRun.  # noqa: E501
-        :rtype: object
+        :rtype: ProtobufStruct
         """
         return self._pipeline_spec
 
@@ -239,10 +238,9 @@ class V2beta1RecurringRun(object):
     def pipeline_spec(self, pipeline_spec):
         """Sets the pipeline_spec of this V2beta1RecurringRun.
 
-        The pipeline spec.  # noqa: E501
 
         :param pipeline_spec: The pipeline_spec of this V2beta1RecurringRun.  # noqa: E501
-        :type pipeline_spec: object
+        :type pipeline_spec: ProtobufStruct
         """
 
         self._pipeline_spec = pipeline_spec
@@ -427,10 +425,9 @@ class V2beta1RecurringRun(object):
     def error(self):
         """Gets the error of this V2beta1RecurringRun.  # noqa: E501
 
-        In case any error happens retrieving a recurring run field, only recurring run ID and the error message is returned. Client has the flexibility of choosing how to handle the error. This is especially useful during listing call.  # noqa: E501
 
         :return: The error of this V2beta1RecurringRun.  # noqa: E501
-        :rtype: str
+        :rtype: GooglerpcStatus
         """
         return self._error
 
@@ -438,10 +435,9 @@ class V2beta1RecurringRun(object):
     def error(self, error):
         """Sets the error of this V2beta1RecurringRun.
 
-        In case any error happens retrieving a recurring run field, only recurring run ID and the error message is returned. Client has the flexibility of choosing how to handle the error. This is especially useful during listing call.  # noqa: E501
 
         :param error: The error of this V2beta1RecurringRun.  # noqa: E501
-        :type error: str
+        :type error: GooglerpcStatus
         """
 
         self._error = error
@@ -473,7 +469,7 @@ class V2beta1RecurringRun(object):
     def namespace(self):
         """Gets the namespace of this V2beta1RecurringRun.  # noqa: E501
 
-        Namespace this recurring run belongs to.  # noqa: E501
+        TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Output only. Namespace this recurring run belongs to. Derived from the parent experiment.  # noqa: E501
 
         :return: The namespace of this V2beta1RecurringRun.  # noqa: E501
         :rtype: str
@@ -484,7 +480,7 @@ class V2beta1RecurringRun(object):
     def namespace(self, namespace):
         """Sets the namespace of this V2beta1RecurringRun.
 
-        Namespace this recurring run belongs to.  # noqa: E501
+        TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Output only. Namespace this recurring run belongs to. Derived from the parent experiment.  # noqa: E501
 
         :param namespace: The namespace of this V2beta1RecurringRun.  # noqa: E501
         :type namespace: str
@@ -496,7 +492,7 @@ class V2beta1RecurringRun(object):
     def experiment_id(self):
         """Gets the experiment_id of this V2beta1RecurringRun.  # noqa: E501
 
-        ID of the experiment this recurring run belongs to.  # noqa: E501
+        ID of the parent experiment this recurring run belongs to.  # noqa: E501
 
         :return: The experiment_id of this V2beta1RecurringRun.  # noqa: E501
         :rtype: str
@@ -507,7 +503,7 @@ class V2beta1RecurringRun(object):
     def experiment_id(self, experiment_id):
         """Sets the experiment_id of this V2beta1RecurringRun.
 
-        ID of the experiment this recurring run belongs to.  # noqa: E501
+        ID of the parent experiment this recurring run belongs to.  # noqa: E501
 
         :param experiment_id: The experiment_id of this V2beta1RecurringRun.  # noqa: E501
         :type experiment_id: str

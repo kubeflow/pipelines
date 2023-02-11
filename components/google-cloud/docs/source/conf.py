@@ -14,11 +14,28 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('..'))
 
+# The following code is to make sure RTD extracts the documentation
+# correctly when using KFP v2
+from kfp import dsl, components, deprecated
+from typing import Callable
+
+def container_component_decorator(func):
+    return func
+
+def component_decorator(*args, **kwargs):
+    def decorator(func):
+        return func
+    return decorator
+
+dsl.component = component_decorator
+dsl.container_component = container_component_decorator
+components.load_component_from_file = deprecated.components.load_component_from_file
+
 
 # -- Project information -----------------------------------------------------
 
 project = 'google_cloud_pipeline_components'
-copyright = '2022, Google Inc'
+copyright = '2023, Google Inc'
 author = 'Google Inc'
 
 # The full version, including alpha/beta/rc tags
@@ -51,4 +68,10 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ['_static']
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = [
+    'css/custom.css',
+]

@@ -10,7 +10,7 @@ Method | HTTP request | Description
 [**get_run**](RunServiceApi.md#get_run) | **GET** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id} | Finds a specific run by ID.
 [**list_runs**](RunServiceApi.md#list_runs) | **GET** /apis/v2beta1/experiments/{experiment_id}/runs | Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
 [**read_artifact**](RunServiceApi.md#read_artifact) | **GET** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds artifact data in a run.
-[**report_run_metrics**](RunServiceApi.md#report_run_metrics) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics | Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.
+[**retry_run**](RunServiceApi.md#retry_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry | Re-initiates a failed or terminated run.
 [**terminate_run**](RunServiceApi.md#terminate_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate | Terminates an active run.
 [**unarchive_run**](RunServiceApi.md#unarchive_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
 
@@ -495,10 +495,10 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **report_run_metrics**
-> V2beta1ReportRunMetricsResponse report_run_metrics(experiment_id, run_id, body)
+# **retry_run**
+> object retry_run(experiment_id, run_id)
 
-Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.
+Re-initiates a failed or terminated run.
 
 ### Example
 
@@ -535,15 +535,14 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
-run_id = 'run_id_example' # str | Required. The parent run ID of the metric.
-body = kfp_server_api.V2beta1ReportRunMetricsRequest() # V2beta1ReportRunMetricsRequest | 
+run_id = 'run_id_example' # str | The ID of the run to be retried.
 
     try:
-        # Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.
-        api_response = api_instance.report_run_metrics(experiment_id, run_id, body)
+        # Re-initiates a failed or terminated run.
+        api_response = api_instance.retry_run(experiment_id, run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->report_run_metrics: %s\n" % e)
+        print("Exception when calling RunServiceApi->retry_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -551,12 +550,11 @@ body = kfp_server_api.V2beta1ReportRunMetricsRequest() # V2beta1ReportRunMetrics
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **experiment_id** | **str**| The ID of the parent experiment. | 
- **run_id** | **str**| Required. The parent run ID of the metric. | 
- **body** | [**V2beta1ReportRunMetricsRequest**](V2beta1ReportRunMetricsRequest.md)|  | 
+ **run_id** | **str**| The ID of the run to be retried. | 
 
 ### Return type
 
-[**V2beta1ReportRunMetricsResponse**](V2beta1ReportRunMetricsResponse.md)
+**object**
 
 ### Authorization
 
@@ -564,7 +562,7 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details

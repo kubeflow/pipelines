@@ -34,3 +34,32 @@ func MarshalJsonOrFail(v interface{}) []byte {
 	}
 	return bytes
 }
+
+// Converts an object into []byte array
+func MarshalJsonWithError(v interface{}) ([]byte, error) {
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		return nil, Wrapf(err, "Failed to marshal the object: %+v", v)
+	}
+	return bytes, nil
+}
+
+// Converts a []byte array into an interface
+func UnmarshalJsonWithError(data interface{}, v *interface{}) error {
+	var bytes []byte
+	switch data := data.(type) {
+	case string:
+		bytes = []byte(data)
+	case []byte:
+		bytes = data
+	case *[]byte:
+		bytes = *data
+	default:
+		return NewInvalidInputError("Unmarshalling %T is not implemented.", data)
+	}
+	err := json.Unmarshal(bytes, v)
+	if err != nil {
+		return Wrapf(err, "Failed to unmarshal the object: %+v", v)
+	}
+	return nil
+}

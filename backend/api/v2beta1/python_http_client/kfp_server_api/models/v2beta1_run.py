@@ -38,8 +38,8 @@ class V2beta1Run(object):
         'display_name': 'str',
         'storage_state': 'V2beta1RunStorageState',
         'description': 'str',
-        'pipeline_id': 'str',
-        'pipeline_spec': 'object',
+        'pipeline_version_id': 'str',
+        'pipeline_spec': 'ProtobufStruct',
         'runtime_config': 'V2beta1RuntimeConfig',
         'service_account': 'str',
         'created_at': 'datetime',
@@ -49,7 +49,6 @@ class V2beta1Run(object):
         'error': 'GooglerpcStatus',
         'run_details': 'V2beta1RunDetails',
         'recurring_run_id': 'str',
-        'recurring_run_name': 'str',
         'state_history': 'list[V2beta1RuntimeStatus]'
     }
 
@@ -59,7 +58,7 @@ class V2beta1Run(object):
         'display_name': 'display_name',
         'storage_state': 'storage_state',
         'description': 'description',
-        'pipeline_id': 'pipeline_id',
+        'pipeline_version_id': 'pipeline_version_id',
         'pipeline_spec': 'pipeline_spec',
         'runtime_config': 'runtime_config',
         'service_account': 'service_account',
@@ -70,11 +69,10 @@ class V2beta1Run(object):
         'error': 'error',
         'run_details': 'run_details',
         'recurring_run_id': 'recurring_run_id',
-        'recurring_run_name': 'recurring_run_name',
         'state_history': 'state_history'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_id=None, pipeline_spec=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, recurring_run_name=None, state_history=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -85,7 +83,7 @@ class V2beta1Run(object):
         self._display_name = None
         self._storage_state = None
         self._description = None
-        self._pipeline_id = None
+        self._pipeline_version_id = None
         self._pipeline_spec = None
         self._runtime_config = None
         self._service_account = None
@@ -96,7 +94,6 @@ class V2beta1Run(object):
         self._error = None
         self._run_details = None
         self._recurring_run_id = None
-        self._recurring_run_name = None
         self._state_history = None
         self.discriminator = None
 
@@ -110,8 +107,8 @@ class V2beta1Run(object):
             self.storage_state = storage_state
         if description is not None:
             self.description = description
-        if pipeline_id is not None:
-            self.pipeline_id = pipeline_id
+        if pipeline_version_id is not None:
+            self.pipeline_version_id = pipeline_version_id
         if pipeline_spec is not None:
             self.pipeline_spec = pipeline_spec
         if runtime_config is not None:
@@ -132,8 +129,6 @@ class V2beta1Run(object):
             self.run_details = run_details
         if recurring_run_id is not None:
             self.recurring_run_id = recurring_run_id
-        if recurring_run_name is not None:
-            self.recurring_run_name = recurring_run_name
         if state_history is not None:
             self.state_history = state_history
 
@@ -251,36 +246,35 @@ class V2beta1Run(object):
         self._description = description
 
     @property
-    def pipeline_id(self):
-        """Gets the pipeline_id of this V2beta1Run.  # noqa: E501
+    def pipeline_version_id(self):
+        """Gets the pipeline_version_id of this V2beta1Run.  # noqa: E501
 
-        ID of existing pipeline.  # noqa: E501
+        ID of an existing pipeline version.  # noqa: E501
 
-        :return: The pipeline_id of this V2beta1Run.  # noqa: E501
+        :return: The pipeline_version_id of this V2beta1Run.  # noqa: E501
         :rtype: str
         """
-        return self._pipeline_id
+        return self._pipeline_version_id
 
-    @pipeline_id.setter
-    def pipeline_id(self, pipeline_id):
-        """Sets the pipeline_id of this V2beta1Run.
+    @pipeline_version_id.setter
+    def pipeline_version_id(self, pipeline_version_id):
+        """Sets the pipeline_version_id of this V2beta1Run.
 
-        ID of existing pipeline.  # noqa: E501
+        ID of an existing pipeline version.  # noqa: E501
 
-        :param pipeline_id: The pipeline_id of this V2beta1Run.  # noqa: E501
-        :type pipeline_id: str
+        :param pipeline_version_id: The pipeline_version_id of this V2beta1Run.  # noqa: E501
+        :type pipeline_version_id: str
         """
 
-        self._pipeline_id = pipeline_id
+        self._pipeline_version_id = pipeline_version_id
 
     @property
     def pipeline_spec(self):
         """Gets the pipeline_spec of this V2beta1Run.  # noqa: E501
 
-        Pipeline spec.  # noqa: E501
 
         :return: The pipeline_spec of this V2beta1Run.  # noqa: E501
-        :rtype: object
+        :rtype: ProtobufStruct
         """
         return self._pipeline_spec
 
@@ -288,10 +282,9 @@ class V2beta1Run(object):
     def pipeline_spec(self, pipeline_spec):
         """Sets the pipeline_spec of this V2beta1Run.
 
-        Pipeline spec.  # noqa: E501
 
         :param pipeline_spec: The pipeline_spec of this V2beta1Run.  # noqa: E501
-        :type pipeline_spec: object
+        :type pipeline_spec: ProtobufStruct
         """
 
         self._pipeline_spec = pipeline_spec
@@ -494,27 +487,6 @@ class V2beta1Run(object):
         """
 
         self._recurring_run_id = recurring_run_id
-
-    @property
-    def recurring_run_name(self):
-        """Gets the recurring_run_name of this V2beta1Run.  # noqa: E501
-
-
-        :return: The recurring_run_name of this V2beta1Run.  # noqa: E501
-        :rtype: str
-        """
-        return self._recurring_run_name
-
-    @recurring_run_name.setter
-    def recurring_run_name(self, recurring_run_name):
-        """Sets the recurring_run_name of this V2beta1Run.
-
-
-        :param recurring_run_name: The recurring_run_name of this V2beta1Run.  # noqa: E501
-        :type recurring_run_name: str
-        """
-
-        self._recurring_run_name = recurring_run_name
 
     @property
     def state_history(self):

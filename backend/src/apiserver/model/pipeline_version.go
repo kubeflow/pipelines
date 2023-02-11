@@ -29,20 +29,22 @@ const (
 )
 
 type PipelineVersion struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index"`
-	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name"`
-	// Set size to 65535 so it will be stored as longtext.
-	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
-	Parameters string `gorm:"column:Parameters; not null; size:65535"`
+	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
+	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name;"`
+	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
+	Parameters string `gorm:"column:Parameters; not null; size:65535;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
-	PipelineId string                `gorm:"column:PipelineId; not null;index; unique_index:idx_pipelineid_name"`
-	Status     PipelineVersionStatus `gorm:"column:Status; not null"`
+	PipelineId string `gorm:"column:PipelineId; not null; index; unique_index:idx_pipelineid_name;"`
+	// Pipeline   *Pipeline             `gorm:"foreignKey:PipelineId; constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Status PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
-	CodeSourceUrl string `gorm:"column:CodeSourceUrl;"`
-	Description   string `gorm:"column:Description; not null; size:65535"` // Set size to large number so it will be stored as longtext
+	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
+	Description     string `gorm:"column:Description; not null; size:65535;"`     // Set size to large number so it will be stored as longtext
+	PipelineSpec    string `gorm:"column:PipelineSpec; not null; size:33554432;"` // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
+	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null; size:65535;"` // Can store references to ObjectStore files
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {
@@ -63,14 +65,18 @@ func (p *PipelineVersion) DefaultSortField() string {
 // PipelineVersion.
 func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 	return map[string]string{
-		"id":         "UUID",
-		"name":       "Name",
-		"created_at": "CreatedAtInSec",
-		"status":     "Status",
+		"id":                  "UUID", // v1beta1 API
+		"pipeline_version_id": "UUID", // v2beta1 API
+		"name":                "Name", // v1beta1 API
+		"display_name":        "Name", // v2beta1 API
+		"created_at":          "CreatedAtInSec",
+		"status":              "Status",
+		"description":         "Description",  // v2beta1 API
+		"pipeline_spec":       "PipelineSpec", // v2beta1 API
 	}
 }
 
-// GetModelName returns table name used as sort field prefix
+// GetModelName returns table name used as sort field prefix.
 func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
 }
@@ -92,6 +98,14 @@ func (p *PipelineVersion) GetFieldValue(name string) interface{} {
 		return p.CreatedAtInSec
 	case "Status":
 		return p.Status
+	case "Description":
+		return p.Description
+	case "CodeSourceUrl":
+		return p.CodeSourceUrl
+	case "PipelineSpec":
+		return p.PipelineSpec
+	case "PipelineSpecURI":
+		return p.PipelineSpecURI
 	default:
 		return nil
 	}

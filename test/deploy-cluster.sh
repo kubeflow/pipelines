@@ -41,15 +41,21 @@ function clean_up {
   ALL_PODS=($(kubectl get pods -o=custom-columns=:metadata.name -n $NAMESPACE))
   for POD_NAME in "${ALL_PODS[@]}"; do
     pod_info_file="$POD_INFO_DIR/$POD_NAME.txt"
+    echo "Saving log of $POD_NAME to $pod_info_file"
     echo "Pod name: $POD_NAME" >> "$pod_info_file"
     echo "Detailed logs:" >> "$pod_info_file"
-    echo "https://console.cloud.google.com/logs/viewer?project=$PROJECT&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22$PROJECT%22%0Aresource.labels.location%3D%22us-east1-b%22%0Aresource.labels.cluster_name%3D%22${TEST_CLUSTER}%22%0Aresource.labels.namespace_name%3D%22$NAMESPACE%22%0Aresource.labels.pod_name%3D%22$POD_NAME%22" \
+    echo "https://console.cloud.google.com/logs/viewer?project=$PROJECT&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22$PROJECT%22%0Aresource.labels.location%3D%22us-west1-b%22%0Aresource.labels.cluster_name%3D%22${TEST_CLUSTER}%22%0Aresource.labels.namespace_name%3D%22$NAMESPACE%22%0Aresource.labels.pod_name%3D%22$POD_NAME%22" \
       >> "$pod_info_file"
     echo "--------" >> "$pod_info_file"
     kubectl describe pod $POD_NAME -n $NAMESPACE >> "$pod_info_file"
     echo "--------" >> "$pod_info_file"
     kubectl get pod $POD_NAME -n $NAMESPACE -o yaml >> "$pod_info_file"
   done
+  
+  echo "Archiving ${ARTIFACTS} into ./${COMMIT_SHA}_logs.tar.gz" 
+  tar -czf ./${COMMIT_SHA}_logs.tar.gz ${ARTIFACTS}
+  echo "Uploading ./${COMMIT_SHA}_logs.tar.gz to ${TEST_RESULTS_GCS_DIR}/logs"
+  gsutil cp ${COMMIT_SHA}_logs.tar.gz "${TEST_RESULTS_GCS_DIR}/logs"
 
   echo "Clean up cluster..."
   if [ $SHOULD_CLEANUP_CLUSTER == true ]; then

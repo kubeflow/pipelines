@@ -34,6 +34,8 @@ description: |
             Max number of seconds each training trial runs.
         num_selected_trials (int):
             Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
+        num_selected_features (int):
+            Number of selected features. The number of features to learn in the NN models.
         transform_output (TransformOutput):
             The transform output artifact.
         metadata (TabularExampleGenMetadata):
@@ -60,6 +62,7 @@ inputs:
 - {name: worker_pool_specs_override_json, type: JsonArray, default: "[]"}
 - {name: deadline_hours, type: Float}
 - {name: num_parallel_trials, type: Integer}
+- {name: num_selected_features, type: Integer, default: 0}
 - {name: single_run_max_secs, type: Integer}
 - {name: num_selected_trials, type: Integer}
 - {name: transform_output, type: TransformOutput}
@@ -87,11 +90,11 @@ implementation:
         '{"display_name": "automl-tabular-cv-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230110_1125_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
         '", "args": ["l2l_cv_tuner", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--training_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230110_1125_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
         '", "--component_id={{$.pipeline_task_uuid}}", "--training_base_dir=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--num_parallel_trial=',
@@ -102,6 +105,8 @@ implementation:
         {inputValue: deadline_hours},
         '", "--valid_trials_completed_threshold=0.7", "--num_selected_trials=',
         {inputValue: num_selected_trials},
+        '", "--num_selected_features=',
+        {inputValue: num_selected_features},
         '", "--lro_job_info=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/lro", "--error_file_path=',

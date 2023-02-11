@@ -637,8 +637,41 @@ describe('NewRun', () => {
   });
 
   describe('choosing a pipeline version', () => {
+    it('disable choose (version) button if pipeline is empty', async () => {
+      tree = shallow(<TestNewRun {...generateProps()} />);
+
+      render(
+        <CommonTestWrapper>
+          <NewRun
+            {...generateProps()}
+            namespace=''
+            existingPipelineId=''
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId=''
+            handlePipelineVersionIdChange={jest.fn()}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const choosePipelineVersionButton = screen.getAllByText('Choose')[1];
+      expect(choosePipelineVersionButton.closest('button')?.disabled).toEqual(true);
+    });
+
     it('sets the pipeline version from the selector modal when confirmed', async () => {
       tree = shallow(<TestNewRun {...generateProps()} />);
+
+      const newPipeline = newMockPipeline();
+      newPipeline.id = 'new-pipeline-id';
+      newPipeline.name = 'new-pipeline';
+
+      const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+      listPipelineSpy.mockImplementation(() => {
+        const response: ApiListPipelinesResponse = {
+          pipelines: [newPipeline],
+          total_size: 1,
+        };
+        return response;
+      });
 
       const oldPipelineVersion = newMockPipelineVersion();
       oldPipelineVersion.id = 'pipeline-version-id';
@@ -670,7 +703,24 @@ describe('NewRun', () => {
         </CommonTestWrapper>,
       );
 
+      // Choose pipeline first
+      const choosePipelineButton = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineButton);
+
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      getPipelineSpy.mockImplementationOnce(() => newPipeline);
+
+      const expectedPipeline = await screen.findByText(newPipeline.name);
+      fireEvent.click(expectedPipeline);
+
+      const usePipelineButton = screen.getByText('Use this pipeline');
+      fireEvent.click(usePipelineButton);
+
+      // And then choose the version
       const choosePipelineVersionButton = screen.getAllByText('Choose')[1];
+      await waitFor(() => {
+        expect(choosePipelineVersionButton.closest('button')?.disabled).toEqual(false);
+      });
       fireEvent.click(choosePipelineVersionButton);
 
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');

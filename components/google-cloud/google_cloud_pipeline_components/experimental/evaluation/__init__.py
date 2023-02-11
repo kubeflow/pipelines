@@ -21,37 +21,53 @@ except ImportError:
   from kfp.components import load_component_from_file
 
 __all__ = [
-    'ModelEvaluationOp', 'ModelImportEvaluationOp', 'EvaluationDataSamplerOp',
-    'TargetFieldDataRemoverOp', 'ModelEvaluationClassificationOp',
-    'ModelEvaluationRegressionOp', 'ModelEvaluationForecastingOp',
-    'ModelEvaluationFeatureAttributionOp', 'GetVertexModelOp'
+    'ModelEvaluationOp',
+    'ModelImportEvaluationOp',
+    'EvaluationDataSamplerOp',
+    'TargetFieldDataRemoverOp',
+    'ModelEvaluationClassificationOp',
+    'ModelEvaluationRegressionOp',
+    'ModelEvaluationForecastingOp',
+    'ModelEvaluationFeatureAttributionOp',
+    'GetVertexModelOp',
 ]
 
 ModelEvaluationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'component.yaml')
+)
 
 ModelImportEvaluationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml')
+)
 
 EvaluationDataSamplerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'data_sampler/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'data_sampler/component.yaml')
+)
 
 TargetFieldDataRemoverOp = load_component_from_file(
     os.path.join(
-        os.path.dirname(__file__), 'target_field_data_remover/component.yaml'))
+        os.path.dirname(__file__), 'target_field_data_remover/component.yaml'
+    )
+)
 
 ModelEvaluationClassificationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'classification/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'classification/component.yaml')
+)
 
 ModelEvaluationRegressionOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'regression/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'regression/component.yaml')
+)
 
 ModelEvaluationForecastingOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'forecasting/component.yaml')
+)
 
 ModelEvaluationFeatureAttributionOp = load_component_from_file(
     os.path.join(
-        os.path.dirname(__file__), 'feature_attribution/component.yaml'))
+        os.path.dirname(__file__), 'feature_attribution/component.yaml'
+    )
+)
 
 GetVertexModelOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'get_vertex_model.yaml'))
+    os.path.join(os.path.dirname(__file__), 'get_vertex_model.yaml')
+)

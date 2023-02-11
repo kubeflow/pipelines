@@ -1,0 +1,3516 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-automl-tabular-finalizer": {
+        "executorLabel": "exec-automl-tabular-finalizer",
+        "inputDefinitions": {
+          "parameters": {
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-bool-identity": {
+        "executorLabel": "exec-bool-identity",
+        "inputDefinitions": {
+          "parameters": {
+            "value": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-condition-run-evaluation-2": {
+        "dag": {
+          "outputs": {
+            "artifacts": {
+              "model-evaluation-evaluation_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "evaluation_metrics",
+                    "producerSubtask": "model-evaluation"
+                  }
+                ]
+              }
+            }
+          },
+          "tasks": {
+            "model-batch-predict": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-batch-predict"
+              },
+              "inputs": {
+                "artifacts": {
+                  "unmanaged_container_model": {
+                    "componentInputArtifact": "pipelineparam--generate-xgboost-trainer-worker-pool-specs-unmanaged_container_model"
+                  }
+                },
+                "parameters": {
+                  "accelerator_count": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "accelerator_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "bigquery_destination_output_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "bigquery_source_input_uri": {
+                    "componentInputParameter": "pipelineparam--feature-transform-engine-bigquery_test_split_uri"
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "explanation_metadata": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "explanation_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "gcs_destination_output_uri_prefix": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "gcs_source_uris": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "[]"
+                      }
+                    }
+                  },
+                  "generate_explanation": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "instances_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "bigquery"
+                      }
+                    }
+                  },
+                  "job_display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "batch-predict-evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+                      }
+                    }
+                  },
+                  "labels": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
+                  },
+                  "manual_batch_tuning_parameters_batch_size": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "max_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
+                  },
+                  "model_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "predictions_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "jsonl"
+                      }
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "starting_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-batch-predict"
+              }
+            },
+            "model-evaluation": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-evaluation"
+              },
+              "dependentTasks": [
+                "model-batch-predict"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "batch_prediction_job": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "batchpredictionjob",
+                      "producerTask": "model-batch-predict"
+                    }
+                  }
+                },
+                "parameters": {
+                  "class_names": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "classification_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataflow_disk_size": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_disk_size_gb"
+                  },
+                  "dataflow_machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_machine_type"
+                  },
+                  "dataflow_max_workers_num": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
+                  },
+                  "dataflow_service_account": {
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
+                  },
+                  "dataflow_subnetwork": {
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
+                  },
+                  "dataflow_use_public_ips": {
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
+                  },
+                  "dataflow_workers_num": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "example_weight_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "generate_feature_attribution": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "ground_truth_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
+                  },
+                  "ground_truth_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "jsonl"
+                      }
+                    }
+                  },
+                  "ground_truth_gcs_source": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "key_columns": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "positive_classes": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "prediction_id_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "prediction_label_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "prediction_score_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "predictions_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "jsonl"
+                      }
+                    }
+                  },
+                  "problem_type": {
+                    "componentInputParameter": "pipelineparam--get-prediction-type-for-xgboost-Output"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-evaluation"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "artifacts": {
+            "pipelineparam--generate-xgboost-trainer-worker-pool-specs-unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "pipelineparam--bool-identity-Output": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_service_account": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_batch_predict_machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_batch_predict_max_replica_count": {
+              "type": "INT"
+            },
+            "pipelineparam--evaluation_batch_predict_starting_replica_count": {
+              "type": "INT"
+            },
+            "pipelineparam--evaluation_dataflow_disk_size_gb": {
+              "type": "INT"
+            },
+            "pipelineparam--evaluation_dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_dataflow_max_num_workers": {
+              "type": "INT"
+            },
+            "pipelineparam--feature-transform-engine-bigquery_test_split_uri": {
+              "type": "STRING"
+            },
+            "pipelineparam--get-prediction-type-for-xgboost-Output": {
+              "type": "STRING"
+            },
+            "pipelineparam--location": {
+              "type": "STRING"
+            },
+            "pipelineparam--project": {
+              "type": "STRING"
+            },
+            "pipelineparam--root_dir": {
+              "type": "STRING"
+            },
+            "pipelineparam--target_column": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "model-evaluation-evaluation_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-exit-handler-1": {
+        "dag": {
+          "outputs": {
+            "artifacts": {
+              "model-evaluation-evaluation_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "model-evaluation-evaluation_metrics",
+                    "producerSubtask": "condition-run-evaluation-2"
+                  }
+                ]
+              }
+            }
+          },
+          "tasks": {
+            "bool-identity": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-bool-identity"
+              },
+              "inputs": {
+                "parameters": {
+                  "value": {
+                    "componentInputParameter": "pipelineparam--run_evaluation"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "bool-identity"
+              }
+            },
+            "condition-run-evaluation-2": {
+              "componentRef": {
+                "name": "comp-condition-run-evaluation-2"
+              },
+              "dependentTasks": [
+                "bool-identity",
+                "feature-transform-engine",
+                "generate-xgboost-trainer-worker-pool-specs",
+                "get-prediction-type-for-xgboost",
+                "xgboost-trainer"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "pipelineparam--generate-xgboost-trainer-worker-pool-specs-unmanaged_container_model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "unmanaged_container_model",
+                      "producerTask": "generate-xgboost-trainer-worker-pool-specs"
+                    }
+                  }
+                },
+                "parameters": {
+                  "pipelineparam--bool-identity-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "bool-identity"
+                    }
+                  },
+                  "pipelineparam--dataflow_service_account": {
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
+                  },
+                  "pipelineparam--dataflow_subnetwork": {
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
+                  },
+                  "pipelineparam--dataflow_use_public_ips": {
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
+                  },
+                  "pipelineparam--encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "pipelineparam--evaluation_batch_predict_machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
+                  },
+                  "pipelineparam--evaluation_batch_predict_max_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
+                  },
+                  "pipelineparam--evaluation_batch_predict_starting_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
+                  },
+                  "pipelineparam--evaluation_dataflow_disk_size_gb": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_disk_size_gb"
+                  },
+                  "pipelineparam--evaluation_dataflow_machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_machine_type"
+                  },
+                  "pipelineparam--evaluation_dataflow_max_num_workers": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
+                  },
+                  "pipelineparam--feature-transform-engine-bigquery_test_split_uri": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "bigquery_test_split_uri",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  },
+                  "pipelineparam--get-prediction-type-for-xgboost-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "get-prediction-type-for-xgboost"
+                    }
+                  },
+                  "pipelineparam--location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "pipelineparam--project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "pipelineparam--root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "pipelineparam--target_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "condition-run-evaluation-2"
+              },
+              "triggerPolicy": {
+                "condition": "inputs.parameters['pipelineparam--bool-identity-Output'].string_value == 'true'"
+              }
+            },
+            "feature-transform-engine": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-feature-transform-engine"
+              },
+              "dependentTasks": [
+                "get-prediction-type-for-xgboost"
+              ],
+              "inputs": {
+                "parameters": {
+                  "autodetect_csv_schema": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "false"
+                      }
+                    }
+                  },
+                  "bigquery_staging_full_dataset_id": {
+                    "componentInputParameter": "pipelineparam--bigquery_staging_full_dataset_id"
+                  },
+                  "data_source_bigquery_table_path": {
+                    "componentInputParameter": "pipelineparam--data_source_bigquery_table_path"
+                  },
+                  "data_source_csv_filenames": {
+                    "componentInputParameter": "pipelineparam--data_source_csv_filenames"
+                  },
+                  "dataflow_disk_size_gb": {
+                    "componentInputParameter": "pipelineparam--transform_dataflow_disk_size_gb"
+                  },
+                  "dataflow_machine_type": {
+                    "componentInputParameter": "pipelineparam--transform_dataflow_machine_type"
+                  },
+                  "dataflow_max_num_workers": {
+                    "componentInputParameter": "pipelineparam--transform_dataflow_max_num_workers"
+                  },
+                  "dataflow_service_account": {
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
+                  },
+                  "dataflow_subnetwork": {
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
+                  },
+                  "dataflow_use_public_ips": {
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
+                  },
+                  "dataset_level_custom_transformation_definitions": {
+                    "componentInputParameter": "pipelineparam--dataset_level_custom_transformation_definitions"
+                  },
+                  "dataset_level_transformations": {
+                    "componentInputParameter": "pipelineparam--dataset_level_transformations"
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "feature_selection_algorithm": {
+                    "componentInputParameter": "pipelineparam--feature_selection_algorithm"
+                  },
+                  "forecasting_apply_windowing": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "true"
+                      }
+                    }
+                  },
+                  "forecasting_available_at_forecast_columns": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "forecasting_context_window": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "forecasting_forecast_horizon": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "forecasting_predefined_window_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "forecasting_time_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "forecasting_time_series_attribute_columns": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "forecasting_time_series_identifier_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "forecasting_unavailable_at_forecast_columns": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "forecasting_window_max_count": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "forecasting_window_stride_length": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "max_selected_features": {
+                    "componentInputParameter": "pipelineparam--max_selected_features"
+                  },
+                  "model_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "boosted_trees"
+                      }
+                    }
+                  },
+                  "predefined_split_key": {
+                    "componentInputParameter": "pipelineparam--predefined_split_key"
+                  },
+                  "prediction_type": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "get-prediction-type-for-xgboost"
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "run_distill": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "false"
+                      }
+                    }
+                  },
+                  "run_feature_selection": {
+                    "componentInputParameter": "pipelineparam--run_feature_selection"
+                  },
+                  "stratified_split_key": {
+                    "componentInputParameter": "pipelineparam--stratified_split_key"
+                  },
+                  "target_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
+                  },
+                  "test_fraction": {
+                    "componentInputParameter": "pipelineparam--test_fraction"
+                  },
+                  "tf_auto_transform_features": {
+                    "componentInputParameter": "pipelineparam--tf_auto_transform_features"
+                  },
+                  "tf_custom_transformation_definitions": {
+                    "componentInputParameter": "pipelineparam--tf_custom_transformation_definitions"
+                  },
+                  "tf_transformations_path": {
+                    "componentInputParameter": "pipelineparam--tf_transformations_path"
+                  },
+                  "timestamp_split_key": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "training_fraction": {
+                    "componentInputParameter": "pipelineparam--training_fraction"
+                  },
+                  "validation_fraction": {
+                    "componentInputParameter": "pipelineparam--validation_fraction"
+                  },
+                  "weight_column": {
+                    "componentInputParameter": "pipelineparam--weight_column"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "feature-transform-engine"
+              }
+            },
+            "generate-xgboost-trainer-worker-pool-specs": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-generate-xgboost-trainer-worker-pool-specs"
+              },
+              "dependentTasks": [
+                "feature-transform-engine",
+                "split-materialized-data",
+                "training-configurator-and-validator"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "instance_baseline": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "instance_baseline",
+                      "producerTask": "training-configurator-and-validator"
+                    }
+                  },
+                  "materialized_eval_split": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "materialized_eval_split",
+                      "producerTask": "split-materialized-data"
+                    }
+                  },
+                  "materialized_train_split": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "materialized_train_split",
+                      "producerTask": "split-materialized-data"
+                    }
+                  },
+                  "training_schema_uri": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "training_schema",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  },
+                  "transform_output": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "transform_output",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  }
+                },
+                "parameters": {
+                  "accelerator_count": {
+                    "componentInputParameter": "pipelineparam--training_accelerator_count"
+                  },
+                  "accelerator_type": {
+                    "componentInputParameter": "pipelineparam--training_accelerator_type"
+                  },
+                  "base_score": {
+                    "componentInputParameter": "pipelineparam--base_score"
+                  },
+                  "booster": {
+                    "componentInputParameter": "pipelineparam--booster"
+                  },
+                  "colsample_bylevel": {
+                    "componentInputParameter": "pipelineparam--colsample_bylevel"
+                  },
+                  "colsample_bynode": {
+                    "componentInputParameter": "pipelineparam--colsample_bynode"
+                  },
+                  "colsample_bytree": {
+                    "componentInputParameter": "pipelineparam--colsample_bytree"
+                  },
+                  "disable_default_eval_metric": {
+                    "componentInputParameter": "pipelineparam--disable_default_eval_metric"
+                  },
+                  "early_stopping_rounds": {
+                    "componentInputParameter": "pipelineparam--early_stopping_rounds"
+                  },
+                  "eta": {
+                    "componentInputParameter": "pipelineparam--eta"
+                  },
+                  "eval_metric": {
+                    "componentInputParameter": "pipelineparam--eval_metric"
+                  },
+                  "feature_selector": {
+                    "componentInputParameter": "pipelineparam--feature_selector"
+                  },
+                  "gamma": {
+                    "componentInputParameter": "pipelineparam--gamma"
+                  },
+                  "grow_policy": {
+                    "componentInputParameter": "pipelineparam--grow_policy"
+                  },
+                  "huber_slope": {
+                    "componentInputParameter": "pipelineparam--huber_slope"
+                  },
+                  "interaction_constraints": {
+                    "componentInputParameter": "pipelineparam--interaction_constraints"
+                  },
+                  "machine_type": {
+                    "componentInputParameter": "pipelineparam--training_machine_type"
+                  },
+                  "max_bin": {
+                    "componentInputParameter": "pipelineparam--max_bin"
+                  },
+                  "max_cat_to_onehot": {
+                    "componentInputParameter": "pipelineparam--max_cat_to_onehot"
+                  },
+                  "max_delta_step": {
+                    "componentInputParameter": "pipelineparam--max_delta_step"
+                  },
+                  "max_depth": {
+                    "componentInputParameter": "pipelineparam--max_depth"
+                  },
+                  "max_leaves": {
+                    "componentInputParameter": "pipelineparam--max_leaves"
+                  },
+                  "min_child_weight": {
+                    "componentInputParameter": "pipelineparam--min_child_weight"
+                  },
+                  "monotone_constraints": {
+                    "componentInputParameter": "pipelineparam--monotone_constraints"
+                  },
+                  "normalize_type": {
+                    "componentInputParameter": "pipelineparam--normalize_type"
+                  },
+                  "num_boost_round": {
+                    "componentInputParameter": "pipelineparam--num_boost_round"
+                  },
+                  "num_parallel_tree": {
+                    "componentInputParameter": "pipelineparam--num_parallel_tree"
+                  },
+                  "objective": {
+                    "componentInputParameter": "pipelineparam--objective"
+                  },
+                  "one_drop": {
+                    "componentInputParameter": "pipelineparam--one_drop"
+                  },
+                  "process_type": {
+                    "componentInputParameter": "pipelineparam--process_type"
+                  },
+                  "rate_drop": {
+                    "componentInputParameter": "pipelineparam--rate_drop"
+                  },
+                  "refresh_leaf": {
+                    "componentInputParameter": "pipelineparam--refresh_leaf"
+                  },
+                  "reg_alpha": {
+                    "componentInputParameter": "pipelineparam--reg_alpha"
+                  },
+                  "reg_lambda": {
+                    "componentInputParameter": "pipelineparam--reg_lambda"
+                  },
+                  "sample_type": {
+                    "componentInputParameter": "pipelineparam--sample_type"
+                  },
+                  "sampling_method": {
+                    "componentInputParameter": "pipelineparam--sampling_method"
+                  },
+                  "scale_pos_weight": {
+                    "componentInputParameter": "pipelineparam--scale_pos_weight"
+                  },
+                  "seed": {
+                    "componentInputParameter": "pipelineparam--seed"
+                  },
+                  "seed_per_iteration": {
+                    "componentInputParameter": "pipelineparam--seed_per_iteration"
+                  },
+                  "skip_drop": {
+                    "componentInputParameter": "pipelineparam--skip_drop"
+                  },
+                  "subsample": {
+                    "componentInputParameter": "pipelineparam--subsample"
+                  },
+                  "target_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
+                  },
+                  "top_k": {
+                    "componentInputParameter": "pipelineparam--top_k"
+                  },
+                  "total_replica_count": {
+                    "componentInputParameter": "pipelineparam--training_total_replica_count"
+                  },
+                  "tree_method": {
+                    "componentInputParameter": "pipelineparam--tree_method"
+                  },
+                  "tweedie_variance_power": {
+                    "componentInputParameter": "pipelineparam--tweedie_variance_power"
+                  },
+                  "updater": {
+                    "componentInputParameter": "pipelineparam--updater"
+                  },
+                  "weight_column": {
+                    "componentInputParameter": "pipelineparam--weight_column"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "generate-xgboost-trainer-worker-pool-specs"
+              }
+            },
+            "get-prediction-type-for-xgboost": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-get-prediction-type-for-xgboost"
+              },
+              "inputs": {
+                "parameters": {
+                  "objective": {
+                    "componentInputParameter": "pipelineparam--objective"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "get-prediction-type-for-xgboost"
+              }
+            },
+            "model-upload": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-upload"
+              },
+              "dependentTasks": [
+                "generate-xgboost-trainer-worker-pool-specs",
+                "xgboost-trainer"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "unmanaged_container_model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "unmanaged_container_model",
+                      "producerTask": "generate-xgboost-trainer-worker-pool-specs"
+                    }
+                  }
+                },
+                "parameters": {
+                  "description": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "automl-tabular-model-upload-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "explanation_metadata": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "explanation_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "labels": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-upload"
+              }
+            },
+            "split-materialized-data": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-split-materialized-data"
+              },
+              "dependentTasks": [
+                "feature-transform-engine"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "materialized_data": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "materialized_data",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "split-materialized-data"
+              }
+            },
+            "training-configurator-and-validator": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-training-configurator-and-validator"
+              },
+              "dependentTasks": [
+                "feature-transform-engine",
+                "get-prediction-type-for-xgboost"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "dataset_stats": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "dataset_stats",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  },
+                  "instance_schema": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "instance_schema",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  },
+                  "training_schema": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "training_schema",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  }
+                },
+                "parameters": {
+                  "available_at_forecast_columns": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "context_window": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "enable_probabilistic_inference": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "false"
+                      }
+                    }
+                  },
+                  "forecast_horizon": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "forecasting_model_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "forecasting_transformations_path": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "optimization_objective": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "optimization_objective_precision_value": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "optimization_objective_recall_value": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "-1"
+                      }
+                    }
+                  },
+                  "prediction_type": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "get-prediction-type-for-xgboost"
+                    }
+                  },
+                  "quantiles": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "run_distill": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "false"
+                      }
+                    }
+                  },
+                  "run_evaluation": {
+                    "componentInputParameter": "pipelineparam--run_evaluation"
+                  },
+                  "split_example_counts": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "split_example_counts",
+                      "producerTask": "feature-transform-engine"
+                    }
+                  },
+                  "target_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
+                  },
+                  "time_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "time_series_attribute_columns": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "time_series_identifier_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "unavailable_at_forecast_columns": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "weight_column": {
+                    "componentInputParameter": "pipelineparam--weight_column"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "training-configurator-and-validator"
+              }
+            },
+            "xgboost-trainer": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-xgboost-trainer"
+              },
+              "dependentTasks": [
+                "generate-xgboost-trainer-worker-pool-specs"
+              ],
+              "inputs": {
+                "parameters": {
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "worker_pool_specs": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "worker_pool_specs",
+                      "producerTask": "generate-xgboost-trainer-worker-pool-specs"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "xgboost-trainer"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--base_score": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--bigquery_staging_full_dataset_id": {
+              "type": "STRING"
+            },
+            "pipelineparam--booster": {
+              "type": "STRING"
+            },
+            "pipelineparam--colsample_bylevel": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--colsample_bynode": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--colsample_bytree": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--data_source_bigquery_table_path": {
+              "type": "STRING"
+            },
+            "pipelineparam--data_source_csv_filenames": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_service_account": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataset_level_custom_transformation_definitions": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataset_level_transformations": {
+              "type": "STRING"
+            },
+            "pipelineparam--disable_default_eval_metric": {
+              "type": "INT"
+            },
+            "pipelineparam--early_stopping_rounds": {
+              "type": "INT"
+            },
+            "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--eta": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--eval_metric": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_batch_predict_machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_batch_predict_max_replica_count": {
+              "type": "INT"
+            },
+            "pipelineparam--evaluation_batch_predict_starting_replica_count": {
+              "type": "INT"
+            },
+            "pipelineparam--evaluation_dataflow_disk_size_gb": {
+              "type": "INT"
+            },
+            "pipelineparam--evaluation_dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_dataflow_max_num_workers": {
+              "type": "INT"
+            },
+            "pipelineparam--feature_selection_algorithm": {
+              "type": "STRING"
+            },
+            "pipelineparam--feature_selector": {
+              "type": "STRING"
+            },
+            "pipelineparam--gamma": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--grow_policy": {
+              "type": "STRING"
+            },
+            "pipelineparam--huber_slope": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--interaction_constraints": {
+              "type": "STRING"
+            },
+            "pipelineparam--location": {
+              "type": "STRING"
+            },
+            "pipelineparam--max_bin": {
+              "type": "INT"
+            },
+            "pipelineparam--max_cat_to_onehot": {
+              "type": "INT"
+            },
+            "pipelineparam--max_delta_step": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--max_depth": {
+              "type": "INT"
+            },
+            "pipelineparam--max_leaves": {
+              "type": "INT"
+            },
+            "pipelineparam--max_selected_features": {
+              "type": "INT"
+            },
+            "pipelineparam--min_child_weight": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--monotone_constraints": {
+              "type": "STRING"
+            },
+            "pipelineparam--normalize_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--num_boost_round": {
+              "type": "INT"
+            },
+            "pipelineparam--num_parallel_tree": {
+              "type": "INT"
+            },
+            "pipelineparam--objective": {
+              "type": "STRING"
+            },
+            "pipelineparam--one_drop": {
+              "type": "INT"
+            },
+            "pipelineparam--predefined_split_key": {
+              "type": "STRING"
+            },
+            "pipelineparam--process_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--project": {
+              "type": "STRING"
+            },
+            "pipelineparam--rate_drop": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--refresh_leaf": {
+              "type": "INT"
+            },
+            "pipelineparam--reg_alpha": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--reg_lambda": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--root_dir": {
+              "type": "STRING"
+            },
+            "pipelineparam--run_evaluation": {
+              "type": "STRING"
+            },
+            "pipelineparam--run_feature_selection": {
+              "type": "STRING"
+            },
+            "pipelineparam--sample_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--sampling_method": {
+              "type": "STRING"
+            },
+            "pipelineparam--scale_pos_weight": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--seed": {
+              "type": "INT"
+            },
+            "pipelineparam--seed_per_iteration": {
+              "type": "STRING"
+            },
+            "pipelineparam--skip_drop": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--stratified_split_key": {
+              "type": "STRING"
+            },
+            "pipelineparam--subsample": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--target_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--test_fraction": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--tf_auto_transform_features": {
+              "type": "STRING"
+            },
+            "pipelineparam--tf_custom_transformation_definitions": {
+              "type": "STRING"
+            },
+            "pipelineparam--tf_transformations_path": {
+              "type": "STRING"
+            },
+            "pipelineparam--top_k": {
+              "type": "INT"
+            },
+            "pipelineparam--training_accelerator_count": {
+              "type": "INT"
+            },
+            "pipelineparam--training_accelerator_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--training_fraction": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--training_machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--training_total_replica_count": {
+              "type": "INT"
+            },
+            "pipelineparam--transform_dataflow_disk_size_gb": {
+              "type": "INT"
+            },
+            "pipelineparam--transform_dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--transform_dataflow_max_num_workers": {
+              "type": "INT"
+            },
+            "pipelineparam--tree_method": {
+              "type": "STRING"
+            },
+            "pipelineparam--tweedie_variance_power": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--updater": {
+              "type": "STRING"
+            },
+            "pipelineparam--validation_fraction": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--weight_column": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "model-evaluation-evaluation_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-feature-transform-engine": {
+        "executorLabel": "exec-feature-transform-engine",
+        "inputDefinitions": {
+          "parameters": {
+            "autodetect_csv_schema": {
+              "type": "STRING"
+            },
+            "bigquery_staging_full_dataset_id": {
+              "type": "STRING"
+            },
+            "data_source_bigquery_table_path": {
+              "type": "STRING"
+            },
+            "data_source_csv_filenames": {
+              "type": "STRING"
+            },
+            "dataflow_disk_size_gb": {
+              "type": "INT"
+            },
+            "dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "dataflow_max_num_workers": {
+              "type": "INT"
+            },
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "dataset_level_custom_transformation_definitions": {
+              "type": "STRING"
+            },
+            "dataset_level_transformations": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "feature_selection_algorithm": {
+              "type": "STRING"
+            },
+            "forecasting_apply_windowing": {
+              "type": "STRING"
+            },
+            "forecasting_available_at_forecast_columns": {
+              "type": "STRING"
+            },
+            "forecasting_context_window": {
+              "type": "INT"
+            },
+            "forecasting_forecast_horizon": {
+              "type": "INT"
+            },
+            "forecasting_predefined_window_column": {
+              "type": "STRING"
+            },
+            "forecasting_time_column": {
+              "type": "STRING"
+            },
+            "forecasting_time_series_attribute_columns": {
+              "type": "STRING"
+            },
+            "forecasting_time_series_identifier_column": {
+              "type": "STRING"
+            },
+            "forecasting_unavailable_at_forecast_columns": {
+              "type": "STRING"
+            },
+            "forecasting_window_max_count": {
+              "type": "INT"
+            },
+            "forecasting_window_stride_length": {
+              "type": "INT"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "max_selected_features": {
+              "type": "INT"
+            },
+            "model_type": {
+              "type": "STRING"
+            },
+            "predefined_split_key": {
+              "type": "STRING"
+            },
+            "prediction_type": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            },
+            "run_distill": {
+              "type": "STRING"
+            },
+            "run_feature_selection": {
+              "type": "STRING"
+            },
+            "stratified_split_key": {
+              "type": "STRING"
+            },
+            "target_column": {
+              "type": "STRING"
+            },
+            "test_fraction": {
+              "type": "DOUBLE"
+            },
+            "tf_auto_transform_features": {
+              "type": "STRING"
+            },
+            "tf_custom_transformation_definitions": {
+              "type": "STRING"
+            },
+            "tf_transformations_path": {
+              "type": "STRING"
+            },
+            "timestamp_split_key": {
+              "type": "STRING"
+            },
+            "training_fraction": {
+              "type": "DOUBLE"
+            },
+            "validation_fraction": {
+              "type": "DOUBLE"
+            },
+            "weight_column": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "dataset_stats": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "feature_ranking": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "instance_schema": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "training_schema": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "transform_output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "bigquery_downsampled_test_split_uri": {
+              "type": "STRING"
+            },
+            "bigquery_test_split_uri": {
+              "type": "STRING"
+            },
+            "gcp_resources": {
+              "type": "STRING"
+            },
+            "split_example_counts": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-generate-xgboost-trainer-worker-pool-specs": {
+        "executorLabel": "exec-generate-xgboost-trainer-worker-pool-specs",
+        "inputDefinitions": {
+          "artifacts": {
+            "instance_baseline": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_eval_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_train_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "training_schema_uri": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "transform_output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "accelerator_count": {
+              "type": "INT"
+            },
+            "accelerator_type": {
+              "type": "STRING"
+            },
+            "base_score": {
+              "type": "DOUBLE"
+            },
+            "booster": {
+              "type": "STRING"
+            },
+            "colsample_bylevel": {
+              "type": "DOUBLE"
+            },
+            "colsample_bynode": {
+              "type": "DOUBLE"
+            },
+            "colsample_bytree": {
+              "type": "DOUBLE"
+            },
+            "disable_default_eval_metric": {
+              "type": "INT"
+            },
+            "early_stopping_rounds": {
+              "type": "INT"
+            },
+            "eta": {
+              "type": "DOUBLE"
+            },
+            "eval_metric": {
+              "type": "STRING"
+            },
+            "feature_selector": {
+              "type": "STRING"
+            },
+            "gamma": {
+              "type": "DOUBLE"
+            },
+            "grow_policy": {
+              "type": "STRING"
+            },
+            "huber_slope": {
+              "type": "DOUBLE"
+            },
+            "interaction_constraints": {
+              "type": "STRING"
+            },
+            "machine_type": {
+              "type": "STRING"
+            },
+            "max_bin": {
+              "type": "INT"
+            },
+            "max_cat_to_onehot": {
+              "type": "INT"
+            },
+            "max_delta_step": {
+              "type": "DOUBLE"
+            },
+            "max_depth": {
+              "type": "INT"
+            },
+            "max_leaves": {
+              "type": "INT"
+            },
+            "min_child_weight": {
+              "type": "DOUBLE"
+            },
+            "monotone_constraints": {
+              "type": "STRING"
+            },
+            "normalize_type": {
+              "type": "STRING"
+            },
+            "num_boost_round": {
+              "type": "INT"
+            },
+            "num_parallel_tree": {
+              "type": "INT"
+            },
+            "objective": {
+              "type": "STRING"
+            },
+            "one_drop": {
+              "type": "INT"
+            },
+            "process_type": {
+              "type": "STRING"
+            },
+            "rate_drop": {
+              "type": "DOUBLE"
+            },
+            "refresh_leaf": {
+              "type": "INT"
+            },
+            "reg_alpha": {
+              "type": "DOUBLE"
+            },
+            "reg_lambda": {
+              "type": "DOUBLE"
+            },
+            "sample_type": {
+              "type": "STRING"
+            },
+            "sampling_method": {
+              "type": "STRING"
+            },
+            "scale_pos_weight": {
+              "type": "DOUBLE"
+            },
+            "seed": {
+              "type": "INT"
+            },
+            "seed_per_iteration": {
+              "type": "STRING"
+            },
+            "skip_drop": {
+              "type": "DOUBLE"
+            },
+            "subsample": {
+              "type": "DOUBLE"
+            },
+            "target_column": {
+              "type": "STRING"
+            },
+            "top_k": {
+              "type": "INT"
+            },
+            "total_replica_count": {
+              "type": "INT"
+            },
+            "tree_method": {
+              "type": "STRING"
+            },
+            "tweedie_variance_power": {
+              "type": "DOUBLE"
+            },
+            "updater": {
+              "type": "STRING"
+            },
+            "weight_column": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "job_dir": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "worker_pool_specs": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-get-prediction-type-for-xgboost": {
+        "executorLabel": "exec-get-prediction-type-for-xgboost",
+        "inputDefinitions": {
+          "parameters": {
+            "objective": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-model-batch-predict": {
+        "executorLabel": "exec-model-batch-predict",
+        "inputDefinitions": {
+          "artifacts": {
+            "unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "google.UnmanagedContainerModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "accelerator_count": {
+              "type": "INT"
+            },
+            "accelerator_type": {
+              "type": "STRING"
+            },
+            "bigquery_destination_output_uri": {
+              "type": "STRING"
+            },
+            "bigquery_source_input_uri": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "explanation_metadata": {
+              "type": "STRING"
+            },
+            "explanation_parameters": {
+              "type": "STRING"
+            },
+            "gcs_destination_output_uri_prefix": {
+              "type": "STRING"
+            },
+            "gcs_source_uris": {
+              "type": "STRING"
+            },
+            "generate_explanation": {
+              "type": "STRING"
+            },
+            "instances_format": {
+              "type": "STRING"
+            },
+            "job_display_name": {
+              "type": "STRING"
+            },
+            "labels": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "machine_type": {
+              "type": "STRING"
+            },
+            "manual_batch_tuning_parameters_batch_size": {
+              "type": "INT"
+            },
+            "max_replica_count": {
+              "type": "INT"
+            },
+            "model_parameters": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "starting_replica_count": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "batchpredictionjob": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "bigquery_output_table": {
+              "artifactType": {
+                "schemaTitle": "google.BQTable",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "gcs_output_directory": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-model-evaluation": {
+        "executorLabel": "exec-model-evaluation",
+        "inputDefinitions": {
+          "artifacts": {
+            "batch_prediction_job": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "class_names": {
+              "type": "STRING"
+            },
+            "classification_type": {
+              "type": "STRING"
+            },
+            "dataflow_disk_size": {
+              "type": "INT"
+            },
+            "dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "dataflow_max_workers_num": {
+              "type": "INT"
+            },
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "dataflow_workers_num": {
+              "type": "INT"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "example_weight_column": {
+              "type": "STRING"
+            },
+            "generate_feature_attribution": {
+              "type": "STRING"
+            },
+            "ground_truth_column": {
+              "type": "STRING"
+            },
+            "ground_truth_format": {
+              "type": "STRING"
+            },
+            "ground_truth_gcs_source": {
+              "type": "STRING"
+            },
+            "key_columns": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "positive_classes": {
+              "type": "STRING"
+            },
+            "prediction_id_column": {
+              "type": "STRING"
+            },
+            "prediction_label_column": {
+              "type": "STRING"
+            },
+            "prediction_score_column": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "problem_type": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "evaluation_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-model-upload": {
+        "executorLabel": "exec-model-upload",
+        "inputDefinitions": {
+          "artifacts": {
+            "unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "google.UnmanagedContainerModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "description": {
+              "type": "STRING"
+            },
+            "display_name": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "explanation_metadata": {
+              "type": "STRING"
+            },
+            "explanation_parameters": {
+              "type": "STRING"
+            },
+            "labels": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "model": {
+              "artifactType": {
+                "schemaTitle": "google.VertexModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-split-materialized-data": {
+        "executorLabel": "exec-split-materialized-data",
+        "inputDefinitions": {
+          "artifacts": {
+            "materialized_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "materialized_eval_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_test_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_train_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-training-configurator-and-validator": {
+        "executorLabel": "exec-training-configurator-and-validator",
+        "inputDefinitions": {
+          "artifacts": {
+            "dataset_stats": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "instance_schema": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "training_schema": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "available_at_forecast_columns": {
+              "type": "STRING"
+            },
+            "context_window": {
+              "type": "INT"
+            },
+            "enable_probabilistic_inference": {
+              "type": "STRING"
+            },
+            "forecast_horizon": {
+              "type": "INT"
+            },
+            "forecasting_model_type": {
+              "type": "STRING"
+            },
+            "forecasting_transformations_path": {
+              "type": "STRING"
+            },
+            "optimization_objective": {
+              "type": "STRING"
+            },
+            "optimization_objective_precision_value": {
+              "type": "DOUBLE"
+            },
+            "optimization_objective_recall_value": {
+              "type": "DOUBLE"
+            },
+            "prediction_type": {
+              "type": "STRING"
+            },
+            "quantiles": {
+              "type": "STRING"
+            },
+            "run_distill": {
+              "type": "STRING"
+            },
+            "run_evaluation": {
+              "type": "STRING"
+            },
+            "split_example_counts": {
+              "type": "STRING"
+            },
+            "target_column": {
+              "type": "STRING"
+            },
+            "time_column": {
+              "type": "STRING"
+            },
+            "time_series_attribute_columns": {
+              "type": "STRING"
+            },
+            "time_series_identifier_column": {
+              "type": "STRING"
+            },
+            "unavailable_at_forecast_columns": {
+              "type": "STRING"
+            },
+            "weight_column": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "instance_baseline": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "metadata": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-xgboost-trainer": {
+        "executorLabel": "exec-xgboost-trainer",
+        "inputDefinitions": {
+          "parameters": {
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "worker_pool_specs": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-automl-tabular-finalizer": {
+          "container": {
+            "args": [
+              "--type",
+              "CustomJob",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--payload",
+              "{\"display_name\": \"automl-tabular-finalizer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125\", \"args\": [\"cancel_l2l_tuner\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/lro\"]}}]}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+          }
+        },
+        "exec-bool-identity": {
+          "container": {
+            "args": [
+              "--value",
+              "{{$.inputs.parameters['value']}}",
+              "----output-paths",
+              "{{$.outputs.parameters['Output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def _bool_identity(value):\n  \"\"\"Returns boolean value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125"
+          }
+        },
+        "exec-feature-transform-engine": {
+          "container": {
+            "args": [
+              "feature_transform_engine",
+              "--project={{$.inputs.parameters['project']}}",
+              "--location={{$.inputs.parameters['location']}}",
+              "--dataset_level_custom_transformation_definitions={{$.inputs.parameters['dataset_level_custom_transformation_definitions']}}",
+              "--dataset_level_transformations={{$.inputs.parameters['dataset_level_transformations']}}",
+              "--forecasting_time_column={{$.inputs.parameters['forecasting_time_column']}}",
+              "--forecasting_time_series_identifier_column={{$.inputs.parameters['forecasting_time_series_identifier_column']}}",
+              "--forecasting_time_series_attribute_columns={{$.inputs.parameters['forecasting_time_series_attribute_columns']}}",
+              "--forecasting_unavailable_at_forecast_columns={{$.inputs.parameters['forecasting_unavailable_at_forecast_columns']}}",
+              "--forecasting_available_at_forecast_columns={{$.inputs.parameters['forecasting_available_at_forecast_columns']}}",
+              "--forecasting_forecast_horizon={{$.inputs.parameters['forecasting_forecast_horizon']}}",
+              "--forecasting_context_window={{$.inputs.parameters['forecasting_context_window']}}",
+              "--forecasting_predefined_window_column={{$.inputs.parameters['forecasting_predefined_window_column']}}",
+              "--forecasting_window_stride_length={{$.inputs.parameters['forecasting_window_stride_length']}}",
+              "--forecasting_window_max_count={{$.inputs.parameters['forecasting_window_max_count']}}",
+              "--forecasting_apply_windowing={{$.inputs.parameters['forecasting_apply_windowing']}}",
+              "--predefined_split_key={{$.inputs.parameters['predefined_split_key']}}",
+              "--stratified_split_key={{$.inputs.parameters['stratified_split_key']}}",
+              "--timestamp_split_key={{$.inputs.parameters['timestamp_split_key']}}",
+              "--training_fraction={{$.inputs.parameters['training_fraction']}}",
+              "--validation_fraction={{$.inputs.parameters['validation_fraction']}}",
+              "--test_fraction={{$.inputs.parameters['test_fraction']}}",
+              "--tf_auto_transform_features={{$.inputs.parameters['tf_auto_transform_features']}}",
+              "--tf_custom_transformation_definitions={{$.inputs.parameters['tf_custom_transformation_definitions']}}",
+              "--tf_transformations_path={{$.inputs.parameters['tf_transformations_path']}}",
+              "--data_source_csv_filenames={{$.inputs.parameters['data_source_csv_filenames']}}",
+              "--data_source_bigquery_table_path={{$.inputs.parameters['data_source_bigquery_table_path']}}",
+              "--bigquery_staging_full_dataset_id={{$.inputs.parameters['bigquery_staging_full_dataset_id']}}",
+              "--target_column={{$.inputs.parameters['target_column']}}",
+              "--weight_column={{$.inputs.parameters['weight_column']}}",
+              "--prediction_type={{$.inputs.parameters['prediction_type']}}",
+              "--model_type={{$.inputs.parameters['model_type']}}",
+              "--run_distill={{$.inputs.parameters['run_distill']}}",
+              "--run_feature_selection={{$.inputs.parameters['run_feature_selection']}}",
+              "--max_selected_features={{$.inputs.parameters['max_selected_features']}}",
+              "--feature_selection_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir",
+              "--feature_selection_algorithm={{$.inputs.parameters['feature_selection_algorithm']}}",
+              "--feature_ranking_path={{$.outputs.artifacts['feature_ranking'].uri}}",
+              "--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt",
+              "--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}",
+              "--transform_output_artifact_path={{$.outputs.artifacts['transform_output'].uri}}",
+              "--transform_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform",
+              "--materialized_examples_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized",
+              "--export_data_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export",
+              "--materialized_data_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data",
+              "--materialized_data_artifact_path={{$.outputs.artifacts['materialized_data'].uri}}",
+              "--bigquery_test_split_uri_path={{$.outputs.parameters['bigquery_test_split_uri'].output_file}}",
+              "--bigquery_downsampled_test_split_uri_path={{$.outputs.parameters['bigquery_downsampled_test_split_uri'].output_file}}",
+              "--split_example_counts_path={{$.outputs.parameters['split_example_counts'].output_file}}",
+              "--instance_schema_path={{$.outputs.artifacts['instance_schema'].path}}",
+              "--training_schema_path={{$.outputs.artifacts['training_schema'].path}}",
+              "--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_project={{$.inputs.parameters['project']}}",
+              "--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging",
+              "--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp",
+              "--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}",
+              "--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}",
+              "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125",
+              "--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230123_2125",
+              "--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}",
+              "--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--dataflow_service_account={{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--autodetect_csv_schema={{$.inputs.parameters['autodetect_csv_schema']}}"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230123_2125",
+            "resources": {
+              "cpuLimit": 8.0,
+              "memoryLimit": 30.0
+            }
+          }
+        },
+        "exec-generate-xgboost-trainer-worker-pool-specs": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "_generate_xgboost_trainer_worker_pool_specs"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _generate_xgboost_trainer_worker_pool_specs(\n    total_replica_count: int,\n    target_column: str,\n    objective: str,\n    materialized_train_split: dsl.InputPath('MaterializedSplit'),\n    materialized_eval_split: dsl.InputPath('MaterializedSplit'),\n    transform_output: dsl.InputPath('TransformOutput'),\n    training_schema_uri: dsl.InputPath('TrainingSchema'),\n    instance_baseline: dsl.InputPath('AutoMLTabularInstanceBaseline'),\n    job_dir: OutputPath('JobDir'),\n    unmanaged_container_model: dsl.Output[dsl.Artifact],\n    machine_type: str = 'c2-standard-16',\n    accelerator_type: str = '',\n    accelerator_count: int = 0,\n    weight_column: str = '',\n    eval_metric: str = '',\n    num_boost_round: int = 10,\n    early_stopping_rounds: int = -1,\n    base_score: float = 0.5,\n    disable_default_eval_metric: int = 0,\n    seed: int = 0,\n    seed_per_iteration: bool = False,\n    booster: str = 'gbtree',\n    eta: float = 0.3,\n    gamma: float = 0.0,\n    max_depth: int = 6,\n    min_child_weight: float = 1.0,\n    max_delta_step: float = 0.0,\n    subsample: float = 1.0,\n    colsample_bytree: float = 1.0,\n    colsample_bylevel: float = 1.0,\n    colsample_bynode: float = 1.0,\n    reg_lambda: float = 1.0,\n    reg_alpha: float = 0.0,\n    tree_method: str = 'auto',\n    scale_pos_weight: float = 1.0,\n    updater: str = '',\n    refresh_leaf: int = 1,\n    process_type: str = 'default',\n    grow_policy: str = 'depthwise',\n    sampling_method: str = 'uniform',\n    monotone_constraints: str = '',\n    interaction_constraints: str = '',\n    sample_type: str = 'uniform',\n    normalize_type: str = 'tree',\n    rate_drop: float = 0.0,\n    one_drop: int = 0,\n    skip_drop: float = 0.0,\n    num_parallel_tree: int = 1,\n    feature_selector: str = 'cyclic',\n    top_k: int = 0,\n    max_cat_to_onehot: int = -1,\n    max_leaves: int = 0,\n    max_bin: int = 256,\n    tweedie_variance_power: float = 1.5,\n    huber_slope: float = 1.0,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('worker_pool_specs', list),  # pylint:disable=g-bare-generic\n    ]):\n  \"\"\"Generates worker pool specs for XGBoost training.\n\n  For single machine XGBoost training, returns one worker pool spec for master.\n  For distributed XGBoost training, returns two worker pool specs, the first one\n  for master and the second one for the remaining workers.\n\n  Args:\n    total_replica_count: Number of workers.\n    target_column: Required. Target column name.\n    objective: Required. Specifies the learning task and the learning\n      objective.\n    materialized_train_split: Required. The path to the\n      materialized train split.\n    materialized_eval_split: Required. The path to the\n      materialized validation split.\n    transform_output: Required. The path to transform output.\n    training_schema_uri: Required. The path to the training\n      schema.\n    instance_baseline: Path to JSON file for baseline values.\n    job_dir: Job dir path.\n    unmanaged_container_model: The unmanaged model.\n    machine_type: Machine type.\n    accelerator_type: Accelerator type.\n    accelerator_count: Accelerator count.\n    weight_column: Weight column name.\n    eval_metric: Evaluation metrics for validation data represented as a\n      comma-separated string.\n    num_boost_round: Number of boosting iterations.\n    early_stopping_rounds: Activates early stopping. Validation\n      error needs to decrease at least every early_stopping_rounds round(s) to\n      continue training.\n    base_score: The initial prediction score of all instances, global\n      bias.\n    disable_default_eval_metric: Flag to disable default metric. Set to >0\n      to disable. Default to 0.\n    seed: Random seed.\n    seed_per_iteration: Seed PRNG determnisticly via iterator number.\n    booster: Which booster to use, can be gbtree, gblinear or dart.\n      gbtree and dart use tree based model while gblinear uses linear function.\n    eta: Learning rate.\n    gamma: Minimum loss reduction required to make a further partition\n      on a leaf node of the tree.\n    max_depth: Maximum depth of a tree.\n    min_child_weight: Minimum sum of instance weight(hessian) needed in\n      a child.\n    max_delta_step: Maximum delta step we allow each tree's weight\n      estimation to be.\n    subsample: Subsample ratio of the training instance.\n    colsample_bytree: Subsample ratio of columns when constructing each\n      tree.\n    colsample_bylevel: Subsample ratio of columns for each split, in\n      each level.\n    colsample_bynode: Subsample ratio of columns for each node (split).\n    reg_lambda: L2 regularization term on weights.\n    reg_alpha: L1 regularization term on weights.\n    tree_method: The tree construction algorithm used in XGBoost. Choices:\n      [\"auto\", \"exact\", \"approx\", \"hist\", \"gpu_exact\", \"gpu_hist\"].\n    scale_pos_weight: Control the balance of positive and negative\n      weights.\n    updater: A comma separated string defining the sequence of tree\n      updaters to run.\n    refresh_leaf: Refresh updater plugin. Update tree leaf and nodes's\n      stats if True. When it is False, only node stats are updated.\n    process_type: A type of boosting process to run. Choices:[\"default\",\n      \"update\"]\n    grow_policy: Controls a way new nodes are added to the tree. Only\n      supported if tree_method is hist. Choices:[\"depthwise\", \"lossguide\"]\n    sampling_method: The method to use to sample the training instances.\n    monotone_constraints: Constraint of variable\n      monotonicity.\n    interaction_constraints: Constraints for\n      interaction representing permitted interactions.\n    sample_type: [dart booster only] Type of sampling algorithm.\n      Choices:[\"uniform\", \"weighted\"]\n    normalize_type: [dart booster only] Type of normalization algorithm,\n      Choices:[\"tree\", \"forest\"]\n    rate_drop: [dart booster only] Dropout rate.'\n    one_drop: [dart booster only] When this flag is enabled, at least one\n      tree is always dropped during the dropout (allows Binomial-plus-one or\n      epsilon-dropout from the original DART paper).\n    skip_drop: [dart booster only] Probability of skipping the dropout\n      procedure during a boosting iteration.\n    num_parallel_tree: Number of parallel trees constructed during each\n      iteration. This option is used to support boosted random forest.\n    feature_selector: [linear booster only] Feature selection and\n      ordering method.\n    top_k: The number of top features to select in greedy and thrifty\n      feature selector. The value of 0 means using all the features.\n    max_cat_to_onehot: A threshold for deciding whether XGBoost should\n      use one-hot encoding based split for categorical data.\n    max_leaves: Maximum number of nodes to be added.\n    max_bin: Maximum number of discrete bins to bucket continuous features.\n    tweedie_variance_power: Parameter that controls the variance of the Tweedie\n      distribution.\n    huber_slope: A parameter used for Pseudo-Huber loss to define the delta\n      term.\n\n  Raises:\n    ValueError: If accelerator_count <= 0 and accelerator_type is specified.\n\n  Returns:\n    Outputs containing the worker pool specs.\n  \"\"\"\n  import copy\n  import collections\n  import os\n  import re\n\n  def get_gcs_path(path):\n    return re.sub(r'/gcs/', 'gs://', path)\n\n  formatted_job_dir = get_gcs_path(job_dir)\n  prediction_docker_uri = (\n      'us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:dev'\n  )\n  master_worker_pool_spec = {\n      'replica_count': 1,\n      'machine_spec': {\n          'machine_type': machine_type,\n      },\n      'container_spec': {\n          'image_uri':\n              'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:dev',\n          'args': [\n              f'--job_dir={formatted_job_dir}',\n              f'--target_column={target_column}',\n              f'--objective={objective}',\n              f'--training_data_path={get_gcs_path(materialized_train_split)}',\n              f'--validation_data_path={get_gcs_path(materialized_eval_split)}',\n              f'--transform_output_path={get_gcs_path(transform_output)}',\n              f'--training_schema_path={get_gcs_path(training_schema_uri)}',\n              f'--baseline_path={get_gcs_path(instance_baseline)}',\n              f'--eval_metric={eval_metric}',\n              f'--num_boost_round={num_boost_round}',\n              f'--base_score={base_score}',\n              f'--disable_default_eval_metric={disable_default_eval_metric}',\n              f'--seed={seed}',\n              f'--seed_per_iteration={seed_per_iteration}',\n              f'--booster={booster}',\n              f'--eta={eta}',\n              f'--gamma={gamma}',\n              f'--max_depth={max_depth}',\n              f'--min_child_weight={min_child_weight}',\n              f'--max_delta_step={max_delta_step}',\n              f'--subsample={subsample}',\n              f'--colsample_bytree={colsample_bytree}',\n              f'--colsample_bylevel={colsample_bylevel}',\n              f'--colsample_bynode={colsample_bynode}',\n              f'--lambda={reg_lambda}',\n              f'--alpha={reg_alpha}',\n              f'--tree_method={tree_method}',\n              f'--scale_pos_weight={scale_pos_weight}',\n              f'--refresh_leaf={refresh_leaf}',\n              f'--process_type={process_type}',\n              f'--grow_policy={grow_policy}',\n              f'--sampling_method={sampling_method}',\n              f'--sample_type={sample_type}',\n              f'--normalize_type={normalize_type}',\n              f'--rate_drop={rate_drop}',\n              f'--one_drop={one_drop}',\n              f'--skip_drop={skip_drop}',\n              f'--num_parallel_tree={num_parallel_tree}',\n              f'--feature_selector={feature_selector}',\n              f'--top_k={top_k}',\n              f'--max_leaves={max_leaves}',\n              f'--max_bin={max_bin}',\n              f'--tweedie_variance_power={tweedie_variance_power}',\n              f'--huber_slope={huber_slope}',\n              f'--prediction_docker_uri={prediction_docker_uri}',\n              '--executor_input={{$.json_escape[1]}}',\n          ]\n      }\n  }\n\n  # Add optional arguments if set\n  if weight_column:\n    master_worker_pool_spec['container_spec']['args'].append(\n        f'--weight_column={weight_column}')\n  if early_stopping_rounds >= 0:\n    master_worker_pool_spec['container_spec']['args'].append(\n        f'--early_stopping_rounds={early_stopping_rounds}')\n  if updater:\n    master_worker_pool_spec['container_spec']['args'].append(\n        f'--updater={updater}')\n  if monotone_constraints:\n    master_worker_pool_spec['container_spec']['args'].append(\n        f'--monotone_constraints={monotone_constraints}')\n  if interaction_constraints:\n    master_worker_pool_spec['container_spec']['args'].append(\n        f'--interaction_constraints={interaction_constraints}')\n  if max_cat_to_onehot >= 0:\n    master_worker_pool_spec['container_spec']['args'].append(\n        f'--max_cat_to_onehot={max_cat_to_onehot}')\n\n  # Add accelerator_type and accelerator_count if set.\n  if accelerator_type:\n    if accelerator_count <= 0:\n      raise ValueError(\n          'Accelerator count must be greator than 0 when type is specified.')\n    master_worker_pool_spec['machine_spec'][\n        'accelerator_type'] = accelerator_type\n    master_worker_pool_spec['machine_spec'][\n        'accelerator_count'] = accelerator_count\n\n  worker_pool_specs_lst = [master_worker_pool_spec]\n\n  # Add an additional worker pool spec for distributed training.\n  if total_replica_count > 1:\n    additional_replica = total_replica_count - 1\n    additional_worker_spec = copy.deepcopy(master_worker_pool_spec)\n    additional_worker_spec['replica_count'] = additional_replica\n    worker_pool_specs_lst.append(additional_worker_spec)\n\n  # Build unmanaged_container_model\n  model_dir = os.path.join(formatted_job_dir, 'model')\n  unmanaged_container_model.metadata['containerSpec'] = {\n      'imageUri': prediction_docker_uri,\n      'healthRoute': '/health',\n      'predictRoute': '/predict',\n  }\n  unmanaged_container_model.metadata['predictSchemata'] = {\n      'instanceSchemaUri': os.path.join(model_dir, 'instance.yaml'),\n      'predictionSchemaUri': os.path.join(model_dir, 'prediction_schema.yaml'),\n  }\n  unmanaged_container_model.uri = model_dir\n\n  return collections.namedtuple('Outputs', [\n      'worker_pool_specs'\n  ])(worker_pool_specs_lst)\n\n"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125"
+          }
+        },
+        "exec-get-prediction-type-for-xgboost": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "_get_prediction_type_for_xgboost"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _get_prediction_type_for_xgboost(objective: str) -> str:\n  \"\"\"Returns prediction_type given XGBoost training objective..\n\n  Args:\n    objective: The XGBoost training objective\n\n  Returns:\n    A string. One of 'regression' or 'classification'\n  \"\"\"\n  if objective.startswith('binary') or objective.startswith('multi'):\n    return 'classification'\n  elif objective.startswith('reg'):\n    return 'regression'\n  else:\n    raise ValueError(\n        (f'Unsupported XGBoost training objective: {objective}. Must be one of'\n         ' [reg:squarederror, reg:squaredlogerror, reg:logistic, reg:gamma,'\n         ' reg:tweedie, reg:pseudohubererror, binary:logistic,'\n         ' multi:softprob].')\n    )\n\n"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125"
+          }
+        },
+        "exec-model-batch-predict": {
+          "container": {
+            "args": [
+              "--type",
+              "BatchPredictionJob",
+              "--payload",
+              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\",  \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
+          }
+        },
+        "exec-model-evaluation": {
+          "container": {
+            "args": [
+              "--setup_file",
+              "/setup.py",
+              "--json_mode",
+              "true",
+              "--project_id",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--problem_type",
+              "{{$.inputs.parameters['problem_type']}}",
+              "--batch_prediction_format",
+              "{{$.inputs.parameters['predictions_format']}}",
+              "--batch_prediction_gcs_source",
+              "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}",
+              "--ground_truth_format",
+              "{{$.inputs.parameters['ground_truth_format']}}",
+              "--ground_truth_gcs_source",
+              "{{$.inputs.parameters['ground_truth_gcs_source']}}",
+              "--key_prefix_in_prediction_dataset",
+              "instance",
+              "--key_columns",
+              "{{$.inputs.parameters['key_columns']}}",
+              "--root_dir",
+              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--classification_type",
+              "{{$.inputs.parameters['classification_type']}}",
+              "--class_names",
+              "{{$.inputs.parameters['class_names']}}",
+              "--ground_truth_column",
+              "instance.{{$.inputs.parameters['ground_truth_column']}}",
+              "--prediction_score_column",
+              "{{$.inputs.parameters['prediction_score_column']}}",
+              "--prediction_label_column",
+              "{{$.inputs.parameters['prediction_label_column']}}",
+              "--prediction_id_column",
+              "{{$.inputs.parameters['prediction_id_column']}}",
+              "--example_weight_column",
+              "{{$.inputs.parameters['example_weight_column']}}",
+              "--positive_classes",
+              "{{$.inputs.parameters['positive_classes']}}",
+              "--generate_feature_attribution",
+              "{{$.inputs.parameters['generate_feature_attribution']}}",
+              "--dataflow_job_prefix",
+              "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_service_account",
+              "{{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_disk_size",
+              "{{$.inputs.parameters['dataflow_disk_size']}}",
+              "--dataflow_machine_type",
+              "{{$.inputs.parameters['dataflow_machine_type']}}",
+              "--dataflow_workers_num",
+              "{{$.inputs.parameters['dataflow_workers_num']}}",
+              "--dataflow_max_workers_num",
+              "{{$.inputs.parameters['dataflow_max_workers_num']}}",
+              "--dataflow_subnetwork",
+              "{{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips",
+              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--kms_key_name",
+              "{{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--output_metrics_gcs_path",
+              "{{$.outputs.artifacts['evaluation_metrics'].uri}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python",
+              "/main.py"
+            ],
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
+          }
+        },
+        "exec-model-upload": {
+          "container": {
+            "args": [
+              "--type",
+              "UploadModel",
+              "--payload",
+              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.13"
+          }
+        },
+        "exec-split-materialized-data": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "_split_materialized_data"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _split_materialized_data(\n    materialized_data: Input[Dataset],\n    materialized_train_split: OutputPath('MaterializedSplit'),\n    materialized_eval_split: OutputPath('MaterializedSplit'),\n    materialized_test_split: OutputPath('MaterializedSplit')):\n  \"\"\"Splits materialized_data into materialized_data test, train, and eval splits.\n\n  Necessary adapter between FTE pipeline and trainer.\n\n  Args:\n    materialized_data: materialized_data dataset output by FTE.\n    materialized_train_split: Path patern to materialized_train_split.\n    materialized_eval_split: Path patern to materialized_eval_split.\n    materialized_test_split: Path patern to materialized_test_split.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  with tf.io.gfile.GFile(materialized_data.path, 'r') as f:\n    artifact_path = f.read()\n\n  # needed to import tf because this is a path in gs://\n  with tf.io.gfile.GFile(artifact_path, 'r') as f:\n    materialized_data_json = json.load(f)\n\n  file_patterns = materialized_data_json['tf_record_data_source'][\n      'file_patterns']\n\n  # we map indices to file patterns based on the ordering of insertion order\n  # in our transform_data (see above in _generate_analyze_and_transform_data)\n  with tf.io.gfile.GFile(materialized_train_split, 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split, 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split, 'w') as f:\n    f.write(file_patterns[2])\n\n"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125"
+          }
+        },
+        "exec-training-configurator-and-validator": {
+          "container": {
+            "args": [
+              "training_configurator_and_validator",
+              "--instance_schema_path={{$.inputs.artifacts['instance_schema'].uri}}",
+              "--training_schema_path={{$.inputs.artifacts['training_schema'].uri}}",
+              "--dataset_stats_path={{$.inputs.artifacts['dataset_stats'].uri}}",
+              "--split_example_counts={{$.inputs.parameters['split_example_counts']}}",
+              "--target_column={{$.inputs.parameters['target_column']}}",
+              "--weight_column={{$.inputs.parameters['weight_column']}}",
+              "--prediction_type={{$.inputs.parameters['prediction_type']}}",
+              "--optimization_objective={{$.inputs.parameters['optimization_objective']}}",
+              "--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}",
+              "--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}",
+              "--metadata_path={{$.outputs.artifacts['metadata'].uri}}",
+              "--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}",
+              "--run_evaluation={{$.inputs.parameters['run_evaluation']}}",
+              "--run_distill={{$.inputs.parameters['run_distill']}}",
+              "--enable_probabilistic_inference={{$.inputs.parameters['enable_probabilistic_inference']}}",
+              "--time_series_identifier_column={{$.inputs.parameters['time_series_identifier_column']}}",
+              "--time_column={{$.inputs.parameters['time_column']}}",
+              "--time_series_attribute_columns={{$.inputs.parameters['time_series_attribute_columns']}}",
+              "--available_at_forecast_columns={{$.inputs.parameters['available_at_forecast_columns']}}",
+              "--unavailable_at_forecast_columns={{$.inputs.parameters['unavailable_at_forecast_columns']}}",
+              "--quantiles={{$.inputs.parameters['quantiles']}}",
+              "--context_window={{$.inputs.parameters['context_window']}}",
+              "--forecast_horizon={{$.inputs.parameters['forecast_horizon']}}",
+              "--forecasting_model_type={{$.inputs.parameters['forecasting_model_type']}}",
+              "--forecasting_transformations_path={{$.inputs.parameters['forecasting_transformations_path']}}"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230123_2125"
+          }
+        },
+        "exec-xgboost-trainer": {
+          "container": {
+            "args": [
+              "--type",
+              "CustomJob",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--payload",
+              "{\"display_name\": \"xgboost-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters['worker_pool_specs']}}}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "automl-tabular-xgboost-trainer"
+    },
+    "root": {
+      "dag": {
+        "outputs": {
+          "artifacts": {
+            "model-evaluation-evaluation_metrics": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "model-evaluation-evaluation_metrics",
+                  "producerSubtask": "exit-handler-1"
+                }
+              ]
+            }
+          }
+        },
+        "tasks": {
+          "automl-tabular-finalizer": {
+            "componentRef": {
+              "name": "comp-automl-tabular-finalizer"
+            },
+            "dependentTasks": [
+              "exit-handler-1"
+            ],
+            "inputs": {
+              "parameters": {
+                "encryption_spec_key_name": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
+                "location": {
+                  "componentInputParameter": "location"
+                },
+                "project": {
+                  "componentInputParameter": "project"
+                },
+                "root_dir": {
+                  "componentInputParameter": "root_dir"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "automl-tabular-finalizer"
+            },
+            "triggerPolicy": {
+              "strategy": "ALL_UPSTREAM_TASKS_COMPLETED"
+            }
+          },
+          "exit-handler-1": {
+            "componentRef": {
+              "name": "comp-exit-handler-1"
+            },
+            "inputs": {
+              "parameters": {
+                "pipelineparam--base_score": {
+                  "componentInputParameter": "base_score"
+                },
+                "pipelineparam--bigquery_staging_full_dataset_id": {
+                  "componentInputParameter": "bigquery_staging_full_dataset_id"
+                },
+                "pipelineparam--booster": {
+                  "componentInputParameter": "booster"
+                },
+                "pipelineparam--colsample_bylevel": {
+                  "componentInputParameter": "colsample_bylevel"
+                },
+                "pipelineparam--colsample_bynode": {
+                  "componentInputParameter": "colsample_bynode"
+                },
+                "pipelineparam--colsample_bytree": {
+                  "componentInputParameter": "colsample_bytree"
+                },
+                "pipelineparam--data_source_bigquery_table_path": {
+                  "componentInputParameter": "data_source_bigquery_table_path"
+                },
+                "pipelineparam--data_source_csv_filenames": {
+                  "componentInputParameter": "data_source_csv_filenames"
+                },
+                "pipelineparam--dataflow_service_account": {
+                  "componentInputParameter": "dataflow_service_account"
+                },
+                "pipelineparam--dataflow_subnetwork": {
+                  "componentInputParameter": "dataflow_subnetwork"
+                },
+                "pipelineparam--dataflow_use_public_ips": {
+                  "componentInputParameter": "dataflow_use_public_ips"
+                },
+                "pipelineparam--dataset_level_custom_transformation_definitions": {
+                  "componentInputParameter": "dataset_level_custom_transformation_definitions"
+                },
+                "pipelineparam--dataset_level_transformations": {
+                  "componentInputParameter": "dataset_level_transformations"
+                },
+                "pipelineparam--disable_default_eval_metric": {
+                  "componentInputParameter": "disable_default_eval_metric"
+                },
+                "pipelineparam--early_stopping_rounds": {
+                  "componentInputParameter": "early_stopping_rounds"
+                },
+                "pipelineparam--encryption_spec_key_name": {
+                  "componentInputParameter": "encryption_spec_key_name"
+                },
+                "pipelineparam--eta": {
+                  "componentInputParameter": "eta"
+                },
+                "pipelineparam--eval_metric": {
+                  "componentInputParameter": "eval_metric"
+                },
+                "pipelineparam--evaluation_batch_predict_machine_type": {
+                  "componentInputParameter": "evaluation_batch_predict_machine_type"
+                },
+                "pipelineparam--evaluation_batch_predict_max_replica_count": {
+                  "componentInputParameter": "evaluation_batch_predict_max_replica_count"
+                },
+                "pipelineparam--evaluation_batch_predict_starting_replica_count": {
+                  "componentInputParameter": "evaluation_batch_predict_starting_replica_count"
+                },
+                "pipelineparam--evaluation_dataflow_disk_size_gb": {
+                  "componentInputParameter": "evaluation_dataflow_disk_size_gb"
+                },
+                "pipelineparam--evaluation_dataflow_machine_type": {
+                  "componentInputParameter": "evaluation_dataflow_machine_type"
+                },
+                "pipelineparam--evaluation_dataflow_max_num_workers": {
+                  "componentInputParameter": "evaluation_dataflow_max_num_workers"
+                },
+                "pipelineparam--feature_selection_algorithm": {
+                  "componentInputParameter": "feature_selection_algorithm"
+                },
+                "pipelineparam--feature_selector": {
+                  "componentInputParameter": "feature_selector"
+                },
+                "pipelineparam--gamma": {
+                  "componentInputParameter": "gamma"
+                },
+                "pipelineparam--grow_policy": {
+                  "componentInputParameter": "grow_policy"
+                },
+                "pipelineparam--huber_slope": {
+                  "componentInputParameter": "huber_slope"
+                },
+                "pipelineparam--interaction_constraints": {
+                  "componentInputParameter": "interaction_constraints"
+                },
+                "pipelineparam--location": {
+                  "componentInputParameter": "location"
+                },
+                "pipelineparam--max_bin": {
+                  "componentInputParameter": "max_bin"
+                },
+                "pipelineparam--max_cat_to_onehot": {
+                  "componentInputParameter": "max_cat_to_onehot"
+                },
+                "pipelineparam--max_delta_step": {
+                  "componentInputParameter": "max_delta_step"
+                },
+                "pipelineparam--max_depth": {
+                  "componentInputParameter": "max_depth"
+                },
+                "pipelineparam--max_leaves": {
+                  "componentInputParameter": "max_leaves"
+                },
+                "pipelineparam--max_selected_features": {
+                  "componentInputParameter": "max_selected_features"
+                },
+                "pipelineparam--min_child_weight": {
+                  "componentInputParameter": "min_child_weight"
+                },
+                "pipelineparam--monotone_constraints": {
+                  "componentInputParameter": "monotone_constraints"
+                },
+                "pipelineparam--normalize_type": {
+                  "componentInputParameter": "normalize_type"
+                },
+                "pipelineparam--num_boost_round": {
+                  "componentInputParameter": "num_boost_round"
+                },
+                "pipelineparam--num_parallel_tree": {
+                  "componentInputParameter": "num_parallel_tree"
+                },
+                "pipelineparam--objective": {
+                  "componentInputParameter": "objective"
+                },
+                "pipelineparam--one_drop": {
+                  "componentInputParameter": "one_drop"
+                },
+                "pipelineparam--predefined_split_key": {
+                  "componentInputParameter": "predefined_split_key"
+                },
+                "pipelineparam--process_type": {
+                  "componentInputParameter": "process_type"
+                },
+                "pipelineparam--project": {
+                  "componentInputParameter": "project"
+                },
+                "pipelineparam--rate_drop": {
+                  "componentInputParameter": "rate_drop"
+                },
+                "pipelineparam--refresh_leaf": {
+                  "componentInputParameter": "refresh_leaf"
+                },
+                "pipelineparam--reg_alpha": {
+                  "componentInputParameter": "reg_alpha"
+                },
+                "pipelineparam--reg_lambda": {
+                  "componentInputParameter": "reg_lambda"
+                },
+                "pipelineparam--root_dir": {
+                  "componentInputParameter": "root_dir"
+                },
+                "pipelineparam--run_evaluation": {
+                  "componentInputParameter": "run_evaluation"
+                },
+                "pipelineparam--run_feature_selection": {
+                  "componentInputParameter": "run_feature_selection"
+                },
+                "pipelineparam--sample_type": {
+                  "componentInputParameter": "sample_type"
+                },
+                "pipelineparam--sampling_method": {
+                  "componentInputParameter": "sampling_method"
+                },
+                "pipelineparam--scale_pos_weight": {
+                  "componentInputParameter": "scale_pos_weight"
+                },
+                "pipelineparam--seed": {
+                  "componentInputParameter": "seed"
+                },
+                "pipelineparam--seed_per_iteration": {
+                  "componentInputParameter": "seed_per_iteration"
+                },
+                "pipelineparam--skip_drop": {
+                  "componentInputParameter": "skip_drop"
+                },
+                "pipelineparam--stratified_split_key": {
+                  "componentInputParameter": "stratified_split_key"
+                },
+                "pipelineparam--subsample": {
+                  "componentInputParameter": "subsample"
+                },
+                "pipelineparam--target_column": {
+                  "componentInputParameter": "target_column"
+                },
+                "pipelineparam--test_fraction": {
+                  "componentInputParameter": "test_fraction"
+                },
+                "pipelineparam--tf_auto_transform_features": {
+                  "componentInputParameter": "tf_auto_transform_features"
+                },
+                "pipelineparam--tf_custom_transformation_definitions": {
+                  "componentInputParameter": "tf_custom_transformation_definitions"
+                },
+                "pipelineparam--tf_transformations_path": {
+                  "componentInputParameter": "tf_transformations_path"
+                },
+                "pipelineparam--top_k": {
+                  "componentInputParameter": "top_k"
+                },
+                "pipelineparam--training_accelerator_count": {
+                  "componentInputParameter": "training_accelerator_count"
+                },
+                "pipelineparam--training_accelerator_type": {
+                  "componentInputParameter": "training_accelerator_type"
+                },
+                "pipelineparam--training_fraction": {
+                  "componentInputParameter": "training_fraction"
+                },
+                "pipelineparam--training_machine_type": {
+                  "componentInputParameter": "training_machine_type"
+                },
+                "pipelineparam--training_total_replica_count": {
+                  "componentInputParameter": "training_total_replica_count"
+                },
+                "pipelineparam--transform_dataflow_disk_size_gb": {
+                  "componentInputParameter": "transform_dataflow_disk_size_gb"
+                },
+                "pipelineparam--transform_dataflow_machine_type": {
+                  "componentInputParameter": "transform_dataflow_machine_type"
+                },
+                "pipelineparam--transform_dataflow_max_num_workers": {
+                  "componentInputParameter": "transform_dataflow_max_num_workers"
+                },
+                "pipelineparam--tree_method": {
+                  "componentInputParameter": "tree_method"
+                },
+                "pipelineparam--tweedie_variance_power": {
+                  "componentInputParameter": "tweedie_variance_power"
+                },
+                "pipelineparam--updater": {
+                  "componentInputParameter": "updater"
+                },
+                "pipelineparam--validation_fraction": {
+                  "componentInputParameter": "validation_fraction"
+                },
+                "pipelineparam--weight_column": {
+                  "componentInputParameter": "weight_column"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "exit-handler-1"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "base_score": {
+            "type": "DOUBLE"
+          },
+          "bigquery_staging_full_dataset_id": {
+            "type": "STRING"
+          },
+          "booster": {
+            "type": "STRING"
+          },
+          "colsample_bylevel": {
+            "type": "DOUBLE"
+          },
+          "colsample_bynode": {
+            "type": "DOUBLE"
+          },
+          "colsample_bytree": {
+            "type": "DOUBLE"
+          },
+          "data_source_bigquery_table_path": {
+            "type": "STRING"
+          },
+          "data_source_csv_filenames": {
+            "type": "STRING"
+          },
+          "dataflow_service_account": {
+            "type": "STRING"
+          },
+          "dataflow_subnetwork": {
+            "type": "STRING"
+          },
+          "dataflow_use_public_ips": {
+            "type": "STRING"
+          },
+          "dataset_level_custom_transformation_definitions": {
+            "type": "STRING"
+          },
+          "dataset_level_transformations": {
+            "type": "STRING"
+          },
+          "disable_default_eval_metric": {
+            "type": "INT"
+          },
+          "early_stopping_rounds": {
+            "type": "INT"
+          },
+          "encryption_spec_key_name": {
+            "type": "STRING"
+          },
+          "eta": {
+            "type": "DOUBLE"
+          },
+          "eval_metric": {
+            "type": "STRING"
+          },
+          "evaluation_batch_predict_machine_type": {
+            "type": "STRING"
+          },
+          "evaluation_batch_predict_max_replica_count": {
+            "type": "INT"
+          },
+          "evaluation_batch_predict_starting_replica_count": {
+            "type": "INT"
+          },
+          "evaluation_dataflow_disk_size_gb": {
+            "type": "INT"
+          },
+          "evaluation_dataflow_machine_type": {
+            "type": "STRING"
+          },
+          "evaluation_dataflow_max_num_workers": {
+            "type": "INT"
+          },
+          "feature_selection_algorithm": {
+            "type": "STRING"
+          },
+          "feature_selector": {
+            "type": "STRING"
+          },
+          "gamma": {
+            "type": "DOUBLE"
+          },
+          "grow_policy": {
+            "type": "STRING"
+          },
+          "huber_slope": {
+            "type": "DOUBLE"
+          },
+          "interaction_constraints": {
+            "type": "STRING"
+          },
+          "location": {
+            "type": "STRING"
+          },
+          "max_bin": {
+            "type": "INT"
+          },
+          "max_cat_to_onehot": {
+            "type": "INT"
+          },
+          "max_delta_step": {
+            "type": "DOUBLE"
+          },
+          "max_depth": {
+            "type": "INT"
+          },
+          "max_leaves": {
+            "type": "INT"
+          },
+          "max_selected_features": {
+            "type": "INT"
+          },
+          "min_child_weight": {
+            "type": "DOUBLE"
+          },
+          "monotone_constraints": {
+            "type": "STRING"
+          },
+          "normalize_type": {
+            "type": "STRING"
+          },
+          "num_boost_round": {
+            "type": "INT"
+          },
+          "num_parallel_tree": {
+            "type": "INT"
+          },
+          "objective": {
+            "type": "STRING"
+          },
+          "one_drop": {
+            "type": "INT"
+          },
+          "predefined_split_key": {
+            "type": "STRING"
+          },
+          "process_type": {
+            "type": "STRING"
+          },
+          "project": {
+            "type": "STRING"
+          },
+          "rate_drop": {
+            "type": "DOUBLE"
+          },
+          "refresh_leaf": {
+            "type": "INT"
+          },
+          "reg_alpha": {
+            "type": "DOUBLE"
+          },
+          "reg_lambda": {
+            "type": "DOUBLE"
+          },
+          "root_dir": {
+            "type": "STRING"
+          },
+          "run_evaluation": {
+            "type": "STRING"
+          },
+          "run_feature_selection": {
+            "type": "STRING"
+          },
+          "sample_type": {
+            "type": "STRING"
+          },
+          "sampling_method": {
+            "type": "STRING"
+          },
+          "scale_pos_weight": {
+            "type": "DOUBLE"
+          },
+          "seed": {
+            "type": "INT"
+          },
+          "seed_per_iteration": {
+            "type": "STRING"
+          },
+          "skip_drop": {
+            "type": "DOUBLE"
+          },
+          "stratified_split_key": {
+            "type": "STRING"
+          },
+          "subsample": {
+            "type": "DOUBLE"
+          },
+          "target_column": {
+            "type": "STRING"
+          },
+          "test_fraction": {
+            "type": "DOUBLE"
+          },
+          "tf_auto_transform_features": {
+            "type": "STRING"
+          },
+          "tf_custom_transformation_definitions": {
+            "type": "STRING"
+          },
+          "tf_transformations_path": {
+            "type": "STRING"
+          },
+          "top_k": {
+            "type": "INT"
+          },
+          "training_accelerator_count": {
+            "type": "INT"
+          },
+          "training_accelerator_type": {
+            "type": "STRING"
+          },
+          "training_fraction": {
+            "type": "DOUBLE"
+          },
+          "training_machine_type": {
+            "type": "STRING"
+          },
+          "training_total_replica_count": {
+            "type": "INT"
+          },
+          "transform_dataflow_disk_size_gb": {
+            "type": "INT"
+          },
+          "transform_dataflow_machine_type": {
+            "type": "STRING"
+          },
+          "transform_dataflow_max_num_workers": {
+            "type": "INT"
+          },
+          "tree_method": {
+            "type": "STRING"
+          },
+          "tweedie_variance_power": {
+            "type": "DOUBLE"
+          },
+          "updater": {
+            "type": "STRING"
+          },
+          "validation_fraction": {
+            "type": "DOUBLE"
+          },
+          "weight_column": {
+            "type": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "model-evaluation-evaluation_metrics": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.14"
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "base_score": {
+        "doubleValue": 0.5
+      },
+      "bigquery_staging_full_dataset_id": {
+        "stringValue": ""
+      },
+      "booster": {
+        "stringValue": "gbtree"
+      },
+      "colsample_bylevel": {
+        "doubleValue": 1.0
+      },
+      "colsample_bynode": {
+        "doubleValue": 1.0
+      },
+      "colsample_bytree": {
+        "doubleValue": 1.0
+      },
+      "data_source_bigquery_table_path": {
+        "stringValue": ""
+      },
+      "data_source_csv_filenames": {
+        "stringValue": ""
+      },
+      "dataflow_service_account": {
+        "stringValue": ""
+      },
+      "dataflow_subnetwork": {
+        "stringValue": ""
+      },
+      "dataflow_use_public_ips": {
+        "stringValue": "True"
+      },
+      "disable_default_eval_metric": {
+        "intValue": "0"
+      },
+      "early_stopping_rounds": {
+        "intValue": "-1"
+      },
+      "encryption_spec_key_name": {
+        "stringValue": ""
+      },
+      "eta": {
+        "doubleValue": 0.3
+      },
+      "eval_metric": {
+        "stringValue": ""
+      },
+      "evaluation_batch_predict_machine_type": {
+        "stringValue": "n1-standard-16"
+      },
+      "evaluation_batch_predict_max_replica_count": {
+        "intValue": "25"
+      },
+      "evaluation_batch_predict_starting_replica_count": {
+        "intValue": "25"
+      },
+      "evaluation_dataflow_disk_size_gb": {
+        "intValue": "50"
+      },
+      "evaluation_dataflow_machine_type": {
+        "stringValue": "n1-standard-4"
+      },
+      "evaluation_dataflow_max_num_workers": {
+        "intValue": "25"
+      },
+      "feature_selection_algorithm": {
+        "stringValue": "AMI"
+      },
+      "feature_selector": {
+        "stringValue": "cyclic"
+      },
+      "gamma": {
+        "doubleValue": 0.0
+      },
+      "grow_policy": {
+        "stringValue": "depthwise"
+      },
+      "huber_slope": {
+        "doubleValue": 1.0
+      },
+      "interaction_constraints": {
+        "stringValue": ""
+      },
+      "max_bin": {
+        "intValue": "256"
+      },
+      "max_cat_to_onehot": {
+        "intValue": "-1"
+      },
+      "max_delta_step": {
+        "doubleValue": 0.0
+      },
+      "max_depth": {
+        "intValue": "6"
+      },
+      "max_leaves": {
+        "intValue": "0"
+      },
+      "max_selected_features": {
+        "intValue": "-1"
+      },
+      "min_child_weight": {
+        "doubleValue": 1.0
+      },
+      "monotone_constraints": {
+        "stringValue": ""
+      },
+      "normalize_type": {
+        "stringValue": "tree"
+      },
+      "num_boost_round": {
+        "intValue": "10"
+      },
+      "num_parallel_tree": {
+        "intValue": "1"
+      },
+      "one_drop": {
+        "intValue": "0"
+      },
+      "predefined_split_key": {
+        "stringValue": ""
+      },
+      "process_type": {
+        "stringValue": "default"
+      },
+      "rate_drop": {
+        "doubleValue": 0.0
+      },
+      "refresh_leaf": {
+        "intValue": "1"
+      },
+      "reg_alpha": {
+        "doubleValue": 0.0
+      },
+      "reg_lambda": {
+        "doubleValue": 1.0
+      },
+      "run_evaluation": {
+        "stringValue": "True"
+      },
+      "run_feature_selection": {
+        "stringValue": "False"
+      },
+      "sample_type": {
+        "stringValue": "uniform"
+      },
+      "sampling_method": {
+        "stringValue": "uniform"
+      },
+      "scale_pos_weight": {
+        "doubleValue": 1.0
+      },
+      "seed": {
+        "intValue": "0"
+      },
+      "seed_per_iteration": {
+        "stringValue": "False"
+      },
+      "skip_drop": {
+        "doubleValue": 0.0
+      },
+      "stratified_split_key": {
+        "stringValue": ""
+      },
+      "subsample": {
+        "doubleValue": 1.0
+      },
+      "test_fraction": {
+        "doubleValue": -1.0
+      },
+      "tf_transformations_path": {
+        "stringValue": ""
+      },
+      "top_k": {
+        "intValue": "0"
+      },
+      "training_accelerator_count": {
+        "intValue": "0"
+      },
+      "training_accelerator_type": {
+        "stringValue": ""
+      },
+      "training_fraction": {
+        "doubleValue": -1.0
+      },
+      "training_machine_type": {
+        "stringValue": "c2-standard-16"
+      },
+      "training_total_replica_count": {
+        "intValue": "1"
+      },
+      "transform_dataflow_disk_size_gb": {
+        "intValue": "40"
+      },
+      "transform_dataflow_machine_type": {
+        "stringValue": "n1-standard-16"
+      },
+      "transform_dataflow_max_num_workers": {
+        "intValue": "25"
+      },
+      "tree_method": {
+        "stringValue": "auto"
+      },
+      "tweedie_variance_power": {
+        "doubleValue": 1.5
+      },
+      "updater": {
+        "stringValue": ""
+      },
+      "validation_fraction": {
+        "doubleValue": -1.0
+      },
+      "weight_column": {
+        "stringValue": ""
+      }
+    }
+  }
+}

@@ -3368,7 +3368,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.create_model.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-bigquery-delete-dataset-with-prefix": {
@@ -3455,7 +3455,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-bigquery-query-job-2": {
@@ -3482,7 +3482,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-bigquery-query-job-3": {
@@ -3509,7 +3509,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-bigquery-query-job-4": {
@@ -3536,7 +3536,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-bigquery-query-job-5": {
@@ -3563,7 +3563,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33"
           }
         },
         "exec-build-serialized-query-parameters": {
@@ -3745,7 +3745,7 @@
               "--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp",
               "--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}",
               "--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}",
-              "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230110_1125_RC00",
+              "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125",
               "--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:dev",
               "--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}",
               "--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}",

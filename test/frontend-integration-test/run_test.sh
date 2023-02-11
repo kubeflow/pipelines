@@ -18,22 +18,38 @@ set -xe
 
 # K8s Namespace that all resources deployed to
 NAMESPACE=kubeflow
+REMOTE_RUN=false
 
 usage()
 {
     echo "usage: run_test.sh
     --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/e2e_test
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
+    [--remote-run         host address of a remote KFP UI. Used for local tests only.]
     [-h help]"
 }
 
-while [ "$1" != "" ]; do
+function parse_bool {
+  local str="${1:-false}"
+  local pat='^(true|1|yes)$'
+  if [[ "$str" =~ $pat ]]
+  then
+    echo 'true'
+  else
+    echo 'false'
+  fi
+}
+
+while [[ "$1" != "" ]]; do
     case $1 in
              --results-gcs-dir )shift
                                 RESULTS_GCS_DIR=$1
                                 ;;
              --namespace )      shift
                                 NAMESPACE=$1
+                                ;;
+             --remote-run )     shift
+                                REMOTE_RUN=$(parse_bool "${1:-}")
                                 ;;
              -h | --help )      usage
                                 exit
@@ -44,29 +60,32 @@ while [ "$1" != "" ]; do
     shift
 done
 
-if [ -z "$RESULTS_GCS_DIR" ]; then
-    usage
-    exit 1
-fi
-
-if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+if [[ "$REMOTE_RUN" != "true" ]]; then
+  if [[ -z "$RESULTS_GCS_DIR" ]]; then
+      usage
+      exit 1
+  fi
+  if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+    gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+  fi
 fi
 
 npm install
 
-function clean_up() {
-  set +e
+if [[ "$REMOTE_RUN" != "true" ]]; then
+  function clean_up() {
+    set +e
 
-  echo "Stopping background jobs..."
-  kill -15 %1
-  kill -15 %2
-}
-trap clean_up EXIT SIGINT SIGTERM
+    echo "Stopping background jobs..."
+    kill -15 %1
+    kill -15 %2
+  }
+  trap clean_up EXIT SIGINT SIGTERM
 
-# Port forward the UI so tests can work against localhost
-POD=`kubectl get pods -n ${NAMESPACE} -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}'`
-kubectl port-forward -n ${NAMESPACE} ${POD} 3000:3000 &
+  # Port forward the UI so tests can work against localhost
+  POD=`kubectl get pods -n ${NAMESPACE} -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}'`
+  kubectl port-forward -n ${NAMESPACE} ${POD} 3000:3000 &
+fi
 
 # Run Selenium server
 /opt/bin/entry_point.sh &
@@ -82,7 +101,9 @@ set -e
 
 JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
 
-echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
-gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
+if [[ "$REMOTE_RUN" != "true" ]]; then
+  echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
+  gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
+fi
 
 exit $TEST_EXIT_CODE

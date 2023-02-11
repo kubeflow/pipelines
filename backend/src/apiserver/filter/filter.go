@@ -23,9 +23,8 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // Filter represents a filter that can be applied when querying an arbitrary API
@@ -67,7 +66,7 @@ func (f *Filter) MarshalJSON() ([]byte, error) {
 	m := &jsonpb.Marshaler{}
 	s, err := m.MarshalToString(f.filterProto)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Failed to marshal filter proto into a string")
 	}
 	return json.Marshal(&filterForMarshaling{
 		FilterProto: s,
@@ -93,7 +92,7 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 	f.filterProto = &api.Filter{}
 	err = jsonpb.UnmarshalString(ffm.FilterProto, f.filterProto)
 	if err != nil {
-		return err
+		return util.Wrap(err, "Failed to unmarshal filter proto")
 	}
 
 	f.eq = ffm.EQ
@@ -297,24 +296,15 @@ func addPredicateValue(m map[string][]interface{}, p *api.Predicate) error {
 		m[p.Key] = append(m[p.Key], ts.Unix())
 
 	case *api.Predicate_IntValues:
-		var v []int32
-		for _, i := range p.GetIntValues().GetValues() {
-			v = append(v, i)
-		}
+		v := p.GetIntValues().GetValues()
 		m[p.Key] = append(m[p.Key], v)
 
 	case *api.Predicate_LongValues:
-		var v []int64
-		for _, i := range p.GetLongValues().GetValues() {
-			v = append(v, i)
-		}
+		v := p.GetLongValues().GetValues()
 		m[p.Key] = append(m[p.Key], v)
 
 	case *api.Predicate_StringValues:
-		var v []string
-		for _, i := range p.GetStringValues().GetValues() {
-			v = append(v, i)
-		}
+		v := p.GetStringValues().GetValues()
 		m[p.Key] = append(m[p.Key], v)
 
 	case nil:

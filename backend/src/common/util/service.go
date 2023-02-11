@@ -29,7 +29,7 @@ import (
 )
 
 func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAddress string) error {
-	var operation = func() error {
+	operation := func() error {
 		response, err := http.Get(fmt.Sprintf("http://%s%s/healthz", apiAddress, basePath))
 		if err != nil {
 			return err
@@ -51,7 +51,8 @@ func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAd
 }
 
 func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
-	*kubernetes.Clientset, *rest.Config, string, error) {
+	*kubernetes.Clientset, *rest.Config, string, error,
+) {
 	// Get the clientConfig
 	config, err := clientConfig.ClientConfig()
 	if err != nil {

@@ -290,15 +290,15 @@
         ]
       }
     },
-    "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics": {
+    "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry": {
       "post": {
-        "summary": "Reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be\nuniquely identified by (experiment_id, run_id, node_id, name). Duplicate \nreporting will be ignored by the API. First reporting wins.",
-        "operationId": "ReportRunMetrics",
+        "summary": "Re-initiates a failed or terminated run.",
+        "operationId": "RetryRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v2beta1ReportRunMetricsResponse"
+              "properties": {}
             }
           },
           "default": {
@@ -318,18 +318,10 @@
           },
           {
             "name": "run_id",
-            "description": "Required. The parent run ID of the metric.",
+            "description": "The ID of the run to be retried.",
             "in": "path",
             "required": true,
             "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v2beta1ReportRunMetricsRequest"
-            }
           }
         ],
         "tags": [
@@ -417,49 +409,6 @@
     }
   },
   "definitions": {
-    "ReportRunMetricsResponseReportRunMetricResult": {
-      "type": "object",
-      "properties": {
-        "metric_name": {
-          "type": "string",
-          "description": "Output. The name of the metric."
-        },
-        "metric_node_id": {
-          "type": "string",
-          "description": "Output. The ID of the node which reports the metric."
-        },
-        "status": {
-          "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResultStatus",
-          "description": "Output. The status of the metric reporting."
-        },
-        "message": {
-          "type": "string",
-          "description": "Output. The detailed message of the error of the reporting."
-        }
-      }
-    },
-    "ReportRunMetricsResponseReportRunMetricResultStatus": {
-      "type": "string",
-      "enum": [
-        "UNSPECIFIED",
-        "OK",
-        "INVALID_ARGUMENT",
-        "DUPLICATE_REPORTING",
-        "INTERNAL_ERROR"
-      ],
-      "default": "UNSPECIFIED",
-      "description": " - UNSPECIFIED: Default value if not present.\n - OK: Indicates successful reporting.\n - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.\n - DUPLICATE_REPORTING: Indicates that the metric has been reported before.\n - INTERNAL_ERROR: Indicates that something went wrong in the server."
-    },
-    "RunMetricFormat": {
-      "type": "string",
-      "enum": [
-        "FORMAT_UNSPECIFIED",
-        "RAW",
-        "PERCENTAGE"
-      ],
-      "default": "FORMAT_UNSPECIFIED",
-      "description": " - FORMAT_UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
-    },
     "googlerpcStatus": {
       "type": "object",
       "properties": {
@@ -497,6 +446,19 @@
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
     },
+    "protobufListValue": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufValue"
+          },
+          "description": "Repeated field of dynamically typed values."
+        }
+      },
+      "description": "`ListValue` is a wrapper around a repeated field of values.\n\nThe JSON representation for `ListValue` is JSON array."
+    },
     "protobufNullValue": {
       "type": "string",
       "enum": [
@@ -504,6 +466,51 @@
       ],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "protobufStruct": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufValue"
+          },
+          "description": "Unordered map of dynamically typed values."
+        }
+      },
+      "description": "`Struct` represents a structured data value, consisting of fields\nwhich map to dynamically typed values. In some languages, `Struct`\nmight be supported by a native representation. For example, in\nscripting languages like JS a struct is represented as an\nobject. The details of that representation are described together\nwith the proto support for the language.\n\nThe JSON representation for `Struct` is JSON object."
+    },
+    "protobufValue": {
+      "type": "object",
+      "properties": {
+        "null_value": {
+          "$ref": "#/definitions/protobufNullValue",
+          "description": "Represents a null value."
+        },
+        "number_value": {
+          "type": "number",
+          "format": "double",
+          "description": "Represents a double value."
+        },
+        "string_value": {
+          "type": "string",
+          "description": "Represents a string value."
+        },
+        "bool_value": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Represents a boolean value."
+        },
+        "struct_value": {
+          "$ref": "#/definitions/protobufStruct",
+          "description": "Represents a structured value."
+        },
+        "list_value": {
+          "$ref": "#/definitions/protobufListValue",
+          "description": "Represents a repeated `Value`."
+        }
+      },
+      "description": "`Value` represents a dynamically typed value which can be either\nnull, a number, a string, a boolean, a recursive struct value, or a\nlist of values. A producer of value is expected to set one of that\nvariants, absence of any variant indicates an error.\n\nThe JSON representation for `Value` is JSON value."
     },
     "v2beta1ArtifactList": {
       "type": "object",
@@ -653,37 +660,6 @@
         }
       }
     },
-    "v2beta1ReportRunMetricsRequest": {
-      "type": "object",
-      "properties": {
-        "experiment_id": {
-          "type": "string",
-          "description": "The ID of the parent experiment."
-        },
-        "run_id": {
-          "type": "string",
-          "description": "Required. The parent run ID of the metric."
-        },
-        "metrics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v2beta1RunMetric"
-          },
-          "description": "List of metrics to report."
-        }
-      }
-    },
-    "v2beta1ReportRunMetricsResponse": {
-      "type": "object",
-      "properties": {
-        "results": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResult"
-          }
-        }
-      }
-    },
     "v2beta1Run": {
       "type": "object",
       "properties": {
@@ -707,12 +683,12 @@
           "type": "string",
           "description": "Optional input. Short description of the run."
         },
-        "pipeline_id": {
+        "pipeline_version_id": {
           "type": "string",
-          "description": "ID of existing pipeline."
+          "description": "ID of an existing pipeline version."
         },
         "pipeline_spec": {
-          "type": "object",
+          "$ref": "#/definitions/protobufStruct",
           "description": "Pipeline spec."
         },
         "runtime_config": {
@@ -754,10 +730,6 @@
           "type": "string",
           "description": "ID of the recurring run that triggered this run."
         },
-        "recurring_run_name": {
-          "type": "string",
-          "title": "Name of the recurring run that triggered this run"
-        },
         "state_history": {
           "type": "array",
           "items": {
@@ -790,38 +762,15 @@
       },
       "description": "Runtime details of a run."
     },
-    "v2beta1RunMetric": {
-      "type": "object",
-      "properties": {
-        "display_name": {
-          "type": "string",
-          "description": "Required input. The user defined name of the metric. It must be 1-63\ncharacters long and must conform to the following regular expression:\n`[a-z]([-a-z0-9]*[a-z0-9])?`."
-        },
-        "node_id": {
-          "type": "string",
-          "description": "Required input. The runtime node ID which reports the metric. The node ID \ncan be found in the RunDetail.workflow.Status. Metric with same \n(node_id, name) are considerd as duplicate. Only the first reporting will\n be recorded. Max length is 128."
-        },
-        "number_value": {
-          "type": "number",
-          "format": "double",
-          "description": "The number value of the metric."
-        },
-        "format": {
-          "$ref": "#/definitions/RunMetricFormat",
-          "description": "The display format of metric."
-        }
-      },
-      "description": "Metric assiciated with a run."
-    },
     "v2beta1RunStorageState": {
       "type": "string",
       "enum": [
-        "STORAGESTATE_UNSPECIFIED",
+        "STORAGE_STATE_UNSPECIFIED",
         "AVAILABLE",
         "ARCHIVED"
       ],
-      "default": "STORAGESTATE_UNSPECIFIED",
-      "description": "Describes whether an entity is available or archived.\n\n - STORAGESTATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
+      "default": "STORAGE_STATE_UNSPECIFIED",
+      "description": "Describes whether an entity is available or archived.\n\n - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },
     "v2beta1RuntimeConfig": {
       "type": "object",
@@ -829,7 +778,7 @@
         "parameters": {
           "type": "object",
           "additionalProperties": {
-            "type": "object"
+            "$ref": "#/definitions/protobufValue"
           },
           "description": "The runtime parameters of the Pipeline. The parameters will be\nused to replace the placeholders at runtime."
         },
@@ -843,7 +792,7 @@
     "v2beta1RuntimeState": {
       "type": "string",
       "enum": [
-        "RUNTIMESTATE_UNSPECIFIED",
+        "RUNTIME_STATE_UNSPECIFIED",
         "PENDING",
         "RUNNING",
         "SUCCEEDED",
@@ -853,8 +802,8 @@
         "CANCELED",
         "PAUSED"
       ],
-      "default": "RUNTIMESTATE_UNSPECIFIED",
-      "description": "Describes the runtime state of an entity.\n\n - RUNTIMESTATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - SKIPPED: Entity has been skipped. For example, due to caching.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
+      "default": "RUNTIME_STATE_UNSPECIFIED",
+      "description": "Describes the runtime state of an entity.\n\n - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - SKIPPED: Entity has been skipped. For example, due to caching.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
     },
     "v2beta1RuntimeStatus": {
       "type": "object",

@@ -54,7 +54,7 @@ import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } f
 import Buttons from '../lib/Buttons';
 import RunUtils from '../lib/RunUtils';
 import { URLParser } from '../lib/URLParser';
-import { errorToMessage, logger } from '../lib/Utils';
+import { errorToMessage, logger, mergeApiParametersByNames } from '../lib/Utils';
 import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
@@ -283,6 +283,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                       id='choosePipelineVersionBtn'
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
+                      disabled={!this.state.pipeline}
                     >
                       Choose
                     </Button>
@@ -877,15 +878,24 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
   protected async _pipelineVersionSelectorClosed(confirmed: boolean): Promise<void> {
     let { parameters, pipelineVersion, pipeline, experiment } = this.state;
     const urlParser = new URLParser(this.props);
+    const cloneFromRunValue = urlParser.get(QUERY_PARAMS.cloneFromRun);
+
     if (confirmed && this.state.unconfirmedSelectedPipelineVersion) {
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
-      parameters = pipelineVersion.parameters || [];
+
+      if (cloneFromRunValue) {
+        parameters = mergeApiParametersByNames(pipelineVersion.parameters || [], parameters);
+      } else {
+        parameters = pipelineVersion.parameters || [];
+      }
+
       // To avoid breaking current v1 behavior, only allow switch between v1 and v2 when V2 feature is enabled.
       if (pipeline && pipelineVersion.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: pipelineVersion.id || '',
+          [QUERY_PARAMS.cloneFromRun]: cloneFromRunValue || '',
         });
         this.props.history.replace(searchString);
         this.props.handlePipelineVersionIdChange(pipelineVersion.id);

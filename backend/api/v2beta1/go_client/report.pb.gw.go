@@ -28,7 +28,7 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
-func request_ReportService_ReportWorkflowV1_0(ctx context.Context, marshaler runtime.Marshaler, client ReportServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ReportService_ReportWorkflow_0(ctx context.Context, marshaler runtime.Marshaler, client ReportServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ReportWorkflowRequest
 	var metadata runtime.ServerMetadata
 
@@ -40,12 +40,12 @@ func request_ReportService_ReportWorkflowV1_0(ctx context.Context, marshaler run
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.ReportWorkflowV1(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.ReportWorkflow(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func request_ReportService_ReportScheduledWorkflowV1_0(ctx context.Context, marshaler runtime.Marshaler, client ReportServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_ReportService_ReportScheduledWorkflow_0(ctx context.Context, marshaler runtime.Marshaler, client ReportServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ReportScheduledWorkflowRequest
 	var metadata runtime.ServerMetadata
 
@@ -57,7 +57,7 @@ func request_ReportService_ReportScheduledWorkflowV1_0(ctx context.Context, mars
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.ReportScheduledWorkflowV1(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.ReportScheduledWorkflow(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
@@ -100,7 +100,7 @@ func RegisterReportServiceHandler(ctx context.Context, mux *runtime.ServeMux, co
 // "ReportServiceClient" to call the correct interceptors.
 func RegisterReportServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client ReportServiceClient) error {
 
-	mux.Handle("POST", pattern_ReportService_ReportWorkflowV1_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_ReportService_ReportWorkflow_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -109,18 +109,18 @@ func RegisterReportServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ReportService_ReportWorkflowV1_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ReportService_ReportWorkflow_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_ReportService_ReportWorkflowV1_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ReportService_ReportWorkflow_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_ReportService_ReportScheduledWorkflowV1_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_ReportService_ReportScheduledWorkflow_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -129,14 +129,14 @@ func RegisterReportServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ReportService_ReportScheduledWorkflowV1_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ReportService_ReportScheduledWorkflow_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_ReportService_ReportScheduledWorkflowV1_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ReportService_ReportScheduledWorkflow_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -144,13 +144,13 @@ func RegisterReportServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 }
 
 var (
-	pattern_ReportService_ReportWorkflowV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "workflows"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ReportService_ReportWorkflow_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "workflows"}, ""))
 
-	pattern_ReportService_ReportScheduledWorkflowV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "scheduledworkflows"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ReportService_ReportScheduledWorkflow_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "scheduledworkflows"}, ""))
 )
 
 var (
-	forward_ReportService_ReportWorkflowV1_0 = runtime.ForwardResponseMessage
+	forward_ReportService_ReportWorkflow_0 = runtime.ForwardResponseMessage
 
-	forward_ReportService_ReportScheduledWorkflowV1_0 = runtime.ForwardResponseMessage
+	forward_ReportService_ReportScheduledWorkflow_0 = runtime.ForwardResponseMessage
 )

@@ -5,9 +5,36 @@
 ## Breaking changes
 
 ## Deprecations
+* Deprecate pipeline task `.set_gpu_limit` in favor of `.set_accelerator_limit` [\#8836](https://github.com/kubeflow/pipelines/pull/8836)
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.0.0-beta.12
+
+## Features
+* Support fanning-in parameter outputs from a task in a `dsl.ParellelFor` context using `dsl.Collected` [\#8631](https://github.com/kubeflow/pipelines/pull/8631)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Fix upload_pipeline method on client when no name is provided [\#8695](https://github.com/kubeflow/pipelines/pull/8695)
+
+## Documentation updates
+# 2.0.0-beta.11
+
+## Features
+
+## Breaking changes
+
+## Deprecations
 
 ## Bug fixes and other changes
 * Accepts `PyYAML<7` in addition to `PyYAML>=5.3,<6` [\#8665](https://github.com/kubeflow/pipelines/pull/8665)
+* Remove v1 dependencies from SDK v2 [\#8668](https://github.com/kubeflow/pipelines/pull/8668)
 
 ## Documentation updates
 # 2.0.0-beta.10
@@ -133,13 +160,13 @@ Technically no breaking changes but compilation error could be exposed in a diff
 # 2.0.0-beta.3
 
 ## Major Features and Improvements
+* Add support for ConcatPlaceholder and IfPresentPlaceholder in containerized component [\#8145](https://github.com/kubeflow/pipelines/pull/8145)
 
 ## Breaking Changes
 
 ### For Pipeline Authors
 
 ### For Component Authors
-* Add support for ConcatPlaceholder and IfPresentPlaceholder in containerized component [\#8145](https://github.com/kubeflow/pipelines/pull/8145)
 ## Deprecations
 
 ## Bug Fixes and Other Changes

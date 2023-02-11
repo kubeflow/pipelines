@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -105,18 +105,6 @@ service RunService {
     };
   }
 
-  // Reports metrics of a run. Each metric is reported in its
-  // own transaction, so this API accepts partial failures. Metric can be
-  // uniquely identified by (experiment_id, run_id, node_id, name). Duplicate 
-  // reporting will be ignored by the API. First reporting wins.
-  rpc ReportRunMetrics(ReportRunMetricsRequest)
-      returns (ReportRunMetricsResponse) {
-    option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics"
-      body: "*"
-    };
-  }
-
   // Finds artifact data in a run.
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
@@ -128,6 +116,13 @@ service RunService {
   rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate"
+    };
+  }
+
+  // Re-initiates a failed or terminated run.
+ rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
+   option (google.api.http) = {
+     post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry"
     };
   }
 
@@ -148,7 +143,7 @@ message Run {
   // Describes whether an entity is available or archived.
   enum StorageState {
     // Default state. This state in not used
-    STORAGESTATE_UNSPECIFIED = 0;
+    STORAGE_STATE_UNSPECIFIED = 0;
 
     // Entity is available.
     AVAILABLE = 1;
@@ -164,10 +159,10 @@ message Run {
   string description = 5;
  
   // Required input. Specifies the source of the pipeline spec for this 
-  // run. Can be either a pipeline id, or a pipeline spec.
+  // run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
-    // ID of existing pipeline.
-    string pipeline_id = 6;
+    // ID of an existing pipeline version.
+    string pipeline_version_id = 6;
 
     // Pipeline spec.
     google.protobuf.Struct pipeline_spec = 7;
@@ -204,18 +199,15 @@ message Run {
   // ID of the recurring run that triggered this run.
   string recurring_run_id = 16;
 
-  // Name of the recurring run that triggered this run
-  string recurring_run_name = 17;
-
   // Output. A sequence of run statuses. This field keeps a record 
   // of state transitions.
-  repeated RuntimeStatus state_history = 18;
+  repeated RuntimeStatus state_history = 17;
 }
 
 // Describes the runtime state of an entity.
 enum RuntimeState {
   // Default value. This value is not used.
-  RUNTIMESTATE_UNSPECIFIED = 0;
+  RUNTIME_STATE_UNSPECIFIED = 0;
 
   // Service is preparing to execute an entity.
   PENDING = 1;
@@ -257,39 +249,6 @@ message RuntimeStatus {
   // retried. If the state is a non-final state, the error indicates that a 
   // system-error being retried.
   google.rpc.Status error = 3;
-}
-
-// Metric assiciated with a run.
-message RunMetric {
-  // Required input. The user defined name of the metric. It must be 1-63
-  // characters long and must conform to the following regular expression:
-  // `[a-z]([-a-z0-9]*[a-z0-9])?`.
-  string display_name = 1;
-
-  // Required input. The runtime node ID which reports the metric. The node ID 
-  // can be found in the RunDetail.workflow.Status. Metric with same 
-  // (node_id, name) are considerd as duplicate. Only the first reporting will
-  //  be recorded. Max length is 128.
-  string node_id = 2;
-
-  oneof value {
-    // The number value of the metric.
-    double number_value = 3;
-  }
-
-  enum Format {
-    // Default value if not present.
-    FORMAT_UNSPECIFIED = 0;
-    
-    // Display value as its raw format.
-    RAW = 1;
-    
-    // Display value in percentage format.
-    PERCENTAGE = 2;
-  }
-
-  // The display format of metric.
-  Format format = 4;
 }
 
 // Runtime details of a run.
@@ -467,46 +426,6 @@ message DeleteRunRequest {
   string run_id = 2;
 }
 
-message ReportRunMetricsRequest {
-  // The ID of the parent experiment.
-  string experiment_id = 1;
-
-  // Required. The parent run ID of the metric.
-  string run_id = 2;
-
-  // List of metrics to report.
-  repeated RunMetric metrics = 3;
-}
-
-message ReportRunMetricsResponse {
-  message ReportRunMetricResult {
-    // Output. The name of the metric.
-    string metric_name = 1;
-
-    // Output. The ID of the node which reports the metric.
-    string metric_node_id = 2;
-
-    enum Status {
-      // Default value if not present.
-      UNSPECIFIED = 0;
-      // Indicates successful reporting.
-      OK = 1;
-      // Indicates that the payload of the metric is invalid.
-      INVALID_ARGUMENT = 2;
-      // Indicates that the metric has been reported before.
-      DUPLICATE_REPORTING = 3;
-      // Indicates that something went wrong in the server.
-      INTERNAL_ERROR = 4;
-    }
-    // Output. The status of the metric reporting.
-    Status status = 3;
-
-    // Output. The detailed message of the error of the reporting.
-    string message = 4;
-  }
-  repeated ReportRunMetricResult results = 1;
-}
-
 message ReadArtifactRequest {
   // The ID of the parent experiment.
   string experiment_id = 1;
@@ -524,4 +443,12 @@ message ReadArtifactRequest {
 message ReadArtifactResponse {
   // Byte array of the artifact content.
   bytes data = 1;
+}
+
+message RetryRunRequest {
+ // The ID of the parent experiment.
+ string experiment_id = 1;
+
+ // The ID of the run to be retried.
+ string run_id = 2;
 }

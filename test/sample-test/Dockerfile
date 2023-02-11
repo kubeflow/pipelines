@@ -10,7 +10,10 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
 COPY ./test/sample-test/requirements.txt /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
-# Install KFP server API from commit.
+# TODO: remove deprecated dependency
+COPY ./sdk/python/requirements-deprecated.txt /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
+RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
+# TODO(chensun): Remove install KFP server API from commit once we migrate tests away from using legacy client.
 COPY ./backend/api/v1beta1/python_http_client /python_http_client
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python
