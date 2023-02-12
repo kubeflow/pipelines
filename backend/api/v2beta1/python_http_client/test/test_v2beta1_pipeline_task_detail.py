@@ -86,6 +86,9 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                                     type_url = '0', 
                                     value = 'YQ==', )
                                 ], ), )
+                    ], 
+                child_task_ids = [
+                    '0'
                     ]
             )
         else :

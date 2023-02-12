@@ -19,6 +19,9 @@ import (
 // swagger:model v2beta1PipelineTaskDetail
 type V2beta1PipelineTaskDetail struct {
 
+	// A sequence of ids of dependent tasks (children).
+	ChildTaskIds []string `json:"child_task_ids"`
+
 	// Creation time of a task.
 	// Format: date-time
 	CreateTime strfmt.DateTime `json:"create_time,omitempty"`

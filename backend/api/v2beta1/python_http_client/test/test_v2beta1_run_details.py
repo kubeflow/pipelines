@@ -78,6 +78,9 @@ class TestV2beta1RunDetails(unittest.TestCase):
                         state_history = [
                             kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                                 update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), )
+                            ], 
+                        child_task_ids = [
+                            '0'
                             ], )
                     ]
             )

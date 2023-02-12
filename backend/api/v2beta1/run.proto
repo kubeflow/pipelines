@@ -310,6 +310,9 @@ message PipelineTaskDetail {
   // A sequence of task statuses. This field keeps a record 
   // of state transitions.
   repeated RuntimeStatus state_history = 14;
+
+  // A sequence of ids of dependent tasks (children).
+  repeated string child_task_ids = 15;
 }
 
 // Runtime information of a pipeline task executor.
