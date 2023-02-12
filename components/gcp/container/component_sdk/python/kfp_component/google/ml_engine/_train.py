@@ -32,7 +32,8 @@ def train(project_id,
           training_input=None,
           job_id_prefix=None,
           job_id=None,
-          wait_interval=30):
+          wait_interval=30,
+          labels=None):
     """Creates a MLEngine training job.
 
     Args:
@@ -69,6 +70,8 @@ def train(project_id,
             id if set.
         wait_interval (int): optional wait interval between calls to get job
             status. Defaults to 30.
+        labels (dict): Optional. One or more labels that you can add, to organize
+            your jobs.
     """
     if not training_input:
         training_input = {}
@@ -95,6 +98,8 @@ def train(project_id,
             training_input['workerConfig'] = {}
         training_input['workerConfig']['imageUri'] = worker_image_uri
     job = {'trainingInput': training_input}
+    if labels:
+        job['labels'] = labels
     return create_job(
         project_id=project_id,
         job=job,
