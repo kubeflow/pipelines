@@ -17,20 +17,23 @@ package model
 type Task struct {
 	UUID      string `gorm:"column:UUID; not null; primary_key"`
 	Namespace string `gorm:"column:Namespace; not null;"`
-	// This field was deprecated. Use RunId instead.
-	PipelineName      string `gorm:"column:PipelineName; not null;"`
-	RunId             string `gorm:"column:RunUUID; not null;"`
-	MLMDExecutionID   string `gorm:"column:MLMDExecutionID; not null;"`
-	CreatedTimestamp  int64  `gorm:"column:CreatedTimestamp; not null;"`
-	StartedTimestamp  int64  `gorm:"column:StartedTimestamp;"`
-	FinishedTimestamp int64  `gorm:"column:FinishedTimestamp;"`
-	Fingerprint       string `gorm:"column:Fingerprint; not null;"`
-	Name              string `gorm:"column:Name; default:null"`
-	ParentTaskId      string `gorm:"column:ParentTaskUUID; default:null"`
-	State             string `gorm:"column:State; default:null;"`
-	StateHistory      string `gorm:"column:StateHistory; default:null;"`
-	MLMDInputs        string `gorm:"column:MLMDInputs; default:null; size:65535;"`
-	MLMDOutputs       string `gorm:"column:MLMDOutputs; default:null; size:65535;"`
+	// PipelineName was deprecated. Use RunId instead.
+	PipelineName       string           `gorm:"column:PipelineName; not null;"`
+	RunId              string           `gorm:"column:RunUUID; not null;"`
+	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
+	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
+	StartedTimestamp   int64            `gorm:"column:StartedTimestamp;"`
+	FinishedTimestamp  int64            `gorm:"column:FinishedTimestamp;"`
+	Fingerprint        string           `gorm:"column:Fingerprint; not null;"`
+	Name               string           `gorm:"column:Name; default:null"`
+	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`
+	State              RuntimeState     `gorm:"column:State; default:null;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null;"`
+	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; size:65535;"`
+	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; size:65535;"`
+	ChildTaskIdsString string           `gorm:"column:ChildTaskIds; default:null; size:65535;"`
+	StateHistory       []*RuntimeStatus `gorm:"-;"`
+	ChildTaskIds       []string         `gorm:"-;"`
 }
 
 func (t Task) PrimaryKeyColumnName() string {

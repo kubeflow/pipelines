@@ -2312,3 +2312,1475 @@ func TestToApiRecurringRun(t *testing.T) {
 	// See https://github.com/stretchr/testify/issues/758
 	assert.Equal(t, expectedRecurringRun2.String(), apiRecurringRun2.String())
 }
+
+func Test_toModelRuntimeState(t *testing.T) {
+	tests := []struct {
+		name     string
+		apiState interface{}
+		wantV1   model.RuntimeState
+		wantV2   model.RuntimeState
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			"V1 pending",
+			"Pending",
+			model.RuntimeStatePendingV1,
+			model.RuntimeStatePending,
+			false,
+			"",
+		},
+		{
+			"V1 Running",
+			"Running",
+			model.RuntimeStateRunningV1,
+			model.RuntimeStateRunning,
+			false,
+			"",
+		},
+		{
+			"V1 Succeeded",
+			"Succeeded",
+			model.RuntimeStateSucceededV1,
+			model.RuntimeStateSucceeded,
+			false,
+			"",
+		},
+		{
+			"V1 Skipped",
+			"Skipped",
+			model.RuntimeStateSkippedV1,
+			model.RuntimeStateSkipped,
+			false,
+			"",
+		},
+		{
+			"V1 Failed",
+			"Failed",
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateFailed,
+			false,
+			"",
+		},
+		{
+			"V1 Error",
+			"Error",
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateFailed,
+			false,
+			"",
+		},
+		{
+			"V1 Empty",
+			"",
+			model.RuntimeStateUnknownV1,
+			model.RuntimeStateUnspecified,
+			false,
+			"",
+		},
+		{
+			"V1 Unknown",
+			"Unknown",
+			model.RuntimeStateUnknownV1,
+			model.RuntimeStateUnspecified,
+			false,
+			"",
+		},
+		{
+			"V1 NO_STATUS",
+			"NO_STATUS",
+			model.RuntimeStateUnknownV1,
+			model.RuntimeStateUnspecified,
+			false,
+			"",
+		},
+		{
+			"V1 Terminating",
+			"Terminating",
+			model.RuntimeStateTerminatingV1,
+			model.RuntimeStateCancelling,
+			false,
+			"",
+		},
+		{
+			"V1 Ready",
+			"Ready",
+			model.RuntimeStateRunningV1,
+			model.RuntimeStateRunning,
+			false,
+			"",
+		},
+		{
+			"V1 Done",
+			"Done",
+			model.RuntimeStateSucceededV1,
+			model.RuntimeStateSucceeded,
+			false,
+			"",
+		},
+		{
+			"V1 wrong value",
+			"wrong value",
+			model.RuntimeStateUnknownV1,
+			model.RuntimeStateUnspecified,
+			false,
+			"",
+		},
+
+		{
+			"V2 RUNTIME_STATE_UNSPECIFIED",
+			"RUNTIME_STATE_UNSPECIFIED",
+			model.RuntimeStateUnknownV1,
+			model.RuntimeStateUnspecified,
+			false,
+			"",
+		},
+		{
+			"V2 RUNNING",
+			"RUNNING",
+			model.RuntimeStateRunningV1,
+			model.RuntimeStateRunning,
+			false,
+			"",
+		},
+		{
+			"V2 SUCCEEDED",
+			"SUCCEEDED",
+			model.RuntimeStateSucceededV1,
+			model.RuntimeStateSucceeded,
+			false,
+			"",
+		},
+		{
+			"V2 SKIPPED",
+			"SKIPPED",
+			model.RuntimeStateSkippedV1,
+			model.RuntimeStateSkipped,
+			false,
+			"",
+		},
+		{
+			"V2 CANCELED",
+			"CANCELED",
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateCanceled,
+			false,
+			"",
+		},
+		{
+			"V2 PAUSED",
+			"PAUSED",
+			model.RuntimeStatePendingV1,
+			model.RuntimeStatePaused,
+			false,
+			"",
+		},
+		{
+			"V2 Empty",
+			"",
+			model.RuntimeStateUnknownV1,
+			model.RuntimeStateUnspecified,
+			false,
+			"",
+		},
+		{
+			"V2 PENDING",
+			"PENDING",
+			model.RuntimeStatePendingV1,
+			model.RuntimeStatePending,
+			false,
+			"",
+		},
+		{
+			"V2 RuntimeState_CANCELED",
+			apiv2beta1.RuntimeState_CANCELED,
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateCanceled,
+			false,
+			"",
+		},
+		{
+			"nil",
+			nil,
+			model.RuntimeStateUnknownV1,
+			model.RuntimeStateUnspecified,
+			false,
+			"",
+		},
+		{
+			"V2 int32=7",
+			int32(7),
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateCanceled,
+			false,
+			"",
+		},
+		{
+			"V2 int=7",
+			7,
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateCanceled,
+			false,
+			"",
+		},
+		{
+			"V2 int8=7",
+			int8(7),
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateCanceled,
+			false,
+			"",
+		},
+		{
+			"V2 int16=7",
+			int16(7),
+			model.RuntimeStateFailedV1,
+			model.RuntimeStateCanceled,
+			false,
+			"",
+		},
+		{
+			"V2 int64=7",
+			int64(7),
+			"",
+			"",
+			true,
+			"Error using RuntimeState with int64",
+		},
+		{
+			"Invalid run type",
+			&apiv1beta1.Run{},
+			"",
+			"",
+			true,
+			"Error using RuntimeState with *go_client.Run",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := toModelRuntimeState(tt.apiState)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Equal(t, "", string(got))
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.True(t, got.ToV2().IsValid())
+				assert.Equal(t, tt.wantV1, got.ToV1())
+				assert.Equal(t, tt.wantV2, got.ToV2())
+				assert.Equal(t, string(tt.wantV2), got.ToString())
+			}
+		})
+	}
+}
+
+func Test_toApiRuntimeStateV1(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		modelState model.RuntimeState
+		want       string
+	}{
+		{
+			"v1 Error",
+			model.RuntimeStateErrorV1,
+			"Failed",
+		},
+		{
+			"v1 NO_STATUS",
+			model.RuntimeState(model.LegacyStateNoStatus),
+			"Unknown",
+		},
+		{
+			"v1 succeeded",
+			model.RuntimeStateSucceededV1,
+			"Succeeded",
+		},
+		{
+			"v2 succeeded",
+			model.RuntimeStateSucceeded,
+			"Succeeded",
+		},
+		{
+			"v2 cancelling",
+			model.RuntimeStateCancelling,
+			"Terminating",
+		},
+		{
+			"v2 paused",
+			model.RuntimeStatePaused,
+			"Pending",
+		},
+		{
+			"v2 Unspecified",
+			model.RuntimeStateUnspecified,
+			"Unknown",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := toApiRuntimeStateV1(&tt.modelState); got != tt.want {
+				t.Errorf("toApiRuntimeStateV1() = %v, want %v", tt.want, got)
+			}
+		})
+	}
+}
+
+func Test_toApiRuntimeState(t *testing.T) {
+	tests := []struct {
+		name       string
+		modelState model.RuntimeState
+		want       apiv2beta1.RuntimeState
+	}{
+		{
+			"v1 Error",
+			model.RuntimeStateErrorV1,
+			apiv2beta1.RuntimeState_FAILED,
+		},
+		{
+			"v1 NO_STATUS",
+			model.RuntimeState(model.LegacyStateNoStatus),
+			apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+		},
+		{
+			"v1 succeeded",
+			model.RuntimeStateSucceededV1,
+			apiv2beta1.RuntimeState_SUCCEEDED,
+		},
+		{
+			"v2 succeeded",
+			model.RuntimeStateSucceeded,
+			apiv2beta1.RuntimeState_SUCCEEDED,
+		},
+		{
+			"v2 cancelling",
+			model.RuntimeStateCancelling,
+			apiv2beta1.RuntimeState_CANCELING,
+		},
+		{
+			"v2 paused",
+			model.RuntimeStatePaused,
+			apiv2beta1.RuntimeState_PAUSED,
+		},
+		{
+			"v2 Unspecified",
+			model.RuntimeStateUnspecified,
+			apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := toApiRuntimeState(&tt.modelState); got != tt.want {
+				t.Errorf("toApiRuntimeStateV1() = %v, want %v", tt.want, got)
+			}
+		})
+	}
+}
+
+func Test_toModelRuntimeStatus(t *testing.T) {
+	tests := []struct {
+		name      string
+		apiStatus *apiv2beta1.RuntimeStatus
+		want      *model.RuntimeStatus
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			"Empty",
+			&apiv2beta1.RuntimeStatus{},
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 0,
+				State:           model.RuntimeStateUnspecified,
+				Error:           nil,
+			},
+			false,
+			"",
+		},
+		{
+			"nil",
+			nil,
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 0,
+				State:           "",
+				Error:           nil,
+			},
+			false,
+			"",
+		},
+		{
+			"Error",
+			&apiv2beta1.RuntimeStatus{
+				Error: util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 0,
+				State:           model.RuntimeStateUnspecified,
+				Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+			},
+			false,
+			"",
+		},
+		{
+			"Tipestamp",
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			},
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+				State:           model.RuntimeStateUnspecified,
+				Error:           nil,
+			},
+			false,
+			"",
+		},
+		{
+			"State",
+			&apiv2beta1.RuntimeStatus{
+				State: apiv2beta1.RuntimeState_CANCELING,
+			},
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 0,
+				State:           model.RuntimeStateCancelling,
+				Error:           nil,
+			},
+			false,
+			"",
+		},
+		{
+			"Full spec",
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+				State:      apiv2beta1.RuntimeState_CANCELING,
+				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+				State:           model.RuntimeStateCancelling,
+				Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := toModelRuntimeStatus(tt.apiStatus)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Nil(t, got)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func Test_toModelRuntimeStatuses(t *testing.T) {
+	arg := []*apiv2beta1.RuntimeStatus{
+		{},
+		nil,
+		{
+			Error: util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+		},
+		{
+			State: apiv2beta1.RuntimeState_CANCELING,
+		},
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			State:      apiv2beta1.RuntimeState_CANCELING,
+			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+	}
+	expected := []*model.RuntimeStatus{
+		{
+			UpdateTimeInSec: 0,
+			State:           model.RuntimeStateUnspecified,
+			Error:           nil,
+		},
+		{
+			UpdateTimeInSec: 0,
+			State:           "",
+			Error:           nil,
+		},
+		{
+			UpdateTimeInSec: 0,
+			State:           model.RuntimeStateUnspecified,
+			Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+		},
+		{
+			UpdateTimeInSec: 100,
+			State:           model.RuntimeStateUnspecified,
+			Error:           nil,
+		},
+		{
+			UpdateTimeInSec: 0,
+			State:           model.RuntimeStateCancelling,
+			Error:           nil,
+		},
+		{
+			UpdateTimeInSec: 100,
+			State:           model.RuntimeStateCancelling,
+			Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+		},
+	}
+	got, err := toModelRuntimeStatuses(arg)
+	assert.Nil(t, err)
+	assert.Equal(t, expected, got)
+}
+
+func Test_toApiRuntimeStatus(t *testing.T) {
+	tests := []struct {
+		name        string
+		modelStatus *model.RuntimeStatus
+		want        *apiv2beta1.RuntimeStatus
+	}{
+		{
+			"nil",
+			nil,
+			nil,
+		},
+		{
+			"full spec",
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+				State:           model.RuntimeStateCancelling,
+				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			},
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+				State:      apiv2beta1.RuntimeState_CANCELING,
+				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+		},
+		{
+			"state",
+			&model.RuntimeStatus{
+				State: model.RuntimeStateCancelling,
+			},
+			&apiv2beta1.RuntimeStatus{
+				State: apiv2beta1.RuntimeState_CANCELING,
+			},
+		},
+		{
+			"error",
+			&model.RuntimeStatus{
+				Error: util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			},
+			&apiv2beta1.RuntimeStatus{
+				Error: util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+		},
+		{
+			"timestamp",
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+			},
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			},
+		},
+		{
+			"v1 error state",
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+				State:           model.RuntimeStateErrorV1,
+				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			},
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+				State:      apiv2beta1.RuntimeState_FAILED,
+				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+		},
+		{
+			"v1 unknown state",
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+				State:           model.RuntimeStateUnknownV1,
+				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			},
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+				State:      apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+		},
+		{
+			"v1 wrong state",
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+				State:           model.RuntimeState("WRONG STATE"),
+				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			},
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+				State:      apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+		},
+		{
+			"v1 empty state",
+			&model.RuntimeStatus{
+				UpdateTimeInSec: 100,
+				State:           model.RuntimeState(""),
+				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			},
+			&apiv2beta1.RuntimeStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+				State:      apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toApiRuntimeStatus(tt.modelStatus)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_toApiRuntimeStatuses(t *testing.T) {
+	arg := []*model.RuntimeStatus{
+		nil,
+		{
+			UpdateTimeInSec: 100,
+			State:           model.RuntimeStateCancelling,
+			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+		},
+		{
+			State: model.RuntimeStateCancelling,
+		},
+		{
+			Error: util.NewInvalidInputError("Invalid input: %s", "sample value"),
+		},
+		{
+			UpdateTimeInSec: 100,
+		},
+		{
+			UpdateTimeInSec: 100,
+			State:           model.RuntimeStateErrorV1,
+			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+		},
+		{
+			UpdateTimeInSec: 100,
+			State:           model.RuntimeStateUnknownV1,
+			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+		},
+		{
+			UpdateTimeInSec: 100,
+			State:           model.RuntimeState("WRONG STATE"),
+			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+		},
+		{
+			UpdateTimeInSec: 100,
+			State:           model.RuntimeState(""),
+			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+		},
+	}
+	expected := []*apiv2beta1.RuntimeStatus{
+		nil,
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			State:      apiv2beta1.RuntimeState_CANCELING,
+			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+		{
+			State: apiv2beta1.RuntimeState_CANCELING,
+		},
+		{
+			Error: util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+		},
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			State:      apiv2beta1.RuntimeState_FAILED,
+			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			State:      apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			State:      apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+		{
+			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
+			State:      apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
+		},
+	}
+	got := toApiRuntimeStatuses(arg)
+	assert.Equal(t, expected, got)
+}
+
+func Test_toModelTask(t *testing.T) {
+	tests := []struct {
+		name    string
+		apiTask interface{}
+		want    *model.Task
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"V1 full spec",
+			&apiv1beta1.Task{
+				Id:              "1",
+				Namespace:       "ns1",
+				PipelineName:    "namespaces/ns1/pipelines/p1",
+				RunId:           "2",
+				MlmdExecutionID: "3",
+				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
+				FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
+				Fingerprint:     "6",
+			},
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "ns1",
+				PipelineName:      "namespaces/ns1/pipelines/p1",
+				RunId:             "2",
+				MLMDExecutionID:   "3",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  4,
+				FinishedTimestamp: 5,
+				Fingerprint:       "6",
+				Name:              "",
+				ParentTaskId:      "",
+				State:             model.RuntimeStateUnspecified,
+				StateHistory:      nil,
+				MLMDInputs:        "",
+				MLMDOutputs:       "",
+				ChildTaskIds:      nil,
+			},
+			false,
+			"",
+		},
+		{
+			"V2 full spec",
+			&apiv2beta1.PipelineTaskDetail{
+				RunId:       "2",
+				TaskId:      "1",
+				DisplayName: "task",
+				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
+				StartTime:   &timestamppb.Timestamp{Seconds: 5},
+				EndTime:     &timestamppb.Timestamp{Seconds: 6},
+				// ExecutorDetail *PipelineTaskExecutorDetail `protobuf:"bytes,7,opt,name=executor_detail,json=executorDetail,proto3" json:"executor_detail,omitempty"`
+				State:       apiv2beta1.RuntimeState_CANCELING,
+				ExecutionId: 7,
+				Error:       util.ToRpcStatus(util.NewInvalidInputError("Sample error")),
+				Inputs: map[string]*apiv2beta1.ArtifactList{
+					"a1": {
+						ArtifactIds: []int64{1, 2, 3},
+					},
+				},
+				Outputs: map[string]*apiv2beta1.ArtifactList{
+					"b2": {
+						ArtifactIds: []int64{4, 5, 6},
+					},
+				},
+				ParentTaskId: "8",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_PAUSED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+					},
+				},
+				ChildTaskIds: []string{"9", "10"},
+			},
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "",
+				PipelineName:      "",
+				RunId:             "2",
+				MLMDExecutionID:   "7",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  5,
+				FinishedTimestamp: 6,
+				Fingerprint:       "",
+				Name:              "task",
+				ParentTaskId:      "8",
+				State:             model.RuntimeStateCancelling,
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 9,
+						State:           model.RuntimeStatePaused,
+						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					},
+				},
+				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+				ChildTaskIds: []string{"9", "10"},
+			},
+			false,
+			"",
+		},
+		{
+			"invalid type",
+			apiv2beta1.Run{},
+			nil,
+			true,
+			"UnknownApiVersionError: Error using Task with go_client.Run",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := toModelTask(tt.apiTask)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Nil(t, got)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func Test_toModelTasks(t *testing.T) {
+	argV1 := []*apiv1beta1.Task{
+		{
+			Id:              "1",
+			Namespace:       "ns1",
+			PipelineName:    "namespaces/ns1/pipelines/p1",
+			RunId:           "2",
+			MlmdExecutionID: "3",
+			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
+			FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
+			Fingerprint:     "6",
+		},
+	}
+	expectedV1 := []*model.Task{
+		{
+			UUID:              "1",
+			Namespace:         "ns1",
+			PipelineName:      "namespaces/ns1/pipelines/p1",
+			RunId:             "2",
+			MLMDExecutionID:   "3",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  4,
+			FinishedTimestamp: 5,
+			Fingerprint:       "6",
+			Name:              "",
+			ParentTaskId:      "",
+			State:             model.RuntimeStateUnspecified,
+			StateHistory:      nil,
+			MLMDInputs:        "",
+			MLMDOutputs:       "",
+			ChildTaskIds:      nil,
+		},
+	}
+	gotV1, err := toModelTasks(argV1)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedV1, gotV1)
+
+	argV2 := []*apiv2beta1.PipelineTaskDetail{
+		{
+			RunId:       "2",
+			TaskId:      "1",
+			DisplayName: "task",
+			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
+			StartTime:   &timestamppb.Timestamp{Seconds: 5},
+			EndTime:     &timestamppb.Timestamp{Seconds: 6},
+			// ExecutorDetail *PipelineTaskExecutorDetail `protobuf:"bytes,7,opt,name=executor_detail,json=executorDetail,proto3" json:"executor_detail,omitempty"`
+			State:       apiv2beta1.RuntimeState_CANCELING,
+			ExecutionId: 7,
+			Error:       util.ToRpcStatus(util.NewInvalidInputError("Sample error")),
+			Inputs: map[string]*apiv2beta1.ArtifactList{
+				"a1": {
+					ArtifactIds: []int64{1, 2, 3},
+				},
+			},
+			Outputs: map[string]*apiv2beta1.ArtifactList{
+				"b2": {
+					ArtifactIds: []int64{4, 5, 6},
+				},
+			},
+			ParentTaskId: "8",
+			StateHistory: []*apiv2beta1.RuntimeStatus{
+				{
+					UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+					State:      apiv2beta1.RuntimeState_PAUSED,
+					Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+				},
+			},
+			ChildTaskIds: []string{"9", "10"},
+		},
+	}
+	expectedV2 := []*model.Task{
+		{
+			UUID:              "1",
+			Namespace:         "",
+			PipelineName:      "",
+			RunId:             "2",
+			MLMDExecutionID:   "7",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  5,
+			FinishedTimestamp: 6,
+			Fingerprint:       "",
+			Name:              "task",
+			ParentTaskId:      "8",
+			State:             model.RuntimeStateCancelling,
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 9,
+					State:           model.RuntimeStatePaused,
+					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+				},
+			},
+			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+			ChildTaskIds: []string{"9", "10"},
+		},
+	}
+	gotV2, err := toModelTasks(argV2)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedV2, gotV2)
+
+	argV2run := &apiv2beta1.Run{
+		RunId: "run1",
+		RunDetails: &apiv2beta1.RunDetails{
+			TaskDetails: []*apiv2beta1.PipelineTaskDetail{
+				{
+					RunId:       "2",
+					TaskId:      "1",
+					DisplayName: "task",
+					CreateTime:  &timestamppb.Timestamp{Seconds: 4},
+					StartTime:   &timestamppb.Timestamp{Seconds: 5},
+					EndTime:     &timestamppb.Timestamp{Seconds: 6},
+					// ExecutorDetail *PipelineTaskExecutorDetail `protobuf:"bytes,7,opt,name=executor_detail,json=executorDetail,proto3" json:"executor_detail,omitempty"`
+					State:       apiv2beta1.RuntimeState_CANCELING,
+					ExecutionId: 7,
+					Error:       util.ToRpcStatus(util.NewInvalidInputError("Sample error")),
+					Inputs: map[string]*apiv2beta1.ArtifactList{
+						"a1": {
+							ArtifactIds: []int64{1, 2, 3},
+						},
+					},
+					Outputs: map[string]*apiv2beta1.ArtifactList{
+						"b2": {
+							ArtifactIds: []int64{4, 5, 6},
+						},
+					},
+					ParentTaskId: "8",
+					StateHistory: []*apiv2beta1.RuntimeStatus{
+						{
+							UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+							State:      apiv2beta1.RuntimeState_PAUSED,
+							Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+						},
+					},
+					ChildTaskIds: []string{"9", "10"},
+				},
+			},
+		},
+	}
+	gotV2run, err := toModelTasks(argV2run)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedV2, gotV2run)
+
+	argV2runNil1 := &apiv2beta1.Run{
+		RunId: "run1",
+		RunDetails: &apiv2beta1.RunDetails{
+			TaskDetails: nil,
+		},
+	}
+	gotV2runNil1, err := toModelTasks(argV2runNil1)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "TaskDetails cannot be nil")
+	assert.Nil(t, gotV2runNil1)
+
+	argV2runNil2 := &apiv2beta1.Run{
+		RunId:      "run1",
+		RunDetails: nil,
+	}
+	gotV2runNil2, err := toModelTasks(argV2runNil2)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "RunDetails cannot be nil")
+	assert.Nil(t, gotV2runNil2)
+}
+
+func Test_toApiTaskV1(t *testing.T) {
+	tests := []struct {
+		name string
+		args *model.Task
+		want *apiv1beta1.Task
+	}{
+		{
+			"v1 spec",
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "ns1",
+				PipelineName:      "namespaces/ns1/pipelines/p1",
+				RunId:             "2",
+				MLMDExecutionID:   "3",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  4,
+				FinishedTimestamp: 5,
+				Fingerprint:       "6",
+				Name:              "",
+				ParentTaskId:      "",
+				State:             model.RuntimeStateUnspecified,
+				StateHistory:      nil,
+				MLMDInputs:        "",
+				MLMDOutputs:       "",
+				ChildTaskIds:      nil,
+			},
+			&apiv1beta1.Task{
+				Id:              "1",
+				Namespace:       "ns1",
+				PipelineName:    "namespaces/ns1/pipelines/p1",
+				RunId:           "2",
+				MlmdExecutionID: "3",
+				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
+				FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
+				Fingerprint:     "6",
+			},
+		},
+		{
+			"v2 spec",
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "ns1",
+				PipelineName:      "namespaces/ns1/pipelines/p1",
+				RunId:             "2",
+				MLMDExecutionID:   "7",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  5,
+				FinishedTimestamp: 6,
+				Fingerprint:       "fp",
+				Name:              "task",
+				ParentTaskId:      "8",
+				State:             model.RuntimeStateCancelling,
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 9,
+						State:           model.RuntimeStatePaused,
+						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					},
+				},
+				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+				ChildTaskIds: []string{"9", "10"},
+			},
+			&apiv1beta1.Task{
+				Id:              "1",
+				Namespace:       "ns1",
+				PipelineName:    "namespaces/ns1/pipelines/p1",
+				RunId:           "2",
+				MlmdExecutionID: "7",
+				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
+				FinishedAt:      &timestamppb.Timestamp{Seconds: 6},
+				Fingerprint:     "fp",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toApiTaskV1(tt.args)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_toApiTasksV1(t *testing.T) {
+	arg := []*model.Task{
+		{
+			UUID:              "1",
+			Namespace:         "ns1",
+			PipelineName:      "namespaces/ns1/pipelines/p1",
+			RunId:             "2",
+			MLMDExecutionID:   "3",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  4,
+			FinishedTimestamp: 5,
+			Fingerprint:       "6",
+			Name:              "",
+			ParentTaskId:      "",
+			State:             model.RuntimeStateUnspecified,
+			StateHistory:      nil,
+			MLMDInputs:        "",
+			MLMDOutputs:       "",
+			ChildTaskIds:      nil,
+		},
+		{
+			UUID:              "1",
+			Namespace:         "ns1",
+			PipelineName:      "namespaces/ns1/pipelines/p1",
+			RunId:             "2",
+			MLMDExecutionID:   "7",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  5,
+			FinishedTimestamp: 6,
+			Fingerprint:       "fp",
+			Name:              "task",
+			ParentTaskId:      "8",
+			State:             model.RuntimeStateCancelling,
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 9,
+					State:           model.RuntimeStatePaused,
+					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+				},
+			},
+			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+			ChildTaskIds: []string{"9", "10"},
+		},
+	}
+	expected := []*apiv1beta1.Task{
+		{
+			Id:              "1",
+			Namespace:       "ns1",
+			PipelineName:    "namespaces/ns1/pipelines/p1",
+			RunId:           "2",
+			MlmdExecutionID: "3",
+			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
+			FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
+			Fingerprint:     "6",
+		},
+		{
+			Id:              "1",
+			Namespace:       "ns1",
+			PipelineName:    "namespaces/ns1/pipelines/p1",
+			RunId:           "2",
+			MlmdExecutionID: "7",
+			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
+			FinishedAt:      &timestamppb.Timestamp{Seconds: 6},
+			Fingerprint:     "fp",
+		},
+	}
+	got := toApiTasksV1(arg)
+	assert.Equal(t, expected, got)
+}
+
+func Test_toApiPipelineTaskDetail(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    *model.Task
+		want    *apiv2beta1.PipelineTaskDetail
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"v1 spec",
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "ns1",
+				PipelineName:      "namespaces/ns1/pipelines/p1",
+				RunId:             "2",
+				MLMDExecutionID:   "3",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  4,
+				FinishedTimestamp: 5,
+				Fingerprint:       "6",
+				State:             model.RuntimeStateUnspecified,
+			},
+			&apiv2beta1.PipelineTaskDetail{
+				RunId:       "2",
+				TaskId:      "1",
+				DisplayName: "",
+				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
+				StartTime:   &timestamppb.Timestamp{Seconds: 4},
+				EndTime:     &timestamppb.Timestamp{Seconds: 5},
+				State:       apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+				ExecutionId: 3,
+			},
+			false,
+			"",
+		},
+		{
+			"v2 spec",
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "ns1",
+				PipelineName:      "namespaces/ns1/pipelines/p1",
+				RunId:             "2",
+				MLMDExecutionID:   "7",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  5,
+				FinishedTimestamp: 6,
+				Fingerprint:       "fp",
+				Name:              "task",
+				ParentTaskId:      "8",
+				State:             model.RuntimeStateCancelling,
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 9,
+						State:           model.RuntimeStatePaused,
+						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					},
+				},
+				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+				ChildTaskIds: []string{"9", "10"},
+			},
+			&apiv2beta1.PipelineTaskDetail{
+				RunId:       "2",
+				TaskId:      "1",
+				DisplayName: "task",
+				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
+				StartTime:   &timestamppb.Timestamp{Seconds: 5},
+				EndTime:     &timestamppb.Timestamp{Seconds: 6},
+				State:       apiv2beta1.RuntimeState_CANCELING,
+				ExecutionId: 7,
+				Inputs: map[string]*apiv2beta1.ArtifactList{
+					"a1": {
+						ArtifactIds: []int64{1, 2, 3},
+					},
+				},
+				Outputs: map[string]*apiv2beta1.ArtifactList{
+					"b2": {
+						ArtifactIds: []int64{4, 5, 6},
+					},
+				},
+				ParentTaskId: "8",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_PAUSED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+					},
+				},
+				ChildTaskIds: []string{"9", "10"},
+			},
+			false,
+			"",
+		},
+		{
+			"v2 wrong inputs",
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "ns1",
+				PipelineName:      "namespaces/ns1/pipelines/p1",
+				RunId:             "2",
+				MLMDExecutionID:   "7",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  5,
+				FinishedTimestamp: 6,
+				Fingerprint:       "fp",
+				Name:              "task",
+				ParentTaskId:      "8",
+				State:             model.RuntimeStateCancelling,
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 9,
+						State:           model.RuntimeStatePaused,
+						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					},
+				},
+				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
+				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+				ChildTaskIds: []string{"9", "10"},
+			},
+			&apiv2beta1.PipelineTaskDetail{
+				RunId:  "2",
+				TaskId: "1",
+			},
+			true,
+			"Failed to convert task's internal representation to its API counterpart due to error parsing inputs",
+		},
+		{
+			"v2 wrong outputs",
+			&model.Task{
+				UUID:              "1",
+				Namespace:         "ns1",
+				PipelineName:      "namespaces/ns1/pipelines/p1",
+				RunId:             "2",
+				MLMDExecutionID:   "7",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  5,
+				FinishedTimestamp: 6,
+				Fingerprint:       "fp",
+				Name:              "task",
+				ParentTaskId:      "8",
+				State:             model.RuntimeStateCancelling,
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 9,
+						State:           model.RuntimeStatePaused,
+						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					},
+				},
+				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
+				ChildTaskIds: []string{"9", "10"},
+			},
+			&apiv2beta1.PipelineTaskDetail{
+				RunId:  "2",
+				TaskId: "1",
+			},
+			true,
+			"Failed to convert task's internal representation to its API counterpart due to error parsing outputs",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toApiPipelineTaskDetail(tt.args)
+			if tt.wantErr {
+				assert.Equal(t, tt.want.GetRunId(), got.GetRunId())
+				assert.Equal(t, tt.want.GetTaskId(), got.GetTaskId())
+				assert.Contains(t, got.Error.Message, tt.errMsg)
+			} else {
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func Test_toApiPipelineTaskDetails(t *testing.T) {
+	args := []*model.Task{
+		{
+			UUID:              "1",
+			Namespace:         "ns1",
+			PipelineName:      "namespaces/ns1/pipelines/p1",
+			RunId:             "2",
+			MLMDExecutionID:   "3",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  4,
+			FinishedTimestamp: 5,
+			Fingerprint:       "6",
+			State:             model.RuntimeStateUnspecified,
+		},
+		{
+			UUID:              "1",
+			Namespace:         "ns1",
+			PipelineName:      "namespaces/ns1/pipelines/p1",
+			RunId:             "2",
+			MLMDExecutionID:   "7",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  5,
+			FinishedTimestamp: 6,
+			Fingerprint:       "fp",
+			Name:              "task",
+			ParentTaskId:      "8",
+			State:             model.RuntimeStateCancelling,
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 9,
+					State:           model.RuntimeStatePaused,
+					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+				},
+			},
+			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+			ChildTaskIds: []string{"9", "10"},
+		},
+	}
+	expected := []*apiv2beta1.PipelineTaskDetail{
+		{
+			RunId:       "2",
+			TaskId:      "1",
+			DisplayName: "",
+			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
+			StartTime:   &timestamppb.Timestamp{Seconds: 4},
+			EndTime:     &timestamppb.Timestamp{Seconds: 5},
+			State:       apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
+			ExecutionId: 3,
+		},
+		{
+			RunId:       "2",
+			TaskId:      "1",
+			DisplayName: "task",
+			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
+			StartTime:   &timestamppb.Timestamp{Seconds: 5},
+			EndTime:     &timestamppb.Timestamp{Seconds: 6},
+			State:       apiv2beta1.RuntimeState_CANCELING,
+			ExecutionId: 7,
+			Inputs: map[string]*apiv2beta1.ArtifactList{
+				"a1": {
+					ArtifactIds: []int64{1, 2, 3},
+				},
+			},
+			Outputs: map[string]*apiv2beta1.ArtifactList{
+				"b2": {
+					ArtifactIds: []int64{4, 5, 6},
+				},
+			},
+			ParentTaskId: "8",
+			StateHistory: []*apiv2beta1.RuntimeStatus{
+				{
+					UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+					State:      apiv2beta1.RuntimeState_PAUSED,
+					Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+				},
+			},
+			ChildTaskIds: []string{"9", "10"},
+		},
+	}
+	got := toApiPipelineTaskDetails(args)
+	assert.Equal(t, expected, got)
+
+	args2 := []*model.Task{
+		{
+			UUID:              "1",
+			Namespace:         "ns1",
+			PipelineName:      "namespaces/ns1/pipelines/p1",
+			RunId:             "2",
+			MLMDExecutionID:   "7",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  5,
+			FinishedTimestamp: 6,
+			Fingerprint:       "fp",
+			Name:              "task",
+			ParentTaskId:      "8",
+			State:             model.RuntimeStateCancelling,
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 9,
+					State:           model.RuntimeStatePaused,
+					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+				},
+			},
+			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
+			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
+			ChildTaskIds: []string{"9", "10"},
+		},
+		{
+			UUID:              "1",
+			Namespace:         "ns1",
+			PipelineName:      "namespaces/ns1/pipelines/p1",
+			RunId:             "2",
+			MLMDExecutionID:   "7",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  5,
+			FinishedTimestamp: 6,
+			Fingerprint:       "fp",
+			Name:              "task",
+			ParentTaskId:      "8",
+			State:             model.RuntimeStateCancelling,
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 9,
+					State:           model.RuntimeStatePaused,
+					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+				},
+			},
+			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
+			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
+			ChildTaskIds: []string{"9", "10"},
+		},
+	}
+	got2 := toApiPipelineTaskDetails(args2)
+	assert.Contains(t, got2[0].Error.Message, "Failed to convert task's internal representation to its API counterpart due to error parsing inputs")
+	assert.Contains(t, got2[1].Error.Message, "Failed to convert task's internal representation to its API counterpart due to error parsing outputs")
+	expected2 := &apiv2beta1.PipelineTaskDetail{
+		RunId:  "2",
+		TaskId: "1",
+	}
+	expected2.Error = got2[0].GetError()
+	assert.Equal(t, expected2, got2[0])
+	expected2.Error = got2[1].GetError()
+	assert.Equal(t, expected2, got2[1])
+}

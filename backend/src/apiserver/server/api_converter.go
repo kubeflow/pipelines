@@ -1634,8 +1634,10 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		return &model.Task{}, nil
 	}
 	var taskId, namespace, pipelineName, runId, executionId, fingerprint string
-	var name, parentTaskId, state, stateHistory, inputs, outputs string
+	var name, parentTaskId, state, inputs, outputs string
 	var createTime, startTime, finishTime int64
+	var stateHistory []*model.RuntimeStatus
+	var children []string
 	switch t := t.(type) {
 	case *apiv1beta1.Task:
 		apiTaskV1 := t
@@ -1646,31 +1648,13 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		executionId = apiTaskV1.GetMlmdExecutionID()
 		fingerprint = apiTaskV1.GetFingerprint()
 		createTime = apiTaskV1.GetCreatedAt().GetSeconds()
-		startTime = 0
+		startTime = createTime
 		finishTime = apiTaskV1.GetFinishedAt().GetSeconds()
 		name = ""
 		parentTaskId = ""
 		state = ""
-		stateHistory = ""
 		inputs = ""
 		outputs = ""
-	case *apiv2beta1.Run:
-		apiRunV2 := t
-		var apiTaskDetailV2 *apiv2beta1.PipelineTaskDetail
-		if apiRunV2.GetRunDetails() != nil {
-			if apiRunV2.GetRunDetails().GetTaskDetails() != nil {
-				if len(apiRunV2.GetRunDetails().GetTaskDetails()) > 0 {
-					apiTaskDetailV2 = apiRunV2.GetRunDetails().GetTaskDetails()[0]
-				} else {
-					return nil, util.NewInternalServerError(util.NewInvalidInputError("Run.RunDetails.TaskDetails cannot be empty"), "Failed to convert API task to its internal representation")
-				}
-			} else {
-				return nil, util.NewInternalServerError(util.NewInvalidInputError("Run.RunDetails.TaskDetails cannot be nil"), "Failed to convert API task to its internal representation")
-			}
-		} else {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run.RunDetails cannot be nil"), "Failed to convert API task to its internal representation")
-		}
-		return toModelTask(apiTaskDetailV2)
 	// TODO(gkcalat): implement runtime details of a task below.
 	case *apiv2beta1.PipelineTaskDetail:
 		apiTaskDetailV2 := t
@@ -1686,9 +1670,16 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		name = apiTaskDetailV2.GetDisplayName()
 		parentTaskId = apiTaskDetailV2.GetParentTaskId()
 		state = apiTaskDetailV2.GetState().String()
-		stateHistory = ""
-		inputs = ""
-		outputs = ""
+		if hist, err := toModelRuntimeStatuses(apiTaskDetailV2.GetStateHistory()); err == nil {
+			stateHistory = hist
+		}
+		if inpBytes, err := json.Marshal(apiTaskDetailV2.GetInputs()); err == nil {
+			inputs = string(inpBytes)
+		}
+		if outBytes, err := json.Marshal(apiTaskDetailV2.GetOutputs()); err == nil {
+			outputs = string(outBytes)
+		}
+		children = apiTaskDetailV2.GetChildTaskIds()
 	default:
 		return nil, util.NewUnknownApiVersionError("Task", t)
 	}
@@ -1704,11 +1695,54 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		Fingerprint:       fingerprint,
 		Name:              name,
 		ParentTaskId:      parentTaskId,
-		State:             state,
+		State:             model.RuntimeState(state).ToV2(),
 		StateHistory:      stateHistory,
 		MLMDInputs:        inputs,
 		MLMDOutputs:       outputs,
+		ChildTaskIds:      children,
 	}, nil
+}
+
+// Converts API tasks details into their internal representations.
+// Supports both v1beta1 and v2beta1 API.
+func toModelTasks(t interface{}) ([]*model.Task, error) {
+	if t == nil {
+		return nil, nil
+	}
+	switch t := t.(type) {
+	case []*apiv2beta1.PipelineTaskDetail:
+		apiTasks := t
+		modelTasks := make([]*model.Task, 0)
+		for _, apiTask := range apiTasks {
+			modelTask, err := toModelTask(apiTask)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert API tasks to their internal representations")
+			}
+			modelTasks = append(modelTasks, modelTask)
+		}
+		return modelTasks, nil
+	case *apiv2beta1.Run:
+		apiRunV2 := t
+		if apiRunV2.GetRunDetails() == nil {
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("RunDetails cannot be nil"), "Failed to convert API tasks to their internal representations")
+		}
+		if apiRunV2.GetRunDetails().GetTaskDetails() == nil {
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("TaskDetails cannot be nil"), "Failed to convert API tasks to their internal representations")
+		}
+		return toModelTasks(apiRunV2.GetRunDetails().GetTaskDetails())
+	case []*apiv1beta1.Task:
+		apiTasks := t
+		modelTasks := make([]*model.Task, 0)
+		for _, apiTask := range apiTasks {
+			modelTask, err := toModelTask(apiTask)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert API tasks to their internal representations")
+			}
+			modelTasks = append(modelTasks, modelTask)
+		}
+		return modelTasks, nil
+	}
+	return nil, util.NewUnknownApiVersionError("[]Task", t)
 }
 
 // Converts internal task representation to its API counterpart.
@@ -1734,6 +1768,28 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 	if err != nil {
 		execId = 0
 	}
+	var inputArtifacts map[string]*apiv2beta1.ArtifactList
+	if t.MLMDInputs != "" {
+		err = json.Unmarshal([]byte(t.MLMDInputs), &inputArtifacts)
+		if err != nil {
+			return &apiv2beta1.PipelineTaskDetail{
+				RunId:  t.RunId,
+				TaskId: t.UUID,
+				Error:  util.ToRpcStatus(util.NewInternalServerError(err, "Failed to convert task's internal representation to its API counterpart due to error parsing inputs")),
+			}
+		}
+	}
+	var outputArtifacts map[string]*apiv2beta1.ArtifactList
+	if t.MLMDOutputs != "" {
+		err = json.Unmarshal([]byte(t.MLMDOutputs), &outputArtifacts)
+		if err != nil {
+			return &apiv2beta1.PipelineTaskDetail{
+				RunId:  t.RunId,
+				TaskId: t.UUID,
+				Error:  util.ToRpcStatus(util.NewInternalServerError(err, "Failed to convert task's internal representation to its API counterpart due to error parsing outputs")),
+			}
+		}
+	}
 	return &apiv2beta1.PipelineTaskDetail{
 		RunId:        t.RunId,
 		TaskId:       t.UUID,
@@ -1741,9 +1797,13 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 		CreateTime:   &timestamp.Timestamp{Seconds: t.CreatedTimestamp},
 		StartTime:    &timestamp.Timestamp{Seconds: t.StartedTimestamp},
 		EndTime:      &timestamp.Timestamp{Seconds: t.FinishedTimestamp},
-		State:        apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[string(t.State)]),
+		State:        apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[t.State.ToString()]),
 		ExecutionId:  execId,
+		Inputs:       inputArtifacts,
+		Outputs:      outputArtifacts,
 		ParentTaskId: t.ParentTaskId,
+		StateHistory: toApiRuntimeStatuses(t.StateHistory),
+		ChildTaskIds: t.ChildTaskIds,
 	}
 }
 
@@ -1753,6 +1813,16 @@ func toApiTasksV1(tasks []*model.Task) []*apiv1beta1.Task {
 	apiTasks := make([]*apiv1beta1.Task, 0)
 	for _, task := range tasks {
 		apiTasks = append(apiTasks, toApiTaskV1(task))
+	}
+	return apiTasks
+}
+
+// Converts and array of internal task representations to its API counterpart.
+// Supports v2beta1 API.
+func toApiPipelineTaskDetails(tasks []*model.Task) []*apiv2beta1.PipelineTaskDetail {
+	apiTasks := make([]*apiv2beta1.PipelineTaskDetail, 0)
+	for _, task := range tasks {
+		apiTasks = append(apiTasks, toApiPipelineTaskDetail(task))
 	}
 	return apiTasks
 }
@@ -2312,33 +2382,19 @@ func toModelRuntimeState(s interface{}) (model.RuntimeState, error) {
 	if s == nil {
 		return model.RuntimeStateUnspecified, nil
 	}
-	switch s.(type) {
+	switch s := s.(type) {
 	case string, *string:
-		state := s.(string)
-		switch state {
-		case string(model.RuntimeStateCanceled), string(model.RuntimeStateCanceled.ToV1()):
-			return model.RuntimeStateCanceled, nil
-		case string(model.RuntimeStateCancelling), string(model.RuntimeStateCancelling.ToV1()):
-			return model.RuntimeStateCancelling, nil
-		case string(model.RuntimeStateFailed), string(model.RuntimeStateFailed.ToV1()), string(model.RuntimeStateErrorV1):
-			return model.RuntimeStateFailed, nil
-		case string(model.RuntimeStatePaused), string(model.RuntimeStatePaused.ToV1()):
-			return model.RuntimeStatePaused, nil
-		case string(model.RuntimeStatePending), string(model.RuntimeStatePending.ToV1()):
-			return model.RuntimeStatePending, nil
-		case string(model.RuntimeStateRunning), string(model.RuntimeStateRunning.ToV1()):
-			return model.RuntimeStateRunning, nil
-		case string(model.RuntimeStateSkipped), string(model.RuntimeStateSkipped.ToV1()):
-			return model.RuntimeStateSkipped, nil
-		case string(model.RuntimeStateSucceeded), string(model.RuntimeStateSucceeded.ToV1()):
-			return model.RuntimeStateSucceeded, nil
-		case string(model.RuntimeStateUnspecified), string(model.RuntimeStateUnspecified.ToV1()):
-			return model.RuntimeStateUnspecified, nil
-		default:
-			return "", util.NewInternalServerError(util.NewInvalidInputError("Runtime state cannot be equal to %v", s), "Failed to convert API runtime state to its internal representation")
-		}
+		return model.RuntimeState(s.(string)), nil
+	case int32, *int32:
+		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int32))])
+	case int, *int:
+		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int))])
+	case int8, *int8:
+		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int8))])
+	case int16, *int16:
+		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int16))])
 	case apiv2beta1.RuntimeState, *apiv2beta1.RuntimeState:
-		return toModelRuntimeState(string(s.(apiv2beta1.RuntimeState)))
+		return toModelRuntimeState(int32(s.(apiv2beta1.RuntimeState)))
 	default:
 		return "", util.NewUnknownApiVersionError("RuntimeState", s)
 	}
@@ -2347,35 +2403,13 @@ func toModelRuntimeState(s interface{}) (model.RuntimeState, error) {
 // Converts internal runtime state representation to its API counterpart.
 // Support v2beta1 API.
 func toApiRuntimeState(s *model.RuntimeState) apiv2beta1.RuntimeState {
-	if string(*s) == "" {
-		return apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED
-	}
-	switch string(*s) {
-	case string(model.RuntimeStateCanceled), string(model.RuntimeStateCanceled.ToV1()):
-		return apiv2beta1.RuntimeState_CANCELED
-	case string(model.RuntimeStateCancelling), string(model.RuntimeStateCancelling.ToV1()):
-		return apiv2beta1.RuntimeState_CANCELING
-	case string(model.RuntimeStateFailed), string(model.RuntimeStateFailed.ToV1()), string(model.RuntimeStateErrorV1):
-		return apiv2beta1.RuntimeState_FAILED
-	case string(model.RuntimeStatePaused), string(model.RuntimeStatePaused.ToV1()):
-		return apiv2beta1.RuntimeState_PAUSED
-	case string(model.RuntimeStatePending), string(model.RuntimeStatePending.ToV1()):
-		return apiv2beta1.RuntimeState_PENDING
-	case string(model.RuntimeStateRunning), string(model.RuntimeStateRunning.ToV1()):
-		return apiv2beta1.RuntimeState_RUNNING
-	case string(model.RuntimeStateSkipped), string(model.RuntimeStateSkipped.ToV1()):
-		return apiv2beta1.RuntimeState_SKIPPED
-	case string(model.RuntimeStateSucceeded), string(model.RuntimeStateSucceeded.ToV1()):
-		return apiv2beta1.RuntimeState_SUCCEEDED
-	default:
-		return apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED
-	}
+	return apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[s.ToString()])
 }
 
 // Converts internal runtime state representation to its API counterpart.
 // Support v1beta1 API by mapping v1beta1 API runtime states names.
 func toApiRuntimeStateV1(s *model.RuntimeState) string {
-	return apiv2beta1.RuntimeState_name[int32(toApiRuntimeState(s))]
+	return string(s.ToV1())
 }
 
 // Converts API runtime status to its internal representation.
@@ -2422,8 +2456,10 @@ func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2beta1.RuntimeStatus {
 		return nil
 	}
 	apiStatus := &apiv2beta1.RuntimeStatus{
-		UpdateTime: &timestamppb.Timestamp{Seconds: s.UpdateTimeInSec},
-		State:      toApiRuntimeState(&s.State),
+		State: toApiRuntimeState(&s.State),
+	}
+	if s.UpdateTimeInSec > 0 {
+		apiStatus.UpdateTime = &timestamppb.Timestamp{Seconds: s.UpdateTimeInSec}
 	}
 	if s.Error != nil {
 		apiStatus.Error = util.ToRpcStatus(s.Error)
@@ -2436,7 +2472,7 @@ func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2beta1.RuntimeStatus {
 func toApiRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2beta1.RuntimeStatus {
 	statuses := make([]*apiv2beta1.RuntimeStatus, 0)
 	if s == nil {
-		return statuses
+		return nil
 	}
 	for _, status := range s {
 		statuses = append(statuses, toApiRuntimeStatus(status))

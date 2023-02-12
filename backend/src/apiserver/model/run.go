@@ -129,7 +129,7 @@ func (s RuntimeState) ToV1() RuntimeState {
 		return RuntimeStatePendingV1
 	case RuntimeStateRunning, RuntimeStateRunningV1.toUpper(), RuntimeState(LegacyStateEnabled).toUpper(), RuntimeState(LegacyStateReady).toUpper():
 		return RuntimeStateRunningV1
-	case RuntimeStateSucceeded, RuntimeStateSucceededV1.toUpper():
+	case RuntimeStateSucceeded, RuntimeStateSucceededV1.toUpper(), RuntimeState(LegacyStateDone).toUpper():
 		return RuntimeStateSucceededV1
 	case RuntimeStateSkipped, RuntimeStateSkippedV1.toUpper():
 		return RuntimeStateSkippedV1

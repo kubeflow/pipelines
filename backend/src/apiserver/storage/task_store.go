@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -43,6 +44,7 @@ var taskColumns = []string{
 	"StateHistory",
 	"MLMDInputs",
 	"MLMDOutputs",
+	"ChildTaskIds",
 }
 
 type TaskStoreInterface interface {
@@ -80,6 +82,22 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	}
 	newTask.UUID = id.String()
 
+	if len(newTask.StateHistory) > 0 {
+		stateHistoryString, err := json.Marshal(newTask.StateHistory)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to marshal state history for a new task")
+		}
+		newTask.StateHistoryString = string(stateHistoryString)
+	}
+
+	if len(newTask.ChildTaskIds) > 0 {
+		children, err := json.Marshal(newTask.ChildTaskIds)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to marshal child task ids in a new task")
+		}
+		newTask.ChildTaskIdsString = string(children)
+	}
+
 	sql, args, err := sq.
 		Insert(table_name).
 		SetMap(
@@ -95,10 +113,11 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"Fingerprint":       newTask.Fingerprint,
 				"Name":              newTask.Name,
 				"ParentTaskUUID":    newTask.ParentTaskId,
-				"State":             newTask.State,
-				"StateHistory":      newTask.StateHistory,
+				"State":             newTask.State.ToString(),
+				"StateHistory":      newTask.StateHistoryString,
 				"MLMDInputs":        newTask.MLMDInputs,
 				"MLMDOutputs":       newTask.MLMDOutputs,
+				"ChildTaskIds":      newTask.ChildTaskIdsString,
 			},
 		).
 		ToSql()
@@ -118,7 +137,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	var tasks []*model.Task
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, mlmdExecutionID, fingerprint string
-		var name, parentTaskId, state, stateHistory, inputs, outputs sql.NullString
+		var name, parentTaskId, state, stateHistory, inputs, outputs, children sql.NullString
 		var createdTimestamp, startedTimestamp, finishedTimestamp int64
 		err := rows.Scan(
 			&uuid,
@@ -136,26 +155,34 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			&stateHistory,
 			&inputs,
 			&outputs,
+			&children,
 		)
 		if err != nil {
 			fmt.Printf("scan error is %v", err)
 			return tasks, err
 		}
 		task := &model.Task{
-			UUID:              uuid,
-			Namespace:         namespace,
-			PipelineName:      pipelineName,
-			RunId:             runUUID,
-			MLMDExecutionID:   mlmdExecutionID,
-			CreatedTimestamp:  createdTimestamp,
-			StartedTimestamp:  startedTimestamp,
-			FinishedTimestamp: finishedTimestamp,
-			Fingerprint:       fingerprint,
-			Name:              name.String,
-			ParentTaskId:      parentTaskId.String,
-			StateHistory:      stateHistory.String,
-			MLMDInputs:        inputs.String,
-			MLMDOutputs:       outputs.String,
+			UUID:               uuid,
+			Namespace:          namespace,
+			PipelineName:       pipelineName,
+			RunId:              runUUID,
+			MLMDExecutionID:    mlmdExecutionID,
+			CreatedTimestamp:   createdTimestamp,
+			StartedTimestamp:   startedTimestamp,
+			FinishedTimestamp:  finishedTimestamp,
+			Fingerprint:        fingerprint,
+			Name:               name.String,
+			ParentTaskId:       parentTaskId.String,
+			StateHistoryString: stateHistory.String,
+			MLMDInputs:         inputs.String,
+			MLMDOutputs:        outputs.String,
+			ChildTaskIdsString: children.String,
+		}
+		if task.StateHistoryString != "" {
+			json.Unmarshal([]byte(task.StateHistoryString), &task.StateHistory)
+		}
+		if task.ChildTaskIdsString != "" {
+			json.Unmarshal([]byte(task.ChildTaskIdsString), &task.ChildTaskIds)
 		}
 		tasks = append(tasks, task)
 	}
