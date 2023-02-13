@@ -2982,19 +2982,27 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             sys.exit(1)
             return message
 
+        @dsl.component
+        def identity(message: str = 'message') -> str:
+            return message
+
         @dsl.pipeline
         def wrapped_pipeline(message: str = 'message') -> str:
-            task = fail_op(message=message)
+            task = identity(message=message)
             return task.output
 
         @dsl.pipeline
         def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
             clean_up_task = wrapped_pipeline(
-                message=sample_input1).ignore_upstream_failure()
+                message=task.output).ignore_upstream_failure()
 
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
             .trigger_policy.strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
 
     def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
             self):
