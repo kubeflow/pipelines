@@ -300,6 +300,11 @@ def build_task_spec_for_task(
                 'str, int, float, bool, dict, and list.'
                 f'Got {input_value} of type {type(input_value)}.')
 
+    if task._ignore_upstream_failure_tag:
+        pipeline_task_spec.trigger_policy.strategy = (
+            pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
+            .ALL_UPSTREAM_TASKS_COMPLETED)
+
     return pipeline_task_spec
 
 
