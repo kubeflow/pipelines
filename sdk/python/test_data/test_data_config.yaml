@@ -156,6 +156,9 @@ pipelines:
     - module: parallelfor_fan_in/conditional_producer_and_consumers
       name: math_pipeline
       execute: false
+    - module: pipeline_with_task_using_ignore_upstream_failure
+      name: my_pipeline
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true

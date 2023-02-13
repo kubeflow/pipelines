@@ -2889,5 +2889,196 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                 add(nums=dsl.Collected(t.output))
 
 
+class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
+
+    def test_basic_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(
+                message=task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_component_with_no_input_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op():
+            print('default')
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op().ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_clean_up_on_wrapped_pipeline_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str = 'message') -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str = 'message'):
+            print(message)
+
+        @dsl.pipeline
+        def wrapped_pipeline(message: str = 'message') -> str:
+            task = fail_op(message=message)
+            return task.output
+
+        @dsl.pipeline
+        def my_pipeline(sample_input1: str = 'message'):
+            task = wrapped_pipeline(message=sample_input1)
+            clean_up_task = print_op(
+                message=task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
+            .trigger_policy.strategy, 0)
+
+    def test_ignore_upstream_on_pipeline_task(self):
+
+        @dsl.component
+        def fail_op(message: str = 'message') -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def identity(message: str = 'message') -> str:
+            return message
+
+        @dsl.pipeline
+        def wrapped_pipeline(message: str = 'message') -> str:
+            task = identity(message=message)
+            return task.output
+
+        @dsl.pipeline
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = wrapped_pipeline(
+                message=task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
+            .trigger_policy.strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
+            self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        with self.assertRaisesRegex(
+                ValueError, r'Tasks can only use .ignore_upstream_failure()'):
+
+            @dsl.pipeline()
+            def my_pipeline(sample_input1: str = 'message'):
+                task = fail_op(message=sample_input1)
+                clean_up_task = print_op(
+                    message=task.output).ignore_upstream_failure()
+
+    def test_clean_up_task_with_no_default_value_for_pipeline_input_permitted(
+            self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(
+                message=sample_input1).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_clean_up_task_with_no_default_value_for_constant_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(message='sample').ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+
 if __name__ == '__main__':
     unittest.main()
