@@ -2966,17 +2966,35 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             clean_up_task = print_op(
                 message=task.output).ignore_upstream_failure()
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
             .strategy, 2)
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
+            .trigger_policy.strategy, 0)
+
+    def test_ignore_upstream_on_pipeline_task(self):
+
+        @dsl.component
+        def fail_op(message: str = 'message') -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.pipeline
+        def wrapped_pipeline(message: str = 'message') -> str:
+            task = fail_op(message=message)
+            return task.output
+
+        @dsl.pipeline
+        def my_pipeline(sample_input1: str = 'message'):
+            clean_up_task = wrapped_pipeline(
+                message=sample_input1).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
+            .trigger_policy.strategy, 2)
 
     def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
             self):

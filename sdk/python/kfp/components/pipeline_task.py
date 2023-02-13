@@ -504,7 +504,7 @@ class PipelineTask:
                ) and (not input_spec.optional) and (argument_value.task_name
                                                     is not None):
                 raise ValueError(
-                    f'Tasks can only use .ignore_upstream_failure() if all input parameters that accept arguments created by an upstream task have a default value, \n\tin case the upstream task fails to produce its output. Input parameter task {self.name}`s {input_spec_name!r} argument is an output of an upstream task {argument_value.task_name}, but {input_spec_name} has no default value.'
+                    f'Tasks can only use .ignore_upstream_failure() if all input parameters that accept arguments created by an upstream task have a default value, in case the upstream task fails to produce its output. Input parameter task {self.name!r}`s {input_spec_name!r} argument is an output of an upstream task {argument_value.task_name!r}, but {input_spec_name!r} has no default value.'
                 )
 
         self._ignore_upstream_failure_tag = True
