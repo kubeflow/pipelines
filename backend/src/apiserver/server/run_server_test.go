@@ -657,6 +657,12 @@ func TestCreateRun(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 		},
 		State: apiv2beta1.RuntimeState_PENDING,
+		StateHistory: []*apiv2beta1.RuntimeStatus{
+			{
+				UpdateTime: &timestamp.Timestamp{Seconds: 6},
+				State:      apiv2beta1.RuntimeState_PENDING,
+			},
+		},
 	}
 	assert.EqualValues(t, expectedRun, run)
 }
@@ -750,6 +756,12 @@ func TestGetRun(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 		},
 		State: apiv2beta1.RuntimeState_PENDING,
+		StateHistory: []*apiv2beta1.RuntimeStatus{
+			{
+				UpdateTime: &timestamp.Timestamp{Seconds: 6},
+				State:      apiv2beta1.RuntimeState_PENDING,
+			},
+		},
 	}
 
 	newRun, err := server.GetRun(nil, &apiv2beta1.GetRunRequest{RunId: returnedRun.RunId})
@@ -1035,6 +1047,12 @@ func TestListRuns(t *testing.T) {
 			Parameters:   make(map[string]*structpb.Value, 0),
 		},
 		State: apiv2beta1.RuntimeState_PENDING,
+		StateHistory: []*apiv2beta1.RuntimeStatus{
+			{
+				UpdateTime: &timestamp.Timestamp{Seconds: 6},
+				State:      apiv2beta1.RuntimeState_PENDING,
+			},
+		},
 	}
 
 	listRunsResponse, err := server.ListRuns(nil, &apiv2beta1.ListRunsRequest{

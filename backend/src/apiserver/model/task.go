@@ -34,6 +34,7 @@ type Task struct {
 	ChildTaskIdsString string           `gorm:"column:ChildTaskIds; default:null; size:65535;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	ChildTaskIds       []string         `gorm:"-;"`
+	Payload            string           `gorm:"column:Payload; default:null; size:65535;"`
 }
 
 func (t Task) PrimaryKeyColumnName() string {

@@ -1206,11 +1206,17 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	var pipelineRoot, storageState, serviceAcc string
 	var createTime, scheduleTime, finishTime int64
 	var modelMetrics []*model.RunMetric
+	var state model.RuntimeState
+	var stateHistory []*model.RuntimeStatus
+	var tasks []*model.Task
 	switch r := r.(type) {
 	case *apiv1beta1.Run:
 		return toModelRun(&apiv1beta1.RunDetail{Run: r})
 	case *apiv1beta1.RunDetail:
 		apiRunV1 := r.GetRun()
+		if s, err := toModelRuntimeState(apiRunV1.GetStatus()); err == nil {
+			state = s
+		}
 		apiPipelineRuntimeV1 := r.GetPipelineRuntime()
 		// TODO(gkcalat): deserialize these two fields into runtime details of a run.
 		runtimePipelineSpec = apiPipelineRuntimeV1.GetPipelineManifest()
@@ -1267,6 +1273,15 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		serviceAcc = apiRunV1.GetServiceAccount()
 	case *apiv2beta1.Run:
 		apiRunV2 := r
+		if temp, err := toModelTasks(apiRunV2.GetRunDetails().GetTaskDetails()); err == nil {
+			tasks = temp
+		}
+		if temp, err := toModelRuntimeState(apiRunV2.GetState()); err == nil {
+			state = temp
+		}
+		if temp, err := toModelRuntimeStatuses(apiRunV2.GetStateHistory()); err == nil {
+			stateHistory = temp
+		}
 		namespace = ""
 		pipelineId = ""
 		workflowSpec = ""
@@ -1323,10 +1338,12 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		cfgParams = cfg.Parameters
 		pipelineRoot = cfg.PipelineRoot
 
-		if spec, err := protobufStructToYamlString(apiRunV2.GetPipelineSpec()); spec == "" || err != nil {
+		if apiRunV2.GetPipelineSpec() == nil {
 			pipelineSpec = ""
-		} else {
+		} else if spec, err := protobufStructToYamlString(apiRunV2.GetPipelineSpec()); err == nil {
 			pipelineSpec = spec
+		} else {
+			pipelineSpec = ""
 		}
 		specParams = ""
 	default:
@@ -1360,11 +1377,14 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			},
 		},
 		RunDetails: model.RunDetails{
+			State:                   state.ToV2(),
+			StateHistory:            stateHistory,
 			CreatedAtInSec:          createTime,
 			ScheduledAtInSec:        scheduleTime,
 			FinishedAtInSec:         finishTime,
 			PipelineRuntimeManifest: runtimePipelineSpec,
 			WorkflowRuntimeManifest: runtimeWorkflowSpec,
+			TaskDetails:             tasks,
 		},
 	}
 	return &modelRun, nil
@@ -1508,29 +1528,21 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 	runtimeConfig := toApiRuntimeConfig(r.PipelineSpec.RuntimeConfig)
 	if runtimeConfig == nil {
 		return &apiv2beta1.Run{
-			RunId: r.UUID,
-			Error: util.ToRpcStatus(util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")),
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")),
 		}
 	}
 	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
 		runtimeConfig = nil
 	}
-	var stateHistory []*apiv2beta1.RuntimeStatus
-	if len(r.RunDetails.StateHistory) > 0 {
-		stateHistory = make([]*apiv2beta1.RuntimeStatus, 0)
-		for _, s := range r.RunDetails.StateHistory {
-			apiState := &apiv2beta1.RuntimeStatus{
-				State:      apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[string(s.State)]),
-				UpdateTime: &timestamp.Timestamp{Seconds: s.UpdateTimeInSec},
-			}
-			if s.Error != nil {
-				apiState.Error = util.ToRpcStatus(s.Error)
-			}
-			stateHistory = append(stateHistory, apiState)
-		}
+	apiRd := &apiv2beta1.RunDetails{
+		PipelineContextId:    r.RunDetails.PipelineContextId,
+		PipelineRunContextId: r.RunDetails.PipelineRunContextId,
+		TaskDetails:          toApiPipelineTaskDetails(r.RunDetails.TaskDetails),
 	}
-	if len(stateHistory) == 0 {
-		stateHistory = nil
+	if apiRd.PipelineContextId == 0 && apiRd.PipelineRunContextId == 0 && apiRd.TaskDetails == nil {
+		apiRd = nil
 	}
 	apiRunV2 := &apiv2beta1.Run{
 		RunId:          r.UUID,
@@ -1540,14 +1552,15 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		Description:    r.Description,
 		ServiceAccount: r.ServiceAccount,
 		RuntimeConfig:  runtimeConfig,
-		StorageState:   apiv2beta1.Run_StorageState(apiv2beta1.Run_StorageState_value[string(r.StorageState)]),
-		State:          apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[string(r.RunDetails.State)]),
-		StateHistory:   stateHistory,
+		StorageState:   toApiRunStorageState(&r.StorageState),
+		State:          toApiRuntimeState(&r.RunDetails.State),
+		StateHistory:   toApiRuntimeStatuses(r.RunDetails.StateHistory),
 		CreatedAt:      &timestamp.Timestamp{Seconds: r.RunDetails.CreatedAtInSec},
 		ScheduledAt:    &timestamp.Timestamp{Seconds: r.RunDetails.ScheduledAtInSec},
 		FinishedAt:     &timestamp.Timestamp{Seconds: r.RunDetails.FinishedAtInSec},
+		RunDetails:     apiRd,
 	}
-	err := errors.New("Failed to parse the pipeline source")
+	err := util.NewInvalidInputError("Failed to parse the pipeline source")
 	if r.PipelineSpec.PipelineSpecManifest != "" {
 		spec, err1 := yamlStringToProtobufStruct(r.PipelineSpec.PipelineSpecManifest)
 		if err1 == nil {
@@ -1556,27 +1569,26 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 			}
 			return apiRunV2
 		}
-		err = util.Wrap(err1, err.Error())
-	}
-	if r.PipelineSpec.PipelineVersionId != "" {
-		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionId{
-			PipelineVersionId: r.PipelineSpec.PipelineVersionId,
-		}
-		return apiRunV2
-	}
-	if r.RunDetails.PipelineRuntimeManifest != "" {
-		spec, err2 := yamlStringToProtobufStruct(r.PipelineSpec.PipelineSpecManifest)
-		if err2 == nil {
+		err = util.Wrap(err1, err.Error()).(*util.UserError)
+	} else if r.PipelineSpec.WorkflowSpecManifest != "" {
+		spec, err1 := yamlStringToProtobufStruct(r.PipelineSpec.WorkflowSpecManifest)
+		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
 				PipelineSpec: spec,
 			}
 			return apiRunV2
 		}
-		err = util.Wrap(err2, err.Error())
+		err = util.Wrap(err1, err.Error()).(*util.UserError)
+	} else if r.PipelineSpec.PipelineVersionId != "" {
+		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionId{
+			PipelineVersionId: r.PipelineSpec.PipelineVersionId,
+		}
+		return apiRunV2
 	}
 	return &apiv2beta1.Run{
-		RunId: r.UUID,
-		Error: util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart due to missing pipeline source")),
+		RunId:        r.UUID,
+		ExperimentId: r.ExperimentId,
+		Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart due to missing pipeline source")),
 	}
 }
 
@@ -1810,6 +1822,9 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 // Converts and array of internal task representations to its API counterpart.
 // Supports v1beta1 API.
 func toApiTasksV1(tasks []*model.Task) []*apiv1beta1.Task {
+	if len(tasks) == 0 {
+		return nil
+	}
 	apiTasks := make([]*apiv1beta1.Task, 0)
 	for _, task := range tasks {
 		apiTasks = append(apiTasks, toApiTaskV1(task))
@@ -1820,6 +1835,9 @@ func toApiTasksV1(tasks []*model.Task) []*apiv1beta1.Task {
 // Converts and array of internal task representations to its API counterpart.
 // Supports v2beta1 API.
 func toApiPipelineTaskDetails(tasks []*model.Task) []*apiv2beta1.PipelineTaskDetail {
+	if len(tasks) == 0 {
+		return nil
+	}
 	apiTasks := make([]*apiv2beta1.PipelineTaskDetail, 0)
 	for _, task := range tasks {
 		apiTasks = append(apiTasks, toApiPipelineTaskDetail(task))
@@ -2424,7 +2442,7 @@ func toModelRuntimeStatus(s *apiv2beta1.RuntimeStatus) (*model.RuntimeStatus, er
 	}
 	modelStatus := &model.RuntimeStatus{
 		UpdateTimeInSec: s.GetUpdateTime().GetSeconds(),
-		State:           state,
+		State:           state.ToV2(),
 	}
 	if s.GetError() != nil {
 		modelStatus.Error = util.ToError(s.GetError())

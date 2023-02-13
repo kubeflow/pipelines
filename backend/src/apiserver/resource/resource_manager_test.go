@@ -1545,6 +1545,13 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			ScheduledAtInSec:        5,
 			Conditions:              "Pending",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStatePending,
+				},
+			},
 		},
 	}
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
@@ -1573,10 +1580,17 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 			PipelineSpecManifest: v2SpecHelloWorld,
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
-			Conditions:       "Pending",
-			State:            model.RuntimeStatePending,
+			CreatedAtInSec:     5,
+			ScheduledAtInSec:   5,
+			Conditions:         "Pending",
+			State:              model.RuntimeStatePending,
+			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStatePending,
+				},
+			},
 		},
 	}
 	expectedRunDetail.PipelineSpec.PipelineSpecManifest = runDetail.PipelineSpec.PipelineSpecManifest
@@ -1619,10 +1633,17 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:          5,
-			ScheduledAtInSec:        5,
-			Conditions:              "Pending",
-			State:                   "PENDING",
+			CreatedAtInSec:     5,
+			ScheduledAtInSec:   5,
+			Conditions:         "Pending",
+			State:              "PENDING",
+			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStatePending,
+				},
+			},
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
@@ -1660,9 +1681,16 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:          5,
-			ScheduledAtInSec:        5,
-			Conditions:              "Pending",
+			CreatedAtInSec:     5,
+			ScheduledAtInSec:   5,
+			Conditions:         "Pending",
+			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStatePending,
+				},
+			},
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 		PipelineSpec: model.PipelineSpec{
@@ -1800,6 +1828,13 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
 			Conditions:              "Pending",
+			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStatePending,
+				},
+			},
 		},
 	}
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
@@ -1867,6 +1902,13 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
 			Conditions:              "Pending",
+			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStatePending,
+				},
+			},
 		},
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
@@ -2737,9 +2779,20 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
-			Conditions:       "Running",
+			CreatedAtInSec:     5,
+			ScheduledAtInSec:   5,
+			Conditions:         "Running",
+			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"},{\"UpdateTimeInSec\":7,\"State\":\"RUNNING\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStatePending,
+				},
+				{
+					UpdateTimeInSec: 7,
+					State:           model.RuntimeStateRunning,
+				},
+			},
 		},
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
@@ -2801,6 +2854,13 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			FinishedAtInSec:         0,
 			Conditions:              "Error",
 			State:                   model.RuntimeStateUnspecified,
+			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"RUNTIME_STATE_UNSPECIFIED\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStateUnspecified,
+				},
+			},
 		},
 	}
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())
@@ -2862,8 +2922,15 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			CreatedAtInSec:          11,
 			ScheduledAtInSec:        11,
 			FinishedAtInSec:         0,
-			Conditions:              "Error",
+			Conditions:              "Unknown",
 			State:                   model.RuntimeStateUnspecified,
+			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"RUNTIME_STATE_UNSPECIFIED\"}]",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 6,
+					State:           model.RuntimeStateUnspecified,
+				},
+			},
 		},
 	}
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())

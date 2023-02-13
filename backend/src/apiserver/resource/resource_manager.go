@@ -753,8 +753,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newExecSpec = newCreatedWorkflow
 	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
-	state := model.RuntimeState(condition).ToV2().ToString()
-	err = r.runStore.UpdateRun(runId, condition, 0, newExecSpec.ToStringForStore(), state)
+	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: newExecSpec.ToStringForStore(), State: model.RuntimeState(condition).ToV2()}})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
@@ -1208,6 +1207,11 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
 	return nil
 }
 
+// // Updates status information of a run and its tasks.
+// func (r *ResourceManager) updateRuntimeStatus() error {
+
+// }
+
 // Reports a workflow CR.
 // This is called by the persistence agent to update runs.
 func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) error {
@@ -1247,8 +1251,13 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		state = model.RuntimeState(string(exec.ExecutionPhase(model.RunTerminatingConditionsV1))).ToV2()
 	}
 	// If run already exists, simply update it
-	if _, err := r.GetRun(runId); err == nil {
-		if updateError := r.runStore.UpdateRun(runId, string(state.ToV1()), execStatus.FinishedAt(), execSpec.ToStringForStore(), state.ToString()); updateError != nil {
+	run, err := r.GetRun(runId)
+	if err == nil {
+		run.State = state
+		run.Conditions = string(state.ToV1())
+		run.FinishedAtInSec = execStatus.FinishedAt()
+		run.WorkflowRuntimeManifest = execSpec.ToStringForStore()
+		if updateError := r.runStore.UpdateRun(run); updateError != nil {
 			return util.Wrapf(err, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}
 	}
@@ -1256,9 +1265,9 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
 		// TODO(gkcalat): consider removing UpdateRun call as it fails anyways
-		if updateError := r.runStore.UpdateRun(runId, string(state.ToV1()), execStatus.FinishedAt(), execSpec.ToStringForStore(), state.ToString()); updateError != nil {
-			if !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
-				return util.Wrap(updateError, "Failed to update the run")
+		if err != nil {
+			if !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+				return util.Wrap(err, "Failed to update the run")
 			}
 			// Handle run not found in run store error.
 			// To avoid letting the workflow leak for ever, we need to GC it when its record does not exist in KFP DB.
@@ -1276,7 +1285,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 			workflowGCCounter.Inc()
 			// Note, persistence agent will not retry reporting this workflow again, because updateError is a not found error.
-			return util.Wrapf(updateError, "Failed to report workflow name=%q namespace=%q runId=%q", execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
+			return util.Wrapf(err, "Failed to report workflow name=%q namespace=%q runId=%q", execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
 		}
 	} else {
 		// TODO(gkcalat): consider adding manifest validation to catch mismatch, as runs should have the same pipeline spec as parent recurring run.

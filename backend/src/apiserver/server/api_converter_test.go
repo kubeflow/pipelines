@@ -405,6 +405,9 @@ func TestToModelRunDetail(t *testing.T) {
 				K8SName:      "",
 				DisplayName:  "name1",
 				Description:  "this is a run",
+				RunDetails: model.RunDetails{
+					State: model.RuntimeStateUnspecified,
+				},
 				PipelineSpec: model.PipelineSpec{
 					Parameters: `[{"name":"param2","value":"world"}]`,
 					RuntimeConfig: model.RuntimeConfig{
@@ -446,8 +449,11 @@ func TestToModelRunDetail(t *testing.T) {
 				ExperimentId: "exp1",
 				Namespace:    "",
 				K8SName:      "",
-				DisplayName:  "name1",
-				Description:  "this is a run",
+				RunDetails: model.RunDetails{
+					State: model.RuntimeStateUnspecified,
+				},
+				DisplayName: "name1",
+				Description: "this is a run",
 				PipelineSpec: model.PipelineSpec{
 					RuntimeConfig: model.RuntimeConfig{
 						// Note: for some versions of structpb.Value.MarshalJSON(), there is a trailing space after array items or struct items
@@ -3783,4 +3789,749 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 	assert.Equal(t, expected2, got2[0])
 	expected2.Error = got2[1].GetError()
 	assert.Equal(t, expected2, got2[1])
+}
+
+func TestToModelRun(t *testing.T) {
+	tests := []struct {
+		name    string
+		arg     *apiv2beta1.Run
+		want    *model.Run
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"v2 full pipeline version",
+			&apiv2beta1.Run{
+				ExperimentId: "exp1",
+				RunId:        "run1",
+				DisplayName:  "name1",
+				Description:  "this is a run",
+				StorageState: apiv2beta1.Run_ARCHIVED,
+				PipelineSource: &apiv2beta1.Run_PipelineVersionId{
+					PipelineVersionId: "pv1",
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+				ServiceAccount: "sa1",
+				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
+				State:          apiv2beta1.RuntimeState_CANCELING,
+				Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error1")),
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
+						{
+							RunId:          "run2",
+							TaskId:         "task1",
+							DisplayName:    "this is task",
+							CreateTime:     &timestamp.Timestamp{Seconds: 11},
+							StartTime:      &timestamp.Timestamp{Seconds: 12},
+							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_PAUSED,
+							ExecutionId:    14,
+							Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error3")),
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							ParentTaskId: "task2",
+							StateHistory: []*apiv2beta1.RuntimeStatus{
+								{
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_FAILED,
+									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				RecurringRunId: "job1",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_PAUSED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+					},
+				},
+			},
+			&model.Run{
+				UUID:           "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   model.StorageStateArchived,
+
+				PipelineSpec: model.PipelineSpec{
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}",
+					},
+					PipelineVersionId: "pv1",
+					PipelineName:      "pipelines/pv1",
+				},
+				RunDetails: model.RunDetails{
+					State: model.RuntimeStateCancelling,
+					StateHistory: []*model.RuntimeStatus{
+						{
+							UpdateTimeInSec: 9,
+							State:           model.RuntimeStatePaused,
+							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						},
+					},
+					CreatedAtInSec:       1,
+					ScheduledAtInSec:     2,
+					FinishedAtInSec:      3,
+					PipelineContextId:    0,
+					PipelineRunContextId: 0,
+					TaskDetails: []*model.Task{
+						{
+							UUID:              "task1",
+							Namespace:         "",
+							PipelineName:      "",
+							RunId:             "run2",
+							MLMDExecutionID:   "14",
+							CreatedTimestamp:  11,
+							StartedTimestamp:  12,
+							FinishedTimestamp: 13,
+							Fingerprint:       "",
+							Name:              "this is task",
+							ParentTaskId:      "task2",
+							State:             model.RuntimeStatePaused,
+							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
+							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
+							StateHistory: []*model.RuntimeStatus{
+								{
+									UpdateTimeInSec: 15,
+									State:           model.RuntimeStateFailed,
+									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				ResourceReferences: nil,
+				Metrics:            nil,
+				Namespace:          "",
+				K8SName:            "",
+			},
+			false,
+			"",
+		},
+		{
+			"v2 full pipeline spec",
+			&apiv2beta1.Run{
+				ExperimentId: "exp1",
+				RunId:        "run1",
+				DisplayName:  "name1",
+				Description:  "this is a run",
+				StorageState: apiv2beta1.Run_ARCHIVED,
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"String":  structpb.NewStringValue("pv2"),
+							"Boolean": structpb.NewBoolValue(false),
+							"Number":  structpb.NewNumberValue(19.1),
+							"Struct": structpb.NewStructValue(
+								&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"InnerNull": structpb.NewNullValue(),
+										"InnerList": structpb.NewListValue(
+											&structpb.ListValue{
+												Values: []*structpb.Value{
+													structpb.NewStringValue("a"),
+													structpb.NewStringValue("b"),
+												},
+											},
+										),
+									},
+								},
+							),
+						},
+					},
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+				ServiceAccount: "sa1",
+				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
+				State:          apiv2beta1.RuntimeState_CANCELING,
+				Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error1")),
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
+						{
+							RunId:          "run2",
+							TaskId:         "task1",
+							DisplayName:    "this is task",
+							CreateTime:     &timestamp.Timestamp{Seconds: 11},
+							StartTime:      &timestamp.Timestamp{Seconds: 12},
+							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_PAUSED,
+							ExecutionId:    14,
+							Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error3")),
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							ParentTaskId: "task2",
+							StateHistory: []*apiv2beta1.RuntimeStatus{
+								{
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_FAILED,
+									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				RecurringRunId: "job1",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_PAUSED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+					},
+				},
+			},
+			&model.Run{
+				UUID:           "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   model.StorageStateArchived,
+				PipelineSpec: model.PipelineSpec{
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}",
+					},
+					PipelineSpecManifest: "Boolean: false\nNumber: 19.1\nString: pv2\nStruct:\n  InnerList:\n  - a\n  - b\n  InnerNull: null\n",
+				},
+				RunDetails: model.RunDetails{
+					State: model.RuntimeStateCancelling,
+					StateHistory: []*model.RuntimeStatus{
+						{
+							UpdateTimeInSec: 9,
+							State:           model.RuntimeStatePaused,
+							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						},
+					},
+					CreatedAtInSec:       1,
+					ScheduledAtInSec:     2,
+					FinishedAtInSec:      3,
+					PipelineContextId:    0,
+					PipelineRunContextId: 0,
+					TaskDetails: []*model.Task{
+						{
+							UUID:              "task1",
+							Namespace:         "",
+							PipelineName:      "",
+							RunId:             "run2",
+							MLMDExecutionID:   "14",
+							CreatedTimestamp:  11,
+							StartedTimestamp:  12,
+							FinishedTimestamp: 13,
+							Fingerprint:       "",
+							Name:              "this is task",
+							ParentTaskId:      "task2",
+							State:             model.RuntimeStatePaused,
+							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
+							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
+							StateHistory: []*model.RuntimeStatus{
+								{
+									UpdateTimeInSec: 15,
+									State:           model.RuntimeStateFailed,
+									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				ResourceReferences: nil,
+				Metrics:            nil,
+				Namespace:          "",
+				K8SName:            "",
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := toModelRun(tt.arg)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Nil(t, got)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func Test_toApiRun(t *testing.T) {
+	tests := []struct {
+		name    string
+		arg     *model.Run
+		want    *apiv2beta1.Run
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"V1 no refs",
+			&model.Run{
+				UUID:           "run123",
+				K8SName:        "name123",
+				StorageState:   model.StorageStateArchived,
+				DisplayName:    "displayName123",
+				Description:    "this is run",
+				Namespace:      "ns123",
+				RecurringRunId: "job123",
+				ExperimentId:   "exp123",
+				ServiceAccount: "sa1",
+				RunDetails: model.RunDetails{
+					CreatedAtInSec:          1,
+					ScheduledAtInSec:        2,
+					FinishedAtInSec:         3,
+					Conditions:              "running",
+					WorkflowRuntimeManifest: "workflow123",
+				},
+				PipelineSpec: model.PipelineSpec{
+					WorkflowSpecManifest: "Name: manifest\nVersion: v1",
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
+						PipelineRoot: "model-pipeline-root",
+					},
+				},
+			},
+			&apiv2beta1.Run{
+				ExperimentId:   "exp123",
+				RunId:          "run123",
+				DisplayName:    "displayName123",
+				StorageState:   apiv2beta1.Run_ARCHIVED,
+				Description:    "this is run",
+				RecurringRunId: "job123",
+				ServiceAccount: "sa1",
+				State:          apiv2beta1.RuntimeState_RUNNING,
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"Name":    structpb.NewStringValue("manifest"),
+							"Version": structpb.NewStringValue("v1"),
+						},
+					},
+				},
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+						"param3": structpb.NewBoolValue(true),
+						"param4": structpb.NewListValue(
+							&structpb.ListValue{
+								Values: []*structpb.Value{
+									structpb.NewNumberValue(1),
+									structpb.NewNumberValue(2),
+									structpb.NewNumberValue(3),
+								},
+							},
+						),
+						"param5": structpb.NewNumberValue(12),
+						"param6": structpb.NewStructValue(
+							&structpb.Struct{
+								Fields: map[string]*structpb.Value{
+									"structParam1": structpb.NewStringValue("hello"),
+									"structParam2": structpb.NewNumberValue(32),
+								},
+							},
+						),
+					},
+					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			false,
+			"",
+		},
+		{
+			"V1 refs",
+			&model.Run{
+				UUID:           "run123",
+				K8SName:        "name123",
+				StorageState:   model.StorageStateArchived,
+				DisplayName:    "displayName123",
+				Description:    "this is run",
+				ServiceAccount: "sa1",
+				RunDetails: model.RunDetails{
+					CreatedAtInSec:          1,
+					ScheduledAtInSec:        2,
+					FinishedAtInSec:         3,
+					Conditions:              "running",
+					WorkflowRuntimeManifest: "workflow123",
+				},
+				PipelineSpec: model.PipelineSpec{
+					PipelineVersionId: "pv1",
+				},
+				ResourceReferences: []*model.ResourceReference{
+					{ResourceType: model.ExperimentResourceType, ReferenceUUID: "exp123"},
+					{ResourceType: model.JobResourceType, ReferenceUUID: "job123"},
+					{ResourceType: model.NamespaceResourceType, ReferenceUUID: "name_space"},
+				},
+			},
+			&apiv2beta1.Run{
+				RunId:          "run123",
+				DisplayName:    "displayName123",
+				StorageState:   apiv2beta1.Run_ARCHIVED,
+				Description:    "this is run",
+				ServiceAccount: "sa1",
+				State:          apiv2beta1.RuntimeState_RUNNING,
+				PipelineSource: &apiv2beta1.Run_PipelineVersionId{
+					PipelineVersionId: "pv1",
+				},
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
+			},
+			false,
+			"",
+		},
+		{
+			"v2 full spec",
+			&model.Run{
+				UUID:           "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   model.StorageStateArchived,
+				PipelineSpec: model.PipelineSpec{
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}",
+					},
+					PipelineSpecManifest: "Boolean: false\nNumber: 19.1\nString: pv2\nStruct:\n  InnerList:\n  - a\n  - b\n  InnerNull: null\n",
+				},
+				RunDetails: model.RunDetails{
+					State: model.RuntimeStateCancelling,
+					StateHistory: []*model.RuntimeStatus{
+						{
+							UpdateTimeInSec: 9,
+							State:           model.RuntimeStatePaused,
+							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						},
+					},
+					CreatedAtInSec:       1,
+					ScheduledAtInSec:     2,
+					FinishedAtInSec:      3,
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*model.Task{
+						{
+							UUID:              "task1",
+							Namespace:         "",
+							PipelineName:      "",
+							RunId:             "run2",
+							MLMDExecutionID:   "14",
+							CreatedTimestamp:  11,
+							StartedTimestamp:  12,
+							FinishedTimestamp: 13,
+							Fingerprint:       "",
+							Name:              "this is task",
+							ParentTaskId:      "task2",
+							State:             model.RuntimeStatePaused,
+							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
+							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
+							StateHistory: []*model.RuntimeStatus{
+								{
+									UpdateTimeInSec: 15,
+									State:           model.RuntimeStateFailed,
+									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				ResourceReferences: nil,
+				Metrics:            nil,
+				Namespace:          "",
+				K8SName:            "",
+			},
+			&apiv2beta1.Run{
+				ExperimentId: "exp1",
+				RunId:        "run1",
+				DisplayName:  "name1",
+				Description:  "this is a run",
+				StorageState: apiv2beta1.Run_ARCHIVED,
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"String":  structpb.NewStringValue("pv2"),
+							"Boolean": structpb.NewBoolValue(false),
+							"Number":  structpb.NewNumberValue(19.1),
+							"Struct": structpb.NewStructValue(
+								&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"InnerNull": structpb.NewNullValue(),
+										"InnerList": structpb.NewListValue(
+											&structpb.ListValue{
+												Values: []*structpb.Value{
+													structpb.NewStringValue("a"),
+													structpb.NewStringValue("b"),
+												},
+											},
+										),
+									},
+								},
+							),
+						},
+					},
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+				ServiceAccount: "sa1",
+				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
+				State:          apiv2beta1.RuntimeState_CANCELING,
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
+						{
+							RunId:          "run2",
+							TaskId:         "task1",
+							DisplayName:    "this is task",
+							CreateTime:     &timestamp.Timestamp{Seconds: 11},
+							StartTime:      &timestamp.Timestamp{Seconds: 12},
+							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_PAUSED,
+							ExecutionId:    14,
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							ParentTaskId: "task2",
+							StateHistory: []*apiv2beta1.RuntimeStatus{
+								{
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_FAILED,
+									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				RecurringRunId: "job1",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_PAUSED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+					},
+				},
+			},
+			false,
+			"",
+		},
+		{
+			"v2 error runtime config",
+			&model.Run{
+				UUID:           "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   model.StorageStateArchived,
+				PipelineSpec: model.PipelineSpec{
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}}",
+					},
+					PipelineSpecManifest: "Boolean: false\nNumber: 19.1\nString: pv2\nStruct:\n  InnerList:\n  - a\n  - b\n  InnerNull: null\n",
+				},
+				RunDetails: model.RunDetails{
+					State: model.RuntimeStateCancelling,
+					StateHistory: []*model.RuntimeStatus{
+						{
+							UpdateTimeInSec: 9,
+							State:           model.RuntimeStatePaused,
+							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						},
+					},
+					CreatedAtInSec:       1,
+					ScheduledAtInSec:     2,
+					FinishedAtInSec:      3,
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*model.Task{
+						{
+							UUID:              "task1",
+							Namespace:         "",
+							PipelineName:      "",
+							RunId:             "run2",
+							MLMDExecutionID:   "14",
+							CreatedTimestamp:  11,
+							StartedTimestamp:  12,
+							FinishedTimestamp: 13,
+							Fingerprint:       "",
+							Name:              "this is task",
+							ParentTaskId:      "task2",
+							State:             model.RuntimeStatePaused,
+							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
+							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
+							StateHistory: []*model.RuntimeStatus{
+								{
+									UpdateTimeInSec: 15,
+									State:           model.RuntimeStateFailed,
+									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				ResourceReferences: nil,
+				Metrics:            nil,
+				Namespace:          "",
+				K8SName:            "",
+			},
+			nil,
+			true,
+			"Failed to parse runtime config",
+		},
+		{
+			"v2 error pipeline source",
+			&model.Run{
+				UUID:           "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   model.StorageStateArchived,
+				PipelineSpec: model.PipelineSpec{
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}",
+					},
+				},
+				RunDetails: model.RunDetails{
+					State: model.RuntimeStateCancelling,
+					StateHistory: []*model.RuntimeStatus{
+						{
+							UpdateTimeInSec: 9,
+							State:           model.RuntimeStatePaused,
+							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						},
+					},
+					CreatedAtInSec:       1,
+					ScheduledAtInSec:     2,
+					FinishedAtInSec:      3,
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*model.Task{
+						{
+							UUID:              "task1",
+							Namespace:         "",
+							PipelineName:      "",
+							RunId:             "run2",
+							MLMDExecutionID:   "14",
+							CreatedTimestamp:  11,
+							StartedTimestamp:  12,
+							FinishedTimestamp: 13,
+							Fingerprint:       "",
+							Name:              "this is task",
+							ParentTaskId:      "task2",
+							State:             model.RuntimeStatePaused,
+							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
+							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
+							StateHistory: []*model.RuntimeStatus{
+								{
+									UpdateTimeInSec: 15,
+									State:           model.RuntimeStateFailed,
+									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+								},
+							},
+							ChildTaskIds: []string{"task3", "task4"},
+						},
+					},
+				},
+				ResourceReferences: nil,
+				Metrics:            nil,
+				Namespace:          "",
+				K8SName:            "",
+			},
+			nil,
+			true,
+			"Failed to convert internal run representation to its API counterpart due to missing pipeline source",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toApiRun(tt.arg)
+			if tt.wantErr {
+				assert.Contains(t, got.Error.Message, tt.errMsg)
+				assert.Equal(t, &apiv2beta1.Run{RunId: "run1", ExperimentId: "exp1", Error: got.GetError()}, got)
+			} else {
+				if tt.want.GetPipelineSpec() != nil {
+					w, err := tt.want.GetPipelineSpec().MarshalJSON()
+					assert.Nil(t, err)
+					g, err := got.GetPipelineSpec().MarshalJSON()
+					assert.Nil(t, err)
+					assert.Equal(t, w, g)
+					tt.want.PipelineSource = got.GetPipelineSource()
+				}
+				if tt.want.GetRuntimeConfig() != nil {
+					wp := tt.want.GetRuntimeConfig().GetParameters()
+					gp := got.GetRuntimeConfig().GetParameters()
+					for k := range wp {
+						wp1, err := wp[k].MarshalJSON()
+						assert.Nil(t, err)
+						gp1, err := gp[k].MarshalJSON()
+						assert.Nil(t, err)
+						assert.Equal(t, wp1, gp1)
+					}
+					for k := range gp {
+						wp1, err := wp[k].MarshalJSON()
+						assert.Nil(t, err)
+						gp1, err := gp[k].MarshalJSON()
+						assert.Nil(t, err)
+						assert.Equal(t, wp1, gp1)
+					}
+					tt.want.RuntimeConfig.Parameters = got.RuntimeConfig.Parameters
+				}
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
 }
