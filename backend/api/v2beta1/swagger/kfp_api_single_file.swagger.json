@@ -2147,6 +2147,20 @@
       },
       "description": "Trigger defines what starts a pipeline run."
     },
+    "PipelineTaskDetailChildTask": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "description": "System-generated ID of a task."
+        },
+        "pod_name": {
+          "type": "string",
+          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
+        }
+      },
+      "description": "A dependent task that requires this one to succeed.\nRepresented by either task_id or pod_name."
+    },
     "v2beta1ArtifactList": {
       "type": "object",
       "properties": {
@@ -2193,6 +2207,10 @@
           "type": "string",
           "description": "System-generated ID of a task."
         },
+        "pod_name": {
+          "type": "string",
+          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
+        },
         "display_name": {
           "type": "string",
           "description": "User specified name of a task that is defined in\n[Pipeline.spec][]."
@@ -2223,7 +2241,7 @@
         "execution_id": {
           "type": "string",
           "format": "int64",
-          "description": "Execution metadata of a task."
+          "description": "Execution id of the corresponding entry in ML metadata store."
         },
         "error": {
           "$ref": "#/definitions/googlerpcStatus",
@@ -2254,12 +2272,12 @@
           },
           "description": "A sequence of task statuses. This field keeps a record \nof state transitions."
         },
-        "child_task_ids": {
+        "child_tasks": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/PipelineTaskDetailChildTask"
           },
-          "description": "A sequence of ids of dependent tasks (children)."
+          "description": "Sequence of dependen tasks."
         }
       },
       "description": "Runtime information of a task execution."

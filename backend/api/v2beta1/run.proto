@@ -271,48 +271,65 @@ message PipelineTaskDetail {
   // System-generated ID of a task.
   string task_id = 2;
 
+  // Name of the corresponding pod assigned by the orchestration engine.
+  // Also known as node_id.
+  string pod_name = 3;
+
   // User specified name of a task that is defined in
   // [Pipeline.spec][].
-  string display_name = 3;
+  string display_name = 4;
 
   // Creation time of a task.
-  google.protobuf.Timestamp create_time = 4;
+  google.protobuf.Timestamp create_time = 5;
 
   // Starting time of a task.
-  google.protobuf.Timestamp start_time = 5;
+  google.protobuf.Timestamp start_time = 6;
 
   // Completion time of a task.
-  google.protobuf.Timestamp end_time = 6;
+  google.protobuf.Timestamp end_time = 7;
 
   // Execution information of a task.
-  PipelineTaskExecutorDetail executor_detail = 7;
+  PipelineTaskExecutorDetail executor_detail = 8;
 
   // Runtime state of a task.
-  RuntimeState state = 8;
+  RuntimeState state = 9;
 
-  // Execution metadata of a task.
-  int64 execution_id = 9;
+  // Execution id of the corresponding entry in ML metadata store.
+  int64 execution_id = 10;
 
   // The error that occurred during task execution.
   // Only populated when the task is in FAILED or CANCELED state.
-  google.rpc.Status error = 10;
+  google.rpc.Status error = 11;
 
   // Input artifacts of the task.
-  map<string, ArtifactList> inputs = 11;
+  map<string, ArtifactList> inputs = 12;
 
   // Output artifacts of the task.
-  map<string, ArtifactList> outputs = 12;
+  map<string, ArtifactList> outputs = 13;
 
   // ID of the parent task if the task is within a component scope.
   // Empty if the task is at the root level.
-  string parent_task_id = 13;
+  string parent_task_id = 14;
 
   // A sequence of task statuses. This field keeps a record 
   // of state transitions.
-  repeated RuntimeStatus state_history = 14;
+  repeated RuntimeStatus state_history = 15;
+  
+  // A dependent task that requires this one to succeed.
+  // Represented by either task_id or pod_name.
+  message ChildTask {
+    oneof pipeline_source {
+      // System-generated ID of a task.
+      string task_id = 1;
+  
+    // Name of the corresponding pod assigned by the orchestration engine.
+    // Also known as node_id.
+      string pod_name = 2;
+    }
+  }
 
-  // A sequence of ids of dependent tasks (children).
-  repeated string child_task_ids = 15;
+  // Sequence of dependen tasks.
+  repeated ChildTask child_tasks = 16;
 }
 
 // Runtime information of a pipeline task executor.

@@ -68,6 +68,7 @@ class TestV2beta1Run(unittest.TestCase):
                         kfp_server_api.models.v2beta1_pipeline_task_detail.v2beta1PipelineTaskDetail(
                             run_id = '0', 
                             task_id = '0', 
+                            pod_name = '0', 
                             display_name = '0', 
                             create_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                             start_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
@@ -105,8 +106,10 @@ class TestV2beta1Run(unittest.TestCase):
                                 kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                                     update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), )
                                 ], 
-                            child_task_ids = [
-                                '0'
+                            child_tasks = [
+                                kfp_server_api.models.pipeline_task_detail_child_task.PipelineTaskDetailChildTask(
+                                    task_id = '0', 
+                                    pod_name = '0', )
                                 ], )
                         ], ), 
                 recurring_run_id = '0', 

@@ -48,6 +48,7 @@ from kfp_server_api.models.api_url import ApiUrl
 from kfp_server_api.models.authorize_request_resources import AuthorizeRequestResources
 from kfp_server_api.models.authorize_request_verb import AuthorizeRequestVerb
 from kfp_server_api.models.googlerpc_status import GooglerpcStatus
+from kfp_server_api.models.pipeline_task_detail_child_task import PipelineTaskDetailChildTask
 from kfp_server_api.models.predicate_int_values import PredicateIntValues
 from kfp_server_api.models.predicate_long_values import PredicateLongValues
 from kfp_server_api.models.predicate_string_values import PredicateStringValues
