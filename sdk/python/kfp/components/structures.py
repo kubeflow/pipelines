@@ -920,7 +920,6 @@ class ComponentSpec:
         task_group = group
 
         pipeline_outputs = {}
-        pipeline_inputs = self.inputs or {}
         pipeline_output_spec = self.outputs or {}
 
         for arg_name, output_spec in pipeline_output_spec.items():
@@ -944,9 +943,8 @@ class ComponentSpec:
             self)
         pipeline_spec.root.CopyFrom(component_spec_proto)
 
-        if pipeline_outputs:
-            builder._build_dag_outputs(
-                component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
+        builder._build_dag_outputs(
+            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group

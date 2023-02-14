@@ -3088,14 +3088,8 @@ class TestOutputDefinitionsPresentWhenCompilingComponents(unittest.TestCase):
         def comp(message: str) -> str:
             return message
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path = os.path.join(tmpdir, 'comp.yaml')
-            compiler.Compiler().compile(comp, path)
-            loaded_comp = components.load_component_from_file(path)
-
-        self.assertIn(
-            'Output',
-            loaded_comp.pipeline_spec.root.output_definitions.parameters)
+        self.assertIn('Output',
+                      comp.pipeline_spec.root.output_definitions.parameters)
 
 
 if __name__ == '__main__':
