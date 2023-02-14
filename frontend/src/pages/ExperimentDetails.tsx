@@ -26,7 +26,7 @@ import RecurringRunsManager from './RecurringRunsManager';
 import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
 import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
-import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
+import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from '../lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -101,7 +101,7 @@ const css = stylesheet({
 
 interface ExperimentDetailsState {
   activeRecurringRunsCount: number;
-  experiment: ApiExperiment | null;
+  experiment: V2beta1Experiment | null;
   recurringRunsManagerOpen: boolean;
   selectedIds: string[];
   runStorageState: ApiRunStorageState;
@@ -229,7 +229,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               storageState={this.state.runStorageState}
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
-              experimentIdMask={experiment.id}
+              experimentIdMask={experiment.experiment_id}
               refreshCount={this.state.runlistRefreshCount}
               selectedIds={this.state.selectedIds}
               onSelectionChange={this._selectionChanged}
@@ -279,8 +279,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     const experimentId = this.props.match.params[RouteParams.experimentId];
 
     try {
-      const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-      const pageTitle = experiment.name || this.props.match.params[RouteParams.experimentId];
+      const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
+      const pageTitle = experiment.display_name || this.props.match.params[RouteParams.experimentId];
 
       // Update the Archive/Restore button based on the storage state of this experiment.
       const buttons = new Buttons(
@@ -288,8 +288,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         this.refresh.bind(this),
         this.getInitialToolbarState().actions,
       );
-      const idGetter = () => (experiment.id ? [experiment.id] : []);
-      experiment.storage_state === ApiExperimentStorageState.ARCHIVED
+      const idGetter = () => (experiment.experiment_id ? [experiment.experiment_id] : []);
+      experiment.storage_state === V2beta1ExperimentStorageState.ARCHIVED
         ? buttons.restore('experiment', idGetter, true, () => this.refresh())
         : buttons.archive('experiment', idGetter, true, () => this.refresh());
       // If experiment is archived, shows archived runs list by default.
@@ -300,7 +300,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       // want to view.
       if (isFirstTimeLoad) {
         runStorageState =
-          experiment.storage_state === ApiExperimentStorageState.ARCHIVED
+          experiment.storage_state === V2beta1ExperimentStorageState.ARCHIVED
             ? ApiRunStorageState.ARCHIVED
             : ApiRunStorageState.AVAILABLE;
       }
