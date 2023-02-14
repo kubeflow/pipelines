@@ -25,11 +25,7 @@ import CustomTable, {
 import RunList from './RunList';
 import produce from 'immer';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import {
-  ApiListExperimentsResponse,
-  ApiExperiment,
-  ApiExperimentStorageState,
-} from '../apis/experiment';
+import { V2beta1ListExperimentsResponse, V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { ApiRun, ApiRunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
@@ -44,7 +40,7 @@ import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
-interface DisplayExperiment extends ApiExperiment {
+interface DisplayExperiment extends V2beta1Experiment {
   last5Runs?: ApiRun[];
   error?: string;
   expandState?: ExpandState;
@@ -112,9 +108,9 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       return {
         error: exp.error,
         expandState: exp.expandState,
-        id: exp.id!,
+        id: exp.experiment_id!,
         otherFields: [
-          exp.name!,
+          exp.display_name!,
           exp.description!,
           exp.expandState === ExpandState.EXPANDED ? [] : exp.last5Runs,
         ],
@@ -178,7 +174,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
 
   private async _reload(request: ListRequest): Promise<string> {
     // Fetch the list of experiments
-    let response: ApiListExperimentsResponse;
+    let response: V2beta1ListExperimentsResponse;
     let displayExperiments: DisplayExperiment[];
     try {
       // This ExperimentList page is used as the "All experiments" tab
@@ -191,11 +187,11 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         {
           key: 'storage_state',
           op: PredicateOp.NOTEQUALS,
-          string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+          string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
         },
       ]);
       request.filter = encodeURIComponent(JSON.stringify(filter));
-      response = await Apis.experimentServiceApi.listExperiment(
+      response = await Apis.experimentServiceApiV2.listExperiments(
         request.pageToken,
         request.pageSize,
         request.sortBy,
@@ -221,7 +217,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
             5 /* pageSize */,
             RunSortKeys.CREATED_AT + ' desc',
             'EXPERIMENT',
-            experiment.id,
+            experiment.experiment_id,
             encodeURIComponent(
               JSON.stringify({
                 predicates: [
@@ -238,7 +234,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         } catch (err) {
           experiment.error = 'Failed to load the last 5 runs of this experiment';
           logger.error(
-            `Error: failed to retrieve run statuses for experiment: ${experiment.name}.`,
+            `Error: failed to retrieve run statuses for experiment: ${experiment.display_name}.`,
             err,
           );
         }
@@ -274,7 +270,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     return (
       <RunList
         hideExperimentColumn={true}
-        experimentIdMask={experiment.id}
+        experimentIdMask={experiment.experiment_id}
         onError={() => null}
         {...this.props}
         disablePaging={false}
