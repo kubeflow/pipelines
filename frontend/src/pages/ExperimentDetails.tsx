@@ -280,7 +280,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
     try {
       const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
-      const pageTitle = experiment.display_name || this.props.match.params[RouteParams.experimentId];
+      const pageTitle =
+        experiment.display_name || this.props.match.params[RouteParams.experimentId];
 
       // Update the Archive/Restore button based on the storage state of this experiment.
       const buttons = new Buttons(
