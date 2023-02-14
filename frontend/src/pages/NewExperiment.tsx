@@ -18,7 +18,7 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Input from '../atoms/Input';
-import { ApiExperiment, ApiResourceType, ApiRelationship } from '../apis/experiment';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from '../lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
@@ -144,42 +144,32 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   };
 
   private _create(): void {
-    const newExperiment: ApiExperiment = {
+    const newExperiment: V2beta1Experiment = {
       description: this.state.description,
-      name: this.state.experimentName,
-      resource_references: this.props.namespace
-        ? [
-            {
-              key: {
-                id: this.props.namespace,
-                type: ApiResourceType.NAMESPACE,
-              },
-              relationship: ApiRelationship.OWNER,
-            },
-          ]
-        : undefined,
+      display_name: this.state.experimentName,
+      namespace: this.props.namespace,
     };
 
     this.setState({ isbeingCreated: true }, async () => {
       try {
-        const response = await Apis.experimentServiceApi.createExperiment(newExperiment);
+        const response = await Apis.experimentServiceApiV2.createExperiment(newExperiment);
         let searchString = '';
         if (this.state.pipelineId) {
           searchString = new URLParser(this.props).build({
-            [QUERY_PARAMS.experimentId]: response.id || '',
+            [QUERY_PARAMS.experimentId]: response.experiment_id || '',
             [QUERY_PARAMS.pipelineId]: this.state.pipelineId,
             [QUERY_PARAMS.firstRunInExperiment]: '1',
           });
         } else {
           searchString = new URLParser(this.props).build({
-            [QUERY_PARAMS.experimentId]: response.id || '',
+            [QUERY_PARAMS.experimentId]: response.experiment_id || '',
             [QUERY_PARAMS.firstRunInExperiment]: '1',
           });
         }
         this.props.history.push(RoutePage.NEW_RUN + searchString);
         this.props.updateSnackbar({
           autoHideDuration: 10000,
-          message: `Successfully created new Experiment: ${newExperiment.name}`,
+          message: `Successfully created new Experiment: ${newExperiment.display_name}`,
           open: true,
         });
       } catch (err) {

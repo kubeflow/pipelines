@@ -14,6 +14,7 @@
 
 import * as portableFetch from 'portable-fetch';
 import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
+import { ExperimentServiceApi as ExperimentServiceApiV2 } from '../apisv2beta1/experiment';
 import { JobServiceApi } from '../apis/job';
 import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
@@ -145,6 +146,18 @@ export class Apis {
       );
     }
     return this._experimentServiceApi;
+  }
+
+  // Add v2 experimentServiceV2 for partial integration
+  public static get experimentServiceApiV2(): ExperimentServiceApiV2 {
+    if (!this._experimentServiceApiV2) {
+      this._experimentServiceApiV2 = new ExperimentServiceApiV2(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
+    }
+    return this._experimentServiceApiV2;
   }
 
   public static get jobServiceApi(): JobServiceApi {
@@ -377,6 +390,7 @@ export class Apis {
   }
 
   private static _experimentServiceApi?: ExperimentServiceApi;
+  private static _experimentServiceApiV2?: ExperimentServiceApiV2;
   private static _jobServiceApi?: JobServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;
   private static _runServiceApi?: RunServiceApi;
