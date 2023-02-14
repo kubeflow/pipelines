@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strconv"
 
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -1639,13 +1640,11 @@ func toApiRunDetailV1(r *model.Run) *apiv1beta1.RunDetail {
 
 // Converts API task to its internal representation.
 // Supports both v1beta1 and v2beta1 API.
-// TODO(gkcalat): consider enforcing data validation and returning an error.
-// TODO(gkcalat): implement runtime details of a task.
 func toModelTask(t interface{}) (*model.Task, error) {
 	if t == nil {
 		return &model.Task{}, nil
 	}
-	var taskId, namespace, pipelineName, runId, executionId, fingerprint string
+	var taskId, nodeId, namespace, pipelineName, runId, mlmdExecId, fingerprint string
 	var name, parentTaskId, state, inputs, outputs string
 	var createTime, startTime, finishTime int64
 	var stateHistory []*model.RuntimeStatus
@@ -1657,7 +1656,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		taskId = apiTaskV1.GetId()
 		pipelineName = apiTaskV1.GetPipelineName()
 		runId = apiTaskV1.GetRunId()
-		executionId = apiTaskV1.GetMlmdExecutionID()
+		mlmdExecId = apiTaskV1.GetMlmdExecutionID()
 		fingerprint = apiTaskV1.GetFingerprint()
 		createTime = apiTaskV1.GetCreatedAt().GetSeconds()
 		startTime = createTime
@@ -1667,14 +1666,13 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		state = ""
 		inputs = ""
 		outputs = ""
-	// TODO(gkcalat): implement runtime details of a task below.
 	case *apiv2beta1.PipelineTaskDetail:
 		apiTaskDetailV2 := t
 		namespace = ""
 		taskId = apiTaskDetailV2.GetTaskId()
 		pipelineName = ""
 		runId = apiTaskDetailV2.GetRunId()
-		executionId = fmt.Sprint(apiTaskDetailV2.GetExecutionId())
+		mlmdExecId = fmt.Sprint(apiTaskDetailV2.GetExecutionId())
 		fingerprint = ""
 		createTime = apiTaskDetailV2.GetCreateTime().GetSeconds()
 		startTime = apiTaskDetailV2.GetStartTime().GetSeconds()
@@ -1691,16 +1689,33 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		if outBytes, err := json.Marshal(apiTaskDetailV2.GetOutputs()); err == nil {
 			outputs = string(outBytes)
 		}
-		children = apiTaskDetailV2.GetChildTaskIds()
+		for _, c := range apiTaskDetailV2.GetChildTasks() {
+			if c.GetTaskId() != "" {
+				children = append(children, c.GetTaskId())
+			} else {
+				children = append(children, c.GetPodName())
+			}
+		}
+	case workflowapi.NodeStatus:
+		// TODO(gkcalat): parse input and output artifacts
+		wfStatus := t
+		nodeId = wfStatus.ID
+		name = wfStatus.DisplayName
+		state = string(wfStatus.Phase)
+		startTime = wfStatus.StartedAt.Unix()
+		createTime = startTime
+		finishTime = wfStatus.FinishedAt.Unix()
+		children = wfStatus.Children
 	default:
 		return nil, util.NewUnknownApiVersionError("Task", t)
 	}
 	return &model.Task{
 		UUID:              taskId,
+		PodName:           nodeId,
 		Namespace:         namespace,
 		PipelineName:      pipelineName,
 		RunId:             runId,
-		MLMDExecutionID:   executionId,
+		MLMDExecutionID:   mlmdExecId,
 		CreatedTimestamp:  createTime,
 		StartedTimestamp:  startTime,
 		FinishedTimestamp: finishTime,
@@ -1711,7 +1726,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		StateHistory:      stateHistory,
 		MLMDInputs:        inputs,
 		MLMDOutputs:       outputs,
-		ChildTaskIds:      children,
+		ChildrenPods:      children,
 	}, nil
 }
 
@@ -1749,6 +1764,32 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			modelTask, err := toModelTask(apiTask)
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to convert API tasks to their internal representations")
+			}
+			modelTasks = append(modelTasks, modelTask)
+		}
+		return modelTasks, nil
+	case *util.Workflow:
+		execSpec := t
+		runId := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
+		namespace := execSpec.ExecutionNamespace()
+		createdAt := execSpec.GetCreationTimestamp().Unix()
+		if tasks, err := toModelTasks(execSpec.Status.Nodes); err == nil {
+			for _, task := range tasks {
+				task.RunId = runId
+				task.Namespace = namespace
+				task.CreatedTimestamp = createdAt
+			}
+			return tasks, nil
+		} else {
+			return nil, util.Wrap(err, "Failed to convert Argo workflow to tasks details")
+		}
+	case workflowapi.Nodes:
+		wfNodes := t
+		modelTasks := make([]*model.Task, 0)
+		for _, node := range wfNodes {
+			modelTask, err := toModelTask(node)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert Argo Nodes to their internal representations")
 			}
 			modelTasks = append(modelTasks, modelTask)
 		}
@@ -1802,6 +1843,12 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 			}
 		}
 	}
+	var children []*apiv2beta1.PipelineTaskDetail_ChildTask
+	for _, c := range t.ChildrenPods {
+		children = append(children, &apiv2beta1.PipelineTaskDetail_ChildTask{
+			ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: c},
+		})
+	}
 	return &apiv2beta1.PipelineTaskDetail{
 		RunId:        t.RunId,
 		TaskId:       t.UUID,
@@ -1815,7 +1862,7 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 		Outputs:      outputArtifacts,
 		ParentTaskId: t.ParentTaskId,
 		StateHistory: toApiRuntimeStatuses(t.StateHistory),
-		ChildTaskIds: t.ChildTaskIds,
+		ChildTasks:   children,
 	}
 }
 

@@ -14,12 +14,17 @@
 
 package model
 
+import (
+	"encoding/json"
+)
+
 type Task struct {
 	UUID      string `gorm:"column:UUID; not null; primary_key"`
 	Namespace string `gorm:"column:Namespace; not null;"`
 	// PipelineName was deprecated. Use RunId instead.
 	PipelineName       string           `gorm:"column:PipelineName; not null;"`
 	RunId              string           `gorm:"column:RunUUID; not null;"`
+	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
 	StartedTimestamp   int64            `gorm:"column:StartedTimestamp;"`
@@ -31,10 +36,19 @@ type Task struct {
 	StateHistoryString string           `gorm:"column:StateHistory; default:null;"`
 	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; size:65535;"`
 	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; size:65535;"`
-	ChildTaskIdsString string           `gorm:"column:ChildTaskIds; default:null; size:65535;"`
+	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; size:65535;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
-	ChildTaskIds       []string         `gorm:"-;"`
+	ChildrenPods       []string         `gorm:"-;"`
 	Payload            string           `gorm:"column:Payload; default:null; size:65535;"`
+}
+
+func (t Task) ToString() string {
+	task, err := json.Marshal(t)
+	if err != nil {
+		return ""
+	} else {
+		return string(task)
+	}
 }
 
 func (t Task) PrimaryKeyColumnName() string {

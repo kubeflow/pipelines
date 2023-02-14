@@ -30,6 +30,36 @@ type ReportServer struct {
 	resourceManager *resource.ResourceManager
 }
 
+// Extracts task details from an execution spec and reports them to storage.
+func (s ReportServer) reportTasksFromExecution(wf *util.Workflow) error {
+	if len(wf.Status.Nodes) == 0 {
+		return nil
+	}
+	// tasks, err := toModelTasks(wf.Status.Nodes)
+	// if err != nil {
+	// 	return util.Wrap(err, "Failed to report tasks of an execution")
+	// }
+
+	return nil
+}
+
+// Report a workflow based on execution spec.
+func (s *ReportServer) reportWorkflow(ctx context.Context, execSpec *util.ExecutionSpec) (*empty.Empty, error) {
+	wf, err := util.NewWorkflowFromInterface(execSpec)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert execution spec to Argo workflow")
+	}
+	err = s.reportTasksFromExecution(wf)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to report task details")
+	}
+	err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to report workflow")
+	}
+	return &empty.Empty{}, nil
+}
+
 func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	request *apiv1beta1.ReportWorkflowRequest,
 ) (*empty.Empty, error) {

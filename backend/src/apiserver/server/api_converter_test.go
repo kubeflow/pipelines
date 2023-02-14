@@ -17,8 +17,10 @@ package server
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -3066,7 +3068,7 @@ func Test_toModelTask(t *testing.T) {
 				StateHistory:      nil,
 				MLMDInputs:        "",
 				MLMDOutputs:       "",
-				ChildTaskIds:      nil,
+				ChildrenPods:      nil,
 			},
 			false,
 			"",
@@ -3102,7 +3104,14 @@ func Test_toModelTask(t *testing.T) {
 						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
 					},
 				},
-				ChildTaskIds: []string{"9", "10"},
+				ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+					{
+						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
+					},
+					{
+						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
+					},
+				},
 			},
 			&model.Task{
 				UUID:              "1",
@@ -3126,7 +3135,30 @@ func Test_toModelTask(t *testing.T) {
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildTaskIds: []string{"9", "10"},
+				ChildrenPods: []string{"9", "10"},
+			},
+			false,
+			"",
+		},
+		{
+			"argo node status",
+			workflowapi.NodeStatus{
+				ID:          "1",
+				DisplayName: "node_1",
+				Name:        "wrong name",
+				Phase:       workflowapi.NodePhase("Pending"),
+				Children:    []string{"node3", "node4"},
+				StartedAt:   v1.Time{Time: time.Unix(4, 0)},
+				FinishedAt:  v1.Time{Time: time.Unix(5, 0)},
+			},
+			&model.Task{
+				PodName:           "1",
+				CreatedTimestamp:  4,
+				StartedTimestamp:  4,
+				FinishedTimestamp: 5,
+				Name:              "node_1",
+				State:             model.RuntimeStatePending,
+				ChildrenPods:      []string{"node3", "node4"},
 			},
 			false,
 			"",
@@ -3184,7 +3216,7 @@ func Test_toModelTasks(t *testing.T) {
 			StateHistory:      nil,
 			MLMDInputs:        "",
 			MLMDOutputs:       "",
-			ChildTaskIds:      nil,
+			ChildrenPods:      nil,
 		},
 	}
 	gotV1, err := toModelTasks(argV1)
@@ -3221,7 +3253,14 @@ func Test_toModelTasks(t *testing.T) {
 					Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
 				},
 			},
-			ChildTaskIds: []string{"9", "10"},
+			ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+				{
+					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
+				},
+				{
+					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
+				},
+			},
 		},
 	}
 	expectedV2 := []*model.Task{
@@ -3247,7 +3286,7 @@ func Test_toModelTasks(t *testing.T) {
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildTaskIds: []string{"9", "10"},
+			ChildrenPods: []string{"9", "10"},
 		},
 	}
 	gotV2, err := toModelTasks(argV2)
@@ -3287,7 +3326,14 @@ func Test_toModelTasks(t *testing.T) {
 							Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
 						},
 					},
-					ChildTaskIds: []string{"9", "10"},
+					ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+						{
+							ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
+						},
+						{
+							ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
+						},
+					},
 				},
 			},
 		},
@@ -3315,6 +3361,63 @@ func Test_toModelTasks(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "RunDetails cannot be nil")
 	assert.Nil(t, gotV2runNil2)
+
+	argNode := workflowapi.Nodes{
+		"node-1": {
+			ID:          "1",
+			DisplayName: "node_1",
+			Name:        "wrong name",
+			Phase:       workflowapi.NodePhase("Pending"),
+			Children:    []string{"node3", "node4"},
+			StartedAt:   v1.Time{Time: time.Unix(4, 0)},
+			FinishedAt:  v1.Time{Time: time.Unix(5, 0)},
+		},
+	}
+
+	expectedNode := []*model.Task{
+		{
+			PodName:           "1",
+			CreatedTimestamp:  4,
+			StartedTimestamp:  4,
+			FinishedTimestamp: 5,
+			Name:              "node_1",
+			State:             model.RuntimeStatePending,
+			ChildrenPods:      []string{"node3", "node4"},
+		},
+	}
+	gotNode, err := toModelTasks(argNode)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNode, gotNode)
+
+	expectedWf := []*model.Task{
+		{
+			PodName:           "boudary_exec_id-node0",
+			Namespace:         "kubeflow",
+			RunId:             "run1_uid_true",
+			CreatedTimestamp:  -62135596800,
+			StartedTimestamp:  1675734919,
+			FinishedTimestamp: 1675735118,
+			Name:              "boudary_exec_id",
+			State:             model.RuntimeStateSucceeded,
+			ChildrenPods:      []string{"boudary_exec_id-node1"},
+		},
+		{
+			PodName:           "boudary_exec_id-node1",
+			Namespace:         "kubeflow",
+			RunId:             "run1_uid_true",
+			CreatedTimestamp:  -62135596800,
+			StartedTimestamp:  1675735015,
+			FinishedTimestamp: 1675735041,
+			Name:              "print-text",
+			State:             model.RuntimeStateSucceeded,
+		},
+	}
+	argWf, err := util.NewWorkflowFromBytes([]byte(`{  "kind": "Workflow",  "apiVersion": "argoproj.io/v1alpha1",  "metadata": {    "name": "run1",    "namespace": "kubeflow",    "uid": "run1_uid",	"labels": {	  "pipeline/runid": "run1_uid_true"	 }  },  "status": {    "phase": "Succeeded",    "startedAt": "2023-02-07T01:55:19Z",    "finishedAt": "2023-02-07T01:58:38Z",    "progress": "9/9",    "nodes": {      "boudary_exec_id-node0": {        "id": "boudary_exec_id-node0",        "name": "boudary_exec_id",        "displayName": "boudary_exec_id",        "type": "DAG",        "templateName": "file-passing-pipelines",        "templateScope": "local/boudary_exec_id",        "phase": "Succeeded",        "startedAt": "2023-02-07T01:55:19Z",        "finishedAt": "2023-02-07T01:58:38Z",        "progress": "9/9",        "resourcesDuration": {"cpu": 53,"memory": 19},        "children": ["boudary_exec_id-node1"],        "outboundNodes": ["boudary_exec_id-node1"]      },      "boudary_exec_id-node1": {        "id": "boudary_exec_id-node1",        "name": "boudary_exec_id.print-text",        "displayName": "print-text",        "type": "Pod",        "templateName": "print-text",        "templateScope": "local/boudary_exec_id",        "phase": "Succeeded",        "boundaryID": "boudary_exec_id",        "startedAt": "2023-02-07T01:56:55Z",        "finishedAt": "2023-02-07T01:57:21Z",        "progress": "1/1",        "resourcesDuration": {"cpu": 15,"memory": 7},        "inputs": {"artifacts": [{"name": "repeat-line-output_text",              "path": "/tmp/inputs/text/data",              "s3": {"key": "art1.tgz"}}]},        "outputs": {"artifacts": [{"name": "main-logs",              "s3": {"key": "art1.log"}}],          "exitCode": "0"},        "hostNodeName": "gke-kfp-node1"      }    }  }}`))
+	assert.Nil(t, err)
+
+	gotWf, err := toModelTasks(argWf)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedWf, gotWf)
 }
 
 func Test_toApiTaskV1(t *testing.T) {
@@ -3341,7 +3444,7 @@ func Test_toApiTaskV1(t *testing.T) {
 				StateHistory:      nil,
 				MLMDInputs:        "",
 				MLMDOutputs:       "",
-				ChildTaskIds:      nil,
+				ChildrenPods:      nil,
 			},
 			&apiv1beta1.Task{
 				Id:              "1",
@@ -3378,7 +3481,7 @@ func Test_toApiTaskV1(t *testing.T) {
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildTaskIds: []string{"9", "10"},
+				ChildrenPods: []string{"9", "10"},
 			},
 			&apiv1beta1.Task{
 				Id:              "1",
@@ -3418,7 +3521,7 @@ func Test_toApiTasksV1(t *testing.T) {
 			StateHistory:      nil,
 			MLMDInputs:        "",
 			MLMDOutputs:       "",
-			ChildTaskIds:      nil,
+			ChildrenPods:      nil,
 		},
 		{
 			UUID:              "1",
@@ -3442,7 +3545,7 @@ func Test_toApiTasksV1(t *testing.T) {
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildTaskIds: []string{"9", "10"},
+			ChildrenPods: []string{"9", "10"},
 		},
 	}
 	expected := []*apiv1beta1.Task{
@@ -3530,7 +3633,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildTaskIds: []string{"9", "10"},
+				ChildrenPods: []string{"9", "10"},
 			},
 			&apiv2beta1.PipelineTaskDetail{
 				RunId:       "2",
@@ -3559,7 +3662,14 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
 					},
 				},
-				ChildTaskIds: []string{"9", "10"},
+				ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+					{
+						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
+					},
+					{
+						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
+					},
+				},
 			},
 			false,
 			"",
@@ -3588,7 +3698,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
 				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildTaskIds: []string{"9", "10"},
+				ChildrenPods: []string{"9", "10"},
 			},
 			&apiv2beta1.PipelineTaskDetail{
 				RunId:  "2",
@@ -3621,7 +3731,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
-				ChildTaskIds: []string{"9", "10"},
+				ChildrenPods: []string{"9", "10"},
 			},
 			&apiv2beta1.PipelineTaskDetail{
 				RunId:  "2",
@@ -3681,7 +3791,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildTaskIds: []string{"9", "10"},
+			ChildrenPods: []string{"9", "10"},
 		},
 	}
 	expected := []*apiv2beta1.PipelineTaskDetail{
@@ -3722,7 +3832,14 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 					Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
 				},
 			},
-			ChildTaskIds: []string{"9", "10"},
+			ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+				{
+					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
+				},
+				{
+					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
+				},
+			},
 		},
 	}
 	got := toApiPipelineTaskDetails(args)
@@ -3751,7 +3868,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
 			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildTaskIds: []string{"9", "10"},
+			ChildrenPods: []string{"9", "10"},
 		},
 		{
 			UUID:              "1",
@@ -3775,7 +3892,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
 			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
-			ChildTaskIds: []string{"9", "10"},
+			ChildrenPods: []string{"9", "10"},
 		},
 	}
 	got2 := toApiPipelineTaskDetails(args2)
@@ -3850,7 +3967,14 @@ func TestToModelRun(t *testing.T) {
 									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task3"},
+								},
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task4"},
+								},
+							},
 						},
 					},
 				},
@@ -3916,7 +4040,7 @@ func TestToModelRun(t *testing.T) {
 									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildrenPods: []string{"task3", "task4"},
 						},
 					},
 				},
@@ -4000,7 +4124,14 @@ func TestToModelRun(t *testing.T) {
 									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task3"},
+								},
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task4"},
+								},
+							},
 						},
 					},
 				},
@@ -4064,7 +4195,7 @@ func TestToModelRun(t *testing.T) {
 									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildrenPods: []string{"task3", "task4"},
 						},
 					},
 				},
@@ -4271,7 +4402,7 @@ func Test_toApiRun(t *testing.T) {
 									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildrenPods: []string{"task3", "task4"},
 						},
 					},
 				},
@@ -4348,7 +4479,14 @@ func Test_toApiRun(t *testing.T) {
 									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task3"},
+								},
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task4"},
+								},
+							},
 						},
 					},
 				},
@@ -4417,7 +4555,7 @@ func Test_toApiRun(t *testing.T) {
 									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildrenPods: []string{"task3", "task4"},
 						},
 					},
 				},
@@ -4482,7 +4620,7 @@ func Test_toApiRun(t *testing.T) {
 									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
 								},
 							},
-							ChildTaskIds: []string{"task3", "task4"},
+							ChildrenPods: []string{"task3", "task4"},
 						},
 					},
 				},

@@ -318,12 +318,12 @@ message PipelineTaskDetail {
   // A dependent task that requires this one to succeed.
   // Represented by either task_id or pod_name.
   message ChildTask {
-    oneof pipeline_source {
+    oneof child_task {
       // System-generated ID of a task.
       string task_id = 1;
   
-    // Name of the corresponding pod assigned by the orchestration engine.
-    // Also known as node_id.
+      // Name of the corresponding pod assigned by the orchestration engine.
+      // Also known as node_id.
       string pod_name = 2;
     }
   }
