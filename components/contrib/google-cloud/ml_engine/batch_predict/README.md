@@ -191,9 +191,9 @@ OUTPUT_FILES_PATTERN = OUTPUT_GCS_PATH + '*'
 ```
 
 ## References
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/ml_engine/_batch_predict.py)
-* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/ml_engine/batch_predict/sample.ipynb)
+* [Component python code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/ml_engine/_batch_predict.py)
+* [Component docker file](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/Dockerfile)
+* [Sample notebook](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/ml_engine/batch_predict/sample.ipynb)
 * [Cloud Machine Learning Engine job REST API](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs)
 
 ## License

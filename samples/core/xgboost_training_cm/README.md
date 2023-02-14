@@ -55,25 +55,25 @@ Note that each pipeline run will create a unique directory under `output` so it 
 ## Components source
 
 Create Cluster:
-  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_create_cluster.py) 
+  [source code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_create_cluster.py) 
 
 Analyze (step one for preprocessing), Transform (step two for preprocessing) are using pyspark job
 submission component, with
-  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_pyspark_job.py) 
+  [source code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_pyspark_job.py) 
 
 Distributed Training and predictions are using spark job submission component, with
-  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_spark_job.py) 
+  [source code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_spark_job.py) 
 
 Delete Cluster:
-  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_delete_cluster.py) 
+  [source code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_delete_cluster.py) 
 
-The container file is located [here](https://github.com/kubeflow/pipelines/tree/master/components/gcp/container) 
+The container file is located [here](https://github.com/kubeflow/pipelines/tree/release-1.7/components/gcp/container) 
 
 For visualization, we use confusion matrix and ROC.
 Confusion Matrix:	
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src),
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)
+  [source code](https://github.com/kubeflow/pipelines/tree/release-1.7/components/local/confusion_matrix/src),
+  [container](https://github.com/kubeflow/pipelines/tree/release-1.7/components/local/confusion_matrix)
 and ROC: 
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/roc/src), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/roc)
+  [source code](https://github.com/kubeflow/pipelines/tree/release-1.7/components/local/roc/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/release-1.7/components/local/roc)
 
