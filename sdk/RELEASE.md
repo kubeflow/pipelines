@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Enables Output defintitions when compiling components as pipelines
 
 ## Breaking changes
 
