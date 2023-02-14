@@ -196,9 +196,9 @@ The sample in the notebook will count the words in the input text and save them 
 ```
 
 ## References
-*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_hadoop_job.py)
-*   [Component Docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-*   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/submit_hadoop_job/sample.ipynb)
+*   [Component Python code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_hadoop_job.py)
+*   [Component Docker file](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/Dockerfile)
+*   [Sample notebook](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/dataproc/submit_hadoop_job/sample.ipynb)
 *   [Dataproc HadoopJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HadoopJob)
 
 # License

@@ -232,9 +232,9 @@ Use the following command to inspect the contents in the output directory:
 ```
 
 ## References
-* [Component Python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/ml_engine/_train.py)
-* [Component Docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/ml_engine/train/sample.ipynb)
+* [Component Python code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/ml_engine/_train.py)
+* [Component Docker file](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/Dockerfile)
+* [Sample notebook](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/ml_engine/train/sample.ipynb)
 * [AI Platform REST API - Resource: Job](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs)
 
 ## License
