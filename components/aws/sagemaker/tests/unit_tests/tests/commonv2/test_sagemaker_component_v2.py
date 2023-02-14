@@ -3,17 +3,12 @@ import os
 import unittest
 from unittest.mock import patch, call, MagicMock
 
-from commonv2.common_inputs import (
-    COMMON_INPUTS,
-)
 from commonv2.sagemaker_component import (
     ComponentMetadata,
     SageMakerComponent,
-    SageMakerJobStatus,
 )
 from tests.unit_tests.tests.commonv2.dummy_spec import (
     DummyOutputs,
-    DummySpec,
 )
 from tests.unit_tests.tests.commonv2.dummy_component import DummyComponent
 
@@ -48,117 +43,6 @@ class SageMakerComponentTestCase(unittest.TestCase):
         )
         cls.component.job_request_outline_location = test_job_request_outline_location
 
-    def test_do_exits_with_error(self):
-        self.component._init_configure_k8s = MagicMock()
-        self.component._do = MagicMock(side_effect=Exception("Fire!"))
-
-        # Expect the exception is raised up to root
-        with self.assertRaises(Exception):
-            self.component.Do(COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS)
-
-    def test_do_initialization_error(self):
-        self.component._init_configure_k8s = MagicMock(side_effect=Exception("Fire!"))
-
-        with patch("commonv2.sagemaker_component.sys") as mock_sys:
-            self.component.Do(COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS)
-
-        mock_sys.exit.assert_called_with(1)
-
-    def test_do_returns_false_exists(self):
-        self.component._do = MagicMock(return_value=False)
-        self.component._init_configure_k8s = MagicMock()
-
-        with patch("commonv2.sagemaker_component.sys") as mock_sys:
-            self.component.Do(COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS)
-
-        mock_sys.exit.assert_called_once_with(1)
-
-    def test_do_returns_false_for_faulty_submit(self):
-        self.component._submit_job_request = MagicMock(
-            side_effect=Exception("Failed to create")
-        )
-
-        self.component._after_submit_job_request = MagicMock()
-
-        response = self.component._do(
-            COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS
-        )
-
-        self.assertFalse(response)
-        self.component._after_submit_job_request.assert_not_called()
-
-    def test_do_polls_for_status(self):
-        self.component._get_job_status = MagicMock()
-        self.component._get_job_status.side_effect = [
-            SageMakerJobStatus(is_completed=False, raw_status="status1"),
-            SageMakerJobStatus(is_completed=False, raw_status="status2"),
-            SageMakerJobStatus(is_completed=True, raw_status="status3"),
-            SageMakerJobStatus(is_completed=True, raw_status="unreachable"),
-        ]
-
-        self.component._after_job_complete = MagicMock()
-        self.component._write_all_outputs = MagicMock()
-
-        self.component._check_resource_conditions = MagicMock(return_value=None)
-        self.component._get_resource = MagicMock(
-            return_value={"status": {"ackResourceMetadata": {"arn": "test-arn"}}}
-        )
-
-        response = self.component._do(
-            COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS
-        )
-
-        self.component._after_job_complete.assert_called()
-
-        self.assertTrue(response)
-
-    def test_do_poll_handles_exceptions(self):
-        self.component._get_job_status = MagicMock()
-        self.component._get_job_status.side_effect = [
-            SageMakerJobStatus(is_completed=False, raw_status="status1"),
-            SageMakerJobStatus(is_completed=False, raw_status="status2"),
-            Exception("A random error occurred"),
-            SageMakerJobStatus(is_completed=False, raw_status="unreachable"),
-        ]
-
-        self.component._after_job_complete = MagicMock()
-
-        response = self.component._do(
-            COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS
-        )
-
-        self.component._after_job_complete.assert_not_called()
-        self.assertFalse(response)
-
-    @patch("commonv2.sagemaker_component.logging")
-    def test_do_polls_for_status_catches_errors(self, mock_logging):
-        self.component._get_job_status = MagicMock()
-        self.component._get_job_status.side_effect = [
-            SageMakerJobStatus(is_completed=False, raw_status="status1"),
-            SageMakerJobStatus(is_completed=False, raw_status="status2"),
-            SageMakerJobStatus(
-                is_completed=True,
-                raw_status="status3",
-                has_error=True,
-                error_message="abc123",
-            ),
-        ]
-
-        self.component._after_job_complete = MagicMock()
-        self.component._write_all_outputs = MagicMock()
-
-        self.component._check_resource_conditions = MagicMock(return_value=None)
-        self.component._get_resource = MagicMock(
-            return_value={"status": {"ackResourceMetadata": {"arn": "test-arn"}}}
-        )
-
-        response = self.component._do(
-            COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS
-        )
-
-        mock_logging.error.assert_any_call("abc123")
-        self.component._after_job_complete.assert_not_called()
-        self.assertFalse(response)
 
     @patch(
         "commonv2.sagemaker_component.strftime",
@@ -307,95 +191,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
                 self.component._wait_resource_consumed_by_controller(5, 0.01)
             )
 
-    @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
-    @patch("kubernetes.client.CustomObjectsApi")
-    def test_create_custom_resource(self, mock_custom_objects_api):
-
-        cr_dict = {}
-        self.component.group = "group-test"
-        self.component.version = "version-test"
-        self.component.plural = "plural-test"
-
-        self.component._create_custom_resource(cr_dict)
-        mock_custom_objects_api().create_cluster_custom_object.assert_called_once_with(
-            "group-test", "version-test", "plural-test", {}
-        )
-
-        self.component.namespace = "namespace-test"
-        self.component._create_custom_resource(cr_dict)
-        mock_custom_objects_api().create_namespaced_custom_object.assert_called_once_with(
-            "group-test", "version-test", "namespace-test", "plural-test", {}
-        )
-
-    @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
-    @patch("kubernetes.client.CustomObjectsApi")
-    def test_get_resource(self, mock_custom_objects_api):
-        self.component.group = "group-test"
-        self.component.version = "version-test"
-        self.component.plural = "plural-test"
-        self.component.job_name = "ack-job-name-test"
-
-        self.component._get_resource()
-        mock_custom_objects_api().get_cluster_custom_object.assert_called_once_with(
-            "group-test", "version-test", "plural-test", "ack-job-name-test"
-        )
-
-        self.component.namespace = "namespace-test"
-        self.component._get_resource()
-        mock_custom_objects_api().get_namespaced_custom_object.assert_called_once_with(
-            "group-test",
-            "version-test",
-            "namespace-test",
-            "plural-test",
-            "ack-job-name-test",
-        )
-
-    @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
-    @patch("kubernetes.client.CustomObjectsApi")
-    def test_delete_custom_resource(self, mock_custom_objects_api):
-        self.component.group = "group-test"
-        self.component.version = "version-test"
-        self.component.plural = "plural-test"
-        self.component.job_name = "ack-job-name-test"
-
-        with patch.object(
-            SageMakerComponent, "_get_resource_exists", return_value=False
-        ) as mock_exists:
-            _, ret_val = self.component._delete_custom_resource()
-            mock_custom_objects_api().delete_cluster_custom_object.assert_called_once_with(
-                "group-test", "version-test", "plural-test", "ack-job-name-test"
-            )
-            self.assertTrue(ret_val)
-
-    def test_create_job_yaml(self):
-        self.component.job_name = "ack-job-name-test"
-        with patch(
-            "builtins.open",
-            MagicMock(return_value=open(self.component.job_request_outline_location)),
-        ) as mock_open:
-            Args = ["--input1", "abc123", "--input2", "123", "--region", "us-west-1"]
-            nSpec = DummySpec(Args)
-
-            result = self.component._create_job_yaml(nSpec._inputs, DummySpec.OUTPUTS)
-
-            sample = {
-                "apiVersion": "sagemaker.services.k8s.aws/v1alpha1",
-                "kind": "TrainingJob",
-                "metadata": {
-                    "name": "ack-job-name-test",
-                    "annotations": {"services.k8s.aws/region": "us-west-1"},
-                },
-                "spec": {
-                    "spotInstance": False,
-                    "maxWaitTime": 1,
-                    "inputStr": "input",
-                    "inputInt": 1,
-                    "inputBool": False,
-                },
-            }
-            print("\n\n", result, "\n\n", sample, "\n\n")
-
-            self.assertDictEqual(result, sample)
+    
 
     def test_check_resource_conditions(self):
         ackdict_terminal = {

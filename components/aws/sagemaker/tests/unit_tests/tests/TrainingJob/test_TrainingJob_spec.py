@@ -24,10 +24,21 @@ class TrainingSpecTestCase(unittest.TestCase):
         "--training_job_name",
         "kfp-ack-training-job-99999",
     ]
+    INCORRECT_ARGS = [
+        "--empty"
+    ]
+    
+
 
     def test_minimum_required_args(self):
         # Will raise an exception if the inputs are incorrect
         spec = SageMakerTrainingJobSpec(self.REQUIRED_ARGS)
+    
+    def test_incorrect_args(self):
+        # Will raise an exception if the inputs are incorrect
+        
+        with self.assertRaises(SystemExit):
+            spec = SageMakerTrainingJobSpec(self.INCORRECT_ARGS)
 
 
 if __name__ == "__main__":

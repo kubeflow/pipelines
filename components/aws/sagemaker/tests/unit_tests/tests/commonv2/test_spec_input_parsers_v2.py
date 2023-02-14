@@ -46,5 +46,4 @@ class SpecInputParsersTestCase(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # unittest.main()
-    par.yaml_or_json_list("{a: 1}")
+    unittest.main()
