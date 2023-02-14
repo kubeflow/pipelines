@@ -1,7 +1,7 @@
 # Current Version (in development)
 
 ## Features
-* Enables Output defintitions when compiling components as pipelines
+* Enables Output defintitions when compiling components as pipelines. [\#8848](https://github.com/kubeflow/pipelines/pull/8848)
 
 ## Breaking changes
 
