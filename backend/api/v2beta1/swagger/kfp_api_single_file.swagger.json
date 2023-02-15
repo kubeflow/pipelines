@@ -2207,10 +2207,6 @@
           "type": "string",
           "description": "System-generated ID of a task."
         },
-        "pod_name": {
-          "type": "string",
-          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
-        },
         "display_name": {
           "type": "string",
           "description": "User specified name of a task that is defined in\n[Pipeline.spec][]."
@@ -2271,6 +2267,10 @@
             "$ref": "#/definitions/v2beta1RuntimeStatus"
           },
           "description": "A sequence of task statuses. This field keeps a record \nof state transitions."
+        },
+        "pod_name": {
+          "type": "string",
+          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
         },
         "child_tasks": {
           "type": "array",

@@ -35,7 +35,6 @@ class V2beta1PipelineTaskDetail(object):
     openapi_types = {
         'run_id': 'str',
         'task_id': 'str',
-        'pod_name': 'str',
         'display_name': 'str',
         'create_time': 'datetime',
         'start_time': 'datetime',
@@ -48,13 +47,13 @@ class V2beta1PipelineTaskDetail(object):
         'outputs': 'dict(str, V2beta1ArtifactList)',
         'parent_task_id': 'str',
         'state_history': 'list[V2beta1RuntimeStatus]',
+        'pod_name': 'str',
         'child_tasks': 'list[PipelineTaskDetailChildTask]'
     }
 
     attribute_map = {
         'run_id': 'run_id',
         'task_id': 'task_id',
-        'pod_name': 'pod_name',
         'display_name': 'display_name',
         'create_time': 'create_time',
         'start_time': 'start_time',
@@ -67,10 +66,11 @@ class V2beta1PipelineTaskDetail(object):
         'outputs': 'outputs',
         'parent_task_id': 'parent_task_id',
         'state_history': 'state_history',
+        'pod_name': 'pod_name',
         'child_tasks': 'child_tasks'
     }
 
-    def __init__(self, run_id=None, task_id=None, pod_name=None, display_name=None, create_time=None, start_time=None, end_time=None, executor_detail=None, state=None, execution_id=None, error=None, inputs=None, outputs=None, parent_task_id=None, state_history=None, child_tasks=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, run_id=None, task_id=None, display_name=None, create_time=None, start_time=None, end_time=None, executor_detail=None, state=None, execution_id=None, error=None, inputs=None, outputs=None, parent_task_id=None, state_history=None, pod_name=None, child_tasks=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1PipelineTaskDetail - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -78,7 +78,6 @@ class V2beta1PipelineTaskDetail(object):
 
         self._run_id = None
         self._task_id = None
-        self._pod_name = None
         self._display_name = None
         self._create_time = None
         self._start_time = None
@@ -91,6 +90,7 @@ class V2beta1PipelineTaskDetail(object):
         self._outputs = None
         self._parent_task_id = None
         self._state_history = None
+        self._pod_name = None
         self._child_tasks = None
         self.discriminator = None
 
@@ -98,8 +98,6 @@ class V2beta1PipelineTaskDetail(object):
             self.run_id = run_id
         if task_id is not None:
             self.task_id = task_id
-        if pod_name is not None:
-            self.pod_name = pod_name
         if display_name is not None:
             self.display_name = display_name
         if create_time is not None:
@@ -124,6 +122,8 @@ class V2beta1PipelineTaskDetail(object):
             self.parent_task_id = parent_task_id
         if state_history is not None:
             self.state_history = state_history
+        if pod_name is not None:
+            self.pod_name = pod_name
         if child_tasks is not None:
             self.child_tasks = child_tasks
 
@@ -172,29 +172,6 @@ class V2beta1PipelineTaskDetail(object):
         """
 
         self._task_id = task_id
-
-    @property
-    def pod_name(self):
-        """Gets the pod_name of this V2beta1PipelineTaskDetail.  # noqa: E501
-
-        Name of the corresponding pod assigned by the orchestration engine. Also known as node_id.  # noqa: E501
-
-        :return: The pod_name of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :rtype: str
-        """
-        return self._pod_name
-
-    @pod_name.setter
-    def pod_name(self, pod_name):
-        """Sets the pod_name of this V2beta1PipelineTaskDetail.
-
-        Name of the corresponding pod assigned by the orchestration engine. Also known as node_id.  # noqa: E501
-
-        :param pod_name: The pod_name of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :type pod_name: str
-        """
-
-        self._pod_name = pod_name
 
     @property
     def display_name(self):
@@ -465,6 +442,29 @@ class V2beta1PipelineTaskDetail(object):
         """
 
         self._state_history = state_history
+
+    @property
+    def pod_name(self):
+        """Gets the pod_name of this V2beta1PipelineTaskDetail.  # noqa: E501
+
+        Name of the corresponding pod assigned by the orchestration engine. Also known as node_id.  # noqa: E501
+
+        :return: The pod_name of this V2beta1PipelineTaskDetail.  # noqa: E501
+        :rtype: str
+        """
+        return self._pod_name
+
+    @pod_name.setter
+    def pod_name(self, pod_name):
+        """Sets the pod_name of this V2beta1PipelineTaskDetail.
+
+        Name of the corresponding pod assigned by the orchestration engine. Also known as node_id.  # noqa: E501
+
+        :param pod_name: The pod_name of this V2beta1PipelineTaskDetail.  # noqa: E501
+        :type pod_name: str
+        """
+
+        self._pod_name = pod_name
 
     @property
     def child_tasks(self):
