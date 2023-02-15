@@ -673,8 +673,8 @@ implementation:
                                 pipeline_spec['deploymentSpec']['executors'])
 
     def test_pipeline_with_invalid_output(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Pipeline output not defined: msg1'):
+        with self.assertRaisesRegex(
+                ValueError, r'Pipeline or component output not defined: msg1'):
 
             @dsl.component
             def print_op(msg: str) -> str:
@@ -3090,6 +3090,94 @@ class TestOutputDefinitionsPresentWhenCompilingComponents(unittest.TestCase):
 
         self.assertIn('Output',
                       comp.pipeline_spec.root.output_definitions.parameters)
+
+
+class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
+
+    def test_python_component(self):
+
+        @dsl.component
+        def python_component(input_list: Input[List[Artifact]]):
+            pass
+
+        self.assertEqual(
+            python_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            python_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=python_component, package_path=output_yaml)
+            loaded_component = components.load_component_from_file(output_yaml)
+
+        self.assertEqual(
+            loaded_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            loaded_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+    def test_container_component(self):
+
+        @dsl.container_component
+        def container_component(input_list: Input[List[Artifact]]):
+            return dsl.ContainerSpec(
+                image='alpine', command=['echo'], args=['hello world'])
+
+        self.assertEqual(
+            container_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            container_component.pipeline_spec
+            .components['comp-container-component'].input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
+            loaded_component = components.load_component_from_file(output_yaml)
+
+        self.assertEqual(
+            loaded_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            loaded_component.pipeline_spec
+            .components['comp-container-component'].input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+
+    def test_pipeline(self):
+
+        @dsl.component
+        def python_component(input_list: Input[List[Artifact]]):
+            pass
+
+        @dsl.pipeline
+        def pipeline_component(input_list: Input[List[Artifact]]):
+            python_component(input_list=input_list)
+
+        self.assertEqual(
+            pipeline_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            pipeline_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_component, package_path=output_yaml)
+            loaded_component = components.load_component_from_file(output_yaml)
+
+        self.assertEqual(
+            loaded_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            loaded_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
 
 
 if __name__ == '__main__':
