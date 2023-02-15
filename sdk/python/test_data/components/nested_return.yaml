@@ -1,5 +1,7 @@
 # PIPELINE DEFINITION
 # Name: nested-return
+# Outputs:
+#    Output: list
 components:
   comp-nested-return:
     executorLabel: exec-nested-return
@@ -21,7 +23,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -40,6 +42,12 @@ pipelineInfo:
   name: nested-return
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: nested-return
     tasks:
       nested-return:
         cachingOptions:
@@ -48,5 +56,9 @@ root:
           name: comp-nested-return
         taskInfo:
           name: nested-return
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12
