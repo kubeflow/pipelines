@@ -1,3 +1,6 @@
+# Release 1.0.39
+* Fix AutoML Table pipeline failing on importing model evaluation metrics
+
 # Release 1.0.38
 * Fix default value issue in bigquery query API 
 
