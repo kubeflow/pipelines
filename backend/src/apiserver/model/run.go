@@ -301,7 +301,7 @@ func (r *Run) ToV2() *Run {
 
 // Stores runtime information about a pipeline run.
 type RunDetails struct {
-	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null;"`
+	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null; default:0;"`
 	ScheduledAtInSec int64 `gorm:"column:ScheduledAtInSec; default:0;"`
 	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0;"`
 	// Conditions were deprecated. Use State instead.
