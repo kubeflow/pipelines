@@ -44,7 +44,7 @@ REQUIRES = [
     # kfp-server-api.
     # Note, please also update ./requirements.in
     'kfp-server-api>=1.1.2,<2.0.0',
-    'jsonschema>=3.0.1,<4',
+    'jsonschema>=3.0.1,<5',
     'tabulate>=0.8.6,<1',
     'click>=7.1.2,<9',
     'Deprecated>=1.2.7,<2',
