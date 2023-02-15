@@ -83,7 +83,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-2
+            name: comp-print
           inputs:
             parameters:
               msg:
@@ -157,7 +157,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-3
+            name: comp-print
           inputs:
             parameters:
               msg:
@@ -181,7 +181,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-4
+            name: comp-print
           inputs:
             parameters:
               msg:
@@ -210,7 +210,7 @@ components:
       parameters:
         output:
           parameterType: NUMBER_INTEGER
-  comp-generate-random-number-2:
+  comp-generate-random-number-3:
     executorLabel: exec-generate-random-number-2
     outputDefinitions:
       parameters:
@@ -218,24 +218,6 @@ components:
           parameterType: NUMBER_INTEGER
   comp-print:
     executorLabel: exec-print
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-  comp-print-2:
-    executorLabel: exec-print-2
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-  comp-print-3:
-    executorLabel: exec-print-3
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-  comp-print-4:
-    executorLabel: exec-print-4
     inputDefinitions:
       parameters:
         msg:
@@ -278,24 +260,6 @@ deploymentSpec:
         - -c
         image: python:alpine3.6
     exec-print:
-      container:
-        command:
-        - echo
-        - '{{$.inputs.parameters[''msg'']}}'
-        image: python:alpine3.6
-    exec-print-2:
-      container:
-        command:
-        - echo
-        - '{{$.inputs.parameters[''msg'']}}'
-        image: python:alpine3.6
-    exec-print-3:
-      container:
-        command:
-        - echo
-        - '{{$.inputs.parameters[''msg'']}}'
-        image: python:alpine3.6
-    exec-print-4:
       container:
         command:
         - echo
@@ -346,4 +310,4 @@ root:
         taskInfo:
           name: flip-coin
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12

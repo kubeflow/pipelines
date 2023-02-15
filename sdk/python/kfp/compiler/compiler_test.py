@@ -3092,5 +3092,197 @@ class TestOutputDefinitionsPresentWhenCompilingComponents(unittest.TestCase):
                       comp.pipeline_spec.root.output_definitions.parameters)
 
 
+class TestDedupePipelineSpec(unittest.TestCase):
+
+    def test_basic(self):
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline():
+            task1 = print_op()
+            task2 = print_op(message='different')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        self.assertEqual(len(pipeline_spec.components), 1)
+
+        # check that primary component spec and corresponding executor exists
+        self.assertIn('comp-print-op', pipeline_spec.components)
+        self.assertIn(
+            'exec-print-op', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+
+        # check that the second component spec and corresponding executor does not exist
+        self.assertNotIn('comp-print-op-2', pipeline_spec.components)
+        self.assertNotIn(
+            'exec-print-op-2', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+
+        # check that primary component contains the correct executor label
+        self.assertEqual(
+            pipeline_spec.components['comp-print-op'].executor_label,
+            'exec-print-op')
+
+        # check tasks point to corrrect component spec reference
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op'].component_ref.name,
+            'comp-print-op')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-2'].component_ref.name,
+            'comp-print-op')
+
+        # check task specific input/ output information is not lost
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-2'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'different')
+
+    def test_task_specific_executor_case(self):
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline():
+            task1 = print_op()
+            task2 = print_op(
+                message='different').set_cpu_limit('4').set_memory_limit('14Gi')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        self.assertEqual(len(pipeline_spec.components), 2)
+
+        # check both tasks component spec and executors exist
+        self.assertIn('comp-print-op', pipeline_spec.components)
+        self.assertIn(
+            'exec-print-op', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+        self.assertIn('comp-print-op-2', pipeline_spec.components)
+        self.assertIn(
+            'exec-print-op-2', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+
+        # check both component specs contains the correct executor label
+        self.assertEqual(
+            pipeline_spec.components['comp-print-op'].executor_label,
+            'exec-print-op')
+        self.assertEqual(
+            pipeline_spec.components['comp-print-op-2'].executor_label,
+            'exec-print-op-2')
+
+        # check tasks point to corrrect component spec reference
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op'].component_ref.name,
+            'comp-print-op')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-2'].component_ref.name,
+            'comp-print-op-2')
+
+        # check information of resource spec is not lost
+        self.assertEqual(
+            4.0, pipeline_spec.deployment_spec.fields['executors'].struct_value
+            .fields['exec-print-op-2'].struct_value['container']
+            ['resources'].fields['cpuLimit'].number_value)
+        self.assertEqual(
+            15.032385536, pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields['exec-print-op-2'].struct_value['container']
+            ['resources'].fields['memoryLimit'].number_value)
+
+    def test_task_specific_configurations(self):
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline():
+            task1 = print_op()
+            task2 = print_op(message='different').set_display_name('name')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        self.assertEqual(len(pipeline_spec.components), 1)
+
+        # check one component spec and executor exist
+        self.assertIn('comp-print-op', pipeline_spec.components)
+        self.assertIn(
+            'exec-print-op', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+        self.assertNotIn('comp-print-op-2', pipeline_spec.components)
+        self.assertNotIn(
+            'exec-print-op-2', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+
+        # check tasks point to correct component spec
+
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op'].component_ref.name,
+            'comp-print-op')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-2'].component_ref.name,
+            'comp-print-op')
+
+        # check task specific information is saved
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-2'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'different')
+
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-2'].task_info.name, 'name')
+
+    def test_pipeline_in_pipeline(self):
+
+        @dsl.component
+        def print_op(msg: str):
+            print(msg)
+
+        @dsl.pipeline(name='graph-component')
+        def graph_component(msg: str):
+            print_op(msg=msg)
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline():
+            task1 = graph_component(msg='hello')
+            task2 = graph_component(msg='hello')
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
+            pipeline_spec = pipeline_spec_from_file(output_yaml)
+
+        self.assertEqual(len(pipeline_spec.components), 3)
+
+        # check both tasks component specs exist
+        self.assertIn('comp-graph-component', pipeline_spec.components)
+        self.assertIn('comp-graph-component-2', pipeline_spec.components)
+
+        # check only one executor exist
+        self.assertIn(
+            'exec-print-op', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+        self.assertNotIn(
+            'exec-print-op-2', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+
+
 if __name__ == '__main__':
     unittest.main()

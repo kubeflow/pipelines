@@ -10,12 +10,6 @@ components:
       parameters:
         Output:
           parameterType: LIST
-  comp-args-generator-op-2:
-    executorLabel: exec-args-generator-op-2
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: LIST
   comp-condition-1:
     dag:
       tasks:
@@ -23,7 +17,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-args-generator-op-2
+            name: comp-args-generator-op
           taskInfo:
             name: args-generator-op-2
         for-loop-2:
@@ -68,7 +62,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-8
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -114,7 +108,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-2
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -137,7 +131,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-3
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -190,7 +184,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-6
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -231,7 +225,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-7
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -275,7 +269,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-9
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -443,7 +437,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-4
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -484,7 +478,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-text-5
+            name: comp-print-text
           inputs:
             parameters:
               msg:
@@ -516,78 +510,6 @@ components:
         msg2:
           isOptional: true
           parameterType: STRING
-  comp-print-text-2:
-    executorLabel: exec-print-text-2
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
-  comp-print-text-3:
-    executorLabel: exec-print-text-3
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
-  comp-print-text-4:
-    executorLabel: exec-print-text-4
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
-  comp-print-text-5:
-    executorLabel: exec-print-text-5
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
-  comp-print-text-6:
-    executorLabel: exec-print-text-6
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
-  comp-print-text-7:
-    executorLabel: exec-print-text-7
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
-  comp-print-text-8:
-    executorLabel: exec-print-text-8
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
-  comp-print-text-9:
-    executorLabel: exec-print-text-9
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        msg2:
-          isOptional: true
-          parameterType: STRING
 deploymentSpec:
   executors:
     exec-args-generator-op:
@@ -602,36 +524,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef args_generator_op() -> list:\n    return [\n        {\n     \
-          \       'A_a': '1',\n            'B_b': ['2', '20'],\n        },\n     \
-          \   {\n            'A_a': '10',\n            'B_b': ['22', '222'],\n   \
-          \     },\n    ]\n\n"
-        image: python:3.7
-    exec-args-generator-op-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - args_generator_op
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -660,7 +553,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -688,7 +581,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -714,223 +607,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-3:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-4:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-5:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-6:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-7:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-8:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
-          \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.7
-    exec-print-text-9:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_text
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -1022,4 +699,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12

@@ -12,15 +12,6 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
           isOptional: true
-  comp-custom-artifact-printer-2:
-    executorLabel: exec-custom-artifact-printer-2
-    inputDefinitions:
-      artifacts:
-        artifact:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-          isOptional: true
   comp-importer:
     executorLabel: exec-importer
     inputDefinitions:
@@ -61,7 +52,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-python-artifact-printer-2
+            name: comp-python-artifact-printer
           inputs:
             artifacts:
               artifact:
@@ -84,24 +75,9 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
           isOptional: true
-  comp-python-artifact-printer-2:
-    executorLabel: exec-python-artifact-printer-2
-    inputDefinitions:
-      artifacts:
-        artifact:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-          isOptional: true
 deploymentSpec:
   executors:
     exec-custom-artifact-printer:
-      container:
-        command:
-        - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
-          "Else": ["echo", "No artifact provided!"]}}'
-        image: alpine
-    exec-custom-artifact-printer-2:
       container:
         command:
         - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
@@ -126,36 +102,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef python_artifact_printer(artifact: Optional[Input[Artifact]] =\
-          \ None):\n    if artifact is not None:\n        print(artifact.name)\n \
-          \       print(artifact.uri)\n        print(artifact.metadata)\n    else:\n\
-          \        print('No artifact provided!')\n\n"
-        image: python:3.7
-    exec-python-artifact-printer-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - python_artifact_printer
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -192,7 +139,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-custom-artifact-printer-2
+          name: comp-custom-artifact-printer
         taskInfo:
           name: custom-artifact-printer-2
       importer:
@@ -237,4 +184,4 @@ root:
           schemaVersion: 0.0.1
         isOptional: true
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.9
+sdkVersion: kfp-2.0.0-beta.12

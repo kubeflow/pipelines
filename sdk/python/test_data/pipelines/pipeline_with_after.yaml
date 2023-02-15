@@ -7,46 +7,10 @@ components:
       parameters:
         text:
           parameterType: STRING
-  comp-print-text-2:
-    executorLabel: exec-print-text-2
-    inputDefinitions:
-      parameters:
-        text:
-          parameterType: STRING
-  comp-print-text-3:
-    executorLabel: exec-print-text-3
-    inputDefinitions:
-      parameters:
-        text:
-          parameterType: STRING
 defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-print-text:
-      container:
-        command:
-        - sh
-        - -c
-        - 'set -e -x
-
-          echo "$0"
-
-          '
-        - '{{$.inputs.parameters[''text'']}}'
-        image: alpine
-    exec-print-text-2:
-      container:
-        command:
-        - sh
-        - -c
-        - 'set -e -x
-
-          echo "$0"
-
-          '
-        - '{{$.inputs.parameters[''text'']}}'
-        image: alpine
-    exec-print-text-3:
       container:
         command:
         - sh
@@ -79,7 +43,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-text-2
+          name: comp-print-text
         dependentTasks:
         - print-text
         inputs:
@@ -93,7 +57,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-text-3
+          name: comp-print-text
         dependentTasks:
         - print-text
         - print-text-2
@@ -105,4 +69,4 @@ root:
         taskInfo:
           name: print-text-3
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12

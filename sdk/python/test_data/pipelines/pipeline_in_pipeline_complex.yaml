@@ -29,7 +29,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-op
+            name: comp-print-op2
           inputs:
             parameters:
               msg:
@@ -98,7 +98,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-op1-2
+            name: comp-print-op1
           inputs:
             parameters:
               msg:
@@ -109,24 +109,8 @@ components:
       parameters:
         msg:
           parameterType: STRING
-  comp-print-op:
-    executorLabel: exec-print-op
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
   comp-print-op1:
     executorLabel: exec-print-op1
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
-  comp-print-op1-2:
-    executorLabel: exec-print-op1-2
     inputDefinitions:
       parameters:
         msg:
@@ -143,12 +127,6 @@ components:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-print-op:
-      container:
-        command:
-        - echo
-        - '{{$.inputs.parameters[''msg'']}}'
-        image: alpine
     exec-print-op1:
       container:
         args:
@@ -161,34 +139,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
-          \n"
-        image: python:3.7
-    exec-print-op1-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op1
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -241,4 +192,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12
