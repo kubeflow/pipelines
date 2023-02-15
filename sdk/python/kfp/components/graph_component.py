@@ -13,6 +13,7 @@
 # limitations under the License.
 """Pipeline as a component (aka graph component)."""
 
+from collections import OrderedDict
 import inspect
 from typing import Callable
 import uuid
@@ -89,8 +90,8 @@ class GraphComponent(base_component.BaseComponent):
     def dedupe_pipeline_spec(
         self, pipeline_spec: pipeline_spec_pb2.PipelineSpec
     ) -> pipeline_spec_pb2.PipelineSpec:
-        clone_mapping = {}
-        components_with_clones = {}
+        clone_mapping = OrderedDict()
+        components_with_clones = OrderedDict()
 
         # Collect the collection of dedupable components
         for component_name, component_spec in pipeline_spec.components.items():
