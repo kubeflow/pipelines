@@ -43,9 +43,13 @@ func (s ReportServer) reportTasksFromExecution(wf *util.Workflow) ([]*model.Task
 	return s.resourceManager.CreateOrUpdateTasks(tasks)
 }
 
-// Report a workflow based on execution spec.
-func (s *ReportServer) reportWorkflow(ctx context.Context, execSpec *util.ExecutionSpec) (*empty.Empty, error) {
-	wf, err := util.NewWorkflowFromInterface(execSpec)
+// Reports a workflow.
+func (s *ReportServer) reportWorkflow(ctx context.Context, workflow string) (*empty.Empty, error) {
+	execSpec, err := validateReportWorkflowRequest(workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Report workflow failed")
+	}
+	wf, err := util.NewWorkflowFromBytesJSON([]byte(workflow))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert execution spec to Argo workflow")
 	}
@@ -63,55 +67,44 @@ func (s *ReportServer) reportWorkflow(ctx context.Context, execSpec *util.Execut
 func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	request *apiv1beta1.ReportWorkflowRequest,
 ) (*empty.Empty, error) {
-	execSpec, err := validateReportWorkflowRequestV1(request)
-	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed")
-	}
-	return s.reportWorkflow(ctx, execSpec)
+	return s.reportWorkflow(ctx, request.GetWorkflow())
 }
 
 func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	request *apiv2beta1.ReportWorkflowRequest,
 ) (*empty.Empty, error) {
-	execSpec, err := validateReportWorkflowRequest(request)
+	return s.reportWorkflow(ctx, request.GetWorkflow())
+}
+
+// Reports a schduled workflow.
+func (s *ReportServer) reportScheduledWorkflow(ctx context.Context, swf string) (*empty.Empty, error) {
+	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(swf)
 	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed")
+		return nil, util.Wrap(err, "Report scheduled workflow failed")
 	}
-	return s.reportWorkflow(ctx, execSpec)
+	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	request *apiv1beta1.ReportScheduledWorkflowRequest,
 ) (*empty.Empty, error) {
-	scheduledWorkflow, err := validateReportScheduledWorkflowRequestV1(request)
-	if err != nil {
-		return nil, util.Wrap(err, "Report scheduled workflow failed")
-	}
-	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
-	if err != nil {
-		return nil, err
-	}
-	return &empty.Empty{}, nil
+	return s.reportScheduledWorkflow(ctx, request.GetScheduledWorkflow())
 }
 
 func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
 	request *apiv2beta1.ReportScheduledWorkflowRequest,
 ) (*empty.Empty, error) {
-	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(request)
-	if err != nil {
-		return nil, util.Wrap(err, "Report scheduled workflow failed")
-	}
-	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
-	if err != nil {
-		return nil, err
-	}
-	return &empty.Empty{}, nil
+	return s.reportScheduledWorkflow(ctx, request.GetScheduledWorkflow())
 }
 
-func validateReportWorkflowRequestV1(request *apiv1beta1.ReportWorkflowRequest) (*util.ExecutionSpec, error) {
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(request.Workflow))
+func validateReportWorkflowRequest(wfManifest string) (*util.ExecutionSpec, error) {
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(wfManifest))
 	if err != nil {
-		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
+		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, wfManifest)
 	}
 	if execSpec.ExecutionName() == "" {
 		return nil, util.NewInvalidInputError("The workflow must have a name: %+v", execSpec)
@@ -125,49 +118,12 @@ func validateReportWorkflowRequestV1(request *apiv1beta1.ReportWorkflowRequest) 
 	return &execSpec, nil
 }
 
-func validateReportWorkflowRequest(request *apiv2beta1.ReportWorkflowRequest) (*util.ExecutionSpec, error) {
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(request.Workflow))
-	if err != nil {
-		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
-	}
-	if execSpec.ExecutionName() == "" {
-		return nil, util.NewInvalidInputError("The workflow must have a name: %+v", execSpec)
-	}
-	if execSpec.ExecutionNamespace() == "" {
-		return nil, util.NewInvalidInputError("The workflow must have a namespace: %+v", execSpec)
-	}
-	if execSpec.ExecutionUID() == "" {
-		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", execSpec)
-	}
-	return &execSpec, nil
-}
-
-func validateReportScheduledWorkflowRequestV1(request *apiv1beta1.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
+func validateReportScheduledWorkflowRequest(swfManifest string) (*util.ScheduledWorkflow, error) {
 	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
-	err := json.Unmarshal([]byte(request.ScheduledWorkflow), &scheduledWorkflow)
+	err := json.Unmarshal([]byte(swfManifest), &scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
-			err, request.ScheduledWorkflow)
-	}
-	swf := util.NewScheduledWorkflow(&scheduledWorkflow)
-	if swf.Name == "" {
-		return nil, util.NewInvalidInputError("The resource must have a name: %+v", swf.ScheduledWorkflow)
-	}
-	if swf.Namespace == "" {
-		return nil, util.NewInvalidInputError("The resource must have a namespace: %+v", swf.ScheduledWorkflow)
-	}
-	if swf.UID == "" {
-		return nil, util.NewInvalidInputError("The resource must have a UID: %+v", swf.UID)
-	}
-	return swf, nil
-}
-
-func validateReportScheduledWorkflowRequest(request *apiv2beta1.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
-	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
-	err := json.Unmarshal([]byte(request.ScheduledWorkflow), &scheduledWorkflow)
-	if err != nil {
-		return nil, util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
-			err, request.ScheduledWorkflow)
+			err, swfManifest)
 	}
 	swf := util.NewScheduledWorkflow(&scheduledWorkflow)
 	if swf.Name == "" {
