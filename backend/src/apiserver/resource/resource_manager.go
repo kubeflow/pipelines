@@ -1207,10 +1207,15 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
 	return nil
 }
 
-// // Updates status information of a run and its tasks.
-// func (r *ResourceManager) updateRuntimeStatus() error {
-
-// }
+// Creates new tasks or updates existing ones.
+// This is not a part of internal API exposed to persistence agent only.
+func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task) ([]*model.Task, error) {
+	tasks, err := r.taskStore.CreateOrUpdateTasks(t)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create or update tasks")
+	}
+	return tasks, nil
+}
 
 // Reports a workflow CR.
 // This is called by the persistence agent to update runs.

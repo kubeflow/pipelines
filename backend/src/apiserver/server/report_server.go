@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -31,16 +32,15 @@ type ReportServer struct {
 }
 
 // Extracts task details from an execution spec and reports them to storage.
-func (s ReportServer) reportTasksFromExecution(wf *util.Workflow) error {
+func (s ReportServer) reportTasksFromExecution(wf *util.Workflow) ([]*model.Task, error) {
 	if len(wf.Status.Nodes) == 0 {
-		return nil
+		return nil, nil
 	}
-	// tasks, err := toModelTasks(wf.Status.Nodes)
-	// if err != nil {
-	// 	return util.Wrap(err, "Failed to report tasks of an execution")
-	// }
-
-	return nil
+	tasks, err := toModelTasks(wf.Status.Nodes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to report tasks of an execution")
+	}
+	return s.resourceManager.CreateOrUpdateTasks(tasks)
 }
 
 // Report a workflow based on execution spec.
@@ -49,7 +49,7 @@ func (s *ReportServer) reportWorkflow(ctx context.Context, execSpec *util.Execut
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert execution spec to Argo workflow")
 	}
-	err = s.reportTasksFromExecution(wf)
+	_, err = s.reportTasksFromExecution(wf)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report task details")
 	}

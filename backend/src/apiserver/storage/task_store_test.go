@@ -175,6 +175,7 @@ func TestListTasks(t *testing.T) {
 			PodName:           "pod4",
 			MLMDExecutionID:   "4",
 			StartedTimestamp:  5,
+			CreatedTimestamp:  5,
 			FinishedTimestamp: 6,
 			Fingerprint:       "1",
 		},
@@ -187,6 +188,7 @@ func TestListTasks(t *testing.T) {
 			RunId:             defaultFakeRunIdTwo,
 			MLMDExecutionID:   "5",
 			PodName:           "pod5",
+			CreatedTimestamp:  7,
 			StartedTimestamp:  7,
 			FinishedTimestamp: 8,
 			Fingerprint:       "10",
@@ -224,6 +226,7 @@ func TestTaskStore_GetTask(t *testing.T) {
 		RunId:             defaultFakeRunIdTwo,
 		PodName:           "pod4",
 		MLMDExecutionID:   "4",
+		CreatedTimestamp:  5,
 		StartedTimestamp:  5,
 		FinishedTimestamp: 6,
 		Fingerprint:       "1",
@@ -235,6 +238,7 @@ func TestTaskStore_GetTask(t *testing.T) {
 		PodName:           "pod5",
 		RunId:             defaultFakeRunIdTwo,
 		MLMDExecutionID:   "5",
+		CreatedTimestamp:  7,
 		StartedTimestamp:  7,
 		FinishedTimestamp: 8,
 		Fingerprint:       "10",
@@ -502,7 +506,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 // 	}
 // 	for _, tt := range tests {
 // 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := taskStore.UpdateOrCreateTasks(tt.tasks)
+// 			got, err := taskStore.CreateOrUpdateTasks(tt.tasks)
 // 			if tt.wantErr {
 // 				assert.NotNil(t, err)
 // 				assert.Contains(t, err.Error(), tt.errMsg)

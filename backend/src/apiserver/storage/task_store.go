@@ -68,6 +68,9 @@ type TaskStoreInterface interface {
 
 	// Fetches tasks for given filtering and listing options.
 	ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
+
+	// Creates new tasks or updates the existing ones.
+	CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, error)
 }
 
 type TaskStore struct {
@@ -364,8 +367,8 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
 	return nil
 }
 
-// Create new entries or updates existing ones.
-func (s *TaskStore) UpdateOrCreateTasks(tasks []*model.Task) ([]*model.Task, error) {
+// Creates new entries or updates existing ones.
+func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, error) {
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
 		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
 		for _, t := range ts {
