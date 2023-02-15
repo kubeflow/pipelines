@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -46,6 +47,16 @@ var taskColumns = []string{
 	"MLMDInputs",
 	"MLMDOutputs",
 	"ChildrenPods",
+}
+var taskColumnsWithPayload = append(taskColumns, "Payload")
+var taskColumnsUpdates = prepareUpdateSuffix(taskColumnsWithPayload)
+
+func prepareUpdateSuffix(columns []string) string {
+	columnsExtended := make([]string, 0)
+	for _, c := range taskColumnsWithPayload {
+		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=VALUES(%[1]v)", c))
+	}
+	return strings.Join(columnsExtended, ", ")
 }
 
 type TaskStoreInterface interface {
@@ -82,6 +93,16 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create an task id")
 	}
 	newTask.UUID = id.String()
+
+	if newTask.CreatedTimestamp == 0 {
+		if newTask.StartedTimestamp == 0 {
+			now := s.time.Now().Unix()
+			newTask.StartedTimestamp = now
+			newTask.CreatedTimestamp = now
+		} else {
+			newTask.CreatedTimestamp = newTask.StartedTimestamp
+		}
+	}
 
 	if len(newTask.StateHistory) > 0 {
 		stateHistoryString, err := json.Marshal(newTask.StateHistory)
@@ -308,27 +329,159 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	return tasks[0], nil
 }
 
-func (s *TaskStore) UpdateOrCreateTasks(id string) (*model.Task, error) {
+// Updates missing fields with existing data entries.
+func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
+	var podNames []string
+	for _, task := range tasks {
+		podNames = append(podNames, task.PodName)
+	}
 	sql, args, err := sq.
 		Select(taskColumns...).
 		From("tasks").
-		Where(sq.Eq{"tasks.uuid": id}).
-		Limit(1).ToSql()
+		Where(sq.Eq{"PodName": podNames}).
+		ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to get task: %v", err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to check existing tasks")
 	}
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get task: %v", err.Error())
+		return util.NewInternalServerError(err, "Failed to check existing tasks")
 	}
 	defer r.Close()
-	tasks, err := s.scanRows(r)
+	existingTasks, err := s.scanRows(r)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to parse existing tasks")
+	}
+	mapTasks := make(map[string]*model.Task, 0)
+	for _, task := range existingTasks {
+		mapTasks[task.PodName] = task
+	}
+	for _, task := range tasks {
+		if existingTask, ok := mapTasks[task.PodName]; ok {
+			patchTask(task, existingTask)
+		}
+	}
+	return nil
+}
 
-	if err != nil || len(tasks) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get pipeline: %v", err.Error())
+// Create new entries or updates existing ones.
+func (s *TaskStore) UpdateOrCreateTasks(tasks []*model.Task) ([]*model.Task, error) {
+	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
+		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
+		for _, t := range ts {
+			sqlInsert = sqlInsert.Values(
+				t.ToString(),
+				t.UUID,
+				t.Namespace,
+				t.PipelineName,
+				t.RunId,
+				t.PodName,
+				t.MLMDExecutionID,
+				t.CreatedTimestamp,
+				t.StartedTimestamp,
+				t.FinishedTimestamp,
+				t.Fingerprint,
+				t.Name,
+				t.ParentTaskId,
+				t.State.ToString(),
+				t.StateHistoryString,
+				t.MLMDInputs,
+				t.MLMDOutputs,
+				t.ChildrenPodsString,
+			)
+		}
+		sqlInsert = sqlInsert.Suffix("ON DUPLICATE KEY UPDATE ?", taskColumnsUpdates)
+		sql, args, err := sqlInsert.ToSql()
+		if err != nil {
+			return "", nil, util.NewInternalServerError(err, "Failed to create query to check existing tasks")
+		}
+		return sql, args, nil
 	}
-	if len(tasks) == 0 {
-		return nil, util.NewResourceNotFoundError("task", fmt.Sprint(id))
+
+	// Check for existing tasks and fill empty field with existing data.
+	// Assumes that PodName column is a unique key.
+	if err := s.patchWithExistingTasks(tasks); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to check for existing tasks")
 	}
-	return tasks[0], nil
+	for _, task := range tasks {
+		if task.UUID == "" {
+			id, err := s.uuid.NewRandom()
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to create an task id")
+			}
+			task.UUID = id.String()
+		}
+		if task.CreatedTimestamp == 0 {
+			if task.StartedTimestamp == 0 {
+				now := s.time.Now().Unix()
+				task.StartedTimestamp = now
+				task.CreatedTimestamp = now
+			} else {
+				task.CreatedTimestamp = task.StartedTimestamp
+			}
+		}
+	}
+
+	// Execute the query
+	sql, arg, err := buildQuery(tasks)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build query to update or insert tasks")
+	}
+	_, err = s.db.Exec(sql, arg...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to update or insert tasks")
+	}
+	return tasks, nil
+}
+
+// Fills empty fields in a new task with the data from an existing task.
+func patchTask(original *model.Task, patch *model.Task) {
+	if original.UUID == "" {
+		original.UUID = patch.UUID
+	}
+	if original.Namespace == "" {
+		original.Namespace = patch.Namespace
+	}
+	if original.RunId == "" {
+		original.RunId = patch.RunId
+	}
+	if original.PodName == "" {
+		original.PodName = patch.PodName
+	}
+	if original.MLMDExecutionID == "" {
+		original.MLMDExecutionID = patch.MLMDExecutionID
+	}
+	if original.CreatedTimestamp == 0 {
+		original.CreatedTimestamp = patch.CreatedTimestamp
+	}
+	if original.StartedTimestamp == 0 {
+		original.StartedTimestamp = patch.StartedTimestamp
+	}
+	if original.FinishedTimestamp == 0 {
+		original.FinishedTimestamp = patch.FinishedTimestamp
+	}
+	if original.Fingerprint == "" {
+		original.Fingerprint = patch.Fingerprint
+	}
+	if original.Name == "" {
+		original.Name = patch.Name
+	}
+	if original.ParentTaskId == "" {
+		original.ParentTaskId = patch.ParentTaskId
+	}
+	if original.State.ToV2() == model.RuntimeStateUnspecified && patch.State.ToV2() != model.RuntimeStateUnspecified {
+		original.State = patch.State
+	}
+	if original.MLMDInputs == "" {
+		original.MLMDInputs = patch.MLMDInputs
+	}
+	if original.MLMDOutputs == "" {
+		original.MLMDOutputs = patch.MLMDOutputs
+	}
+	if original.StateHistory == nil {
+		original.StateHistory = patch.StateHistory
+	}
+	if len(original.ChildrenPods) == 0 {
+		original.ChildrenPods = patch.ChildrenPods
+	}
 }
