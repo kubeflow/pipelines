@@ -25,16 +25,6 @@ components:
       parameters:
         Output:
           parameterType: NUMBER_INTEGER
-  comp-double-2:
-    executorLabel: exec-double-2
-    inputDefinitions:
-      parameters:
-        num:
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
   comp-for-loop-2:
     dag:
       outputs:
@@ -106,7 +96,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-double-2
+            name: comp-double
           inputs:
             parameters:
               num:
@@ -138,7 +128,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-nested-add-2
+            name: comp-nested-add
           inputs:
             parameters:
               nums:
@@ -149,7 +139,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-simple-add-2
+            name: comp-simple-add
           inputs:
             parameters:
               nums:
@@ -180,28 +170,8 @@ components:
       parameters:
         Output:
           parameterType: NUMBER_INTEGER
-  comp-nested-add-2:
-    executorLabel: exec-nested-add-2
-    inputDefinitions:
-      parameters:
-        nums:
-          parameterType: LIST
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
   comp-simple-add:
     executorLabel: exec-simple-add
-    inputDefinitions:
-      parameters:
-        nums:
-          parameterType: LIST
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
-  comp-simple-add-2:
-    executorLabel: exec-simple-add-2
     inputDefinitions:
       parameters:
         nums:
@@ -265,32 +235,6 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
         image: python:3.7
-    exec-double-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - double
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
-        image: python:3.7
     exec-nested-add:
       container:
         args:
@@ -318,60 +262,7 @@ deploymentSpec:
           \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
           \    return sum(itertools.chain(*nums))\n\n"
         image: python:3.7
-    exec-nested-add-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - nested_add
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
-          \    return sum(itertools.chain(*nums))\n\n"
-        image: python:3.7
     exec-simple-add:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - simple_add
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
-        image: python:3.7
-    exec-simple-add-2:
       container:
         args:
         - --executor_input

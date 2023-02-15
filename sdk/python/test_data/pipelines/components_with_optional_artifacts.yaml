@@ -12,15 +12,6 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
           isOptional: true
-  comp-custom-artifact-printer-2:
-    executorLabel: exec-custom-artifact-printer-2
-    inputDefinitions:
-      artifacts:
-        artifact:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-          isOptional: true
   comp-importer:
     executorLabel: exec-importer
     inputDefinitions:
@@ -61,7 +52,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-python-artifact-printer-2
+            name: comp-python-artifact-printer
           inputs:
             artifacts:
               artifact:
@@ -84,24 +75,9 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
           isOptional: true
-  comp-python-artifact-printer-2:
-    executorLabel: exec-python-artifact-printer-2
-    inputDefinitions:
-      artifacts:
-        artifact:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-          isOptional: true
 deploymentSpec:
   executors:
     exec-custom-artifact-printer:
-      container:
-        command:
-        - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
-          "Else": ["echo", "No artifact provided!"]}}'
-        image: alpine
-    exec-custom-artifact-printer-2:
       container:
         command:
         - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
@@ -192,7 +168,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-custom-artifact-printer-2
+          name: comp-custom-artifact-printer
         taskInfo:
           name: custom-artifact-printer-2
       importer:

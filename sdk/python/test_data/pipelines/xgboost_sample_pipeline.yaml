@@ -85,50 +85,6 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-  comp-xgboost-predict-3:
-    executorLabel: exec-xgboost-predict-3
-    inputDefinitions:
-      artifacts:
-        data:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-        model:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-      parameters:
-        label_column_name:
-          isOptional: true
-          parameterType: STRING
-    outputDefinitions:
-      artifacts:
-        predictions:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-  comp-xgboost-predict-4:
-    executorLabel: exec-xgboost-predict-4
-    inputDefinitions:
-      artifacts:
-        data:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-        model:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-      parameters:
-        label_column:
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      artifacts:
-        predictions:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
   comp-xgboost-train:
     executorLabel: exec-xgboost-train
     inputDefinitions:
@@ -184,7 +140,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-  comp-xgboost-train-2:
+  comp-xgboost-train-3:
     executorLabel: exec-xgboost-train-2
     inputDefinitions:
       artifacts:
@@ -397,111 +353,6 @@ deploymentSpec:
           \ default=argparse.SUPPRESS)\n_parser.add_argument(\"--predictions\", dest=\"\
           predictions_path\", type=_make_parent_dirs_and_return_path, required=True,\
           \ default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
-          \n_outputs = xgboost_predict(**_parsed_args)\n"
-        image: python:3.7
-    exec-xgboost-predict-3:
-      container:
-        args:
-        - --data
-        - '{{$.inputs.artifacts[''data''].path}}'
-        - --model
-        - '{{$.inputs.artifacts[''model''].path}}'
-        - '{"IfPresent": {"InputName": "label_column_name", "Then": ["--label-column-name",
-          "{{$.inputs.parameters[''label_column_name'']}}"]}}'
-        - --predictions
-        - '{{$.outputs.artifacts[''predictions''].path}}'
-        command:
-        - sh
-        - -c
-        - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-          'xgboost==1.1.1' 'pandas==1.0.5' 'pyarrow==0.17.1' || PIP_DISABLE_PIP_VERSION_CHECK=1
-          python3 -m pip install --quiet --no-warn-script-location 'xgboost==1.1.1'
-          'pandas==1.0.5' 'pyarrow==0.17.1' --user) && "$0" "$@"
-        - python3
-        - -u
-        - -c
-        - "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n\
-          \    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return\
-          \ file_path\n\ndef xgboost_predict(\n    data_path,\n    model_path,\n \
-          \   predictions_path,\n    label_column_name = None,\n):\n    '''Make predictions\
-          \ using a trained XGBoost model.\n\n    Args:\n        data_path: Path for\
-          \ the feature data in Apache Parquet format.\n        model_path: Path for\
-          \ the trained model in binary XGBoost format.\n        predictions_path:\
-          \ Output path for the predictions.\n        label_column_name: Optional.\
-          \ Name of the column containing the label data that is excluded during the\
-          \ prediction.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>\n\
-          \    '''\n    from pathlib import Path\n\n    import numpy\n    import pandas\n\
-          \    import xgboost\n\n    # Loading data\n    df = pandas.read_parquet(data_path)\n\
-          \    if label_column_name:\n        df = df.drop(columns=[label_column_name])\n\
-          \n    evaluation_data = xgboost.DMatrix(\n        data=df,\n    )\n\n  \
-          \  # Training\n    model = xgboost.Booster(model_file=model_path)\n\n  \
-          \  predictions = model.predict(evaluation_data)\n\n    Path(predictions_path).parent.mkdir(parents=True,\
-          \ exist_ok=True)\n    numpy.savetxt(predictions_path, predictions)\n\nimport\
-          \ argparse\n_parser = argparse.ArgumentParser(prog='Xgboost predict', description='Make\
-          \ predictions using a trained XGBoost model.\\n\\n    Args:\\n        data_path:\
-          \ Path for the feature data in Apache Parquet format.\\n        model_path:\
-          \ Path for the trained model in binary XGBoost format.\\n        predictions_path:\
-          \ Output path for the predictions.\\n        label_column_name: Optional.\
-          \ Name of the column containing the label data that is excluded during the\
-          \ prediction.\\n\\n    Annotations:\\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')\n\
-          _parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True,\
-          \ default=argparse.SUPPRESS)\n_parser.add_argument(\"--model\", dest=\"\
-          model_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
-          --label-column-name\", dest=\"label_column_name\", type=str, required=False,\
-          \ default=argparse.SUPPRESS)\n_parser.add_argument(\"--predictions\", dest=\"\
-          predictions_path\", type=_make_parent_dirs_and_return_path, required=True,\
-          \ default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
-          \n_outputs = xgboost_predict(**_parsed_args)\n"
-        image: python:3.7
-    exec-xgboost-predict-4:
-      container:
-        args:
-        - --data
-        - '{{$.inputs.artifacts[''data''].path}}'
-        - --model
-        - '{{$.inputs.artifacts[''model''].path}}'
-        - '{"IfPresent": {"InputName": "label_column", "Then": ["--label-column",
-          "{{$.inputs.parameters[''label_column'']}}"]}}'
-        - --predictions
-        - '{{$.outputs.artifacts[''predictions''].path}}'
-        command:
-        - sh
-        - -c
-        - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-          'xgboost==1.1.1' 'pandas==1.0.5' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
-          -m pip install --quiet --no-warn-script-location 'xgboost==1.1.1' 'pandas==1.0.5'
-          --user) && "$0" "$@"
-        - python3
-        - -u
-        - -c
-        - "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n\
-          \    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return\
-          \ file_path\n\ndef xgboost_predict(\n    data_path,  # Also supports LibSVM\n\
-          \    model_path,\n    predictions_path,\n    label_column = None,\n):\n\
-          \    '''Make predictions using a trained XGBoost model.\n\n    Args:\n \
-          \       data_path: Path for the feature data in CSV format.\n        model_path:\
-          \ Path for the trained model in binary XGBoost format.\n        predictions_path:\
-          \ Output path for the predictions.\n        label_column: Column containing\
-          \ the label data.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>\n\
-          \    '''\n    from pathlib import Path\n\n    import numpy\n    import pandas\n\
-          \    import xgboost\n\n    df = pandas.read_csv(\n        data_path,\n \
-          \   )\n\n    if label_column is not None:\n        df = df.drop(columns=[df.columns[label_column]])\n\
-          \n    testing_data = xgboost.DMatrix(\n        data=df,\n    )\n\n    model\
-          \ = xgboost.Booster(model_file=model_path)\n\n    predictions = model.predict(testing_data)\n\
-          \n    Path(predictions_path).parent.mkdir(parents=True, exist_ok=True)\n\
-          \    numpy.savetxt(predictions_path, predictions)\n\nimport argparse\n_parser\
-          \ = argparse.ArgumentParser(prog='Xgboost predict', description='Make predictions\
-          \ using a trained XGBoost model.\\n\\n    Args:\\n        data_path: Path\
-          \ for the feature data in CSV format.\\n        model_path: Path for the\
-          \ trained model in binary XGBoost format.\\n        predictions_path: Output\
-          \ path for the predictions.\\n        label_column: Column containing the\
-          \ label data.\\n\\n    Annotations:\\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')\n\
-          _parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True,\
-          \ default=argparse.SUPPRESS)\n_parser.add_argument(\"--model\", dest=\"\
-          model_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
-          --label-column\", dest=\"label_column\", type=int, required=False, default=argparse.SUPPRESS)\n\
-          _parser.add_argument(\"--predictions\", dest=\"predictions_path\", type=_make_parent_dirs_and_return_path,\
-          \ required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
           \n_outputs = xgboost_predict(**_parsed_args)\n"
         image: python:3.7
     exec-xgboost-train:
@@ -829,7 +680,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-xgboost-predict-3
+          name: comp-xgboost-predict-2
         dependentTasks:
         - convert-csv-to-apache-parquet
         - xgboost-train
@@ -853,7 +704,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-xgboost-predict-4
+          name: comp-xgboost-predict
         dependentTasks:
         - chicago-taxi-trips-dataset
         - xgboost-train-2
@@ -902,7 +753,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-xgboost-train-2
+          name: comp-xgboost-train-3
         dependentTasks:
         - convert-csv-to-apache-parquet
         inputs:
