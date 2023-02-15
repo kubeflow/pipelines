@@ -28,8 +28,6 @@ class TrainingSpecTestCase(unittest.TestCase):
         "--empty"
     ]
     
-
-
     def test_minimum_required_args(self):
         # Will raise an exception if the inputs are incorrect
         spec = SageMakerTrainingJobSpec(self.REQUIRED_ARGS)

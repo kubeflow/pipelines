@@ -9,9 +9,12 @@ from tests.unit_tests.tests.commonv2.dummy_spec import (
     DummySpec,
 )
 
+
 class SageMakerAbstractComponentTestCase(unittest.TestCase):
     @classmethod
     def setUp(cls):
+        """Bootstrap Unit test resources for testing runtime.
+        """
         cls.component = SageMakerComponent()
         # Turn off polling interval for instant tests
         cls.component.STATUS_POLL_INTERVAL = 0
@@ -28,6 +31,8 @@ class SageMakerAbstractComponentTestCase(unittest.TestCase):
     @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
     @patch("kubernetes.client.CustomObjectsApi")
     def test_create_custom_resource(self, mock_custom_objects_api):
+        """ Testing creating a custom resource.
+        """
 
         cr_dict = {}
         self.component.group = "group-test"
@@ -48,6 +53,8 @@ class SageMakerAbstractComponentTestCase(unittest.TestCase):
     @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
     @patch("kubernetes.client.CustomObjectsApi")
     def test_get_resource(self, mock_custom_objects_api):
+        """ Testing get resource.
+        """
         self.component.group = "group-test"
         self.component.version = "version-test"
         self.component.plural = "plural-test"
@@ -71,6 +78,8 @@ class SageMakerAbstractComponentTestCase(unittest.TestCase):
     @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
     @patch("kubernetes.client.CustomObjectsApi")
     def test_delete_custom_resource(self, mock_custom_objects_api):
+        """ Testing deletion
+        """
         self.component.group = "group-test"
         self.component.version = "version-test"
         self.component.plural = "plural-test"
@@ -86,6 +95,8 @@ class SageMakerAbstractComponentTestCase(unittest.TestCase):
             self.assertTrue(ret_val)
 
     def test_create_job_yaml(self):
+        """Verify that the create yaml function works as intended.
+        """
         self.component.job_name = "ack-job-name-test"
         with patch(
             "builtins.open",
@@ -114,6 +125,7 @@ class SageMakerAbstractComponentTestCase(unittest.TestCase):
             print("\n\n", result, "\n\n", sample, "\n\n")
 
             self.assertDictEqual(result, sample)
+
 
 if __name__ == "__main__":
     unittest.main()

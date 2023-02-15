@@ -30,6 +30,8 @@ class SageMakerComponentMetadataTestCase(unittest.TestCase):
 class SageMakerComponentTestCase(unittest.TestCase):
     @classmethod
     def setUp(cls):
+        """Bootstrap Unit test resources for testing runtime.
+        """
         cls.component = SageMakerComponent()
         # Turn off polling interval for instant tests
         cls.component.STATUS_POLL_INTERVAL = 0
@@ -43,13 +45,14 @@ class SageMakerComponentTestCase(unittest.TestCase):
         )
         cls.component.job_request_outline_location = test_job_request_outline_location
 
-
     @patch(
         "commonv2.sagemaker_component.strftime",
         MagicMock(return_value="20201231010203"),
     )
     @patch("commonv2.sagemaker_component.random.choice", MagicMock(return_value="A"))
     def test_generate_unique_timestamped_id(self):
+        """ Test timestamp generation
+        """
         self.assertEqual(
             "20201231010203-aaaa", self.component._generate_unique_timestamped_id()
         )
@@ -67,6 +70,8 @@ class SageMakerComponentTestCase(unittest.TestCase):
         )
 
     def test_write_all_outputs(self):
+        """ Test if component writes the output at the end of a pipeline run.
+        """
         self.component._write_output = MagicMock()
 
         mock_paths = DummyOutputs(output1="/tmp/output1", output2="/tmp/output2")
@@ -83,6 +88,8 @@ class SageMakerComponentTestCase(unittest.TestCase):
 
     @patch("commonv2.sagemaker_component.logging")
     def test_write_all_outputs_invalid_output(self, mock_logging):
+        """ Test invalid write all output
+        """
         self.component._write_output = MagicMock()
 
         mock_paths = DummyOutputs(output1="/tmp/output1", output2="/tmp/output2")
@@ -100,6 +107,8 @@ class SageMakerComponentTestCase(unittest.TestCase):
         )
 
     def test_write_output(self):
+        """ Test write output function.
+        """
         mock_output_path = "/tmp/output1"
 
         with patch("commonv2.sagemaker_component.Path", MagicMock()) as mock_path:
@@ -127,6 +136,8 @@ class SageMakerComponentTestCase(unittest.TestCase):
     @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
     @patch("kubernetes.client.CoreV1Api")
     def test_init_configure_k8s(self, mock_k8s_api):
+        """ Test init k8 function
+        """
 
         self.component.namespace = "test"
 
@@ -136,6 +147,8 @@ class SageMakerComponentTestCase(unittest.TestCase):
         mock_k8s_api().list_namespaced_pod.assert_called_once_with(namespace="test")
 
     def test_get_current_namespace(self):
+        """ Test namespace retrieval
+        """
 
         with patch("os.path.exists", MagicMock(return_value=True)):
             with patch(
@@ -162,6 +175,8 @@ class SageMakerComponentTestCase(unittest.TestCase):
 
     @patch.object(SageMakerComponent, "_get_k8s_api_client", MagicMock())
     def test_wait_resource_consumed_by_controller(self):
+        """ Test initital resource poll.
+        """
 
         with patch.object(
             SageMakerComponent, "_get_resource_exists", return_value=True
@@ -191,9 +206,9 @@ class SageMakerComponentTestCase(unittest.TestCase):
                 self.component._wait_resource_consumed_by_controller(5, 0.01)
             )
 
-    
-
     def test_check_resource_conditions(self):
+        """ Test check_resource_conditions works properly.
+        """
         ackdict_terminal = {
             "status": {"conditions": [{"type": "ACK.Terminal", "status": "True"}]}
         }
@@ -221,6 +236,8 @@ class SageMakerComponentTestCase(unittest.TestCase):
         assert self.component._check_resource_conditions() == False
 
     def test_resource_synced(self):
+        """" Tests _get_resource_synced_status method.
+        """
         ackdict = {"conditions": [{"type": "ACK.ResourceSynced", "status": "True"}]}
         res = self.component._get_resource_synced_status(ackdict)
         assert res == True
