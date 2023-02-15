@@ -67,11 +67,7 @@ func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed")
 	}
-	err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
-	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed")
-	}
-	return &empty.Empty{}, nil
+	return s.reportWorkflow(ctx, execSpec)
 }
 
 func (s *ReportServer) ReportWorkflow(ctx context.Context,
@@ -81,11 +77,7 @@ func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed")
 	}
-	err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
-	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed")
-	}
-	return &empty.Empty{}, nil
+	return s.reportWorkflow(ctx, execSpec)
 }
 
 func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
