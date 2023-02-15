@@ -5,6 +5,13 @@
 #    input_dict_parameter: dict
 #    input_list_parameter: list
 #    message: str
+# Outputs:
+#    output_bool_parameter_path: bool
+#    output_dataset_one: system.Dataset
+#    output_dataset_two_path: system.Dataset
+#    output_dict_parameter_path: dict
+#    output_list_parameter_path: list
+#    output_parameter_path: str
 components:
   comp-preprocess:
     executorLabel: exec-preprocess
@@ -49,7 +56,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -93,6 +100,33 @@ pipelineInfo:
   name: preprocess
 root:
   dag:
+    outputs:
+      artifacts:
+        output_dataset_one:
+          artifactSelectors:
+          - outputArtifactKey: output_dataset_one
+            producerSubtask: preprocess
+        output_dataset_two_path:
+          artifactSelectors:
+          - outputArtifactKey: output_dataset_two_path
+            producerSubtask: preprocess
+      parameters:
+        output_bool_parameter_path:
+          valueFromParameter:
+            outputParameterKey: output_bool_parameter_path
+            producerSubtask: preprocess
+        output_dict_parameter_path:
+          valueFromParameter:
+            outputParameterKey: output_dict_parameter_path
+            producerSubtask: preprocess
+        output_list_parameter_path:
+          valueFromParameter:
+            outputParameterKey: output_list_parameter_path
+            producerSubtask: preprocess
+        output_parameter_path:
+          valueFromParameter:
+            outputParameterKey: output_parameter_path
+            producerSubtask: preprocess
     tasks:
       preprocess:
         cachingOptions:
@@ -117,5 +151,24 @@ root:
         parameterType: LIST
       message:
         parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      output_dataset_one:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+      output_dataset_two_path:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    parameters:
+      output_bool_parameter_path:
+        parameterType: BOOLEAN
+      output_dict_parameter_path:
+        parameterType: STRUCT
+      output_list_parameter_path:
+        parameterType: LIST
+      output_parameter_path:
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12

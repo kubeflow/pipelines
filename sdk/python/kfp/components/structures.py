@@ -919,6 +919,16 @@ class ComponentSpec:
         pipeline_name = self.name
         task_group = group
 
+        pipeline_outputs = {}
+        pipeline_output_spec = self.outputs or {}
+
+        for arg_name, output_spec in pipeline_output_spec.items():
+            pipeline_outputs[
+                arg_name] = pipeline_channel.create_pipeline_channel(
+                    name=arg_name,
+                    channel_type=output_spec.type,
+                    task_name=task.name)
+
         utils.validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
@@ -931,12 +941,10 @@ class ComponentSpec:
         # can just assign the component_spec_proto directly to .root
         component_spec_proto = builder._build_component_spec_from_component_spec_structure(
             self)
-        has_inputs = bool(
-            len(component_spec_proto.input_definitions.artifacts) +
-            len(component_spec_proto.input_definitions.parameters))
-        if has_inputs:
-            pipeline_spec.root.input_definitions.CopyFrom(
-                component_spec_proto.input_definitions)
+        pipeline_spec.root.CopyFrom(component_spec_proto)
+
+        builder._build_dag_outputs(
+            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group

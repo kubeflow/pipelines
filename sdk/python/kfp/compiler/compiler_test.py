@@ -3080,5 +3080,17 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             .strategy, 0)
 
 
+class TestOutputDefinitionsPresentWhenCompilingComponents(unittest.TestCase):
+
+    def test_basic_permitted(self):
+
+        @dsl.component
+        def comp(message: str) -> str:
+            return message
+
+        self.assertIn('Output',
+                      comp.pipeline_spec.root.output_definitions.parameters)
+
+
 if __name__ == '__main__':
     unittest.main()
