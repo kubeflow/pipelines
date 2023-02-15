@@ -3368,7 +3368,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.create_model.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.39"
           }
         },
         "exec-bigquery-delete-dataset-with-prefix": {
@@ -3455,7 +3455,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.39"
           }
         },
         "exec-bigquery-query-job-2": {
@@ -3482,7 +3482,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.39"
           }
         },
         "exec-bigquery-query-job-3": {
@@ -3509,7 +3509,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.39"
           }
         },
         "exec-bigquery-query-job-4": {
@@ -3536,7 +3536,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.39"
           }
         },
         "exec-bigquery-query-job-5": {
@@ -3563,7 +3563,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.38"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.39"
           }
         },
         "exec-build-serialized-query-parameters": {
