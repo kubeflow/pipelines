@@ -1090,13 +1090,10 @@ func TestToApiPipeline(t *testing.T) {
 				CreatedAtInSec: 1,
 			},
 			&apiv2beta1.Pipeline{
-				PipelineId: "p1",
-				Error: util.ToRpcStatus(
-					util.NewInternalServerError(
-						errors.New("Pipeline namespace cannot be empty"),
-						"Failed to convert a pipeline to API pipeline",
-					),
-				),
+				PipelineId:  "p1",
+				DisplayName: "pipeline1",
+				Description: "This is pipeline1",
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 			},
 		},
 	}
@@ -1187,13 +1184,10 @@ func TestToApiPipelines(t *testing.T) {
 			),
 		},
 		{
-			PipelineId: "p1",
-			Error: util.ToRpcStatus(
-				util.NewInternalServerError(
-					errors.New("Pipeline namespace cannot be empty"),
-					"Failed to convert a pipeline to API pipeline",
-				),
-			),
+			PipelineId:  "p1",
+			DisplayName: "pipeline1",
+			Description: "This is pipeline1",
+			CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 		},
 	}
 	assert.Equal(t, expectedPipelines, apiPipelines)
