@@ -49,17 +49,16 @@ func (s *ReportServer) reportWorkflow(ctx context.Context, workflow string) (*em
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed")
 	}
-	wf, err := util.NewWorkflowFromBytesJSON([]byte(workflow))
+	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to report workflow")
+	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert execution spec to Argo workflow")
 	}
-	_, err = s.reportTasksFromExecution(wf)
+	_, err = s.reportTasksFromExecution(newExecSpec.(*util.Workflow))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report task details")
-	}
-	err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to report workflow")
 	}
 	return &empty.Empty{}, nil
 }

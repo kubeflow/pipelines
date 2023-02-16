@@ -165,7 +165,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, podName, mlmdExecutionID, fingerprint string
 		var name, parentTaskId, state, stateHistory, inputs, outputs, children sql.NullString
-		var createdTimestamp, startedTimestamp, finishedTimestamp int64
+		var createdTimestamp, startedTimestamp, finishedTimestamp sql.NullInt64
 		err := rows.Scan(
 			&uuid,
 			&namespace,
@@ -373,7 +373,6 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
 		for _, t := range ts {
 			sqlInsert = sqlInsert.Values(
-				t.ToString(),
 				t.UUID,
 				t.Namespace,
 				t.PipelineName,
@@ -391,6 +390,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.MLMDInputs,
 				t.MLMDOutputs,
 				t.ChildrenPodsString,
+				t.ToString(),
 			)
 		}
 		sqlInsert = sqlInsert.Suffix("ON DUPLICATE KEY UPDATE ?", taskColumnsUpdates)

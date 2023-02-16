@@ -1347,7 +1347,7 @@ func TestReadArtifactsV1_Succeed(t *testing.T) {
 			},
 		},
 	})
-	err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
@@ -1440,7 +1440,7 @@ func TestReadArtifactsV1_Resource_NotFound(t *testing.T) {
 			}},
 		},
 	})
-	err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
@@ -1503,7 +1503,7 @@ func TestReadArtifacts_Succeed(t *testing.T) {
 			},
 		},
 	})
-	err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
