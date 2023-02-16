@@ -14,16 +14,16 @@
 
 import unittest
 
-from kfp.components import component_factory
+from kfp.components import container_component_artifact_channel
 from kfp.components import placeholders
 
 
 class TestContainerComponentArtifactChannel(unittest.TestCase):
 
     def test_correct_placeholder_and_attribute_error(self):
-        in_channel = component_factory.ContainerComponentArtifactChannel(
+        in_channel = container_component_artifact_channel.ContainerComponentArtifactChannel(
             'input', 'my_dataset')
-        out_channel = component_factory.ContainerComponentArtifactChannel(
+        out_channel = container_component_artifact_channel.ContainerComponentArtifactChannel(
             'output', 'my_result')
         self.assertEqual(
             in_channel.uri._to_string(),

@@ -14,13 +14,15 @@
 """Contains tests for kfp.components.placeholders."""
 import os
 import tempfile
-from typing import Any
+from typing import Any, List
 
 from absl.testing import parameterized
 from kfp import compiler
 from kfp import dsl
 from kfp.components import placeholders
 from kfp.dsl import Artifact
+from kfp.dsl import Dataset
+from kfp.dsl import Input
 from kfp.dsl import Output
 
 
@@ -377,6 +379,81 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
                         then='single-element',
                         else_=['one', 'two']))
             ])
+
+
+class TestListOfArtifactsInContainerComponentPlaceholders(
+        parameterized.TestCase):
+
+    def test_compile_component1(self):
+
+        @dsl.container_component
+        def comp(input_list: Input[List[Artifact]]):
+            return dsl.ContainerSpec(
+                image='alpine', command=[input_list], args=[input_list])
+
+        self.assertEqual(
+            comp.pipeline_spec.deployment_spec['executors']['exec-comp']
+            ['container']['command'][0], "{{$.inputs.artifacts['input_list']}}")
+        self.assertEqual(
+            comp.pipeline_spec.deployment_spec['executors']['exec-comp']
+            ['container']['args'][0], "{{$.inputs.artifacts['input_list']}}")
+
+    def test_compile_component2(self):
+
+        @dsl.container_component
+        def comp(new_name: Input[List[Dataset]]):
+            return dsl.ContainerSpec(
+                image='alpine', command=[new_name], args=[new_name])
+
+        self.assertEqual(
+            comp.pipeline_spec.deployment_spec['executors']['exec-comp']
+            ['container']['command'][0], "{{$.inputs.artifacts['new_name']}}")
+        self.assertEqual(
+            comp.pipeline_spec.deployment_spec['executors']['exec-comp']
+            ['container']['args'][0], "{{$.inputs.artifacts['new_name']}}")
+
+    def test_cannot_access_name(self):
+        with self.assertRaisesRegex(AttributeError,
+                                    'Cannot access an attribute'):
+
+            @dsl.container_component
+            def comp(new_name: Input[List[Dataset]]):
+                return dsl.ContainerSpec(
+                    image='alpine', command=[new_name.name])
+
+    def test_cannot_access_uri(self):
+        with self.assertRaisesRegex(AttributeError,
+                                    'Cannot access an attribute'):
+
+            @dsl.container_component
+            def comp(new_name: Input[List[Dataset]]):
+                return dsl.ContainerSpec(image='alpine', command=[new_name.uri])
+
+    def test_cannot_access_metadata(self):
+        with self.assertRaisesRegex(AttributeError,
+                                    'Cannot access an attribute'):
+
+            @dsl.container_component
+            def comp(new_name: Input[List[Dataset]]):
+                return dsl.ContainerSpec(
+                    image='alpine', command=[new_name.metadata])
+
+    def test_cannot_access_path(self):
+        with self.assertRaisesRegex(AttributeError,
+                                    'Cannot access an attribute'):
+
+            @dsl.container_component
+            def comp(new_name: Input[List[Dataset]]):
+                return dsl.ContainerSpec(
+                    image='alpine', command=[new_name.path])
+
+    def test_cannot_access_individual_artifact(self):
+        with self.assertRaisesRegex(KeyError,
+                                    'Cannot access individual artifacts'):
+
+            @dsl.container_component
+            def comp(new_name: Input[List[Dataset]]):
+                return dsl.ContainerSpec(image='alpine', command=[new_name[0]])
 
 
 class TestConvertCommandLineElementToStringOrStruct(parameterized.TestCase):
