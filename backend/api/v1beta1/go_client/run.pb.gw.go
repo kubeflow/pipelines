@@ -80,10 +80,7 @@ func request_RunService_ListRunsV1_0(ctx context.Context, marshaler runtime.Mars
 	var protoReq ListRunsRequest
 	var metadata runtime.ServerMetadata
 
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_RunService_ListRunsV1_0); err != nil {
+	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_RunService_ListRunsV1_0); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -553,25 +550,25 @@ func RegisterRunServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 }
 
 var (
-	pattern_RunService_CreateRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v1beta1", "runs"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_CreateRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v1beta1", "runs"}, ""))
 
-	pattern_RunService_GetRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "run_id"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_GetRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "run_id"}, ""))
 
-	pattern_RunService_ListRunsV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v1beta1", "runs"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_ListRunsV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v1beta1", "runs"}, ""))
 
-	pattern_RunService_ArchiveRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "id"}, "archive", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_ArchiveRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "id"}, "archive"))
 
-	pattern_RunService_UnarchiveRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "id"}, "unarchive", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_UnarchiveRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "id"}, "unarchive"))
 
-	pattern_RunService_DeleteRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "id"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_DeleteRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "id"}, ""))
 
-	pattern_RunService_ReportRunMetricsV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "run_id"}, "reportMetrics", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_ReportRunMetricsV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "runs", "run_id"}, "reportMetrics"))
 
-	pattern_RunService_ReadArtifactV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4, 1, 0, 4, 1, 5, 5, 2, 6, 1, 0, 4, 1, 5, 7}, []string{"apis", "v1beta1", "runs", "run_id", "nodes", "node_id", "artifacts", "artifact_name"}, "read", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_ReadArtifactV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4, 1, 0, 4, 1, 5, 5, 2, 6, 1, 0, 4, 1, 5, 7}, []string{"apis", "v1beta1", "runs", "run_id", "nodes", "node_id", "artifacts", "artifact_name"}, "read"))
 
-	pattern_RunService_TerminateRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"apis", "v1beta1", "runs", "run_id", "terminate"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_TerminateRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"apis", "v1beta1", "runs", "run_id", "terminate"}, ""))
 
-	pattern_RunService_RetryRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"apis", "v1beta1", "runs", "run_id", "retry"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RunService_RetryRunV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"apis", "v1beta1", "runs", "run_id", "retry"}, ""))
 )
 
 var (

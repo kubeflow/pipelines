@@ -471,8 +471,7 @@ class Client(object):
                 name=name,
                 description=description,
                 resource_references=resource_references)
-            experiment = self._experiment_api.create_experiment_v1(
-                body=experiment)
+            experiment = self._experiment_api.create_experiment(body=experiment)
 
         if self._is_ipython():
             import IPython
@@ -498,7 +497,7 @@ class Client(object):
                 "stringValue": name,
             }]
         })
-        result = self._pipelines_api.list_pipelines_v1(filter=pipeline_filter)
+        result = self._pipelines_api.list_pipelines(filter=pipeline_filter)
         if result.pipelines is None:
             return None
         if len(result.pipelines) == 1:
@@ -545,7 +544,7 @@ class Client(object):
           A response object including a list of experiments and next page token.
         """
         namespace = namespace or self.get_user_namespace()
-        response = self._experiment_api.list_experiments_v1(
+        response = self._experiment_api.list_experiment(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -581,7 +580,7 @@ class Client(object):
             raise ValueError(
                 'Either experiment_id or experiment_name is required')
         if experiment_id is not None:
-            return self._experiment_api.get_experiment_v1(id=experiment_id)
+            return self._experiment_api.get_experiment(id=experiment_id)
         experiment_filter = json.dumps({
             "predicates": [{
                 "op": _FILTER_OPERATIONS["EQUALS"],
@@ -590,13 +589,13 @@ class Client(object):
             }]
         })
         if namespace:
-            result = self._experiment_api.list_experiments_v1(
+            result = self._experiment_api.list_experiment(
                 filter=experiment_filter,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.NAMESPACE,
                 resource_reference_key_id=namespace)
         else:
-            result = self._experiment_api.list_experiments_v1(
+            result = self._experiment_api.list_experiment(
                 filter=experiment_filter)
         if not result.experiments:
             raise ValueError(
@@ -616,7 +615,7 @@ class Client(object):
         Raises:
           kfp_server_api.ApiException: If experiment is not found.
         """
-        self._experiment_api.archive_experiment_v1(experiment_id)
+        self._experiment_api.archive_experiment(experiment_id)
 
     def delete_experiment(self, experiment_id):
         """Delete experiment.
@@ -630,7 +629,7 @@ class Client(object):
         Raises:
           kfp_server_api.ApiException: If experiment is not found.
         """
-        return self._experiment_api.delete_experiment_v1(id=experiment_id)
+        return self._experiment_api.delete_experiment(id=experiment_id)
 
     def _extract_pipeline_yaml(self, package_file):
 
@@ -711,7 +710,7 @@ class Client(object):
         Returns:
           A response object including a list of pipelines and next page token.
         """
-        return self._pipelines_api.list_pipelines_v1(
+        return self._pipelines_api.list_pipelines(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -778,7 +777,7 @@ class Client(object):
             name=job_name,
             service_account=service_account)
 
-        response = self._run_api.create_run_v1(body=run_body)
+        response = self._run_api.create_run(body=run_body)
 
         if self._is_ipython():
             import IPython
@@ -1199,7 +1198,7 @@ class Client(object):
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
-            response = self._run_api.list_runs_v1(
+            response = self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1208,7 +1207,7 @@ class Client(object):
                 resource_reference_key_id=experiment_id,
                 filter=filter)
         elif namespace:
-            response = self._run_api.list_runs_v1(
+            response = self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1217,7 +1216,7 @@ class Client(object):
                 resource_reference_key_id=namespace,
                 filter=filter)
         else:
-            response = self._run_api.list_runs_v1(
+            response = self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1299,7 +1298,7 @@ class Client(object):
         Raises:
           kfp_server_api.ApiException: If run is not found.
         """
-        return self._run_api.get_run_v1(run_id=run_id)
+        return self._run_api.get_run(run_id=run_id)
 
     def wait_for_run_completion(self, run_id: str, timeout: int):
         """Waits for a run to complete.
@@ -1322,7 +1321,7 @@ class Client(object):
         while (status is None or status.lower()
                not in ['succeeded', 'failed', 'skipped', 'error']):
             try:
-                get_run_response = self._run_api.get_run_v1(run_id=run_id)
+                get_run_response = self._run_api.get_run(run_id=run_id)
                 is_valid_token = True
             except ApiException as api_ex:
                 # if the token is valid but receiving 401 Unauthorized error
@@ -1351,7 +1350,7 @@ class Client(object):
         Returns:
           workflow: Json workflow
         """
-        get_run_response = self._run_api.get_run_v1(run_id=run_id)
+        get_run_response = self._run_api.get_run(run_id=run_id)
         workflow = get_run_response.pipeline_runtime.workflow_manifest
         workflow_json = json.loads(workflow)
         return workflow_json
@@ -1452,7 +1451,7 @@ class Client(object):
         Raises:
           kfp_server_api.ApiException: If pipeline is not found.
         """
-        return self._pipelines_api.get_pipeline_v1(id=pipeline_id)
+        return self._pipelines_api.get_pipeline(id=pipeline_id)
 
     def delete_pipeline(self, pipeline_id):
         """Delete pipeline.
@@ -1466,7 +1465,7 @@ class Client(object):
         Raises:
           kfp_server_api.ApiException: If pipeline is not found.
         """
-        return self._pipelines_api.delete_pipeline_v1(id=pipeline_id)
+        return self._pipelines_api.delete_pipeline(id=pipeline_id)
 
     def list_pipeline_versions(
         self,
@@ -1505,7 +1504,7 @@ class Client(object):
           kfp_server_api.ApiException: If pipeline is not found.
         """
 
-        return self._pipelines_api.list_pipeline_versions_v1(
+        return self._pipelines_api.list_pipeline_versions(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -1526,5 +1525,5 @@ class Client(object):
         Raises:
           Exception if pipeline version is not found.
         """
-        return self._pipelines_api.delete_pipeline_version_v1(
+        return self._pipelines_api.delete_pipeline_version(
             version_id=version_id)

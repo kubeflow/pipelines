@@ -22,7 +22,7 @@ spec:
         env:
         - name: MAX_NUM_VIEWERS
           value: "50"
-        - name: MINIO_NAMESPACE
+        - name: NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace

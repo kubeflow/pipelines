@@ -25,6 +25,7 @@ __all__ = [
     'EvaluatedAnnotationOp',
     'FeatureExtractorOp',
     'ErrorAnalysisAnnotationOp',
+    'ModelImportEvaluatedAnnotationOp',
 ]
 
 EvaluationDatasetPreprocessorOp = load_component_from_file(
@@ -52,5 +53,11 @@ ErrorAnalysisAnnotationOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__),
         'error_analysis_annotation/component.yaml',
+    )
+)
+
+ModelImportEvaluatedAnnotationOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'import_evaluated_annotation/component.yaml'
     )
 )

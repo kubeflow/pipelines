@@ -39,7 +39,7 @@ class V2beta1Run(object):
         'storage_state': 'V2beta1RunStorageState',
         'description': 'str',
         'pipeline_version_id': 'str',
-        'pipeline_spec': 'object',
+        'pipeline_spec': 'ProtobufStruct',
         'runtime_config': 'V2beta1RuntimeConfig',
         'service_account': 'str',
         'created_at': 'datetime',
@@ -272,10 +272,9 @@ class V2beta1Run(object):
     def pipeline_spec(self):
         """Gets the pipeline_spec of this V2beta1Run.  # noqa: E501
 
-        Pipeline spec.  # noqa: E501
 
         :return: The pipeline_spec of this V2beta1Run.  # noqa: E501
-        :rtype: object
+        :rtype: ProtobufStruct
         """
         return self._pipeline_spec
 
@@ -283,10 +282,9 @@ class V2beta1Run(object):
     def pipeline_spec(self, pipeline_spec):
         """Sets the pipeline_spec of this V2beta1Run.
 
-        Pipeline spec.  # noqa: E501
 
         :param pipeline_spec: The pipeline_spec of this V2beta1Run.  # noqa: E501
-        :type pipeline_spec: object
+        :type pipeline_spec: ProtobufStruct
         """
 
         self._pipeline_spec = pipeline_spec

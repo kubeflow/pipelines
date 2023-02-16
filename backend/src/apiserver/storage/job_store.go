@@ -230,12 +230,12 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 	for r.Next() {
 		var uuid, displayName, name, namespace, pipelineId, pipelineName, conditions, serviceAccount,
 			description, parameters, pipelineSpecManifest, workflowSpecManifest string
-		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
-			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
+		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec, createdAtInSec,
+			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond, updatedAtInSec sql.NullInt64
 		var cron, resourceReferencesInString, runtimeParameters, pipelineRoot sql.NullString
 		var experimentId, pipelineVersionId sql.NullString
 		var enabled, noCatchup bool
-		var createdAtInSec, updatedAtInSec, maxConcurrency int64
+		var maxConcurrency int64
 		err := r.Scan(
 			&uuid, &displayName, &name, &namespace, &serviceAccount, &description,
 			&maxConcurrency, &noCatchup, &createdAtInSec, &updatedAtInSec, &enabled,
@@ -299,8 +299,8 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 				Parameters:           parameters,
 				RuntimeConfig:        runtimeConfig,
 			},
-			CreatedAtInSec: createdAtInSec,
-			UpdatedAtInSec: updatedAtInSec,
+			CreatedAtInSec: createdAtInSec.Int64,
+			UpdatedAtInSec: updatedAtInSec.Int64,
 		}
 		job = job.ToV1().ToV2()
 		jobs = append(jobs, job)

@@ -172,8 +172,8 @@ class PipelineTaskTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
-            'gpu_limit': '666',
-            'expected_gpu_number': 666,
+            'gpu_limit': '123',
+            'expected_gpu_number': 123,
         },)
     def test_set_valid_gpu_limit(self, gpu_limit: str,
                                  expected_gpu_number: int):
@@ -182,8 +182,33 @@ class PipelineTaskTest(parameterized.TestCase):
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.set_gpu_limit(gpu_limit)
+        with self.assertWarnsRegex(
+                DeprecationWarning,
+                "'set_gpu_limit' is deprecated. Please use 'set_accelerator_limit' instead."
+        ):
+            task.set_gpu_limit(gpu_limit)
         self.assertEqual(expected_gpu_number,
+                         task.container_spec.resources.accelerator_count)
+
+    @parameterized.parameters(
+        {
+            'limit': '123',
+            'expected': 123,
+        },
+        {
+            'limit': 123,
+            'expected': 123,
+        },
+    )
+    def test_set_accelerator_limit(self, limit, expected):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+
+        task.set_accelerator_limit(limit)
+        self.assertEqual(expected,
                          task.container_spec.resources.accelerator_count)
 
     @parameterized.parameters(
