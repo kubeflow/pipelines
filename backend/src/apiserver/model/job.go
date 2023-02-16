@@ -95,7 +95,7 @@ type Job struct {
 	MaxConcurrency int64  `gorm:"column:MaxConcurrency; not null;"`
 	NoCatchup      bool   `gorm:"column:NoCatchup; not null;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"` /* The time this record is stored in DB*/
-	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; not null;"`
+	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; default:0;"`
 	Enabled        bool   `gorm:"column:Enabled; not null;"`
 	ExperimentId   string `gorm:"column:ExperimentUUID; not null;"`
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId
