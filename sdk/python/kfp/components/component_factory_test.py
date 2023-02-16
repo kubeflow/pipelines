@@ -132,20 +132,6 @@ class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
                         is_artifact_list=True)
             })
 
-    def test_pipeline_with_named_tuple_fn(self):
-        from typing import NamedTuple
-
-        def comp(
-            i: Input[List[Model]]
-        ) -> NamedTuple('outputs', [('output_list', List[Artifact])]):
-            ...
-
-        with self.assertRaisesRegex(
-                ValueError,
-                r'Cannot use output lists of artifacts in NamedTuple return annotations. Got output list of artifacts annotation for NamedTuple field `output_list`\.'
-        ):
-            component_factory.extract_component_interface(comp)
-
 
 class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
 
@@ -175,6 +161,20 @@ class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
             @dsl.pipeline
             def comp() -> List[Artifact]:
                 ...
+
+    def test_pipeline_with_named_tuple_fn(self):
+        from typing import NamedTuple
+
+        def comp(
+            i: Input[List[Model]]
+        ) -> NamedTuple('outputs', [('output_list', List[Artifact])]):
+            ...
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Cannot use output lists of artifacts in NamedTuple return annotations. Got output list of artifacts annotation for NamedTuple field `output_list`\.'
+        ):
+            component_factory.extract_component_interface(comp)
 
 
 if __name__ == '__main__':

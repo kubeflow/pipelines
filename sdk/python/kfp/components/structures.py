@@ -91,10 +91,13 @@ class InputSpec:
             # TODO: would be better to extract these fields from the proto
             # message, as False default would be preserved
             optional = ir_component_inputs_dict.get('isOptional', False)
+            is_artifact_list = ir_component_inputs_dict.get(
+                'isArtifactList', False)
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
                     type_, schema_version),
-                optional=optional)
+                optional=optional,
+                is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -177,9 +180,12 @@ class OutputSpec:
             type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_outputs_dict['artifactType'][
                 'schemaVersion']
+            is_artifact_list = ir_component_outputs_dict.get(
+                'isArtifactList', False)
             return OutputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version))
+                    type_, schema_version),
+                is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type

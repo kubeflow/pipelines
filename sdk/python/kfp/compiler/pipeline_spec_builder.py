@@ -380,6 +380,8 @@ def _build_component_spec_from_component_spec_structure(
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         input_spec.type))
+            component_spec.input_definitions.artifacts[
+                input_name].is_artifact_list = input_spec.is_artifact_list
             if input_spec.optional:
                 component_spec.input_definitions.artifacts[
                     input_name].is_optional = True
@@ -395,6 +397,8 @@ def _build_component_spec_from_component_spec_structure(
                 output_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         output_spec.type))
+            component_spec.output_definitions.artifacts[
+                output_name].is_artifact_list = output_spec.is_artifact_list
 
     return component_spec
 
@@ -413,7 +417,9 @@ def _connect_dag_outputs(
     """
     if isinstance(output_channel, pipeline_channel.PipelineArtifactChannel):
         if output_name not in component_spec.output_definitions.artifacts:
-            raise ValueError(f'DAG output not defined: {output_name}.')
+            raise ValueError(
+                f'Pipeline or component output not defined: {output_name}. You may be missing a type annotation.'
+            )
         component_spec.dag.outputs.artifacts[
             output_name].artifact_selectors.append(
                 pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
@@ -422,7 +428,9 @@ def _connect_dag_outputs(
                 ))
     elif isinstance(output_channel, pipeline_channel.PipelineParameterChannel):
         if output_name not in component_spec.output_definitions.parameters:
-            raise ValueError(f'Pipeline output not defined: {output_name}.')
+            raise ValueError(
+                f'Pipeline or component output not defined: {output_name}. You may be missing a type annotation.'
+            )
         component_spec.dag.outputs.parameters[
             output_name].value_from_parameter.producer_subtask = output_channel.task_name
         component_spec.dag.outputs.parameters[
