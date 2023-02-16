@@ -18,7 +18,7 @@ type Experiment struct {
 	UUID           string       `gorm:"column:UUID; not null; primary_key;"`
 	Name           string       `gorm:"column:Name; not null; unique_index:idx_name_namespace;"`
 	Description    string       `gorm:"column:Description; not null;"`
-	CreatedAtInSec int64        `gorm:"column:CreatedAtInSec; not null; default:0;"`
+	CreatedAtInSec int64        `gorm:"column:CreatedAtInSec; not null;"`
 	Namespace      string       `gorm:"column:Namespace; not null; unique_index:idx_name_namespace;"`
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 }

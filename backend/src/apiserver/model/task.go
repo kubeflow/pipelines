@@ -21,7 +21,7 @@ type Task struct {
 	PipelineName      string `gorm:"column:PipelineName; not null;"`
 	RunId             string `gorm:"column:RunUUID; not null;"`
 	MLMDExecutionID   string `gorm:"column:MLMDExecutionID; not null;"`
-	CreatedTimestamp  int64  `gorm:"column:CreatedTimestamp; not null; default:0;"`
+	CreatedTimestamp  int64  `gorm:"column:CreatedTimestamp; not null;"`
 	StartedTimestamp  int64  `gorm:"column:StartedTimestamp; default:0;"`
 	FinishedTimestamp int64  `gorm:"column:FinishedTimestamp; default:0;"`
 	Fingerprint       string `gorm:"column:Fingerprint; not null;"`

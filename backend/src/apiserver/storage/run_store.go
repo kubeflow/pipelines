@@ -292,7 +292,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, conditions, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
-		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
+		var createdAtInSec, scheduledAtInSec, finishedAtInSec sql.NullInt64
 		var metricsInString, resourceReferencesInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
 		err := rows.Scan(
 			&uuid,
@@ -370,9 +370,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			Description:    description,
 			RecurringRunId: jId,
 			RunDetails: model.RunDetails{
-				CreatedAtInSec:          createdAtInSec,
-				ScheduledAtInSec:        scheduledAtInSec,
-				FinishedAtInSec:         finishedAtInSec,
+				CreatedAtInSec:          createdAtInSec.Int64,
+				ScheduledAtInSec:        scheduledAtInSec.Int64,
+				FinishedAtInSec:         finishedAtInSec.Int64,
 				Conditions:              conditions,
 				State:                   model.RuntimeState(state.String),
 				PipelineRuntimeManifest: pipelineRuntimeManifest,

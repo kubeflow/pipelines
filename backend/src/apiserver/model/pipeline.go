@@ -32,7 +32,7 @@ const (
 
 type Pipeline struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key;"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; default:0;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
 	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
 	Description    string `gorm:"column:Description; not null; size:65535;"`           // Same as below, set size to large number so it will be stored as longtext
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
