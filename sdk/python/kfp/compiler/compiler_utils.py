@@ -405,16 +405,21 @@ def make_new_channel_for_collected_outputs(
     starting_channel: pipeline_channel.PipelineChannel,
     task_name: str,
 ) -> pipeline_channel.PipelineChannel:
-    """Creates a new PipelineParameterChannel/PipelineArtifactChannel (with
-    type List) from a Collected channel, a PipelineParameterChannel, or a
-    PipelineArtifactChannel."""
-    return starting_channel.__class__(
-        channel_name,
-        channel_type=starting_channel.channel_type if isinstance(
-            starting_channel, pipeline_channel.PipelineArtifactChannel) else
-        'LIST',
-        task_name=task_name,
-    )
+    """Creates a new PipelineParameterChannel/PipelineArtifactChannel list for
+    a dsl.Collected channel from the original task output."""
+    if isinstance(starting_channel, pipeline_channel.PipelineParameterChannel):
+        return pipeline_channel.PipelineParameterChannel(
+            channel_name, channel_type='LIST', task_name=task_name)
+    elif isinstance(starting_channel, pipeline_channel.PipelineArtifactChannel):
+        return pipeline_channel.PipelineArtifactChannel(
+            channel_name,
+            channel_type=starting_channel.channel_type,
+            task_name=task_name,
+            is_artifact_list=True)
+    else:
+        ValueError(
+            f'Got unknown PipelineChannel: {starting_channel!r}. Expected an instance of {pipeline_channel.PipelineArtifactChannel.__name__!r} or {pipeline_channel.PipelineParameterChannel.__name__!r}.'
+        )
 
 
 def get_outputs_for_all_groups(

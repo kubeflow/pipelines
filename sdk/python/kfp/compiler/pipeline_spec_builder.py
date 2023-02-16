@@ -584,6 +584,8 @@ def build_component_spec_for_group(
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         channel.channel_type))
+            component_spec.input_definitions.artifacts[
+                input_name].is_artifact_list = channel.is_artifact_list
         else:
             # channel is one of PipelineParameterChannel, LoopArgument, or
             # LoopArgumentVariable.
@@ -597,6 +599,8 @@ def build_component_spec_for_group(
                 output_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         output.channel_type))
+            component_spec.output_definitions.artifacts[
+                output_name].is_artifact_list = output.is_artifact_list
         else:
             component_spec.output_definitions.parameters[
                 output_name].parameter_type = type_utils.get_parameter_type(
@@ -1575,8 +1579,28 @@ def create_pipeline_spec(
         component_spec=pipeline_spec.root,
         dag_outputs=modified_pipeline_outputs_dict,
     )
+    # call _build_dag_outputs first to verify the presence of an output annotation
+    # at all, then validate that the annotation is correct with _validate_dag_output_types
+    _validate_dag_output_types(
+        dag_outputs=modified_pipeline_outputs_dict,
+        structures_component_spec=component_spec)
 
     return pipeline_spec
+
+
+def _validate_dag_output_types(
+        dag_outputs: Dict[str, pipeline_channel.PipelineChannel],
+        structures_component_spec: structures.ComponentSpec) -> None:
+    for output_name, output_channel in dag_outputs.items():
+        output_spec = structures_component_spec.outputs[output_name]
+        output_name = '' if len(dag_outputs) == 1 else f'{output_name!r} '
+        error_message_prefix = f'Incompatible return type provided for output {output_name}of pipeline {structures_component_spec.name!r}. '
+        type_utils.verify_type_compatibility(
+            output_channel,
+            output_spec,
+            error_message_prefix,
+            checks_input=False,
+        )
 
 
 def convert_pipeline_outputs_to_dict(

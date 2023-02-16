@@ -137,8 +137,9 @@ class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
 
     def test_python_component(self):
         with self.assertRaisesRegex(
-                NotImplementedError,
-                r'Output lists of artifacts are not yet supported\.'):
+                ValueError,
+                r"Output lists of artifacts are only supported for pipelines\. Got output list of artifacts for output parameter 'output_list' of component 'comp'\."
+        ):
 
             @dsl.component
             def comp(output_list: Output[List[Artifact]]):
@@ -146,35 +147,13 @@ class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
 
     def test_container_component(self):
         with self.assertRaisesRegex(
-                NotImplementedError,
-                r'Output lists of artifacts are not yet supported\.'):
+                ValueError,
+                r"Output lists of artifacts are only supported for pipelines\. Got output list of artifacts for output parameter 'output_list' of component 'comp'\."
+        ):
 
             @dsl.container_component
             def comp(output_list: Output[List[Artifact]]):
                 return dsl.ContainerSpec(image='alpine')
-
-    def test_pipeline(self):
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r'Output lists of artifacts are not yet supported\.'):
-
-            @dsl.pipeline
-            def comp() -> List[Artifact]:
-                ...
-
-    def test_pipeline_with_named_tuple_fn(self):
-        from typing import NamedTuple
-
-        def comp(
-            i: Input[List[Model]]
-        ) -> NamedTuple('outputs', [('output_list', List[Artifact])]):
-            ...
-
-        with self.assertRaisesRegex(
-                ValueError,
-                r'Cannot use output lists of artifacts in NamedTuple return annotations. Got output list of artifacts annotation for NamedTuple field `output_list`\.'
-        ):
-            component_factory.extract_component_interface(comp)
 
 
 if __name__ == '__main__':

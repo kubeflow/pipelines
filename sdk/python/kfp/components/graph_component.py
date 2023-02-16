@@ -49,7 +49,10 @@ class GraphComponent(base_component.BaseComponent):
             input_spec = component_spec.inputs[arg_name]
             args_list.append(
                 pipeline_channel.create_pipeline_channel(
-                    name=arg_name, channel_type=input_spec.type))
+                    name=arg_name,
+                    channel_type=input_spec.type,
+                    is_artifact_list=input_spec.is_artifact_list,
+                ))
 
         with pipeline_context.Pipeline(
                 self.component_spec.name) as dsl_pipeline:

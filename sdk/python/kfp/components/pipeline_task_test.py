@@ -122,7 +122,7 @@ class PipelineTaskTest(parameterized.TestCase):
     def test_create_pipeline_task_invalid_wrong_input(self):
         with self.assertRaisesRegex(
                 ValueError,
-                'Component "component1" got an unexpected input: input0.'):
+                "Component 'component1' got an unexpected input: 'input0'."):
             task = pipeline_task.PipelineTask(
                 component_spec=structures.ComponentSpec
                 .load_from_component_yaml(V2_YAML),
