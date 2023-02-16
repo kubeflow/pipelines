@@ -56,7 +56,7 @@ func prepareUpdateSuffix(columns []string) string {
 	for _, c := range taskColumnsWithPayload {
 		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=VALUES(%[1]v)", c))
 	}
-	return strings.Join(columnsExtended, ", ")
+	return strings.Join(columnsExtended, ",")
 }
 
 type TaskStoreInterface interface {
@@ -165,7 +165,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, podName, mlmdExecutionID, fingerprint string
 		var name, parentTaskId, state, stateHistory, inputs, outputs, children sql.NullString
-		var createdTimestamp, startedTimestamp, finishedTimestamp sql.NullInt64
+		var createdTimestamp, startedTimestamp, finishedTimestamp int64
 		err := rows.Scan(
 			&uuid,
 			&namespace,
@@ -393,7 +393,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.ToString(),
 			)
 		}
-		sqlInsert = sqlInsert.Suffix("ON DUPLICATE KEY UPDATE ?", taskColumnsUpdates)
+		sqlInsert = sqlInsert.Suffix(fmt.Sprintf("ON DUPLICATE KEY UPDATE %v", taskColumnsUpdates))
 		sql, args, err := sqlInsert.ToSql()
 		if err != nil {
 			return "", nil, util.NewInternalServerError(err, "Failed to create query to check existing tasks")
@@ -432,7 +432,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 	}
 	_, err = s.db.Exec(sql, arg...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to update or insert tasks")
+		return nil, util.NewInternalServerError(err, "Failed to update or insert tasks. Query: %v. Args: %v", sql, arg)
 	}
 	return tasks, nil
 }

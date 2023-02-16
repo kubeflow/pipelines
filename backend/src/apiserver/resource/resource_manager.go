@@ -1357,9 +1357,11 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				State:                   state,
 			},
 		}
-		_, err = r.runStore.CreateRun(run)
+		run, err = r.runStore.CreateRun(run)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to report a workflow due to error creating run %s", runId)
+		} else {
+			runId = run.UUID
 		}
 	}
 	if execStatus.IsInFinalState() {
@@ -1376,6 +1378,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			}
 		}
 	}
+	execSpec.SetLabels("pipeline/runid", runId)
 	return execSpec, nil
 }
 
