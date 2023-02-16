@@ -280,18 +280,6 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 		}
 	}
 
-	if pipeline.Namespace == "" {
-		return &apiv2beta1.Pipeline{
-			PipelineId: pipeline.UUID,
-			Error: util.ToRpcStatus(
-				util.NewInternalServerError(
-					errors.New("Pipeline namespace cannot be empty"),
-					"Failed to convert a pipeline to API pipeline",
-				),
-			),
-		}
-	}
-
 	return &apiv2beta1.Pipeline{
 		PipelineId:  pipeline.UUID,
 		DisplayName: pipeline.Name,
