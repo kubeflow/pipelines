@@ -2,6 +2,9 @@
 # Name: container-with-artifact-output
 # Inputs:
 #    num_epochs: int
+# Outputs:
+#    model: system.Model
+#    model_config_path: str
 components:
   comp-container-with-artifact-output:
     executorLabel: exec-container-with-artifact-output
@@ -39,6 +42,17 @@ pipelineInfo:
   name: container-with-artifact-output
 root:
   dag:
+    outputs:
+      artifacts:
+        model:
+          artifactSelectors:
+          - outputArtifactKey: model
+            producerSubtask: container-with-artifact-output
+      parameters:
+        model_config_path:
+          valueFromParameter:
+            outputParameterKey: model_config_path
+            producerSubtask: container-with-artifact-output
     tasks:
       container-with-artifact-output:
         cachingOptions:
@@ -55,5 +69,14 @@ root:
     parameters:
       num_epochs:
         parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    artifacts:
+      model:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    parameters:
+      model_config_path:
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12

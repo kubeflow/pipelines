@@ -27,8 +27,8 @@ type Task struct {
 	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
-	StartedTimestamp   int64            `gorm:"column:StartedTimestamp;"`
-	FinishedTimestamp  int64            `gorm:"column:FinishedTimestamp;"`
+	StartedTimestamp   int64            `gorm:"column:StartedTimestamp; default:0;"`
+	FinishedTimestamp  int64            `gorm:"column:FinishedTimestamp; default:0;"`
 	Fingerprint        string           `gorm:"column:Fingerprint; not null;"`
 	Name               string           `gorm:"column:Name; default:null"`
 	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`

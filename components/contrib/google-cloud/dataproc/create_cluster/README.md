@@ -55,7 +55,7 @@ Name | Description | Type
 :--- | :---------- | :---
 cluster_name | The name of the cluster. | String
 
-Note: You can recycle the cluster by using the [Dataproc delete cluster component](https://github.com/kubeflow/pipelines/tree/master/components/gcp/dataproc/delete_cluster).
+Note: You can recycle the cluster by using the [Dataproc delete cluster component](https://github.com/kubeflow/pipelines/tree/release-1.7/components/gcp/dataproc/delete_cluster).
 
 
 ## Cautions & requirements
@@ -167,9 +167,9 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 ## References
 *   [Kubernetes Engine for Kubeflow](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts)
-*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_create_cluster.py)
-*   [Component Docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-*   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/create_cluster/sample.ipynb)
+*   [Component Python code](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_create_cluster.py)
+*   [Component Docker file](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/container/Dockerfile)
+*   [Sample notebook](https://github.com/kubeflow/pipelines/blob/release-1.7/components/gcp/dataproc/create_cluster/sample.ipynb)
 *   [Dataproc create cluster REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters/create)
 
 ## License

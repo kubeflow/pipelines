@@ -2,6 +2,9 @@
 # Name: container-with-if-placeholder
 # Inputs:
 #    optional_input: str [Default: 'default']
+# Outputs:
+#    dataset: system.Dataset
+#    output_path: str
 components:
   comp-container-with-if-placeholder:
     executorLabel: exec-container-with-if-placeholder
@@ -39,6 +42,17 @@ pipelineInfo:
   name: container-with-if-placeholder
 root:
   dag:
+    outputs:
+      artifacts:
+        dataset:
+          artifactSelectors:
+          - outputArtifactKey: dataset
+            producerSubtask: container-with-if-placeholder
+      parameters:
+        output_path:
+          valueFromParameter:
+            outputParameterKey: output_path
+            producerSubtask: container-with-if-placeholder
     tasks:
       container-with-if-placeholder:
         cachingOptions:
@@ -57,5 +71,14 @@ root:
         defaultValue: default
         isOptional: true
         parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      dataset:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    parameters:
+      output_path:
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12

@@ -91,10 +91,13 @@ class InputSpec:
             # TODO: would be better to extract these fields from the proto
             # message, as False default would be preserved
             optional = ir_component_inputs_dict.get('isOptional', False)
+            is_artifact_list = ir_component_inputs_dict.get(
+                'isArtifactList', False)
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
                     type_, schema_version),
-                optional=optional)
+                optional=optional,
+                is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -177,9 +180,12 @@ class OutputSpec:
             type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_outputs_dict['artifactType'][
                 'schemaVersion']
+            is_artifact_list = ir_component_outputs_dict.get(
+                'isArtifactList', False)
             return OutputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version))
+                    type_, schema_version),
+                is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -919,6 +925,16 @@ class ComponentSpec:
         pipeline_name = self.name
         task_group = group
 
+        pipeline_outputs = {}
+        pipeline_output_spec = self.outputs or {}
+
+        for arg_name, output_spec in pipeline_output_spec.items():
+            pipeline_outputs[
+                arg_name] = pipeline_channel.create_pipeline_channel(
+                    name=arg_name,
+                    channel_type=output_spec.type,
+                    task_name=task.name)
+
         utils.validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
@@ -931,12 +947,10 @@ class ComponentSpec:
         # can just assign the component_spec_proto directly to .root
         component_spec_proto = builder._build_component_spec_from_component_spec_structure(
             self)
-        has_inputs = bool(
-            len(component_spec_proto.input_definitions.artifacts) +
-            len(component_spec_proto.input_definitions.parameters))
-        if has_inputs:
-            pipeline_spec.root.input_definitions.CopyFrom(
-                component_spec_proto.input_definitions)
+        pipeline_spec.root.CopyFrom(component_spec_proto)
+
+        builder._build_dag_outputs(
+            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group

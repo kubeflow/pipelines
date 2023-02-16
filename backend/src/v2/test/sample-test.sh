@@ -28,8 +28,5 @@ python3 -m pip install --upgrade pip
 python3 -m pip install -r $source_root/sdk/python/requirements-deprecated.txt
 python3 -m pip install $source_root/sdk/python
 
-# Install KFP server API from commit.
-cp -r $source_root/backend/api/v1beta1/python_http_client /python_http_client
-python3 -m pip install /python_http_client
 # Run sample test
 ENV_PATH=kfp-ci.env make

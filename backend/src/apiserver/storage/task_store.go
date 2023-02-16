@@ -165,7 +165,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, podName, mlmdExecutionID, fingerprint string
 		var name, parentTaskId, state, stateHistory, inputs, outputs, children sql.NullString
-		var createdTimestamp, startedTimestamp, finishedTimestamp int64
+		var createdTimestamp, startedTimestamp, finishedTimestamp sql.NullInt64
 		err := rows.Scan(
 			&uuid,
 			&namespace,
@@ -196,9 +196,9 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			RunId:              runUUID,
 			PodName:            podName,
 			MLMDExecutionID:    mlmdExecutionID,
-			CreatedTimestamp:   createdTimestamp,
-			StartedTimestamp:   startedTimestamp,
-			FinishedTimestamp:  finishedTimestamp,
+			CreatedTimestamp:   createdTimestamp.Int64,
+			StartedTimestamp:   startedTimestamp.Int64,
+			FinishedTimestamp:  finishedTimestamp.Int64,
 			Fingerprint:        fingerprint,
 			Name:               name.String,
 			ParentTaskId:       parentTaskId.String,
