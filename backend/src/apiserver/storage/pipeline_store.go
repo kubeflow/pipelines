@@ -379,10 +379,9 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 	for rows.Next() {
 		var uuid, name, description string
 		var namespace sql.NullString
-		var createdAtInSec int64
 		var status model.PipelineStatus
 		var versionUUID, versionName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus, versionDescription, pipelineSpec, pipelineSpecURI sql.NullString
-		var versionCreatedAtInSec sql.NullInt64
+		var createdAtInSec, versionCreatedAtInSec sql.NullInt64
 		if err := rows.Scan(
 			&uuid,
 			&createdAtInSec,
@@ -407,7 +406,7 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 			pipelines,
 			&model.Pipeline{
 				UUID:           uuid,
-				CreatedAtInSec: createdAtInSec,
+				CreatedAtInSec: createdAtInSec.Int64,
 				Name:           name,
 				Description:    description,
 				Status:         status,
