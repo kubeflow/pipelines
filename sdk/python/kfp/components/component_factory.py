@@ -17,17 +17,17 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
 from kfp.components import container_component
+from kfp.components import container_component_artifact_channel
 from kfp.components import graph_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.container_component_artifact_channel import \
-    ContainerComponentArtifactChannel
+from kfp.components.types import artifact_types
 from kfp.components.types import custom_artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
@@ -477,6 +477,38 @@ def create_component_from_func(
         component_spec=component_spec, python_func=func)
 
 
+def make_input_for_parameterized_container_component_function(
+    name: str, annotation: Union[Type[List[artifact_types.Artifact]],
+                                 Type[artifact_types.Artifact]]
+) -> Union[placeholders.Placeholder, container_component_artifact_channel
+           .ContainerComponentArtifactChannel]:
+    if type_annotations.is_input_artifact(annotation):
+
+        if type_annotations.is_list_of_artifacts(annotation.__origin__):
+            return placeholders.InputListOfArtifactsPlaceholder(name)
+        else:
+            return container_component_artifact_channel.ContainerComponentArtifactChannel(
+                io_type='input', var_name=name)
+
+    elif type_annotations.is_output_artifact(annotation):
+
+        if type_annotations.is_list_of_artifacts(annotation.__origin__):
+            raise ValueError(
+                'Outputting a list of artifacts from a Custom Container Component is not currently supported.'
+            )
+        else:
+            return container_component_artifact_channel.ContainerComponentArtifactChannel(
+                io_type='output', var_name=name)
+
+    elif isinstance(
+            annotation,
+        (type_annotations.OutputAnnotation, type_annotations.OutputPath)):
+        return placeholders.OutputParameterPlaceholder(name)
+
+    else:
+        return placeholders.InputValuePlaceholder(name)
+
+
 def create_container_component_from_func(
         func: Callable) -> container_component.ContainerComponent:
     """Implementation for the @container_component decorator.
@@ -486,27 +518,15 @@ def create_container_component_from_func(
     """
 
     component_spec = extract_component_interface(func, containerized=True)
-    arg_list = []
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
+    arg_list = []
     for parameter in parameters:
         parameter_type = type_annotations.maybe_strip_optional_from_annotation(
             parameter.annotation)
-        io_name = parameter.name
-        if type_annotations.is_input_artifact(parameter_type):
-            arg_list.append(
-                ContainerComponentArtifactChannel(
-                    io_type='input', var_name=io_name))
-        elif type_annotations.is_output_artifact(parameter_type):
-            arg_list.append(
-                ContainerComponentArtifactChannel(
-                    io_type='output', var_name=io_name))
-        elif isinstance(
-                parameter_type,
-            (type_annotations.OutputAnnotation, type_annotations.OutputPath)):
-            arg_list.append(placeholders.OutputParameterPlaceholder(io_name))
-        else:  # parameter is an input value
-            arg_list.append(placeholders.InputValuePlaceholder(io_name))
+        arg_list.append(
+            make_input_for_parameterized_container_component_function(
+                parameter.name, parameter_type))
 
     container_spec = func(*arg_list)
     container_spec_implementation = structures.ContainerSpecImplementation.from_container_spec(
