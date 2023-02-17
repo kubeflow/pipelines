@@ -293,72 +293,6 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 	db, taskStore := initializeTaskStore()
 	defer db.Close()
 
-	task1 := &model.Task{
-		PodName:           "pod4",
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-		RunId:             defaultFakeRunIdTwo,
-		MLMDExecutionID:   "4",
-		StartedTimestamp:  5,
-		FinishedTimestamp: 6,
-		Fingerprint:       "1",
-	}
-	task2 := &model.Task{
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-		PodName:           "pod5",
-		RunId:             defaultFakeRunIdTwo,
-		MLMDExecutionID:   "5",
-		StartedTimestamp:  7,
-		FinishedTimestamp: 8,
-		Fingerprint:       "10",
-	}
-	task3 := &model.Task{
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-		PodName:           "pod99",
-		RunId:             defaultFakeRunIdTwo,
-		MLMDExecutionID:   "5",
-		StartedTimestamp:  7,
-		FinishedTimestamp: 8,
-		Fingerprint:       "10",
-	}
-
-	want1 := &model.Task{
-		UUID:              defaultFakeTaskIdFour,
-		CreatedTimestamp:  5,
-		PodName:           "pod4",
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-		RunId:             defaultFakeRunIdTwo,
-		MLMDExecutionID:   "4",
-		StartedTimestamp:  5,
-		FinishedTimestamp: 6,
-		Fingerprint:       "1",
-	}
-	want2 := &model.Task{
-		UUID:              defaultFakeTaskIdFive,
-		CreatedTimestamp:  7,
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-		PodName:           "pod5",
-		RunId:             defaultFakeRunIdTwo,
-		MLMDExecutionID:   "5",
-		StartedTimestamp:  7,
-		FinishedTimestamp: 8,
-		Fingerprint:       "10",
-	}
-	want3 := &model.Task{
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-		PodName:           "pod99",
-		RunId:             defaultFakeRunIdTwo,
-		MLMDExecutionID:   "5",
-		StartedTimestamp:  7,
-		FinishedTimestamp: 8,
-		Fingerprint:       "10",
-	}
-
 	tests := []struct {
 		name    string
 		tasks   []*model.Task
@@ -368,22 +302,94 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 	}{
 		{
 			"valid -task 1",
-			[]*model.Task{task1},
-			[]*model.Task{want1},
+			[]*model.Task{
+				{
+					PodName:           "pod4",
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "4",
+					StartedTimestamp:  5,
+					FinishedTimestamp: 6,
+					Fingerprint:       "1",
+				},
+			},
+			[]*model.Task{
+				{
+					UUID:              defaultFakeTaskIdFour,
+					CreatedTimestamp:  5,
+					PodName:           "pod4",
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "4",
+					StartedTimestamp:  5,
+					FinishedTimestamp: 6,
+					Fingerprint:       "1",
+					State:             model.RuntimeStateUnspecified,
+				},
+			},
 			false,
 			"",
 		},
 		{
 			"valid -task 2",
-			[]*model.Task{task2},
-			[]*model.Task{want2},
+			[]*model.Task{
+				{
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod5",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "5",
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					Fingerprint:       "10",
+				},
+			},
+			[]*model.Task{
+				{
+					UUID:              defaultFakeTaskIdFive,
+					CreatedTimestamp:  7,
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod5",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "5",
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					State:             model.RuntimeStateUnspecified,
+					Fingerprint:       "10",
+				},
+			},
 			false,
 			"",
 		},
 		{
 			"non-existing",
-			[]*model.Task{task3},
-			[]*model.Task{want3},
+			[]*model.Task{
+				{
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod99",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "5",
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					Fingerprint:       "10",
+				},
+			},
+			[]*model.Task{
+				{
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod99",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "5",
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					Fingerprint:       "10",
+				},
+			},
 			false,
 			"",
 		},
@@ -396,8 +402,102 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 		},
 		{
 			"duplicate",
-			[]*model.Task{task1, task1, task2, task3},
-			[]*model.Task{want1, want1, want2, want3},
+			[]*model.Task{
+				{
+					PodName:           "pod4",
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "4",
+					StartedTimestamp:  5,
+					FinishedTimestamp: 6,
+					Fingerprint:       "1",
+				},
+				{
+					PodName:           "pod4",
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "4",
+					StartedTimestamp:  5,
+					FinishedTimestamp: 6,
+					Fingerprint:       "1",
+				},
+				{
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod5",
+					RunId:             defaultFakeRunIdTwo,
+					State:             model.RuntimeStatePaused,
+					MLMDExecutionID:   "5",
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					Fingerprint:       "10",
+				},
+				{
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod99",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "5",
+					State:             model.RuntimeStateCancelling,
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					Fingerprint:       "10",
+				},
+			},
+			[]*model.Task{
+				{
+					UUID:              defaultFakeTaskIdFour,
+					CreatedTimestamp:  5,
+					PodName:           "pod4",
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "4",
+					State:             model.RuntimeStateUnspecified,
+					StartedTimestamp:  5,
+					FinishedTimestamp: 6,
+					Fingerprint:       "1",
+				},
+				{
+					UUID:              defaultFakeTaskIdFour,
+					CreatedTimestamp:  5,
+					PodName:           "pod4",
+					Namespace:         "ns2",
+					State:             model.RuntimeStateUnspecified,
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "4",
+					StartedTimestamp:  5,
+					FinishedTimestamp: 6,
+					Fingerprint:       "1",
+				},
+				{
+					UUID:              defaultFakeTaskIdFive,
+					CreatedTimestamp:  7,
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod5",
+					State:             model.RuntimeStatePaused,
+					RunId:             defaultFakeRunIdTwo,
+					MLMDExecutionID:   "5",
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					Fingerprint:       "10",
+				},
+				{
+					Namespace:         "ns2",
+					PipelineName:      "namespace/ns2/pipeline/pipeline2",
+					PodName:           "pod99",
+					RunId:             defaultFakeRunIdTwo,
+					State:             model.RuntimeStateCancelling,
+					MLMDExecutionID:   "5",
+					StartedTimestamp:  7,
+					FinishedTimestamp: 8,
+					Fingerprint:       "10",
+				},
+			},
 			false,
 			"",
 		},
@@ -415,105 +515,3 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 		})
 	}
 }
-
-// // TODO(gkcalat): uncomment this code once we migrate to mysql driver for backend testing
-// func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
-// 	db, taskStore := initializeTaskStore()
-// 	defer db.Close()
-
-// 	task1 := &model.Task{
-// 		PodName:           "pod4",
-// 		Namespace:         "ns2",
-// 		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-// 		RunId:             defaultFakeRunIdTwo,
-// 		MLMDExecutionID:   "4",
-// 		StartedTimestamp:  5,
-// 		FinishedTimestamp: 6,
-// 		Fingerprint:       "1",
-// 	}
-// 	task2 := &model.Task{
-// 		Namespace:         "ns2",
-// 		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-// 		PodName:           "pod5",
-// 		RunId:             defaultFakeRunIdTwo,
-// 		MLMDExecutionID:   "5",
-// 		StartedTimestamp:  7,
-// 		FinishedTimestamp: 8,
-// 		Fingerprint:       "10",
-// 	}
-// 	task3 := &model.Task{
-// 		Namespace:         "ns2",
-// 		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-// 		PodName:           "pod99",
-// 		RunId:             defaultFakeRunIdTwo,
-// 		MLMDExecutionID:   "5",
-// 		StartedTimestamp:  7,
-// 		FinishedTimestamp: 8,
-// 		Fingerprint:       "10",
-// 	}
-
-// 	want1 := &model.Task{
-// 		UUID:              defaultFakeTaskIdFour,
-// 		CreatedTimestamp:  5,
-// 		PodName:           "pod4",
-// 		Namespace:         "ns2",
-// 		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-// 		RunId:             defaultFakeRunIdTwo,
-// 		MLMDExecutionID:   "4",
-// 		StartedTimestamp:  5,
-// 		FinishedTimestamp: 6,
-// 		Fingerprint:       "1",
-// 	}
-// 	want2 := &model.Task{
-// 		UUID:              defaultFakeTaskIdFive,
-// 		CreatedTimestamp:  7,
-// 		Namespace:         "ns2",
-// 		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-// 		PodName:           "pod5",
-// 		RunId:             defaultFakeRunIdTwo,
-// 		MLMDExecutionID:   "5",
-// 		StartedTimestamp:  7,
-// 		FinishedTimestamp: 8,
-// 		Fingerprint:       "10",
-// 	}
-// 	want3 := &model.Task{
-// 		UUID:              defaultFakeTaskIdSix,
-// 		CreatedTimestamp:  7,
-// 		Namespace:         "ns2",
-// 		PipelineName:      "namespace/ns2/pipeline/pipeline2",
-// 		PodName:           "pod99",
-// 		RunId:             defaultFakeRunIdTwo,
-// 		MLMDExecutionID:   "5",
-// 		StartedTimestamp:  7,
-// 		FinishedTimestamp: 8,
-// 		Fingerprint:       "10",
-// 	}
-
-// 	tests := []struct {
-// 		name    string
-// 		tasks   []*model.Task
-// 		want    []*model.Task
-// 		wantErr bool
-// 		errMsg  string
-// 	}{
-// 		{
-// 			"valid -task 1",
-// 			[]*model.Task{task1, task2, task3},
-// 			[]*model.Task{want1, want2, want3},
-// 			false,
-// 			"",
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := taskStore.CreateOrUpdateTasks(tt.tasks)
-// 			if tt.wantErr {
-// 				assert.NotNil(t, err)
-// 				assert.Contains(t, err.Error(), tt.errMsg)
-// 			} else {
-// 				assert.Nil(t, err)
-// 				assert.Equal(t, tt.want, got)
-// 			}
-// 		})
-// 	}
-// }

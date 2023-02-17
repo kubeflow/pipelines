@@ -415,12 +415,11 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 			task.UUID = id.String()
 		}
 		if task.CreatedTimestamp == 0 {
-			if task.StartedTimestamp == 0 {
-				now := s.time.Now().Unix()
-				task.StartedTimestamp = now
-				task.CreatedTimestamp = now
-			} else {
+			now := s.time.Now().Unix()
+			if task.StartedTimestamp < now {
 				task.CreatedTimestamp = task.StartedTimestamp
+			} else {
+				task.CreatedTimestamp = now
 			}
 		}
 	}
@@ -472,8 +471,8 @@ func patchTask(original *model.Task, patch *model.Task) {
 	if original.ParentTaskId == "" {
 		original.ParentTaskId = patch.ParentTaskId
 	}
-	if original.State.ToV2() == model.RuntimeStateUnspecified && patch.State.ToV2() != model.RuntimeStateUnspecified {
-		original.State = patch.State
+	if original.State.ToV2() == model.RuntimeStateUnspecified {
+		original.State = patch.State.ToV2()
 	}
 	if original.MLMDInputs == "" {
 		original.MLMDInputs = patch.MLMDInputs
