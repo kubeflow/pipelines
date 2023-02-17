@@ -10,6 +10,20 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+
+## Documentation Updates
+# 1.8.19
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
 * chore(sdk): bump JsonSchema pinned version to >=3.0.1,<5. Fixes [#8648](https://github.com/kubeflow/pipelines/issues/8648) [#8855](https://github.com/kubeflow/pipelines/pull/8855)
 
 ## Documentation Updates
