@@ -92,7 +92,8 @@ export class UIServer {
 function createUIServer(options: UIConfigs) {
   const currDir = path.resolve(__dirname);
   const basePath = options.server.basePath;
-  const apiVersionPrefix = options.server.apiVersionPrefix;
+  const apiVersion1Prefix = options.server.apiVersion1Prefix;
+  const apiVersion2Prefix = options.server.apiVersion1Prefix;
   const apiServerAddress = getAddress(options.pipeline);
   const envoyServiceAddress = getAddress(options.metadata.envoyService);
 
@@ -108,9 +109,9 @@ function createUIServer(options: UIConfigs) {
   /** Healthz */
   registerHandler(
     app.get,
-    `/${apiVersionPrefix}/healthz`,
+    `/${apiVersion1Prefix}/healthz`,
     getHealthzHandler({
-      healthzEndpoint: getHealthzEndpoint(apiServerAddress, apiVersionPrefix),
+      healthzEndpoint: getHealthzEndpoint(apiServerAddress, apiVersion1Prefix),
       healthzStats: getBuildMetadata(currDir),
     }),
   );
@@ -177,7 +178,7 @@ function createUIServer(options: UIConfigs) {
           /** Argo nodeId is just POD name */
           const nodeId = req.query.podname;
           const runId = req.query.runid;
-          return `/${apiVersionPrefix}/runs/${runId}/nodes/${nodeId}/log`;
+          return `/${apiVersion1Prefix}/runs/${runId}/nodes/${nodeId}/log`;
         },
         target: apiServerAddress,
       }),
@@ -218,9 +219,9 @@ function createUIServer(options: UIConfigs) {
     app.use,
     [
       // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
-      `/${apiVersionPrefix}/runs/*reportMetrics`,
-      `/${apiVersionPrefix}/workflows`,
-      `/${apiVersionPrefix}/scheduledworkflows`,
+      `/${apiVersion1Prefix}/runs/*reportMetrics`,
+      `/${apiVersion1Prefix}/workflows`,
+      `/${apiVersion1Prefix}/scheduledworkflows`,
     ],
     (req, res) => {
       res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
@@ -229,12 +230,12 @@ function createUIServer(options: UIConfigs) {
 
   // Order matters here, since both handlers can match any proxied request with a referer,
   // and we prioritize the basepath-friendly handler
-  proxyMiddleware(app, `${basePath}/${apiVersionPrefix}`);
-  proxyMiddleware(app, `/${apiVersionPrefix}`);
+  proxyMiddleware(app, `${basePath}/${apiVersion1Prefix}`);
+  proxyMiddleware(app, `/${apiVersion1Prefix}`);
 
   /** Proxy to ml-pipeline api server */
   app.all(
-    `/${apiVersionPrefix}/*`,
+    `/${apiVersion1Prefix}/*`,
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
@@ -245,7 +246,32 @@ function createUIServer(options: UIConfigs) {
     }),
   );
   app.all(
-    `${basePath}/${apiVersionPrefix}/*`,
+    `/${apiVersion2Prefix}/*`,
+    proxy({
+      changeOrigin: true,
+      onProxyReq: proxyReq => {
+        console.log('Proxied request: ', proxyReq.path);
+      },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+      target: apiServerAddress,
+    }),
+  );
+
+  app.all(
+    `${basePath}/${apiVersion1Prefix}/*`,
+    proxy({
+      changeOrigin: true,
+      onProxyReq: proxyReq => {
+        console.log('Proxied request: ', proxyReq.path);
+      },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+      pathRewrite: pathStr =>
+        pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
+      target: apiServerAddress,
+    }),
+  );
+  app.all(
+    `${basePath}/${apiVersion2Prefix}/*`,
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
