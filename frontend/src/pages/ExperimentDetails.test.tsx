@@ -18,6 +18,7 @@ import * as React from 'react';
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
 import TestUtils from '../TestUtils';
 import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
+import { V2beta1Experiment, V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
@@ -41,22 +42,22 @@ describe('ExperimentDetails', () => {
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const listJobsSpy = jest.spyOn(Apis.jobServiceApi, 'listJobs');
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
 
   const MOCK_EXPERIMENT = newMockExperiment();
 
-  function newMockExperiment(): ApiExperiment {
+  function newMockExperiment(): V2beta1Experiment {
     return {
       description: 'mock experiment description',
-      id: 'some-mock-experiment-id',
-      name: 'some mock experiment name',
+      experiment_id: 'some-mock-experiment-id',
+      display_name: 'some mock experiment name',
     };
   }
 
   function generateProps(): PageProps {
-    const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any;
+    const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.experiment_id } } as any;
     return TestUtils.generatePageProps(
       ExperimentDetails,
       {} as any,
@@ -126,7 +127,7 @@ describe('ExperimentDetails', () => {
 
   it('uses the experiment ID in props as the page title if the experiment has no name', async () => {
     const experiment = newMockExperiment();
-    experiment.name = '';
+    experiment.display_name = '';
 
     const props = generateProps();
     props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
@@ -145,7 +146,7 @@ describe('ExperimentDetails', () => {
 
   it('uses the experiment name as the page title', async () => {
     const experiment = newMockExperiment();
-    experiment.name = 'A Test Experiment';
+    experiment.display_name = 'A Test Experiment';
 
     getExperimentSpy.mockImplementationOnce(() => experiment);
 
@@ -218,13 +219,13 @@ describe('ExperimentDetails', () => {
         additionalInfo: 'test error',
         message:
           'Error: failed to retrieve experiment: ' +
-          MOCK_EXPERIMENT.id +
+          MOCK_EXPERIMENT.experiment_id +
           '. Click Details for more information.',
         mode: 'error',
       }),
     );
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
-      'Error loading experiment: ' + MOCK_EXPERIMENT.id,
+      'Error loading experiment: ' + MOCK_EXPERIMENT.experiment_id,
     );
   });
 
@@ -235,6 +236,7 @@ describe('ExperimentDetails', () => {
 
     expect(tree.find('RunListsRouter').prop('storageState')).toBe(
       ApiExperimentStorageState.AVAILABLE,
+      // TODO(jlyaoyuli): Change to v2 storage state after run integration
     );
   });
 
@@ -243,7 +245,7 @@ describe('ExperimentDetails', () => {
 
     getExperimentSpy.mockImplementation(() => {
       let apiExperiment = newMockExperiment();
-      apiExperiment['storage_state'] = ApiExperimentStorageState.ARCHIVED;
+      apiExperiment['storage_state'] = V2beta1ExperimentStorageState.ARCHIVED;
       return apiExperiment;
     });
 
@@ -252,6 +254,7 @@ describe('ExperimentDetails', () => {
 
     expect(tree.find('RunListsRouter').prop('storageState')).toBe(
       ApiExperimentStorageState.ARCHIVED,
+      // TODO(jlyaoyuli): Change to v2 storage state after run integration
     );
   });
 
@@ -267,7 +270,7 @@ describe('ExperimentDetails', () => {
       100,
       '',
       'EXPERIMENT',
-      MOCK_EXPERIMENT.id,
+      MOCK_EXPERIMENT.experiment_id,
     );
     expect(tree.state('activeRecurringRunsCount')).toBe(1);
     expect(tree).toMatchSnapshot();
@@ -284,13 +287,13 @@ describe('ExperimentDetails', () => {
         additionalInfo: 'test error',
         message:
           'Error: failed to retrieve recurring runs for experiment: ' +
-          MOCK_EXPERIMENT.id +
+          MOCK_EXPERIMENT.experiment_id +
           '. Click Details for more information.',
         mode: 'error',
       }),
     );
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
-      'Error fetching recurring runs for experiment: ' + MOCK_EXPERIMENT.id,
+      'Error fetching recurring runs for experiment: ' + MOCK_EXPERIMENT.experiment_id,
     );
   });
 
@@ -434,7 +437,7 @@ describe('ExperimentDetails', () => {
     await newRunBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.NEW_RUN + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`,
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.experiment_id}`,
     );
   });
 
@@ -450,7 +453,7 @@ describe('ExperimentDetails', () => {
 
     expect(historyPushSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
-        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.experiment_id}` +
         `&${QUERY_PARAMS.isRecurring}=1`,
     );
   });
