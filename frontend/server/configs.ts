@@ -17,8 +17,8 @@ import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artif
 export const BASEPATH = '/pipeline';
 export const apiVersion1 = 'v1beta1';
 export const apiVersion1Prefix = `apis/${apiVersion1}`;
-export const apiVersion = 'v1beta1';
-export const apiVersion2Prefix = `apis/${apiVersion1}`;
+export const apiVersion2 = 'v2beta1';
+export const apiVersion2Prefix = `apis/${apiVersion2}`;
 
 export enum Deployments {
   NOT_SPECIFIED = 'NOT_SPECIFIED',
