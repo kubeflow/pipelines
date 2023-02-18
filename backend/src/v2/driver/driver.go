@@ -671,13 +671,42 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				}
 			}
 			value, hasValue := inputs.GetParameterValues()[name]
+			/*
+				// if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
+				if !hasValue {
+					if spec.GetDefaultValue() == nil {
+						if inputsSpec.GetParameters()[name].IsOptional == false {
+							return fmt.Errorf("input parameter %q is required", name)
+						} else {
+
+						}
+
+					} else {
+						inputs.GetParameterValues()[name] = spec.GetDefaultValue()
+						value = spec.GetDefaultValue()
+					}
+				}
+			*/
+
+			// Handle when parameter does not have input value
 			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
+				// when parameter is not optional, value comes from default value, otherwise error
 				if spec.GetDefaultValue() == nil {
-					return fmt.Errorf("input parameter %q is required", name)
+					return fmt.Errorf("no value or default value provided for non-optional parameter %q", name)
 				}
 				inputs.GetParameterValues()[name] = spec.GetDefaultValue()
 				value = spec.GetDefaultValue()
+			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
+				// when parameter is optional, value comes from default value, otherwise empty
+				if spec.GetDefaultValue() == nil {
+					inputs.GetParameterValues()[name] = structpb.NewStringValue("")
+					value = structpb.NewStringValue("")
+				} else {
+					inputs.GetParameterValues()[name] = spec.GetDefaultValue()
+					value = spec.GetDefaultValue()
+				}
 			}
+
 			switch spec.GetParameterType() {
 			case pipelinespec.ParameterType_STRING:
 				_, isValueString := value.GetKind().(*structpb.Value_StringValue)
