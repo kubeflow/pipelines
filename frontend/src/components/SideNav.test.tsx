@@ -17,28 +17,37 @@
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
 import { MemoryRouter, RouterProps } from 'react-router';
-import { GkeMetadataProvider } from 'src/lib/GkeMetadata';
 import { Apis } from '../lib/Apis';
 import { LocalStorage } from '../lib/LocalStorage';
-import TestUtils, { diffHTML } from '../TestUtils';
 import { RoutePage } from './Router';
-import EnhancedSideNav, { css, SideNav } from './SideNav';
+import { css, SideNav } from './SideNav';
+import { GkeMetadata } from '../lib/GkeMetadata';
+import { createMemoryHistory } from 'history';
+import TestUtils from '../TestUtils';
 
 const wideWidth = 1000;
 const narrowWidth = 200;
 const isCollapsed = (tree: ShallowWrapper<any>) =>
   tree.find('WithStyles(IconButton)').hasClass(css.collapsedChevron);
 const routerProps: RouterProps = { history: {} as any };
-const defaultProps = { ...routerProps, gkeMetadata: {} };
+const defaultProps = {
+  ...routerProps,
+  gkeMetadata: {},
+  buildInfo: {
+    apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
+    apiServerTagName: '1.0.0',
+    apiServerReady: true,
+    buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+    frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+    frontendTagName: '1.0.0-rc1',
+  },
+};
 
 describe('SideNav', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
   const consoleErrorSpy = jest.spyOn(console, 'error');
-  const buildInfoSpy = jest.spyOn(Apis, 'getBuildInfo');
   const checkHubSpy = jest.spyOn(Apis, 'isJupyterHubAvailable');
-  const clusterNameSpy = jest.spyOn(Apis, 'getClusterName');
-  const projectIdSpy = jest.spyOn(Apis, 'getProjectId');
   const localStorageHasKeySpy = jest.spyOn(LocalStorage, 'hasKey');
   const localStorageIsCollapsedSpy = jest.spyOn(LocalStorage, 'isNavbarCollapsed');
 
@@ -46,17 +55,7 @@ describe('SideNav', () => {
     jest.clearAllMocks();
 
     consoleErrorSpy.mockImplementation(() => null);
-
-    buildInfoSpy.mockImplementation(() => ({
-      apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
-      apiServerReady: true,
-      buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
-      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb',
-    }));
     checkHubSpy.mockImplementation(() => ({ ok: true }));
-    clusterNameSpy.mockImplementation(() => Promise.reject('Error when fetching cluster name'));
-    projectIdSpy.mockImplementation(() => Promise.reject('Error when fetching project ID'));
-
     localStorageHasKeySpy.mockImplementation(() => false);
     localStorageIsCollapsedSpy.mockImplementation(() => false);
   });
@@ -388,6 +387,27 @@ describe('SideNav', () => {
           <WithStyles(Tooltip)
             enterDelay={300}
             placement="top-start"
+            title="Build date: 10/23/2018, Commit hash: 0a7b9e3"
+          >
+            <div
+              className="envMetadata"
+            >
+              <span>
+                Version: 
+              </span>
+              <a
+                className="link unstyled"
+                href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
+                rel="noopener"
+                target="_blank"
+              >
+                1.0.0
+              </a>
+            </div>
+          </WithStyles(Tooltip)>
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            placement="top-start"
             title="Report an Issue"
           >
             <div
@@ -663,6 +683,27 @@ describe('SideNav', () => {
           <WithStyles(Tooltip)
             enterDelay={300}
             placement="top-start"
+            title="Build date: 10/23/2018, Commit hash: 0a7b9e3"
+          >
+            <div
+              className="envMetadata"
+            >
+              <span>
+                Version: 
+              </span>
+              <a
+                className="link unstyled"
+                href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
+                rel="noopener"
+                target="_blank"
+              >
+                1.0.0
+              </a>
+            </div>
+          </WithStyles(Tooltip)>
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            placement="top-start"
             title="Report an Issue"
           >
             <div
@@ -779,22 +820,14 @@ describe('SideNav', () => {
     expect(isCollapsed(tree)).toBe(false);
   });
 
-  it('populates the display build information using the response from the healthz endpoint', async () => {
-    const buildInfo = {
-      apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
-      apiServerTagName: '1.0.0',
-      apiServerReady: true,
-      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
-      frontendTagName: '1.0.0-rc1',
-    };
-    buildInfoSpy.mockImplementationOnce(() => buildInfo);
+  it('populates the display build information using the default props', async () => {
+    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
+    const instance = tree.find(SideNav).instance() as any;
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
 
-    expect(tree.state('displayBuildInfo')).toEqual({
+    const buildInfo = defaultProps.buildInfo;
+    expect(instance._getBuildInfo()).toEqual({
       tagName: buildInfo.apiServerTagName,
       commitHash: buildInfo.apiServerCommitHash.substring(0, 7),
       commitUrl:
@@ -803,116 +836,83 @@ describe('SideNav', () => {
     });
   });
 
-  it('populates the cluster information from context', async () => {
+  it('display the correct GKE metadata', async () => {
     const clusterName = 'some-cluster-name';
     const projectId = 'some-project-id';
+    const gkeMetadata: GkeMetadata = { clusterName, projectId };
 
-    clusterNameSpy.mockImplementationOnce(() => Promise.resolve(clusterName));
-    projectIdSpy.mockImplementationOnce(() => Promise.resolve(projectId));
-    buildInfoSpy.mockImplementationOnce(() => Promise.reject('Error when fetching build info'));
+    const newProps = {
+      ...defaultProps,
+      gkeMetadata,
+      buildInfo: {},
+    };
 
-    tree = mount(
-      <GkeMetadataProvider>
-        <MemoryRouter>
-          <EnhancedSideNav page={RoutePage.PIPELINES} {...routerProps} />
-        </MemoryRouter>
-      </GkeMetadataProvider>,
-    );
-    const base = tree.html();
-    await TestUtils.flushPromises();
-    expect(
-      diffHTML({
-        base,
-        baseAnnotation: 'base',
-        update: tree.html(),
-        updateAnnotation: 'after GKE metadata loaded',
-      }),
-    ).toMatchInlineSnapshot(`
-      Snapshot Diff:
-      - base
-      + after GKE metadata loaded
+    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
 
-      @@ --- --- @@
-                  <path fill="none" d="M0 0h24v24H0z"></path></svg></span
-              ><span class="MuiTouchRipple-root-53"></span>
-            </button>
-          </div>
-          <div class="infoVisible">
-      +     <div
-      +       class="envMetadata"
-      +       title="Cluster name: some-cluster-name, Project ID: some-project-id"
-      +     >
-      +       <span>Cluster name: </span
-      +       ><a
-      +         href="https://console.cloud.google.com/kubernetes/list?project=some-project-id&amp;filter=name:some-cluster-name"
-      +         class="link unstyled"
-      +         rel="noopener"
-      +         target="_blank"
-      +         >some-cluster-name</a
-      +       >
-      +     </div>
-            <div class="envMetadata" title="Report an Issue">
-              <a
-                href="https://github.com/kubeflow/pipelines/issues/new/choose"
-                class="link unstyled"
-                rel="noopener"
-    `);
+    expect(tree).toMatchSnapshot();
   });
 
   it('displays the frontend tag name if the api server hash is not returned', async () => {
-    const buildInfo = {
-      apiServerReady: true,
-      // No apiServerCommitHash or apiServerTagName
-      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
-      frontendTagName: '1.0.0',
+    const newProps = {
+      ...defaultProps,
+      buildInfo: {
+        apiServerReady: true,
+        // No apiServerCommitHash or apiServerTagName
+        buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+        frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+        frontendTagName: '1.0.0',
+      },
     };
-    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    await TestUtils.flushPromises();
+    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
+    const instance = tree.find(SideNav).instance() as any;
 
-    expect(tree.state('displayBuildInfo')).toEqual(
+    expect(instance._getBuildInfo()).toEqual(
       expect.objectContaining({
-        commitHash: buildInfo.frontendCommitHash.substring(0, 7),
-        tagName: buildInfo.frontendTagName,
+        commitHash: newProps.buildInfo.frontendCommitHash.substring(0, 7),
+        tagName: newProps.buildInfo.frontendTagName,
       }),
     );
   });
 
   it('uses the frontend commit hash for the link URL if the api server hash is not returned', async () => {
-    const buildInfo = {
-      apiServerReady: true,
-      // No apiServerCommitHash
-      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+    const newProps = {
+      ...defaultProps,
+      buildInfo: {
+        apiServerReady: true,
+        // No apiServerCommitHash
+        buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+        frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+      },
     };
-    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    await TestUtils.flushPromises();
+    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
+    const instance = tree.find(SideNav).instance() as any;
 
-    expect(tree.state('displayBuildInfo')).toEqual(
+    expect(instance._getBuildInfo()).toEqual(
       expect.objectContaining({
         commitUrl:
-          'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.frontendCommitHash,
+          'https://www.github.com/kubeflow/pipelines/commit/' +
+          newProps.buildInfo.frontendCommitHash,
       }),
     );
   });
 
   it("displays 'unknown' if the frontend and api server tag names/commit hashes are not returned", async () => {
-    const buildInfo = {
-      apiServerReady: true,
-      // No apiServerCommitHash
-      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      // No frontendCommitHash
+    const newProps = {
+      ...defaultProps,
+      buildInfo: {
+        apiServerReady: true,
+        // No apiServerCommitHash
+        buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+        // No frontendCommitHash
+      },
     };
-    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    await TestUtils.flushPromises();
+    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
+    const instance = tree.find(SideNav).instance() as any;
 
-    expect(tree.state('displayBuildInfo')).toEqual(
+    expect(instance._getBuildInfo()).toEqual(
       expect.objectContaining({
         commitHash: 'unknown',
         tagName: 'unknown',
@@ -921,18 +921,19 @@ describe('SideNav', () => {
   });
 
   it('links to the github repo root if the frontend and api server commit hashes are not returned', async () => {
-    const buildInfo = {
-      apiServerReady: true,
-      // No apiServerCommitHash
-      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      // No frontendCommitHash
+    const newProps = {
+      ...defaultProps,
+      buildInfo: {
+        apiServerReady: true,
+        // No apiServerCommitHash
+        buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+        // No frontendCommitHash
+      },
     };
-    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    await TestUtils.flushPromises();
-
-    expect(tree.state('displayBuildInfo')).toEqual(
+    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
+    const instance = tree.find(SideNav).instance() as any;
+    expect(instance._getBuildInfo()).toEqual(
       expect.objectContaining({
         commitUrl: 'https://www.github.com/kubeflow/pipelines',
       }),
@@ -940,31 +941,23 @@ describe('SideNav', () => {
   });
 
   it("displays 'unknown' if the date is not returned", async () => {
-    const buildInfo = {
-      apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
-      apiServerReady: true,
-      // No buildDate
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+    const newProps = {
+      ...defaultProps,
+      buildInfo: {
+        apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
+        apiServerReady: true,
+        // No buildDate
+        frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+      },
     };
-    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    await TestUtils.flushPromises();
+    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
+    const instance = tree.find(SideNav).instance() as any;
 
-    expect(tree.state('displayBuildInfo')).toEqual(
+    expect(instance._getBuildInfo()).toEqual(
       expect.objectContaining({
         date: 'unknown',
       }),
     );
-  });
-
-  it('logs an error if the call getBuildInfo fails', async () => {
-    TestUtils.makeErrorResponseOnce(buildInfoSpy, 'Uh oh!');
-
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    await TestUtils.flushPromises();
-
-    expect(tree.state('displayBuildInfo')).toBeUndefined();
-    expect(consoleErrorSpy.mock.calls[0][0]).toBe('Failed to retrieve build info');
   });
 });

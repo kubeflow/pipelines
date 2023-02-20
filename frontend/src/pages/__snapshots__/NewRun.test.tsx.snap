@@ -30,112 +30,75 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         </Link>
       </div>
     </div>
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?fromRun=some-mock-run-id",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?fromRun=some-mock-run-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -552,112 +515,75 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       value=""
       variant="outlined"
     />
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?experimentId=some-mock-experiment-id&firstRunInExperiment=1",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id&firstRunInExperiment=1",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -1074,112 +1000,75 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       value=""
       variant="outlined"
     />
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?experimentId=some-mock-experiment-id",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -1614,112 +1503,75 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       value=""
       variant="outlined"
     />
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?recurring=1",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?recurring=1",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -2136,112 +1988,75 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       value="original mock pipeline version name"
       variant="outlined"
     />
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?pipelineId=original-run-pipeline-id&pipelineVersionId=original-run-pipeline-version-id",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?pipelineId=original-run-pipeline-id&pipelineVersionId=original-run-pipeline-version-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -2656,112 +2471,75 @@ exports[`NewRun renders the new run page 1`] = `
       value=""
       variant="outlined"
     />
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?experimentId=some-mock-experiment-id",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -3178,112 +2956,75 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       value=""
       variant="outlined"
     />
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?recurring=1",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?recurring=1",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -3718,112 +3459,75 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       value=""
       variant="outlined"
     />
-    <WithStyles(Dialog)
-      PaperProps={
+    <PipelinesDialog
+      history={
         Object {
-          "id": "pipelineSelectorDialog",
+          "push": [MockFunction],
+          "replace": [MockFunction],
         }
       }
-      classes={
+      location={
         Object {
-          "paper": "selectorDialog",
+          "pathname": "/runs/new",
+          "search": "?experimentId=some-mock-experiment-id",
         }
       }
+      match=""
       onClose={[Function]}
       open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 2,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
+      pipelineSelectorColumns={
+        Array [
+          Object {
+            "customRenderer": [Function],
+            "flex": 1,
+            "label": "Pipeline name",
+            "sortKey": "name",
+          },
+          Object {
+            "customRenderer": [Function],
+            "flex": 2,
+            "label": "Description",
+          },
+          Object {
+            "flex": 1,
+            "label": "Uploaded on",
+            "sortKey": "created_at",
+          },
+        ]
+      }
+      selectorDialog="selectorDialog"
+      toolbarActionMap={
+        Object {
+          "uploadPipeline": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "uploadBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 160,
+            },
+            "title": "Upload pipeline",
+            "tooltip": "Upload pipeline",
+          },
+        }
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {},
+          "breadcrumbs": Array [
             Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarActionMap={
-            Object {
-              "uploadPipeline": Object {
-                "action": [Function],
-                "icon": [Function],
-                "id": "uploadBtn",
-                "outlined": true,
-                "style": Object {
-                  "minWidth": 160,
-                },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {},
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Start a new run",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {

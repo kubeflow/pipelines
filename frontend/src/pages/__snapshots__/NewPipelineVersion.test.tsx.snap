@@ -8,6 +8,11 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
     className="scrollContainer"
   >
     <div
+      className=""
+    >
+      Upload pipeline or pipeline version.
+    </div>
+    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -33,9 +38,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         onChange={[Function]}
       />
     </div>
-    <div
-      className="explanation"
-    >
+    <div>
       Upload pipeline with the specified package.
     </div>
     <Input
@@ -138,6 +141,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               },
             }
           }
+          data-testid="uploadFileInput"
           disabled={true}
           label="File"
           onChange={[Function]}
