@@ -60,14 +60,14 @@ describe('UploadPipelineDialog', () => {
     const spy = jest.fn();
     tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('#cancelUploadBtn').simulate('click');
-    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, '');
+    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, true, '');
   });
 
   it('calls close callback with null and empty string when dialog is closed', () => {
     const spy = jest.fn();
     tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('WithStyles(Dialog)').simulate('close');
-    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, '');
+    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, true, '');
   });
 
   it('calls close callback with file name, file object, and description when confirmed', () => {
@@ -78,7 +78,7 @@ describe('UploadPipelineDialog', () => {
       target: { value: 'test name' },
     });
     tree.find('#confirmUploadBtn').simulate('click');
-    expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, '');
+    expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, true, '');
   });
 
   it('calls close callback with trimmed file url and pipeline name when confirmed', () => {
@@ -99,6 +99,7 @@ describe('UploadPipelineDialog', () => {
       null,
       'https://www.google.com/test-file.txt',
       ImportMethod.URL,
+      true,
       '',
     );
   });

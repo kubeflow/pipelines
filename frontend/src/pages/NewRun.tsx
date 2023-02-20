@@ -58,6 +58,7 @@ import { errorToMessage, logger, mergeApiParametersByNames } from '../lib/Utils'
 import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
+import PipelinesDialog from '../components/PipelinesDialog';
 
 interface NewRunState {
   description: string;
@@ -222,6 +223,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
     const buttons = new Buttons(this.props, this.refresh.bind(this));
 
+    const dialogToolbarActionMap = new Buttons(this.props, () => {})
+      .upload(() => {
+        this.setStateSafe({ pipelineSelectorOpen: false, uploadDialogOpen: true });
+      })
+      .getToolbarActionMap();
+
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={commonCss.scrollContainer}>
@@ -283,7 +290,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                       id='choosePipelineVersionBtn'
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
-                      disabled={!this.state.pipeline}
+                      disabled={!unconfirmedSelectedPipeline}
                     >
                       Choose
                     </Button>
@@ -295,55 +302,19 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           )}
 
           {/* Pipeline selector dialog */}
-          <Dialog
+          <PipelinesDialog
+            {...this.props}
             open={pipelineSelectorOpen}
-            classes={{ paper: css.selectorDialog }}
-            onClose={() => this._pipelineSelectorClosed(false)}
-            PaperProps={{ id: 'pipelineSelectorDialog' }}
-          >
-            <DialogContent>
-              <ResourceSelector
-                {...this.props}
-                title='Choose a pipeline'
-                filterLabel='Filter pipelines'
-                listApi={async (...args) => {
-                  const response = await Apis.pipelineServiceApi.listPipelines(...args);
-                  return {
-                    nextPageToken: response.next_page_token || '',
-                    resources: response.pipelines || [],
-                  };
-                }}
-                columns={this.pipelineSelectorColumns}
-                emptyMessage='No pipelines found. Upload a pipeline and then try again.'
-                initialSortColumn={PipelineSortKeys.CREATED_AT}
-                selectionChanged={(selectedPipeline: ApiPipeline) =>
-                  this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })
-                }
-                toolbarActionMap={buttons
-                  .upload(() =>
-                    this.setStateSafe({ pipelineSelectorOpen: false, uploadDialogOpen: true }),
-                  )
-                  .getToolbarActionMap()}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                id='cancelPipelineSelectionBtn'
-                onClick={() => this._pipelineSelectorClosed(false)}
-                color='secondary'
-              >
-                Cancel
-              </Button>
-              <Button
-                id='usePipelineBtn'
-                onClick={() => this._pipelineSelectorClosed(true)}
-                color='secondary'
-                disabled={!unconfirmedSelectedPipeline}
-              >
-                Use this pipeline
-              </Button>
-            </DialogActions>
-          </Dialog>
+            selectorDialog={css.selectorDialog}
+            onClose={(confirmed, selectedPipeline?: ApiPipeline) => {
+              this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline }, () => {
+                this._pipelineSelectorClosed(confirmed);
+              });
+            }}
+            toolbarActionMap={dialogToolbarActionMap}
+            namespace={this.props.namespace}
+            pipelineSelectorColumns={this.pipelineSelectorColumns}
+          ></PipelinesDialog>
 
           {/* Pipeline version selector dialog */}
           <Dialog
@@ -707,10 +678,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
+          const pipelineName = (pipeline && pipeline.name) || '';
           this.setStateSafe({
             parameters: pipeline.parameters || [],
             pipeline,
-            pipelineName: (pipeline && pipeline.name) || '',
+            pipelineName,
+            unconfirmedSelectedPipeline: pipeline,
           });
           const possiblePipelineVersionId =
             this.props.existingPipelineVersionId ||
@@ -935,6 +908,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     file: File | null,
     url: string,
     method: ImportMethod,
+    isPrivatePipeline: boolean,
     description?: string,
   ): Promise<boolean> {
     if (
@@ -949,7 +923,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     try {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
-          ? await Apis.uploadPipeline(name, description || '', file!)
+          ? await Apis.uploadPipeline(
+              name,
+              description || '',
+              file!,
+              isPrivatePipeline ? this.props.namespace : undefined,
+            )
           : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
       this.setStateSafe(
         {
