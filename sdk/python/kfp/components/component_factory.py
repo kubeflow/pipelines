@@ -50,6 +50,7 @@ class ComponentInfo():
     output_component_file: Optional[str] = None
     base_image: str = _DEFAULT_BASE_IMAGE
     packages_to_install: Optional[List[str]] = None
+    pip_index_urls: Optional[List[str]] = None
 
 
 # A map from function_name to components.  This is always populated when a
@@ -63,7 +64,25 @@ def _python_function_name_to_component_name(name):
     return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
-def _make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
+def make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
+    """Generates index url options for pip install command based on provided
+    pip_index_urls.
+
+    Args:
+        pip_index_urls: Optional list of pip index urls
+
+    Returns:
+        - Empty string if pip_index_urls is empty/None.
+        - '--index-url url --trusted-host url ' if pip_index_urls contains 1
+        url
+        - the above followed by '--extra-index-url url --trusted-host url '
+        for
+        each next url in pip_index_urls if pip_index_urls contains more than 1
+        url
+
+        Note: In case pip_index_urls is not empty, the returned string will
+        contain space at the end.
+    """
     if not pip_index_urls:
         return ''
 
@@ -97,7 +116,7 @@ def _get_packages_to_install_command(
 
     concat_package_list = ' '.join(
         [repr(str(package)) for package in package_list])
-    index_url_options = _make_index_url_options(pip_index_urls)
+    index_url_options = make_index_url_options(pip_index_urls)
     install_python_packages_script = _install_python_packages_script_template.format(
         index_url_options=index_url_options,
         concat_package_list=concat_package_list)
@@ -465,7 +484,8 @@ def create_component_from_func(
         component_spec=component_spec,
         output_component_file=output_component_file,
         base_image=base_image,
-        packages_to_install=packages_to_install)
+        packages_to_install=packages_to_install,
+        pip_index_urls=pip_index_urls)
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info

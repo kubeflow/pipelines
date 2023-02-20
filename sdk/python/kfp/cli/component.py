@@ -46,9 +46,9 @@ FROM {base_image}
 
 WORKDIR {component_root_dir}
 COPY {requirements_file} {requirements_file}
-RUN pip install --no-cache-dir -r {requirements_file}
+RUN pip install {index_urls}--no-cache-dir -r {requirements_file}
 {maybe_copy_kfp_package}
-RUN pip install --no-cache-dir {kfp_package_path}
+RUN pip install {index_urls}--no-cache-dir {kfp_package_path}
 COPY . .
 '''
 
@@ -156,6 +156,7 @@ class ComponentBuilder():
 
         self._base_image = None
         self._target_image = None
+        self._pip_index_urls = None
         self._load_components()
 
     def _load_components(self):
@@ -214,6 +215,13 @@ class ComponentBuilder():
             raise sys.exit(1)
         logging.info(f'Using target image: {self._target_image}')
 
+        pip_index_urls = []
+        for comp in self._components:
+            if comp.pip_index_urls is not None:
+                pip_index_urls.extend(comp.pip_index_urls)
+        if len(pip_index_urls) > 0:
+            self._pip_index_urls = list(dict.fromkeys(pip_index_urls))
+
     def _maybe_write_file(self,
                           filename: str,
                           contents: str,
@@ -270,12 +278,15 @@ class ComponentBuilder():
         config.save()
 
     def maybe_generate_dockerfile(self, overwrite_dockerfile: bool = False):
+        index_urls_options = component_factory.make_index_url_options(
+            self._pip_index_urls)
         dockerfile_contents = _DOCKERFILE_TEMPLATE.format(
             base_image=self._base_image,
             maybe_copy_kfp_package=self._maybe_copy_kfp_package,
             component_root_dir=_COMPONENT_ROOT_DIR,
             kfp_package_path=self._kfp_package_path,
             requirements_file=_REQUIREMENTS_TXT,
+            index_urls=index_urls_options,
         )
 
         self._maybe_write_file(_DOCKERFILE, dockerfile_contents,
