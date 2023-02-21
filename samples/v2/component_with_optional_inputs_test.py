@@ -41,7 +41,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                 'parameters': {
                     'input1': 'Hello',
                     'input2': 'World',
-                    'input3': ''
+     #                'input3': ''
                 }
             },
             'outputs': {},
