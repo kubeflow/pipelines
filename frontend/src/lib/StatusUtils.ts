@@ -42,6 +42,18 @@ export enum NodePhase {
   OMITTED = 'Omitted',
 }
 
+export const statusProtoMap = new Map<V2beta1RuntimeState, string>([
+  [V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED, 'Unknown'],
+  [V2beta1RuntimeState.PENDING, 'Pending'],
+  [V2beta1RuntimeState.RUNNING, 'Running'],
+  [V2beta1RuntimeState.SUCCEEDED, 'Succeeded'],
+  [V2beta1RuntimeState.SKIPPED, 'Skipped'],
+  [V2beta1RuntimeState.FAILED, 'Failed'],
+  [V2beta1RuntimeState.CANCELING, 'Canceling'],
+  [V2beta1RuntimeState.CANCELED, 'Canceled'],
+  [V2beta1RuntimeState.PAUSED, 'Paused'],
+]);
+
 export function hasFinished(status?: NodePhase): boolean {
   switch (status) {
     case NodePhase.SUCCEEDED: // Fall through
