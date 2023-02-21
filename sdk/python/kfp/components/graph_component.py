@@ -98,13 +98,15 @@ class GraphComponent(base_component.BaseComponent):
         components_with_clones = OrderedDict()
 
         # Collect the collection of dedupable components
-        for component_name, component_spec in pipeline_spec.components.items():
+        for component_name, component_spec in sorted(
+                pipeline_spec.components.items()):
             if component_spec.executor_label and component_name not in components_with_clones:
                 original_components_executor_spec = pipeline_spec.deployment_spec.fields[
                     'executors'].struct_value.fields[
                         component_spec.executor_label]
-                for executor_name, executor_spec in pipeline_spec.deployment_spec.fields[
-                        'executors'].struct_value.fields.items():
+                for executor_name, executor_spec in sorted(
+                        pipeline_spec.deployment_spec.fields['executors']
+                        .struct_value.fields.items()):
                     corresponding_component_name = 'comp' + executor_name[4:]
                     if executor_name != component_spec.executor_label and executor_spec == original_components_executor_spec and corresponding_component_name not in components_with_clones and pipeline_spec.components[
                             corresponding_component_name].executor_label:
@@ -162,12 +164,12 @@ class GraphComponent(base_component.BaseComponent):
                 'executors'].struct_value.fields[
                     corresponding_executor_name].CopyFrom(executor_spec)
 
-            for _, task_spec in pipeline_spec.root.dag.tasks.items():
+            for _, task_spec in sorted(pipeline_spec.root.dag.tasks.items()):
                 if task_spec.component_ref.name in clones:
                     task_spec.component_ref.name = component
 
             # for inner task group calling on components
-            for _, component_spec in pipeline_spec.components.items():
+            for _, component_spec in sorted(pipeline_spec.components.items()):
                 if component_spec.dag:
                     for __, task_spec in component_spec.dag.tasks.items():
                         if task_spec.component_ref.name in clones:
@@ -175,8 +177,9 @@ class GraphComponent(base_component.BaseComponent):
 
         # clean up other component spec names
         if components_with_clones:
-            changed_names = {}
-            for component, component_spec in pipeline_spec.components.items():
+            changed_names = OrderedDict()
+            for component, component_spec in sorted(
+                    pipeline_spec.components.items()):
                 if component not in components_with_clones and component_spec.executor_label:
                     last_delimiter = component.rfind('-')
                     if len(component) > last_delimiter + 1 and component[
@@ -212,12 +215,12 @@ class GraphComponent(base_component.BaseComponent):
 
                         changed_names[initial] = [component, component_spec]
 
-                        for _, task_spec in pipeline_spec.root.dag.tasks.items(
-                        ):
+                        for _, task_spec in sorted(
+                                pipeline_spec.root.dag.tasks.items()):
                             if task_spec.component_ref.name == initial:
                                 task_spec.component_ref.name = component
 
-            for initial, new_details in changed_names.items():
+            for initial, new_details in sorted(changed_names.items()):
                 del pipeline_spec.components[initial]
                 component_name, component_spec = new_details
                 pipeline_spec.components[component_name].CopyFrom(
