@@ -28,6 +28,7 @@ import { Apis, ListRequest } from './Apis';
 import { hasFinished, NodePhase } from './StatusUtils';
 import { StorageService } from './WorkflowParser';
 import { ApiParameter } from '../apis/pipeline';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -126,12 +127,17 @@ export function getRunDurationFromWorkflow(workflow?: Workflow): string {
   return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
 }
 
+// TODO(jlyaoyuli): removed this after v2 API integration
 export function getRunDurationFromApiRun(apiRun?: ApiRun): string {
   if (!apiRun || !apiRun.created_at || !apiRun.finished_at) {
     return '-';
   }
 
   return getDuration(new Date(apiRun.created_at), new Date(apiRun.finished_at));
+}
+
+export function getRunDurationFromRunV2(run?: V2beta1Run): string {
+  return (!run || !run.created_at || !run.finished_at) ? '-' : getDuration(new Date(run.created_at), new Date(run.finished_at));
 }
 
 /**

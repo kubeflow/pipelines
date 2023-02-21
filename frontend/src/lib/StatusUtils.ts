@@ -148,7 +148,7 @@ export function hasFinishedV2(state: V2beta1RuntimeState): boolean {
   }
 }
 
-export function statusToBgColorV2(state: V2beta1RuntimeState, nodeMessage?: string): string {
+export function statusToBgColorV2(state?: V2beta1RuntimeState, nodeMessage?: string): string {
   state = checkIfTerminatedV2(state, nodeMessage);
   switch (state) {
     case V2beta1RuntimeState.FAILED:
@@ -173,7 +173,7 @@ export function statusToBgColorV2(state: V2beta1RuntimeState, nodeMessage?: stri
   }
 }
 
-export function checkIfTerminatedV2(state: V2beta1RuntimeState, nodeMessage?: string): V2beta1RuntimeState {
+export function checkIfTerminatedV2(state?: V2beta1RuntimeState, nodeMessage?: string): V2beta1RuntimeState | undefined {
   // Argo considers terminated runs as having "Failed", so we have to examine the failure message to
   // determine why the run failed.
   if (state === V2beta1RuntimeState.FAILED && nodeMessage === 'terminated') {
