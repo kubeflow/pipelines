@@ -16,6 +16,7 @@
 
 import { logger } from '../lib/Utils';
 import { NodeStatus } from '../third_party/mlmd/argo_template';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
 export const statusBgColors = {
   error: '#fce8e6',
@@ -107,6 +108,76 @@ export function parseNodePhase(node: NodeStatus): NodePhase {
 }
 
 function wasNodeCached(node: NodeStatus): boolean {
+  const artifacts = node.outputs?.artifacts;
+  // HACK: There is a way to detect the skipped pods based on the WorkflowStatus alone.
+  // All output artifacts have the pod name (same as node ID) in the URI. But for skipped
+  // pods, the pod name does not match the URIs.
+  // (And now there are always some output artifacts since we've enabled log archiving).
+  return !artifacts || !node.id || node.type !== 'Pod'
+    ? false
+    : artifacts.some(artifact => artifact.s3 && !artifact.s3.key.includes(node.id));
+}
+
+// separate these helper function for paritial v2 api integration
+export function hasFinishedV2(state: V2beta1RuntimeState): boolean {
+  switch (state) {
+    case V2beta1RuntimeState.SUCCEEDED: // Fall through
+    case V2beta1RuntimeState.SKIPPED: // Fall through
+    case V2beta1RuntimeState.FAILED: // Fall through
+    case V2beta1RuntimeState.CANCELED:
+      return true;
+    case V2beta1RuntimeState.PENDING: // Fall through
+    case V2beta1RuntimeState.RUNNING: // Fall through
+    case V2beta1RuntimeState.CANCELING: // Fall through
+    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+      return false;
+    default:
+      return false;
+  }
+}
+
+export function statusToBgColorV2(state: V2beta1RuntimeState, nodeMessage?: string): string {
+  state = checkIfTerminatedV2(state, nodeMessage);
+  switch (state) {
+    case V2beta1RuntimeState.FAILED:
+      return statusBgColors.error;
+    case V2beta1RuntimeState.PENDING:
+      return statusBgColors.notStarted;
+    case V2beta1RuntimeState.CANCELING:
+    // fall through
+    case V2beta1RuntimeState.RUNNING:
+      return statusBgColors.running;
+    case V2beta1RuntimeState.SUCCEEDED:
+      return statusBgColors.succeeded;
+    case V2beta1RuntimeState.SKIPPED:
+    // fall through
+    case V2beta1RuntimeState.CANCELED:
+      return statusBgColors.terminatedOrSkipped;
+    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+    // fall through
+    default:
+      logger.verbose('Unknown node phase:', state);
+      return statusBgColors.notStarted;
+  }
+}
+
+export function checkIfTerminatedV2(state: V2beta1RuntimeState, nodeMessage?: string): V2beta1RuntimeState {
+  // Argo considers terminated runs as having "Failed", so we have to examine the failure message to
+  // determine why the run failed.
+  if (state === V2beta1RuntimeState.FAILED && nodeMessage === 'terminated') {
+    state = V2beta1RuntimeState.CANCELED;
+  }
+  return state;
+}
+
+export function parseNodePhaseV2(node: NodeStatus): NodePhase {
+  if (node.phase !== 'Succeeded') {
+    return node.phase as NodePhase; // HACK: NodePhase is a string enum that has the same items as node.phase.
+  }
+  return wasNodeCachedV2(node) ? NodePhase.CACHED : NodePhase.SUCCEEDED;
+}
+
+function wasNodeCachedV2(node: NodeStatus): boolean {
   const artifacts = node.outputs?.artifacts;
   // HACK: There is a way to detect the skipped pods based on the WorkflowStatus alone.
   // All output artifacts have the pod name (same as node ID) in the URI. But for skipped

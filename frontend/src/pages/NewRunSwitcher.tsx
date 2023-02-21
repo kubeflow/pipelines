@@ -85,6 +85,8 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   // template string from cloned object
+  // TODO(jlyaoyuli): direct use pipeline_spct (ProtobufStruct) rather than converting to string
+  // after completing the v2 API integration
   let pipelineManifest: string | undefined = JsYaml.safeDump(v2Run?.pipeline_spec);
   if (getRecurringRunSuccess && apiRecurringRun) {
     pipelineManifest = apiRecurringRun.pipeline_spec?.pipeline_manifest;
