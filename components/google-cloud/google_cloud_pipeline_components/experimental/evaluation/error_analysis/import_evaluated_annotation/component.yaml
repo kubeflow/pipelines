@@ -19,7 +19,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.evaluation.import_evaluated_annotation]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.evaluation.error_analysis.import_evaluated_annotation]
     args:
       - --evaluated_annotation_output_uri
       - {inputValue: evaluated_annotation_output_uri}
