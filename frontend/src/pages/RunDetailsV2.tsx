@@ -34,7 +34,7 @@ import RunUtils from 'src/lib/RunUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 // import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
-import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
+import { formatDateString, getRunDurationFromApiRun, getRunDurationFromRunV2 } from 'src/lib/Utils';
 import {
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
@@ -52,7 +52,7 @@ import {
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
 import { RunDetailsProps } from './RunDetails';
-import { statusToIcon } from './Status';
+import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
@@ -261,7 +261,7 @@ function updateToolBar(
   if (runMetadata) {
     const pageTitle = (
       <div className={commonCss.flex}>
-        {statusToIcon(runMetadata.status as NodePhase, runMetadata.created_at)}
+        {statusToIcon(runMetadata.state, runMetadata.created_at)}
         <span style={{ marginLeft: 10 }}>{runMetadata.display_name || 'Run name unknown'}</span>
       </div>
     );
@@ -333,6 +333,6 @@ function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
     ['Created at', run?.created_at ? formatDateString(run.created_at) : '-'],
     ['Started at', formatDateString(run?.scheduled_at)],
     ['Finished at', finishedAt > new Date(0) ? formatDateString(run?.finished_at) : '-'],
-    ['Duration', finishedAt > new Date(0) ? getRunDurationFromApiRun(run) : '-'],
+    ['Duration', finishedAt > new Date(0) ? getRunDurationFromRunV2(run) : '-'],
   ];
 }
