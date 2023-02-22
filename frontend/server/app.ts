@@ -93,7 +93,7 @@ function createUIServer(options: UIConfigs) {
   const currDir = path.resolve(__dirname);
   const basePath = options.server.basePath;
   const apiVersion1Prefix = options.server.apiVersion1Prefix;
-  const apiVersion2Prefix = options.server.apiVersion1Prefix;
+  const apiVersion2Prefix = options.server.apiVersion2Prefix;
   const apiServerAddress = getAddress(options.pipeline);
   const envoyServiceAddress = getAddress(options.metadata.envoyService);
 
@@ -112,6 +112,15 @@ function createUIServer(options: UIConfigs) {
     `/${apiVersion1Prefix}/healthz`,
     getHealthzHandler({
       healthzEndpoint: getHealthzEndpoint(apiServerAddress, apiVersion1Prefix),
+      healthzStats: getBuildMetadata(currDir),
+    }),
+  );
+
+  registerHandler(
+    app.get,
+    `/${apiVersion2Prefix}/healthz`,
+    getHealthzHandler({
+      healthzEndpoint: getHealthzEndpoint(apiServerAddress, apiVersion2Prefix),
       healthzStats: getBuildMetadata(currDir),
     }),
   );
