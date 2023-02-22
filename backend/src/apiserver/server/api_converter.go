@@ -1264,12 +1264,18 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		apiRunV2 := r
 		if temp, err := toModelTasks(apiRunV2.GetRunDetails().GetTaskDetails()); err == nil {
 			tasks = temp
+		} else {
+			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting tasks")
 		}
 		if temp, err := toModelRuntimeState(apiRunV2.GetState()); err == nil {
 			state = temp
+		} else {
+			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state")
 		}
 		if temp, err := toModelRuntimeStatuses(apiRunV2.GetStateHistory()); err == nil {
 			stateHistory = temp
+		} else {
+			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state history")
 		}
 		namespace = ""
 		pipelineId = ""
@@ -2438,16 +2444,8 @@ func toModelRuntimeState(s interface{}) (model.RuntimeState, error) {
 	switch s := s.(type) {
 	case string, *string:
 		return model.RuntimeState(s.(string)), nil
-	case int32, *int32:
-		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int32))])
-	case int, *int:
-		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int))])
-	case int8, *int8:
-		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int8))])
-	case int16, *int16:
-		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(int16))])
 	case apiv2beta1.RuntimeState, *apiv2beta1.RuntimeState:
-		return toModelRuntimeState(int32(s.(apiv2beta1.RuntimeState)))
+		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(apiv2beta1.RuntimeState))])
 	default:
 		return "", util.NewUnknownApiVersionError("RuntimeState", s)
 	}

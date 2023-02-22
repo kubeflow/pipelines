@@ -2510,46 +2510,6 @@ func Test_toModelRuntimeState(t *testing.T) {
 			"",
 		},
 		{
-			"V2 int32=7",
-			int32(7),
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"V2 int=7",
-			7,
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"V2 int8=7",
-			int8(7),
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"V2 int16=7",
-			int16(7),
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"V2 int64=7",
-			int64(7),
-			"",
-			"",
-			true,
-			"Error using RuntimeState with int64",
-		},
-		{
 			"Invalid run type",
 			&apiv1beta1.Run{},
 			"",
@@ -3076,10 +3036,8 @@ func Test_toModelTask(t *testing.T) {
 				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
 				StartTime:   &timestamppb.Timestamp{Seconds: 5},
 				EndTime:     &timestamppb.Timestamp{Seconds: 6},
-				// ExecutorDetail *PipelineTaskExecutorDetail `protobuf:"bytes,7,opt,name=executor_detail,json=executorDetail,proto3" json:"executor_detail,omitempty"`
 				State:       apiv2beta1.RuntimeState_CANCELING,
 				ExecutionId: 7,
-				Error:       util.ToRpcStatus(util.NewInvalidInputError("Sample error")),
 				Inputs: map[string]*apiv2beta1.ArtifactList{
 					"a1": {
 						ArtifactIds: []int64{1, 2, 3},
@@ -3095,7 +3053,6 @@ func Test_toModelTask(t *testing.T) {
 					{
 						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
 						State:      apiv2beta1.RuntimeState_PAUSED,
-						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
 					},
 				},
 				ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
@@ -3124,7 +3081,6 @@ func Test_toModelTask(t *testing.T) {
 					{
 						UpdateTimeInSec: 9,
 						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
 					},
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3180,7 +3136,7 @@ func Test_toModelTask(t *testing.T) {
 	}
 }
 
-func Test_toModelTasks(t *testing.T) {
+func Test_toModelTasks_v1(t *testing.T) {
 	argV1 := []*apiv1beta1.Task{
 		{
 			Id:              "1",
@@ -3216,7 +3172,9 @@ func Test_toModelTasks(t *testing.T) {
 	gotV1, err := toModelTasks(argV1)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedV1, gotV1)
+}
 
+func Test_toModelTasks_v2(t *testing.T) {
 	argV2 := []*apiv2beta1.PipelineTaskDetail{
 		{
 			RunId:       "2",
@@ -3298,7 +3256,6 @@ func Test_toModelTasks(t *testing.T) {
 					CreateTime:  &timestamppb.Timestamp{Seconds: 4},
 					StartTime:   &timestamppb.Timestamp{Seconds: 5},
 					EndTime:     &timestamppb.Timestamp{Seconds: 6},
-					// ExecutorDetail *PipelineTaskExecutorDetail `protobuf:"bytes,7,opt,name=executor_detail,json=executorDetail,proto3" json:"executor_detail,omitempty"`
 					State:       apiv2beta1.RuntimeState_CANCELING,
 					ExecutionId: 7,
 					Error:       util.ToRpcStatus(util.NewInvalidInputError("Sample error")),
@@ -3336,6 +3293,9 @@ func Test_toModelTasks(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedV2, gotV2run)
 
+}
+
+func Test_toModelTasks_v2Nil(t *testing.T) {
 	argV2runNil1 := &apiv2beta1.Run{
 		RunId: "run1",
 		RunDetails: &apiv2beta1.RunDetails{
@@ -3356,6 +3316,9 @@ func Test_toModelTasks(t *testing.T) {
 	assert.Contains(t, err.Error(), "RunDetails cannot be nil")
 	assert.Nil(t, gotV2runNil2)
 
+}
+
+func Test_toModelTasks_wfNodes(t *testing.T) {
 	argNode := workflowapi.Nodes{
 		"node-1": {
 			ID:          "1",
@@ -3383,6 +3346,9 @@ func Test_toModelTasks(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNode, gotNode)
 
+}
+
+func Test_toModelTasks_wf(t *testing.T) {
 	expectedWf := []*model.Task{
 		{
 			PodName:           "boudary_exec_id-node0",

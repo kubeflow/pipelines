@@ -1218,7 +1218,7 @@ func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task) ([]*model.Task, e
 }
 
 // Reports a workflow CR.
-// This is called by the persistence agent to update runs.
+// This is called to update runs.
 func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
 	objMeta := execSpec.ExecutionObjectMeta()
 	execStatus := execSpec.ExecutionStatus()
