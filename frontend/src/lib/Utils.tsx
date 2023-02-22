@@ -25,7 +25,7 @@ import { Column, ExpandState, Row } from '../components/CustomTable';
 import { css, CustomTableRow } from '../components/CustomTableRow';
 import { padding } from '../Css';
 import { Apis, ListRequest } from './Apis';
-import { hasFinished, NodePhase } from './StatusUtils';
+import { hasFinished, hasFinishedV2, NodePhase } from './StatusUtils';
 import { StorageService } from './WorkflowParser';
 import { ApiParameter } from '../apis/pipeline';
 import { V2beta1Run } from 'src/apisv2beta1/run';
@@ -117,6 +117,10 @@ export function getRunDuration(run?: ApiRun): string {
   // as they should be, when in reality they are transferred as strings.
   // See: https://github.com/swagger-api/swagger-codegen/issues/2776
   return getDuration(new Date(run.created_at), new Date(run.finished_at));
+}
+
+export function getRunDurationV2(run?: V2beta1Run): string {
+  return (!run || !run.created_at || !run.finished_at || !hasFinishedV2(run.state)) ? '-' : getDuration(new Date(run.created_at), new Date(run.finished_at));
 }
 
 export function getRunDurationFromWorkflow(workflow?: Workflow): string {

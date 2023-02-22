@@ -131,7 +131,7 @@ function wasNodeCached(node: NodeStatus): boolean {
 }
 
 // separate these helper function for paritial v2 api integration
-export function hasFinishedV2(state: V2beta1RuntimeState): boolean {
+export function hasFinishedV2(state?: V2beta1RuntimeState): boolean {
   switch (state) {
     case V2beta1RuntimeState.SUCCEEDED: // Fall through
     case V2beta1RuntimeState.SKIPPED: // Fall through
