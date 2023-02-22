@@ -699,8 +699,10 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
 				// when parameter is optional, value comes from default value, otherwise empty
 				if spec.GetDefaultValue() == nil {
-					inputs.GetParameterValues()[name] = structpb.NewStringValue("")
-					value = structpb.NewStringValue("")
+					// inputs.GetParameterValues()[name] = structpb.NewStringValue("")
+					// value = structpb.NewStringValue("")
+					delete(inputs.GetParameterValues(), name)
+					continue
 				} else {
 					inputs.GetParameterValues()[name] = spec.GetDefaultValue()
 					value = spec.GetDefaultValue()

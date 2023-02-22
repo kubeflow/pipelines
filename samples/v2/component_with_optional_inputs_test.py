@@ -28,7 +28,7 @@ from ml_metadata.proto import Execution
 
 from .component_with_optional_inputs import pipeline
 
-'''
+
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
@@ -48,8 +48,9 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
         }, component_op_dict)
-'''
 
+
+'''
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
@@ -70,6 +71,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
         },
         tasks,
     )
+'''
 
 if __name__ == '__main__':
     run_pipeline_func([
