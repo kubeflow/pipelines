@@ -20,13 +20,23 @@ from kfp.dsl import component
 
 @component
 def component_op(
-    input1: str = 'default value',
-    input2: Optional[str] = None,
-    input3: Optional[str] = None,
+    input_str1: Optional[str] = 'string default value',
+    input_str2: Optional[str] = None,
+    input_str3: Optional[str] = None,
+    input_bool1: Optional[bool] = True,
+    input_bool2: Optional[bool] = None,
+    input_dict: Optional[Dict[str, int]] = {"a": 1},
+    input_list: Optional[List[str]] = ["123"],
+    input_int: Optional[int] = 100,
 ):
-    print(f'input1: {input1}, type: {type(input1)}')
-    print(f'input2: {input2}, type: {type(input2)}')
-    print(f'input3: {input3}, type: {type(input3)}')
+    print(f'input_str1: {input_str1}, type: {type(input_str1)}')
+    print(f'input_str2: {input_str2}, type: {type(input_str2)}')
+    print(f'input_str3: {input_str3}, type: {type(input_str3)}')
+    print(f'input_bool1: {input_bool1}, type: {type(input_bool1)}')
+    print(f'input_bool2: {input_bool2}, type: {type(input_bool2)}')
+    print(f'input_bool: {input_dict}, type: {type(input_dict)}')
+    print(f'input_bool: {input_list}, type: {type(input_list)}')
+    print(f'input_bool: {input_int}, type: {type(input_int)}')
 
 
 @dsl.pipeline(name='v2-component-optional-input')

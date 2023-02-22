@@ -41,37 +41,12 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                 'parameters': {
                     'input1': 'Hello',
                     'input2': 'World',
-     #                'input3': ''
                 }
             },
             'outputs': {},
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
         }, component_op_dict)
-
-
-'''
-def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
-           tasks: dict[str, KfpTask], **kwargs):
-    t.assertEqual(run.status, 'Succeeded')
-    t.assertEqual(
-        {
-            'component-op':
-                KfpTask(
-                    name='component-op',
-                    type='system.ContainerExecution',
-                    state=Execution.State.COMPLETE,
-                    inputs=TaskInputs(
-                        parameters={'input1': 'Hello',
-                                    'input2': 'World',
-                                    'input3': None}, 
-                        artifacts=[]),
-                    outputs=TaskOutputs(
-                        parameters={}, artifacts=[]))
-        },
-        tasks,
-    )
-'''
 
 if __name__ == '__main__':
     run_pipeline_func([

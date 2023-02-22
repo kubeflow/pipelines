@@ -671,22 +671,6 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				}
 			}
 			value, hasValue := inputs.GetParameterValues()[name]
-			/*
-				// if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
-				if !hasValue {
-					if spec.GetDefaultValue() == nil {
-						if inputsSpec.GetParameters()[name].IsOptional == false {
-							return fmt.Errorf("input parameter %q is required", name)
-						} else {
-
-						}
-
-					} else {
-						inputs.GetParameterValues()[name] = spec.GetDefaultValue()
-						value = spec.GetDefaultValue()
-					}
-				}
-			*/
 
 			// Handle when parameter does not have input value
 			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
@@ -697,10 +681,8 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				inputs.GetParameterValues()[name] = spec.GetDefaultValue()
 				value = spec.GetDefaultValue()
 			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
-				// when parameter is optional, value comes from default value, otherwise empty
+				// when parameter is optional, value comes from default value, otherwise we delete this parameter from input list, because nothing is being passed
 				if spec.GetDefaultValue() == nil {
-					// inputs.GetParameterValues()[name] = structpb.NewStringValue("")
-					// value = structpb.NewStringValue("")
 					delete(inputs.GetParameterValues(), name)
 					continue
 				} else {
