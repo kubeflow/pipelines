@@ -144,16 +144,22 @@ pipelines:
     - module: components_with_optional_artifacts
       name: pipeline
       execute: false
-    - module: parallelfor_fan_in/fan_in_complex
+    - module: parallelfor_fan_in/parameters_complex
       name: math_pipeline
       execute: false
     - module: parallelfor_fan_in/pipeline_producer_consumer
       name: math_pipeline
       execute: false
-    - module: parallelfor_fan_in/simple_with_parameters
+    - module: parallelfor_fan_in/parameters_simple
       name: math_pipeline
       execute: false
     - module: parallelfor_fan_in/conditional_producer_and_consumers
+      name: math_pipeline
+      execute: false
+    - module: parallelfor_fan_in/artifacts_simple
+      name: math_pipeline
+      execute: false
+    - module: parallelfor_fan_in/artifacts_complex
       name: math_pipeline
       execute: false
     - module: pipeline_with_task_using_ignore_upstream_failure

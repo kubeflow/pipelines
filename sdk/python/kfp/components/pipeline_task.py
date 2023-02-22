@@ -76,39 +76,17 @@ class PipelineTask:
 
             if input_name not in component_spec.inputs:
                 raise ValueError(
-                    f'Component "{component_spec.name}" got an unexpected input:'
-                    f' {input_name}.')
+                    f'Component {component_spec.name!r} got an unexpected input:'
+                    f' {input_name!r}.')
 
             input_spec = component_spec.inputs[input_name]
-            input_type = input_spec.type
-            argument_type = None
-
-            if isinstance(argument_value, pipeline_channel.PipelineChannel):
-                argument_type = argument_value.channel_type
-            elif isinstance(argument_value, str):
-                argument_type = 'String'
-            elif isinstance(argument_value, bool):
-                argument_type = 'Boolean'
-            elif isinstance(argument_value, int):
-                argument_type = 'Integer'
-            elif isinstance(argument_value, float):
-                argument_type = 'Float'
-            elif isinstance(argument_value, dict):
-                argument_type = 'Dict'
-            elif isinstance(argument_value, list):
-                argument_type = 'List'
-            else:
-                raise ValueError(
-                    'Input argument supports only the following types: '
-                    'str, int, float, bool, dict, and list. Got: '
-                    f'"{argument_value}" of type "{type(argument_value)}".')
 
             type_utils.verify_type_compatibility(
-                given_type=argument_type,
-                expected_type=input_type,
+                given_value=argument_value,
+                expected_spec=input_spec,
                 error_message_prefix=(
-                    'Incompatible argument passed to the input '
-                    f'"{input_name}" of component "{component_spec.name}": '),
+                    f'Incompatible argument passed to the input '
+                    f'{input_name!r} of component {component_spec.name!r}: '),
             )
 
         self.component_spec = component_spec
@@ -150,6 +128,7 @@ class PipelineTask:
                 name=output_name,
                 channel_type=output_spec.type,
                 task_name=self._task_spec.name,
+                is_artifact_list=output_spec.is_artifact_list,
             ) for output_name, output_spec in (
                 component_spec.outputs or {}).items()
         }

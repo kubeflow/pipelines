@@ -266,9 +266,12 @@ def extract_component_interface(
                 output_names.add(output_name)
                 type_var = field_annotations.get(field_name)
                 if type_annotations.is_list_of_artifacts(type_var):
-                    raise ValueError(
-                        f'Cannot use output lists of artifacts in NamedTuple return annotations. Got output list of artifacts annotation for NamedTuple field `{field_name}`.'
-                    )
+                    artifact_cls = type_var.__args__[0]
+                    output_spec = structures.OutputSpec(
+                        type=type_utils.create_bundled_artifact_type(
+                            artifact_cls.schema_title,
+                            artifact_cls.schema_version),
+                        is_artifact_list=True)
                 elif type_annotations.is_artifact_class(type_var):
                     output_spec = structures.OutputSpec(
                         type=type_utils.create_bundled_artifact_type(
@@ -493,9 +496,7 @@ def make_input_for_parameterized_container_component_function(
     elif type_annotations.is_output_artifact(annotation):
 
         if type_annotations.is_list_of_artifacts(annotation.__origin__):
-            raise ValueError(
-                'Outputting a list of artifacts from a Custom Container Component is not currently supported.'
-            )
+            return placeholders.OutputListOfArtifactsPlaceholder(name)
         else:
             return container_component_artifact_channel.ContainerComponentArtifactChannel(
                 io_type='output', var_name=name)

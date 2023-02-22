@@ -228,6 +228,7 @@ class PipelineArtifactChannel(PipelineChannel):
         name: str,
         channel_type: Union[str, Dict],
         task_name: Optional[str],
+        is_artifact_list: bool,
     ):
         """Initializes a PipelineArtifactChannel instance.
 
@@ -244,6 +245,8 @@ class PipelineArtifactChannel(PipelineChannel):
         if type_utils.is_parameter_type(channel_type):
             raise TypeError(f'{channel_type} is not an artifact type.')
 
+        self.is_artifact_list = is_artifact_list
+
         super(PipelineArtifactChannel, self).__init__(
             name=name,
             channel_type=channel_type,
@@ -256,6 +259,7 @@ def create_pipeline_channel(
     channel_type: Union[str, Dict],
     task_name: Optional[str] = None,
     value: Optional[type_utils.PARAMETER_TYPES] = None,
+    is_artifact_list: bool = False,
 ) -> PipelineChannel:
     """Creates a PipelineChannel object.
 
@@ -281,6 +285,7 @@ def create_pipeline_channel(
             name=name,
             channel_type=channel_type,
             task_name=task_name,
+            is_artifact_list=is_artifact_list,
         )
 
 
@@ -319,6 +324,8 @@ def extract_pipeline_channels_from_string(
                 name=name,
                 channel_type=channel_type,
                 task_name=task_name,
+                # currently no support for getting the index from a list of artifacts (e.g., my_datasets[0].uri), so this will always be False until accessing a single artifact element is supported
+                is_artifact_list=False,
             )
         unique_channels.add(pipeline_channel)
 
