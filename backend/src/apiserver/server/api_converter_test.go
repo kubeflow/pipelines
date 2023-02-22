@@ -3292,7 +3292,6 @@ func Test_toModelTasks_v2(t *testing.T) {
 	gotV2run, err := toModelTasks(argV2run)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedV2, gotV2run)
-
 }
 
 func Test_toModelTasks_v2Nil(t *testing.T) {
@@ -3315,7 +3314,6 @@ func Test_toModelTasks_v2Nil(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "RunDetails cannot be nil")
 	assert.Nil(t, gotV2runNil2)
-
 }
 
 func Test_toModelTasks_wfNodes(t *testing.T) {
@@ -3345,7 +3343,6 @@ func Test_toModelTasks_wfNodes(t *testing.T) {
 	gotNode, err := toModelTasks(argNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNode, gotNode)
-
 }
 
 func Test_toModelTasks_wf(t *testing.T) {
