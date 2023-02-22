@@ -11,14 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+import tempfile
 from typing import Any, Dict, List, Union
 import unittest
 
 from absl.testing import parameterized
 import kfp
+from kfp import compiler
+from kfp import components
+from kfp import dsl
+from kfp.components import base_component
+from kfp.components import pipeline_channel
+from kfp.components import structures
+from kfp.components import yaml_component
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Output
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
 _PARAMETER_TYPES = [
@@ -169,77 +181,6 @@ class TypeUtilsTest(parameterized.TestCase):
             type_utils.get_parameter_type_schema(None)
 
     @parameterized.parameters(
-        # param True
-        {
-            'given_type': 'String',
-            'expected_type': 'String',
-            'is_compatible': True,
-        },
-        # param False
-        {
-            'given_type': 'String',
-            'expected_type': 'Integer',
-            'is_compatible': False,
-        },
-        # param Artifact compat, irrespective of version
-        {
-            'given_type': 'system.Artifact@1.0.0',
-            'expected_type': 'system.Model@0.0.1',
-            'is_compatible': True,
-        },
-        # param Artifact compat, irrespective of version, other way
-        {
-            'given_type': 'system.Metrics@1.0.0',
-            'expected_type': 'system.Artifact@0.0.1',
-            'is_compatible': True,
-        },
-        # different schema_title incompat, irrespective of version
-        {
-            'given_type': 'system.Metrics@1.0.0',
-            'expected_type': 'system.Dataset@1.0.0',
-            'is_compatible': False,
-        },
-        # different major version incompat
-        {
-            'given_type': 'system.Metrics@1.0.0',
-            'expected_type': 'system.Metrics@2.1.1',
-            'is_compatible': False,
-        },
-        # namespace must match
-        {
-            'given_type': 'google.Model@1.0.0',
-            'expected_type': 'system.Model@1.0.0',
-            'is_compatible': False,
-        },
-        # system.Artifact compatible works across namespace
-        {
-            'given_type': 'google.Model@1.0.0',
-            'expected_type': 'system.Artifact@1.0.0',
-            'is_compatible': True,
-        },
-    )
-    def test_verify_type_compatibility(
-        self,
-        given_type: Union[str, dict],
-        expected_type: Union[str, dict],
-        is_compatible: bool,
-    ):
-        if is_compatible:
-            self.assertTrue(
-                type_utils.verify_type_compatibility(
-                    given_type=given_type,
-                    expected_type=expected_type,
-                    error_message_prefix='',
-                ))
-        else:
-            with self.assertRaises(InconsistentTypeException):
-                type_utils.verify_type_compatibility(
-                    given_type=given_type,
-                    expected_type=expected_type,
-                    error_message_prefix='',
-                )
-
-    @parameterized.parameters(
         {
             'given_type': str,
             'expected_type_name': 'String',
@@ -333,7 +274,7 @@ class TestGetArtifactTypeSchema(parameterized.TestCase):
 
 class TestTypeCheckManager(unittest.TestCase):
 
-    def test_true_to_falsewq(self):
+    def check_false_to_true(self):
         kfp.TYPE_CHECK = False
         with type_utils.TypeCheckManager(enable=True):
             self.assertEqual(kfp.TYPE_CHECK, True)
@@ -638,6 +579,283 @@ class TestDeserializeV1ComponentYamlDefault(parameterized.TestCase):
         # check type first since equals check is insufficient since 1.0 == 1
         self.assertIsInstance(res, expected_type)
         self.assertEquals(res, expected_val)
+
+
+class TestTypeChecking(parameterized.TestCase):
+
+    @parameterized.parameters(
+        # param True
+        {
+            'argument_value': 'my text',
+            'parameter_input_spec': structures.InputSpec(type='String'),
+            'is_compatible': True,
+        },
+        # param False
+        {
+            'argument_value': 'my text',
+            'parameter_input_spec': structures.InputSpec(type='Integer'),
+            'is_compatible': False,
+        },
+        # param Artifact compat, irrespective of version
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'system.Artifact@1.0.0'),
+            'parameter_input_spec':
+                structures.InputSpec('system.Model@0.0.1'),
+            'is_compatible':
+                True,
+        },
+        # param Artifact compat, irrespective of version, other way
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'system.Metrics@1.0.0'),
+            'parameter_input_spec':
+                structures.InputSpec('system.Artifact@0.0.1'),
+            'is_compatible':
+                True,
+        },
+        # different schema_title incompat, irrespective of version
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'system.Metrics@1.0.0'),
+            'parameter_input_spec':
+                structures.InputSpec('system.Dataset@1.0.0'),
+            'is_compatible':
+                False,
+        },
+        # different major version incompat
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'system.Metrics@1.0.0'),
+            'parameter_input_spec':
+                structures.InputSpec('system.Metrics@2.1.1'),
+            'is_compatible':
+                False,
+        },
+        # namespace must match
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'google.Model@1.0.0'),
+            'parameter_input_spec':
+                structures.InputSpec('system.Model@1.0.0'),
+            'is_compatible':
+                False,
+        },
+        # system.Artifact compatible works across namespace
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'google.Model@1.0.0'),
+            'parameter_input_spec':
+                structures.InputSpec('system.Artifact@1.0.0'),
+            'is_compatible':
+                True,
+        },
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel',
+                    'system.Artifact@1.0.0',
+                    is_artifact_list=True),
+            'parameter_input_spec':
+                structures.InputSpec(
+                    'system.Artifact@1.0.0', is_artifact_list=True),
+            'is_compatible':
+                True,
+        },
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel',
+                    'system.Artifact@1.0.0',
+                    is_artifact_list=True),
+            'parameter_input_spec':
+                structures.InputSpec(
+                    'system.Artifact@1.0.0', is_artifact_list=False),
+            'is_compatible':
+                False,
+        },
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel',
+                    'system.Artifact@1.0.0',
+                    is_artifact_list=False),
+            'parameter_input_spec':
+                structures.InputSpec(
+                    'system.Artifact@1.0.0', is_artifact_list=True),
+            'is_compatible':
+                False,
+        },
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel',
+                    'system.Artifact@1.0.0',
+                    is_artifact_list=True),
+            'parameter_input_spec':
+                structures.InputSpec('String'),
+            'is_compatible':
+                False,
+        },
+        {
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'String'),
+            'parameter_input_spec':
+                structures.InputSpec(
+                    'system.Artifact@1.0.0', is_artifact_list=True),
+            'is_compatible':
+                False,
+        },
+    )
+    def test_verify_type_compatibility(
+        self,
+        argument_value: Union[pipeline_channel.PipelineChannel, str, bool, int,
+                              float, dict, list],
+        parameter_input_spec: structures.InputSpec,
+        is_compatible: bool,
+    ):
+        if is_compatible:
+            self.assertTrue(
+                type_utils.verify_type_compatibility(
+                    given_value=argument_value,
+                    expected_spec=parameter_input_spec,
+                    error_message_prefix='',
+                ))
+        else:
+            with self.assertRaises(InconsistentTypeException):
+                type_utils.verify_type_compatibility(
+                    given_value=argument_value,
+                    expected_spec=parameter_input_spec,
+                    error_message_prefix='',
+                )
+
+    def test_list_of_artifacts_across_compilation_valid(self):
+
+        @dsl.component
+        def double(num: int, out_dataset: Output[Dataset]):
+            ...
+
+        @dsl.component
+        def add(in_datasets: Input[List[Dataset]],
+                out_dataset: Output[Dataset]):
+            ...
+
+        loaded_add = compile_and_load_component(add)
+
+        @dsl.pipeline
+        def math_pipeline(in_datasets: Input[List[Dataset]]) -> List[Dataset]:
+            # artifact list arg can be provided for artifact list type (of component)
+            loaded_add(in_datasets=in_datasets)
+
+            with dsl.ParallelFor([1, 2, 3]) as x:
+                t = double(num=x)
+            return dsl.Collected(t.outputs['out_dataset'])
+
+        loaded_math_pipeline = compile_and_load_component(math_pipeline)
+
+        @dsl.pipeline
+        def outer_math_pipeline(
+                in_datasets: Input[List[Dataset]]) -> List[Dataset]:
+            # artifact list arg can be provided for artifact list type (of pipeline)
+            t = loaded_math_pipeline(in_datasets=in_datasets)
+            # artifact list output can be surfaced to artifact list output
+            return t.output
+
+    def test_list_of_artifacts_across_compilation_invalid_component_input(self):
+
+        @dsl.component
+        def add(in_datasets: Input[Dataset]):
+            ...
+
+        loaded_add = compile_and_load_component(add)
+
+        with self.assertRaisesRegex(
+                InconsistentTypeException,
+                r"Incompatible argument passed to the input 'in_datasets' of component 'add': Argument type 'List\[system\.Dataset@0\.0\.1\]' is incompatible with the input type 'system\.Dataset@0\.0\.1'"
+        ):
+
+            @dsl.pipeline
+            def math_pipeline(in_datasets: Input[List[Dataset]]):
+                # artifact list arg cannot be provided to single artifact type (of component)
+                loaded_add(in_datasets=in_datasets)
+
+    def test_list_of_artifacts_across_compilation_invalid_pipeline_input(self):
+
+        @dsl.component
+        def double(num: int, out_dataset: Output[Dataset]):
+            ...
+
+        @dsl.component
+        def add(in_datasets: Input[List[Dataset]],
+                out_dataset: Output[Dataset]):
+            ...
+
+        @dsl.pipeline
+        def math_pipeline(in_datasets: Input[List[Dataset]]) -> List[Dataset]:
+            add(in_datasets=in_datasets)
+
+            with dsl.ParallelFor([1, 2, 3]) as x:
+                t = double(num=x)
+            return dsl.Collected(t.outputs['out_dataset'])
+
+        with self.assertRaisesRegex(
+                InconsistentTypeException,
+                r"Incompatible argument passed to the input 'in_datasets' of component 'math-pipeline': Argument type 'system\.Dataset@0\.0\.1' is incompatible with the input type 'List\[system.Dataset@0\.0\.1\]'"
+        ):
+
+            @dsl.pipeline
+            def outer_math_pipeline(
+                    in_dataset: Input[Dataset]) -> List[Dataset]:
+                # single artifact arg cannot be provided to artifact list type (of pipeline)
+                t = math_pipeline(in_datasets=in_dataset)
+                return t.output
+
+    def test_list_of_artifacts_across_compilation_invalid_pipeline_output(self):
+
+        @dsl.component
+        def double(num: int, out_dataset: Output[Dataset]):
+            ...
+
+        @dsl.component
+        def add(in_datasets: Input[List[Dataset]],
+                out_dataset: Output[Dataset]):
+            ...
+
+        @dsl.pipeline
+        def math_pipeline(in_datasets: Input[List[Dataset]]) -> List[Dataset]:
+            add(in_datasets=in_datasets)
+
+            with dsl.ParallelFor([1, 2, 3]) as x:
+                t = double(num=x)
+            return dsl.Collected(t.outputs['out_dataset'])
+
+        with self.assertRaisesRegex(
+                InconsistentTypeException,
+                r"Incompatible return type provided for output of pipeline 'outer-math-pipeline'\. Output of type 'List\[system\.Dataset@0\.0\.1\]' cannot be surfaced as pipeline output type 'system\.Dataset@0\.0\.1"
+        ):
+
+            @dsl.pipeline
+            def outer_math_pipeline(
+                    in_dataset: Input[List[Dataset]]) -> Dataset:
+                t = math_pipeline(in_datasets=in_dataset)
+                # artifact list output cannot be surfaced as single artifact output
+                return t.output
+
+
+def compile_and_load_component(
+        comp: base_component.BaseComponent) -> yaml_component.YamlComponent:
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        output_path = os.path.join(tempdir, 'pipeline.yaml')
+        compiler.Compiler().compile(comp, output_path)
+        return components.load_component_from_file(output_path)
 
 
 if __name__ == '__main__':

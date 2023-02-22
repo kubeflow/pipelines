@@ -37,6 +37,8 @@ class PythonComponent(components.BaseComponent):
         super().__init__(component_spec=component_spec)
         self.python_func = python_func
 
+        self._prevent_using_output_lists_of_artifacts()
+
     def execute(self, **kwargs):
         """Executes the Python function that defines the component."""
         return self.python_func(**kwargs)

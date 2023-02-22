@@ -153,8 +153,6 @@ class OutputSpec:
 
     def __post_init__(self) -> None:
         self._validate_type()
-        # TODO: remove this method when we support output lists of artifacts
-        self._prevent_using_output_lists_of_artifacts()
 
     @classmethod
     def from_ir_component_outputs_dict(
@@ -216,11 +214,6 @@ class OutputSpec:
         # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
-
-    def _prevent_using_output_lists_of_artifacts(self):
-        if self.is_artifact_list:
-            raise NotImplementedError(
-                'Output lists of artifacts are not yet supported.')
 
 
 def spec_type_is_parameter(type_: str) -> bool:
@@ -910,7 +903,9 @@ class ComponentSpec:
 
         for arg_name, input_spec in pipeline_inputs.items():
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
-                name=arg_name, channel_type=input_spec.type)
+                name=arg_name,
+                channel_type=input_spec.type,
+                is_artifact_list=input_spec.is_artifact_list)
 
         task = pipeline_task.PipelineTask(self, args_dict)
 

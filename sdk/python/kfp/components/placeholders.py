@@ -79,6 +79,28 @@ class InputListOfArtifactsPlaceholder(Placeholder):
         )
 
 
+class OutputListOfArtifactsPlaceholder(Placeholder):
+
+    def __init__(self, input_name: str) -> None:
+        self.output_name = input_name
+
+    def _to_string(self) -> str:
+        return f"{{{{$.outputs.artifacts['{self.output_name}']}}}}"
+
+    def __getattribute__(self, name: str) -> Any:
+        if name in {'name', 'uri', 'metadata', 'path'}:
+            raise AttributeError(
+                f'Cannot access an attribute on a list of artifacts in a Custom Container Component. Found reference to attribute {name!r} on {self.output_name!r}. Please pass the whole list of artifacts only.'
+            )
+        else:
+            return object.__getattribute__(self, name)
+
+    def __getitem__(self, k: int) -> None:
+        raise KeyError(
+            f'Cannot access individual artifacts in a list of artifacts. Found access to element {k} on {self.output_name!r}. Please pass the whole list of artifacts only.'
+        )
+
+
 class InputPathPlaceholder(Placeholder):
 
     def __init__(self, input_name: str) -> None:
@@ -296,7 +318,8 @@ PRIMITIVE_INPUT_PLACEHOLDERS = (InputValuePlaceholder, InputPathPlaceholder,
                                 InputListOfArtifactsPlaceholder)
 PRIMITIVE_OUTPUT_PLACEHOLDERS = (OutputParameterPlaceholder,
                                  OutputPathPlaceholder, OutputUriPlaceholder,
-                                 OutputMetadataPlaceholder)
+                                 OutputMetadataPlaceholder,
+                                 OutputListOfArtifactsPlaceholder)
 
 CommandLineElement = Union[str, Placeholder]
 
