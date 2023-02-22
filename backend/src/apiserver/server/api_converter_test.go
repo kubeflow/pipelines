@@ -3188,35 +3188,6 @@ func Test_toModelTasks_v2(t *testing.T) {
 	assert.Equal(t, expectedV2, gotV2)
 }
 
-func Test_toModelTasks_wfNodes(t *testing.T) {
-	argNode := workflowapi.Nodes{
-		"node-1": {
-			ID:          "1",
-			DisplayName: "node_1",
-			Name:        "wrong name",
-			Phase:       workflowapi.NodePhase("Pending"),
-			Children:    []string{"node3", "node4"},
-			StartedAt:   v1.Time{Time: time.Unix(4, 0)},
-			FinishedAt:  v1.Time{Time: time.Unix(5, 0)},
-		},
-	}
-
-	expectedNode := []*model.Task{
-		{
-			PodName:           "1",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  4,
-			FinishedTimestamp: 5,
-			Name:              "node_1",
-			State:             model.RuntimeStatePending,
-			ChildrenPods:      []string{"node3", "node4"},
-		},
-	}
-	gotNode, err := toModelTasks(argNode)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNode, gotNode)
-}
-
 func Test_toModelTasks_wf(t *testing.T) {
 	expectedWf := []*model.Task{
 		{

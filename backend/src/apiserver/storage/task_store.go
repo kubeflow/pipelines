@@ -48,8 +48,11 @@ var taskColumns = []string{
 	"MLMDOutputs",
 	"ChildrenPods",
 }
-var taskColumnsWithPayload = append(taskColumns, "Payload")
-var taskColumnsUpdates = prepareUpdateSuffix(taskColumnsWithPayload)
+
+var (
+	taskColumnsWithPayload = append(taskColumns, "Payload")
+	taskColumnsUpdates     = prepareUpdateSuffix(taskColumnsWithPayload)
+)
 
 func prepareUpdateSuffix(columns []string) string {
 	columnsExtended := make([]string, 0)
@@ -107,20 +110,18 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		}
 	}
 
-	if len(newTask.StateHistory) > 0 {
-		stateHistoryString, err := json.Marshal(newTask.StateHistory)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to marshal state history for a new task")
-		}
-		newTask.StateHistoryString = string(stateHistoryString)
+	stateHistoryString := ""
+	if history, err := json.Marshal(newTask.StateHistory); err == nil {
+		stateHistoryString = string(history)
+	} else {
+		return nil, util.NewInternalServerError(err, "Failed to marshal state history in a new run")
 	}
 
-	if len(newTask.ChildrenPods) > 0 {
-		children, err := json.Marshal(newTask.ChildrenPods)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to marshal child task ids in a new task")
-		}
-		newTask.ChildrenPodsString = string(children)
+	childrenPodsString := ""
+	if children, err := json.Marshal(newTask.ChildrenPods); err == nil {
+		childrenPodsString = string(children)
+	} else {
+		return nil, util.NewInternalServerError(err, "Failed to marshal children pods in a new run")
 	}
 
 	sql, args, err := sq.
@@ -140,10 +141,10 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"Name":              newTask.Name,
 				"ParentTaskUUID":    newTask.ParentTaskId,
 				"State":             newTask.State.ToString(),
-				"StateHistory":      newTask.StateHistoryString,
+				"StateHistory":      stateHistoryString,
 				"MLMDInputs":        newTask.MLMDInputs,
 				"MLMDOutputs":       newTask.MLMDOutputs,
-				"ChildrenPods":      newTask.ChildrenPodsString,
+				"ChildrenPods":      childrenPodsString,
 				"Payload":           newTask.ToString(),
 			},
 		).
@@ -189,29 +190,31 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			fmt.Printf("scan error is %v", err)
 			return tasks, err
 		}
+		var stateHistoryNew []*model.RuntimeStatus
+		if stateHistory.Valid {
+			json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
+		}
+		var childrenPods []string
+		if children.Valid {
+			json.Unmarshal([]byte(children.String), &childrenPods)
+		}
 		task := &model.Task{
-			UUID:               uuid,
-			Namespace:          namespace,
-			PipelineName:       pipelineName,
-			RunId:              runUUID,
-			PodName:            podName,
-			MLMDExecutionID:    mlmdExecutionID,
-			CreatedTimestamp:   createdTimestamp.Int64,
-			StartedTimestamp:   startedTimestamp.Int64,
-			FinishedTimestamp:  finishedTimestamp.Int64,
-			Fingerprint:        fingerprint,
-			Name:               name.String,
-			ParentTaskId:       parentTaskId.String,
-			StateHistoryString: stateHistory.String,
-			MLMDInputs:         inputs.String,
-			MLMDOutputs:        outputs.String,
-			ChildrenPodsString: children.String,
-		}
-		if task.StateHistoryString != "" {
-			json.Unmarshal([]byte(task.StateHistoryString), &task.StateHistory)
-		}
-		if task.ChildrenPodsString != "" {
-			json.Unmarshal([]byte(task.ChildrenPodsString), &task.ChildrenPods)
+			UUID:              uuid,
+			Namespace:         namespace,
+			PipelineName:      pipelineName,
+			RunId:             runUUID,
+			PodName:           podName,
+			MLMDExecutionID:   mlmdExecutionID,
+			CreatedTimestamp:  createdTimestamp.Int64,
+			StartedTimestamp:  startedTimestamp.Int64,
+			FinishedTimestamp: finishedTimestamp.Int64,
+			Fingerprint:       fingerprint,
+			Name:              name.String,
+			ParentTaskId:      parentTaskId.String,
+			StateHistory:      stateHistoryNew,
+			MLMDInputs:        inputs.String,
+			MLMDOutputs:       outputs.String,
+			ChildrenPods:      childrenPods,
 		}
 		tasks = append(tasks, task)
 	}
@@ -372,6 +375,22 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
 		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
 		for _, t := range ts {
+			childrenPodsString := ""
+			if len(t.ChildrenPods) > 0 {
+				children, err := json.Marshal(t.ChildrenPods)
+				if err != nil {
+					return "", nil, util.NewInternalServerError(err, "Failed to marshal child task ids in a task")
+				}
+				childrenPodsString = string(children)
+			}
+			stateHistoryString := ""
+			if len(t.StateHistory) > 0 {
+				history, err := json.Marshal(t.StateHistory)
+				if err != nil {
+					return "", nil, util.NewInternalServerError(err, "Failed to marshal state history in a task")
+				}
+				stateHistoryString = string(history)
+			}
 			sqlInsert = sqlInsert.Values(
 				t.UUID,
 				t.Namespace,
@@ -386,10 +405,10 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.Name,
 				t.ParentTaskId,
 				t.State.ToString(),
-				t.StateHistoryString,
+				stateHistoryString,
 				t.MLMDInputs,
 				t.MLMDOutputs,
-				t.ChildrenPodsString,
+				childrenPodsString,
 				t.ToString(),
 			)
 		}

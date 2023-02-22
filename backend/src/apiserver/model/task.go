@@ -126,8 +126,6 @@ func (t Task) GetFieldValue(name string) interface{} {
 		return t.ParentTaskId
 	case "State":
 		return t.State
-	case "StateHistory":
-		return t.StateHistory
 	case "Name":
 		return t.Name
 	case "MLMDInputs":

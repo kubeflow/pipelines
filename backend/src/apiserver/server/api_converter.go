@@ -1747,29 +1747,21 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 		runId := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
 		namespace := execSpec.ExecutionNamespace()
 		createdAt := execSpec.GetCreationTimestamp().Unix()
-		if tasks, err := toModelTasks(execSpec.Status.Nodes); err == nil {
-			for _, task := range tasks {
-				task.RunId = runId
-				task.Namespace = namespace
-				task.CreatedTimestamp = createdAt
-			}
-			return tasks, nil
-		} else {
-			return nil, util.Wrap(err, "Failed to convert Argo workflow to tasks details")
-		}
-	case workflowapi.Nodes:
-		wfNodes := t
 		modelTasks := make([]*model.Task, 0)
-		for _, node := range wfNodes {
+		for _, node := range execSpec.Status.Nodes {
 			modelTask, err := toModelTask(node)
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to convert Argo Nodes to their internal representations")
+				return nil, util.Wrap(err, "Failed to convert Argo workflow to tasks details")
 			}
+			modelTask.RunId = runId
+			modelTask.Namespace = namespace
+			modelTask.CreatedTimestamp = createdAt
 			modelTasks = append(modelTasks, modelTask)
 		}
 		return modelTasks, nil
+	default:
+		return nil, util.NewUnknownApiVersionError("[]Task", t)
 	}
-	return nil, util.NewUnknownApiVersionError("[]Task", t)
 }
 
 // Converts internal task representation to its API counterpart.

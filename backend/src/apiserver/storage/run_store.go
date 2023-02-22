@@ -380,6 +380,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			}
 		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
+		var stateHistoryNew []*model.RuntimeStatus
+		if stateHistory.Valid {
+			json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
+		}
 		run := &model.Run{
 			UUID:           uuid,
 			ExperimentId:   experimentUUID,
@@ -401,7 +405,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				PipelineContextId:       pipelineContextId.Int64,
 				PipelineRunContextId:    pipelineRunContextId.Int64,
 				TaskDetails:             tasks,
-				StateHistoryString:      stateHistory.String,
+				StateHistory:            stateHistoryNew,
 			},
 			Metrics:            metrics,
 			ResourceReferences: resourceReferences,
@@ -414,9 +418,6 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				Parameters:           parameters,
 				RuntimeConfig:        runtimeConfig,
 			},
-		}
-		if run.StateHistoryString != "" {
-			json.Unmarshal([]byte(run.StateHistoryString), &run.StateHistory)
 		}
 		run = run.ToV2()
 		runs = append(runs, run)
@@ -482,8 +483,12 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		UpdateTimeInSec: s.time.Now().Unix(),
 		State:           r.RunDetails.State,
 	})
-	if historyString, err := json.Marshal(r.RunDetails.StateHistory); err == nil {
-		r.RunDetails.StateHistoryString = string(historyString)
+
+	stateHistoryString := ""
+	if history, err := json.Marshal(r.RunDetails.StateHistory); err == nil {
+		stateHistoryString = string(history)
+	} else {
+		return nil, util.NewInternalServerError(err, "Failed to marshal state history in a new run")
 	}
 	runSql, runArgs, err := sq.
 		Insert("run_details").
@@ -512,7 +517,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"PipelineVersionId":       r.PipelineSpec.PipelineVersionId,
 			"JobUUID":                 r.RecurringRunId,
 			"State":                   r.RunDetails.State.ToString(),
-			"StateHistory":            r.RunDetails.StateHistoryString,
+			"StateHistory":            stateHistoryString,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
@@ -555,15 +560,16 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 		UpdateTimeInSec: s.time.Now().Unix(),
 		State:           run.RunDetails.State,
 	})
+	stateHistoryString := ""
 	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
-		run.RunDetails.StateHistoryString = string(historyString)
+		stateHistoryString = string(historyString)
 	}
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
 			"Conditions":              run.Conditions,
 			"State":                   run.State.ToString(),
-			"StateHistory":            run.StateHistoryString,
+			"StateHistory":            stateHistoryString,
 			"FinishedAtInSec":         run.FinishedAtInSec,
 			"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
 		}).

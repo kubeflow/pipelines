@@ -156,7 +156,6 @@ func TestListRuns_Pagination(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -197,7 +196,6 @@ func TestListRuns_Pagination(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":2,\"State\":\"SUCCEEDED\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -264,7 +262,6 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -304,7 +301,6 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":2,\"State\":\"SUCCEEDED\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -431,7 +427,6 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":2,\"State\":\"SUCCEEDED\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -471,7 +466,6 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -542,7 +536,6 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				State:                   model.RuntimeStateRunning,
 				Conditions:              "Running",
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -580,7 +573,6 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				State:                   model.RuntimeStateSucceeded,
 				Conditions:              "Succeeded",
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":2,\"State\":\"SUCCEEDED\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -649,7 +641,6 @@ func TestGetRun(t *testing.T) {
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 1,
@@ -714,7 +705,6 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
 			WorkflowRuntimeManifest: "workflow1",
-			StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 1,
@@ -772,7 +762,6 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 			Conditions:              "Succeeded",
 			State:                   model.RuntimeStateSucceeded,
 			WorkflowRuntimeManifest: "workflow1_done",
-			StateHistoryString:      "[{\"UpdateTimeInSec\":4,\"State\":\"SUCCEEDED\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 4,
@@ -842,7 +831,6 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
 			WorkflowRuntimeManifest: "workflow_runtime_spec",
-			StateHistoryString:      "[{\"UpdateTimeInSec\":4,\"State\":\"RUNNING\"},{\"UpdateTimeInSec\":5,\"State\":\"RUNNING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 4,
@@ -970,7 +958,6 @@ func TestTerminateRun(t *testing.T) {
 			Conditions:              "Terminating",
 			WorkflowRuntimeManifest: "workflow1",
 			State:                   model.RuntimeStateCancelling,
-			StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 1,
@@ -1133,7 +1120,6 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -1173,7 +1159,6 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":2,\"State\":\"SUCCEEDED\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -1315,7 +1300,6 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
-				StateHistoryString:      "[{\"UpdateTimeInSec\":1,\"State\":\"RUNNING\"}]",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,

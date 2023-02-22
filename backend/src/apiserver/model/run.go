@@ -305,10 +305,10 @@ type RunDetails struct {
 	ScheduledAtInSec int64 `gorm:"column:ScheduledAtInSec; default:0;"`
 	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0;"`
 	// Conditions were deprecated. Use State instead.
-	Conditions         string       `gorm:"column:Conditions; not null;"`
-	State              RuntimeState `gorm:"column:State; default:null;"`
-	StateHistoryString string       `gorm:"column:StateHistory; default:null; size:65535;"`
-	StateHistory       []*RuntimeStatus
+	Conditions         string           `gorm:"column:Conditions; not null;"`
+	State              RuntimeState     `gorm:"column:State; default:null;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null; size:65535;"`
+	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
 	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:33554432;"`
 	// Serialized Argo CRD in v1beta1
@@ -419,8 +419,6 @@ func (r *Run) GetFieldValue(name string) interface{} {
 		return r.ExperimentId
 	case "State":
 		return r.RunDetails.State
-	case "StateHistory":
-		return r.RunDetails.StateHistory
 	case "PipelineRuntimeManifest":
 		return r.RunDetails.PipelineRuntimeManifest
 	case "RecurringRunId":

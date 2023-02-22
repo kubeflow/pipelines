@@ -1545,7 +1545,6 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			ScheduledAtInSec:        5,
 			Conditions:              "Pending",
 			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
-			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -1580,11 +1579,10 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 			PipelineSpecManifest: v2SpecHelloWorld,
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:     5,
-			ScheduledAtInSec:   5,
-			Conditions:         "Pending",
-			State:              model.RuntimeStatePending,
-			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			CreatedAtInSec:   5,
+			ScheduledAtInSec: 5,
+			Conditions:       "Pending",
+			State:            model.RuntimeStatePending,
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -1633,11 +1631,10 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:     5,
-			ScheduledAtInSec:   5,
-			Conditions:         "Pending",
-			State:              "PENDING",
-			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			CreatedAtInSec:   5,
+			ScheduledAtInSec: 5,
+			Conditions:       "Pending",
+			State:            "PENDING",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -1681,10 +1678,9 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:     5,
-			ScheduledAtInSec:   5,
-			Conditions:         "Pending",
-			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
+			CreatedAtInSec:   5,
+			ScheduledAtInSec: 5,
+			Conditions:       "Pending",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -1828,7 +1824,6 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
 			Conditions:              "Pending",
-			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -1902,7 +1897,6 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			CreatedAtInSec:          5,
 			ScheduledAtInSec:        5,
 			Conditions:              "Pending",
-			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -2779,10 +2773,9 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:     5,
-			ScheduledAtInSec:   5,
-			Conditions:         "Running",
-			StateHistoryString: "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"},{\"UpdateTimeInSec\":7,\"State\":\"RUNNING\"}]",
+			CreatedAtInSec:   5,
+			ScheduledAtInSec: 5,
+			Conditions:       "Running",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -2854,7 +2847,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			FinishedAtInSec:         0,
 			Conditions:              "Error",
 			State:                   model.RuntimeStateUnspecified,
-			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"RUNTIME_STATE_UNSPECIFIED\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
@@ -2926,7 +2918,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			ScheduledAtInSec:        11,
 			Conditions:              "Pending",
 			State:                   model.RuntimeStatePending,
-			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
