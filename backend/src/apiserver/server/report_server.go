@@ -36,12 +36,9 @@ func (s ReportServer) reportTasksFromExecution(wf *util.Workflow, runId string) 
 	if len(wf.Status.Nodes) == 0 {
 		return nil, nil
 	}
-	tasks, err := toModelTasks(wf.Status.Nodes)
+	tasks, err := toModelTasks(wf)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report tasks of an execution")
-	}
-	for _, task := range tasks {
-		task.RunId = runId
 	}
 	return s.resourceManager.CreateOrUpdateTasks(tasks)
 }

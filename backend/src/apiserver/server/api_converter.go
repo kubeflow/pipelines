@@ -1742,15 +1742,6 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			modelTasks = append(modelTasks, modelTask)
 		}
 		return modelTasks, nil
-	case *apiv2beta1.Run:
-		apiRunV2 := t
-		if apiRunV2.GetRunDetails() == nil {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("RunDetails cannot be nil"), "Failed to convert API tasks to their internal representations")
-		}
-		if apiRunV2.GetRunDetails().GetTaskDetails() == nil {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("TaskDetails cannot be nil"), "Failed to convert API tasks to their internal representations")
-		}
-		return toModelTasks(apiRunV2.GetRunDetails().GetTaskDetails())
 	case []*apiv1beta1.Task:
 		apiTasks := t
 		modelTasks := make([]*model.Task, 0)
