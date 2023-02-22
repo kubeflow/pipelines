@@ -1742,17 +1742,6 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			modelTasks = append(modelTasks, modelTask)
 		}
 		return modelTasks, nil
-	case []*apiv1beta1.Task:
-		apiTasks := t
-		modelTasks := make([]*model.Task, 0)
-		for _, apiTask := range apiTasks {
-			modelTask, err := toModelTask(apiTask)
-			if err != nil {
-				return nil, util.Wrap(err, "Failed to convert API tasks to their internal representations")
-			}
-			modelTasks = append(modelTasks, modelTask)
-		}
-		return modelTasks, nil
 	case *util.Workflow:
 		execSpec := t
 		runId := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
@@ -2512,10 +2501,10 @@ func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2beta1.RuntimeStatus {
 // Converts an array of API runtime statuses to an array of their internal representations.
 // Support v2beta1 API.
 func toApiRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2beta1.RuntimeStatus {
-	statuses := make([]*apiv2beta1.RuntimeStatus, 0)
-	if s == nil {
+	if len(s) == 0 {
 		return nil
 	}
+	statuses := make([]*apiv2beta1.RuntimeStatus, 0)
 	for _, status := range s {
 		statuses = append(statuses, toApiRuntimeStatus(status))
 	}

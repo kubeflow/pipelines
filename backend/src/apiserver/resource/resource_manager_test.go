@@ -2894,6 +2894,9 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			}},
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowPending,
+		},
 	})
 
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
@@ -2921,14 +2924,13 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			WorkflowRuntimeManifest: workflow.ToStringForStore(),
 			CreatedAtInSec:          11,
 			ScheduledAtInSec:        11,
-			FinishedAtInSec:         0,
-			Conditions:              "Unknown",
-			State:                   model.RuntimeStateUnspecified,
-			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"RUNTIME_STATE_UNSPECIFIED\"}]",
+			Conditions:              "Pending",
+			State:                   model.RuntimeStatePending,
+			StateHistoryString:      "[{\"UpdateTimeInSec\":6,\"State\":\"PENDING\"}]",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 6,
-					State:           model.RuntimeStateUnspecified,
+					State:           model.RuntimeStatePending,
 				},
 			},
 		},

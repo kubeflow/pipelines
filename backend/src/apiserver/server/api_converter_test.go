@@ -2916,15 +2916,6 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
 		},
 		{
-			State: model.RuntimeStateCancelling,
-		},
-		{
-			Error: util.NewInvalidInputError("Invalid input: %s", "sample value"),
-		},
-		{
-			UpdateTimeInSec: 100,
-		},
-		{
 			UpdateTimeInSec: 100,
 			State:           model.RuntimeStateErrorV1,
 			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
@@ -2951,15 +2942,6 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
 			State:      apiv2beta1.RuntimeState_CANCELING,
 			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
-		},
-		{
-			State: apiv2beta1.RuntimeState_CANCELING,
-		},
-		{
-			Error: util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
-		},
-		{
-			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
 		},
 		{
 			UpdateTime: &timestamppb.Timestamp{Seconds: 100},
@@ -3136,44 +3118,6 @@ func Test_toModelTask(t *testing.T) {
 	}
 }
 
-func Test_toModelTasks_v1(t *testing.T) {
-	argV1 := []*apiv1beta1.Task{
-		{
-			Id:              "1",
-			Namespace:       "ns1",
-			PipelineName:    "namespaces/ns1/pipelines/p1",
-			RunId:           "2",
-			MlmdExecutionID: "3",
-			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-			FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
-			Fingerprint:     "6",
-		},
-	}
-	expectedV1 := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunId:             "2",
-			MLMDExecutionID:   "3",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  4,
-			FinishedTimestamp: 5,
-			Fingerprint:       "6",
-			Name:              "",
-			ParentTaskId:      "",
-			State:             model.RuntimeStateUnspecified,
-			StateHistory:      nil,
-			MLMDInputs:        "",
-			MLMDOutputs:       "",
-			ChildrenPods:      nil,
-		},
-	}
-	gotV1, err := toModelTasks(argV1)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedV1, gotV1)
-}
-
 func Test_toModelTasks_v2(t *testing.T) {
 	argV2 := []*apiv2beta1.PipelineTaskDetail{
 		{
@@ -3183,10 +3127,8 @@ func Test_toModelTasks_v2(t *testing.T) {
 			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
 			StartTime:   &timestamppb.Timestamp{Seconds: 5},
 			EndTime:     &timestamppb.Timestamp{Seconds: 6},
-			// ExecutorDetail *PipelineTaskExecutorDetail `protobuf:"bytes,7,opt,name=executor_detail,json=executorDetail,proto3" json:"executor_detail,omitempty"`
-			State:       apiv2beta1.RuntimeState_CANCELING,
+			State:       apiv2beta1.RuntimeState_FAILED,
 			ExecutionId: 7,
-			Error:       util.ToRpcStatus(util.NewInvalidInputError("Sample error")),
 			Inputs: map[string]*apiv2beta1.ArtifactList{
 				"a1": {
 					ArtifactIds: []int64{1, 2, 3},
@@ -3201,8 +3143,8 @@ func Test_toModelTasks_v2(t *testing.T) {
 			StateHistory: []*apiv2beta1.RuntimeStatus{
 				{
 					UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-					State:      apiv2beta1.RuntimeState_PAUSED,
-					Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+					State:      apiv2beta1.RuntimeState_FAILED,
+					Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
 				},
 			},
 			ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
@@ -3228,12 +3170,12 @@ func Test_toModelTasks_v2(t *testing.T) {
 			Fingerprint:       "",
 			Name:              "task",
 			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
+			State:             model.RuntimeStateFailed,
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					State:           model.RuntimeStateFailed,
+					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
 				},
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3244,76 +3186,6 @@ func Test_toModelTasks_v2(t *testing.T) {
 	gotV2, err := toModelTasks(argV2)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedV2, gotV2)
-
-	argV2run := &apiv2beta1.Run{
-		RunId: "run1",
-		RunDetails: &apiv2beta1.RunDetails{
-			TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-				{
-					RunId:       "2",
-					TaskId:      "1",
-					DisplayName: "task",
-					CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-					StartTime:   &timestamppb.Timestamp{Seconds: 5},
-					EndTime:     &timestamppb.Timestamp{Seconds: 6},
-					State:       apiv2beta1.RuntimeState_CANCELING,
-					ExecutionId: 7,
-					Error:       util.ToRpcStatus(util.NewInvalidInputError("Sample error")),
-					Inputs: map[string]*apiv2beta1.ArtifactList{
-						"a1": {
-							ArtifactIds: []int64{1, 2, 3},
-						},
-					},
-					Outputs: map[string]*apiv2beta1.ArtifactList{
-						"b2": {
-							ArtifactIds: []int64{4, 5, 6},
-						},
-					},
-					ParentTaskId: "8",
-					StateHistory: []*apiv2beta1.RuntimeStatus{
-						{
-							UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-							State:      apiv2beta1.RuntimeState_PAUSED,
-							Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
-						},
-					},
-					ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-						{
-							ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-						},
-						{
-							ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-						},
-					},
-				},
-			},
-		},
-	}
-	gotV2run, err := toModelTasks(argV2run)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedV2, gotV2run)
-}
-
-func Test_toModelTasks_v2Nil(t *testing.T) {
-	argV2runNil1 := &apiv2beta1.Run{
-		RunId: "run1",
-		RunDetails: &apiv2beta1.RunDetails{
-			TaskDetails: nil,
-		},
-	}
-	gotV2runNil1, err := toModelTasks(argV2runNil1)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "TaskDetails cannot be nil")
-	assert.Nil(t, gotV2runNil1)
-
-	argV2runNil2 := &apiv2beta1.Run{
-		RunId:      "run1",
-		RunDetails: nil,
-	}
-	gotV2runNil2, err := toModelTasks(argV2runNil2)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "RunDetails cannot be nil")
-	assert.Nil(t, gotV2runNil2)
 }
 
 func Test_toModelTasks_wfNodes(t *testing.T) {
@@ -3893,43 +3765,62 @@ func TestToModelRun(t *testing.T) {
 				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
-				State:          apiv2beta1.RuntimeState_CANCELING,
-				Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error1")),
+				State:          apiv2beta1.RuntimeState_FAILED,
+				Error:          util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
 						{
-							RunId:          "run2",
+							RunId:          "run1",
 							TaskId:         "task1",
 							DisplayName:    "this is task",
 							CreateTime:     &timestamp.Timestamp{Seconds: 11},
 							StartTime:      &timestamp.Timestamp{Seconds: 12},
 							EndTime:        &timestamp.Timestamp{Seconds: 13},
 							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_PAUSED,
+							State:          apiv2beta1.RuntimeState_FAILED,
 							ExecutionId:    14,
-							Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error3")),
 							Inputs: map[string]*apiv2beta1.ArtifactList{
 								"a1": {ArtifactIds: []int64{1, 2, 3}},
 							},
 							Outputs: map[string]*apiv2beta1.ArtifactList{
 								"b2": {ArtifactIds: []int64{4, 5, 6}},
 							},
-							ParentTaskId: "task2",
 							StateHistory: []*apiv2beta1.RuntimeStatus{
 								{
 									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
 									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
+									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
 								},
 							},
 							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
 								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task3"},
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task2"},
 								},
+							},
+						},
+						{
+							RunId:          "run1",
+							TaskId:         "task2",
+							DisplayName:    "this is task 2",
+							CreateTime:     &timestamp.Timestamp{Seconds: 11},
+							StartTime:      &timestamp.Timestamp{Seconds: 12},
+							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_CANCELED,
+							ExecutionId:    14,
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							ParentTaskId: "task1",
+							StateHistory: []*apiv2beta1.RuntimeStatus{
 								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task4"},
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_CANCELED,
 								},
 							},
 						},
@@ -3939,8 +3830,8 @@ func TestToModelRun(t *testing.T) {
 				StateHistory: []*apiv2beta1.RuntimeStatus{
 					{
 						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-						State:      apiv2beta1.RuntimeState_PAUSED,
-						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+						State:      apiv2beta1.RuntimeState_FAILED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
 					},
 				},
 			},
@@ -3952,7 +3843,6 @@ func TestToModelRun(t *testing.T) {
 				ServiceAccount: "sa1",
 				RecurringRunId: "job1",
 				StorageState:   model.StorageStateArchived,
-
 				PipelineSpec: model.PipelineSpec{
 					RuntimeConfig: model.RuntimeConfig{
 						Parameters: "{\"param2\":\"world\"}",
@@ -3961,12 +3851,12 @@ func TestToModelRun(t *testing.T) {
 					PipelineName:      "pipelines/pv1",
 				},
 				RunDetails: model.RunDetails{
-					State: model.RuntimeStateCancelling,
+					State: model.RuntimeStateFailed,
 					StateHistory: []*model.RuntimeStatus{
 						{
 							UpdateTimeInSec: 9,
-							State:           model.RuntimeStatePaused,
-							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+							State:           model.RuntimeStateFailed,
+							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
 						},
 					},
 					CreatedAtInSec:       1,
@@ -3979,25 +3869,46 @@ func TestToModelRun(t *testing.T) {
 							UUID:              "task1",
 							Namespace:         "",
 							PipelineName:      "",
-							RunId:             "run2",
+							RunId:             "run1",
 							MLMDExecutionID:   "14",
 							CreatedTimestamp:  11,
 							StartedTimestamp:  12,
 							FinishedTimestamp: 13,
 							Fingerprint:       "",
 							Name:              "this is task",
-							ParentTaskId:      "task2",
-							State:             model.RuntimeStatePaused,
+							State:             model.RuntimeStateFailed,
 							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
 							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
 							StateHistory: []*model.RuntimeStatus{
 								{
 									UpdateTimeInSec: 15,
 									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
 								},
 							},
-							ChildrenPods: []string{"task3", "task4"},
+							ChildrenPods: []string{"task2"},
+						},
+						{
+							UUID:              "task2",
+							Namespace:         "",
+							PipelineName:      "",
+							RunId:             "run1",
+							MLMDExecutionID:   "14",
+							CreatedTimestamp:  11,
+							StartedTimestamp:  12,
+							FinishedTimestamp: 13,
+							Fingerprint:       "",
+							Name:              "this is task 2",
+							ParentTaskId:      "task1",
+							State:             model.RuntimeStateCanceled,
+							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
+							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
+							StateHistory: []*model.RuntimeStatus{
+								{
+									UpdateTimeInSec: 15,
+									State:           model.RuntimeStateCanceled,
+								},
+							},
 						},
 					},
 				},
@@ -4050,8 +3961,7 @@ func TestToModelRun(t *testing.T) {
 				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
-				State:          apiv2beta1.RuntimeState_CANCELING,
-				Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error1")),
+				State:          apiv2beta1.RuntimeState_RUNNING,
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
@@ -4064,29 +3974,18 @@ func TestToModelRun(t *testing.T) {
 							StartTime:      &timestamp.Timestamp{Seconds: 12},
 							EndTime:        &timestamp.Timestamp{Seconds: 13},
 							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_PAUSED,
+							State:          apiv2beta1.RuntimeState_RUNNING,
 							ExecutionId:    14,
-							Error:          util.ToRpcStatus(util.NewInvalidInputError("Sample error3")),
 							Inputs: map[string]*apiv2beta1.ArtifactList{
 								"a1": {ArtifactIds: []int64{1, 2, 3}},
 							},
 							Outputs: map[string]*apiv2beta1.ArtifactList{
 								"b2": {ArtifactIds: []int64{4, 5, 6}},
 							},
-							ParentTaskId: "task2",
 							StateHistory: []*apiv2beta1.RuntimeStatus{
 								{
 									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
-								},
-							},
-							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task3"},
-								},
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task4"},
+									State:      apiv2beta1.RuntimeState_RUNNING,
 								},
 							},
 						},
@@ -4096,8 +3995,7 @@ func TestToModelRun(t *testing.T) {
 				StateHistory: []*apiv2beta1.RuntimeStatus{
 					{
 						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-						State:      apiv2beta1.RuntimeState_PAUSED,
-						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+						State:      apiv2beta1.RuntimeState_RUNNING,
 					},
 				},
 			},
@@ -4116,12 +4014,11 @@ func TestToModelRun(t *testing.T) {
 					PipelineSpecManifest: "Boolean: false\nNumber: 19.1\nString: pv2\nStruct:\n  InnerList:\n  - a\n  - b\n  InnerNull: null\n",
 				},
 				RunDetails: model.RunDetails{
-					State: model.RuntimeStateCancelling,
+					State: model.RuntimeStateRunning,
 					StateHistory: []*model.RuntimeStatus{
 						{
 							UpdateTimeInSec: 9,
-							State:           model.RuntimeStatePaused,
-							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+							State:           model.RuntimeStateRunning,
 						},
 					},
 					CreatedAtInSec:       1,
@@ -4141,18 +4038,15 @@ func TestToModelRun(t *testing.T) {
 							FinishedTimestamp: 13,
 							Fingerprint:       "",
 							Name:              "this is task",
-							ParentTaskId:      "task2",
-							State:             model.RuntimeStatePaused,
+							State:             model.RuntimeStateRunning,
 							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
 							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
 							StateHistory: []*model.RuntimeStatus{
 								{
 									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+									State:           model.RuntimeStateRunning,
 								},
 							},
-							ChildrenPods: []string{"task3", "task4"},
 						},
 					},
 				},
@@ -4323,12 +4217,12 @@ func Test_toApiRun(t *testing.T) {
 					PipelineSpecManifest: "Boolean: false\nNumber: 19.1\nString: pv2\nStruct:\n  InnerList:\n  - a\n  - b\n  InnerNull: null\n",
 				},
 				RunDetails: model.RunDetails{
-					State: model.RuntimeStateCancelling,
+					State: model.RuntimeStateFailed,
 					StateHistory: []*model.RuntimeStatus{
 						{
 							UpdateTimeInSec: 9,
-							State:           model.RuntimeStatePaused,
-							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+							State:           model.RuntimeStateFailed,
+							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
 						},
 					},
 					CreatedAtInSec:       1,
@@ -4348,18 +4242,16 @@ func Test_toApiRun(t *testing.T) {
 							FinishedTimestamp: 13,
 							Fingerprint:       "",
 							Name:              "this is task",
-							ParentTaskId:      "task2",
-							State:             model.RuntimeStatePaused,
+							State:             model.RuntimeStateFailed,
 							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
 							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
 							StateHistory: []*model.RuntimeStatus{
 								{
 									UpdateTimeInSec: 15,
 									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
 								},
 							},
-							ChildrenPods: []string{"task3", "task4"},
 						},
 					},
 				},
@@ -4407,7 +4299,7 @@ func Test_toApiRun(t *testing.T) {
 				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
-				State:          apiv2beta1.RuntimeState_CANCELING,
+				State:          apiv2beta1.RuntimeState_FAILED,
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
@@ -4420,7 +4312,7 @@ func Test_toApiRun(t *testing.T) {
 							StartTime:      &timestamp.Timestamp{Seconds: 12},
 							EndTime:        &timestamp.Timestamp{Seconds: 13},
 							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_PAUSED,
+							State:          apiv2beta1.RuntimeState_FAILED,
 							ExecutionId:    14,
 							Inputs: map[string]*apiv2beta1.ArtifactList{
 								"a1": {ArtifactIds: []int64{1, 2, 3}},
@@ -4428,20 +4320,11 @@ func Test_toApiRun(t *testing.T) {
 							Outputs: map[string]*apiv2beta1.ArtifactList{
 								"b2": {ArtifactIds: []int64{4, 5, 6}},
 							},
-							ParentTaskId: "task2",
 							StateHistory: []*apiv2beta1.RuntimeStatus{
 								{
 									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
 									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error4")),
-								},
-							},
-							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task3"},
-								},
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task4"},
+									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
 								},
 							},
 						},
@@ -4451,8 +4334,8 @@ func Test_toApiRun(t *testing.T) {
 				StateHistory: []*apiv2beta1.RuntimeStatus{
 					{
 						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-						State:      apiv2beta1.RuntimeState_PAUSED,
-						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
+						State:      apiv2beta1.RuntimeState_FAILED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
 					},
 				},
 			},
@@ -4480,8 +4363,7 @@ func Test_toApiRun(t *testing.T) {
 					StateHistory: []*model.RuntimeStatus{
 						{
 							UpdateTimeInSec: 9,
-							State:           model.RuntimeStatePaused,
-							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+							State:           model.RuntimeStateCancelling,
 						},
 					},
 					CreatedAtInSec:       1,
@@ -4501,15 +4383,13 @@ func Test_toApiRun(t *testing.T) {
 							FinishedTimestamp: 13,
 							Fingerprint:       "",
 							Name:              "this is task",
-							ParentTaskId:      "task2",
-							State:             model.RuntimeStatePaused,
+							State:             model.RuntimeStateCancelling,
 							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
 							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
 							StateHistory: []*model.RuntimeStatus{
 								{
 									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+									State:           model.RuntimeStateCancelling,
 								},
 							},
 							ChildrenPods: []string{"task3", "task4"},
@@ -4541,12 +4421,11 @@ func Test_toApiRun(t *testing.T) {
 					},
 				},
 				RunDetails: model.RunDetails{
-					State: model.RuntimeStateCancelling,
+					State: model.RuntimeStatePaused,
 					StateHistory: []*model.RuntimeStatus{
 						{
 							UpdateTimeInSec: 9,
 							State:           model.RuntimeStatePaused,
-							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
 						},
 					},
 					CreatedAtInSec:       1,
@@ -4566,15 +4445,13 @@ func Test_toApiRun(t *testing.T) {
 							FinishedTimestamp: 13,
 							Fingerprint:       "",
 							Name:              "this is task",
-							ParentTaskId:      "task2",
 							State:             model.RuntimeStatePaused,
 							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
 							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
 							StateHistory: []*model.RuntimeStatus{
 								{
 									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error4"))),
+									State:           model.RuntimeStatePaused,
 								},
 							},
 							ChildrenPods: []string{"task3", "task4"},
