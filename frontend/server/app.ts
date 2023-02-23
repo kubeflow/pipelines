@@ -196,6 +196,28 @@ function createUIServer(options: UIConfigs) {
     registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
   }
 
+  if (options.artifacts.streamLogsFromServerApi) {
+    app.all(
+      '/k8s/pod/logs',
+      proxy({
+        changeOrigin: true,
+        onProxyReq: proxyReq => {
+          console.log('Proxied log request: ', proxyReq.path);
+        },
+        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+        pathRewrite: (pathStr: string, req: any) => {
+          /** Argo nodeId is just POD name */
+          const nodeId = req.query.podname;
+          const runId = req.query.runid;
+          return `/${apiVersion2Prefix}/runs/${runId}/nodes/${nodeId}/log`;
+        },
+        target: apiServerAddress,
+      }),
+    );
+  } else {
+    registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+  }
+
   /** Pod info */
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
@@ -231,6 +253,8 @@ function createUIServer(options: UIConfigs) {
       `/${apiVersion1Prefix}/runs/*reportMetrics`,
       `/${apiVersion1Prefix}/workflows`,
       `/${apiVersion1Prefix}/scheduledworkflows`,
+      `/${apiVersion2Prefix}/workflows`,
+      `/${apiVersion2Prefix}/scheduledworkflows`,
     ],
     (req, res) => {
       res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
@@ -240,7 +264,9 @@ function createUIServer(options: UIConfigs) {
   // Order matters here, since both handlers can match any proxied request with a referer,
   // and we prioritize the basepath-friendly handler
   proxyMiddleware(app, `${basePath}/${apiVersion1Prefix}`);
+  proxyMiddleware(app, `${basePath}/${apiVersion2Prefix}`);
   proxyMiddleware(app, `/${apiVersion1Prefix}`);
+  proxyMiddleware(app, `/${apiVersion2Prefix}`);
 
   /** Proxy to ml-pipeline api server */
   app.all(
