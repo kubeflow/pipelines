@@ -106,11 +106,15 @@ def construct_type_for_inputpath_or_outputpath(
     elif isinstance(
             type_,
             str) and type_.lower() in type_utils._ARTIFACT_CLASSES_MAPPING:
-        # v1 artifact backward compat
+        # v1 artifact backward compat, e.g. dsl.OutputPath('Dataset')
         return type_utils.create_bundled_artifact_type(
             type_utils._ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
-    else:
+    elif type_utils.get_parameter_type(type_):
         return type_
+    else:
+        # v1 unknown type dsl.OutputPath('MyCustomType')
+        return type_utils.create_bundled_artifact_type(
+            artifact_types.Artifact.schema_title)
 
 
 class InputAnnotation:
