@@ -11,6 +11,7 @@
 
 ## Bug fixes and other changes
 * Enables output definitions when compiling components as pipelines. [\#8848](https://github.com/kubeflow/pipelines/pull/8848)
+* Fix bug when passing data between tasks using f-strings [\#8879](https://github.com/kubeflow/pipelines/pull/8879)
 
 ## Documentation updates
 
