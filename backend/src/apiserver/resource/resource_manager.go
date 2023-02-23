@@ -753,8 +753,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newExecSpec = newCreatedWorkflow
 	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
-	state := model.RuntimeState(condition).ToV2().ToString()
-	err = r.runStore.UpdateRun(runId, condition, 0, newExecSpec.ToStringForStore(), state)
+	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: newExecSpec.ToStringForStore(), State: model.RuntimeState(condition).ToV2()}})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
@@ -1208,20 +1207,30 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
 	return nil
 }
 
+// Creates new tasks or updates existing ones.
+// This is not a part of internal API exposed to persistence agent only.
+func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task) ([]*model.Task, error) {
+	tasks, err := r.taskStore.CreateOrUpdateTasks(t)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create or update tasks")
+	}
+	return tasks, nil
+}
+
 // Reports a workflow CR.
-// This is called by the persistence agent to update runs.
-func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) error {
+// This is called to update runs.
+func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
 	objMeta := execSpec.ExecutionObjectMeta()
 	execStatus := execSpec.ExecutionStatus()
 	if _, ok := objMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
-		return util.NewInvalidInputError("Workflow[%s] missing the Run ID label", execSpec.ExecutionName())
+		return nil, util.NewInvalidInputError("Workflow[%s] missing the Run ID label", execSpec.ExecutionName())
 	}
 	runId := objMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := execSpec.ScheduledWorkflowUUIDAsStringOrEmpty()
 	// TODO(gkcalat): consider adding namespace validation to catch mismatch in the namespaces and release resources.
 	if len(execSpec.ExecutionNamespace()) == 0 {
-		return util.NewInvalidInputError("Failed to report a workflow. Namespace is empty")
+		return nil, util.NewInvalidInputError("Failed to report a workflow. Namespace is empty")
 	}
 
 	if execSpec.PersistedFinalState() {
@@ -1232,9 +1241,9 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			// report workflows that no longer exist. It's important to return a not found error, so that persistence
 			// agent won't retry again.
 			if util.IsNotFound(err) {
-				return util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
+				return nil, util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
 			} else {
-				return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+				return nil, util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 			}
 		}
 		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
@@ -1247,18 +1256,22 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		state = model.RuntimeState(string(exec.ExecutionPhase(model.RunTerminatingConditionsV1))).ToV2()
 	}
 	// If run already exists, simply update it
-	if _, err := r.GetRun(runId); err == nil {
-		if updateError := r.runStore.UpdateRun(runId, string(state.ToV1()), execStatus.FinishedAt(), execSpec.ToStringForStore(), state.ToString()); updateError != nil {
-			return util.Wrapf(err, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
+	run, updateError := r.GetRun(runId)
+	if updateError == nil {
+		run.State = state
+		run.Conditions = string(state.ToV1())
+		run.FinishedAtInSec = execStatus.FinishedAt()
+		run.WorkflowRuntimeManifest = execSpec.ToStringForStore()
+		if updateError = r.runStore.UpdateRun(run); updateError != nil {
+			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}
 	}
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
-		// TODO(gkcalat): consider removing UpdateRun call as it fails anyways
-		if updateError := r.runStore.UpdateRun(runId, string(state.ToV1()), execStatus.FinishedAt(), execSpec.ToStringForStore(), state.ToString()); updateError != nil {
+		if updateError != nil {
 			if !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
-				return util.Wrap(updateError, "Failed to update the run")
+				return nil, util.Wrap(updateError, "Failed to update the run")
 			}
 			// Handle run not found in run store error.
 			// To avoid letting the workflow leak for ever, we need to GC it when its record does not exist in KFP DB.
@@ -1269,21 +1282,21 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
 			if err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
 				if util.IsNotFound(err) {
-					return util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
+					return nil, util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
 				}
-				return util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
+				return nil, util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
 			}
 			// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 			workflowGCCounter.Inc()
 			// Note, persistence agent will not retry reporting this workflow again, because updateError is a not found error.
-			return util.Wrapf(updateError, "Failed to report workflow name=%q namespace=%q runId=%q", execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
+			return nil, util.Wrapf(updateError, "Failed to report workflow name=%q namespace=%q runId=%q", execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
 		}
-	} else {
+	} else if run == nil || updateError != nil {
 		// TODO(gkcalat): consider adding manifest validation to catch mismatch, as runs should have the same pipeline spec as parent recurring run.
 		// Try to fetch the job.
 		existingJob, err := r.GetJob(jobId)
 		if err != nil {
-			return util.Wrapf(err, "Failed to report a workflow for run %s due to error retrieving recurring run %s", runId, jobId)
+			return nil, util.Wrapf(err, "Failed to report a workflow for run %s due to error retrieving recurring run %s", runId, jobId)
 		}
 		experimentId := existingJob.ExperimentId
 		namespace := existingJob.Namespace
@@ -1294,7 +1307,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if experimentId == "" {
 			experimentRef, err := r.resourceReferenceStore.GetResourceReference(jobId, model.JobResourceType, model.ExperimentResourceType)
 			if err != nil {
-				return util.Wrapf(err, "Failed to retrieve the experiment ID for the job %v that created the run", jobId)
+				return nil, util.Wrapf(err, "Failed to retrieve the experiment ID for the job %v that created the run", jobId)
 			}
 			experimentId = experimentRef.ReferenceUUID
 			if namespace == "" {
@@ -1306,14 +1319,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if experimentId == "" {
 			experimentId, err = r.GetDefaultExperimentId()
 			if err != nil {
-				return util.Wrapf(err, "Failed to report workflow for run %s. Fetching default experiment returned error. Check if you have experiment assigned for job %s", runId, jobId)
+				return nil, util.Wrapf(err, "Failed to report workflow for run %s. Fetching default experiment returned error. Check if you have experiment assigned for job %s", runId, jobId)
 			}
 		}
 		// TODO(gkcalat): consider adding namespace validation to catch mismatch in the namespaces and release resources.
 		if namespace == "" {
 			namespace, err = r.GetNamespaceFromExperimentId(experimentId)
 			if err != nil {
-				return util.Wrapf(err, "Failed to report workflow for run %s. Fetching namespace for experiment %s returned error. Check if you have namespace assigned for job %s", runId, experimentId, jobId)
+				return nil, util.Wrapf(err, "Failed to report workflow for run %s. Fetching namespace for experiment %s returned error. Check if you have namespace assigned for job %s", runId, experimentId, jobId)
 			}
 		}
 		if namespace == "" {
@@ -1326,7 +1339,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		} else {
 			scheduledTimeInSec = execSpec.ScheduledAtInSecOr0()
 		}
-		run := &model.Run{
+		run = &model.Run{
 			UUID:           runId,
 			ExperimentId:   experimentId,
 			RecurringRunId: jobId,
@@ -1344,9 +1357,11 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				State:                   state,
 			},
 		}
-		_, err = r.runStore.CreateRun(run)
+		run, err = r.runStore.CreateRun(run)
 		if err != nil {
-			return util.Wrapf(err, "Failed to report a workflow due to error creating run %s", runId)
+			return nil, util.Wrapf(err, "Failed to report a workflow due to error creating run %s", runId)
+		} else {
+			runId = run.UUID
 		}
 	}
 	if execStatus.IsInFinalState() {
@@ -1357,13 +1372,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			// report workflows that no longer exist. It's important to return a not found error, so that persistence
 			// agent won't retry again.
 			if util.IsNotFound(err) {
-				return util.NewNotFoundError(err, message)
+				return nil, util.NewNotFoundError(err, message)
 			} else {
-				return util.Wrapf(err, message)
+				return nil, util.Wrapf(err, message)
 			}
 		}
 	}
-	return nil
+	execSpec.SetLabels("pipeline/runid", runId)
+	return execSpec, nil
 }
 
 // Adds a label for a workflow.

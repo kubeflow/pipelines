@@ -39,8 +39,8 @@ func NewFakeDB() (*DB, error) {
 		&model.RunMetric{},
 		&model.Task{},
 		&model.DBStatus{},
-		&model.DefaultExperiment{})
-
+		&model.DefaultExperiment{},
+	)
 	return NewDB(db.DB(), NewSQLiteDialect()), nil
 }
 

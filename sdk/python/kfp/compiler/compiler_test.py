@@ -281,7 +281,7 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_string_parameter_to_artifact_should_error(self):
 
         component_op = components.load_component_from_text("""
-      name: compoent
+      name: component
       inputs:
       - {name: some_input, type: , description: an uptyped input}
       implementation:
@@ -292,9 +292,9 @@ class TestCompilePipeline(parameterized.TestCase):
       """)
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
-                'Incompatible argument passed to the input "some_input" of '
-                'component "compoent": Argument type "STRING" is incompatible '
-                'with the input type "system.Artifact@0.0.1"'):
+                "Incompatible argument passed to the input 'some_input' of "
+                "component 'component': Argument type 'STRING' is incompatible "
+                "with the input type 'system.Artifact@0.0.1'"):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline(input1: str):
@@ -2666,7 +2666,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
-                'Argument type "NUMBER_INTEGER" is incompatible with the input type "LIST"'
+                "Argument type 'NUMBER_INTEGER' is incompatible with the input type 'LIST'"
         ):
 
             @dsl.pipeline

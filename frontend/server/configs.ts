@@ -15,8 +15,10 @@ import * as path from 'path';
 import { loadJSON } from './utils';
 import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts';
 export const BASEPATH = '/pipeline';
-export const apiVersion = 'v1beta1';
-export const apiVersionPrefix = `apis/${apiVersion}`;
+export const apiVersion1 = 'v1beta1';
+export const apiVersion1Prefix = `apis/${apiVersion1}`;
+export const apiVersion2 = 'v2beta1';
+export const apiVersion2Prefix = `apis/${apiVersion2}`;
 
 export enum Deployments {
   NOT_SPECIFIED = 'NOT_SPECIFIED',
@@ -160,7 +162,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       port: ML_PIPELINE_SERVICE_PORT,
     },
     server: {
-      apiVersionPrefix,
+      apiVersion1Prefix,
+      apiVersion2Prefix,
       basePath: BASEPATH,
       deployment:
         DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
@@ -245,7 +248,8 @@ export interface ServerConfigs {
   basePath: string;
   port: string | number;
   staticDir: string;
-  apiVersionPrefix: string;
+  apiVersion1Prefix: string;
+  apiVersion2Prefix: string;
   deployment: Deployments;
   hideSideNav: boolean;
 }

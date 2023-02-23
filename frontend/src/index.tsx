@@ -32,6 +32,7 @@ import {
   NamespaceContext,
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
+import { BuildInfoProvider } from './lib/BuildInfo';
 // import { ReactQueryDevtools } from 'react-query/devtools';
 
 // TODO: license headers
@@ -56,11 +57,13 @@ export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
     <MuiThemeProvider theme={theme}>
-      <GkeMetadataProvider>
-        <HashRouter>
-          <Router />
-        </HashRouter>
-      </GkeMetadataProvider>
+      <BuildInfoProvider>
+        <GkeMetadataProvider>
+          <HashRouter>
+            <Router />
+          </HashRouter>
+        </GkeMetadataProvider>
+      </BuildInfoProvider>
     </MuiThemeProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>

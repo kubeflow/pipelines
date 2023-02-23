@@ -149,6 +149,7 @@ root:
           parameters:
             pipelinechannel--print-op-Output:
               taskOutputParameter:
+                outputParameterKey: Output
                 producerTask: print-op
             text:
               runtimeValue:

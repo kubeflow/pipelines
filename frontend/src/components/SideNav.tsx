@@ -33,12 +33,12 @@ import { commonCss, fontsize } from '../Css';
 import ExperimentsIcon from '../icons/experiments';
 import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
-import { Apis } from '../lib/Apis';
+import { BuildInfo } from '../lib/Apis';
 import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { logger } from '../lib/Utils';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 import { Alarm } from '@material-ui/icons';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 export const tailwindcss = {
   sideNavItem: 'flex flex-row flex-shrink-0',
@@ -194,10 +194,10 @@ interface SideNavProps extends RouterProps {
 
 interface SideNavInternalProps extends SideNavProps {
   gkeMetadata: GkeMetadata;
+  buildInfo: BuildInfo | undefined;
 }
 
 interface SideNavState {
-  displayBuildInfo?: DisplayBuildInfo;
   collapsed: boolean;
   jupyterHubAvailable: boolean;
   manualCollapseState: boolean;
@@ -224,28 +224,6 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   public async componentDidMount(): Promise<void> {
     window.addEventListener('resize', this._maybeResize.bind(this));
     this._maybeResize();
-
-    async function fetchBuildInfo() {
-      const buildInfo = await Apis.getBuildInfo();
-      const commitHash = buildInfo.apiServerCommitHash || buildInfo.frontendCommitHash || '';
-      const tagName = buildInfo.apiServerTagName || buildInfo.frontendTagName || '';
-      return {
-        tagName: tagName || 'unknown',
-        commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
-        commitUrl:
-          'https://www.github.com/kubeflow/pipelines' +
-          (commitHash && commitHash !== 'unknown' ? `/commit/${commitHash}` : ''),
-        date: buildInfo.buildDate
-          ? new Date(buildInfo.buildDate).toLocaleDateString('en-US')
-          : 'unknown',
-      };
-    }
-    const displayBuildInfo = await fetchBuildInfo().catch(err => {
-      logger.error('Failed to retrieve build info', err);
-      return undefined;
-    });
-
-    this.setStateSafe({ displayBuildInfo });
   }
 
   public componentWillUnmount(): void {
@@ -254,7 +232,8 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
 
   public render(): JSX.Element | null {
     const page = this.props.page;
-    const { collapsed, displayBuildInfo } = this.state;
+    const displayBuildInfo: DisplayBuildInfo = this._getBuildInfo();
+    const { collapsed } = this.state;
     const { gkeMetadata } = this.props;
     const iconColor = {
       active: sideNavColors.fgActive,
@@ -314,7 +293,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
-              !page.startsWith(RoutePage.PIPELINES) && css.indicatorHidden,
+              !this._highlightPipelinesButton(page) && css.indicatorHidden,
             )}
           />
           <Tooltip
@@ -329,7 +308,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               <Button
                 className={classes(
                   css.button,
-                  page.startsWith(RoutePage.PIPELINES) && css.active,
+                  this._highlightPipelinesButton(page) && css.active,
                   collapsed && css.collapsedButton,
                 )}
               >
@@ -337,7 +316,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   <div className={classes({ alignItems: 'stretch' })}>
                     <PipelinesIcon
                       color={
-                        page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive
+                        this._highlightPipelinesButton(page) ? iconColor.active : iconColor.inactive
                       }
                     />
                   </div>
@@ -620,6 +599,26 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     );
   }
 
+  private _getBuildInfo(buildInfo = this.props.buildInfo): DisplayBuildInfo {
+    const commitHash = buildInfo?.apiServerCommitHash || buildInfo?.frontendCommitHash || '';
+    const tagName = buildInfo?.apiServerTagName || buildInfo?.frontendTagName || '';
+
+    return {
+      tagName: tagName || 'unknown',
+      commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
+      commitUrl:
+        'https://www.github.com/kubeflow/pipelines' +
+        (commitHash && commitHash !== 'unknown' ? `/commit/${commitHash}` : ''),
+      date: buildInfo?.buildDate
+        ? new Date(buildInfo?.buildDate).toLocaleDateString('en-US')
+        : 'unknown',
+    };
+  }
+
+  private _highlightPipelinesButton(page: string): boolean {
+    return page.startsWith(RoutePage.PIPELINES) || page.startsWith(RoutePage.PIPELINES_SHARED);
+  }
+
   private _highlightExperimentsButton(page: string): boolean {
     return page.startsWith(RoutePage.EXPERIMENTS) || page === RoutePage.ARCHIVED_EXPERIMENTS;
   }
@@ -705,6 +704,7 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
 
 const EnhancedSideNav: React.FC<SideNavProps> = props => {
   const gkeMetadata = React.useContext(GkeMetadataContext);
-  return <SideNav {...props} gkeMetadata={gkeMetadata} />;
+  const buildInfo = React.useContext(BuildInfoContext);
+  return <SideNav {...props} gkeMetadata={gkeMetadata} buildInfo={buildInfo} />;
 };
 export default EnhancedSideNav;

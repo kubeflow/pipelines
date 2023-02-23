@@ -16,13 +16,13 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import NewPipelineVersion, { ImportMethod } from './NewPipelineVersion';
+import { ImportMethod, NewPipelineVersion } from './NewPipelineVersion';
 import TestUtils from '../TestUtils';
 import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
-import { ApiResourceType } from '../apis/pipeline';
+import { ApiResourceType, ApiRelationship } from '../apis/pipeline';
 
 class TestNewPipelineVersion extends NewPipelineVersion {
   public _pipelineSelectorClosed = super._pipelineSelectorClosed;
@@ -85,7 +85,7 @@ describe('NewPipelineVersion', () => {
         search: search,
       } as any,
       match: '' as any,
-      toolbarProps: TestNewPipelineVersion.prototype.getInitialToolbarState(),
+      toolbarProps: {} as any,
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
@@ -168,7 +168,7 @@ describe('NewPipelineVersion', () => {
       expect(updateToolbarSpy).toHaveBeenLastCalledWith({
         actions: {},
         breadcrumbs: [{ displayName: 'Pipeline Versions', href: '/pipeline_versions/new' }],
-        pageTitle: 'Upload Pipeline or Pipeline Version',
+        pageTitle: 'New Pipeline',
       });
       expect(getPipelineSpy).toHaveBeenCalledTimes(1);
     });
@@ -254,9 +254,11 @@ describe('NewPipelineVersion', () => {
       (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
         target: { value: 'https://dummy_package_url' },
       });
+
       await TestUtils.flushPromises();
 
       tree.find('#createNewPipelineOrVersionBtn').simulate('click');
+
       // The APIs are called in a callback triggered by clicking 'Create', so we wait again
       await TestUtils.flushPromises();
 
@@ -305,8 +307,10 @@ describe('NewPipelineVersion', () => {
       expect(tree.state('importMethod')).toBe(ImportMethod.URL);
     });
 
-    it('creates pipeline from url', async () => {
-      tree = shallow(<TestNewPipelineVersion {...generateProps()} />);
+    it('creates pipeline from url in single user mode', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion {...generateProps()} buildInfo={{ apiServerMultiUser: false }} />,
+      );
 
       (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
         target: { value: 'test pipeline name' },
@@ -323,6 +327,7 @@ describe('NewPipelineVersion', () => {
       // The APIs are called in a callback triggered by clicking 'Create', so we wait again
       await TestUtils.flushPromises();
 
+      expect(tree.state()).toHaveProperty('isPrivate', false);
       expect(tree.state()).toHaveProperty('newPipeline', true);
       expect(tree.state()).toHaveProperty('importMethod', ImportMethod.URL);
       expect(createPipelineSpy).toHaveBeenCalledTimes(1);
@@ -332,11 +337,95 @@ describe('NewPipelineVersion', () => {
         url: {
           pipeline_url: 'https://dummy_package_url',
         },
+        resource_references: [],
       });
     });
 
-    it('creates pipeline from local file', async () => {
-      tree = shallow(<NewPipelineVersion {...generateProps()} />);
+    it('creates private pipeline from url in multi user mode', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion
+          {...generateProps()}
+          namespace='ns'
+          buildInfo={{ apiServerMultiUser: true }}
+        />,
+      );
+
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+        target: { value: 'test pipeline name' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+        target: { value: 'test pipeline description' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
+        target: { value: 'https://dummy_package_url' },
+      });
+      await TestUtils.flushPromises();
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
+      await TestUtils.flushPromises();
+
+      expect(tree.state()).toHaveProperty('isPrivate', true);
+      expect(tree.state()).toHaveProperty('newPipeline', true);
+      expect(tree.state()).toHaveProperty('importMethod', ImportMethod.URL);
+      expect(createPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(createPipelineSpy).toHaveBeenLastCalledWith({
+        description: 'test pipeline description',
+        name: 'test pipeline name',
+        url: {
+          pipeline_url: 'https://dummy_package_url',
+        },
+        resource_references: [
+          {
+            key: {
+              id: 'ns',
+              type: ApiResourceType.NAMESPACE,
+            },
+            relationship: ApiRelationship.OWNER,
+          },
+        ],
+      });
+    });
+
+    it('creates shared pipeline from url in multi user mode', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion
+          {...generateProps()}
+          namespace='ns'
+          buildInfo={{ apiServerMultiUser: true }}
+        />,
+      );
+
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+        target: { value: 'test pipeline name' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+        target: { value: 'test pipeline description' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
+        target: { value: 'https://dummy_package_url' },
+      });
+      tree.setState({ isPrivate: false });
+      await TestUtils.flushPromises();
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
+      await TestUtils.flushPromises();
+
+      expect(tree.state()).toHaveProperty('isPrivate', false);
+      expect(tree.state()).toHaveProperty('newPipeline', true);
+      expect(tree.state()).toHaveProperty('importMethod', ImportMethod.URL);
+      expect(createPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(createPipelineSpy).toHaveBeenLastCalledWith({
+        description: 'test pipeline description',
+        name: 'test pipeline name',
+        url: {
+          pipeline_url: 'https://dummy_package_url',
+        },
+        resource_references: [],
+      });
+    });
+
+    it('creates pipeline from local file in single user mode', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion {...generateProps()} buildInfo={{ apiServerMultiUser: false }} />,
+      );
 
       // Set local file, pipeline name, pipeline description and click create
       tree.find('#localPackageBtn').simulate('change');
@@ -353,11 +442,85 @@ describe('NewPipelineVersion', () => {
       tree.update();
       await TestUtils.flushPromises();
 
+      expect(tree.state()).toHaveProperty('isPrivate', false);
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
       expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
         'test pipeline name',
         'test pipeline description',
         file,
+        undefined,
+      );
+      expect(createPipelineSpy).not.toHaveBeenCalled();
+    });
+
+    it('creates private pipeline from local file in multi user mode', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion
+          {...generateProps()}
+          namespace='ns'
+          buildInfo={{ apiServerMultiUser: true }}
+        />,
+      );
+
+      // Set local file, pipeline name, pipeline description and click create
+      tree.find('#localPackageBtn').simulate('change');
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+        target: { value: 'test pipeline name' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+        target: { value: 'test pipeline description' },
+      });
+      const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
+      (tree.instance() as TestNewPipelineVersion)._onDropForTest([file]);
+
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
+
+      tree.update();
+      await TestUtils.flushPromises();
+
+      expect(tree.state()).toHaveProperty('isPrivate', true);
+      expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        'test pipeline description',
+        file,
+        'ns',
+      );
+      expect(createPipelineSpy).not.toHaveBeenCalled();
+    });
+
+    it('creates shared pipeline from local file in multi user mode', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion
+          {...generateProps()}
+          namespace='ns'
+          buildInfo={{ apiServerMultiUser: true }}
+        />,
+      );
+
+      // Set local file, pipeline name, pipeline description and click create
+      tree.find('#localPackageBtn').simulate('change');
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+        target: { value: 'test pipeline name' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+        target: { value: 'test pipeline description' },
+      });
+      const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
+      (tree.instance() as TestNewPipelineVersion)._onDropForTest([file]);
+      tree.setState({ isPrivate: false });
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
+
+      tree.update();
+      await TestUtils.flushPromises();
+
+      expect(tree.state()).toHaveProperty('isPrivate', false);
+      expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        'test pipeline description',
+        file,
+        undefined,
       );
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });

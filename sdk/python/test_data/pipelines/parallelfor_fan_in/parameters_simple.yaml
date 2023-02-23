@@ -13,6 +13,16 @@ components:
       parameters:
         Output:
           parameterType: NUMBER_INTEGER
+  comp-add-container:
+    executorLabel: exec-add-container
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        sum:
+          parameterType: NUMBER_INTEGER
   comp-double:
     executorLabel: exec-double
     inputDefinitions:
@@ -65,7 +75,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -79,6 +89,16 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
         image: python:3.7
+    exec-add-container:
+      container:
+        args:
+        - "\n            set -ex\n            mkdir -p $(dirname {{$.outputs.parameters['sum'].output_file}})\n\
+          \            echo {{$.inputs.parameters['nums']}} | jq 'add' > {{$.outputs.parameters['sum'].output_file}}\n\
+          \            "
+        command:
+        - sh
+        - -c
+        image: stedolan/jq
     exec-double:
       container:
         args:
@@ -91,7 +111,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.11'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -131,6 +151,21 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add
+      add-container:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-container
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            nums:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-Output
+                producerTask: for-loop-2
+        taskInfo:
+          name: add-container
       for-loop-2:
         componentRef:
           name: comp-for-loop-2
@@ -145,4 +180,4 @@ root:
       Output:
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.11
+sdkVersion: kfp-2.0.0-beta.12

@@ -45,10 +45,11 @@ import NewExperiment from '../pages/NewExperiment';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
 import NewRunSwitcher from '../pages/NewRunSwitcher';
 import PipelineDetails from '../pages/PipelineDetails';
-import PipelineList from '../pages/PipelineList';
+import PrivateAndSharedPipelines, { PrivateAndSharedTab } from '../pages/PrivateAndSharedPipelines';
 import RecurringRunDetails from '../pages/RecurringRunDetails';
 import SideNav from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 export type RouteConfig = {
   path: string;
@@ -110,6 +111,7 @@ export const RoutePage = {
   NEW_PIPELINE_VERSION: '/pipeline_versions/new',
   NEW_RUN: '/runs/new',
   PIPELINES: '/pipelines',
+  PIPELINES_SHARED: '/shared/pipelines',
   PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}/version/:${RouteParams.pipelineVersionId}?`,
   PIPELINE_DETAILS_NO_VERSION: `/pipelines/details/:${RouteParams.pipelineId}?`, // pipelineId is optional
   RUNS: '/runs',
@@ -164,7 +166,9 @@ const DEFAULT_ROUTE =
 
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
-  const routes: RouteConfig[] = configs || [
+  const buildInfo = React.useContext(BuildInfoContext);
+
+  let routes: RouteConfig[] = configs || [
     { path: RoutePage.START, Component: GettingStarted },
     {
       Component: AllRunsAndArchive,
@@ -189,7 +193,16 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
     { path: RoutePage.NEW_PIPELINE_VERSION, Component: NewPipelineVersion },
     { path: RoutePage.NEW_RUN, Component: NewRunSwitcher },
-    { path: RoutePage.PIPELINES, Component: PipelineList },
+    {
+      path: RoutePage.PIPELINES,
+      Component: PrivateAndSharedPipelines,
+      view: PrivateAndSharedTab.PRIVATE,
+    },
+    {
+      path: RoutePage.PIPELINES_SHARED,
+      Component: PrivateAndSharedPipelines,
+      view: PrivateAndSharedTab.SHARED,
+    },
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
     { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
@@ -200,6 +213,10 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
   ];
+
+  if (!buildInfo?.apiServerMultiUser) {
+    routes = routes.filter(r => r.path !== RoutePage.PIPELINES_SHARED);
+  }
 
   return (
     // There will be only one instance of SideNav, throughout UI usage.

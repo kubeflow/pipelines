@@ -24,14 +24,14 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
     @parameterized.parameters(
         {
             'channel':
-                pipeline_channel.PipelineParameterChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='output1', task_name='task1', channel_type='String'),
             'expected':
                 'pipelinechannel--task1-output1',
         },
         {
             'channel':
-                pipeline_channel.PipelineArtifactChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='output1',
                     task_name='task1',
                     channel_type='system.Artifact@0.0.1',
@@ -41,7 +41,7 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
         },
         {
             'channel':
-                pipeline_channel.PipelineParameterChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='param1', channel_type='String'),
             'expected':
                 'pipelinechannel--param1',
