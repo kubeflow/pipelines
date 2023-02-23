@@ -436,26 +436,13 @@ class TestContainerSpecImplementation(unittest.TestCase):
         self.assertEqual(obj.env, None)
 
     def test_from_container_dict_no_placeholders(self):
-        component_spec = structures.ComponentSpec(
-            name='test',
-            implementation=structures.Implementation(
-                container=structures.ContainerSpecImplementation(
-                    image='python:3.7',
-                    command=['sh', '-c', 'dummy'],
-                    args=[
-                        '--executor_input', '{{$}}', '--function_to_execute',
-                        'func'
-                    ],
-                    env={'ENV1': 'val1'},
-                    resources=None),
-                graph=None,
-                importer=None),
-            description=None,
-            inputs={
-                'first': structures.InputSpec(type='String', default=None),
-                'second': structures.InputSpec(type='String', default=None)
-            },
-            outputs={'Output': structures.OutputSpec(type='String')})
+        expected_container_spec = structures.ContainerSpecImplementation(
+            image='python:3.7',
+            command=['sh', '-c', 'dummy'],
+            args=['--executor_input', '{{$}}', '--function_to_execute', 'func'],
+            env={'ENV1': 'val1'},
+            resources=None)
+
         container_dict = {
             'args': [
                 '--executor_input', '{{$}}', '--function_to_execute', 'func'
@@ -469,8 +456,7 @@ class TestContainerSpecImplementation(unittest.TestCase):
 
         loaded_container_spec = structures.ContainerSpecImplementation.from_container_dict(
             container_dict)
-        self.assertEqual(component_spec.implementation.container,
-                         loaded_container_spec)
+        self.assertEqual(expected_container_spec, loaded_container_spec)
 
     def test_raise_error_if_access_artifact_by_itself(self):
 
