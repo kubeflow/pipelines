@@ -343,7 +343,7 @@ class ContainerSpecImplementation:
             image=container_dict['image'],
             command=container_dict.get('command'),
             args=container_dict.get('args'),
-            env=None,  # can only be set on tasks
+            env=container_dict.get('env'),
             resources=None)  # can only be set on tasks
 
 

@@ -441,19 +441,12 @@ class TestContainerSpecImplementation(unittest.TestCase):
             implementation=structures.Implementation(
                 container=structures.ContainerSpecImplementation(
                     image='python:3.7',
-                    command=[
-                        'sh', '-c',
-                        '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.0.0-alpha.2\' && "$0" "$@"\n',
-                        'sh', '-ec',
-                        'program_path=$(mktemp -d)\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\npython3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
-                        '\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef concat_message(first: str, second: str) -> str:\n    return first + second\n\n'
-                    ],
+                    command=['sh', '-c', 'dummy'],
                     args=[
-                        '--executor_input',
-                        placeholders.ExecutorInputPlaceholder(),
-                        '--function_to_execute', 'concat_message'
+                        '--executor_input', '{{$}}', '--function_to_execute',
+                        'func'
                     ],
-                    env=None,
+                    env={'ENV1': 'val1'},
                     resources=None),
                 graph=None,
                 importer=None),
@@ -465,20 +458,19 @@ class TestContainerSpecImplementation(unittest.TestCase):
             outputs={'Output': structures.OutputSpec(type='String')})
         container_dict = {
             'args': [
-                '--executor_input', '{{$}}', '--function_to_execute', 'fail_op'
+                '--executor_input', '{{$}}', '--function_to_execute', 'func'
             ],
-            'command': [
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.0.0-alpha.2\' && "$0" "$@"\n',
-                'sh', '-ec',
-                'program_path=$(mktemp -d)\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\npython3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
-                '\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef fail_op(message: str):\n    """Fails."""\n    import sys\n    print(message)\n    sys.exit(1)\n\n'
-            ],
-            'image': 'python:3.7'
+            'command': ['sh', '-c', 'dummy'],
+            'image': 'python:3.7',
+            'env': {
+                'ENV1': 'val1'
+            },
         }
 
         loaded_container_spec = structures.ContainerSpecImplementation.from_container_dict(
             container_dict)
+        self.assertEqual(component_spec.implementation.container,
+                         loaded_container_spec)
 
     def test_raise_error_if_access_artifact_by_itself(self):
 
