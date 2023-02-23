@@ -262,7 +262,7 @@ def build_task_spec_for_task(
                             additional_input_name].task_output_parameter.producer_task = (
                                 utils.sanitize_task_name(channel.task_name))
                         pipeline_task_spec.inputs.parameters[
-                            input_name].task_output_parameter.output_parameter_key = (
+                            additional_input_name].task_output_parameter.output_parameter_key = (
                                 channel.name)
                     else:
                         # Dependent task not from the same DAG.
