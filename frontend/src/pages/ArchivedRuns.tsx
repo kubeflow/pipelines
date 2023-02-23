@@ -23,6 +23,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 
 interface ArchivedRunsState {
   selectedIds: string[];
@@ -66,7 +67,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
-          storageState={ApiRunStorageState.ARCHIVED}
+          storageState={V2beta1RunStorageState.ARCHIVED}
           {...this.props}
         />
       </div>

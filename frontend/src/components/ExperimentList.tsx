@@ -31,6 +31,7 @@ import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
@@ -197,8 +198,8 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
         noFilterBox={true}
         storageState={
           this.props.storageState === V2beta1ExperimentStorageState.ARCHIVED
-            ? ApiRunStorageState.ARCHIVED
-            : ApiRunStorageState.AVAILABLE
+            ? V2beta1RunStorageState.ARCHIVED
+            : V2beta1RunStorageState.AVAILABLE
         }
         disableSorting={true}
         disableSelection={true}

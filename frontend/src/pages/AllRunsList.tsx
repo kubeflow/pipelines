@@ -23,6 +23,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 
 interface AllRunsListState {
   selectedIds: string[];
@@ -67,7 +68,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
-          storageState={ApiRunStorageState.AVAILABLE}
+          storageState={V2beta1RunStorageState.AVAILABLE}
           hideMetricMetadata={true}
           namespaceMask={this.props.namespace}
           {...this.props}
