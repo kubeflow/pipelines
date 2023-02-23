@@ -674,21 +674,12 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 
 			// Handle when parameter does not have input value
 			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
-				// when parameter is not optional, value comes from default value, otherwise error
-				if spec.GetDefaultValue() == nil {
-					return fmt.Errorf("no value or default value provided for non-optional parameter %q", name)
-				}
+				// when parameter is not optional and there is no input value, report error
+				return fmt.Errorf("no value provided for non-optional parameter %q", name)
+			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
+				// when parameter is optional and there is no input value, value comes from default value
 				inputs.GetParameterValues()[name] = spec.GetDefaultValue()
 				value = spec.GetDefaultValue()
-			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
-				// when parameter is optional, value comes from default value, otherwise we delete this parameter from input list, because nothing is being passed
-				if spec.GetDefaultValue() == nil {
-					delete(inputs.GetParameterValues(), name)
-					continue
-				} else {
-					inputs.GetParameterValues()[name] = spec.GetDefaultValue()
-					value = spec.GetDefaultValue()
-				}
 			}
 
 			switch spec.GetParameterType() {
