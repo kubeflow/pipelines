@@ -39,9 +39,13 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'name': 'component-op',
             'inputs': {
                 'parameters': {
-                    'input1': 'Hello',
-                    'input2': 'World',
-                }
+                    'input_bool1': True,
+                    'input_dict': {'a': 1.0},
+                    'input_int': 100.0,
+                    'input_list': ['123'],
+                    'input_str1': 'Hello',
+                    'input_str2': 'World',
+                },
             },
             'outputs': {},
             'type': 'system.ContainerExecution',
