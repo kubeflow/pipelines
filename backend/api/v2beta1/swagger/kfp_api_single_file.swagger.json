@@ -1678,19 +1678,6 @@
         }
       }
     },
-    "protobufListValue": {
-      "type": "object",
-      "properties": {
-        "values": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufValue"
-          },
-          "description": "Repeated field of dynamically typed values."
-        }
-      },
-      "description": "`ListValue` is a wrapper around a repeated field of values.\n\nThe JSON representation for `ListValue` is JSON array."
-    },
     "protobufNullValue": {
       "type": "string",
       "enum": [
@@ -1698,51 +1685,6 @@
       ],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
-    },
-    "protobufStruct": {
-      "type": "object",
-      "properties": {
-        "fields": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/protobufValue"
-          },
-          "description": "Unordered map of dynamically typed values."
-        }
-      },
-      "description": "`Struct` represents a structured data value, consisting of fields\nwhich map to dynamically typed values. In some languages, `Struct`\nmight be supported by a native representation. For example, in\nscripting languages like JS a struct is represented as an\nobject. The details of that representation are described together\nwith the proto support for the language.\n\nThe JSON representation for `Struct` is JSON object."
-    },
-    "protobufValue": {
-      "type": "object",
-      "properties": {
-        "null_value": {
-          "$ref": "#/definitions/protobufNullValue",
-          "description": "Represents a null value."
-        },
-        "number_value": {
-          "type": "number",
-          "format": "double",
-          "description": "Represents a double value."
-        },
-        "string_value": {
-          "type": "string",
-          "description": "Represents a string value."
-        },
-        "bool_value": {
-          "type": "boolean",
-          "format": "boolean",
-          "description": "Represents a boolean value."
-        },
-        "struct_value": {
-          "$ref": "#/definitions/protobufStruct",
-          "description": "Represents a structured value."
-        },
-        "list_value": {
-          "$ref": "#/definitions/protobufListValue",
-          "description": "Represents a repeated `Value`."
-        }
-      },
-      "description": "`Value` represents a dynamically typed value which can be either\nnull, a number, a string, a boolean, a recursive struct value, or a\nlist of values. A producer of value is expected to set one of that\nvariants, absence of any variant indicates an error.\n\nThe JSON representation for `Value` is JSON value."
     },
     "v2beta1ListPipelineVersionsResponse": {
       "type": "object",
@@ -1845,7 +1787,7 @@
           "description": "Required input field. Pipeline version package url.\nWhen calling CreatePipelineVersion, one needs to provide \none package file location."
         },
         "pipeline_spec": {
-          "$ref": "#/definitions/protobufStruct",
+          "type": "object",
           "description": "Required input field. Specifies the pipeline spec for the pipeline version."
         },
         "error": {
@@ -2110,7 +2052,7 @@
           "description": "The ID of the pipeline version used for creating runs."
         },
         "pipeline_spec": {
-          "$ref": "#/definitions/protobufStruct",
+          "type": "object",
           "description": "The pipeline spec."
         },
         "runtime_config": {
@@ -2182,7 +2124,7 @@
         "parameters": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/protobufValue"
+            "type": "object"
           },
           "description": "The runtime parameters of the Pipeline. The parameters will be\nused to replace the placeholders at runtime."
         },
@@ -2204,6 +2146,20 @@
         }
       },
       "description": "Trigger defines what starts a pipeline run."
+    },
+    "PipelineTaskDetailChildTask": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "description": "System-generated ID of a task."
+        },
+        "pod_name": {
+          "type": "string",
+          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
+        }
+      },
+      "description": "A dependent task that requires this one to succeed.\nRepresented by either task_id or pod_name."
     },
     "v2beta1ArtifactList": {
       "type": "object",
@@ -2281,7 +2237,7 @@
         "execution_id": {
           "type": "string",
           "format": "int64",
-          "description": "Execution metadata of a task."
+          "description": "Execution id of the corresponding entry in ML metadata store."
         },
         "error": {
           "$ref": "#/definitions/googlerpcStatus",
@@ -2311,6 +2267,17 @@
             "$ref": "#/definitions/v2beta1RuntimeStatus"
           },
           "description": "A sequence of task statuses. This field keeps a record \nof state transitions."
+        },
+        "pod_name": {
+          "type": "string",
+          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
+        },
+        "child_tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PipelineTaskDetailChildTask"
+          },
+          "description": "Sequence of dependen tasks."
         }
       },
       "description": "Runtime information of a task execution."
@@ -2381,7 +2348,7 @@
           "description": "ID of an existing pipeline version."
         },
         "pipeline_spec": {
-          "$ref": "#/definitions/protobufStruct",
+          "type": "object",
           "description": "Pipeline spec."
         },
         "runtime_config": {

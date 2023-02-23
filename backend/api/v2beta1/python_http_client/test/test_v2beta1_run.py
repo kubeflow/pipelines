@@ -42,44 +42,10 @@ class TestV2beta1Run(unittest.TestCase):
                 storage_state = 'STORAGE_STATE_UNSPECIFIED', 
                 description = '0', 
                 pipeline_version_id = '0', 
-                pipeline_spec = kfp_server_api.models.protobuf_struct.protobufStruct(
-                    fields = {
-                        'key' : kfp_server_api.models.protobuf_value.protobufValue(
-                            null_value = 'NULL_VALUE', 
-                            number_value = 1.337, 
-                            string_value = '0', 
-                            bool_value = True, 
-                            struct_value = kfp_server_api.models.protobuf_struct.protobufStruct(), 
-                            list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
-                                values = [
-                                    kfp_server_api.models.protobuf_value.protobufValue(
-                                        number_value = 1.337, 
-                                        string_value = '0', 
-                                        bool_value = True, )
-                                    ], ), )
-                        }, ), 
+                pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
                 runtime_config = kfp_server_api.models.v2beta1_runtime_config.v2beta1RuntimeConfig(
                     parameters = {
-                        'key' : kfp_server_api.models.protobuf_value.protobufValue(
-                            null_value = 'NULL_VALUE', 
-                            number_value = 1.337, 
-                            string_value = '0', 
-                            bool_value = True, 
-                            struct_value = kfp_server_api.models.protobuf_struct.protobufStruct(
-                                fields = {
-                                    'key' : kfp_server_api.models.protobuf_value.protobufValue(
-                                        number_value = 1.337, 
-                                        string_value = '0', 
-                                        bool_value = True, 
-                                        list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
-                                            values = [
-                                                kfp_server_api.models.protobuf_value.protobufValue(
-                                                    number_value = 1.337, 
-                                                    string_value = '0', 
-                                                    bool_value = True, )
-                                                ], ), )
-                                    }, ), 
-                            list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
+                        'key' : None
                         }, 
                     pipeline_root = '0', ), 
                 service_account = '0', 
@@ -138,6 +104,12 @@ class TestV2beta1Run(unittest.TestCase):
                             state_history = [
                                 kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                                     update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), )
+                                ], 
+                            pod_name = '0', 
+                            child_tasks = [
+                                kfp_server_api.models.pipeline_task_detail_child_task.PipelineTaskDetailChildTask(
+                                    task_id = '0', 
+                                    pod_name = '0', )
                                 ], )
                         ], ), 
                 recurring_run_id = '0', 

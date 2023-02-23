@@ -26,14 +26,12 @@ from kfp_server_api.models.api_url import ApiUrl
 from kfp_server_api.models.authorize_request_resources import AuthorizeRequestResources
 from kfp_server_api.models.authorize_request_verb import AuthorizeRequestVerb
 from kfp_server_api.models.googlerpc_status import GooglerpcStatus
+from kfp_server_api.models.pipeline_task_detail_child_task import PipelineTaskDetailChildTask
 from kfp_server_api.models.predicate_int_values import PredicateIntValues
 from kfp_server_api.models.predicate_long_values import PredicateLongValues
 from kfp_server_api.models.predicate_string_values import PredicateStringValues
 from kfp_server_api.models.protobuf_any import ProtobufAny
-from kfp_server_api.models.protobuf_list_value import ProtobufListValue
 from kfp_server_api.models.protobuf_null_value import ProtobufNullValue
-from kfp_server_api.models.protobuf_struct import ProtobufStruct
-from kfp_server_api.models.protobuf_value import ProtobufValue
 from kfp_server_api.models.recurring_run_mode import RecurringRunMode
 from kfp_server_api.models.v2beta1_artifact_list import V2beta1ArtifactList
 from kfp_server_api.models.v2beta1_cron_schedule import V2beta1CronSchedule

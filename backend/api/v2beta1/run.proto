@@ -290,7 +290,7 @@ message PipelineTaskDetail {
   // Runtime state of a task.
   RuntimeState state = 8;
 
-  // Execution metadata of a task.
+  // Execution id of the corresponding entry in ML metadata store.
   int64 execution_id = 9;
 
   // The error that occurred during task execution.
@@ -310,6 +310,26 @@ message PipelineTaskDetail {
   // A sequence of task statuses. This field keeps a record 
   // of state transitions.
   repeated RuntimeStatus state_history = 14;
+
+  // Name of the corresponding pod assigned by the orchestration engine.
+  // Also known as node_id.
+  string pod_name = 15;
+  
+  // A dependent task that requires this one to succeed.
+  // Represented by either task_id or pod_name.
+  message ChildTask {
+    oneof child_task {
+      // System-generated ID of a task.
+      string task_id = 1;
+  
+      // Name of the corresponding pod assigned by the orchestration engine.
+      // Also known as node_id.
+      string pod_name = 2;
+    }
+  }
+
+  // Sequence of dependen tasks.
+  repeated ChildTask child_tasks = 16;
 }
 
 // Runtime information of a pipeline task executor.

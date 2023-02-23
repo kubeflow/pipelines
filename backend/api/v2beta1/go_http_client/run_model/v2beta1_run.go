@@ -44,7 +44,7 @@ type V2beta1Run struct {
 	FinishedAt strfmt.DateTime `json:"finished_at,omitempty"`
 
 	// Pipeline spec.
-	PipelineSpec *ProtobufStruct `json:"pipeline_spec,omitempty"`
+	PipelineSpec interface{} `json:"pipeline_spec,omitempty"`
 
 	// ID of an existing pipeline version.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
@@ -94,10 +94,6 @@ func (m *V2beta1Run) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateFinishedAt(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validatePipelineSpec(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -170,24 +166,6 @@ func (m *V2beta1Run) validateFinishedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("finished_at", "body", "date-time", m.FinishedAt.String(), formats); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (m *V2beta1Run) validatePipelineSpec(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.PipelineSpec) { // not required
-		return nil
-	}
-
-	if m.PipelineSpec != nil {
-		if err := m.PipelineSpec.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("pipeline_spec")
-			}
-			return err
-		}
 	}
 
 	return nil
