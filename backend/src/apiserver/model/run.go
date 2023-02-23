@@ -129,7 +129,7 @@ func (s RuntimeState) ToV1() RuntimeState {
 		return RuntimeStatePendingV1
 	case RuntimeStateRunning, RuntimeStateRunningV1.toUpper(), RuntimeState(LegacyStateEnabled).toUpper(), RuntimeState(LegacyStateReady).toUpper():
 		return RuntimeStateRunningV1
-	case RuntimeStateSucceeded, RuntimeStateSucceededV1.toUpper():
+	case RuntimeStateSucceeded, RuntimeStateSucceededV1.toUpper(), RuntimeState(LegacyStateDone).toUpper():
 		return RuntimeStateSucceededV1
 	case RuntimeStateSkipped, RuntimeStateSkippedV1.toUpper():
 		return RuntimeStateSkippedV1
@@ -305,18 +305,17 @@ type RunDetails struct {
 	ScheduledAtInSec int64 `gorm:"column:ScheduledAtInSec; default:0;"`
 	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0;"`
 	// Conditions were deprecated. Use State instead.
-	Conditions         string       `gorm:"column:Conditions; not null;"`
-	State              RuntimeState `gorm:"column:State; default:null;"`
-	StateHistoryString string       `gorm:"column:StateHistory; default:null;"`
-	StateHistory       []*RuntimeStatus
+	Conditions         string           `gorm:"column:Conditions; not null;"`
+	State              RuntimeState     `gorm:"column:State; default:null;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null; size:65535;"`
+	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
 	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:33554432;"`
 	// Serialized Argo CRD in v1beta1
 	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; size:33554432;"`
-	// Deserialized runtime details of a run includes PipelineContextId, PipelineRunContextId, and TaskDetails
-	PipelineContextId    int64
-	PipelineRunContextId int64
-	TaskDetails          []*Task
+	PipelineContextId       int64  `gorm:"column:PipelineContextId; default:0;"`
+	PipelineRunContextId    int64  `gorm:"column:PipelineRunContextId; default:0;"`
+	TaskDetails             []*Task
 }
 
 type RunMetric struct {
@@ -420,8 +419,6 @@ func (r *Run) GetFieldValue(name string) interface{} {
 		return r.ExperimentId
 	case "State":
 		return r.RunDetails.State
-	case "StateHistory":
-		return r.RunDetails.StateHistory
 	case "PipelineRuntimeManifest":
 		return r.RunDetails.PipelineRuntimeManifest
 	case "RecurringRunId":

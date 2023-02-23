@@ -80,7 +80,10 @@ func request_RecurringRunService_ListRecurringRuns_0(ctx context.Context, marsha
 	var protoReq ListRecurringRunsRequest
 	var metadata runtime.ServerMetadata
 
-	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_RecurringRunService_ListRecurringRuns_0); err != nil {
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_RecurringRunService_ListRecurringRuns_0); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -332,17 +335,17 @@ func RegisterRecurringRunServiceHandlerClient(ctx context.Context, mux *runtime.
 }
 
 var (
-	pattern_RecurringRunService_CreateRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "recurringruns"}, ""))
+	pattern_RecurringRunService_CreateRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "recurringruns"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_GetRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, ""))
+	pattern_RecurringRunService_GetRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_ListRecurringRuns_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "recurringruns"}, ""))
+	pattern_RecurringRunService_ListRecurringRuns_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "recurringruns"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_EnableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "enable"))
+	pattern_RecurringRunService_EnableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "enable", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_DisableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "disable"))
+	pattern_RecurringRunService_DisableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "disable", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_DeleteRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, ""))
+	pattern_RecurringRunService_DeleteRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (

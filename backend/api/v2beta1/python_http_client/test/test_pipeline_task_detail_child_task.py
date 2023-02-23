@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.v2beta1_runtime_config import V2beta1RuntimeConfig  # noqa: E501
+from kfp_server_api.models.pipeline_task_detail_child_task import PipelineTaskDetailChildTask  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestV2beta1RuntimeConfig(unittest.TestCase):
-    """V2beta1RuntimeConfig unit test stubs"""
+class TestPipelineTaskDetailChildTask(unittest.TestCase):
+    """PipelineTaskDetailChildTask unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,24 +29,22 @@ class TestV2beta1RuntimeConfig(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test V2beta1RuntimeConfig
+        """Test PipelineTaskDetailChildTask
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.v2beta1_runtime_config.V2beta1RuntimeConfig()  # noqa: E501
+        # model = kfp_server_api.models.pipeline_task_detail_child_task.PipelineTaskDetailChildTask()  # noqa: E501
         if include_optional :
-            return V2beta1RuntimeConfig(
-                parameters = {
-                    'key' : None
-                    }, 
-                pipeline_root = '0'
+            return PipelineTaskDetailChildTask(
+                task_id = '0', 
+                pod_name = '0'
             )
         else :
-            return V2beta1RuntimeConfig(
+            return PipelineTaskDetailChildTask(
         )
 
-    def testV2beta1RuntimeConfig(self):
-        """Test V2beta1RuntimeConfig"""
+    def testPipelineTaskDetailChildTask(self):
+        """Test PipelineTaskDetailChildTask"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

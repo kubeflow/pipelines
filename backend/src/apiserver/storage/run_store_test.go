@@ -156,6 +156,12 @@ func TestListRuns_Pagination(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 1,
+						State:           model.RuntimeStateRunning,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -190,6 +196,12 @@ func TestListRuns_Pagination(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -250,6 +262,12 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 1,
+						State:           model.RuntimeStateRunning,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -283,6 +301,12 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -403,6 +427,12 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -436,6 +466,12 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 1,
+						State:           model.RuntimeStateRunning,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -500,6 +536,12 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				State:                   model.RuntimeStateRunning,
 				Conditions:              "Running",
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 1,
+						State:           model.RuntimeStateRunning,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -531,6 +573,12 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				State:                   model.RuntimeStateSucceeded,
 				Conditions:              "Succeeded",
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
@@ -593,6 +641,12 @@ func TestGetRun(t *testing.T) {
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 1,
+					State:           model.RuntimeStateRunning,
+				},
+			},
 		},
 		Metrics: []*model.RunMetric{
 			{
@@ -651,6 +705,12 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
 			WorkflowRuntimeManifest: "workflow1",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 1,
+					State:           model.RuntimeStateRunning,
+				},
+			},
 		},
 		Metrics: []*model.RunMetric{
 			{
@@ -674,18 +734,18 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 
 	runDetail = &model.Run{
-		UUID: "1",
-
+		UUID:         "1",
 		StorageState: model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
+			FinishedAtInSec:         100,
 			WorkflowRuntimeManifest: "workflow1_done",
 			Conditions:              "Succeeded",
-			ScheduledAtInSec:        2, // This is will be ignored
+			ScheduledAtInSec:        200, // This is will be ignored
 			State:                   model.RuntimeStateSucceeded,
 		},
 	}
 
-	err = runStore.UpdateRun("1", "Succeeded", 0, "workflow1_done", model.RuntimeStateSucceeded.ToString())
+	err = runStore.UpdateRun(runDetail)
 	assert.Nil(t, err)
 
 	expectedRun = &model.Run{
@@ -698,9 +758,16 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
+			FinishedAtInSec:         100,
 			Conditions:              "Succeeded",
 			State:                   model.RuntimeStateSucceeded,
 			WorkflowRuntimeManifest: "workflow1_done",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 4,
+					State:           model.RuntimeStateSucceeded,
+				},
+			},
 		},
 		Metrics: []*model.RunMetric{
 			{
@@ -749,7 +816,7 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 		},
 	}
 
-	err = runStore.UpdateRun("2000", "Running", 0, "workflow_runtime_spec", model.RuntimeStateRunning.ToString())
+	err = runStore.UpdateRun(runDetail)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Run 2000 not found")
 	_, err = runStore.CreateRun(runDetail)
@@ -764,6 +831,16 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
 			WorkflowRuntimeManifest: "workflow_runtime_spec",
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 4,
+					State:           model.RuntimeStateRunning,
+				},
+				{
+					UpdateTimeInSec: 5,
+					State:           model.RuntimeStateRunning,
+				},
+			},
 		},
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: "workflow_spec",
@@ -790,7 +867,7 @@ func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
 	_, err := runStore.CreateRun(run)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create a new transaction to create run")
-	err = runStore.UpdateRun("", "Succeeded", 0, "workflow1_done", model.RuntimeStateSucceeded.ToString())
+	err = runStore.UpdateRun(&model.Run{DisplayName: "Test display name"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "transaction creation failed")
 }
@@ -855,7 +932,7 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	err := runStore.UpdateRun("not-exist", "Succeeded", 1, "workflow_done", string(model.RuntimeStateSucceeded))
+	err := runStore.UpdateRun(&model.Run{UUID: "not-exist", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded}})
 	assert.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "not found")
@@ -881,6 +958,12 @@ func TestTerminateRun(t *testing.T) {
 			Conditions:              "Terminating",
 			WorkflowRuntimeManifest: "workflow1",
 			State:                   model.RuntimeStateCancelling,
+			StateHistory: []*model.RuntimeStatus{
+				{
+					UpdateTimeInSec: 1,
+					State:           model.RuntimeStateRunning,
+				},
+			},
 		},
 		Metrics: []*model.RunMetric{
 			{
@@ -1037,6 +1120,12 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 1,
+						State:           model.RuntimeStateRunning,
+					},
+				},
 			},
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
@@ -1070,6 +1159,12 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
 			},
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
@@ -1205,6 +1300,12 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
 				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 1,
+						State:           model.RuntimeStateRunning,
+					},
+				},
 			},
 			Metrics: []*model.RunMetric{
 				{
