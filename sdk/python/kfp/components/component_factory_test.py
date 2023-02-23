@@ -19,7 +19,11 @@ from kfp import dsl
 from kfp.components import component_factory
 from kfp.components import structures
 from kfp.components.component_decorator import component
+from kfp.components.types.artifact_types import Artifact
+from kfp.components.types.artifact_types import Model
 from kfp.components.types.type_annotations import OutputPath
+from kfp.dsl import Input
+from kfp.dsl import Output
 
 
 class TestGetPackagesToInstallCommand(unittest.TestCase):
@@ -70,12 +74,6 @@ class TestInvalidParameterName(unittest.TestCase):
             @component
             def comp(Output: OutputPath(str), text: str) -> str:
                 pass
-
-
-from kfp.components.types.artifact_types import Artifact
-from kfp.components.types.artifact_types import Model
-from kfp.dsl import Input
-from kfp.dsl import Output
 
 
 class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
@@ -131,6 +129,41 @@ class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
                         default=None,
                         is_artifact_list=True)
             })
+
+
+class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
+
+    def test_unknown(self):
+
+        @dsl.component
+        def comp(
+                i: dsl.InputPath('MyCustomType'),
+                o: dsl.OutputPath('MyCustomType'),
+        ):
+            ...
+
+        self.assertEqual(comp.component_spec.outputs['o'].type,
+                         'system.Artifact@0.0.1')
+        self.assertFalse(comp.component_spec.outputs['o'].is_artifact_list)
+        self.assertEqual(comp.component_spec.inputs['i'].type,
+                         'system.Artifact@0.0.1')
+        self.assertFalse(comp.component_spec.inputs['i'].is_artifact_list)
+
+    def test_known_v1_back_compat(self):
+
+        @dsl.component
+        def comp(
+                i: dsl.InputPath('Dataset'),
+                o: dsl.OutputPath('Dataset'),
+        ):
+            ...
+
+        self.assertEqual(comp.component_spec.outputs['o'].type,
+                         'system.Dataset@0.0.1')
+        self.assertFalse(comp.component_spec.outputs['o'].is_artifact_list)
+        self.assertEqual(comp.component_spec.inputs['i'].type,
+                         'system.Dataset@0.0.1')
+        self.assertFalse(comp.component_spec.inputs['i'].is_artifact_list)
 
 
 class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
