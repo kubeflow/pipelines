@@ -7,12 +7,17 @@ description: |
       Vertex model resource that will be the parent resource of the uploaded evaluation.
     evaluated_annotation_output_uri (str):
       Path of evaluated annotations generated from EvaluatedAnnotation component.
+    evaluation_importer_gcp_resources (str):
+      GCP resource created by ModelEvaluationImporter comopnent.
+      Specify this parameter in KFP pipeline by passing output from the ModelEvaluationImporter:
+        `evaluation_importer_gcp_resources=eval_importer_task.outputs['gcp_resources']`
     error_analysis_output_uri (Optional[str]):
       Path of error analysis annotations computed from image embeddings by finding nearest neighbors
       in the training set for each item in the test set.
 inputs:
   - {name: model, type: google.VertexModel}
   - {name: evaluated_annotation_output_uri, type: String }
+  - {name: evaluation_importer_gcp_resources, type: String }
   - {name: error_analysis_output_uri, type: String, optional: True}
 outputs:
   - {name: gcp_resources, type: String}
@@ -23,6 +28,8 @@ implementation:
     args:
       - --evaluated_annotation_output_uri
       - {inputValue: evaluated_annotation_output_uri}
+      - --evaluation_importer_gcp_resources
+      - {inputValue: evaluation_importer_gcp_resources}
       - if:
           cond: {isPresent: error_analysis_output_uri}
           then:
