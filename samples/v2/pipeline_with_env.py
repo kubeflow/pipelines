@@ -34,7 +34,7 @@ implementation:
     - -c
     - |
       set -e -x
-      if [ "$ENV2" == "val2" ]; tjhen
+      if [ "$ENV2" == "val2" ]; thhen
         echo "$ENV2" 
       else 
         echo "ENV2 does not equal val2"
