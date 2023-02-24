@@ -30,15 +30,25 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertEqual(run.status, 'Succeeded')
     t.assertEqual(
         {
-            'pipeline-with-env':
+            'print-env-op':
                 KfpTask(
-                    name='pipeline-with-env',
+                    name='print-env-op',
                     type='system.ContainerExecution',
                     state=Execution.State.COMPLETE,
                     inputs=TaskInputs(
                         parameters={}, artifacts=[]),
                     outputs=TaskOutputs(
-                        parameters={}, artifacts=[]))
+                        parameters={}, artifacts=[])),
+            'check-env':
+                KfpTask(
+                    name='check-env',
+                    type='system.ContainerExecution',
+                    state=Execution.State.COMPLETE,
+                    inputs=TaskInputs(
+                        parameters={}, artifacts=[]),
+                    outputs=TaskOutputs(
+                        parameters={}, artifacts=[])),
+
         },
         tasks,
     )
