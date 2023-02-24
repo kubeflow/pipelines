@@ -176,7 +176,7 @@ message ComponentInputsSpec {
   // Definition of an artifact input.
   message ArtifactSpec {
     ArtifactTypeSchema artifact_type = 1;
-    
+
     // Indicates whether input is a single artifact or list of artifacts
     bool is_artifact_list = 2;
 
@@ -230,7 +230,7 @@ message ComponentOutputsSpec {
         [deprecated = true];
     // Properties of the Artifact.
     google.protobuf.Struct metadata = 4;
-    
+
     // Indicates whether output is a single artifact or list of artifacts
     bool is_artifact_list = 5;
   }
@@ -997,4 +997,22 @@ message PipelineStateEnum {
     // [PipelineTaskSpec.TriggerPolicy.condition][].
     UNSCHEDULABLE = 13;
   }
+}
+
+// Spec for all platforms; second document in IR
+message PlatformSpec {
+  // Platform key to full platform config
+  map<string, SinglePlatformSpec> platforms = 1;
+}
+
+message SinglePlatformSpec {
+  // Mirrors PipelineSpec.deployment_spec structure
+  PlatformDeploymentConfig deployment_spec = 1;
+}
+
+
+message PlatformDeploymentConfig {
+  // Map of executor label to task-level config
+  // Mirrors PipelineSpec.deployment_spec.executors structure
+  map<string, google.protobuf.Struct> executors = 1;
 }
