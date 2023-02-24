@@ -31,7 +31,7 @@ import { ButtonKeys } from '../lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { ApiExperimentStorageState } from '../apis/experiment';
+import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
 
 // Default arguments for Apis.experimentServiceApi.listExperiment.
 const LIST_EXPERIMENT_DEFAULTS = [
@@ -44,7 +44,7 @@ const LIST_EXPERIMENT_DEFAULTS = [
         {
           key: 'storage_state',
           op: PredicateOp.NOTEQUALS,
-          string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+          string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
         },
       ],
     } as ApiFilter),
@@ -64,7 +64,7 @@ describe('ExperimentList', () => {
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
-  const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
+  const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
@@ -87,8 +87,8 @@ describe('ExperimentList', () => {
     return () =>
       Promise.resolve({
         experiments: range(n).map(i => ({
-          id: 'test-experiment-id' + i,
-          name: 'test experiment name' + i,
+          experiment_id: 'test-experiment-id' + i,
+          display_name: 'test experiment name' + i,
         })),
       });
   }
@@ -129,7 +129,7 @@ describe('ExperimentList', () => {
         {
           description: 'test experiment description',
           expandState: ExpandState.COLLAPSED,
-          name: 'test experiment name',
+          display_name: 'test experiment name',
         },
       ],
     });
@@ -194,9 +194,9 @@ describe('ExperimentList', () => {
     expect(tree.state()).toHaveProperty('displayExperiments', [
       {
         expandState: ExpandState.COLLAPSED,
-        id: 'test-experiment-id0',
+        experiment_id: 'test-experiment-id0',
         last5Runs: [{ id: 'test-run-id0', name: 'test run name0' }],
-        name: 'test experiment name0',
+        display_name: 'test experiment name0',
       },
     ]);
   });
@@ -307,9 +307,9 @@ describe('ExperimentList', () => {
     expect(tree.state()).toHaveProperty('displayExperiments', [
       {
         expandState: ExpandState.EXPANDED,
-        id: 'test-experiment-id0',
+        experiment_id: 'test-experiment-id0',
         last5Runs: [{ id: 'test-run-id0', name: 'test run name0' }],
-        name: 'test experiment name0',
+        display_name: 'test experiment name0',
       },
     ]);
   });
@@ -317,7 +317,9 @@ describe('ExperimentList', () => {
   it('renders a list of runs for given experiment', async () => {
     tree = shallow(<ExperimentList {...generateProps()} />);
     tree.setState({
-      displayExperiments: [{ id: 'experiment1', last5Runs: [{ id: 'run1id' }, { id: 'run2id' }] }],
+      displayExperiments: [
+        { experiment_id: 'experiment1', last5Runs: [{ id: 'run1id' }, { id: 'run2id' }] },
+      ],
     });
     const runListTree = (tree.instance() as any)._getExpandedExperimentComponent(0);
     expect(runListTree.props.experimentIdMask).toEqual('experiment1');
