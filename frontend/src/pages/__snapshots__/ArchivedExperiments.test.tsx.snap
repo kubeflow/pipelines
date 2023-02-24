@@ -13,7 +13,7 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
     location={Object {}}
     match={Object {}}
     onError={[Function]}
-    storageState="STORAGESTATE_ARCHIVED"
+    storageState="ARCHIVED"
     toolbarProps={
       Object {
         "actions": Object {

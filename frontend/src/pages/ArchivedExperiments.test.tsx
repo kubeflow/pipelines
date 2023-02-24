@@ -19,6 +19,7 @@ import { ArchivedExperiments } from './ArchivedExperiments';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
 import { ApiExperimentStorageState } from '../apis/experiment';
+import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
 import { ShallowWrapper, shallow } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 
@@ -71,7 +72,7 @@ describe('ArchivedExperiemnts', () => {
   it('shows a list of archived experiments', () => {
     tree = shallow(<ArchivedExperiments {...generateProps()} />);
     expect(tree.find('ExperimentList').prop('storageState')).toBe(
-      ApiExperimentStorageState.ARCHIVED.toString(),
+      V2beta1ExperimentStorageState.ARCHIVED.toString(),
     );
   });
 });
