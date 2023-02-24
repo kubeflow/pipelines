@@ -115,7 +115,7 @@ export const RoutePage = {
   PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}/version/:${RouteParams.pipelineVersionId}?`,
   PIPELINE_DETAILS_NO_VERSION: `/pipelines/details/:${RouteParams.pipelineId}?`, // pipelineId is optional
   RUNS: '/runs',
-  RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
+  RUN_DETAILS: `/experiments/:${RouteParams.experimentId}/runs/:${RouteParams.runId}`,
   RUN_DETAILS_WITH_EXECUTION: `/runs/details/:${RouteParams.runId}/execution/:${RouteParams.executionId}`,
   RECURRING_RUNS: '/recurringruns',
   RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.recurringRunId}`,

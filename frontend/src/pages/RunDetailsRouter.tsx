@@ -47,14 +47,14 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
 
   // Retrieves v1 run detail.
   const { isSuccess: getV1RunSuccess, data: v1Run } = useQuery<ApiRunDetail, Error>(
-    ['run_detail', { id: runId }],
+    ['v1_run_detail', { id: runId }],
     () => Apis.runServiceApi.getRun(runId),
     {},
   );
 
     // Retrieves v2 run detail.
     const { isSuccess: getV2RunSuccess, data: v2Run } = useQuery<V2beta1Run, Error>(
-      ['run_detail', { id: runId }],
+      ['v2_run_detail', { id: experimentId, runId }],
       () => Apis.runServiceApiV2.getRun(experimentId, runId),
       {},
     );

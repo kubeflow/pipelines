@@ -19,7 +19,7 @@ import CustomTable, { Column, Row, CustomRendererProps } from '../components/Cus
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
 import { ApiRun, ApiRunMetric, ApiRunStorageState, ApiRunDetail } from '../../src/apis/run';
-import { V2beta1Run, V2beta1RunDetails, V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2beta1Run, V2beta1RunDetails, V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -28,7 +28,7 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration, getRunDurationV2 } from '../lib/Utils';
-import { statusToIcon } from './Status';
+import { statusToIcon } from './StatusV2';
 import Tooltip from '@material-ui/core/Tooltip';
 
 interface PipelineVersionInfo {
@@ -215,15 +215,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
   }
 
-  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
-    props: CustomRendererProps<string>,
+  public _nameCustomRenderer: React.FC<CustomRendererProps<DisplayRun>> = (
+    props: CustomRendererProps<DisplayRun>,
   ) => {
     return (
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
           onClick={e => e.stopPropagation()}
-          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.experimentId, props.value?.experiment?.id!).replace(':' + RouteParams.runId, props.id)}
         >
           {props.value}
         </Link>
@@ -308,8 +308,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     );
   };
 
-  public _statusCustomRenderer: React.FC<CustomRendererProps<NodePhase>> = (
-    props: CustomRendererProps<NodePhase>,
+  public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RuntimeState>> = (
+    props: CustomRendererProps<V2beta1RuntimeState>,
   ) => {
     return statusToIcon(props.value);
   };
