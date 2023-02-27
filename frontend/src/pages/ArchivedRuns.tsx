@@ -19,6 +19,7 @@ import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
 import { ApiRunStorageState } from '../apis/run';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';

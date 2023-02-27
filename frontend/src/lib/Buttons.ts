@@ -83,6 +83,22 @@ export default class Buttons {
     return this;
   }
 
+  public archiveRunV2(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Buttons {
+    this._map[ButtonKeys.ARCHIVE] = {
+      action: () => this._archiveRunV2(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one run to archive',
+      id: 'archiveRunBtn',
+      title: 'ArchiveV2',
+      tooltip: 'Archive',
+    };
+    return this;
+  }
+
   public cloneRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
     this._map[ButtonKeys.CLONE_RUN] = {
       action: () => this._cloneRun(getSelectedIds()),
@@ -416,6 +432,27 @@ export default class Buttons {
   }
 
   private _archiveRun(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      selectedIds,
+      `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
+        `${
+          selectedIds.length === 1 ? 'its' : 'their'
+        } details. Please note that the run will not ` +
+        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
+        `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      useCurrent,
+      id => Apis.runServiceApi.archiveRun(id),
+      callback,
+      'Archive',
+      'run',
+    );
+  }
+
+  private _archiveRunV2(
     selectedIds: string[],
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
