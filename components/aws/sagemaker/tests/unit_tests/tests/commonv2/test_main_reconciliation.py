@@ -47,10 +47,8 @@ class SageMakerComponentReconcilationTestCase(unittest.TestCase):
         """
         self.component._init_configure_k8s = MagicMock(side_effect=Exception("Fire!"))
 
-        with patch("commonv2.sagemaker_component.sys") as mock_sys:
+        with self.assertRaises(SystemExit):
             self.component.Do(COMMON_INPUTS, DummySpec.OUTPUTS, DummySpec.OUTPUTS)
-
-        mock_sys.exit.assert_called_with(1)
 
     def test_do_returns_false_exists(self):
         """ Smoke test for returning false.
