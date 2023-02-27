@@ -313,6 +313,12 @@ func makePodSpecPatch(
 		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
 	}
 
+	// Convert environment variables
+	userEnvVar := make([]k8score.EnvVar, 0)
+	for _, envVar := range container.GetEnv() {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
+	}
+
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
@@ -367,6 +373,7 @@ func makePodSpecPatch(
 			Args:      userCmdArgs,
 			Image:     container.Image,
 			Resources: res,
+			Env:       userEnvVar,
 		}},
 	}
 	podSpecPatchBytes, err := json.Marshal(podSpec)
