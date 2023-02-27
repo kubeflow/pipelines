@@ -4,9 +4,8 @@ description: |
   training set for each item in the test set.
 
   Args:
-      embeddings_file_pattern (str):
-          Required. URI to the embeddings output from the embeddings component. Accepts glob
-          patterns in the file name (for reading sharded files) but not in the directory path.
+      embeddings_dir (str):
+          Required. The GCS directory containing embeddings output from the embeddings component.
       root_dir (str):
           Required. The GCS directory for storing error analysis annotation output.
       num_neighbors (Optional[int]):
@@ -16,7 +15,7 @@ description: |
       error_analysis_output_uri (str):
           String representing the GCS URI of the computed error analysis annotations.
 inputs:
-  - { name: embeddings_file_pattern, type: String }
+  - { name: embeddings_dir, type: String }
   - { name: root_dir, type: String }
   - { name: num_neighbors, type: Integer, default: 5 }
 outputs:
@@ -24,10 +23,10 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai-restricted/vision-error-analysis/error-analysis:v0.1
+    image: us-docker.pkg.dev/vertex-ai-restricted/vision-error-analysis/error-analysis:v0.2
     args:
-      - --embeddings_file_pattern
-      - { inputValue: embeddings_file_pattern }
+      - --embeddings_dir
+      - { inputValue: embeddings_dir }
       - --root_dir
       - { inputValue: root_dir }
       - --num_neighbors
