@@ -17,6 +17,7 @@ import copy
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Union
+import warnings
 
 from kfp.components import constants
 from kfp.components import pipeline_channel
@@ -75,39 +76,17 @@ class PipelineTask:
 
             if input_name not in component_spec.inputs:
                 raise ValueError(
-                    f'Component "{component_spec.name}" got an unexpected input:'
-                    f' {input_name}.')
+                    f'Component {component_spec.name!r} got an unexpected input:'
+                    f' {input_name!r}.')
 
             input_spec = component_spec.inputs[input_name]
-            input_type = input_spec.type
-            argument_type = None
-
-            if isinstance(argument_value, pipeline_channel.PipelineChannel):
-                argument_type = argument_value.channel_type
-            elif isinstance(argument_value, str):
-                argument_type = 'String'
-            elif isinstance(argument_value, bool):
-                argument_type = 'Boolean'
-            elif isinstance(argument_value, int):
-                argument_type = 'Integer'
-            elif isinstance(argument_value, float):
-                argument_type = 'Float'
-            elif isinstance(argument_value, dict):
-                argument_type = 'Dict'
-            elif isinstance(argument_value, list):
-                argument_type = 'List'
-            else:
-                raise ValueError(
-                    'Input argument supports only the following types: '
-                    'str, int, float, bool, dict, and list. Got: '
-                    f'"{argument_value}" of type "{type(argument_value)}".')
 
             type_utils.verify_type_compatibility(
-                given_type=argument_type,
-                expected_type=input_type,
+                given_value=argument_value,
+                expected_spec=input_spec,
                 error_message_prefix=(
-                    'Incompatible argument passed to the input '
-                    f'"{input_name}" of component "{component_spec.name}": '),
+                    f'Incompatible argument passed to the input '
+                    f'{input_name!r} of component {component_spec.name!r}: '),
             )
 
         self.component_spec = component_spec
@@ -122,6 +101,7 @@ class PipelineTask:
         self.importer_spec = None
         self.container_spec = None
         self.pipeline_spec = None
+        self._ignore_upstream_failure_tag = False
 
         def validate_placeholder_types(
                 component_spec: structures.ComponentSpec) -> None:
@@ -148,6 +128,7 @@ class PipelineTask:
                 name=output_name,
                 channel_type=output_spec.type,
                 task_name=self._task_spec.name,
+                is_artifact_list=output_spec.is_artifact_list,
             ) for output_name, output_spec in (
                 component_spec.outputs or {}).items()
         }
@@ -275,6 +256,33 @@ class PipelineTask:
 
         return self
 
+    def set_accelerator_limit(self, limit: int) -> 'PipelineTask':
+        """Sets accelerator limit (maximum) for the task. Only applies if
+        accelerator type is also set via .add_node_selector_constraint().
+
+        Args:
+            limit: Maximum number of accelerators allowed.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if isinstance(limit, str):
+            if re.match(r'[1-9]\d*$', limit) is None:
+                raise ValueError(f'{"limit"!r} must be positive integer.')
+            limit = int(limit)
+
+        if self.container_spec is None:
+            raise ValueError(
+                'There is no container specified in implementation')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.accelerator_count = limit
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                accelerator_count=limit)
+
+        return self
+
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
         """Sets GPU limit (maximum) for the task. Only applies if accelerator
         type is also set via .add_node_selector_constraint().
@@ -284,23 +292,13 @@ class PipelineTask:
 
         Returns:
             Self return to allow chained setting calls.
+
+        :meta private:
         """
-        if re.match(r'[1-9]\d*$', gpu) is None:
-            raise ValueError('GPU must be positive integer.')
-
-        gpu = int(gpu)
-
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.accelerator_count = gpu
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                accelerator_count=gpu)
-
-        return self
+        warnings.warn(
+            f'{self.set_gpu_limit.__name__!r} is deprecated. Please use {self.set_accelerator_limit.__name__!r} instead.',
+            category=DeprecationWarning)
+        return self.set_accelerator_limit(gpu)
 
     def set_memory_limit(self, memory: str) -> 'PipelineTask':
         """Sets memory limit (maximum) for the task.
@@ -454,6 +452,42 @@ class PipelineTask:
         """
         for task in tasks:
             self._task_spec.dependent_tasks.append(task.name)
+        return self
+
+    def ignore_upstream_failure(self) -> 'PipelineTask':
+        """If called, the pipeline task will run when any specified upstream
+        tasks complete, even if unsuccessful.
+
+        This method effectively turns the caller task into an exit task
+        if the caller task has upstream dependencies.
+
+        If the task has no upstream tasks, either via data exchange or an explicit dependency via .after(), this method has no effect.
+
+        Returns:
+            Self return to allow chained setting calls.
+
+        Example:
+          ::
+
+            @dsl.pipeline()
+            def my_pipeline(text: str = 'message'):
+                task = fail_op(message=text)
+                clean_up_task = print_op(
+                    message=task.output).ignore_upstream_failure()
+        """
+
+        for input_spec_name, input_spec in (self.component_spec.inputs or
+                                            {}).items():
+            argument_value = self._inputs[input_spec_name]
+            if (isinstance(argument_value, pipeline_channel.PipelineChannel)
+               ) and (not input_spec.optional) and (argument_value.task_name
+                                                    is not None):
+                raise ValueError(
+                    f'Tasks can only use .ignore_upstream_failure() if all input parameters that accept arguments created by an upstream task have a default value, in case the upstream task fails to produce its output. Input parameter task {self.name!r}`s {input_spec_name!r} argument is an output of an upstream task {argument_value.task_name!r}, but {input_spec_name!r} has no default value.'
+                )
+
+        self._ignore_upstream_failure_tag = True
+
         return self
 
 

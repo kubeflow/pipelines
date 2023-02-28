@@ -38,7 +38,7 @@ type ObjectStoreInterface interface {
 	GetPipelineKey(pipelineId string) string
 }
 
-// Managing pipeline using Minio
+// Managing pipeline using Minio.
 type MinioObjectStore struct {
 	minioClient      MinioClientInterface
 	bucketName       string
@@ -52,7 +52,6 @@ func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
 }
 
 func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
-
 	var parts int64
 
 	if m.disableMultipart {
@@ -65,7 +64,7 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 		m.bucketName, filePath, bytes.NewReader(file),
 		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to store %v", filePath)
+		return util.NewInternalServerError(err, "Failed to store file %v", filePath)
 	}
 	return nil
 }
@@ -73,7 +72,7 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 func (m *MinioObjectStore) DeleteFile(filePath string) error {
 	err := m.minioClient.DeleteObject(m.bucketName, filePath)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to delete %v", filePath)
+		return util.NewInternalServerError(err, "Failed to delete file %v", filePath)
 	}
 	return nil
 }
@@ -81,7 +80,7 @@ func (m *MinioObjectStore) DeleteFile(filePath string) error {
 func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
 	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get %v", filePath)
+		return nil, util.NewInternalServerError(err, "Failed to get file %v", filePath)
 	}
 
 	buf := new(bytes.Buffer)
@@ -101,11 +100,11 @@ func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
 func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 	bytes, err := yaml.Marshal(o)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to marshal %v: %v", filePath, err.Error())
+		return util.NewInternalServerError(err, "Failed to marshal file %v: %v", filePath, err.Error())
 	}
 	err = m.AddFile(bytes, filePath)
 	if err != nil {
-		return util.Wrap(err, "Failed to add a yaml file.")
+		return util.Wrap(err, "Failed to add a yaml file")
 	}
 	return nil
 }
@@ -113,17 +112,13 @@ func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
 	bytes, err := m.GetFile(filePath)
 	if err != nil {
-		return util.Wrap(err, "Failed to read from a yaml file.")
+		return util.Wrap(err, "Failed to read from a yaml file")
 	}
 	err = yaml.Unmarshal(bytes, o)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to unmarshal %v: %v", filePath, err.Error())
+		return util.NewInternalServerError(err, "Failed to unmarshal file %v: %v", filePath, err.Error())
 	}
 	return nil
-}
-
-func buildPath(folder, file string) string {
-	return folder + "/" + file
 }
 
 func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {

@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,272 +21,292 @@ const pipelineName = 'helloworld-pipeline-' + Date.now();
 const runName = 'helloworld-' + Date.now();
 const runDescription = 'test run description ' + runName;
 const runWithoutExperimentName = 'helloworld-2-' + Date.now();
-const runWithoutExperimentDescription = 'test run without experiment description ' + runWithoutExperimentName;
+const runWithoutExperimentDescription =
+  'test run without experiment description ' + runWithoutExperimentName;
 const waitTimeout = 5000;
-const outputParameterValue = 'Hello world in test'
+const outputParameterValue = 'Hello world in test';
 
-function getValueFromDetailsTable(key) {
+async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
   // get that row's inner text, and remove the key
-  const row = $(`span=${key}`).$('..');
-  return row.getText().substr(`${key}\n`.length);
+  const rowText = await $(`span=${key}`).$('..').getText();
+  return rowText.substr(`${key}\n`.length);
 }
 
 describe('deploy helloworld sample run', () => {
-
-  before(() => {
-    browser.url('/');
+  before(async () => {
+    await browser.url('/');
   });
 
-  it('open pipeline creation page', () => {
-    $('#createPipelineVersionBtn').click();
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/pipeline_versions/new');
+  it('open pipeline creation page', async () => {
+    await $('#createPipelineVersionBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/pipeline_versions/new');
     }, waitTimeout);
   });
 
-  it('uploads the sample pipeline', () => {
-    $('#localPackageBtn').click();
-    browser.chooseFile('#dropZone input[type="file"]', './helloworld.yaml');
-    $('#newPipelineName').setValue(pipelineName);
-    $('#createNewPipelineOrVersionBtn').click();
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/pipelines/details');
+  it('uploads the sample pipeline', async () => {
+    await $('#localPackageBtn').click();
+    const remoteFilePath = await browser.uploadFile('./helloworld.yaml');
+    await $('#dropZone input[type="file"]').addValue(remoteFilePath);
+    await $('#newPipelineName').setValue(pipelineName);
+    await $('#createNewPipelineOrVersionBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/pipelines/details');
     }, waitTimeout);
   });
 
-  it('shows a 4-node static graph', () => {
+  it('shows a 4-node static graph', async () => {
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible();
-    const nodes = $$(nodeSelector).length;
-    assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
+    await $(nodeSelector);
+    const nodes = await $$(nodeSelector);
+    assert(nodes.length === 4, 'should have a 4-node graph, instead has: ' + nodes.length);
   });
 
-  it('creates a new experiment out of this pipeline', () => {
-    $('#newExperimentBtn').click();
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
+  it('creates a new experiment out of this pipeline', async () => {
+    await $('#newExperimentBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/experiments/new');
     }, waitTimeout);
 
-    $('#experimentName').setValue(experimentName);
-    $('#experimentDescription').setValue(experimentDescription);
+    await $('#experimentName').setValue(experimentName);
+    await $('#experimentDescription').setValue(experimentDescription);
 
-    $('#createExperimentBtn').click();
+    await $('#createExperimentBtn').click();
   });
 
-  it('creates a new run in the experiment', () => {
-    $('#choosePipelineBtn').waitForVisible();
-    $('#choosePipelineBtn').click();
+  it('creates a new run in the experiment', async () => {
+    await $('#choosePipelineBtn').waitForDisplayed();
+    await $('#choosePipelineBtn').click();
 
-    $('.tableRow').waitForVisible();
-    $('.tableRow').click();
+    await $('.tableRow').waitForDisplayed();
+    await $('.tableRow').click();
 
-    $('#usePipelineBtn').click();
+    await $('#usePipelineBtn').click();
 
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
+    await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
 
-    $('#choosePipelineVersionBtn').waitForVisible();
-    $('#choosePipelineVersionBtn').click();
+    await $('#choosePipelineVersionBtn').waitForDisplayed();
+    await $('#choosePipelineVersionBtn').click();
 
-    $('.tableRow').waitForVisible();
-    $('.tableRow').click();
+    await $('.tableRow').waitForDisplayed();
+    await $('.tableRow').click();
 
-    $('#usePipelineVersionBtn').click();
+    await $('#usePipelineVersionBtn').click();
 
-    $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
+    await $('#pipelineVersionSelectorDialog').waitForDisplayed({
+      timeout: waitTimeout,
+      reverse: true,
+    });
 
-    browser.keys(runName);
+    await browser.keys(runName);
 
-    browser.keys('Tab');
-    browser.keys(runDescription);
+    await browser.keys('Tab');
+    await browser.keys(runDescription);
 
     // Skip over "choose experiment" button
-    browser.keys('Tab');
+    await browser.keys('Tab');
     // Skip over service account help button
-    browser.keys('Tab');
+    await browser.keys('Tab');
     // Skip over "service account" textbox
-    browser.keys('Tab');
+    await browser.keys('Tab');
     // Skip over "Run Type" radio button
-    browser.keys('Tab');
+    await browser.keys('Tab');
 
-    browser.keys('Tab');
-    browser.keys(outputParameterValue);
+    await browser.keys('Tab');
+    await browser.keys(outputParameterValue);
 
     // Deploy
-    $('#startNewRunBtn').click();
+    await $('#startNewRunBtn').click();
   });
 
-  it('redirects back to experiment page', () => {
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments/details/');
+  it('redirects back to experiment page', async () => {
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/experiments/details/');
     }, waitTimeout);
   });
 
-  it('finds the new run in the list of runs, navigates to it', () => {
+  it('finds the new run in the list of runs, navigates to it', async () => {
     let attempts = 30;
 
     // Wait for a reasonable amount of time until the run starts
     while (attempts && !$('.tableRow a').isExisting()) {
-      browser.pause(1000);
-      $('#refreshBtn').click();
+      await browser.pause(1000);
+      await $('#refreshBtn').click();
       --attempts;
     }
 
     assert(attempts, 'waited for 30 seconds but run did not start.');
 
-    assert.equal($$('.tableRow').length, 1, 'should only show one run');
+    assert.equal(await $$('.tableRow').length, 1, 'should only show one run');
 
     // Navigate to details of the deployed run by clicking its anchor element
-    browser.execute('document.querySelector(".tableRow a").click()');
+    await browser.execute('document.querySelector(".tableRow a").click()');
   });
 
-  it('switches to config tab', () => {
-    $('button=Config').waitForVisible(waitTimeout);
-    $('button=Config').click();
+  it('switches to config tab', async () => {
+    await $('button=Config').waitForDisplayed({ timeout: waitTimeout });
+    await $('button=Config').click();
   });
 
-  it('waits for run to finish', () => {
-    let status = getValueFromDetailsTable('Status');
+  it('waits for run to finish', async () => {
+    let status = await getValueFromDetailsTable('Status');
 
     let attempts = 0;
     const maxAttempts = 60;
 
     // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
-      browser.pause(1000);
-      status = getValueFromDetailsTable('Status');
+      await browser.pause(1000);
+      status = await getValueFromDetailsTable('Status');
       attempts++;
     }
 
-    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not succeed. ` +
-      'Current status is: ' + status);
+    assert(
+      attempts < maxAttempts,
+      `waited for ${maxAttempts} seconds but run did not succeed. ` +
+        'Current status is: ' +
+        status,
+    );
   });
 
-  it('displays run created at date correctly', () => {
-    const date = getValueFromDetailsTable('Created at');
-    assert(Date.now() - new Date(date) < 10 * 60 * 1000,
-      'run created date should be within the last 10 minutes');
+  it('displays run created at date correctly', async () => {
+    const date = await getValueFromDetailsTable('Created at');
+    assert(
+      Date.now() - new Date(date) < 10 * 60 * 1000,
+      'run created date should be within the last 10 minutes',
+    );
   });
 
-  it('displays run inputs correctly', () => {
-    const paramValue = getValueFromDetailsTable('message');
+  it('displays run inputs correctly', async () => {
+    const paramValue = await getValueFromDetailsTable('message');
     assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
   });
 
-  it('switches back to graph tab', () => {
-    $('button=Graph').click();
+  it('switches back to graph tab', async () => {
+    await $('button=Graph').click();
   });
 
-  it('has a 4-node graph', () => {
+  it('has a 4-node graph', async () => {
     const nodeSelector = '.graphNode';
-    const nodes = $$(nodeSelector).length;
+    const nodes = await $$(nodeSelector).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
-  it('opens the side panel when graph node is clicked', () => {
-    $('.graphNode').click();
-    browser.pause(1000);
-    $('button=Logs').waitForVisible();
+  it('opens the side panel when graph node is clicked', async () => {
+    await $('.graphNode').click();
+    await browser.pause(1000);
+    await $('button=Logs').waitForDisplayed();
   });
 
-  it('shows logs from node', () => {
-    $('button=Logs').click();
-    $('#logViewer').waitForVisible();
-    browser.waitUntil(() => {
-      const logs = $('#logViewer').getText();
+  it('shows logs from node', async () => {
+    await $('button=Logs').click();
+    await $('#logViewer').waitForDisplayed();
+    await browser.waitUntil(async () => {
+      const logs = await $('#logViewer').getText();
       return logs.indexOf(outputParameterValue + ' from node: ') > -1;
     }, waitTimeout);
   });
 
-  it('navigates to the runs page', () => {
-    $('#runsBtn').click();
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/runs');
+  it('navigates to the runs page', async () => {
+    await $('#runsBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/runs');
     }, waitTimeout);
   });
 
-  it('creates a new run without selecting an experiment', () => {
-    $('#createNewRunBtn').waitForVisible();
-    $('#createNewRunBtn').click();
+  it('creates a new run without selecting an experiment', async () => {
+    await $('#createNewRunBtn').waitForDisplayed();
+    await $('#createNewRunBtn').click();
 
-    $('#choosePipelineBtn').waitForVisible();
-    $('#choosePipelineBtn').click();
+    await $('#choosePipelineBtn').waitForDisplayed();
+    await $('#choosePipelineBtn').click();
 
-    $('.tableRow').waitForVisible();
-    $('.tableRow').click();
+    await $('.tableRow').waitForDisplayed();
+    await $('.tableRow').click();
 
-    $('#usePipelineBtn').click();
+    await $('#usePipelineBtn').click();
 
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
+    await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
 
-    browser.keys('Tab');
-    browser.keys(runWithoutExperimentName);
+    await browser.keys('Tab');
+    await browser.keys(runWithoutExperimentName);
 
-    browser.keys('Tab');
-    browser.keys(runWithoutExperimentDescription);
+    await browser.keys('Tab');
+    await browser.keys(runWithoutExperimentDescription);
 
     // Skip over "choose experiment" button
-    browser.keys('Tab');
+    await browser.keys('Tab');
     // Skip over service account help button
-    browser.keys('Tab');
+    await browser.keys('Tab');
     // Skip over "service account" textbox
-    browser.keys('Tab');
+    await browser.keys('Tab');
     // Skip over "Run Type" radio button
-    browser.keys('Tab');
+    await browser.keys('Tab');
 
-    browser.keys('Tab');
-    browser.keys(outputParameterValue);
+    await browser.keys('Tab');
+    await browser.keys(outputParameterValue);
 
     // Deploy
-    $('#startNewRunBtn').click();
+    await $('#startNewRunBtn').click();
   });
 
-  it('redirects back to all runs page', () => {
-    browser.waitUntil(() => {
-      return (new URL(browser.getUrl())).hash === '#/runs';
-    }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
+  it('redirects back to all runs page', async () => {
+    await browser.waitUntil(
+      async () => {
+        return new URL(await browser.getUrl()).hash === '#/runs';
+      },
+      waitTimeout,
+      `URL was: ${new URL(await browser.getUrl())}`,
+    );
   });
 
-  it('displays both runs in all runs page', () => {
-    $('.tableRow').waitForVisible();
-    const rows = $$('.tableRow').length;
+  it('displays both runs in all runs page', async () => {
+    await $('.tableRow').waitForDisplayed();
+    const rows = await $$('.tableRow').length;
     assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
   });
 
-  it('navigates back to the experiment list', () => {
-    $('button=Experiments').click();
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+  it('navigates back to the experiment list', async () => {
+    await $('button=Experiments').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/experiments');
     }, waitTimeout);
   });
 
-  it('displays both experiments in the list', () => {
-    $('.tableRow').waitForVisible();
-    const rows = $$('.tableRow').length;
-    assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
+  it('displays both experiments in the list', async () => {
+    await $('.tableRow').waitForDisplayed();
+    const rows = await $$('.tableRow').length;
+    assert(
+      rows === 2,
+      'there should now be two experiments in the table, instead there are: ' + rows,
+    );
   });
 
-  it('filters the experiment list', () => {
+  it('filters the experiment list', async () => {
     // Enter "hello" into filter bar
-    browser.click('#tableFilterBox');
-    browser.keys(experimentName.substring(0, 5));
+    await $('#tableFilterBox').click();
+    await browser.keys(experimentName.substring(0, 5));
     // Wait for the list to refresh
-    browser.pause(2000);
+    await browser.pause(2000);
 
-    $('.tableRow').waitForVisible();
-    const rows = $$('.tableRow').length;
-    assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
+    await $('.tableRow').waitForDisplayed();
+    const rows = await $$('.tableRow').length;
+    assert(
+      rows === 1,
+      'there should now be one experiment in the table, instead there are: ' + rows,
+    );
   });
 
   //TODO: enable this after we change the pipeline to a unique name such that deleting this
   // pipeline will not jeopardize the concurrent basic e2e tests.
-  // it('deletes the uploaded pipeline', () => {
-  //   $('#pipelinesBtn').click();
+  // it('deletes the uploaded pipeline', async () => {
+  //   await $('#pipelinesBtn').click();
   //
-  //   browser.waitForVisible('.tableRow', waitTimeout);
-  //   $('.tableRow').click();
-  //   $('#deleteBtn').click();
-  //   $('.dialogButton').click();
-  //   $('.dialog').waitForVisible(waitTimeout, true);
+  //   await $('.tableRow').waitForDisplayed({timeout: waitTimeout});
+  //   await $('.tableRow').click();
+  //   await $('#deleteBtn').click();
+  //   await $('.dialogButton').click();
+  //   await $('.dialog').waitForDisplayed({timeout: waitTimeout, reverse:true});
   // });
 });

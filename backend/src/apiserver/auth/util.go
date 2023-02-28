@@ -38,7 +38,6 @@ func singleHeaderFromMetadata(ctx context.Context, header string) (string, error
 		return "", util.NewBadRequestError(errors.New(msg), msg)
 	}
 	return values[0], nil
-
 }
 
 // singlePrefixedHeaderFromMetadata tries to get a header from the grpc request

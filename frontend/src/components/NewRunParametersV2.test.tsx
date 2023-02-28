@@ -48,11 +48,11 @@ describe('NewRunParametersV2', () => {
 
     screen.getByText('Run parameters');
     screen.getByText('Specify parameters required by the pipeline');
-    screen.getByText('strParam - STRING');
+    screen.getByText('strParam - string');
     screen.getByDisplayValue('string value');
-    screen.getByText('boolParam - BOOLEAN');
+    screen.getByText('boolParam - boolean');
     screen.getByDisplayValue('true');
-    screen.getByText('intParam - NUMBER_INTEGER');
+    screen.getByText('intParam - integer');
     screen.getByDisplayValue('123');
   });
 
@@ -133,7 +133,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const strParam = screen.getByLabelText('strParam - STRING');
+    const strParam = screen.getByLabelText('strParam - string');
     fireEvent.change(strParam, { target: { value: 'new string' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -184,7 +184,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    const boolParam = screen.getByLabelText('boolParam - boolean');
     fireEvent.change(boolParam, { target: { value: 'true' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -209,7 +209,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    const boolParam = screen.getByLabelText('boolParam - boolean');
     fireEvent.change(boolParam, { target: { value: 'True' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -260,7 +260,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const intParam = screen.getByLabelText('intParam - NUMBER_INTEGER');
+    const intParam = screen.getByLabelText('intParam - integer');
     fireEvent.change(intParam, { target: { value: '789' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -285,7 +285,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const intParam = screen.getByLabelText('intParam - NUMBER_INTEGER');
+    const intParam = screen.getByLabelText('intParam - integer');
     fireEvent.change(intParam, { target: { value: '7.89' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -336,7 +336,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const doubleParam = screen.getByLabelText('doubleParam - NUMBER_DOUBLE');
+    const doubleParam = screen.getByLabelText('doubleParam - double');
     fireEvent.change(doubleParam, { target: { value: '7.89' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -387,7 +387,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const listParam = screen.getByLabelText('listParam - LIST');
+    const listParam = screen.getByLabelText('listParam - list');
     fireEvent.change(listParam, { target: { value: '[4,5,6]' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -412,7 +412,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const listParam = screen.getByLabelText('listParam - LIST');
+    const listParam = screen.getByLabelText('listParam - list');
     fireEvent.change(listParam, { target: { value: '[4,5,6' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -463,7 +463,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - STRUCT');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -488,7 +488,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - STRUCT');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '"A":1,"B":2' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
@@ -558,12 +558,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const intParam = screen.getByLabelText('intParam - NUMBER_INTEGER');
+    const intParam = screen.getByLabelText('intParam - integer');
     fireEvent.change(intParam, { target: { value: '123b' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123b');
-    screen.getByText('Invalid input. This parameter should be in NUMBER_INTEGER type');
+    screen.getByText('Invalid input. This parameter should be in integer type');
   });
 
   it('show error message for missing integer input', () => {
@@ -608,12 +608,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    const boolParam = screen.getByLabelText('boolParam - boolean');
     fireEvent.change(boolParam, { target: { value: '123' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123');
-    screen.getByText('Invalid input. This parameter should be in BOOLEAN type');
+    screen.getByText('Invalid input. This parameter should be in boolean type');
   });
 
   it('set input as valid type with valid boolean input', () => {
@@ -633,7 +633,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    const boolParam = screen.getByLabelText('boolParam - boolean');
     fireEvent.change(boolParam, { target: { value: 'true' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);
@@ -657,12 +657,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const doubleParam = screen.getByLabelText('doubleParam - NUMBER_DOUBLE');
+    const doubleParam = screen.getByLabelText('doubleParam - double');
     fireEvent.change(doubleParam, { target: { value: '123b' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123b');
-    screen.getByText('Invalid input. This parameter should be in NUMBER_DOUBLE type');
+    screen.getByText('Invalid input. This parameter should be in double type');
   });
 
   it('show error message for invalid list input', () => {
@@ -682,12 +682,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const listParam = screen.getByLabelText('listParam - LIST');
+    const listParam = screen.getByLabelText('listParam - list');
     fireEvent.change(listParam, { target: { value: '123' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123');
-    screen.getByText('Invalid input. This parameter should be in LIST type');
+    screen.getByText('Invalid input. This parameter should be in list type');
   });
 
   it('show error message for invalid list input', () => {
@@ -707,12 +707,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const listParam = screen.getByLabelText('listParam - LIST');
+    const listParam = screen.getByLabelText('listParam - list');
     fireEvent.change(listParam, { target: { value: '[1,2,3' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('[1,2,3');
-    screen.getByText('Invalid input. This parameter should be in LIST type');
+    screen.getByText('Invalid input. This parameter should be in list type');
   });
 
   it('show error message for invalid struct input', () => {
@@ -732,12 +732,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - STRUCT');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '123' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123');
-    screen.getByText('Invalid input. This parameter should be in STRUCT type');
+    screen.getByText('Invalid input. This parameter should be in dict type');
   });
 
   it('show error message for invalid struct input', () => {
@@ -757,12 +757,12 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - STRUCT');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '[1,2,3]' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('[1,2,3]');
-    screen.getByText('Invalid input. This parameter should be in STRUCT type');
+    screen.getByText('Invalid input. This parameter should be in dict type');
   });
 
   it('set input as valid type with valid struct input', () => {
@@ -782,7 +782,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    const structParam = screen.getByLabelText('structParam - STRUCT');
+    const structParam = screen.getByLabelText('structParam - dict');
     fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);

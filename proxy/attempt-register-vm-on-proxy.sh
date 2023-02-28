@@ -82,7 +82,7 @@ echo "Backend id: ${BACKEND_ID}"
 # Store the registration information in a ConfigMap
 PATCH_TEMP='{"data": {"Hostname":"'${HOSTNAME}'","ProxyUrl":"'${PROXY_URL}'","BackendId":"'${BACKEND_ID}'"}}'
 PATCH_JSON=$(printf "${PATCH_TEMP}" "${HOSTNAME}" "${PROXY_URL}" "${BACKEND_ID}")
-echo "PACTH_JSON: ${PATCH_JSON}"
+echo "PATCH_JSON: ${PATCH_JSON}"
 
 kubectl patch configmap/inverse-proxy-config \
     --type merge \

@@ -18,10 +18,10 @@ import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './Cu
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import {
-  ApiListExperimentsResponse,
-  ApiExperiment,
-  ApiExperimentStorageState,
-} from '../apis/experiment';
+  V2beta1ListExperimentsResponse,
+  V2beta1Experiment,
+  V2beta1ExperimentStorageState,
+} from 'src/apisv2beta1/experiment';
 import { errorToMessage } from '../lib/Utils';
 import { RoutePage, RouteParams } from './Router';
 import { commonCss } from '../Css';
@@ -34,11 +34,11 @@ import Tooltip from '@material-ui/core/Tooltip';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
-  storageState?: ApiExperimentStorageState;
+  storageState?: V2beta1ExperimentStorageState;
   onError: (message: string, error: Error) => void;
 }
 
-interface DisplayExperiment extends ApiExperiment {
+interface DisplayExperiment extends V2beta1Experiment {
   error?: string;
   expandState?: ExpandState;
 }
@@ -76,8 +76,8 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       return {
         error: exp.error,
         expandState: exp.expandState,
-        id: exp.id!,
-        otherFields: [exp.name!, exp.description!],
+        id: exp.experiment_id!,
+        otherFields: [exp.display_name!, exp.description!],
       };
     });
 
@@ -137,10 +137,10 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
             // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
             // is missing, in which case it should be counted as available.
             op:
-              this.props.storageState === ApiExperimentStorageState.ARCHIVED
+              this.props.storageState === V2beta1ExperimentStorageState.ARCHIVED
                 ? PredicateOp.EQUALS
                 : PredicateOp.NOTEQUALS,
-            string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+            string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
           },
         ]);
         request.filter = encodeURIComponent(JSON.stringify(filter));
@@ -152,8 +152,8 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     }
 
     try {
-      let response: ApiListExperimentsResponse;
-      response = await Apis.experimentServiceApi.listExperiment(
+      let response: V2beta1ListExperimentsResponse;
+      response = await Apis.experimentServiceApiV2.listExperiments(
         request.pageToken,
         request.pageSize,
         request.sortBy,
@@ -191,12 +191,12 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     return (
       <RunList
         hideExperimentColumn={true}
-        experimentIdMask={experiment.id}
+        experimentIdMask={experiment.experiment_id}
         {...parentProps}
         disablePaging={false}
         noFilterBox={true}
         storageState={
-          this.props.storageState === ApiExperimentStorageState.ARCHIVED
+          this.props.storageState === V2beta1ExperimentStorageState.ARCHIVED
             ? ApiRunStorageState.ARCHIVED
             : ApiRunStorageState.AVAILABLE
         }

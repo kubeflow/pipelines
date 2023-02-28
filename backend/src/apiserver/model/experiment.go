@@ -1,14 +1,29 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package model
 
 type Experiment struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key"`
-	Name           string `gorm:"column:Name; not null; unique_index:idx_name_namespace"`
-	Description    string `gorm:"column:Description; not null"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
-	Namespace      string `gorm:"column:Namespace; not null; unique_index:idx_name_namespace"`
-	StorageState   string `gorm:"column:StorageState; not null;"`
+	UUID           string       `gorm:"column:UUID; not null; primary_key;"`
+	Name           string       `gorm:"column:Name; not null; unique_index:idx_name_namespace;"`
+	Description    string       `gorm:"column:Description; not null;"`
+	CreatedAtInSec int64        `gorm:"column:CreatedAtInSec; not null;"`
+	Namespace      string       `gorm:"column:Namespace; not null; unique_index:idx_name_namespace;"`
+	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 }
-// Note: Experiment.StorageState can have values: "STORAGESTATE_UNSPECIFIED", "AVAILABLE" or "ARCHIVED"
+
+// Note: Experiment.StorageState can have values: "STORAGE_STATE_UNSPECIFIED", "AVAILABLE" or "ARCHIVED"
 
 func (e Experiment) GetValueOfPrimaryKey() string {
 	return e.UUID
@@ -29,11 +44,13 @@ func (e *Experiment) DefaultSortField() string {
 }
 
 var experimentAPIToModelFieldMap = map[string]string{
-	"id":            "UUID",
-	"name":          "Name",
+	"id":            "UUID", // v1beta1 API
+	"experiment_id": "UUID", // v2beta1 API
+	"name":          "Name", // v1beta1 API
+	"display_name":  "Name", // v2beta1 API
 	"created_at":    "CreatedAtInSec",
 	"description":   "Description",
-	"namespace":     "Namespace",
+	"namespace":     "Namespace", // v2beta1 API
 	"storage_state": "StorageState",
 }
 
@@ -43,7 +60,7 @@ func (e *Experiment) APIToModelFieldMap() map[string]string {
 	return experimentAPIToModelFieldMap
 }
 
-// GetModelName returns table name used as sort field prefix
+// GetModelName returns table name used as sort field prefix.
 func (e *Experiment) GetModelName() string {
 	return "experiments"
 }

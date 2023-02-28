@@ -1,0 +1,232 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PrivateSharedSelector it renders correctly 1`] = `
+Object {
+  "asFragment": [Function],
+  "baseElement": <body>
+    <div>
+      <div>
+        Select if the new pipeline will be private or shared.
+      </div>
+      <div
+        class="flex"
+      >
+        <label
+          class="MuiFormControlLabel-root-9"
+          id="createNewPrivatePipelineBtn"
+          title="Only people who have access to this namespace will be able to view and use this pipeline."
+        >
+          <span
+            class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18 MuiPrivateSwitchBase-checked-21 MuiRadio-checked-16"
+          >
+            <span
+              class="MuiIconButton-label-29"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-33"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <input
+                checked=""
+                class="MuiPrivateSwitchBase-input-23"
+                type="radio"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-78"
+            />
+          </span>
+          <span
+            class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+          >
+            Private
+          </span>
+        </label>
+        <label
+          class="MuiFormControlLabel-root-9"
+          id="createNewSharedPipelineBtn"
+          title="Everyone in your organization will be able to view and use this pipeline."
+        >
+          <span
+            class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18"
+          >
+            <span
+              class="MuiIconButton-label-29"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-33"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <input
+                class="MuiPrivateSwitchBase-input-23"
+                type="radio"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-78"
+            />
+          </span>
+          <span
+            class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+          >
+            Shared
+          </span>
+        </label>
+      </div>
+    </div>
+  </body>,
+  "container": <div>
+    <div>
+      Select if the new pipeline will be private or shared.
+    </div>
+    <div
+      class="flex"
+    >
+      <label
+        class="MuiFormControlLabel-root-9"
+        id="createNewPrivatePipelineBtn"
+        title="Only people who have access to this namespace will be able to view and use this pipeline."
+      >
+        <span
+          class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18 MuiPrivateSwitchBase-checked-21 MuiRadio-checked-16"
+        >
+          <span
+            class="MuiIconButton-label-29"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-33"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+              />
+            </svg>
+            <input
+              checked=""
+              class="MuiPrivateSwitchBase-input-23"
+              type="radio"
+              value=""
+            />
+          </span>
+          <span
+            class="MuiTouchRipple-root-78"
+          />
+        </span>
+        <span
+          class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+        >
+          Private
+        </span>
+      </label>
+      <label
+        class="MuiFormControlLabel-root-9"
+        id="createNewSharedPipelineBtn"
+        title="Everyone in your organization will be able to view and use this pipeline."
+      >
+        <span
+          class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18"
+        >
+          <span
+            class="MuiIconButton-label-29"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-33"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+              />
+            </svg>
+            <input
+              class="MuiPrivateSwitchBase-input-23"
+              type="radio"
+              value=""
+            />
+          </span>
+          <span
+            class="MuiTouchRipple-root-78"
+          />
+        </span>
+        <span
+          class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+        >
+          Shared
+        </span>
+      </label>
+    </div>
+  </div>,
+  "debug": [Function],
+  "findAllByAltText": [Function],
+  "findAllByDisplayValue": [Function],
+  "findAllByLabelText": [Function],
+  "findAllByPlaceholderText": [Function],
+  "findAllByRole": [Function],
+  "findAllByTestId": [Function],
+  "findAllByText": [Function],
+  "findAllByTitle": [Function],
+  "findByAltText": [Function],
+  "findByDisplayValue": [Function],
+  "findByLabelText": [Function],
+  "findByPlaceholderText": [Function],
+  "findByRole": [Function],
+  "findByTestId": [Function],
+  "findByText": [Function],
+  "findByTitle": [Function],
+  "getAllByAltText": [Function],
+  "getAllByDisplayValue": [Function],
+  "getAllByLabelText": [Function],
+  "getAllByPlaceholderText": [Function],
+  "getAllByRole": [Function],
+  "getAllByTestId": [Function],
+  "getAllByText": [Function],
+  "getAllByTitle": [Function],
+  "getByAltText": [Function],
+  "getByDisplayValue": [Function],
+  "getByLabelText": [Function],
+  "getByPlaceholderText": [Function],
+  "getByRole": [Function],
+  "getByTestId": [Function],
+  "getByText": [Function],
+  "getByTitle": [Function],
+  "queryAllByAltText": [Function],
+  "queryAllByDisplayValue": [Function],
+  "queryAllByLabelText": [Function],
+  "queryAllByPlaceholderText": [Function],
+  "queryAllByRole": [Function],
+  "queryAllByTestId": [Function],
+  "queryAllByText": [Function],
+  "queryAllByTitle": [Function],
+  "queryByAltText": [Function],
+  "queryByDisplayValue": [Function],
+  "queryByLabelText": [Function],
+  "queryByPlaceholderText": [Function],
+  "queryByRole": [Function],
+  "queryByTestId": [Function],
+  "queryByText": [Function],
+  "queryByTitle": [Function],
+  "rerender": [Function],
+  "unmount": [Function],
+}
+`;

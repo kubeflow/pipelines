@@ -17,7 +17,7 @@ package common
 // A deserialized token. Assuming the list request is sorted by name, a typical token should be
 // {SortByFieldValue:"foo", KeyFieldValue:"2"}
 // The corresponding list query would be
-// select * from table where (name, id) >=(foobar,2) order by name, id limit page_size
+// select * from table where (name, id) >=(foobar,2) order by name, id limit page_size.
 type Token struct {
 	// The value of the sorted field of the next row to be returned.
 	SortByFieldValue string

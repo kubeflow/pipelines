@@ -1,4 +1,4 @@
-// Copyright 2021-2022 The Kubeflow Authors
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,9 +18,8 @@ import (
 	"fmt"
 	"regexp"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
-
 	"github.com/ghodss/yaml"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -34,7 +33,7 @@ type V2Spec struct {
 	spec *pipelinespec.PipelineSpec
 }
 
-// Converts modelJob to ScheduledWorkflow
+// Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
 
@@ -51,13 +50,13 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelJob.RuntimeConfig)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert runtime config.")
+		return nil, util.Wrap(err, "Failed to convert runtime config")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 
 	obj, err := argocompiler.Compile(job, nil)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to compile job.")
+		return nil, util.Wrap(err, "Failed to compile job")
 	}
 	// currently, there is only Argo implementation, so it's using `ArgoWorkflow` for now
 	// later on, if a new runtime support will be added, we need a way to switch/specify
@@ -66,16 +65,20 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "not Workflow struct")
 	}
+	// Overwrite namespace from the job object
+	if modelJob.Namespace != "" {
+		executionSpec.SetExecutionNamespace(modelJob.Namespace)
+	}
 	setDefaultServiceAccount(executionSpec, modelJob.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.Name)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed.")
+		return nil, util.Wrap(err, "Create job failed")
 	}
 	parameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed.")
+		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed")
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
@@ -195,13 +198,17 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "not Workflow struct")
 	}
+	// Overwrite namespace from the run object
+	if modelRun.Namespace != "" {
+		executionSpec.SetExecutionNamespace(modelRun.Namespace)
+	}
 	setDefaultServiceAccount(executionSpec, modelRun.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.Name)
+	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
 	err = executionSpec.ReplaceUID(options.RunId)
 	if err != nil {

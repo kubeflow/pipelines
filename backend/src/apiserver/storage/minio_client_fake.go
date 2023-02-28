@@ -33,7 +33,8 @@ func NewFakeMinioClient() *FakeMinioClient {
 }
 
 func (c *FakeMinioClient) PutObject(bucketName, objectName string, reader io.Reader,
-	objectSize int64, opts minio.PutObjectOptions) (n int64, err error) {
+	objectSize int64, opts minio.PutObjectOptions,
+) (int64, error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(reader)
 	c.minioClient[objectName] = buf.Bytes()
@@ -41,7 +42,8 @@ func (c *FakeMinioClient) PutObject(bucketName, objectName string, reader io.Rea
 }
 
 func (c *FakeMinioClient) GetObject(bucketName, objectName string,
-	opts minio.GetObjectOptions) (io.Reader, error) {
+	opts minio.GetObjectOptions,
+) (io.Reader, error) {
 	if _, ok := c.minioClient[objectName]; !ok {
 		return nil, errors.New("object not found")
 	}

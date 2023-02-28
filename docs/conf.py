@@ -137,6 +137,16 @@ html_theme_options = {
             'aliases': [],
         },
         {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b13/',
+            'title': 'v2.0.0b13',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b12/',
+            'title': 'v2.0.0b12',
+            'aliases': [],
+        },
+        {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b11/',
             'title': 'v2.0.0b11',
             'aliases': [],
@@ -168,8 +178,13 @@ html_theme_options = {
         },
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.18/',
-            'title': 'v1.8.18',
+            'title': 'v1.8.19',
             'aliases': ['stable'],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.18/',
+            'title': 'v1.8.18',
+            'aliases': [],
         },
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.17/',

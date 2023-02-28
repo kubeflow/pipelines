@@ -29,6 +29,7 @@ from kfp import components
 from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
+from kfp.compiler import compiler_utils
 from kfp.components.types import type_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
@@ -280,7 +281,7 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_string_parameter_to_artifact_should_error(self):
 
         component_op = components.load_component_from_text("""
-      name: compoent
+      name: component
       inputs:
       - {name: some_input, type: , description: an uptyped input}
       implementation:
@@ -291,9 +292,9 @@ class TestCompilePipeline(parameterized.TestCase):
       """)
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
-                'Incompatible argument passed to the input "some_input" of '
-                'component "compoent": Argument type "STRING" is incompatible '
-                'with the input type "system.Artifact@0.0.1"'):
+                "Incompatible argument passed to the input 'some_input' of "
+                "component 'component': Argument type 'STRING' is incompatible "
+                "with the input type 'system.Artifact@0.0.1'"):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline(input1: str):
@@ -443,8 +444,9 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.ParallelFor context\.'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -452,27 +454,6 @@ class TestCompilePipeline(parameterized.TestCase):
                     producer_task = producer_op()
 
                 dummy_op(msg=producer_task.output)
-
-    def test_valid_data_dependency_loop(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(val: bool):
-            with dsl.ParallelFor(['a, b']):
-                producer_task = producer_op()
-                dummy_op(msg=producer_task.output)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            package_path = os.path.join(tmpdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
 
     def test_invalid_data_dependency_condition(self):
 
@@ -485,8 +466,9 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -527,8 +509,9 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -690,8 +673,8 @@ implementation:
                                 pipeline_spec['deploymentSpec']['executors'])
 
     def test_pipeline_with_invalid_output(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Pipeline output not defined: msg1'):
+        with self.assertRaisesRegex(
+                ValueError, r'Pipeline or component output not defined: msg1'):
 
             @dsl.component
             def print_op(msg: str) -> str:
@@ -1533,8 +1516,9 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_upstream_inside_deeper_condition_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1587,8 +1571,9 @@ class TestValidLegalTopologies(unittest.TestCase):
             self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1627,8 +1612,9 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_upstream_inside_deeper_nested_condition_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1663,8 +1649,9 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1683,8 +1670,9 @@ class TestValidLegalTopologies(unittest.TestCase):
             self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'Tasks cannot depend on an upstream task inside'):
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1704,7 +1692,7 @@ class TestValidLegalTopologies(unittest.TestCase):
     def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
 
         with self.assertRaisesRegex(
-                RuntimeError,
+                compiler_utils.InvalidTopologyException,
                 r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
         ):
 
@@ -1775,7 +1763,10 @@ class TestValidLegalTopologies(unittest.TestCase):
 class TestCannotUseAfterCrossDAG(unittest.TestCase):
 
     def test_inner_task_prevented(self):
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -1800,7 +1791,10 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                     pipeline_func=my_pipeline, package_path=package_path)
 
     def test_exit_handler_task_prevented(self):
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -1851,7 +1845,10 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_outside_of_condition_blocked(self):
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op within an uncommon dsl\.Condition context\.'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -2650,6 +2647,537 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
             def my_pipeline(x: Input[Artifact] = Artifact(
                 name='', uri='', metadata={})):
                 comp()
+
+
+class TestCrossTasksGroupFanInCollection(unittest.TestCase):
+
+    def test_missing_collected_with_correct_annotation(self):
+        from typing import List
+
+        from kfp import dsl
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                "Argument type 'NUMBER_INTEGER' is incompatible with the input type 'LIST'"
+        ):
+
+            @dsl.pipeline
+            def math_pipeline() -> int:
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
+
+                return add(nums=t.output).output
+
+    def test_missing_collected_with_incorrect_annotation(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: int) -> int:
+            return nums
+
+        # the annotation is incorrect, but the user didn't use dsl.Collected
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task add which depends on upstream task double within an uncommon dsl\.ParallelFor context\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline() -> int:
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
+
+                return add(nums=t.output).output
+
+    def test_producer_condition_legal1(self):
+        from kfp import dsl
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        @dsl.pipeline
+        def math_pipeline(text: str) -> int:
+            with dsl.Condition(text == 'text'):
+                with dsl.ParallelFor([1, 2, 3]) as v:
+                    t = double(num=v)
+
+                return add(nums=dsl.Collected(t.output)).output
+
+    def test_producer_condition_legal2(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        @dsl.pipeline
+        def my_pipeline(a: str):
+            with dsl.ParallelFor([1, 2, 3]) as v:
+                with dsl.Condition(v == 1):
+                    t = double(num=v)
+
+            with dsl.Condition(a == 'a'):
+                x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_condition_illegal1(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(a: str = '', b: str = ''):
+                with dsl.Condition(a == 'a'):
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
+
+                with dsl.Condition(b == 'b'):
+                    x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_condition_illegal2(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(a: str = ''):
+                with dsl.Condition(a == 'a'):
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
+                add(nums=dsl.Collected(t.output))
+
+    def test_producer_exit_handler_illegal1(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def exit_comp():
+            print('Running exit task!')
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.ExitHandler context manager unless the consumer task is too\. Task add consumes from double within a dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                with dsl.ExitHandler(exit_comp()):
+                    with dsl.ParallelFor([1, 2, 3]) as v:
+                        t = double(num=v)
+                add(nums=dsl.Collected(t.output))
+
+    def test_parallelfor_nested_legal_params1(self):
+
+        @dsl.component
+        def add_two_ints(num1: int, num2: int) -> int:
+            return num1 + num2
+
+        @dsl.component
+        def add(nums: List[List[int]]) -> int:
+            import itertools
+            return sum(itertools.chain(*nums))
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]) as v1:
+                with dsl.ParallelFor([1, 2, 3]) as v2:
+                    t = add_two_ints(num1=v1, num2=v2)
+
+            x = add(nums=dsl.Collected(t.output))
+
+    def test_parallelfor_nested_legal_params2(self):
+
+        @dsl.component
+        def add_two_ints(num1: int, num2: int) -> int:
+            return num1 + num2
+
+        @dsl.component
+        def add(nums: List[List[int]]) -> int:
+            import itertools
+            return sum(itertools.chain(*nums))
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]) as v1:
+                with dsl.ParallelFor([1, 2, 3]) as v2:
+                    t = add_two_ints(num1=v1, num2=v2)
+
+                x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_and_consumer_in_same_context(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline():
+                with dsl.ParallelFor([1, 2, 3]) as x:
+                    t = double(num=x)
+                    add(nums=dsl.Collected(t.output))
+
+    def test_no_parallelfor_context(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline():
+                t = double(num=1)
+                add(nums=dsl.Collected(t.output))
+
+
+class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
+
+    def test_basic_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(
+                message=task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_component_with_no_input_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op():
+            print('default')
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op().ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_clean_up_on_wrapped_pipeline_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str = 'message') -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str = 'message'):
+            print(message)
+
+        @dsl.pipeline
+        def wrapped_pipeline(message: str = 'message') -> str:
+            task = fail_op(message=message)
+            return task.output
+
+        @dsl.pipeline
+        def my_pipeline(sample_input1: str = 'message'):
+            task = wrapped_pipeline(message=sample_input1)
+            clean_up_task = print_op(
+                message=task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
+            .trigger_policy.strategy, 0)
+
+    def test_ignore_upstream_on_pipeline_task(self):
+
+        @dsl.component
+        def fail_op(message: str = 'message') -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def identity(message: str = 'message') -> str:
+            return message
+
+        @dsl.pipeline
+        def wrapped_pipeline(message: str = 'message') -> str:
+            task = identity(message=message)
+            return task.output
+
+        @dsl.pipeline
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = wrapped_pipeline(
+                message=task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
+            .trigger_policy.strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
+            self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        with self.assertRaisesRegex(
+                ValueError, r'Tasks can only use .ignore_upstream_failure()'):
+
+            @dsl.pipeline()
+            def my_pipeline(sample_input1: str = 'message'):
+                task = fail_op(message=sample_input1)
+                clean_up_task = print_op(
+                    message=task.output).ignore_upstream_failure()
+
+    def test_clean_up_task_with_no_default_value_for_pipeline_input_permitted(
+            self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(
+                message=sample_input1).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+    def test_clean_up_task_with_no_default_value_for_constant_permitted(self):
+
+        @dsl.component
+        def fail_op(message: str) -> str:
+            import sys
+            print(message)
+            sys.exit(1)
+            return message
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: str = 'message'):
+            task = fail_op(message=sample_input1)
+            clean_up_task = print_op(message='sample').ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
+            .strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
+            .strategy, 0)
+
+
+class TestOutputDefinitionsPresentWhenCompilingComponents(unittest.TestCase):
+
+    def test_basic_permitted(self):
+
+        @dsl.component
+        def comp(message: str) -> str:
+            return message
+
+        self.assertIn('Output',
+                      comp.pipeline_spec.root.output_definitions.parameters)
+
+
+class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
+
+    def test_python_component(self):
+
+        @dsl.component
+        def python_component(input_list: Input[List[Artifact]]):
+            pass
+
+        self.assertEqual(
+            python_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            python_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=python_component, package_path=output_yaml)
+            loaded_component = components.load_component_from_file(output_yaml)
+
+        self.assertEqual(
+            loaded_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            loaded_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+    def test_container_component(self):
+
+        @dsl.container_component
+        def container_component(input_list: Input[List[Artifact]]):
+            return dsl.ContainerSpec(
+                image='alpine', command=['echo'], args=['hello world'])
+
+        self.assertEqual(
+            container_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            container_component.pipeline_spec
+            .components['comp-container-component'].input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
+            loaded_component = components.load_component_from_file(output_yaml)
+
+        self.assertEqual(
+            loaded_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            loaded_component.pipeline_spec
+            .components['comp-container-component'].input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+
+    def test_pipeline(self):
+
+        @dsl.component
+        def python_component(input_list: Input[List[Artifact]]):
+            pass
+
+        @dsl.pipeline
+        def pipeline_component(input_list: Input[List[Artifact]]):
+            python_component(input_list=input_list)
+
+        self.assertEqual(
+            pipeline_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            pipeline_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_component, package_path=output_yaml)
+            loaded_component = components.load_component_from_file(output_yaml)
+
+        self.assertEqual(
+            loaded_component.pipeline_spec.root.input_definitions
+            .artifacts['input_list'].is_artifact_list, True)
+        self.assertEqual(
+            loaded_component.pipeline_spec.components['comp-python-component']
+            .input_definitions.artifacts['input_list'].is_artifact_list, True)
 
 
 if __name__ == '__main__':

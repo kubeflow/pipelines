@@ -19,7 +19,9 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -29,24 +31,54 @@ type ReportServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
-	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
-	execSpec, err := ValidateReportWorkflowRequest(request)
-	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed.")
+// Extracts task details from an execution spec and reports them to storage.
+func (s ReportServer) reportTasksFromExecution(wf *util.Workflow, runId string) ([]*model.Task, error) {
+	if len(wf.Status.Nodes) == 0 {
+		return nil, nil
 	}
-	err = s.resourceManager.ReportWorkflowResource(ctx, execSpec)
+	tasks, err := toModelTasks(wf)
 	if err != nil {
-		return nil, util.Wrap(err, "Report workflow failed.")
+		return nil, util.Wrap(err, "Failed to report tasks of an execution")
+	}
+	return s.resourceManager.CreateOrUpdateTasks(tasks)
+}
+
+// Reports a workflow.
+func (s *ReportServer) reportWorkflow(ctx context.Context, workflow string) (*empty.Empty, error) {
+	execSpec, err := validateReportWorkflowRequest(workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Report workflow failed")
+	}
+	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to report workflow")
+	}
+
+	runId := newExecSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
+	_, err = s.reportTasksFromExecution(newExecSpec.(*util.Workflow), runId)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to report task details")
 	}
 	return &empty.Empty{}, nil
 }
 
-func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
-	request *api.ReportScheduledWorkflowRequest) (*empty.Empty, error) {
-	scheduledWorkflow, err := ValidateReportScheduledWorkflowRequest(request)
+func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
+	request *apiv1beta1.ReportWorkflowRequest,
+) (*empty.Empty, error) {
+	return s.reportWorkflow(ctx, request.GetWorkflow())
+}
+
+func (s *ReportServer) ReportWorkflow(ctx context.Context,
+	request *apiv2beta1.ReportWorkflowRequest,
+) (*empty.Empty, error) {
+	return s.reportWorkflow(ctx, request.GetWorkflow())
+}
+
+// Reports a schduled workflow.
+func (s *ReportServer) reportScheduledWorkflow(ctx context.Context, swf string) (*empty.Empty, error) {
+	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(swf)
 	if err != nil {
-		return nil, util.Wrap(err, "Report scheduled workflow failed.")
+		return nil, util.Wrap(err, "Report scheduled workflow failed")
 	}
 	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
 	if err != nil {
@@ -55,10 +87,22 @@ func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (util.ExecutionSpec, error) {
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(request.Workflow))
+func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
+	request *apiv1beta1.ReportScheduledWorkflowRequest,
+) (*empty.Empty, error) {
+	return s.reportScheduledWorkflow(ctx, request.GetScheduledWorkflow())
+}
+
+func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
+	request *apiv2beta1.ReportScheduledWorkflowRequest,
+) (*empty.Empty, error) {
+	return s.reportScheduledWorkflow(ctx, request.GetScheduledWorkflow())
+}
+
+func validateReportWorkflowRequest(wfManifest string) (*util.ExecutionSpec, error) {
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(wfManifest))
 	if err != nil {
-		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
+		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, wfManifest)
 	}
 	if execSpec.ExecutionName() == "" {
 		return nil, util.NewInvalidInputError("The workflow must have a name: %+v", execSpec)
@@ -69,15 +113,15 @@ func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (util.Exe
 	if execSpec.ExecutionUID() == "" {
 		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", execSpec)
 	}
-	return execSpec, nil
+	return &execSpec, nil
 }
 
-func ValidateReportScheduledWorkflowRequest(request *api.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
+func validateReportScheduledWorkflowRequest(swfManifest string) (*util.ScheduledWorkflow, error) {
 	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
-	err := json.Unmarshal([]byte(request.ScheduledWorkflow), &scheduledWorkflow)
+	err := json.Unmarshal([]byte(swfManifest), &scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
-			err, request.ScheduledWorkflow)
+			err, swfManifest)
 	}
 	swf := util.NewScheduledWorkflow(&scheduledWorkflow)
 	if swf.Name == "" {

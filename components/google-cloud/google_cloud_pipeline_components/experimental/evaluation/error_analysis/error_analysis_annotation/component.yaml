@@ -1,0 +1,39 @@
+name: error_analysis_annotation
+description: |
+  Computes error analysis annotations from image embeddings by finding nearest neighbors in the
+  training set for each item in the test set.
+
+  Args:
+      embeddings_dir (str):
+          Required. The GCS directory containing embeddings output from the embeddings component.
+      root_dir (str):
+          Required. The GCS directory for storing error analysis annotation output.
+      num_neighbors (Optional[int]):
+          Number of nearest neighbors to look for.
+          If not set, defaulted to `5`.
+  Returns:
+      error_analysis_output_uri (str):
+          String representing the GCS URI of the computed error analysis annotations.
+inputs:
+  - { name: embeddings_dir, type: String }
+  - { name: root_dir, type: String }
+  - { name: num_neighbors, type: Integer, default: 5 }
+outputs:
+  - { name: error_analysis_output_uri, type: String }
+  - { name: gcp_resources, type: String }
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai-restricted/vision-error-analysis/error-analysis:v0.2
+    args:
+      - --embeddings_dir
+      - { inputValue: embeddings_dir }
+      - --root_dir
+      - { inputValue: root_dir }
+      - --num_neighbors
+      - { inputValue: num_neighbors }
+      - --error_analysis_output_uri
+      - { outputPath: error_analysis_output_uri }
+      - --gcp_resources
+      - { outputPath: gcp_resources }
+      - --executor_input
+      - "{{$}}"

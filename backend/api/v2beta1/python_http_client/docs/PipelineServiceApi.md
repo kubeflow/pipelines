@@ -437,7 +437,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
     name = 'name_example' # str | Required input. Name of the pipeline to be retrieved.
-namespace = 'namespace_example' # str | Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if  multi-user  support is turned off. (optional)
+namespace = 'namespace_example' # str | Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off. (optional)
 
     try:
         # Finds a specific pipeline by name and namespace.
@@ -452,7 +452,7 @@ namespace = 'namespace_example' # str | Optional input. Namespace of the pipelin
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **name** | **str**| Required input. Name of the pipeline to be retrieved. | 
- **namespace** | **str**| Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if  multi-user  support is turned off. | [optional] 
+ **namespace** | **str**| Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off. | [optional] 
 
 ### Return type
 

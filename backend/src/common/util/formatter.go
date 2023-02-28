@@ -30,8 +30,8 @@ type WorkflowFormatter struct {
 }
 
 func NewWorkflowFormatter(uuid UUIDGeneratorInterface, scheduledAtInSec int64,
-	nowInSec int64) *WorkflowFormatter {
-
+	nowInSec int64,
+) *WorkflowFormatter {
 	if uuid == nil {
 		glog.Fatalf("A UUID generator must be specified.") // Should never happen.
 	}
@@ -60,7 +60,6 @@ func (p *WorkflowFormatter) Format(workflow *v1alpha1.Workflow) error {
 }
 
 func getWorkflowName(workflow *v1alpha1.Workflow) string {
-
 	const (
 		defaultWorkflowName = "workflow-"
 	)
@@ -126,7 +125,6 @@ func (p *WorkflowFormatter) formatString(s string) (string, error) {
 }
 
 func (p *WorkflowFormatter) createSubtitute(match string) (string, error) {
-
 	const (
 		schedulePrefix            = "[[schedule."
 		nowPrefix                 = "[[now."

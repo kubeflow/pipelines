@@ -23,12 +23,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-const (
-	DefaultFakeUUID    = "123e4567-e89b-12d3-a456-426655440000"
-	FakeUUIDOne        = "123e4567-e89b-12d3-a456-426655440001"
-	NonDefaultFakeUUID = "123e4567-e89b-12d3-a456-426655441000"
-)
-
 type FakeClientManager struct {
 	db                            *storage.DB
 	experimentStore               storage.ExperimentStoreInterface
@@ -52,18 +46,18 @@ type FakeClientManager struct {
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
-	*FakeClientManager, error) {
-
+	*FakeClientManager, error,
+) {
 	if time == nil {
-		glog.Fatalf("The time parameter must not be null.") // Must never happen
+		glog.Fatalf("The time parameter must not be null") // Must never happen
 	}
 
 	if uuid == nil {
-		glog.Fatalf("The UUID generator must not be null.") // Must never happen
+		glog.Fatalf("The UUID generator must not be null") // Must never happen
 	}
 
 	// Initialize GORM
-	db, err := storage.NewFakeDb()
+	db, err := storage.NewFakeDB()
 	if err != nil {
 		return nil, err
 	}
@@ -93,10 +87,10 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 }
 
 func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
-	uuid := util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil)
+	uuid := util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440000", nil)
 	fakeStore, err := NewFakeClientManager(time, uuid)
 	if err != nil {
-		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
+		glog.Fatalf("The fake store doesn't create successfully. Fail fast")
 	}
 	return fakeStore
 }
@@ -110,7 +104,7 @@ func NewFakeClientManagerOrFatalV2() *FakeClientManager {
 	time := util.NewFakeTimeForEpoch()
 	fakeStore, err := NewFakeClientManager(time, uuid)
 	if err != nil {
-		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
+		glog.Fatalf("The fake store doesn't create successfully. Fail fast")
 	}
 	return fakeStore
 }
@@ -195,7 +189,7 @@ func (f *FakeClientManager) Close() error {
 	return f.db.Close()
 }
 
-// Update the uuid used in this fake client manager
+// Update the uuid used in this fake client manager.
 func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
 	f.uuid = uuid
 	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid)

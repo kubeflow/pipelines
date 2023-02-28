@@ -41,7 +41,7 @@ func createSubjectAccessReviewClient(clientParams util.ClientParameters) (Subjec
 func CreateSubjectAccessReviewClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) SubjectAccessReviewInterface {
 	var client SubjectAccessReviewInterface
 	var err error
-	var operation = func() error {
+	operation := func() error {
 		client, err = createSubjectAccessReviewClient(clientParams)
 		return err
 	}

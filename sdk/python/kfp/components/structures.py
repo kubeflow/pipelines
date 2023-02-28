@@ -91,10 +91,13 @@ class InputSpec:
             # TODO: would be better to extract these fields from the proto
             # message, as False default would be preserved
             optional = ir_component_inputs_dict.get('isOptional', False)
+            is_artifact_list = ir_component_inputs_dict.get(
+                'isArtifactList', False)
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
                     type_, schema_version),
-                optional=optional)
+                optional=optional,
+                is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -150,8 +153,6 @@ class OutputSpec:
 
     def __post_init__(self) -> None:
         self._validate_type()
-        # TODO: remove this method when we support output lists of artifacts
-        self._prevent_using_output_lists_of_artifacts()
 
     @classmethod
     def from_ir_component_outputs_dict(
@@ -177,9 +178,12 @@ class OutputSpec:
             type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_outputs_dict['artifactType'][
                 'schemaVersion']
+            is_artifact_list = ir_component_outputs_dict.get(
+                'isArtifactList', False)
             return OutputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version))
+                    type_, schema_version),
+                is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -210,11 +214,6 @@ class OutputSpec:
         # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
-
-    def _prevent_using_output_lists_of_artifacts(self):
-        if self.is_artifact_list:
-            raise NotImplementedError(
-                'Output lists of artifacts are not yet supported.')
 
 
 def spec_type_is_parameter(type_: str) -> bool:
@@ -344,7 +343,7 @@ class ContainerSpecImplementation:
             image=container_dict['image'],
             command=container_dict.get('command'),
             args=container_dict.get('args'),
-            env=None,  # can only be set on tasks
+            env=container_dict.get('env'),
             resources=None)  # can only be set on tasks
 
 
@@ -904,7 +903,9 @@ class ComponentSpec:
 
         for arg_name, input_spec in pipeline_inputs.items():
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
-                name=arg_name, channel_type=input_spec.type)
+                name=arg_name,
+                channel_type=input_spec.type,
+                is_artifact_list=input_spec.is_artifact_list)
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
@@ -919,6 +920,16 @@ class ComponentSpec:
         pipeline_name = self.name
         task_group = group
 
+        pipeline_outputs = {}
+        pipeline_output_spec = self.outputs or {}
+
+        for arg_name, output_spec in pipeline_output_spec.items():
+            pipeline_outputs[
+                arg_name] = pipeline_channel.create_pipeline_channel(
+                    name=arg_name,
+                    channel_type=output_spec.type,
+                    task_name=task.name)
+
         utils.validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
@@ -931,12 +942,10 @@ class ComponentSpec:
         # can just assign the component_spec_proto directly to .root
         component_spec_proto = builder._build_component_spec_from_component_spec_structure(
             self)
-        has_inputs = bool(
-            len(component_spec_proto.input_definitions.artifacts) +
-            len(component_spec_proto.input_definitions.parameters))
-        if has_inputs:
-            pipeline_spec.root.input_definitions.CopyFrom(
-                component_spec_proto.input_definitions)
+        pipeline_spec.root.CopyFrom(component_spec_proto)
+
+        builder._build_dag_outputs(
+            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group
@@ -964,6 +973,8 @@ class ComponentSpec:
             deployment_config=deployment_config,
             group=root_group,
             inputs=inputs,
+            outputs=collections.defaultdict(
+                dict),  # empty -- no sub-DAG outputs to surface
             dependencies={},  # no dependencies for single-component pipeline
             rootgroup_name=root_group.name,
             task_name_to_parent_groups=task_name_to_parent_groups,

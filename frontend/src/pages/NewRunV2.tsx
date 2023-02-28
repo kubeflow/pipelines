@@ -56,6 +56,7 @@ import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import ResourceSelector from './ResourceSelector';
+import PipelinesDialog from 'src/components/PipelinesDialog';
 
 const css = stylesheet({
   nonEditableInput: {
@@ -144,7 +145,7 @@ function getPipelineDetailsUrl(
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.cloneFromRecurringRun]: originalRecurringRunId })
+      ) + urlParser.build({ [QUERY_PARAMS.fromRecurringRunId]: originalRecurringRunId })
     : '';
 
   return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
@@ -394,7 +395,7 @@ function NewRunV2(props: NewRunV2Props) {
           setIsStartingNewRun(false);
           if (data.id) {
             props.history.push(
-              RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.runId, data.id),
+              RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, data.id),
             );
           } else {
             props.history.push(RoutePage.RECURRING_RUNS);
@@ -431,7 +432,7 @@ function NewRunV2(props: NewRunV2Props) {
             </div>
             <div className={classes(padding(10, 't'))}>
               {/* TODO(jlyaoyuli): View pipelineDetails from existing recurring run*/}
-              {apiRun && (
+              {cloneOrigin.isClone && (
                 <Link
                   className={classes(commonCss.link)}
                   to={getPipelineDetailsUrl(
@@ -704,7 +705,6 @@ type PipelineSelectorProps = PageProps & PipelineSelectorSpecificProps;
 
 function PipelineSelector(props: PipelineSelectorProps) {
   const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(false);
-  const [pendingPipeline, setPendingPipeline] = useState<ApiPipeline>();
 
   return (
     <>
@@ -733,56 +733,20 @@ function PipelineSelector(props: PipelineSelectorProps) {
       />
 
       {/* Pipeline selector dialog */}
-      <Dialog
+      <PipelinesDialog
+        {...props}
         open={pipelineSelectorOpen}
-        classes={{ paper: css.selectorDialog }}
-        onClose={() => setPipelineSelectorOpen(false)}
-        PaperProps={{ id: 'pipelineSelectorDialog' }}
-      >
-        <DialogContent>
-          <ResourceSelector
-            {...props}
-            title='Choose a pipeline'
-            filterLabel='Filter pipelines'
-            listApi={async (...args) => {
-              const response = await Apis.pipelineServiceApi.listPipelines(...args);
-              return {
-                nextPageToken: response.next_page_token || '',
-                resources: response.pipelines || [],
-              };
-            }}
-            columns={PIPELINE_SELECTOR_COLUMNS}
-            emptyMessage='No pipelines found. Upload a pipeline and then try again.'
-            initialSortColumn={PipelineSortKeys.CREATED_AT}
-            selectionChanged={(selectedPipeline: ApiPipeline) =>
-              setPendingPipeline(selectedPipeline)
-            }
-            // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            id='cancelPipelineSelectionBtn'
-            onClick={() => setPipelineSelectorOpen(false)}
-            color='secondary'
-          >
-            Cancel
-          </Button>
-          <Button
-            id='usePipelineBtn'
-            onClick={() => {
-              if (pendingPipeline) {
-                props.handlePipelineChange(pendingPipeline);
-              }
-              setPipelineSelectorOpen(false);
-            }}
-            color='secondary'
-            disabled={!pendingPipeline}
-          >
-            Use this pipeline
-          </Button>
-        </DialogActions>
-      </Dialog>
+        selectorDialog={css.selectorDialog}
+        onClose={(confirmed, selectedPipeline?: ApiPipeline) => {
+          if (confirmed && selectedPipeline) {
+            props.handlePipelineChange(selectedPipeline);
+          }
+          setPipelineSelectorOpen(false);
+        }}
+        namespace={props.namespace}
+        pipelineSelectorColumns={PIPELINE_SELECTOR_COLUMNS}
+        // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
+      ></PipelinesDialog>
     </>
   );
 }

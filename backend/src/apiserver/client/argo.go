@@ -40,7 +40,7 @@ func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.Workfl
 
 func NewArgoClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) *ArgoClient {
 	var argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
-	var operation = func() error {
+	operation := func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return errors.Wrap(err, "Failed to initialize the RestConfig")
@@ -54,7 +54,6 @@ func NewArgoClientOrFatal(initConnectionTimeout time.Duration, clientParams util
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
 	err := backoff.Retry(operation, b)
-
 	if err != nil {
 		glog.Fatalf("Failed to create ArgoClient. Error: %v", err)
 	}

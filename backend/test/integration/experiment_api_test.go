@@ -118,19 +118,23 @@ func (s *ExperimentApiTest) SetupTest() {
 func (s *ExperimentApiTest) TestExperimentAPI() {
 	t := s.T()
 
-	/* ---------- Verify no experiment exist ---------- */
+	/* ---------- Verify only default experiment exists ---------- */
 	experiments, totalSize, _, err := test.ListAllExperiment(s.experimentClient, s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, totalSize)
-	assert.True(t, len(experiments) == 0)
+	assert.Equal(t, 1, totalSize)
+	assert.True(t, len(experiments) == 1)
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
+	expectedTrainingExperiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
+
 	trainingExperiment, err := s.experimentClient.Create(&params.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
-	expectedTrainingExperiment := test.GetExperiment(experiment.Name, experiment.Description, s.resourceNamespace)
+	assert.True(t, test.VerifyExperimentResourceReferences(trainingExperiment.ResourceReferences, expectedTrainingExperiment.ResourceReferences))
+	expectedTrainingExperiment.ResourceReferences = trainingExperiment.ResourceReferences
+
 	expectedTrainingExperiment.ID = trainingExperiment.ID
 	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt
 	expectedTrainingExperiment.StorageState = "STORAGESTATE_AVAILABLE"
@@ -158,8 +162,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments works ---------- */
 	experiments, totalSize, nextPageToken, err := test.ListAllExperiment(s.experimentClient, s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 3, len(experiments))
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 4, len(experiments))
 	for _, e := range experiments {
 		// Sampling one of the experiments and verify the result is expected.
 		if e.Name == "training" {
@@ -172,13 +176,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("name")},
+			SortBy:   util.StringPointer("name"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, 2, len(experiments))
-	assert.Equal(t, "moonshot", experiments[0].Name)
-	assert.Equal(t, "prediction", experiments[1].Name)
+	assert.Equal(t, "Default", experiments[0].Name)
+	assert.Equal(t, "moonshot", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
@@ -186,12 +191,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
-			SortBy:    util.StringPointer("name")},
+			SortBy:    util.StringPointer("name"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 1, len(experiments))
-	assert.Equal(t, "training", experiments[0].Name)
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 2, len(experiments))
+	assert.Equal(t, "prediction", experiments[0].Name)
+	assert.Equal(t, "training", experiments[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
@@ -199,13 +206,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("created_at")},
+			SortBy:   util.StringPointer("created_at"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, 2, len(experiments))
-	assert.Equal(t, "training", experiments[0].Name)
-	assert.Equal(t, "prediction", experiments[1].Name)
+	assert.Equal(t, "Default", experiments[0].Name)
+	assert.Equal(t, "training", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
@@ -213,12 +221,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
-			SortBy:    util.StringPointer("created_at")},
+			SortBy:    util.StringPointer("created_at"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 1, len(experiments))
-	assert.Equal(t, "moonshot", experiments[0].Name)
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 2, len(experiments))
+	assert.Equal(t, "prediction", experiments[0].Name)
+	assert.Equal(t, "moonshot", experiments[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
@@ -226,7 +236,8 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("unknownfield")},
+			SortBy:   util.StringPointer("unknownfield"),
+		},
 		s.resourceNamespace)
 	assert.NotNil(t, err)
 
@@ -235,10 +246,11 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		s.experimentClient,
 		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("name desc")},
+			SortBy:   util.StringPointer("name desc"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, 2, len(experiments))
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "prediction", experiments[1].Name)
@@ -249,12 +261,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
-			SortBy:    util.StringPointer("name desc")},
+			SortBy:    util.StringPointer("name desc"),
+		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, 1, len(experiments))
+	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 2, len(experiments))
 	assert.Equal(t, "moonshot", experiments[0].Name)
+	assert.Equal(t, "Default", experiments[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get experiment works ---------- */
@@ -276,10 +290,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER},
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR},
+			{
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
 	}}
 	run1, _, err := s.runClient.Create(createRunRequest)
@@ -291,10 +309,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER},
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: job_model.APIRelationshipCREATOR},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER,
+			},
+			{
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR,
+			},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -358,8 +380,8 @@ func (s *ExperimentApiTest) TearDownSuite() {
 }
 
 func (s *ExperimentApiTest) cleanUp() {
-	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
 }

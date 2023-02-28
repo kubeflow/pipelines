@@ -5,16 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/test"
-
 	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
-	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
-
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -104,13 +102,15 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
 	_, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to upload pipeline.")
+	assert.Contains(t, err.Error(), "Failed to upload pipeline")
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineV1Params{
 		Body: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
+		}},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
@@ -125,7 +125,9 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineV1Params{
 		Body: &model.APIPipeline{URL: &model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
+		}},
+	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 
@@ -183,7 +185,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
 	_, _, _, err = s.pipelineClient.List(&params.ListPipelinesV1Params{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield"),
+	})
 	assert.NotNil(t, err)
 
 	/* ---------- List pipelines sorted by names descend order ---------- */
@@ -198,7 +201,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesV1Params{
-		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name desc")})
+		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name desc"),
+	})
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 5, totalSize)
@@ -216,14 +220,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes)
+	expected, _ := pipelinetemplate.New(bytes)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, err = pipelinetemplate.New(bytes)
+	expected, _ = pipelinetemplate.New(bytes)
 	expected.OverrideV2PipelineName("v2-hello-world.yaml", "")
 	assert.Equal(t, expected, template)
 }
@@ -240,16 +244,25 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 			{Name: "param2"},                 // No default value in the pipeline
 		},
 		DefaultVersion: &model.APIPipelineVersion{
-			CreatedAt: pipeline.CreatedAt,
-			ID:        pipeline.ID,
+			CreatedAt: pipeline.DefaultVersion.CreatedAt,
+			ID:        pipeline.DefaultVersion.ID,
 			Name:      "arguments-parameters.yaml",
 			Parameters: []*model.APIParameter{
 				{Name: "param1", Value: "hello"},
-				{Name: "param2"}},
+				{Name: "param2"},
+			},
 			ResourceReferences: []*model.APIResourceReference{{
 				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
-				Relationship: model.APIRelationshipOWNER}}},
+				Relationship: model.APIRelationshipOWNER,
+			}},
+		},
 	}
+	assert.True(t, test.VerifyPipelineResourceReferences(pipeline.ResourceReferences, expected.ResourceReferences))
+	expected.ResourceReferences = pipeline.ResourceReferences
+	expected.URL = pipeline.URL
+	assert.True(t, test.VerifyPipelineResourceReferences(pipeline.DefaultVersion.ResourceReferences, expected.DefaultVersion.ResourceReferences))
+	expected.DefaultVersion.ResourceReferences = pipeline.DefaultVersion.ResourceReferences
+	expected.DefaultVersion.PackageURL = pipeline.DefaultVersion.PackageURL
 	assert.Equal(t, expected, *pipeline)
 }
 

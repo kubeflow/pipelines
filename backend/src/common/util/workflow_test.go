@@ -160,7 +160,6 @@ func TestWorkflow_ScheduledWorkflowUUIDAsStringOrEmpty(t *testing.T) {
 	})
 	assert.Equal(t, "", workflow.ScheduledWorkflowUUIDAsStringOrEmpty())
 	assert.Equal(t, false, workflow.HasScheduledWorkflowAsParent())
-
 }
 
 func TestWorkflow_ScheduledAtInSecOr0(t *testing.T) {
@@ -172,7 +171,8 @@ func TestWorkflow_ScheduledAtInSecOr0(t *testing.T) {
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULED_WORKFLOW_NAME",
 				"scheduledworkflows.kubeflow.org/workflowEpoch":              "100",
-				"scheduledworkflows.kubeflow.org/workflowIndex":              "50"},
+				"scheduledworkflows.kubeflow.org/workflowIndex":              "50",
+			},
 		},
 	})
 	assert.Equal(t, int64(100), workflow.ScheduledAtInSecOr0())
@@ -184,7 +184,8 @@ func TestWorkflow_ScheduledAtInSecOr0(t *testing.T) {
 			Labels: map[string]string{
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULED_WORKFLOW_NAME",
-				"scheduledworkflows.kubeflow.org/workflowIndex":              "50"},
+				"scheduledworkflows.kubeflow.org/workflowIndex":              "50",
+			},
 		},
 	})
 	assert.Equal(t, int64(0), workflow.ScheduledAtInSecOr0())
@@ -281,7 +282,8 @@ func TestWorkflow_SpecParameters(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	expectedParam := SpecParameters{SpecParameter{Name: "PARAM1", Value: stringToPointer("VALUE1")},
+	expectedParam := SpecParameters{
+		SpecParameter{Name: "PARAM1", Value: stringToPointer("VALUE1")},
 		SpecParameter{Name: "PARAM2", Value: stringToPointer("VALUE2")},
 		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
 		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
@@ -314,7 +316,8 @@ func TestWorkflow_SetSpecParameters(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	newParams := SpecParameters{SpecParameter{Name: "PARAM1", Value: stringToPointer("NEW_VALUE1")},
+	newParams := SpecParameters{
+		SpecParameter{Name: "PARAM1", Value: stringToPointer("NEW_VALUE1")},
 		SpecParameter{Name: "PARAM2", Value: stringToPointer("NEW_VALUE2")},
 		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
 		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
@@ -325,7 +328,7 @@ func TestWorkflow_SetSpecParameters(t *testing.T) {
 }
 
 func TestWorkflow_OverrideParameters(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name      string
 		workflow  *workflowapi.Workflow
 		overrides map[string]string

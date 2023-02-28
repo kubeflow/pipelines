@@ -156,7 +156,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
         <Link
           className={commonCss.link}
           onClick={e => e.stopPropagation()}
-          to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+          to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, props.id)}
         >
           {props.value}
         </Link>

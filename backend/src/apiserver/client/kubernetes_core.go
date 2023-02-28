@@ -33,7 +33,7 @@ func createKubernetesCore(clientParams util.ClientParameters) (KubernetesCoreInt
 func CreateKubernetesCoreOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) KubernetesCoreInterface {
 	var client KubernetesCoreInterface
 	var err error
-	var operation = func() error {
+	operation := func() error {
 		client, err = createKubernetesCore(clientParams)
 		return err
 	}

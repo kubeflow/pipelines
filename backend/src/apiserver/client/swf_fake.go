@@ -15,6 +15,7 @@
 package client
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 )
@@ -28,7 +29,7 @@ func NewFakeSwfClient() *FakeSwfClient {
 }
 
 func (c *FakeSwfClient) ScheduledWorkflow(namespace string) v1beta1.ScheduledWorkflowInterface {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && common.IsMultiUserMode() {
 		panic(util.NewResourceNotFoundError("Namespace", namespace))
 	}
 	return c.scheduledWorkflowClientFake

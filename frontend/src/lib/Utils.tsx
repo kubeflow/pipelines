@@ -27,6 +27,7 @@ import { padding } from '../Css';
 import { Apis, ListRequest } from './Apis';
 import { hasFinished, NodePhase } from './StatusUtils';
 import { StorageService } from './WorkflowParser';
+import { ApiParameter } from '../apis/pipeline';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -434,4 +435,22 @@ export function generateRandomString(length: number): string {
     str += randomChar();
   }
   return str;
+}
+
+export function mergeApiParametersByNames(
+  mainParams: ApiParameter[],
+  extraParams: ApiParameter[],
+): ApiParameter[] {
+  const extraParamsDict = Object.fromEntries(extraParams.map(param => [param.name, param.value]));
+
+  return mainParams.map(param => {
+    if (param.name === undefined || !(param.name in extraParamsDict)) {
+      return { ...param };
+    }
+
+    return {
+      ...param,
+      value: extraParamsDict[param.name],
+    };
+  });
 }

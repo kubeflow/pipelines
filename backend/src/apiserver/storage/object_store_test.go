@@ -28,15 +28,17 @@ import (
 
 type Foo struct{ ID int }
 
-type FakeBadMinioClient struct {
-}
+type FakeBadMinioClient struct{}
 
 func (c *FakeBadMinioClient) PutObject(bucketName, objectName string, reader io.Reader,
-	objectSize int64, opts minio.PutObjectOptions) (n int64, err error) {
+	objectSize int64, opts minio.PutObjectOptions,
+) (n int64, err error) {
 	return 0, errors.New("some error")
 }
+
 func (c *FakeBadMinioClient) GetObject(bucketName, objectName string,
-	opts minio.GetObjectOptions) (io.Reader, error) {
+	opts minio.GetObjectOptions,
+) (io.Reader, error) {
 	return nil, errors.New("some error")
 }
 

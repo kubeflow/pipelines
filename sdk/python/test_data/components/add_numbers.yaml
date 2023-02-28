@@ -3,6 +3,8 @@
 # Inputs:
 #    a: int
 #    b: int
+# Outputs:
+#    Output: int
 components:
   comp-add-numbers:
     executorLabel: exec-add-numbers
@@ -30,7 +32,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.12'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -48,6 +50,12 @@ pipelineInfo:
   name: add-numbers
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: add-numbers
     tasks:
       add-numbers:
         cachingOptions:
@@ -68,5 +76,9 @@ root:
         parameterType: NUMBER_INTEGER
       b:
         parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12

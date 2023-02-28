@@ -37,8 +37,9 @@ PROBLEM_TYPE_TO_SCHEMA_URI = {
         'gs://google-cloud-aiplatform/schema/modelevaluation/forecasting_metrics_1.0.0.yaml',
 }
 
-RESOURCE_TYPE = 'ModelEvaluation'
-
+MODEL_EVALUATION_RESOURCE_TYPE = 'ModelEvaluation'
+MODEL_EVALUATION_SLICE_RESOURCE_TYPE = 'ModelEvaluationSlice'
+SLICE_BATCH_IMPORT_LIMIT = 50
 
 def _make_parent_dirs_and_return_path(file_path: str):
   os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -135,13 +136,15 @@ def main(argv):
 
   schema_uri = PROBLEM_TYPE_TO_SCHEMA_URI.get(problem_type)
   with open(metrics_file_path) as metrics_file:
-    sliced_metrics = [{
+    all_sliced_metrics = [{
         **one_slice, 'metrics':
             to_value(next(iter(one_slice['metrics'].values())))
     } for one_slice in json.loads(metrics_file.read())['slicedMetrics']]
+  overall_slice = all_sliced_metrics[0]
+  sliced_metrics = all_sliced_metrics[1:]
 
   model_evaluation = {
-      'metrics': sliced_metrics[0]['metrics'],
+      'metrics': overall_slice['metrics'],
       'metrics_schema_uri': schema_uri
   }
 
@@ -212,22 +215,34 @@ def main(argv):
   resources = GcpResources()
   # Write the model evaluation resource to GcpResources output.
   model_eval_resource = resources.resources.add()
-  model_eval_resource.resource_type = RESOURCE_TYPE
-  model_eval_resource.resource_uri = f'{resource_uri_prefix}{model_evaluation_name}'
+  model_eval_resource.resource_type = MODEL_EVALUATION_RESOURCE_TYPE
+  model_eval_resource.resource_uri = (
+      f'{resource_uri_prefix}{model_evaluation_name}'
+  )
 
-  if len(sliced_metrics) > 1:
-    slice_resources = client.batch_import_model_evaluation_slices(
-        parent=model_evaluation_name,
-        model_evaluation_slices=[{
-            'metrics': one_slice['metrics'],
-            'metrics_schema_uri': schema_uri,
-            'slice_': to_slice(one_slice['singleOutputSlicingSpec']),
-        } for one_slice in sliced_metrics[1:]]).imported_model_evaluation_slices
+  # Import model evaluation slices if present.
+  if sliced_metrics:
+    slice_resource_names = []
+    # BatchImportModelEvaluationSlices has a size limit of 50 slices.
+    for i in range(0, len(sliced_metrics), SLICE_BATCH_IMPORT_LIMIT):
+      slice_resource_names.extend(client.batch_import_model_evaluation_slices(
+          parent=model_evaluation_name,
+          model_evaluation_slices=[
+              {
+                  'metrics': one_slice['metrics'],
+                  'metrics_schema_uri': schema_uri,
+                  'slice_': to_slice(one_slice['singleOutputSlicingSpec']),
+              }
+              for one_slice in sliced_metrics[i:i+SLICE_BATCH_IMPORT_LIMIT]
+          ],
+      ).imported_model_evaluation_slices)
 
-    for slice_resource in slice_resources:
+    for slice_resource in slice_resource_names:
       slice_mlmd_resource = resources.resources.add()
-      slice_mlmd_resource.resource_type = 'ModelEvaluationSlice'
-      slice_mlmd_resource.resource_uri = f'{resource_uri_prefix}{slice_resource}'
+      slice_mlmd_resource.resource_type = MODEL_EVALUATION_SLICE_RESOURCE_TYPE
+      slice_mlmd_resource.resource_uri = (
+          f'{resource_uri_prefix}{slice_resource}'
+      )
 
   with open(parsed_args.gcp_resources, 'w') as f:
     f.write(json_format.MessageToJson(resources))
@@ -240,7 +255,7 @@ def to_slice(slicing_spec: Dict[str, Any]):
   elif 'floatValue' in slicing_spec:
     value = str(slicing_spec['floatValue'])
   elif 'int64Value' in slicing_spec:
-    value = str(slicing_spec['in64Value'])
+    value = str(slicing_spec['int64Value'])
 
   return {
       'dimension': 'annotationSpec',

@@ -29,6 +29,8 @@ import { TextFieldProps } from '@material-ui/core/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
+import PrivateSharedSelector from './PrivateSharedSelector';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 const css = stylesheet({
   dropOverlay: {
@@ -61,6 +63,7 @@ interface UploadPipelineDialogProps {
     file: File | null,
     url: string,
     method: ImportMethod,
+    isPrivatePipeline: boolean,
     description?: string,
   ) => Promise<boolean>;
 }
@@ -74,12 +77,14 @@ interface UploadPipelineDialogState {
   importMethod: ImportMethod;
   uploadPipelineDescription: string;
   uploadPipelineName: string;
+  isPrivatePipeline: boolean;
 }
 
 class UploadPipelineDialog extends React.Component<
   UploadPipelineDialogProps,
   UploadPipelineDialogState
 > {
+  static contextType = BuildInfoContext;
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
 
   constructor(props: any) {
@@ -94,6 +99,7 @@ class UploadPipelineDialog extends React.Component<
       importMethod: ImportMethod.LOCAL,
       uploadPipelineDescription: '',
       uploadPipelineName: '',
+      isPrivatePipeline: true,
     };
   }
 
@@ -116,8 +122,19 @@ class UploadPipelineDialog extends React.Component<
         classes={{ paper: css.root }}
       >
         <DialogTitle>Upload and name your pipeline</DialogTitle>
-
         <div className={padding(20, 'lr')}>
+          {this.context?.apiServerMultiUser && (
+            <PrivateSharedSelector
+              onChange={val => {
+                this.setState({
+                  isPrivatePipeline: val,
+                });
+              }}
+            ></PrivateSharedSelector>
+          )}
+
+          <div>Upload a pipeline package file from your computer or import one using a URL.</div>
+
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
               id='uploadLocalFileBtn'
@@ -149,12 +166,7 @@ class UploadPipelineDialog extends React.Component<
               >
                 {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
 
-                <div className={padding(10, 'b')}>
-                  Choose a pipeline package file from your computer, and give the pipeline a unique
-                  name.
-                  <br />
-                  You can also drag and drop the file here.
-                </div>
+                <div className={padding(10, 'b')}>You can also drag and drop the file here.</div>
                 <DocumentationCompilePipeline />
                 <Input
                   onChange={this.handleChange('fileName')}
@@ -259,6 +271,7 @@ class UploadPipelineDialog extends React.Component<
         this.state.file,
         this.state.fileUrl.trim(),
         this.state.importMethod,
+        this.state.isPrivatePipeline,
         this.state.uploadPipelineDescription,
       );
       if (success) {

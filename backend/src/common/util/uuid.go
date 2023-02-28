@@ -25,8 +25,7 @@ type UUIDGeneratorInterface interface {
 
 // UUIDGenerator is the concrete implementation of the UUIDGeneratorInterface used to
 // generate UUIDs in production deployments.
-type UUIDGenerator struct {
-}
+type UUIDGenerator struct{}
 
 func NewUUIDGenerator() *UUIDGenerator {
 	return &UUIDGenerator{}

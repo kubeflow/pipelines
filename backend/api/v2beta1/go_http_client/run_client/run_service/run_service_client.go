@@ -141,6 +141,35 @@ func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
+ListAllRuns finds all runs in all experiments given optional namespace
+*/
+func (a *Client) ListAllRuns(params *ListAllRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAllRunsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAllRunsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListAllRuns",
+		Method:             "GET",
+		PathPattern:        "/apis/v2beta1/runs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListAllRunsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListAllRunsOK), nil
+
+}
+
+/*
 ListRuns finds all runs in an experiment given by experiment ID if experiment id is not specified finds all runs across all experiments
 */
 func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error) {
@@ -199,23 +228,23 @@ func (a *Client) ReadArtifact(params *ReadArtifactParams, authInfo runtime.Clien
 }
 
 /*
-ReportRunMetrics reports metrics of a run each metric is reported in its own transaction so this API accepts partial failures metric can be uniquely identified by experiment id run id node id name duplicate reporting will be ignored by the API first reporting wins
+RetryRun res initiates a failed or terminated run
 */
-func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runtime.ClientAuthInfoWriter) (*ReportRunMetricsOK, error) {
+func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewReportRunMetricsParams()
+		params = NewRetryRunParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ReportRunMetrics",
+		ID:                 "RetryRun",
 		Method:             "POST",
-		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics",
+		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ReportRunMetricsReader{formats: a.formats},
+		Reader:             &RetryRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -223,7 +252,7 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ReportRunMetricsOK), nil
+	return result.(*RetryRunOK), nil
 
 }
 

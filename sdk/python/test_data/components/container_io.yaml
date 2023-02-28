@@ -2,6 +2,8 @@
 # Name: container-io
 # Inputs:
 #    text: str
+# Outputs:
+#    output_path: str
 components:
   comp-container-io:
     executorLabel: exec-container-io
@@ -28,6 +30,12 @@ pipelineInfo:
   name: container-io
 root:
   dag:
+    outputs:
+      parameters:
+        output_path:
+          valueFromParameter:
+            outputParameterKey: output_path
+            producerSubtask: container-io
     tasks:
       container-io:
         cachingOptions:
@@ -44,5 +52,9 @@ root:
     parameters:
       text:
         parameterType: STRING
+  outputDefinitions:
+    parameters:
+      output_path:
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.12
