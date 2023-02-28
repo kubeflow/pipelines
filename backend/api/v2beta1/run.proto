@@ -84,6 +84,13 @@ service RunService {
     };
   }
 
+  // Finds all runs in all experiments given optional namespace. 
+  rpc ListAllRuns(ListRunsRequest) returns (ListRunsResponse) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/runs"
+    };
+  }
+
   // Archives a run in an experiment given by run ID and experiment ID.
   rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
