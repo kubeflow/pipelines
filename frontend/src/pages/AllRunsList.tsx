@@ -50,6 +50,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         .archive(
           'run',
           () => this.state.selectedIds,
+          () => [],
           false,
           selectedIds => this._selectionChanged(selectedIds),
         )

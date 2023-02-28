@@ -863,8 +863,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       );
       const idGetter = () => (runMetadata ? [runMetadata!.id!] : []);
       runMetadata!.storage_state === ApiRunStorageState.ARCHIVED
-        ? buttons.restore('run', idGetter, true, () => this.refresh())
-        : buttons.archive('run', idGetter, true, () => this.refresh());
+        ? buttons.restore('run', idGetter, () => [], true, () => this.refresh())
+        : buttons.archive('run', idGetter, () => [], true, () => this.refresh());
       const actions = buttons.getToolbarActionMap();
       actions[ButtonKeys.TERMINATE_RUN].disabled =
         (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;

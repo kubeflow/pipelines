@@ -24,7 +24,6 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 
 interface ArchivedRunsState {
   selectedIds: string[];
@@ -45,7 +44,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .restore('run', () => this.state.selectedIds, false, this._selectionChanged.bind(this))
+        .restore('run', () => this.state.selectedIds, () => [], false, this._selectionChanged.bind(this))
         .refresh(this.refresh.bind(this))
         .delete(
           () => this.state.selectedIds,

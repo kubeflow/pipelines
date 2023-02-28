@@ -80,6 +80,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         .archive(
           'run',
           () => this.state.selectedIds,
+          () => [],
           false,
           ids => this._selectionChanged(ids),
         )
