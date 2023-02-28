@@ -836,10 +836,6 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 					UpdateTimeInSec: 4,
 					State:           model.RuntimeStateRunning,
 				},
-				{
-					UpdateTimeInSec: 5,
-					State:           model.RuntimeStateRunning,
-				},
 			},
 		},
 		PipelineSpec: model.PipelineSpec{
