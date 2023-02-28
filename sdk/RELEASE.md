@@ -14,6 +14,7 @@
 ## Features
 * Support fanning-in artifact outputs from a task in a `dsl.ParellelFor` context using `dsl.Collected` [\#8808](https://github.com/kubeflow/pipelines/pull/8808)
 * Introduces a new syntax for pipeline tasks to consume outputs from the upstream task while at the same time ignoring if the upstream tasks succeeds or not. [\#8838](https://github.com/kubeflow/pipelines/pull/8838)
+* `pip_index_urls` is now considered also for containerized python component - the urls will be used for Dockerfile generation [\#8871](https://github.com/kubeflow/pipelines/pull/8871)
 
 ## Breaking changes
 
