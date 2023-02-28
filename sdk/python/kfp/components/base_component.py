@@ -51,6 +51,18 @@ class BaseComponent(abc.ABC):
             if not type_utils.is_task_final_status_type(input_spec.type)
         }
 
+    def _prevent_using_output_lists_of_artifacts(self):
+        """This method should be called at the end of __init__ for
+        PythonComponent and ContainerComponent subclasses to temporarily block
+        outputting lists of artifacts from a component."""
+        # TODO: remove when output lists of artifacts from primitive components is supported
+        for output_name, output_spec in (self.component_spec.outputs or
+                                         {}).items():
+            if output_spec.is_artifact_list:
+                raise ValueError(
+                    f'Output lists of artifacts are only supported for pipelines. Got output list of artifacts for output parameter {output_name!r} of component {self.name!r}.'
+                )
+
     def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
         """Creates a PipelineTask object.
 

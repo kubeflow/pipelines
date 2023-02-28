@@ -20,6 +20,8 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 import warnings
 
 import kfp
+from kfp.components import pipeline_channel
+from kfp.components import structures
 from kfp.components import task_final_status
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
@@ -225,17 +227,39 @@ class InconsistentTypeWarning(Warning):
     """InconsistentTypeWarning is issued when two types are not consistent."""
 
 
+def _get_type_string_from_component_argument(
+    argument_value: Union['pipeline_channel.PipelineChannel', str, bool, int,
+                          float, dict, list]
+) -> str:
+    # argument is a PipelineChannel
+    if isinstance(argument_value,
+                  kfp.components.pipeline_channel.PipelineChannel):
+        return argument_value.channel_type
+
+    # argument is a constant
+    argument_type = type(argument_value)
+    if argument_type in _TYPE_TO_TYPE_NAME:
+        return _TYPE_TO_TYPE_NAME[argument_type]
+
+    raise ValueError(
+        f'Constant argument inputs must be one of type {list(_TYPE_TO_TYPE_NAME.values())} Got: {argument_value!r} of type {type(argument_value)!r}.'
+    )
+
+
 def verify_type_compatibility(
-    given_type: str,
-    expected_type: str,
+    given_value: Union['pipeline_channel.PipelineChannel', str, bool, int,
+                       float, dict, list],
+    expected_spec: Union[structures.InputSpec, structures.OutputSpec],
     error_message_prefix: str,
+    checks_input: bool = True,
 ) -> bool:
     """Verifies the given argument type is compatible with the expected type.
 
     Args:
-        given_type: The type of the argument passed to the input.
-        expected_type: The declared type of the input.
+        given_value: The channel or constant provided as an argument.
+        expected_spec: The InputSpec or OutputSpec that describes the expected type of given_value.
         error_message_prefix: The prefix for the error message.
+        checks_input: True if checks an argument (given_value) against a component/pipeline input type (expected_spec). False if checks a component output (argument_value) against the pipeline output type (expected_spec).
 
     Returns:
         True if types are compatible, and False if otherwise.
@@ -243,38 +267,47 @@ def verify_type_compatibility(
     Raises:
         InconsistentTypeException if types are incompatible and TYPE_CHECK==True.
     """
+    # extract and normalize types
+    expected_type = expected_spec.type
+    given_type = _get_type_string_from_component_argument(given_value)
 
-    types_are_compatible = False
-    is_parameter = is_parameter_type(str(given_type))
+    given_is_param = is_parameter_type(str(given_type))
+    if given_is_param:
+        given_type = get_parameter_type_name(given_type)
+        given_is_artifact_list = False
+    else:
+        given_is_artifact_list = given_value.is_artifact_list
 
-    # handle parameters
-    if is_parameter:
-        # Normalize parameter type names.
-        if is_parameter_type(given_type):
-            given_type = get_parameter_type_name(given_type)
-        if is_parameter_type(expected_type):
-            expected_type = get_parameter_type_name(expected_type)
+    expected_is_param = is_parameter_type(expected_type)
+    if expected_is_param:
+        expected_type = get_parameter_type_name(expected_type)
+        expected_is_artifact_list = False
+    else:
+        expected_is_artifact_list = expected_spec.is_artifact_list
 
+    # compare the normalized types
+    if given_is_param != expected_is_param:
+        types_are_compatible = False
+    elif given_is_param and expected_is_param:
         types_are_compatible = check_parameter_type_compatibility(
             given_type, expected_type)
     else:
-        # handle artifacts
-        given_schema_title, given_schema_version = given_type.split('@')
-        expected_schema_title, expected_schema_version = expected_type.split(
-            '@')
-        if artifact_types.Artifact.schema_title in {
-                given_schema_title, expected_schema_title
-        }:
-            types_are_compatible = True
-        else:
-            schema_title_compatible = given_schema_title == expected_schema_title
-            schema_version_compatible = given_schema_version.split(
-                '.')[0] == expected_schema_version.split('.')[0]
-            types_are_compatible = schema_title_compatible and schema_version_compatible
+        types_are_compatible = check_artifact_type_compatibility(
+            given_type=given_type,
+            given_is_artifact_list=given_is_artifact_list,
+            expected_type=expected_type,
+            expected_is_artifact_list=expected_is_artifact_list)
 
     # maybe raise, maybe warn, return bool
     if not types_are_compatible:
-        error_text = error_message_prefix + f'Argument type "{given_type}" is incompatible with the input type "{expected_type}"'
+        # update the types for lists of artifacts for error message
+        given_type = f'List[{given_type}]' if given_is_artifact_list else given_type
+        expected_type = f'List[{expected_type}]' if expected_is_artifact_list else expected_type
+        if checks_input:
+            error_message_suffix = f'Argument type {given_type!r} is incompatible with the input type {expected_type!r}'
+        else:
+            error_message_suffix = f'Output of type {given_type!r} cannot be surfaced as pipeline output type {expected_type!r}'
+        error_text = error_message_prefix + error_message_suffix
         if kfp.TYPE_CHECK:
             raise InconsistentTypeException(error_text)
         else:
@@ -283,10 +316,40 @@ def verify_type_compatibility(
     return types_are_compatible
 
 
-def check_parameter_type_compatibility(
+def check_artifact_type_compatibility(given_type: str,
+                                      given_is_artifact_list: bool,
+                                      expected_type: str,
+                                      expected_is_artifact_list: bool) -> bool:
+    given_schema_title, given_schema_version = given_type.split('@')
+    expected_schema_title, expected_schema_version = expected_type.split('@')
+    same_list_of_artifacts_status = expected_is_artifact_list == given_is_artifact_list
+    if not same_list_of_artifacts_status:
+        return False
+    elif artifact_types.Artifact.schema_title in {
+            given_schema_title, expected_schema_title
+    }:
+        return True
+    else:
+        schema_title_compatible = given_schema_title == expected_schema_title
+        schema_version_compatible = given_schema_version.split(
+            '.')[0] == expected_schema_version.split('.')[0]
+
+        return schema_title_compatible and schema_version_compatible
+
+
+def check_parameter_type_compatibility(given_type: str,
+                                       expected_type: str) -> bool:
+    if isinstance(given_type, str) and isinstance(expected_type, str):
+        return given_type == expected_type
+    else:
+        return check_v1_struct_parameter_type_compatibility(
+            given_type, expected_type)
+
+
+def check_v1_struct_parameter_type_compatibility(
     given_type: Union[str, dict],
     expected_type: Union[str, dict],
-):
+) -> bool:
     if isinstance(given_type, str):
         given_type = {given_type: {}}
     if isinstance(expected_type, str):
@@ -297,7 +360,7 @@ def check_parameter_type_compatibility(
 def _check_dict_types(
     given_type: dict,
     expected_type: dict,
-):
+) -> bool:
     given_type_name, _ = list(given_type.items())[0]
     expected_type_name, _ = list(expected_type.items())[0]
     if given_type_name == '' or expected_type_name == '':

@@ -71,7 +71,7 @@ describe('PipelineList', () => {
         },
       })),
     }));
-    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace='test-ns' />);
     await listPipelinesSpy;
     await TestUtils.flushPromises();
     tree.update(); // Make sure the tree is updated before returning it
@@ -144,9 +144,16 @@ describe('PipelineList', () => {
 
   it('calls Apis to list pipelines, sorted by creation time in descending order', async () => {
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
-    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace='test-ns' />);
     await listPipelinesSpy;
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      'NAMESPACE',
+      'test-ns',
+    );
     expect(tree.state()).toHaveProperty('displayPipelines', [
       { expandState: 0, name: 'pipeline1' },
     ]);
@@ -160,7 +167,14 @@ describe('PipelineList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      'NAMESPACE',
+      'test-ns',
+    );
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -186,7 +200,14 @@ describe('PipelineList', () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      undefined,
+      undefined,
+    );
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',

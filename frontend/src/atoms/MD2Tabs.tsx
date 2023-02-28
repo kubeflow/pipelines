@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Tooltip';
 import Separator from './Separator';
 import { color, fontsize } from '../Css';
 import { classes, stylesheet } from 'typestyle';
@@ -24,7 +25,7 @@ import { logger } from '../lib/Utils';
 interface MD2TabsProps {
   onSwitch?: (tab: number) => void;
   selectedTab: number;
-  tabs: string[];
+  tabs: (string | { header: string; tooltip: string })[];
 }
 
 const css = stylesheet({
@@ -74,22 +75,30 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
   public render(): JSX.Element {
     const selected = this._getSelectedIndex();
     const switchHandler = this.props.onSwitch || (() => null);
+    const tabs = this.props.tabs.map(tab => {
+      if (typeof tab === 'string') {
+        return { header: tab, tooltip: '' };
+      }
+      return tab;
+    });
     return (
       <div className={css.tabs} ref={this._rootRef}>
         <div className={css.indicator} ref={this._indicatorRef} />
         <Separator units={20} />
-        {this.props.tabs.map((tab, i) => (
-          <Button
-            className={classes(css.button, i === selected ? css.active : '')}
-            key={i}
-            onClick={() => {
-              if (i !== selected) {
-                switchHandler(i);
-              }
-            }}
-          >
-            <span ref={this._tabRefs[i]}>{tab}</span>
-          </Button>
+        {tabs.map((tab, i) => (
+          <Tooltip title={tab.tooltip} placement='top-start' key={i}>
+            <Button
+              className={classes(css.button, i === selected ? css.active : '')}
+              key={i}
+              onClick={() => {
+                if (i !== selected) {
+                  switchHandler(i);
+                }
+              }}
+            >
+              <span ref={this._tabRefs[i]}>{tab.header}</span>
+            </Button>
+          </Tooltip>
         ))}
       </div>
     );

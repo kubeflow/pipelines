@@ -3,6 +3,7 @@
 import json
 import os
 from unittest import mock
+import base64
 
 import google.auth
 from google.cloud import aiplatform
@@ -542,10 +543,53 @@ class ImportModelEvaluationTest(unittest.TestCase):
         mock.ANY,
         parent=self._model_name,
         model_evaluation={
-            'metrics':
-                to_value(
-                    json.loads(METRICS)['slicedMetrics'][0]['metrics']
-                    ['regression']),
-            'metrics_schema_uri':
-                PROBLEM_TYPE_TO_SCHEMA_URI['regression'],
-        })
+            'metrics': to_value(
+                json.loads(METRICS)['slicedMetrics'][0]['metrics']['regression']
+            ),
+            'metrics_schema_uri': PROBLEM_TYPE_TO_SCHEMA_URI['regression'],
+        },
+    )
+
+  @mock_api_call
+  def test_import_model_evaluation_with_over_50_slices(self, _, mock_api):
+    # Arrange.
+    sliced_metrics = json.loads(METRICS)['slicedMetrics']
+    for i in range(2, 52):
+      sliced_metrics.append({
+          'singleOutputSlicingSpec': {'int64Value': i},
+          'metrics': {'regression': {'rootMeanSquaredError': i}},
+      })
+    metrics = {'slicedMetrics': sliced_metrics}
+    with open(self.metrics_path, 'w') as f:
+      f.write(json.dumps(metrics))
+
+    # Act.
+    main([
+        '--metrics',
+        self.metrics_path,
+        '--problem_type',
+        'classification',
+        '--model_name',
+        self._model_name,
+        '--pipeline_job_id',
+        PIPELINE_JOB_ID,
+        '--gcp_resources',
+        self._gcp_resources,
+    ])
+
+    # Assert.
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=MODEL_EVAL_NAME,
+        model_evaluation_slices=[{
+            'metrics_schema_uri': SCHEMA_URI,
+            'metrics': to_value(
+                metrics['slicedMetrics'][51]['metrics']['regression']
+            ),
+            'slice_': {
+                'dimension': 'annotationSpec',
+                'value': '51',
+            },
+        }],
+    )
+    self.assertEqual(mock_api.call_count, 2)

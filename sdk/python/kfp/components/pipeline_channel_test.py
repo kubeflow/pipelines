@@ -34,7 +34,7 @@ class PipelineChannelTest(parameterized.TestCase):
                 ValueError,
                 'Only letters, numbers, spaces, "_", and "-" are allowed in the '
                 'name. Must begin with a letter. Got name: 123_abc'):
-            p = pipeline_channel.PipelineParameterChannel(
+            p = pipeline_channel.create_pipeline_channel(
                 name='123_abc',
                 channel_type='String',
             )
@@ -42,7 +42,7 @@ class PipelineChannelTest(parameterized.TestCase):
     def test_task_name_and_value_both_set(self):
         with self.assertRaisesRegex(ValueError,
                                     'task_name and value cannot be both set.'):
-            p = pipeline_channel.PipelineParameterChannel(
+            p = pipeline_channel.create_pipeline_channel(
                 name='abc',
                 channel_type='Integer',
                 task_name='task1',
@@ -63,12 +63,13 @@ class PipelineChannelTest(parameterized.TestCase):
                 name='channel1',
                 channel_type='String',
                 task_name='task1',
+                is_artifact_list=False,
             )
 
     @parameterized.parameters(
         {
             'pipeline_channel':
-                pipeline_channel.PipelineParameterChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='channel1',
                     task_name='task1',
                     channel_type='String',
@@ -78,7 +79,7 @@ class PipelineChannelTest(parameterized.TestCase):
         },
         {
             'pipeline_channel':
-                pipeline_channel.PipelineParameterChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='channel2',
                     channel_type='Integer',
                 ),
@@ -87,7 +88,7 @@ class PipelineChannelTest(parameterized.TestCase):
         },
         {
             'pipeline_channel':
-                pipeline_channel.PipelineArtifactChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='channel3',
                     channel_type={'type_a': {
                         'property_b': 'c'
@@ -99,7 +100,7 @@ class PipelineChannelTest(parameterized.TestCase):
         },
         {
             'pipeline_channel':
-                pipeline_channel.PipelineParameterChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='channel4',
                     channel_type='Float',
                     value=1.23,
@@ -109,7 +110,7 @@ class PipelineChannelTest(parameterized.TestCase):
         },
         {
             'pipeline_channel':
-                pipeline_channel.PipelineArtifactChannel(
+                pipeline_channel.create_pipeline_channel(
                     name='channel5',
                     channel_type='system.Artifact@0.0.1',
                     task_name='task5',
@@ -122,17 +123,17 @@ class PipelineChannelTest(parameterized.TestCase):
         self.assertEqual(str_repr, str(pipeline_channel))
 
     def test_extract_pipeline_channels(self):
-        p1 = pipeline_channel.PipelineParameterChannel(
+        p1 = pipeline_channel.create_pipeline_channel(
             name='channel1',
             channel_type='String',
             value='abc',
         )
-        p2 = pipeline_channel.PipelineArtifactChannel(
+        p2 = pipeline_channel.create_pipeline_channel(
             name='channel2',
             channel_type='customized_type_b',
             task_name='task2',
         )
-        p3 = pipeline_channel.PipelineArtifactChannel(
+        p3 = pipeline_channel.create_pipeline_channel(
             name='channel3',
             channel_type={'customized_type_c': {
                 'property_c': 'value_c'

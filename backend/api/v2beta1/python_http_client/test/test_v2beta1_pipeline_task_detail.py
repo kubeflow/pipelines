@@ -86,6 +86,12 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                                     type_url = '0', 
                                     value = 'YQ==', )
                                 ], ), )
+                    ], 
+                pod_name = '0', 
+                child_tasks = [
+                    kfp_server_api.models.pipeline_task_detail_child_task.PipelineTaskDetailChildTask(
+                        task_id = '0', 
+                        pod_name = '0', )
                     ]
             )
         else :

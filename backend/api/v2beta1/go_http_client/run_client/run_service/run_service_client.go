@@ -141,6 +141,35 @@ func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
+ListAllRuns finds all runs in all experiments given optional namespace
+*/
+func (a *Client) ListAllRuns(params *ListAllRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAllRunsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAllRunsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListAllRuns",
+		Method:             "GET",
+		PathPattern:        "/apis/v2beta1/runs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListAllRunsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListAllRunsOK), nil
+
+}
+
+/*
 ListRuns finds all runs in an experiment given by experiment ID if experiment id is not specified finds all runs across all experiments
 */
 func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error) {

@@ -17,6 +17,9 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
   <div
     className=""
   >
+    <div>
+      Upload a pipeline package file from your computer or import one using a URL.
+    </div>
     <div
       className="flex"
     >
@@ -100,6 +103,9 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
   <div
     className=""
   >
+    <div>
+      Upload a pipeline package file from your computer or import one using a URL.
+    </div>
     <div
       className="flex"
     >
@@ -158,8 +164,6 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
-        <br />
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
@@ -237,6 +241,9 @@ exports[`UploadPipelineDialog renders closed 1`] = `
   <div
     className=""
   >
+    <div>
+      Upload a pipeline package file from your computer or import one using a URL.
+    </div>
     <div
       className="flex"
     >
@@ -290,8 +297,6 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
-        <br />
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
@@ -369,6 +374,9 @@ exports[`UploadPipelineDialog renders open 1`] = `
   <div
     className=""
   >
+    <div>
+      Upload a pipeline package file from your computer or import one using a URL.
+    </div>
     <div
       className="flex"
     >
@@ -422,8 +430,6 @@ exports[`UploadPipelineDialog renders open 1`] = `
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
-        <br />
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
@@ -501,6 +507,9 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
   <div
     className=""
   >
+    <div>
+      Upload a pipeline package file from your computer or import one using a URL.
+    </div>
     <div
       className="flex"
     >
@@ -554,8 +563,6 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
-        <br />
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />

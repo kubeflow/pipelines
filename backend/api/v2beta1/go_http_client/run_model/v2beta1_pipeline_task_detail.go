@@ -19,6 +19,9 @@ import (
 // swagger:model v2beta1PipelineTaskDetail
 type V2beta1PipelineTaskDetail struct {
 
+	// Sequence of dependen tasks.
+	ChildTasks []*PipelineTaskDetailChildTask `json:"child_tasks"`
+
 	// Creation time of a task.
 	// Format: date-time
 	CreateTime strfmt.DateTime `json:"create_time,omitempty"`
@@ -35,7 +38,7 @@ type V2beta1PipelineTaskDetail struct {
 	// Only populated when the task is in FAILED or CANCELED state.
 	Error *GooglerpcStatus `json:"error,omitempty"`
 
-	// Execution metadata of a task.
+	// Execution id of the corresponding entry in ML metadata store.
 	ExecutionID string `json:"execution_id,omitempty"`
 
 	// Execution information of a task.
@@ -50,6 +53,10 @@ type V2beta1PipelineTaskDetail struct {
 	// ID of the parent task if the task is within a component scope.
 	// Empty if the task is at the root level.
 	ParentTaskID string `json:"parent_task_id,omitempty"`
+
+	// Name of the corresponding pod assigned by the orchestration engine.
+	// Also known as node_id.
+	PodName string `json:"pod_name,omitempty"`
 
 	// ID of the parent run.
 	RunID string `json:"run_id,omitempty"`
@@ -72,6 +79,10 @@ type V2beta1PipelineTaskDetail struct {
 // Validate validates this v2beta1 pipeline task detail
 func (m *V2beta1PipelineTaskDetail) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateChildTasks(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateCreateTime(formats); err != nil {
 		res = append(res, err)
@@ -112,6 +123,31 @@ func (m *V2beta1PipelineTaskDetail) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *V2beta1PipelineTaskDetail) validateChildTasks(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ChildTasks) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ChildTasks); i++ {
+		if swag.IsZero(m.ChildTasks[i]) { // not required
+			continue
+		}
+
+		if m.ChildTasks[i] != nil {
+			if err := m.ChildTasks[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("child_tasks" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

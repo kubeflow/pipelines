@@ -300,15 +300,13 @@ class Collected(pipeline_channel.PipelineChannel):
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):
             channel_type = output.channel_type
             self.is_artifact_channel = True
+            # we know all dsl.Collected instances are lists, so set to true
+            # for type checking, which occurs before dsl.Collected is updated to
+            # it's "correct" channel during compilation
+            self.is_artifact_list = True
         else:
             channel_type = 'LIST'
             self.is_artifact_channel = False
-
-        # TODO: remove to support artifact fan-in
-        if self.is_artifact_channel:
-            raise NotImplementedError(
-                'Fan-in of artifacts created in a ParallelFor loop is not yet supported.'
-            )
 
         super().__init__(
             output.name,

@@ -181,13 +181,13 @@ func TestValidateReportWorkflowRequest(t *testing.T) {
 	}
 	marshalledWorkflow, _ := json.Marshal(workflow)
 	expectedExecSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(string(marshalledWorkflow)))
-	generatedWorkflow, err := validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: string(marshalledWorkflow)})
+	generatedWorkflow, err := validateReportWorkflowRequest(string(marshalledWorkflow))
 	assert.Nil(t, err)
 	assert.Equal(t, &expectedExecSpec, generatedWorkflow)
 }
 
 func TestValidateReportWorkflowRequest_UnmarshalError(t *testing.T) {
-	_, err := validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: "WRONG WORKFLOW"})
+	_, err := validateReportWorkflowRequest("WRONG WORKFLOW")
 	assert.NotNil(t, err)
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 	assert.Contains(t, err.Error(), "Could not unmarshal")
@@ -211,7 +211,7 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 			}},
 		},
 	})
-	_, err := validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
+	_, err := validateReportWorkflowRequest(workflow.ToStringForStore())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a name")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
@@ -234,7 +234,7 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 		},
 	})
 
-	_, err = validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
+	_, err = validateReportWorkflowRequest(workflow.ToStringForStore())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a namespace")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
@@ -257,15 +257,14 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 		},
 	})
 
-	_, err = validateReportWorkflowRequestV1(&api.ReportWorkflowRequest{Workflow: workflow.ToStringForStore()})
+	_, err = validateReportWorkflowRequest(workflow.ToStringForStore())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a UID")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 }
 
 func TestValidateReportScheduledWorkflowRequest_UnmarshalError(t *testing.T) {
-	_, err := validateReportScheduledWorkflowRequestV1(
-		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: "WRONG_SCHEDULED_WORKFLOW"})
+	_, err := validateReportScheduledWorkflowRequest("WRONG_SCHEDULED_WORKFLOW")
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Could not unmarshal")
@@ -280,8 +279,7 @@ func TestValidateReportScheduledWorkflowRequest_MissingField(t *testing.T) {
 		},
 	})
 
-	_, err := validateReportScheduledWorkflowRequestV1(
-		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
+	_, err := validateReportScheduledWorkflowRequest(swf.ToStringForStore())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a name")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
@@ -294,8 +292,7 @@ func TestValidateReportScheduledWorkflowRequest_MissingField(t *testing.T) {
 		},
 	})
 
-	_, err = validateReportScheduledWorkflowRequestV1(
-		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
+	_, err = validateReportScheduledWorkflowRequest(swf.ToStringForStore())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a namespace")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
@@ -308,8 +305,7 @@ func TestValidateReportScheduledWorkflowRequest_MissingField(t *testing.T) {
 		},
 	})
 
-	_, err = validateReportScheduledWorkflowRequestV1(
-		&api.ReportScheduledWorkflowRequest{ScheduledWorkflow: swf.ToStringForStore()})
+	_, err = validateReportScheduledWorkflowRequest(swf.ToStringForStore())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a UID")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)

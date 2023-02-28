@@ -35,9 +35,11 @@ implementation:
     - -c
     - |
       set -e -x
+      echo "$ENV1"
       echo "$ENV2"
       echo "$ENV3"
     env:
+      ENV1: val0
       ENV2: val0
 """)
 

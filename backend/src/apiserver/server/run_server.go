@@ -595,6 +595,19 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 	return &apiv2beta1.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
 }
 
+// Fetches runs across all experiments given query parameters.
+// Supports v2beta1 behavior.
+func (s *RunServer) ListAllRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
+	if s.options.CollectMetrics {
+		listRunRequests.Inc()
+	}
+	runs, runsCount, nextPageToken, err := s.listRuns(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), r.GetNamespace(), "")
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list all runs")
+	}
+	return &apiv2beta1.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
+}
+
 // Archives a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveRunRequest) (*empty.Empty, error) {

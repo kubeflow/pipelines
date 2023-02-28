@@ -54,6 +54,8 @@ var runColumns = []string{
 	"JobUUID",
 	"State",
 	"StateHistory",
+	"PipelineContextId",
+	"PipelineRunContextId",
 }
 
 var runMetricsColumns = []string{
@@ -66,18 +68,18 @@ var runMetricsColumns = []string{
 }
 
 type RunStoreInterface interface {
-	// Creates a run entry.
+	// Creates a run entry. Does not create children tasks.
 	CreateRun(run *model.Run) (*model.Run, error)
 
 	// Fetches a run.
 	GetRun(runId string) (*model.Run, error)
 
-	// Fetches runs with specified options.
+	// Fetches runs with specified options. Joins with children tasks.
 	ListRuns(filterContext *model.FilterContext, opts *list.Options) ([]*model.Run, int, string, error)
 
 	// Updates a run.
-	// Note: only state and runtime manifest can be updated.
-	UpdateRun(runId string, condition string, finishedAtInSec int64, workflowRuntimeManifest string, state string) (err error)
+	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
+	UpdateRun(run *model.Run) (err error)
 
 	// Archives a run.
 	ArchiveRun(runId string) error
@@ -87,9 +89,6 @@ type RunStoreInterface interface {
 
 	// Deletes a run.
 	DeleteRun(runId string) error
-
-	// // Updates a run or create one if it does not exist.
-	// CreateOrUpdateRun(run *model.Run) error
 
 	// Creates a new metric entry.
 	CreateMetric(metric *model.RunMetric) (err error)
@@ -208,7 +207,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	if !selectCount {
 		sqlBuilder = s.addSortByRunMetricToSelect(sqlBuilder, opts)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
-		sqlBuilder = s.addMetricsAndResourceReferences(sqlBuilder, opts)
+		sqlBuilder = s.addMetricsResourceReferencesAndTasks(sqlBuilder, opts)
 		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
 	sql, args, err := sqlBuilder.ToSql()
@@ -220,7 +219,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 
 // GetRun Get the run manifest from Workflow CRD.
 func (s *RunStore) GetRun(runId string) (*model.Run, error) {
-	sql, args, err := s.addMetricsAndResourceReferences(
+	sql, args, err := s.addMetricsResourceReferencesAndTasks(
 		sq.Select(runColumns...).
 			From("run_details").
 			Where(sq.Eq{"UUID": runId}).
@@ -258,7 +257,7 @@ func apply(f func(string) string, vs []string) []string {
 	return vsm
 }
 
-func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
 	var r model.Run
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rr.Payload", ","), `"]"`}, "")
 	columnsAfterJoiningResourceReferences := append(
@@ -273,11 +272,26 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 		LeftJoin("resource_references AS rr ON rr.ResourceType='Run' AND rd.UUID=rr.ResourceUUID").
 		GroupBy("rd.UUID")
 
+	tasksConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("tasks.Payload", ","), `"]"`}, "")
+	columnsAfterJoiningTasks := append(
+		apply(func(column string) string { return "rdref." + column }, runColumns),
+		"rdref.refs",
+		tasksConcatQuery+" AS taskDetails")
+	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+opts.SortByFieldName)
+	}
+	subQ = sq.
+		Select(columnsAfterJoiningTasks...).
+		FromSelect(subQ, "rdref").
+		LeftJoin("tasks AS tasks ON rdref.UUID=tasks.RunUUID").
+		GroupBy("rdref.UUID")
+
 	// TODO(jingzhang36): address the case where some runs don't have the metric used in order by.
 	metricConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rm.Payload", ","), `"]"`}, "")
 	columnsAfterJoiningRunMetrics := append(
 		apply(func(column string) string { return "subq." + column }, runColumns), // Add prefix "subq." to runColumns
 		"subq.refs",
+		"subq.taskDetails",
 		metricConcatQuery+" AS metrics")
 	return sq.
 		Select(columnsAfterJoiningRunMetrics...).
@@ -292,8 +306,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, conditions, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
-		var createdAtInSec, scheduledAtInSec, finishedAtInSec sql.NullInt64
-		var metricsInString, resourceReferencesInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
+		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextId, pipelineRunContextId sql.NullInt64
+		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
 		err := rows.Scan(
 			&uuid,
 			&experimentUUID,
@@ -320,7 +334,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&jobId,
 			&state,
 			&stateHistory,
+			&pipelineContextId,
+			&pipelineRunContextId,
 			&resourceReferencesInString,
+			&tasksInString,
 			&metricsInString,
 		)
 		if err != nil {
@@ -338,6 +355,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		if err != nil {
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference")
+		}
+		tasks, err := parseTaskDetails(tasksInString)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to parse task details")
 		}
 		jId := jobId.String
 		pvId := pipelineVersionId.String
@@ -359,6 +380,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			}
 		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
+		var stateHistoryNew []*model.RuntimeStatus
+		if stateHistory.Valid {
+			json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
+		}
 		run := &model.Run{
 			UUID:           uuid,
 			ExperimentId:   experimentUUID,
@@ -377,6 +402,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				State:                   model.RuntimeState(state.String),
 				PipelineRuntimeManifest: pipelineRuntimeManifest,
 				WorkflowRuntimeManifest: workflowRuntimeManifest,
+				PipelineContextId:       pipelineContextId.Int64,
+				PipelineRunContextId:    pipelineRunContextId.Int64,
+				TaskDetails:             tasks,
+				StateHistory:            stateHistoryNew,
 			},
 			Metrics:            metrics,
 			ResourceReferences: resourceReferences,
@@ -429,6 +458,17 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 	return refs, nil
 }
 
+func parseTaskDetails(tasksInString sql.NullString) ([]*model.Task, error) {
+	if !tasksInString.Valid {
+		return nil, nil
+	}
+	var taskDetails []*model.Task
+	if err := json.Unmarshal([]byte(tasksInString.String), &taskDetails); err != nil {
+		return nil, util.Wrapf(err, "Failed to parse task details '%s'", tasksInString.String)
+	}
+	return taskDetails, nil
+}
+
 func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	r = r.ToV1().ToV2()
 	if r.StorageState == "" || r.StorageState == model.StorageStateUnspecified || r.StorageState == model.StorageStateUnspecifiedV1 {
@@ -437,6 +477,18 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 
 	if !r.StorageState.IsValid() {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q", r.StorageState)
+	}
+
+	r.RunDetails.StateHistory = append(r.RunDetails.StateHistory, &model.RuntimeStatus{
+		UpdateTimeInSec: s.time.Now().Unix(),
+		State:           r.RunDetails.State,
+	})
+
+	stateHistoryString := ""
+	if history, err := json.Marshal(r.RunDetails.StateHistory); err == nil {
+		stateHistoryString = string(history)
+	} else {
+		return nil, util.NewInternalServerError(err, "Failed to marshal state history in a new run")
 	}
 	runSql, runArgs, err := sq.
 		Insert("run_details").
@@ -465,7 +517,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"PipelineVersionId":       r.PipelineSpec.PipelineVersionId,
 			"JobUUID":                 r.RecurringRunId,
 			"State":                   r.RunDetails.State.ToString(),
-			"StateHistory":            "",
+			"StateHistory":            stateHistoryString,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
@@ -499,49 +551,57 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	return r, nil
 }
 
-func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int64, workflowRuntimeManifest string, state string) error {
+func (s *RunStore) UpdateRun(run *model.Run) error {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
-
+	run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
+		UpdateTimeInSec: s.time.Now().Unix(),
+		State:           run.RunDetails.State,
+	})
+	stateHistoryString := ""
+	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
+		stateHistoryString = string(historyString)
+	}
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"Conditions":              condition,
-			"State":                   state,
-			"FinishedAtInSec":         finishedAtInSec,
-			"WorkflowRuntimeManifest": workflowRuntimeManifest,
+			"Conditions":              run.Conditions,
+			"State":                   run.State.ToString(),
+			"StateHistory":            stateHistoryString,
+			"FinishedAtInSec":         run.FinishedAtInSec,
+			"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
 		}).
-		Where(sq.Eq{"UUID": runID}).
+		Where(sq.Eq{"UUID": run.UUID}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err,
-			"Failed to create query to update run %s. error: '%v'", runID, err.Error())
+			"Failed to create query to update run %s", run.UUID)
 	}
 	result, err := tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err,
-			"Failed to update run %s. error: '%v'", runID, err.Error())
+			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err,
-			"Failed to update run %s. error: '%v'", runID, err.Error())
+			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", runID)
+		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", fmt.Sprint(runID)), "Failed to update run")
+		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", runID)
+		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
 	return nil
 }
@@ -661,6 +721,7 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
+	// TODO(gkcalat): append CANCELLING to StateHistory
 	result, err := s.db.Exec(`
 		UPDATE run_details
 		SET Conditions = ?, State = ?
