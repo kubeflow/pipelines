@@ -215,7 +215,7 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
     )
 
     exception_msg = (
-        f'Error 400 returned from POST: {mock_request.url}'
+        f'Dataflow service returned HTTP status 400 from POST: {mock_request.url}'
         '. Status: INVALID_ARGUMENT'
         ', Message: JobName invalid; the name must consist of only the characters [-a-z0-9], starting with a letter and ending with a letter or number'
     )

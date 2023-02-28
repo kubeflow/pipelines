@@ -34,7 +34,6 @@ from urllib3.util.retry import Retry
 from google.protobuf import json_format
 
 
-_POLL_INTERVAL_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
 _CONNECTION_RETRY_BACKOFF_FACTOR = 2.
 
@@ -121,14 +120,16 @@ class DataflowFlexTemplateRemoteRunner():
       return json_data
     except requests.exceptions.HTTPError as err:
       try:
-        err_msg = ('Error {} returned from POST: {}. Status: {}, Message: {}'
+        err_msg = ('Dataflow service returned HTTP status {} from POST: {}. Status: {}, Message: {}'
                    .format(err.response.status_code,
                            err.request.url,
                            json_data['error']['status'],
                            json_data['error']['message']))
       except (KeyError, TypeError):
         err_msg = err.response.text
-      raise RuntimeError(err_msg) from err
+      # Raise RuntimeError with the error returned from the Dataflow service.
+      # Suppress HTTPError as it provides no actionable feedback.
+      raise RuntimeError(err_msg) from None
     except json.decoder.JSONDecodeError as err:
       raise RuntimeError('Failed to decode JSON from response:\n{}'
                          .format(err.doc)) from err
