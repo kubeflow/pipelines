@@ -1,6 +1,17 @@
 # Current Version (in development)
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+# 2.0.0-beta.13
+
+## Features
 * Support fanning-in artifact outputs from a task in a `dsl.ParellelFor` context using `dsl.Collected` [\#8808](https://github.com/kubeflow/pipelines/pull/8808)
 * Introduces a new syntax for pipeline tasks to consume outputs from the upstream task while at the same time ignoring if the upstream tasks succeeds or not. [\#8838](https://github.com/kubeflow/pipelines/pull/8838)
 
@@ -13,6 +24,7 @@
 * Enables output definitions when compiling components as pipelines. [\#8848](https://github.com/kubeflow/pipelines/pull/8848)
 * Fix bug when passing data between tasks using f-strings [\#8879](https://github.com/kubeflow/pipelines/pull/8879)
 * Fix environment variable set in component yaml lost during compilation [\#8885](https://github.com/kubeflow/pipelines/pull/8885)
+* Fix attribute error when running Containerized Python Components [\#8887](https://github.com/kubeflow/pipelines/pull/8887)
 
 ## Documentation updates
 
