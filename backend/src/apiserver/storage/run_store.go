@@ -479,10 +479,12 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q", r.StorageState)
 	}
 
-	r.RunDetails.StateHistory = append(r.RunDetails.StateHistory, &model.RuntimeStatus{
-		UpdateTimeInSec: s.time.Now().Unix(),
-		State:           r.RunDetails.State,
-	})
+	if len(r.RunDetails.StateHistory) == 0 || r.RunDetails.StateHistory[len(r.RunDetails.StateHistory)-1].State != r.RunDetails.State {
+		r.RunDetails.StateHistory = append(r.RunDetails.StateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           r.RunDetails.State,
+		})
+	}
 
 	stateHistoryString := ""
 	if history, err := json.Marshal(r.RunDetails.StateHistory); err == nil {
@@ -556,10 +558,12 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
-	run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
-		UpdateTimeInSec: s.time.Now().Unix(),
-		State:           run.RunDetails.State,
-	})
+	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
+		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           run.RunDetails.State,
+		})
+	}
 	stateHistoryString := ""
 	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
 		stateHistoryString = string(historyString)
