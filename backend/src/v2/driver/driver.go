@@ -363,8 +363,16 @@ func makePodSpecPatch(
 		res.Limits[k8score.ResourceCPU] = q
 	}
 	accelerator := container.GetResources().GetAccelerator()
+	var nodeSelector map[string]string
 	if accelerator != nil {
-		return "", fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
+		nodeSelector = map[string]string{
+			"cloud.google.com/gke-accelerator": accelerator.GetType(),
+		}
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
+		if err != nil {
+			return "", err
+		}
+		res.Limits[k8score.ResourceName("nvidia.com/gpu")] = q
 	}
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
@@ -375,6 +383,7 @@ func makePodSpecPatch(
 			Resources: res,
 			Env:       userEnvVar,
 		}},
+		NodeSelector: nodeSelector,
 	}
 	podSpecPatchBytes, err := json.Marshal(podSpec)
 	if err != nil {
