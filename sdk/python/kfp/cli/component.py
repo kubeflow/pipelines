@@ -219,7 +219,7 @@ class ComponentBuilder():
         for comp in self._components:
             if comp.pip_index_urls is not None:
                 pip_index_urls.extend(comp.pip_index_urls)
-        if len(pip_index_urls) > 0:
+        if pip_index_urls:
             self._pip_index_urls = list(dict.fromkeys(pip_index_urls))
 
     def _maybe_write_file(self,
