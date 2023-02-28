@@ -16,6 +16,7 @@ import json
 import os
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from kfp.components import python_component
 from kfp.components import task_final_status
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
@@ -24,8 +25,13 @@ from kfp.components.types import type_annotations
 class Executor():
     """Executor executes v2-based Python function components."""
 
-    def __init__(self, executor_input: Dict, function_to_execute: Callable):
-        self._func = function_to_execute
+    def __init__(self, executor_input: Dict,
+                 function_to_execute: Union[Callable,
+                                            python_component.PythonComponent]):
+        if hasattr(function_to_execute, 'python_func'):
+            self._func = function_to_execute.python_func
+        else:
+            self._func = function_to_execute
 
         self._input = executor_input
         self._input_artifacts: Dict[str,

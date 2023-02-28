@@ -13,6 +13,7 @@
 * Enables output definitions when compiling components as pipelines. [\#8848](https://github.com/kubeflow/pipelines/pull/8848)
 * Fix bug when passing data between tasks using f-strings [\#8879](https://github.com/kubeflow/pipelines/pull/8879)
 * Fix environment variable set in component yaml lost during compilation [\#8885](https://github.com/kubeflow/pipelines/pull/8885)
+* Fix attribute error when running Containerized Python Components [\#8887](https://github.com/kubeflow/pipelines/pull/8887)
 
 ## Documentation updates
 
