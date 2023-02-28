@@ -89,12 +89,12 @@ def make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
     index_url = pip_index_urls[0]
     extra_index_urls = pip_index_urls[1:]
 
-    options = [f'--index-url {index_url} --trusted-host {index_url} ']
+    options = [f'--index-url {index_url} --trusted-host {index_url}']
     options.extend(
-        f'--extra-index-url {extra_index_url} --trusted-host {extra_index_url} '
+        f'--extra-index-url {extra_index_url} --trusted-host {extra_index_url}'
         for extra_index_url in extra_index_urls)
 
-    return ' '.join(options)
+    return ' '.join(options) + ' '
 
 
 _install_python_packages_script_template = '''
