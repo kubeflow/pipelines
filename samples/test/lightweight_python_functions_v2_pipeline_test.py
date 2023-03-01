@@ -40,7 +40,6 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         {
             'inputs': {
                 'parameters': {
-                    'empty_message': '',
                     'message': 'message',
                 }
             },
