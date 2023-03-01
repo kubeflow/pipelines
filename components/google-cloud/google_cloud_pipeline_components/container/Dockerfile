@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Base image to use for this docker
-FROM gcr.io/ml-pipeline/debian-py37:latest
+FROM gcr.io/ml-pipeline/ubuntu-py37:gcpc-stable
 
 WORKDIR /root
 
