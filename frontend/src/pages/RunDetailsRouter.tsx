@@ -46,14 +46,14 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   let recurringRunId: string | undefined;
 
   // Retrieves v1 run detail.
-  const { isSuccess: getV1RunSuccess, isFetching: v1RunIsFetching, data: v1Run } = useQuery<ApiRunDetail, Error>(
+  const { isSuccess: getV1RunSuccess, data: v1Run } = useQuery<ApiRunDetail, Error>(
     ['v1_run_detail', { id: runId }],
     () => Apis.runServiceApi.getRun(runId),
     {},
   );
 
     // Retrieves v2 run detail.
-    const { isSuccess: getV2RunSuccess, isFetching: v2RunIsFetching, data: v2Run } = useQuery<V2beta1Run, Error>(
+    const { isSuccess: getV2RunSuccess, data: v2Run } = useQuery<V2beta1Run, Error>(
       ['v2_run_detail', { id: experimentId, runId }],
       () => Apis.runServiceApiV2.getRun(experimentId, runId),
       {},
@@ -76,10 +76,6 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     { enabled: !!recurringRunId, staleTime: Infinity },
   );
 
-  if (v1RunIsFetching || v2RunIsFetching) {
-    return <div>Currently loading run information</div>;
-  }
-
   if (v1Run === undefined || v2Run === undefined) {
     return <></>;
   }
@@ -91,7 +87,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     pipelineManifestFromRecurringRun = apiRecurringRun.pipeline_spec?.pipeline_manifest;
   }
 
-  if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
+  if (getV2RunSuccess && v2Run) {
     pipelineManifestFromRun = JsYaml.safeDump(v2Run.pipeline_spec);
   }
 

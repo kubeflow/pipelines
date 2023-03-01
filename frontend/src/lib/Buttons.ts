@@ -66,19 +66,34 @@ export default class Buttons {
   public archive(
     resourceName: 'run' | 'experiment',
     getSelectedIds: () => string[],
-    getParentsIds: () => string[],
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.ARCHIVE] = {
       action: () =>
         resourceName === 'run'
-          ? this._archiveRun(getSelectedIds(), getParentsIds(), useCurrentResource, callback)
+          ? this._archiveRun(getSelectedIds(), useCurrentResource, callback)
           : this._archiveExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
       title: 'Archive',
+      tooltip: 'Archive',
+    };
+    return this;
+  }
+
+  public archiveRunV2(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Buttons {
+    this._map[ButtonKeys.ARCHIVE] = {
+      action: () => this._archiveRunV2(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one run to archive',
+      id: 'archiveRunBtn',
+      title: 'ArchiveV2',
       tooltip: 'Archive',
     };
     return this;
@@ -336,14 +351,13 @@ export default class Buttons {
   public restore(
     resourceName: 'run' | 'experiment',
     getSelectedIds: () => string[],
-    getParentsIds: () => string[],
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.RESTORE] = {
       action: () =>
         resourceName === 'run'
-          ? this._restore(getSelectedIds(), getParentsIds(), useCurrentResource, callback)
+          ? this._restore(getSelectedIds(), useCurrentResource, callback)
           : this._restoreExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
@@ -408,25 +422,22 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      [],
       'Retry this run?',
       useCurrent,
+      id => Apis.runServiceApi.retryRun(id),
       callback,
       'Retry',
       'run',
-      id => Apis.runServiceApi.retryRun(id),
     );
   }
 
   private _archiveRun(
     selectedIds: string[],
-    parentsIds: string[],
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      parentsIds,
       `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
         `${
           selectedIds.length === 1 ? 'its' : 'their'
@@ -434,32 +445,49 @@ export default class Buttons {
         `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
         `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
+      id => Apis.runServiceApi.archiveRun(id),
       callback,
       'Archive',
       'run',
-      undefined,
-      idMap => Apis.runServiceApiV2.archiveRun(idMap.get('parentsId')!, idMap.get('resourceId')!),
     );
   }
 
-  private _restore(
+  private _archiveRunV2(
     selectedIds: string[],
-    parentsIds: string[],
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      parentsIds,
+      `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
+        `${
+          selectedIds.length === 1 ? 'its' : 'their'
+        } details. Please note that the run will not ` +
+        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
+        `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      useCurrent,
+      id => Apis.runServiceApi.archiveRun(id),
+      callback,
+      'Archive',
+      'run',
+    );
+  }
+
+  private _restore(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      selectedIds,
       `Do you want to restore ${
         selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
       } original location?`,
       useCurrent,
+      id => Apis.runServiceApi.unarchiveRun(id),
       callback,
       'Restore',
       'run',
-      undefined,
-      idMap => Apis.runServiceApiV2.unarchiveRun(idMap.get('parentsId')!, idMap.get('resourceId')!),
     );
   }
 
@@ -470,7 +498,6 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      [],
       `Do you want to restore ${
         selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
       } original location? All runs and jobs in ${
@@ -481,10 +508,10 @@ export default class Buttons {
         selectedIds,
       )}.`,
       useCurrent,
+      id => Apis.experimentServiceApiV2.unarchiveExperiment(id),
       callback,
       'Restore',
       'experiment',
-      id => Apis.experimentServiceApi.unarchiveExperiment(id),
     );
   }
 
@@ -495,15 +522,14 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      [],
       `Do you want to delete ${
         selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
       }? This action cannot be undone.`,
       useCurrentResource,
+      id => Apis.pipelineServiceApi.deletePipeline(id),
       callback,
       'Delete',
       'pipeline',
-      id => Apis.pipelineServiceApi.deletePipeline(id),
     );
   }
 
@@ -514,15 +540,14 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      [],
       `Do you want to delete ${
         selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
       }? This action cannot be undone.`,
       useCurrentResource,
+      id => Apis.pipelineServiceApi.deletePipelineVersion(id),
       callback,
       'Delete',
       'pipeline version',
-      id => Apis.pipelineServiceApi.deletePipelineVersion(id),
     );
   }
 
@@ -533,13 +558,12 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       [id],
-      [],
       'Do you want to delete this recurring run config? This action cannot be undone.',
       useCurrentResource,
+      jobId => Apis.jobServiceApi.deleteJob(jobId),
       callback,
       'Delete',
       'recurring run config',
-      jobId => Apis.jobServiceApi.deleteJob(jobId),
     );
   }
 
@@ -550,14 +574,13 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       ids,
-      [],
       'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
         ' running pods, but they will not be deleted.',
       useCurrentResource,
+      id => Apis.runServiceApi.terminateRun(id),
       callback,
       'Terminate',
       'run',
-      id => Apis.runServiceApi.terminateRun(id),
     );
   }
 
@@ -568,38 +591,33 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       ids,
-      [],
       'Do you want to delete the selected runs? This action cannot be undone.',
       useCurrentResource,
+      id => Apis.runServiceApi.deleteRun(id),
       callback,
       'Delete',
       'run',
-      id => Apis.runServiceApi.deleteRun(id),
     );
   }
 
   private _dialogActionHandler(
     selectedIds: string[],
-    parentsIds: string[],
     content: string,
     useCurrentResource: boolean,
+    api: (id: string) => Promise<void>,
     callback: (selectedIds: string[], success: boolean) => void,
     actionName: string,
     resourceName: string,
-    api?: (id: string) => Promise<void>,
-    api2?: (ids: Map<string, string>) => Promise<void>,
   ): void {
     const dialogClosedHandler = (confirmed: boolean) =>
       this._dialogClosed(
         confirmed,
         selectedIds,
-        parentsIds,
         actionName,
         resourceName,
         useCurrentResource,
-        callback,
         api,
-        api2,
+        callback,
       );
 
     this._props.updateDialog({
@@ -624,56 +642,29 @@ export default class Buttons {
   private async _dialogClosed(
     confirmed: boolean,
     selectedIds: string[],
-    parentsIds: string[],
     actionName: string,
     resourceName: string,
     useCurrentResource: boolean,
+    api: (id: string) => Promise<void>,
     callback: (selectedIds: string[], success: boolean) => void,
-    api?: (id: string) => Promise<void>,
-    api2?: (ids: Map<string, string>) => Promise<void>,
   ): Promise<void> {
     if (confirmed) {
       const unsuccessfulIds: string[] = [];
       const errorMessages: string[] = [];
-      if (api) {
-        await Promise.all(
-          selectedIds.map(async id => {
-            try {
-              await api(id);
-            } catch (err) {
-              unsuccessfulIds.push(id);
-              const errorMessage = await errorToMessage(err);
-              errorMessages.push(
-                `Failed to ${actionName.toLowerCase()} ${resourceName}: ${id} with error: "${errorMessage}"`,
-              );
-            }
-          }),
-        );
-      }
+      await Promise.all(
+        selectedIds.map(async id => {
+          try {
+            await api(id);
+          } catch (err) {
+            unsuccessfulIds.push(id);
+            const errorMessage = await errorToMessage(err);
+            errorMessages.push(
+              `Failed to ${actionName.toLowerCase()} ${resourceName}: ${id} with error: "${errorMessage}"`,
+            );
+          }
+        }),
+      );
 
-      if (api2 && parentsIds.length === selectedIds.length) {
-        const parentsIdResourceId: Map<string, string>[] = [];
-        for (let i = 0; i < selectedIds.length; i++) {
-          parentsIdResourceId[i] = new Map<string, string>([
-            ['parentsId', parentsIds[i]],
-            ['resourceId', selectedIds[i]]
-          ])
-        }
-        await Promise.all(
-          parentsIdResourceId.map(async idMap => {
-            try {
-              await api2(idMap);
-            } catch (err) {
-              unsuccessfulIds.push(idMap.get('resourceId')!);
-              const errorMessage = await errorToMessage(err);
-              errorMessages.push(
-                `Failed to ${actionName.toLowerCase()} ${resourceName}: ${idMap.get('resourceId')} with error: "${errorMessage}"`,
-              );
-            }
-          }),
-        );
-      }
-      
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
       if (successfulOps > 0) {
         this._props.updateSnackbar({
@@ -700,7 +691,6 @@ export default class Buttons {
       callback(unsuccessfulIds, !unsuccessfulIds.length);
     }
   }
-
   private _compareRuns(selectedIds: string[]): void {
     const indices = selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
@@ -941,17 +931,16 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      [],
       `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${
         selectedIds.length === 1 ? 'its' : 'their'
       } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(
         selectedIds,
       )} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
+      id => Apis.experimentServiceApiV2.archiveExperiment(id),
       callback,
       'Archive',
       'experiment',
-      id => Apis.experimentServiceApi.archiveExperiment(id),
     );
   }
 }

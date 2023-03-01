@@ -300,25 +300,13 @@ function updateToolBarActions(
   const getRunIdList = () =>
     runMetadata && runMetadata.run_id ? [runMetadata.run_id] : runIdFromParams ? [runIdFromParams] : [];
 
-  const getExperimentIdList = () => 
-    runMetadata && runMetadata.experiment_id ? [runMetadata.experiment_id] : [];
-  
-  const getExperimentIdRunIdList = () => {
-    const idMap = new Map<string, string>();
-    if (runMetadata && runMetadata.experiment_id && runMetadata.run_id) {
-      idMap.set('experimentId', runMetadata.experiment_id);
-      idMap.set('runId', runMetadata.run_id);
-    }
-    return [idMap];
-  }
-
   buttons
     .retryRun(getRunIdList, true, () => retry())
     .cloneRun(getRunIdList, true)
     .terminateRun(getRunIdList, true, () => refresh());
   !runMetadata || runMetadata.storage_state === V2beta1RunStorageState.ARCHIVED
-    ? buttons.restore('run', getRunIdList, getExperimentIdList, true, () => refresh())
-    : buttons.archive('run', getRunIdList, getExperimentIdList, true, () => refresh());
+    ? buttons.restore('run', getRunIdList, true, () => refresh())
+    : buttons.archive('run', getRunIdList, true, () => refresh());
 
   const actions = buttons.getToolbarActionMap();
   actions[ButtonKeys.TERMINATE_RUN].disabled =

@@ -293,8 +293,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       );
       const idGetter = () => (experiment.experiment_id ? [experiment.experiment_id] : []);
       experiment.storage_state === V2beta1ExperimentStorageState.ARCHIVED
-        ? buttons.restore('experiment', idGetter, () => [], true, () => this.refresh())
-        : buttons.archive('experiment', idGetter, () => [], true, () => this.refresh());
+        ? buttons.restore('experiment', idGetter, true, () => this.refresh())
+        : buttons.archive('experiment', idGetter, true, () => this.refresh());
       // If experiment is archived, shows archived runs list by default.
       // If experiment is active, shows active runs list by default.
       let runStorageState = this.state.runStorageState;
@@ -384,7 +384,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       toolbarButtons.archive(
         'run',
         () => this.state.selectedIds,
-        () => [],
         false,
         ids => this._selectionChanged(ids),
       );
@@ -392,7 +391,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       toolbarButtons.restore(
         'run',
         () => this.state.selectedIds,
-        () => [],
         false,
         ids => this._selectionChanged(ids),
       );
