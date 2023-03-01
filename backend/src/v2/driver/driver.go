@@ -684,6 +684,18 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				continue
 			}
 
+			// Handle when parameter does not have input value
+			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
+				// When parameter is not optional and there is no input value, report error
+				return fmt.Errorf("no value provided for non-optional parameter %q", name)
+			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
+				// When parameter is optional and there is no input value, value comes from default value.
+				// But we don't pass the default value here. They are resolved internally within the component.
+				// Note: in the past the backend passed the default values into the component. This is a behavior change.
+				// See discussion: https://github.com/kubeflow/pipelines/pull/8765#discussion_r1119477085
+				continue
+			}
+
 			switch spec.GetParameterType() {
 			case pipelinespec.ParameterType_STRING:
 				_, isValueString := value.GetKind().(*structpb.Value_StringValue)
