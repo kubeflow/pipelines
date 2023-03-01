@@ -14,14 +14,20 @@
 """Core modules for AI Platform Pipeline Components."""
 
 import os
-
-from .export_model import component as model_export_component
-from .upload_model import component as model_upload_component
+try:
+  from kfp.v2.components import load_component_from_file
+except ImportError:
+  from kfp.components import load_component_from_file
 
 __all__ = [
     'ModelExportOp',
     'ModelUploadOp',
 ]
 
-ModelExportOp = model_export_component.model_export
-ModelUploadOp = model_upload_component.model_upload
+ModelExportOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'export_model/component.yaml')
+)
+
+ModelUploadOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'upload_model/component.yaml')
+)
