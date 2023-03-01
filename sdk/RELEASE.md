@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* `pip_index_urls` is now considered also for containerized python component - the urls will be used for Dockerfile generation [\#8871](https://github.com/kubeflow/pipelines/pull/8871)
 
 ## Breaking changes
 
