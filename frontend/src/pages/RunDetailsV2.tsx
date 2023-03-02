@@ -300,6 +300,9 @@ function updateToolBarActions(
   const getRunIdList = () =>
     runMetadata && runMetadata.run_id ? [runMetadata.run_id] : runIdFromParams ? [runIdFromParams] : [];
 
+  const getExperimentIdList = () => 
+    runMetadata && runMetadata.experiment_id ? [runMetadata.experiment_id] : [];
+
   buttons
     .retryRun(getRunIdList, true, () => retry())
     .cloneRun(getRunIdList, true)

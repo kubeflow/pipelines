@@ -60,6 +60,7 @@ export interface Row {
   expandState?: ExpandState;
   error?: string;
   id: string;
+  parentId?: string;
   otherFields: any[];
 }
 
@@ -195,8 +196,10 @@ interface CustomTableProps {
   reload: (request: ListRequest) => Promise<string>;
   rows: Row[];
   selectedIds?: string[];
+  parentIds?: string[];
   toggleExpansion?: (rowId: number) => void;
   updateSelection?: (selectedIds: string[]) => void;
+  updateParentIds?: (parentIds: string[]) => void;
   useRadioButtons?: boolean;
   disableAdditionalSelection?: boolean;
 }
@@ -253,25 +256,38 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     }
   }
 
-  public handleClick(e: React.MouseEvent, id: string): void {
+  public handleClick(e: React.MouseEvent, id: string, parentId: string): void {
     if (this.props.disableSelection === true) {
       return;
     }
 
     let newSelected = [];
+    let newSelectedParent = [];
     if (this.props.useRadioButtons) {
       newSelected = [id];
+      newSelectedParent = [parentId];
     } else {
       const selectedIds = this.props.selectedIds || [];
+      const selectedParentIds = this.props.parentIds || [];
       const selectedIndex = selectedIds.indexOf(id);
+
       newSelected =
         selectedIndex === -1
           ? selectedIds.concat(id)
           : selectedIds.slice(0, selectedIndex).concat(selectedIds.slice(selectedIndex + 1));
+
+      newSelectedParent = 
+        selectedIndex === -1
+          ? selectedParentIds.concat(parentId)
+          : selectedParentIds.slice(0, selectedIndex).concat(selectedParentIds.slice(selectedIndex + 1));
     }
 
     if (this.props.updateSelection) {
       this.props.updateSelection(newSelected);
+    }
+
+    if (this.props.updateParentIds) {
+      this.props.updateParentIds(newSelectedParent);
     }
 
     e.stopPropagation();
@@ -416,7 +432,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                     selected && css.selected,
                     row.expandState === ExpandState.EXPANDED && css.expandedRow,
                   )}
-                  onClick={e => this.handleClick(e, row.id)}
+                  onClick={e => this.handleClick(e, row.id, row.parentId || '')}
                 >
                   {// Called as function to avoid breaking shallow rendering tests.
                   BodyRowSelectionSection({

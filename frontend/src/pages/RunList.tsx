@@ -75,8 +75,10 @@ export type RunListProps = MaskProps &
     noFilterBox?: boolean;
     onError: (message: string, error: Error) => void;
     onSelectionChange?: (selectedRunIds: string[]) => void;
+    parentIdsChange?: (selectedExperimentIds: string[]) => void;
     runIdListMask?: string[];
     selectedIds?: string[];
+    parentIds?: string[];
     storageState?: V2beta1RunStorageState;
   };
 
@@ -156,6 +158,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       const row = {
         error: r.error,
         id: r.run.run_id!,
+        parentId: r.run.experiment_id,
         otherFields: [
           r.run!.display_name,
           r.run.state || '-',
@@ -181,10 +184,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           columns={columns}
           rows={rows}
           selectedIds={this.props.selectedIds}
+          parentIds={this.props.parentIds}
           initialSortColumn={RunSortKeys.CREATED_AT}
           ref={this._tableRef}
           filterLabel='Filter runs'
           updateSelection={this.props.onSelectionChange}
+          updateParentIds={this.props.parentIdsChange}
           reload={this._loadRuns.bind(this)}
           disablePaging={this.props.disablePaging}
           disableSorting={this.props.disableSorting}

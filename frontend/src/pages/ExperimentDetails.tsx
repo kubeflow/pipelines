@@ -106,6 +106,7 @@ interface ExperimentDetailsState {
   experiment: V2beta1Experiment | null;
   recurringRunsManagerOpen: boolean;
   selectedIds: string[];
+  parentIds: string[];
   runStorageState: V2beta1RunStorageState;
   runListToolbarProps: ToolbarProps;
   runlistRefreshCount: number;
@@ -127,6 +128,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       },
       // TODO: remove
       selectedIds: [],
+      parentIds:[],
       runStorageState: V2beta1RunStorageState.AVAILABLE,
       runlistRefreshCount: 0,
     };
@@ -234,7 +236,9 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               experimentIdMask={experiment.experiment_id}
               refreshCount={this.state.runlistRefreshCount}
               selectedIds={this.state.selectedIds}
+              parentIds={this.state.parentIds}
               onSelectionChange={this._selectionChanged}
+              parentIdsChange={this._parentIdsChanged}
               onTabSwitch={this._onRunTabSwitch}
               {...this.props}
             />
@@ -384,6 +388,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       toolbarButtons.archive(
         'run',
         () => this.state.selectedIds,
+        // () => this.state.parentIds,
         false,
         ids => this._selectionChanged(ids),
       );
@@ -391,6 +396,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       toolbarButtons.restore(
         'run',
         () => this.state.selectedIds,
+        // () => this.state.parentIds,
         false,
         ids => this._selectionChanged(ids),
       );
@@ -415,6 +421,12 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       selectedIds,
     });
   };
+
+  _parentIdsChanged = (parentIds: string[]) => {
+    this.setState({
+      parentIds,
+    })
+  }
 
   private _recurringRunsManagerClosed(): void {
     this.setState({ recurringRunsManagerOpen: false });
