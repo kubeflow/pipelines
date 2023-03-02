@@ -308,8 +308,8 @@ function updateToolBarActions(
     .cloneRun(getRunIdList, true)
     .terminateRun(getRunIdList, true, () => refresh());
   !runMetadata || runMetadata.storage_state === V2beta1RunStorageState.ARCHIVED
-    ? buttons.restore('run', getRunIdList, true, () => refresh())
-    : buttons.archive('run', getRunIdList, true, () => refresh());
+    ? buttons.restoreRunV2(getRunIdList, getExperimentIdList, true, () => refresh())
+    : buttons.archiveRunV2(getRunIdList, getExperimentIdList, true, () => refresh());
 
   const actions = buttons.getToolbarActionMap();
   actions[ButtonKeys.TERMINATE_RUN].disabled =

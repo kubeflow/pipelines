@@ -74,8 +74,7 @@ export type RunListProps = MaskProps &
     hideMetricMetadata?: boolean;
     noFilterBox?: boolean;
     onError: (message: string, error: Error) => void;
-    onSelectionChange?: (selectedRunIds: string[]) => void;
-    parentIdsChange?: (selectedExperimentIds: string[]) => void;
+    onSelectionChange?: (selectedRunIds: string[], selectedExperimentIds: string[]) => void;
     runIdListMask?: string[];
     selectedIds?: string[];
     parentIds?: string[];
@@ -189,7 +188,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           ref={this._tableRef}
           filterLabel='Filter runs'
           updateSelection={this.props.onSelectionChange}
-          updateParentIds={this.props.parentIdsChange}
           reload={this._loadRuns.bind(this)}
           disablePaging={this.props.disablePaging}
           disableSorting={this.props.disableSorting}

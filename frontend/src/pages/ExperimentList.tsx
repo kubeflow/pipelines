@@ -54,6 +54,7 @@ interface DisplayExperiment extends V2beta1Experiment {
 interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
   selectedIds: string[];
+  parentIds: string[];
   selectedTab: number;
 }
 
@@ -66,6 +67,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     this.state = {
       displayExperiments: [],
       selectedIds: [],
+      parentIds: [],
       selectedTab: 0,
     };
   }
@@ -77,11 +79,11 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(
-          'run',
+        .archiveRunV2(
           () => this.state.selectedIds,
+          () => this.state.parentIds,
           false,
-          ids => this._selectionChanged(ids),
+          (rids, pids) => this._selectionChanged(rids, pids),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
@@ -91,6 +93,11 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 
   public render(): JSX.Element {
+    console.log(this.state.selectedIds);
+    console.log(this.state.parentIds);
+    console.log('end');
+
+
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -250,13 +257,13 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     return response.next_page_token || '';
   }
 
-  private _selectionChanged(selectedIds: string[]): void {
+  private _selectionChanged(selectedIds: string[], parentIds: string[]): void {
     const actions = this.props.toolbarProps.actions;
     actions[ButtonKeys.COMPARE].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     actions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
     actions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
     this.props.updateToolbar({ actions });
-    this.setState({ selectedIds });
+    this.setState({ selectedIds, parentIds });
   }
 
   private _toggleRowExpand(rowIndex: number): void {

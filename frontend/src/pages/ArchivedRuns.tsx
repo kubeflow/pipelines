@@ -24,7 +24,6 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 
 interface ArchivedRunsState {
   selectedIds: string[];

@@ -77,7 +77,6 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
             experimentIdMask={this.props.experimentIdMask}
             ref={this._runlistRef}
             onSelectionChange={this.props.onSelectionChange}
-            parentIdsChange={this.props.parentIdsChange}
             selectedIds={this.props.selectedIds}
             parentIds={this.props.parentIds}
             noFilterBox={false}

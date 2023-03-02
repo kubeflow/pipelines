@@ -198,8 +198,7 @@ interface CustomTableProps {
   selectedIds?: string[];
   parentIds?: string[];
   toggleExpansion?: (rowId: number) => void;
-  updateSelection?: (selectedIds: string[]) => void;
-  updateParentIds?: (parentIds: string[]) => void;
+  updateSelection?: (selectedIds: string[], parentIds: string[]) => void;
   useRadioButtons?: boolean;
   disableAdditionalSelection?: boolean;
 }
@@ -248,11 +247,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       // This should be impossible to reach
       return;
     }
+
     const selectedIds = (event.target as CheckboxProps).checked
       ? this.props.rows.map(v => v.id)
       : [];
+
+    const parentIds = (event.target as CheckboxProps).checked
+    ? this.props.rows.map(v => v.parentId || '')
+    : [];
+
     if (this.props.updateSelection) {
-      this.props.updateSelection(selectedIds);
+      this.props.updateSelection(selectedIds, parentIds);
     }
   }
 
@@ -283,11 +288,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     }
 
     if (this.props.updateSelection) {
-      this.props.updateSelection(newSelected);
-    }
-
-    if (this.props.updateParentIds) {
-      this.props.updateParentIds(newSelectedParent);
+      this.props.updateSelection(newSelected, newSelectedParent);
     }
 
     e.stopPropagation();

@@ -238,7 +238,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               selectedIds={this.state.selectedIds}
               parentIds={this.state.parentIds}
               onSelectionChange={this._selectionChanged}
-              parentIdsChange={this._parentIdsChanged}
               onTabSwitch={this._onRunTabSwitch}
               {...this.props}
             />
@@ -349,7 +348,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         runStorageState,
         runlistRefreshCount,
       });
-      this._selectionChanged([]);
+      this._selectionChanged([], []);
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
@@ -373,32 +372,30 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         runlistRefreshCount,
       },
       () => {
-        this._selectionChanged([]);
+        this._selectionChanged([], []);
       },
     );
 
     return;
   };
 
-  _selectionChanged = (selectedIds: string[]) => {
+  _selectionChanged = (selectedIds: string[], parentIds: string[]) => {
     const toolbarButtons = this._getRunInitialToolBarButtons();
     // If user selects to show Active runs list, shows `Archive` button for selected runs.
     // If user selects to show Archive runs list, shows `Restore` button for selected runs.
     if (this.state.runStorageState === V2beta1RunStorageState.AVAILABLE) {
-      toolbarButtons.archive(
-        'run',
+      toolbarButtons.archiveRunV2(
         () => this.state.selectedIds,
-        // () => this.state.parentIds,
+        () => this.state.parentIds,
         false,
-        ids => this._selectionChanged(ids),
+        (rids, pids) => this._selectionChanged(rids, pids), // rids: resourceIds, pids: parentIds
       );
     } else {
-      toolbarButtons.restore(
-        'run',
+      toolbarButtons.restoreRunV2(
         () => this.state.selectedIds,
-        // () => this.state.parentIds,
+        () => this.state.parentIds,
         false,
-        ids => this._selectionChanged(ids),
+        (rids, pids) => this._selectionChanged(rids, pids),
       );
     }
     const toolbarActions = toolbarButtons.getToolbarActionMap();
@@ -419,14 +416,9 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         topLevelToolbar: this.state.runListToolbarProps.topLevelToolbar,
       },
       selectedIds,
+      parentIds,
     });
   };
-
-  _parentIdsChanged = (parentIds: string[]) => {
-    this.setState({
-      parentIds,
-    })
-  }
 
   private _recurringRunsManagerClosed(): void {
     this.setState({ recurringRunsManagerOpen: false });

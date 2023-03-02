@@ -85,11 +85,12 @@ export default class Buttons {
 
   public archiveRunV2(
     getSelectedIds: () => string[],
+    getParentIds: () => string[],
     useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void,
+    callback: (selectedIds: string[], parentIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.ARCHIVE] = {
-      action: () => this._archiveRunV2(getSelectedIds(), useCurrentResource, callback),
+      action: () => this._archiveRunV2(getSelectedIds(), getParentIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one run to archive',
       id: 'archiveRunBtn',
@@ -368,6 +369,23 @@ export default class Buttons {
     return this;
   }
 
+  public restoreRunV2(
+    getSelectedIds: () => string[],
+    getParentIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], parentIds: string[], success: boolean) => void,
+  ): Buttons {
+    this._map[ButtonKeys.RESTORE] = {
+      action: () => this._restoreRunV2(getSelectedIds(), getParentIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
+      id: 'restoreBtn',
+      title: 'RestoreV2',
+      tooltip: 'Restore the archived run(s) to original location',
+    };
+    return this;
+  }
+
   public terminateRun(
     getSelectedIds: () => string[],
     useCurrentResource: boolean,
@@ -454,11 +472,15 @@ export default class Buttons {
 
   private _archiveRunV2(
     selectedIds: string[],
+    parentIds: string[],
     useCurrent: boolean,
-    callback: (selectedIds: string[], success: boolean) => void,
+    callback: (selectedIds: string[], parentIds: string[], success: boolean) => void,
   ): void {
-    this._dialogActionHandler(
+    console.log(selectedIds);
+    console.log(parentIds);
+    this._dialogActionHandlerMultiId(
       selectedIds,
+      parentIds,
       `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
         `${
           selectedIds.length === 1 ? 'its' : 'their'
@@ -466,7 +488,7 @@ export default class Buttons {
         `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
         `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
-      id => Apis.runServiceApi.archiveRun(id),
+      idMap => Apis.runServiceApiV2.archiveRun(idMap.get('parentId')!, idMap.get('resourceId')!),
       callback,
       'Archive',
       'run',
@@ -485,6 +507,28 @@ export default class Buttons {
       } original location?`,
       useCurrent,
       id => Apis.runServiceApi.unarchiveRun(id),
+      callback,
+      'Restore',
+      'run',
+    );
+  }
+
+  private _restoreRunV2(
+    selectedIds: string[],
+    parentIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], parentIds: string[], success: boolean) => void,
+  ): void {
+    console.log(selectedIds);
+    console.log(parentIds);
+    this._dialogActionHandlerMultiId(
+      selectedIds,
+      parentIds,
+      `Do you want to restore ${
+        selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
+      } original location?`,
+      useCurrent,
+      idMap => Apis.runServiceApiV2.unarchiveRun(idMap.get('parentId')!, idMap.get('resourceId')!),
       callback,
       'Restore',
       'run',
@@ -691,6 +735,114 @@ export default class Buttons {
       callback(unsuccessfulIds, !unsuccessfulIds.length);
     }
   }
+  
+  private _dialogActionHandlerMultiId(
+    selectedIds: string[],
+    parentIds: string[],
+    content: string,
+    useCurrentResource: boolean,
+    api: (id: Map<string, string>) => Promise<void>,
+    callback: (selectedIds: string[], parentIds: string[], success: boolean) => void,
+    actionName: string,
+    resourceName: string,
+  ): void {
+    const dialogClosedHandler = (confirmed: boolean) =>
+      this._dialogClosedMultiId(
+        confirmed,
+        selectedIds,
+        parentIds,
+        actionName,
+        resourceName,
+        useCurrentResource,
+        api,
+        callback,
+      );
+
+    this._props.updateDialog({
+      buttons: [
+        {
+          onClick: async () => await dialogClosedHandler(false),
+          text: 'Cancel',
+        },
+        {
+          onClick: async () => await dialogClosedHandler(true),
+          text: actionName,
+        },
+      ],
+      content,
+      onClose: async () => await dialogClosedHandler(false),
+      title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${
+        useCurrentResource ? '' : s(selectedIds.length)
+      }?`,
+    });
+  }
+
+  private async _dialogClosedMultiId(
+    confirmed: boolean,
+    selectedIds: string[],
+    parentIds: string[],
+    actionName: string,
+    resourceName: string,
+    useCurrentResource: boolean,
+    api: (id: Map<string, string>) => Promise<void>,
+    callback: (selectedIds: string[], parentId:string[], success: boolean) => void,
+  ): Promise<void> {
+    if (confirmed) {
+      const unsuccessfulIds: string[] = [];
+      const unsuccessfulParentIds: string[] = [];
+      const errorMessages: string[] = [];
+      const idMaps: Map<string, string>[] = [];
+      if (selectedIds.length === parentIds.length) {
+        for (let i = 0; i < selectedIds.length; i++) {
+          idMaps[i] = new Map<string, string>([
+            ['parentId', parentIds[i]],
+            ['resourceId', selectedIds[i]],
+          ])
+        }
+      }
+
+      await Promise.all(
+        idMaps.map(async idMap => {
+          try {
+            await api(idMap);
+          } catch (err) {
+            unsuccessfulIds.push(idMap.get('resourceId')!);
+            unsuccessfulParentIds.push(idMap.get('parentIds')!);
+            const errorMessage = await errorToMessage(err);
+            errorMessages.push(
+              `Failed to ${actionName.toLowerCase()} ${resourceName}: ${idMap.get('resourceId')} with error: "${errorMessage}"`,
+            );
+          }
+        }),
+      );
+
+      const successfulOps = selectedIds.length - unsuccessfulIds.length;
+      if (successfulOps > 0) {
+        this._props.updateSnackbar({
+          message: `${actionName} succeeded for ${
+            useCurrentResource ? 'this' : successfulOps
+          } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
+          open: true,
+        });
+        if (!useCurrentResource) {
+          this._refresh();
+        }
+      }
+
+      if (unsuccessfulIds.length > 0) {
+        this._props.updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          content: errorMessages.join('\n\n'),
+          title: `Failed to ${actionName.toLowerCase()} ${
+            useCurrentResource ? '' : unsuccessfulIds.length + ' '
+          }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
+        });
+      }
+
+      callback(unsuccessfulIds, unsuccessfulParentIds, !unsuccessfulIds.length);
+    }
+  }
+
   private _compareRuns(selectedIds: string[]): void {
     const indices = selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
