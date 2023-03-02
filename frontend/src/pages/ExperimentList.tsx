@@ -93,11 +93,6 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 
   public render(): JSX.Element {
-    console.log(this.state.selectedIds);
-    console.log(this.state.parentIds);
-    console.log('end');
-
-
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -287,6 +282,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         {...this.props}
         disablePaging={false}
         selectedIds={this.state.selectedIds}
+        parentIds={this.state.parentIds}
         noFilterBox={true}
         storageState={V2beta1RunStorageState.AVAILABLE}
         onSelectionChange={this._selectionChanged.bind(this)}

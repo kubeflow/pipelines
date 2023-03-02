@@ -27,6 +27,7 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface AllRunsListState {
   selectedIds: string[];
+  parentIds: string[];
 }
 
 export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> {
@@ -37,6 +38,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
 
     this.state = {
       selectedIds: [],
+      parentIds:[],
     };
   }
 
@@ -47,11 +49,11 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         .newRun()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(
-          'run',
+        .archiveRunV2(
           () => this.state.selectedIds,
+          () => this.state.parentIds,
           false,
-          selectedIds => this._selectionChanged(selectedIds),
+          (selectedIds, parentIds) => this._selectionChanged(selectedIds, parentIds),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
@@ -66,6 +68,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         <RunList
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
+          parentIds={this.state.parentIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
           storageState={V2beta1RunStorageState.AVAILABLE}
@@ -85,7 +88,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
     }
   }
 
-  private _selectionChanged(selectedIds: string[]): void {
+  private _selectionChanged(selectedIds: string[], parentIds: string[]): void {
     const toolbarActions = this.props.toolbarProps.actions;
     toolbarActions[ButtonKeys.COMPARE].disabled =
       selectedIds.length <= 1 || selectedIds.length > 10;
@@ -95,7 +98,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
       actions: toolbarActions,
       breadcrumbs: this.props.toolbarProps.breadcrumbs,
     });
-    this.setState({ selectedIds });
+    this.setState({ selectedIds, parentIds });
   }
 }
 

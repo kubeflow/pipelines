@@ -27,6 +27,7 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedRunsState {
   selectedIds: string[];
+  parentIds: string[];
 }
 
 export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState> {
@@ -37,6 +38,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
 
     this.state = {
       selectedIds: [],
+      parentIds:[],
     };
   }
 
@@ -44,12 +46,17 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .restore('run', () => this.state.selectedIds, false, this._selectionChanged.bind(this))
+        .restoreRunV2(
+          () => this.state.selectedIds, 
+          () => this.state.parentIds, 
+          false, 
+          (selectedIds, parentIds) => this._selectionChanged(selectedIds, parentIds),
+        )
         .refresh(this.refresh.bind(this))
         .delete(
           () => this.state.selectedIds,
           'run',
-          this._selectionChanged.bind(this),
+          selectIds => this._selectionChanged.bind(selectIds),
           false /* useCurrentResource */,
         )
         .getToolbarActionMap(),
@@ -65,6 +72,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
           namespaceMask={this.props.namespace}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
+          parentIds={this.state.parentIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
           storageState={V2beta1RunStorageState.ARCHIVED}
@@ -82,7 +90,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
     }
   }
 
-  private _selectionChanged(selectedIds: string[]): void {
+  private _selectionChanged(selectedIds: string[], parentIds: string[]): void {
     const toolbarActions = this.props.toolbarProps.actions;
     toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
     toolbarActions[ButtonKeys.DELETE_RUN].disabled = !selectedIds.length;
@@ -90,7 +98,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
       actions: toolbarActions,
       breadcrumbs: this.props.toolbarProps.breadcrumbs,
     });
-    this.setState({ selectedIds });
+    this.setState({ selectedIds, parentIds });
   }
 }
 
