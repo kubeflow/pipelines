@@ -15,38 +15,102 @@ MODEL_NAME = f'projects/{PROJECT}/locations/{LOCATION}/models/1234'
 MODEL_EVAL_NAME = (
     f'projects/{PROJECT}/locations/{LOCATION}/models/1234/evaluations/567'
 )
+EVAL_SLICE_NAME_1 = MODEL_EVAL_NAME + '/slices/111'
+EVAL_SLICE_NAME_2 = MODEL_EVAL_NAME + '/slices/222'
+EVAL_SLICE_NAME_3 = MODEL_EVAL_NAME + '/slices/333'
 
-EVAL_SLICE_NAME_1 = 'projects/977012026409/locations/us-central1/models/3699931394256928768/evaluations/3142641870479572908/slices/7424503431852652227'
-EVAL_SLICE_NAME_2 = 'projects/977012026409/locations/us-central1/models/3699931394256928768/evaluations/3142641870479572908/slices/7599200443631607093'
-
-
+ANN_RESOURCE_NAME_1 = (
+    'projects/*/locations/*/datasets/*/dataItems/000/annotations/111'
+)
+ANN_RESOURCE_NAME_2 = (
+    'projects/*/locations/*/datasets/*/dataItems/000/annotations/222'
+)
 ERROR_ANALYSIS_ANNOTATION_1 = {
     'attributedItems': [
         {
-            'annotationResourceName': 'projects/123456/locations/us-central1/datasets/114514/dataItems/12345/annotations/57981023935',
+            'annotationResourceName': ANN_RESOURCE_NAME_1,
             'distance': 1.4385216236114502,
         },
     ],
     'outlierScore': 1.4385216236114502,
     'outlierThreshold': 2.2392595775946518,
 }
-
 ERROR_ANALYSIS_ANNOTATION_2 = {
     'attributedItems': [
         {
-            'annotationResourceName': 'projects/123456/locations/us-central1/datasets/114514/dataItems/54124/annotations/836409557033',
+            'annotationResourceName': ANN_RESOURCE_NAME_2,
             'distance': 0.6817775964736938,
         },
     ],
     'outlierScore': 0.6817775964736938,
     'outlierThreshold': 2.2392595775946518,
 }
+EVALUATED_ANNOTATION_1 = {
+    'type': 'FALSE_POSITIVE',
+    'evaluated_data_item_view_id': '000',
+    'predictions': ['roses', 0.00047175522],
+    'ground_truths': ['sunflowers'],
+    'annotation_resource_names': [ANN_RESOURCE_NAME_1],
+    'slice_value': 'roses',
+}
+EVALUATED_ANNOTATION_2 = {
+    'type': 'FALSE_POSITIVE',
+    'evaluated_data_item_view_id': '000',
+    'predictions': ['dandelion', 0.00023385882],
+    'ground_truths': ['sunflowers'],
+    'annotation_resource_names': [ANN_RESOURCE_NAME_1],
+    'slice_value': 'dandelion',
+}
+EVALUATED_ANNOTATION_3 = {
+    'type': 'FALSE_POSITIVE',
+    'evaluated_data_item_view_id': '000',
+    'predictions': ['tulips', 7.548173e-05],
+    'ground_truths': ['sunflowers'],
+    'annotation_resource_names': [ANN_RESOURCE_NAME_2],
+    'slice_value': 'tulips',
+}
+SLICE_TO_RESOURCE_NAME = {
+    'roses': EVAL_SLICE_NAME_1,
+    'dandelion': EVAL_SLICE_NAME_2,
+    'tulips': EVAL_SLICE_NAME_3,
+}
+EVALUATED_ANNOTATIONS_BY_SLICE = {
+    'roses': [{
+        'type': EVALUATED_ANNOTATION_1['type'],
+        'evaluated_data_item_view_id': EVALUATED_ANNOTATION_1[
+            'evaluated_data_item_view_id'
+        ],
+        'predictions': EVALUATED_ANNOTATION_1['predictions'],
+        'ground_truths': EVALUATED_ANNOTATION_1['ground_truths'],
+        'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_1],
+    }],
+    'dandelion': [{
+        'type': EVALUATED_ANNOTATION_2['type'],
+        'evaluated_data_item_view_id': EVALUATED_ANNOTATION_2[
+            'evaluated_data_item_view_id'
+        ],
+        'predictions': EVALUATED_ANNOTATION_2['predictions'],
+        'ground_truths': EVALUATED_ANNOTATION_2['ground_truths'],
+        'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_1],
+    }],
+    'tulips': [{
+        'type': EVALUATED_ANNOTATION_3['type'],
+        'evaluated_data_item_view_id': EVALUATED_ANNOTATION_3[
+            'evaluated_data_item_view_id'
+        ],
+        'predictions': EVALUATED_ANNOTATION_3['predictions'],
+        'ground_truths': EVALUATED_ANNOTATION_3['ground_truths'],
+        'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_2],
+    }],
+}
 
 
 class ImportEvaluatedAnnotationTest(unittest.TestCase):
 
   @mock.patch.object(
-      import_evaluated_annotation, '_make_parent_dirs_and_return_path'
+      import_evaluated_annotation,
+      '_make_parent_dirs_and_return_path',
+      autospec=True,
   )
   def test_parse_args(self, mock_make_parent_dirs_and_return_path):
     mock_make_parent_dirs_and_return_path.return_value = '/gcs/pipeline/dir'
@@ -66,7 +130,7 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
     ]
     import_evaluated_annotation._parse_args(test_argv)
 
-  @mock.patch.object(json, 'loads')
+  @mock.patch.object(json, 'loads', autospec=True)
   def test_get_model_eval_resource_name(self, mock_json):
     # Arrange.
     json_content = {
@@ -95,7 +159,7 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
     # Assert.
     self.assertEqual(result, expected_output)
 
-  @mock.patch.object(aiplatform_v1, 'ModelServiceClient')
+  @mock.patch.object(aiplatform_v1, 'ModelServiceClient', autospec=True)
   def test_get_model_evaluation_slices_annotation_spec_map(self, mock_client):
     # Arrange.
     mock_eval_slice1 = mock.MagicMock()
@@ -144,7 +208,9 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       import_evaluated_annotation.read_gcs_uri_as_text('invalid-gcs-uri')
 
-  @mock.patch.object(import_evaluated_annotation, 'read_gcs_uri_as_text')
+  @mock.patch.object(
+      import_evaluated_annotation, 'read_gcs_uri_as_text', autospec=True
+  )
   def test_get_error_analysis_map(self, mock_read_gcs_uri_as_text):
     # Arrange.
     output_uri = 'gs://my-bucket/path/to/error_analysis.jsonl'
@@ -172,25 +238,93 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
     self.assertEqual(result, error_analysis_map)
     mock_read_gcs_uri_as_text.assert_called_once_with(output_uri)
 
+  @mock.patch.object(
+      import_evaluated_annotation, 'read_gcs_uri_as_text', autospec=True
+  )
+  def test_get_evaluated_annotations_by_slice_map(
+      self, mock_read_gcs_uri_as_text
+  ):
+    output_uri = 'gs://bucket/evaluated_annotations.jsonl'
+    slice_value_to_resource_name = SLICE_TO_RESOURCE_NAME
+    error_analysis = {
+        ANN_RESOURCE_NAME_1: [ERROR_ANALYSIS_ANNOTATION_1],
+        ANN_RESOURCE_NAME_2: [ERROR_ANALYSIS_ANNOTATION_2],
+    }
+    mock_read_evaluated_annotations_content = '\n'.join([
+        json.dumps(EVALUATED_ANNOTATION_1),
+        json.dumps(EVALUATED_ANNOTATION_2),
+        json.dumps(EVALUATED_ANNOTATION_3),
+    ])
+
+    mock_read_gcs_uri_as_text.return_value = (
+        mock_read_evaluated_annotations_content
+    )
+    expected_result = EVALUATED_ANNOTATIONS_BY_SLICE
+
+    result = import_evaluated_annotation.get_evaluated_annotations_by_slice_map(
+        output_uri, slice_value_to_resource_name, error_analysis
+    )
+    self.assertEqual(result, expected_result)
+
   @mock.patch.object(aiplatform_v1, 'ModelServiceClient')
+  def test_batch_import(self, mock_client):
+    # Arrange.
+    expected_calls = [
+        mock.call(
+            parent=SLICE_TO_RESOURCE_NAME['roses'],
+            evaluated_annotations=EVALUATED_ANNOTATIONS_BY_SLICE['roses'],
+        ),
+        mock.call(
+            parent=SLICE_TO_RESOURCE_NAME['dandelion'],
+            evaluated_annotations=EVALUATED_ANNOTATIONS_BY_SLICE['dandelion'],
+        ),
+        mock.call(
+            parent=SLICE_TO_RESOURCE_NAME['tulips'],
+            evaluated_annotations=EVALUATED_ANNOTATIONS_BY_SLICE['tulips'],
+        ),
+    ]
+    # Act.
+    import_evaluated_annotation.batch_import(
+        mock_client, EVALUATED_ANNOTATIONS_BY_SLICE, SLICE_TO_RESOURCE_NAME
+    )
+    # Assert.
+    mock_client.batch_import_evaluated_annotations.assert_has_calls(
+        expected_calls, any_order=False
+    )
+
+  @mock.patch.object(import_evaluated_annotation, 'batch_import', autospec=True)
+  @mock.patch.object(
+      import_evaluated_annotation,
+      'get_evaluated_annotations_by_slice_map',
+      autospec=True,
+  )
+  @mock.patch.object(
+      import_evaluated_annotation, 'get_error_analysis_map', autospec=True
+  )
+  @mock.patch.object(aiplatform_v1, 'ModelServiceClient', autospec=True)
   @mock.patch.object(
       import_evaluated_annotation,
       'get_model_evaluation_slices_annotation_spec_map',
+      autospec=True,
   )
   @mock.patch.object(
-      import_evaluated_annotation, 'get_model_eval_resource_name'
+      import_evaluated_annotation, 'get_model_eval_resource_name', autospec=True
   )
-  @mock.patch.object(import_evaluated_annotation, '_parse_args')
+  @mock.patch.object(import_evaluated_annotation, '_parse_args', autospec=True)
   def test_main(
       self,
       mock_parse_args,
       mock_get_model_eval_resource_name,
       mock_get_model_evaluation_slices_annotation_spec_map,
       mock_client,
+      mock_get_error_analysis_map,
+      mock_get_evaluated_annotations_by_slice_map,
+      mock_batch_import,
   ):
     # Arrange.
     parsed_args = mock.MagicMock()
     parsed_args.model_name = MODEL_NAME
+    parsed_args.error_analysis_output_uri = 'gs://bucket/error_analysis.jsonl'
     mock_parse_args.return_value = parsed_args
     mock_client.return_value = mock.MagicMock()
 
@@ -203,24 +337,17 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
         '1': EVAL_SLICE_NAME_1,
         '0': EVAL_SLICE_NAME_2,
     }
-
+    mock_get_evaluated_annotations_by_slice_map.return_value = (
+        EVALUATED_ANNOTATIONS_BY_SLICE
+    )
     # Act.
-    import_evaluated_annotation.main([
-        '--evaluated_annotation_output_uri',
-        'gs://my-bucket/path/to/evaluated_annotation.jsonl',
-        '--error_analysis_output_uri',
-        'gs://my-bucket/path/to/error_analysis.jsonl',
-        '--evaluation_importer_gcp_resources',
-        '/gcs/pipeline/eval/gcp_resources',
-        '--pipeline_job_id',
-        'test',
-        '--model_name',
-        'model_name',
-        '--gcp_resources',
-        '/gcs/pipeline/dir',
-    ])
+    import_evaluated_annotation.main([])
 
     # Assert.
+    mock_client.assert_called_once()
     mock_parse_args.assert_called_once()
     mock_get_model_eval_resource_name.assert_called_once()
     mock_get_model_evaluation_slices_annotation_spec_map.assert_called_once()
+    mock_get_error_analysis_map.assert_called_once()
+    mock_get_evaluated_annotations_by_slice_map.assert_called_once()
+    mock_batch_import.assert_called_once()

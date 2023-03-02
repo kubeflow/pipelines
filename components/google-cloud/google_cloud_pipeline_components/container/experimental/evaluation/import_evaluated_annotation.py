@@ -29,6 +29,8 @@ import six
 from google.protobuf.struct_pb2 import ListValue, NULL_VALUE, Struct, Value
 from google.protobuf import json_format
 
+BATCH_IMPORT_LIMIT = 50
+
 
 def _make_parent_dirs_and_return_path(file_path: str):
   os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -129,7 +131,7 @@ def read_gcs_uri_as_text(gcs_uri: str) -> str:
       str: The contents of the file as a string.
   """
   if not gcs_uri.startswith('gs://'):
-    raise ValueError('Invalid GCS URI: {}'.format(gcs_uri))
+    raise ValueError(f'Invalid GCS URI: {gcs_uri}')
   bucket_name, file_path = gcs_uri.split('//')[1].split('/', 1)
 
   storage_client = storage.Client()
@@ -150,6 +152,8 @@ def get_error_analysis_map(output_uri: str) -> dict[str, Any]:
   """
   error_analysis_map = defaultdict(list)
   error_analysis_file_contents = read_gcs_uri_as_text(output_uri)
+  if not error_analysis_file_contents:
+    raise ValueError(f'Invalid error_analysis_output_uri file: {output_uri}')
   for line in error_analysis_file_contents.splitlines():
     try:
       json_object = json.loads(line.strip())
@@ -157,12 +161,74 @@ def get_error_analysis_map(output_uri: str) -> dict[str, Any]:
           json_object['annotation']
       ]
     except json.JSONDecodeError as e:
-      raise ValueError('Invalid JSONL file: {}'.format(output_uri)) from e
+      raise ValueError(f'Invalid JSONL file: {output_uri}') from e
   return error_analysis_map
 
 
-def main(argv):
+def get_evaluated_annotations_by_slice_map(
+    output_uri: str,
+    slice_value_to_resource_name: dict[str, str],
+    error_analysis: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+  """Returns a dictionary evaluated_annotations_by_slice.
+
+  Args:
+    output_uri: The GCS URI to evaluated annotation output.
+    slice_value_to_resource_name: Slice values to slice resource names map.
+    error_analysis: Error Analysis dictionary.
+
+  Returns:
+    A dictionary of evaluated annotations indexed by slice values.
+  """
+  evaluated_annotation_file_contents = read_gcs_uri_as_text(output_uri)
+  evaluated_annotations_by_slice = {
+      target_slice: [] for target_slice in slice_value_to_resource_name.keys()
+  }
+  for line in evaluated_annotation_file_contents.splitlines():
+    try:
+      json_object = json.loads(line.strip())
+    except json.JSONDecodeError as e:
+      raise ValueError(f'Invalid JSONL file: {output_uri}') from e
+    try:
+      annotation_resource_names = json_object.pop('annotation_resource_names')
+      if error_analysis:
+        json_object['error_analysis_annotations'] = []
+        for annotation in annotation_resource_names:
+          json_object['error_analysis_annotations'].extend(
+              error_analysis[annotation]
+          )
+      evaluated_annotations_by_slice[json_object.pop('slice_value')].append(
+          json_object
+      )
+    except KeyError as e:
+      raise ValueError(
+          f'Invalid Evaluated Annotation JSONL file: {output_uri}'
+      ) from e
+
+  return evaluated_annotations_by_slice
+
+
+def batch_import(
+    client: aiplatform_v1.ModelServiceClient,
+    evaluated_annotations_by_slice: dict[str, Any],
+    slice_value_to_resource_name: dict[str, str],
+) -> None:
   """Calls ModelService.BatchImportEvaluatedAnnotations."""
+  for (
+      slice_value,
+      evaluated_annotations,
+  ) in evaluated_annotations_by_slice.items():
+    for i in range(0, len(evaluated_annotations), BATCH_IMPORT_LIMIT):
+      client.batch_import_evaluated_annotations(
+          parent=slice_value_to_resource_name[slice_value],
+          evaluated_annotations=evaluated_annotations[
+              i : i + BATCH_IMPORT_LIMIT
+          ],
+      )
+
+
+def main(argv):
+  """Main function."""
   parsed_args = _parse_args(argv)
 
   _, project_id, _, location, _, model_id = parsed_args.model_name.split('/')
@@ -180,17 +246,37 @@ def main(argv):
   model_evaluation_resource_name = get_model_eval_resource_name(
       resource_uri_prefix, parsed_args.evaluation_importer_gcp_resources
   )
-  slice_value_to_slice_resource_name_map = (
+  slice_value_to_resource_name = (
       get_model_evaluation_slices_annotation_spec_map(
           client, model_evaluation_resource_name
       )
   )
   logging.info(
-      'target_column_slice_map: %s',
-      slice_value_to_slice_resource_name_map,
+      'slice_value_to_resource_name: %s',
+      slice_value_to_resource_name,
+  )
+
+  if parsed_args.error_analysis_output_uri:
+    error_analysis = get_error_analysis_map(
+        parsed_args.error_analysis_output_uri
+    )
+    logging.info('error_analysis: %s', error_analysis)
+    evaluated_annotations_by_slice = get_evaluated_annotations_by_slice_map(
+        parsed_args.evaluated_annotation_output_uri,
+        slice_value_to_resource_name,
+        error_analysis,
+    )
+  else:
+    evaluated_annotations_by_slice = get_evaluated_annotations_by_slice_map(
+        parsed_args.evaluated_annotation_output_uri,
+        slice_value_to_resource_name,
+    )
+
+  batch_import(
+      client, evaluated_annotations_by_slice, slice_value_to_resource_name
   )
 
 
 if __name__ == '__main__':
   print(sys.argv)
-  main(sys.argv[1:])
+  main(sys.argv)
