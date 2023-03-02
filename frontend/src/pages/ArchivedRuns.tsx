@@ -69,6 +69,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <RunList
+          isAllRunsList={true}
           namespaceMask={this.props.namespace}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}

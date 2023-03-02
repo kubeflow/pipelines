@@ -66,6 +66,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <RunList
+          isAllRunsList={true}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
           parentIds={this.state.parentIds}

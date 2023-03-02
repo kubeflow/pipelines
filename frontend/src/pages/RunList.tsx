@@ -67,6 +67,7 @@ type MaskProps = Exclude<
 
 export type RunListProps = MaskProps &
   RouteComponentProps & {
+    isAllRunsList?: boolean;
     disablePaging?: boolean;
     disableSelection?: boolean;
     disableSorting?: boolean;
@@ -385,7 +386,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
 
       try {
-        const response = await Apis.runServiceApiV2.listRuns(
+        const response = this.props.isAllRunsList ? await Apis.runServiceApiV2.listAllRuns(
+          this.props.namespaceMask,
+          this.props.experimentIdMask,
+          request.pageToken,
+          request.pageSize,
+          request.sortBy,
+          request.filter,
+        ) : await Apis.runServiceApiV2.listRuns(
           this.props.experimentIdMask || '',
           this.props.namespaceMask,
           request.pageToken,
