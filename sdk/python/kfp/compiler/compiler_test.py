@@ -3182,24 +3182,28 @@ class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
 
 class TestDedupePipelineSpec(unittest.TestCase):
 
-    def test_basic(self):
+    def test_basic_would_dedupe(self):
 
         @dsl.component
         def print_op(message: str = 'default'):
             print(message)
 
+        @dsl.component
+        def identity(message: str) -> str:
+            return (message)
+
         @dsl.pipeline()
-        def my_pipeline():
+        def my_pipeline(pipeline_input: str = 'pipeine_input'):
             task1 = print_op()
-            task2 = print_op(message='different')
+            task2 = print_op(message='constant')
+            task3 = print_op(message=pipeline_input)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-            pipeline_spec = pipeline_spec_from_file(package_path)
+            upstream_task = identity(message='upstream_task_output')
+            task4 = print_op(message=upstream_task.output)
 
-        self.assertEqual(len(pipeline_spec.components), 1)
+        pipeline_spec = my_pipeline.pipeline_spec
+
+        self.assertEqual(len(pipeline_spec.components), 2)
 
         # check that primary component spec and corresponding executor exists
         self.assertIn('comp-print-op', pipeline_spec.components)
@@ -3211,6 +3215,14 @@ class TestDedupePipelineSpec(unittest.TestCase):
         self.assertNotIn('comp-print-op-2', pipeline_spec.components)
         self.assertNotIn(
             'exec-print-op-2', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+        self.assertNotIn('comp-print-op-3', pipeline_spec.components)
+        self.assertNotIn(
+            'exec-print-op-3', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+        self.assertNotIn('comp-print-op-4', pipeline_spec.components)
+        self.assertNotIn(
+            'exec-print-op-4', pipeline_spec.deployment_spec.fields['executors']
             .struct_value.fields)
 
         # check that primary component contains the correct executor label
@@ -3225,14 +3237,31 @@ class TestDedupePipelineSpec(unittest.TestCase):
         self.assertEqual(
             pipeline_spec.root.dag.tasks['print-op-2'].component_ref.name,
             'comp-print-op')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-3'].component_ref.name,
+            'comp-print-op')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-4'].component_ref.name,
+            'comp-print-op')
 
         # check task specific input/ output information is not lost
         self.assertEqual(
             pipeline_spec.root.dag.tasks['print-op-2'].inputs
             .parameters['message'].runtime_value.constant.string_value,
-            'different')
+            'constant')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-3'].inputs
+            .parameters['message'].component_input_parameter, 'pipeline_input')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-4'].inputs
+            .parameters['message'].task_output_parameter.producer_task,
+            'identity')
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-4'].inputs
+            .parameters['message'].task_output_parameter.output_parameter_key,
+            'Output')
 
-    def test_task_specific_executor_case(self):
+    def test_task_specific_executor_case_would_not_dedupe(self):
 
         @dsl.component
         def print_op(message: str = 'default'):
@@ -3241,14 +3270,9 @@ class TestDedupePipelineSpec(unittest.TestCase):
         @dsl.pipeline()
         def my_pipeline():
             task1 = print_op()
-            task2 = print_op(
-                message='different').set_cpu_limit('4').set_memory_limit('14Gi')
+            task2 = print_op().set_cpu_limit('4').set_memory_limit('14Gi')
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-            pipeline_spec = pipeline_spec_from_file(package_path)
+        pipeline_spec = my_pipeline.pipeline_spec
 
         self.assertEqual(len(pipeline_spec.components), 2)
 
@@ -3288,7 +3312,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
             .struct_value.fields['exec-print-op-2'].struct_value['container']
             ['resources'].fields['memoryLimit'].number_value)
 
-    def test_task_specific_configurations(self):
+    def test_task_specific_configurations_would_dedupe(self):
 
         @dsl.component
         def print_op(message: str = 'default'):
@@ -3299,11 +3323,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
             task1 = print_op()
             task2 = print_op(message='different').set_display_name('name')
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-            pipeline_spec = pipeline_spec_from_file(package_path)
+        pipeline_spec = my_pipeline.pipeline_spec
 
         self.assertEqual(len(pipeline_spec.components), 1)
 
@@ -3335,7 +3355,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
         self.assertEqual(
             pipeline_spec.root.dag.tasks['print-op-2'].task_info.name, 'name')
 
-    def test_pipeline_in_pipeline(self):
+    def test_pipeline_in_pipeline_would_dedupe(self):
 
         @dsl.component
         def print_op(msg: str):
@@ -3350,12 +3370,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
             task1 = graph_component(msg='hello')
             task2 = graph_component(msg='hello')
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_yaml = os.path.join(tmpdir, 'result.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
-
-            pipeline_spec = pipeline_spec_from_file(output_yaml)
+        pipeline_spec = my_pipeline.pipeline_spec
 
         self.assertEqual(len(pipeline_spec.components), 3)
 
@@ -3370,6 +3385,26 @@ class TestDedupePipelineSpec(unittest.TestCase):
         self.assertNotIn(
             'exec-print-op-2', pipeline_spec.deployment_spec.fields['executors']
             .struct_value.fields)
+
+    def test_clean_up_names(self):
+
+        @dsl.component
+        def print_op(message: str = 'default'):
+            print(message)
+
+        @dsl.pipeline()
+        def my_pipeline(pipeline_input: str = 'pipeine_input'):
+            task1 = print_op()
+            task2 = print_op()
+            task3 = print_op()
+            task4 = print_op().set_cpu_limit('4').set_memory_limit('14Gi')
+
+        pipeline_spec = my_pipeline.pipeline_spec
+
+        # Check that only print-op-1 and print-op-2 exist instead of print-op-1 and print-op-4
+        self.assertIn('comp-print-op', pipeline_spec.components)
+        self.assertIn('comp-print-op-2', pipeline_spec.components)
+        self.assertNotIn('comp-print-op-4', pipeline_spec.components)
 
 
 if __name__ == '__main__':
