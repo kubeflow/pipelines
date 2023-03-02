@@ -678,13 +678,19 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				}
 			}
 			value, hasValue := inputs.GetParameterValues()[name]
-			if !hasValue {
-				if spec.GetDefaultValue() == nil {
-					return fmt.Errorf("input parameter %q is required", name)
-				}
-				inputs.GetParameterValues()[name] = spec.GetDefaultValue()
-				value = spec.GetDefaultValue()
+
+			// Handle when parameter does not have input value
+			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
+				// When parameter is not optional and there is no input value, report error
+				return fmt.Errorf("no value provided for non-optional parameter %q", name)
+			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
+				// When parameter is optional and there is no input value, value comes from default value.
+				// But we don't pass the default value here. They are resolved internally within the component.
+				// Note: in the past the backend passed the default values into the component. This is a behavior change.
+				// See discussion: https://github.com/kubeflow/pipelines/pull/8765#discussion_r1119477085
+				continue
 			}
+
 			switch spec.GetParameterType() {
 			case pipelinespec.ParameterType_STRING:
 				_, isValueString := value.GetKind().(*structpb.Value_StringValue)
@@ -726,7 +732,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 						return typeMismatch("struct")
 					}
 				default:
-					return fmt.Errorf("unknown protobuf.Value type: %T", v)
+					return fmt.Errorf("parameter %s has unknown protobuf.Value type: %T", name, v)
 				}
 			}
 		}
