@@ -1012,7 +1012,7 @@ message SinglePlatformSpec {
 
 
 message PlatformDeploymentConfig {
-  // Map of executor label to task-level config
+  // Map of executor label to executor-level config
   // Mirrors PipelineSpec.deployment_spec.executors structure
   map<string, google.protobuf.Struct> executors = 1;
 }
