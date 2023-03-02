@@ -140,7 +140,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-  comp-xgboost-train-3:
+  comp-xgboost-train-2:
     executorLabel: exec-xgboost-train-2
     inputDefinitions:
       artifacts:
@@ -753,7 +753,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-xgboost-train-3
+          name: comp-xgboost-train-2
         dependentTasks:
         - convert-csv-to-apache-parquet
         inputs:

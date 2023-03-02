@@ -50,7 +50,7 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
-  comp-importer-3:
+  comp-importer-2:
     executorLabel: exec-importer-2
     inputDefinitions:
       parameters:

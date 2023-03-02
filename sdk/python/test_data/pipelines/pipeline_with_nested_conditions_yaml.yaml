@@ -210,7 +210,7 @@ components:
       parameters:
         output:
           parameterType: NUMBER_INTEGER
-  comp-generate-random-number-3:
+  comp-generate-random-number-2:
     executorLabel: exec-generate-random-number-2
     outputDefinitions:
       parameters:

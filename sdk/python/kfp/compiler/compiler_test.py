@@ -3238,7 +3238,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
             4.0, pipeline_spec.deployment_spec.fields['executors'].struct_value
             .fields['exec-print-op-2'].struct_value['container']
             ['resources'].fields['cpuLimit'].number_value)
-        self.assertEqual(
+        self.assertAlmostEqual(
             15.032385536, pipeline_spec.deployment_spec.fields['executors']
             .struct_value.fields['exec-print-op-2'].struct_value['container']
             ['resources'].fields['memoryLimit'].number_value)
@@ -3300,6 +3300,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
         def my_pipeline():
             task1 = graph_component(msg='hello')
             task2 = graph_component(msg='hello')
+            task3 = print_op(msg='hello')
 
         pipeline_spec = my_pipeline.pipeline_spec
 
@@ -3308,6 +3309,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
         # check both tasks component specs exist
         self.assertIn('comp-graph-component', pipeline_spec.components)
         self.assertIn('comp-graph-component-2', pipeline_spec.components)
+        self.assertIn('comp-print-op', pipeline_spec.components)
 
         # check only one executor exist
         self.assertIn(
@@ -3336,6 +3338,16 @@ class TestDedupePipelineSpec(unittest.TestCase):
         self.assertIn('comp-print-op', pipeline_spec.components)
         self.assertIn('comp-print-op-2', pipeline_spec.components)
         self.assertNotIn('comp-print-op-4', pipeline_spec.components)
+
+        self.assertIn(
+            'exec-print-op', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+        self.assertIn(
+            'exec-print-op-2', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
+        self.assertNotIn(
+            'exec-print-op-4', pipeline_spec.deployment_spec.fields['executors']
+            .struct_value.fields)
 
 
 class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):

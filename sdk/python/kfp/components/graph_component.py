@@ -104,26 +104,23 @@ class GraphComponent(base_component.BaseComponent):
         input specifications since this not affect the executor spec of
         the components
         """
-        from dataclasses import dataclass
+        import dataclasses
 
-        @dataclass
-        class clones_data_structure:
+        @dataclasses.dataclass
+        class ClonesDataStructure:
+            component_name: str
+            component_spec: pipeline_spec_pb2.PipelineSpec
+            executor_name: str
+            executor_spec: pipeline_spec_pb2.PipelineSpec
 
-            def __init__(self, component_name, component_spec, executor_name,
-                         executor_spec) -> None:
-                self.component_name = component_name
-                self.component_spec = component_spec
-                self.executor_name = executor_name
-                self.executor_spec = executor_spec
+        def _get_name_from_label(reference: str) -> str:
+            return reference[:-2]
 
-            def get_data(self) -> list:
-                return [
-                    self.executor_name, self.component_spec, self.executor_spec
-                ]
+        def _get_label_index(reference: str, last_delimiter: int) -> str:
+            return reference[last_delimiter + 1:]
 
-        components_with_clones = {}
-
-        def _collect_and_process_duplicates():
+        def _collect_and_process_duplicates() -> dict:
+            components_with_clones = {}
             clone_mapping = defaultdict(list)
             # Collect the collection of dedupable components
             for component_name, component_spec in sorted(
@@ -142,12 +139,12 @@ class GraphComponent(base_component.BaseComponent):
                             clone_mapping[component_name].append(
                                 corresponding_component_name)
                             components_with_clones[
-                                corresponding_component_name] = clones_data_structure(
+                                corresponding_component_name] = ClonesDataStructure(
                                     corresponding_component_name, pipeline_spec
                                     .components[corresponding_component_name],
                                     executor_name, executor_spec)
                             components_with_clones[
-                                component_name] = clones_data_structure(
+                                component_name] = ClonesDataStructure(
                                     component_name, component_spec,
                                     component_spec.executor_label,
                                     original_components_executor_spec)
@@ -164,8 +161,8 @@ class GraphComponent(base_component.BaseComponent):
             for component_name, clone_components in clone_mapping.items():
                 clones = clone_components + [component_name]
 
-                corresponding_executor_name, component_spec, executor_spec = components_with_clones[
-                    component_name].get_data()
+                clone_data = components_with_clones[component_name]
+                corresponding_executor_name, component_spec, executor_spec = clone_data.executor_name, clone_data.component_spec, clone_data.executor_spec
 
                 pipeline_spec.components[component_name].CopyFrom(
                     component_spec)
@@ -190,7 +187,9 @@ class GraphComponent(base_component.BaseComponent):
                             if task_spec.component_ref.name in clones:
                                 task_spec.component_ref.name = component_name
 
-        def _clean_up_component_spec_names():
+            return components_with_clones
+
+        def _clean_up_component_spec_names(components_with_clones):
             # clean up other component spec names
             if not components_with_clones:
                 return
@@ -199,56 +198,55 @@ class GraphComponent(base_component.BaseComponent):
                     pipeline_spec.components.items()):
                 if component_name not in components_with_clones and component_spec.executor_label:
                     last_delimiter = component_name.rfind('-')
-                    if len(
-                            component_name
-                    ) > last_delimiter + 1 and component_name[last_delimiter +
-                                                              1:].isnumeric():
+                    if len(component_name
+                          ) > last_delimiter + 1 and _get_label_index(
+                              component_name, last_delimiter).isnumeric():
                         initial = component_name
-                        component_name = component_name[:-2]
-                        component_name = utils.make_name_unique_by_adding_index(
-                            name=component_name,
-                            collection=pipeline_spec.components.keys(),
-                            delimiter='-')
-
-                        executor_spec = pipeline_spec.deployment_spec.fields[
-                            'executors'].struct_value.fields[
-                                component_spec.executor_label]
-                        del pipeline_spec.deployment_spec.fields[
-                            'executors'].struct_value.fields[
-                                component_spec.executor_label]
-
-                        corresponding_executor_name = component_spec.executor_label
-                        corresponding_executor_name = corresponding_executor_name[:
-                                                                                  -2]
-                        corresponding_executor_name = utils.make_name_unique_by_adding_index(
-                            name=corresponding_executor_name,
-                            collection=pipeline_spec.deployment_spec
-                            .fields['executors'].struct_value.fields.keys(),
-                            delimiter='-')
-
-                        component_spec.executor_label = corresponding_executor_name
-                        pipeline_spec.deployment_spec.fields[
-                            'executors'].struct_value.fields[
-                                corresponding_executor_name].CopyFrom(
-                                    executor_spec)
+                        component_name = _get_name_from_label(component_name)
 
                         changed_names[initial] = [
                             component_name, component_spec
                         ]
 
-                        sorted_dag_task_spec = dict(
-                            sorted(pipeline_spec.root.dag.tasks.items()))
-                        for task_spec in sorted_dag_task_spec.values():
-                            if task_spec.component_ref.name == initial:
-                                task_spec.component_ref.name = component_name
-
             for initial, new_details in sorted(changed_names.items()):
                 del pipeline_spec.components[initial]
                 component_name, component_spec = new_details
+
+                component_name = utils.make_name_unique_by_adding_index(
+                    name=component_name,
+                    collection=pipeline_spec.components.keys(),
+                    delimiter='-')
+
+                executor_spec = pipeline_spec.deployment_spec.fields[
+                    'executors'].struct_value.fields[
+                        component_spec.executor_label]
+                del pipeline_spec.deployment_spec.fields[
+                    'executors'].struct_value.fields[
+                        component_spec.executor_label]
+
+                corresponding_executor_name = component_spec.executor_label
+                corresponding_executor_name = _get_name_from_label(
+                    corresponding_executor_name)
+                corresponding_executor_name = utils.make_name_unique_by_adding_index(
+                    name=corresponding_executor_name,
+                    collection=pipeline_spec.deployment_spec.fields['executors']
+                    .struct_value.fields.keys(),
+                    delimiter='-')
+
+                component_spec.executor_label = corresponding_executor_name
+                pipeline_spec.deployment_spec.fields[
+                    'executors'].struct_value.fields[
+                        corresponding_executor_name].CopyFrom(executor_spec)
                 pipeline_spec.components[component_name].CopyFrom(
                     component_spec)
 
-        _collect_and_process_duplicates()
-        _clean_up_component_spec_names()
+                sorted_dag_task_spec = dict(
+                    sorted(pipeline_spec.root.dag.tasks.items()))
+                for task_spec in sorted_dag_task_spec.values():
+                    if task_spec.component_ref.name == initial:
+                        task_spec.component_ref.name = component_name
+
+        components_with_clones = _collect_and_process_duplicates()
+        _clean_up_component_spec_names(components_with_clones)
 
         return pipeline_spec
