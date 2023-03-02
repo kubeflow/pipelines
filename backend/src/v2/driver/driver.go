@@ -679,11 +679,6 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			}
 			value, hasValue := inputs.GetParameterValues()[name]
 
-			// Skip when hasValue == false, which means this parameter does not have an input value
-			if !hasValue {
-				continue
-			}
-
 			// Handle when parameter does not have input value
 			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
 				// When parameter is not optional and there is no input value, report error
