@@ -68,10 +68,11 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal executor input: %w", err)
 	}
+	glog.Infof("input ComponentSpec:%s\n", prettyPrint(componentSpecJSON))
 	component := &pipelinespec.ComponentSpec{}
 	err = protojson.Unmarshal([]byte(componentSpecJSON), component)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal component spec: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal component spec: %w\ncomponentSpec: %v", err, prettyPrint(componentSpecJSON))
 	}
 	if len(cmdArgs) == 0 {
 		return nil, fmt.Errorf("command and arguments are empty")
