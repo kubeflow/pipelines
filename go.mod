@@ -42,7 +42,7 @@ require (
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.0
 	gocloud.dev v0.22.0
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
+	golang.org/x/net v0.7.0
 	google.golang.org/genproto v0.0.0-20220310185008-1973136f34c6
 	google.golang.org/grpc v1.44.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
