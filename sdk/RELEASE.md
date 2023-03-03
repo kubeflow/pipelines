@@ -8,6 +8,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Support python 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
 
 ## Documentation updates
 # 2.0.0-beta.13
