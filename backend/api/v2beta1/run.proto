@@ -363,7 +363,7 @@ message ArtifactList {
 
 message CreateRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // Run to be created.
   Run run = 2;
@@ -371,7 +371,7 @@ message CreateRunRequest {
 
 message GetRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be retrieved.
   string run_id = 2;
@@ -405,7 +405,7 @@ message ListRunsRequest {
 
 message TerminateRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be terminated.
   string run_id = 2;
@@ -424,7 +424,7 @@ message ListRunsResponse {
 
 message ArchiveRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be archived.
   string run_id = 2;
@@ -432,7 +432,7 @@ message ArchiveRunRequest {
 
 message UnarchiveRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be restored.
   string run_id = 2;
@@ -440,7 +440,7 @@ message UnarchiveRunRequest {
 
 message DeleteRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be deleted.
   string run_id = 2;
@@ -448,7 +448,7 @@ message DeleteRunRequest {
 
 message ReadArtifactRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // ID of the run.
   string run_id = 2;
@@ -467,7 +467,7 @@ message ReadArtifactResponse {
 
 message RetryRunRequest {
  // The ID of the parent experiment.
- string experiment_id = 1;
+ string experiment_id = 1 [deprecated = true];
 
  // The ID of the run to be retried.
  string run_id = 2;
