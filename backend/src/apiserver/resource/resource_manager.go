@@ -1802,14 +1802,24 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 	// based on the namespace field in the request.
 	errlist := make([]error, 0)
 	userIdentity := ""
+	var userGroups []string
 	for _, auth := range r.authenticators {
 		identity, err := auth.GetUserIdentity(ctx)
-		if err == nil {
-			userIdentity = identity
 
-			break
+		if err != nil {
+			errlist = append(errlist, err)
+			continue
 		}
-		errlist = append(errlist, err)
+
+		groups, err := auth.GetUserGroups(ctx)
+		if err != nil {
+			errlist = append(errlist, err)
+			// Not having groups header is not a blocking condition.
+		}
+
+		userIdentity = identity
+		userGroups = groups
+		break
 	}
 	if userIdentity == "" {
 		return util.NewUnauthenticatedError(utilerrors.NewAggregate(errlist), "Failed to check authorization. User identity is empty in the request header")
@@ -1823,6 +1833,7 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 			Spec: authorizationv1.SubjectAccessReviewSpec{
 				ResourceAttributes: resourceAttributes,
 				User:               userIdentity,
+				Groups:             userGroups,
 			},
 		},
 		v1.CreateOptions{},
@@ -1840,8 +1851,9 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 	if !result.Status.Allowed {
 		err := util.NewPermissionDeniedError(
 			errors.New("Unauthorized access"),
-			"User '%s' is not authorized with reason: %s (request: %+v)",
+			"User '%s' with groups %v is not authorized with reason: %s (request: %+v)",
 			userIdentity,
+			userGroups,
 			result.Status.Reason,
 			resourceAttributes,
 		)

@@ -88,6 +88,9 @@ func grpcCustomMatcher(key string) (string, bool) {
 	if strings.EqualFold(key, common.GetKubeflowUserIDHeader()) {
 		return strings.ToLower(key), true
 	}
+	if strings.EqualFold(key, common.GetKubeflowGroupsHeader()) {
+		return strings.ToLower(key), true
+	}
 	return strings.ToLower(key), false
 }
 
@@ -136,6 +139,10 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		glog.Fatalf("Failed to serve rpc listener: %v", err)
 	}
 	glog.Info("RPC server started")
+
+	if common.GetExperimentalGroupsSupport() {
+		glog.Info("The server has enable the support for kubernetes groups from http headers.")
+	}
 }
 
 func startHttpProxy(resourceManager *resource.ResourceManager) {

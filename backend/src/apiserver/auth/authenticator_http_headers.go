@@ -16,15 +16,24 @@ package auth
 
 import (
 	"context"
+	"strings"
 )
 
 type HTTPHeaderAuthenticator struct {
-	userIDHeader string
-	userIDPrefix string
+	userIDHeader              string
+	userIDPrefix              string
+	groupsHeader              string
+	experimentalGroupsSupport bool
 }
 
-func NewHTTPHeaderAuthenticator(header, prefix string) *HTTPHeaderAuthenticator {
-	return &HTTPHeaderAuthenticator{userIDHeader: header, userIDPrefix: prefix}
+func NewHTTPHeaderAuthenticator(
+	userIDHeader, prefix string, groupsHeader string, experimentalGroupsSupport bool) *HTTPHeaderAuthenticator {
+	return &HTTPHeaderAuthenticator{
+		userIDHeader:              userIDHeader,
+		userIDPrefix:              prefix,
+		groupsHeader:              groupsHeader,
+		experimentalGroupsSupport: experimentalGroupsSupport,
+	}
 }
 
 func (ha *HTTPHeaderAuthenticator) GetUserIdentity(ctx context.Context) (string, error) {
@@ -33,4 +42,15 @@ func (ha *HTTPHeaderAuthenticator) GetUserIdentity(ctx context.Context) (string,
 		return "", err
 	}
 	return userID, nil
+}
+
+func (ha *HTTPHeaderAuthenticator) GetUserGroups(ctx context.Context) ([]string, error) {
+	if !ha.experimentalGroupsSupport {
+		return nil, nil
+	}
+	groupsHeader, err := singleHeaderFromMetadata(ctx, ha.groupsHeader)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(groupsHeader, ","), nil
 }

@@ -27,7 +27,12 @@ func TestHTTPHeaderAuthenticator(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	authenticator := NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix())
+	authenticator := NewHTTPHeaderAuthenticator(
+		common.GetKubeflowUserIDHeader(),
+		common.GetKubeflowUserIDPrefix(),
+		common.GetKubeflowGroupsHeader(),
+		common.GetExperimentalGroupsSupport(),
+	)
 
 	userIdentity, err := authenticator.GetUserIdentity(ctx)
 	assert.Nil(t, err)
@@ -38,7 +43,12 @@ func TestHTTPHeaderAuthenticatorError(t *testing.T) {
 	md := metadata.New(map[string]string{"no-identity-header": "user"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	authenticator := NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix())
+	authenticator := NewHTTPHeaderAuthenticator(
+		common.GetKubeflowUserIDHeader(),
+		common.GetKubeflowUserIDPrefix(),
+		common.GetKubeflowGroupsHeader(),
+		common.GetExperimentalGroupsSupport(),
+	)
 
 	_, err := authenticator.GetUserIdentity(ctx)
 	assert.NotNil(t, err)
@@ -48,13 +58,30 @@ func TestHTTPHeaderAuthenticatorError(t *testing.T) {
 func TestHTTPHeaderAuthenticatorFromHeaderNonGoogle(t *testing.T) {
 	header := "Kubeflow-UserID"
 	prefix := ""
+	groups := ""
 
 	md := metadata.New(map[string]string{header: prefix + "user"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	authenticator := NewHTTPHeaderAuthenticator(header, prefix)
+	authenticator := NewHTTPHeaderAuthenticator(header, prefix, groups, false)
 
 	userIdentity, err := authenticator.GetUserIdentity(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, "user", userIdentity)
+}
+
+func TestHTTPGroupHeaderAuthenticatorFromHeaderNonGoogle(t *testing.T) {
+	userIDHeader := "Kubeflow-UserID"
+	groupsHeader := "Kubeflow-Groups"
+	groups := "one,two"
+	md := metadata.New(map[string]string{groupsHeader: groups})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	authenticator := NewHTTPHeaderAuthenticator(userIDHeader, "", groupsHeader, true)
+	userGroups, err := authenticator.GetUserGroups(ctx)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, userGroups)
+	assert.Len(t, userGroups, 2)
+	assert.Equal(t, userGroups[0], "one")
+	assert.Equal(t, userGroups[1], "two")
 }

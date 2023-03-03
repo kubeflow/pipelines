@@ -46,9 +46,12 @@ const (
 	GoogleIAPUserIdentityPrefix    string = "accounts.google.com:"
 	AuthorizationBearerTokenHeader string = "Authorization"
 	AuthorizationBearerTokenPrefix string = "Bearer "
+	GroupsHeader                   string = "kubeflow-groups"
 )
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
+
+const DefaultExperimentalGroupsSupport bool = false
 
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"

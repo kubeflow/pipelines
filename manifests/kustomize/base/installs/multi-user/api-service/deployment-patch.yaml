@@ -15,3 +15,5 @@ spec:
           value: kubeflow-userid
         - name: KUBEFLOW_USERID_PREFIX
           value: ""
+        - name: KUBEFLOW_GROUPS_HEADER
+          value: kubeflow-groups
