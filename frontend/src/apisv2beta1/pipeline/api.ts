@@ -128,84 +128,12 @@ export interface ProtobufAny {
 }
 
 /**
- * `ListValue` is a wrapper around a repeated field of values.  The JSON representation for `ListValue` is JSON array.
- * @export
- * @interface ProtobufListValue
- */
-export interface ProtobufListValue {
-  /**
-   * Repeated field of dynamically typed values.
-   * @type {Array<ProtobufValue>}
-   * @memberof ProtobufListValue
-   */
-  values?: Array<ProtobufValue>;
-}
-
-/**
  * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.   The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
  * @export
  * @enum {string}
  */
 export enum ProtobufNullValue {
   NULLVALUE = <any>'NULL_VALUE',
-}
-
-/**
- * `Struct` represents a structured data value, consisting of fields which map to dynamically typed values. In some languages, `Struct` might be supported by a native representation. For example, in scripting languages like JS a struct is represented as an object. The details of that representation are described together with the proto support for the language.  The JSON representation for `Struct` is JSON object.
- * @export
- * @interface ProtobufStruct
- */
-export interface ProtobufStruct {
-  /**
-   * Unordered map of dynamically typed values.
-   * @type {{ [key: string]: ProtobufValue; }}
-   * @memberof ProtobufStruct
-   */
-  fields?: { [key: string]: ProtobufValue };
-}
-
-/**
- * `Value` represents a dynamically typed value which can be either null, a number, a string, a boolean, a recursive struct value, or a list of values. A producer of value is expected to set one of that variants, absence of any variant indicates an error.  The JSON representation for `Value` is JSON value.
- * @export
- * @interface ProtobufValue
- */
-export interface ProtobufValue {
-  /**
-   * Represents a null value.
-   * @type {ProtobufNullValue}
-   * @memberof ProtobufValue
-   */
-  null_value?: ProtobufNullValue;
-  /**
-   * Represents a double value.
-   * @type {number}
-   * @memberof ProtobufValue
-   */
-  number_value?: number;
-  /**
-   * Represents a string value.
-   * @type {string}
-   * @memberof ProtobufValue
-   */
-  string_value?: string;
-  /**
-   * Represents a boolean value.
-   * @type {boolean}
-   * @memberof ProtobufValue
-   */
-  bool_value?: boolean;
-  /**
-   * Represents a structured value.
-   * @type {ProtobufStruct}
-   * @memberof ProtobufValue
-   */
-  struct_value?: ProtobufStruct;
-  /**
-   * Represents a repeated `Value`.
-   * @type {ProtobufListValue}
-   * @memberof ProtobufValue
-   */
-  list_value?: ProtobufListValue;
 }
 
 /**
@@ -348,10 +276,10 @@ export interface V2beta1PipelineVersion {
   package_url?: V2beta1Url;
   /**
    * Required input field. Specifies the pipeline spec for the pipeline version.
-   * @type {ProtobufStruct}
+   * @type {any}
    * @memberof V2beta1PipelineVersion
    */
-  pipeline_spec?: ProtobufStruct;
+  pipeline_spec?: any;
   /**
    * In case any error happens retrieving a pipeline version field, only pipeline ID, pipeline version ID, and the error message are returned.  Client has the flexibility of choosing how to handle the error.  This is especially useful during List() calls.
    * @type {GooglerpcStatus}

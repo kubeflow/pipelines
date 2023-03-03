@@ -108,6 +108,26 @@ export interface GooglerpcStatus {
 }
 
 /**
+ * A dependent task that requires this one to succeed. Represented by either task_id or pod_name.
+ * @export
+ * @interface PipelineTaskDetailChildTask
+ */
+export interface PipelineTaskDetailChildTask {
+  /**
+   * System-generated ID of a task.
+   * @type {string}
+   * @memberof PipelineTaskDetailChildTask
+   */
+  task_id?: string;
+  /**
+   * Name of the corresponding pod assigned by the orchestration engine. Also known as node_id.
+   * @type {string}
+   * @memberof PipelineTaskDetailChildTask
+   */
+  pod_name?: string;
+}
+
+/**
  * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
@@ -128,84 +148,12 @@ export interface ProtobufAny {
 }
 
 /**
- * `ListValue` is a wrapper around a repeated field of values.  The JSON representation for `ListValue` is JSON array.
- * @export
- * @interface ProtobufListValue
- */
-export interface ProtobufListValue {
-  /**
-   * Repeated field of dynamically typed values.
-   * @type {Array<ProtobufValue>}
-   * @memberof ProtobufListValue
-   */
-  values?: Array<ProtobufValue>;
-}
-
-/**
  * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.   The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
  * @export
  * @enum {string}
  */
 export enum ProtobufNullValue {
   NULLVALUE = <any>'NULL_VALUE',
-}
-
-/**
- * `Struct` represents a structured data value, consisting of fields which map to dynamically typed values. In some languages, `Struct` might be supported by a native representation. For example, in scripting languages like JS a struct is represented as an object. The details of that representation are described together with the proto support for the language.  The JSON representation for `Struct` is JSON object.
- * @export
- * @interface ProtobufStruct
- */
-export interface ProtobufStruct {
-  /**
-   * Unordered map of dynamically typed values.
-   * @type {{ [key: string]: ProtobufValue; }}
-   * @memberof ProtobufStruct
-   */
-  fields?: { [key: string]: ProtobufValue };
-}
-
-/**
- * `Value` represents a dynamically typed value which can be either null, a number, a string, a boolean, a recursive struct value, or a list of values. A producer of value is expected to set one of that variants, absence of any variant indicates an error.  The JSON representation for `Value` is JSON value.
- * @export
- * @interface ProtobufValue
- */
-export interface ProtobufValue {
-  /**
-   * Represents a null value.
-   * @type {ProtobufNullValue}
-   * @memberof ProtobufValue
-   */
-  null_value?: ProtobufNullValue;
-  /**
-   * Represents a double value.
-   * @type {number}
-   * @memberof ProtobufValue
-   */
-  number_value?: number;
-  /**
-   * Represents a string value.
-   * @type {string}
-   * @memberof ProtobufValue
-   */
-  string_value?: string;
-  /**
-   * Represents a boolean value.
-   * @type {boolean}
-   * @memberof ProtobufValue
-   */
-  bool_value?: boolean;
-  /**
-   * Represents a structured value.
-   * @type {ProtobufStruct}
-   * @memberof ProtobufValue
-   */
-  struct_value?: ProtobufStruct;
-  /**
-   * Represents a repeated `Value`.
-   * @type {ProtobufListValue}
-   * @memberof ProtobufValue
-   */
-  list_value?: ProtobufListValue;
 }
 
 /**
@@ -303,7 +251,7 @@ export interface V2beta1PipelineTaskDetail {
    */
   state?: V2beta1RuntimeState;
   /**
-   * Execution metadata of a task.
+   * Execution id of the corresponding entry in ML metadata store.
    * @type {string}
    * @memberof V2beta1PipelineTaskDetail
    */
@@ -338,6 +286,18 @@ export interface V2beta1PipelineTaskDetail {
    * @memberof V2beta1PipelineTaskDetail
    */
   state_history?: Array<V2beta1RuntimeStatus>;
+  /**
+   * Name of the corresponding pod assigned by the orchestration engine. Also known as node_id.
+   * @type {string}
+   * @memberof V2beta1PipelineTaskDetail
+   */
+  pod_name?: string;
+  /**
+   * Sequence of dependen tasks.
+   * @type {Array<PipelineTaskDetailChildTask>}
+   * @memberof V2beta1PipelineTaskDetail
+   */
+  child_tasks?: Array<PipelineTaskDetailChildTask>;
 }
 
 /**
@@ -430,10 +390,10 @@ export interface V2beta1Run {
   pipeline_version_id?: string;
   /**
    * Pipeline spec.
-   * @type {ProtobufStruct}
+   * @type {any}
    * @memberof V2beta1Run
    */
-  pipeline_spec?: ProtobufStruct;
+  pipeline_spec?: any;
   /**
    * Required input. Runtime config of the run.
    * @type {V2beta1RuntimeConfig}
@@ -541,10 +501,10 @@ export enum V2beta1RunStorageState {
 export interface V2beta1RuntimeConfig {
   /**
    * The runtime parameters of the Pipeline. The parameters will be used to replace the placeholders at runtime.
-   * @type {{ [key: string]: ProtobufValue; }}
+   * @type {{ [key: string]: any; }}
    * @memberof V2beta1RuntimeConfig
    */
-  parameters?: { [key: string]: ProtobufValue };
+  parameters?: { [key: string]: any };
   /**
    *
    * @type {string}
@@ -812,6 +772,81 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
             ? configuration.apiKey('authorization')
             : configuration.apiKey;
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      delete localVarUrlObj.search;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Finds all runs in all experiments given optional namespace.
+     * @param {string} [namespace] Optional input field. Filters based on the namespace.
+     * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    listAllRuns(
+      namespace?: string,
+      experiment_id?: string,
+      page_token?: string,
+      page_size?: number,
+      sort_by?: string,
+      filter?: string,
+      options: any = {},
+    ): FetchArgs {
+      const localVarPath = `/apis/v2beta1/runs`;
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
+      if (namespace !== undefined) {
+        localVarQueryParameter['namespace'] = namespace;
+      }
+
+      if (experiment_id !== undefined) {
+        localVarQueryParameter['experiment_id'] = experiment_id;
+      }
+
+      if (page_token !== undefined) {
+        localVarQueryParameter['page_token'] = page_token;
+      }
+
+      if (page_size !== undefined) {
+        localVarQueryParameter['page_size'] = page_size;
+      }
+
+      if (sort_by !== undefined) {
+        localVarQueryParameter['sort_by'] = sort_by;
+      }
+
+      if (filter !== undefined) {
+        localVarQueryParameter['filter'] = filter;
       }
 
       localVarUrlObj.query = Object.assign(
@@ -1277,6 +1312,46 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Finds all runs in all experiments given optional namespace.
+     * @param {string} [namespace] Optional input field. Filters based on the namespace.
+     * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    listAllRuns(
+      namespace?: string,
+      experiment_id?: string,
+      page_token?: string,
+      page_size?: number,
+      sort_by?: string,
+      filter?: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1ListRunsResponse> {
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).listAllRuns(
+        namespace,
+        experiment_id,
+        page_token,
+        page_size,
+        sort_by,
+        filter,
+        options,
+      );
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
+    /**
+     *
      * @summary Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
      * @param {string} experiment_id The ID of the parent experiment. If empty, response includes runs across all experiments.
      * @param {string} [namespace] Optional input field. Filters based on the namespace.
@@ -1504,6 +1579,37 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
+     * @summary Finds all runs in all experiments given optional namespace.
+     * @param {string} [namespace] Optional input field. Filters based on the namespace.
+     * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    listAllRuns(
+      namespace?: string,
+      experiment_id?: string,
+      page_token?: string,
+      page_size?: number,
+      sort_by?: string,
+      filter?: string,
+      options?: any,
+    ) {
+      return RunServiceApiFp(configuration).listAllRuns(
+        namespace,
+        experiment_id,
+        page_token,
+        page_size,
+        sort_by,
+        filter,
+        options,
+      )(fetch, basePath);
+    },
+    /**
+     *
      * @summary Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
      * @param {string} experiment_id The ID of the parent experiment. If empty, response includes runs across all experiments.
      * @param {string} [namespace] Optional input field. Filters based on the namespace.
@@ -1677,6 +1783,39 @@ export class RunServiceApi extends BaseAPI {
     return RunServiceApiFp(this.configuration).getRun(
       experiment_id,
       run_id,
+      options,
+    )(this.fetch, this.basePath);
+  }
+
+  /**
+   *
+   * @summary Finds all runs in all experiments given optional namespace.
+   * @param {string} [namespace] Optional input field. Filters based on the namespace.
+   * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
+   * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+   * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
+   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof RunServiceApi
+   */
+  public listAllRuns(
+    namespace?: string,
+    experiment_id?: string,
+    page_token?: string,
+    page_size?: number,
+    sort_by?: string,
+    filter?: string,
+    options?: any,
+  ) {
+    return RunServiceApiFp(this.configuration).listAllRuns(
+      namespace,
+      experiment_id,
+      page_token,
+      page_size,
+      sort_by,
+      filter,
       options,
     )(this.fetch, this.basePath);
   }

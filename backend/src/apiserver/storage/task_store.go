@@ -441,6 +441,12 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				task.CreatedTimestamp = now
 			}
 		}
+		if len(task.StateHistory) == 0 || task.StateHistory[len(task.StateHistory)-1].State != task.State {
+			task.StateHistory = append(task.StateHistory, &model.RuntimeStatus{
+				UpdateTimeInSec: s.time.Now().Unix(),
+				State:           task.State,
+			})
+		}
 	}
 
 	// Execute the query
