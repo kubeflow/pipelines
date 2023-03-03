@@ -85,7 +85,7 @@ class TasksGroup:
 
         group_id = pipeline_context.Pipeline.get_default_pipeline(
         ).get_next_group_id()
-        self.name = f'{self.group_type}-{group_id}'
+        self.name = f'{self.group_type.value}-{group_id}'
         self.name = self.name.replace('_', '-')
 
     def remove_task_recursive(self, task: pipeline_task.PipelineTask):
