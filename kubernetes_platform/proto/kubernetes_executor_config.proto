@@ -18,7 +18,7 @@ package kfp_kubernetes;
 
 import "google/protobuf/struct.proto";
 
-option go_package = "github.com/kubeflow/pipelines/kubernetes_platform/proto/go";
+option go_package = "github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform";
 
 message KubernetesExecutorConfig {
     repeated SecretAsVolume secret_as_volume = 1;
@@ -27,20 +27,20 @@ message KubernetesExecutorConfig {
 }
 
 message SecretAsVolume {
-    // name of the Secret
+    // Name of the Secret.
     string secret_name = 1;
-    // container path to mount the Secret data
+    // Container path to mount the Secret data.
     string mount_path = 2;
 }
 
 message SecretAsEnv {
-    // name of the Secret
+    // Name of the Secret.
     string secret_name = 1;
 
     message SecretKeyToEnvMap {
-        // corresponds to a key of the Secret.data field
+        // Corresponds to a key of the Secret.data field.
         string secret_key = 1;
-        // env var to which secret_key's data should be set
+        // Env var to which secret_key's data should be set.
         string env_var = 2;
     }
 
@@ -58,52 +58,52 @@ message TaskOutputParameterSpec {
 }
 
 message PvcMount {
-    // identifier for the PVC
-    // used like TaskInputsSpec.InputParameterSpec.kind
+    // Identifier for the PVC.
+    // Used like TaskInputsSpec.InputParameterSpec.kind.
     oneof pvc_reference {
-        // output parameter from an upstream task
+        // Output parameter from an upstream task.
         TaskOutputParameterSpec task_output_parameter = 1;
-        // a constant value
+        // A constant value.
         string constant = 2;
-        // pass the input parameter from parent component input parameter
+        // Pass the input parameter from parent component input parameter.
         string component_input_parameter = 3;
     }
-    // container path to which the PVC should be mounted
+    // Container path to which the PVC should be mounted.
     string mount_path = 4;
 }
 
 message CreatePvc {
     oneof name {
-        // name of the PVC, if not dynamically generated
+        // Name of the PVC, if not dynamically generated.
         string pvc_name = 1;
-        // suffix for a dynamically generated PVC name of the form
-        // {{workflow.name}}-<pvc_name_suffix>
+        // Suffix for a dynamically generated PVC name of the form
+        // {{workflow.name}}-<pvc_name_suffix>.
         string pvc_name_suffix = 2;
     }
-    // corresponds to PersistentVolumeClaim.spec.accessMode field
+    // Corresponds to PersistentVolumeClaim.spec.accessMode field.
     repeated string access_modes = 3;
-    // corresponds to PersistentVolumeClaim.spec.resources.requests.storage field
+    // Corresponds to PersistentVolumeClaim.spec.resources.requests.storage field.
     string size = 4;
-    // if true, corresponds to omitted PersistentVolumeClaim.spec.storageClassName
+    // If true, corresponds to omitted PersistentVolumeClaim.spec.storageClassName.
     bool default_storage_class = 5;
-    // corresponds to PersistentVolumeClaim.spec.storageClassName string field
-    // should only be used if default_storage_class is false
+    // Corresponds to PersistentVolumeClaim.spec.storageClassName string field.
+    // Should only be used if default_storage_class is false.
     string storage_class = 6;
-    // corresponds to PersistentVolumeClaim.spec.volumeName field
+    // Corresponds to PersistentVolumeClaim.spec.volumeName field.
     string volume_name = 7;
-    // corresponds to PersistentVolumeClaim.metadata.annotations field
+    // Corresponds to PersistentVolumeClaim.metadata.annotations field.
     google.protobuf.Struct annotations = 8;
 }
 
 message DeletePvc {
-    // identifier for the PVC
-    // used like TaskInputsSpec.InputParameterSpec.kind
+    // Identifier for the PVC.
+    // Used like TaskInputsSpec.InputParameterSpec.kind.
     oneof pvc_reference {
-        // output parameter from an upstream task
+        // Output parameter from an upstream task.
         TaskOutputParameterSpec task_output_parameter = 1;
-        // a constant value
+        // A constant value.
         string constant = 2;
-        // pass the input parameter from parent component input parameter
+        // Pass the input parameter from parent component input parameter.
         string component_input_parameter = 3;
     }
 }
