@@ -61,11 +61,6 @@ for the retry run operation typically these are written to a http.Request
 */
 type RetryRunParams struct {
 
-	/*ExperimentID
-	  The ID of the parent experiment.
-
-	*/
-	ExperimentID string
 	/*RunID
 	  The ID of the run to be retried.
 
@@ -110,17 +105,6 @@ func (o *RetryRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithExperimentID adds the experimentID to the retry run params
-func (o *RetryRunParams) WithExperimentID(experimentID string) *RetryRunParams {
-	o.SetExperimentID(experimentID)
-	return o
-}
-
-// SetExperimentID adds the experimentId to the retry run params
-func (o *RetryRunParams) SetExperimentID(experimentID string) {
-	o.ExperimentID = experimentID
-}
-
 // WithRunID adds the runID to the retry run params
 func (o *RetryRunParams) WithRunID(runID string) *RetryRunParams {
 	o.SetRunID(runID)
@@ -139,11 +123,6 @@ func (o *RetryRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 		return err
 	}
 	var res []error
-
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
-	}
 
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {
