@@ -85,3 +85,16 @@ func TestHTTPGroupHeaderAuthenticatorFromHeaderNonGoogle(t *testing.T) {
 	assert.Equal(t, userGroups[0], "one")
 	assert.Equal(t, userGroups[1], "two")
 }
+
+func TestHTTPGroupHeaderExperimentalFlagDisableAuthenticatorFromHeaderNonGoogle(t *testing.T) {
+	userIDHeader := "Kubeflow-UserID"
+	groupsHeader := "Kubeflow-Groups"
+	groups := "one,two"
+	md := metadata.New(map[string]string{groupsHeader: groups})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	authenticator := NewHTTPHeaderAuthenticator(userIDHeader, "", groupsHeader, false)
+	userGroups, err := authenticator.GetUserGroups(ctx)
+	assert.Nil(t, userGroups)
+	assert.Nil(t, err)
+}
