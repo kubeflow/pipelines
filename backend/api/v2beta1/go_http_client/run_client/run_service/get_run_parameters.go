@@ -65,7 +65,7 @@ type GetRunParams struct {
 	  The ID of the parent experiment.
 
 	*/
-	ExperimentID string
+	ExperimentID *string
 	/*RunID
 	  The ID of the run to be retrieved.
 
@@ -111,13 +111,13 @@ func (o *GetRunParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithExperimentID adds the experimentID to the get run params
-func (o *GetRunParams) WithExperimentID(experimentID string) *GetRunParams {
+func (o *GetRunParams) WithExperimentID(experimentID *string) *GetRunParams {
 	o.SetExperimentID(experimentID)
 	return o
 }
 
 // SetExperimentID adds the experimentId to the get run params
-func (o *GetRunParams) SetExperimentID(experimentID string) {
+func (o *GetRunParams) SetExperimentID(experimentID *string) {
 	o.ExperimentID = experimentID
 }
 
@@ -140,9 +140,20 @@ func (o *GetRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regist
 	}
 	var res []error
 
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
+	if o.ExperimentID != nil {
+
+		// query param experiment_id
+		var qrExperimentID string
+		if o.ExperimentID != nil {
+			qrExperimentID = *o.ExperimentID
+		}
+		qExperimentID := qrExperimentID
+		if qExperimentID != "" {
+			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// path param run_id

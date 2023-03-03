@@ -66,7 +66,7 @@ type ListRunsParams struct {
 	  The ID of the parent experiment. If empty, response includes runs across all experiments.
 
 	*/
-	ExperimentID string
+	ExperimentID *string
 	/*Filter
 	  A url-encoded, JSON-serialized Filter protocol buffer (see
 	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
@@ -138,13 +138,13 @@ func (o *ListRunsParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithExperimentID adds the experimentID to the list runs params
-func (o *ListRunsParams) WithExperimentID(experimentID string) *ListRunsParams {
+func (o *ListRunsParams) WithExperimentID(experimentID *string) *ListRunsParams {
 	o.SetExperimentID(experimentID)
 	return o
 }
 
 // SetExperimentID adds the experimentId to the list runs params
-func (o *ListRunsParams) SetExperimentID(experimentID string) {
+func (o *ListRunsParams) SetExperimentID(experimentID *string) {
 	o.ExperimentID = experimentID
 }
 
@@ -211,9 +211,20 @@ func (o *ListRunsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 	}
 	var res []error
 
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
+	if o.ExperimentID != nil {
+
+		// query param experiment_id
+		var qrExperimentID string
+		if o.ExperimentID != nil {
+			qrExperimentID = *o.ExperimentID
+		}
+		qExperimentID := qrExperimentID
+		if qExperimentID != "" {
+			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if o.Filter != nil {

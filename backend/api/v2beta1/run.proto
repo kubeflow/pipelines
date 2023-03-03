@@ -64,7 +64,7 @@ service RunService {
   // If experiment ID is not specified, the run is created in the default experiment.
   rpc CreateRun(CreateRunRequest) returns (Run) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs"
+      post: "/apis/v2beta1/runs"
       body: "run"
     };
   }
@@ -72,20 +72,13 @@ service RunService {
   // Finds a specific run by ID.
   rpc GetRun(GetRunRequest) returns (Run) {
     option (google.api.http) = {
-      get: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}"
+      get: "/apis/v2beta1/runs/{run_id}"
     };
   }
 
   // Finds all runs in an experiment given by experiment ID. 
   // If experiment id is not specified, finds all runs across all experiments.
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
-    option (google.api.http) = {
-      get: "/apis/v2beta1/experiments/{experiment_id}/runs"
-    };
-  }
-
-  // Finds all runs in all experiments given optional namespace. 
-  rpc ListAllRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
       get: "/apis/v2beta1/runs"
     };
@@ -94,42 +87,42 @@ service RunService {
   // Archives a run in an experiment given by run ID and experiment ID.
   rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:archive"
+      post: "/apis/v2beta1/runs/{run_id}:archive"
     };
   }
 
   // Restores an archived run in an experiment given by run ID and experiment ID.
   rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive"
+      post: "/apis/v2beta1/runs/{run_id}:unarchive"
     };
   }
 
   // Deletes a run in an experiment given by run ID and experiment ID.
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      delete: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}"
+      delete: "/apis/v2beta1/runs/{run_id}"
     };
   }
 
   // Finds artifact data in a run.
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
-      get: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
+      get: "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
 
   // Terminates an active run.
   rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate"
+      post: "/apis/v2beta1/runs/{run_id}:terminate"
     };
   }
 
   // Re-initiates a failed or terminated run.
  rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
    option (google.api.http) = {
-     post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry"
+     post: "/apis/v2beta1/runs/{run_id}:retry"
     };
   }
 
