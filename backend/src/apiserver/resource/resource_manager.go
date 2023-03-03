@@ -950,10 +950,6 @@ func (r ResourceManager) createPipelineFromSpecIfNoExisting(manifest string, nam
 			Description: description,
 			Namespace:   namespace,
 		}
-		newPipeline, err = r.CreatePipeline(newPipeline)
-		if err != nil {
-			return nil, nil, util.Wrap(util.Wrap(err, fetchingError), "Failed to fetch a pipeline version and its manifest due to error creating a new pipeline")
-		}
 	}
 	// Try fetching existing pipeline versions
 	var pipelineVersion *model.PipelineVersion
@@ -964,7 +960,7 @@ func (r ResourceManager) createPipelineFromSpecIfNoExisting(manifest string, nam
 		}
 		existingVersions, _, _, err := r.ListPipelineVersions(existingPipeline.UUID, opts)
 		if err != nil {
-			fetchingError = fmt.Sprintf("%v: Failed to list pipeline versions for pipeline %v: %v", fetchingError, existingPipeline.UUID, err.Error())
+			return nil, nil, util.Wrapf(err, "%v: Failed to list pipeline versions for pipeline %v", fetchingError, existingPipeline.UUID)
 		}
 		for _, version := range existingVersions {
 			if version.PipelineSpec == manifest {
@@ -986,10 +982,6 @@ func (r ResourceManager) createPipelineFromSpecIfNoExisting(manifest string, nam
 			Name:         fmt.Sprintf("%v-%v", pipelineName, r.time.Now().Unix()),
 			PipelineSpec: manifest,
 			Description:  description,
-		}
-		pipelineVersion, err = r.CreatePipelineVersion(pipelineVersion)
-		if err != nil {
-			return nil, nil, util.Wrap(util.Wrap(err, fetchingError), "Failed to fetch a pipeline version and its manifest due to error creating a new pipeline version")
 		}
 	}
 	return pipelineVersion, &tmpl, nil
