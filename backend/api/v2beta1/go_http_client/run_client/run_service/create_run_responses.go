@@ -58,7 +58,7 @@ type CreateRunOK struct {
 }
 
 func (o *CreateRunOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}/runs][%d] createRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs][%d] createRunOK  %+v", 200, o.Payload)
 }
 
 func (o *CreateRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -96,7 +96,7 @@ func (o *CreateRunDefault) Code() int {
 }
 
 func (o *CreateRunDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}/runs][%d] CreateRun default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs][%d] CreateRun default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *CreateRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

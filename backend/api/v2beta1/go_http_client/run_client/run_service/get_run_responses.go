@@ -58,7 +58,7 @@ type GetRunOK struct {
 }
 
 func (o *GetRunOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}][%d] getRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/runs/{run_id}][%d] getRunOK  %+v", 200, o.Payload)
 }
 
 func (o *GetRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -96,7 +96,7 @@ func (o *GetRunDefault) Code() int {
 }
 
 func (o *GetRunDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}][%d] GetRun default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/runs/{run_id}][%d] GetRun default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *GetRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

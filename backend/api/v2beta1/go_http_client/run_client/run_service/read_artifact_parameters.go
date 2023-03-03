@@ -70,7 +70,7 @@ type ReadArtifactParams struct {
 	  The ID of the parent experiment.
 
 	*/
-	ExperimentID string
+	ExperimentID *string
 	/*NodeID
 	  ID of the running node.
 
@@ -132,13 +132,13 @@ func (o *ReadArtifactParams) SetArtifactName(artifactName string) {
 }
 
 // WithExperimentID adds the experimentID to the read artifact params
-func (o *ReadArtifactParams) WithExperimentID(experimentID string) *ReadArtifactParams {
+func (o *ReadArtifactParams) WithExperimentID(experimentID *string) *ReadArtifactParams {
 	o.SetExperimentID(experimentID)
 	return o
 }
 
 // SetExperimentID adds the experimentId to the read artifact params
-func (o *ReadArtifactParams) SetExperimentID(experimentID string) {
+func (o *ReadArtifactParams) SetExperimentID(experimentID *string) {
 	o.ExperimentID = experimentID
 }
 
@@ -177,9 +177,20 @@ func (o *ReadArtifactParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
+	if o.ExperimentID != nil {
+
+		// query param experiment_id
+		var qrExperimentID string
+		if o.ExperimentID != nil {
+			qrExperimentID = *o.ExperimentID
+		}
+		qExperimentID := qrExperimentID
+		if qExperimentID != "" {
+			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// path param node_id
