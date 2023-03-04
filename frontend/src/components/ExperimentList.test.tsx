@@ -19,6 +19,10 @@ import * as Utils from '../lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
+<<<<<<< HEAD
+=======
+import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
+>>>>>>> 03385f6d1 (Integrate run list page with v2 API.)
 import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
 import { V2beta1RunStorageState } from '../apisv2beta1/run';
 import { ExpandState } from './CustomTable';
@@ -293,7 +297,7 @@ describe('ExperimentList', () => {
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });
@@ -344,7 +348,7 @@ describe('ExperimentList', () => {
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });
