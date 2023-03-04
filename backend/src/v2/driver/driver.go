@@ -365,7 +365,6 @@ func makePodSpecPatch(
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
 		var acceleratorType k8score.ResourceName
-		var acceleratorCount k8sres.Quantity
 		if temp := strings.ToLower(accelerator.GetType()); temp != "" {
 			switch {
 			case strings.Contains(temp, "nvidia"):
@@ -374,31 +373,31 @@ func makePodSpecPatch(
 			case strings.Contains(temp, "amd"):
 				// AMD's device plugin for k8s: https://github.dev/RadeonOpenCompute/k8s-device-plugin.
 				acceleratorType = k8score.ResourceName("amd.com/gpu")
-			// TODO(gkcalat): extend support to TPU_V4 once it get supported on GKE
-			case strings.Contains(temp, "tpu_v3") || strings.Contains(temp, "tpu-v3"):
-				// https://cloud.google.com/tpu/docs/kubernetes-engine-setup#job-spec
+			// There are multiple samples that use these TPU values.
+			// TODO(gkcalat): add support for TPU_V4 once it becomes supported on GKE.
+			case temp == "tpu_v3" || temp == "tpu-v3":
+				// https://cloud.google.com/tpu/docs/kubernetes-engine-setup#job-spec.
 				acceleratorType = k8score.ResourceName("cloud-tpus.google.com/v3")
-			case strings.Contains(temp, "tpu_v2") || strings.Contains(temp, "tpu-v2"):
-				// https://cloud.google.com/tpu/docs/kubernetes-engine-setup#job-spec
+			case temp == "tpu_v2" || temp == "tpu-v2":
+				// https://cloud.google.com/tpu/docs/kubernetes-engine-setup#job-spec.
 				acceleratorType = k8score.ResourceName("cloud-tpus.google.com/v2")
 			default:
-				// Intel's device plugin: https://github.com/intel/intel-device-plugins-for-kubernetes.
 				// Google and Intel have multiple resource names. For example:
 				// cloud-tpus.google.com/preemptible-v2, cloud-tpus.google.com/preemptible-v3,
 				// dsa.intel.com/wq-user-shared, dsa.intel.com/wq-user-dedicated, vpu.intel.com/hddl, etc.
 				// Therefore, we pass the resource name as is (lower-case).
-				// This may potentially result in pod being unschedulable, which is shown as FAILED state.
+				// This may potentially result in pod being unschedulable, which will cause FAILED state.
+				// Ref: Intel's device plugin: https://github.com/intel/intel-device-plugins-for-kubernetes.
 				acceleratorType = k8score.ResourceName(temp)
 			}
 		}
-		if accelerator.GetCount() > 0 {
+		if acceleratorType.String() != "" && accelerator.GetCount() > 0 {
 			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
 			if err != nil {
 				return "", err
 			}
-			acceleratorCount = q
+			res.Limits[acceleratorType] = q
 		}
-		res.Limits[acceleratorType] = acceleratorCount
 	}
 	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
 	podSpec := &k8score.PodSpec{
