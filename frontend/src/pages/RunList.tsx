@@ -129,15 +129,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         label: '',
       });
 
-      columns.push(
-        ...metricMetadata.map(metadata => {
-          return {
-            customRenderer: this._metricCustomRenderer,
-            flex: 0.5,
-            label: metadata.name!,
-          };
-        }),
-      );
+      // columns.push(
+      //   ...metricMetadata.map(metadata => {
+      //     return {
+      //       customRenderer: this._metricCustomRenderer,
+      //       flex: 0.5,
+      //       label: metadata.name!,
+      //     };
+      //   }),
+      // );
     }
 
     const rows: Row[] = this.state.runs.map(r => {
