@@ -335,7 +335,7 @@ describe('ExperimentList', () => {
       'testexperiment1',
       '',
       10,
-      'created_at desc',      
+      'created_at desc',
       encodeURIComponent(
         JSON.stringify({
           predicates: [

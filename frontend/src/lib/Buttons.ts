@@ -429,7 +429,7 @@ export default class Buttons {
         `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
         `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
-      id => Apis.runServiceApi.archiveRun(id),
+      id => Apis.runServiceApiV2.archiveRun(id),
       callback,
       'Archive',
       'run',
@@ -447,7 +447,7 @@ export default class Buttons {
         selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
       } original location?`,
       useCurrent,
-      id => Apis.runServiceApi.unarchiveRun(id),
+      id => Apis.runServiceApiV2.unarchiveRun(id),
       callback,
       'Restore',
       'run',

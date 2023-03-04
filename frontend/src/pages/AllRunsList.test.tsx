@@ -130,6 +130,8 @@ describe('AllRunsList', () => {
 
   it('shows a list of available runs', () => {
     shallowMountComponent();
-    expect(tree.find('RunList').prop('storageState')).toBe(V2beta1RunStorageState.AVAILABLE.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(
+      V2beta1RunStorageState.AVAILABLE.toString(),
+    );
   });
 });
