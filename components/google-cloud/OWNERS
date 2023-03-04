@@ -1,13 +1,11 @@
 # Google Cloud components - MB SDK
 approvers:
   - chensun
-  - connor-mccarthy
   - IronPan
   - neuromage
   - sasha-gitg
   - sinachavoshi
 reviewers:
   - chensun
-  - connor-mccarthy
   - sasha-gitg
   - sinachavoshi
