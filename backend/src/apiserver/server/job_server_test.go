@@ -389,7 +389,6 @@ func TestCreateJob_NoResRefs(t *testing.T) {
 		ServiceAccount:     "pipeline-runner",
 		Status:             "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
-			PipelineName:     "job1-6",
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
@@ -666,9 +665,8 @@ func TestListJobs_Multiuser(t *testing.T) {
 	assert.Nil(t, err)
 
 	var expectedJobs []*apiv1beta1.Job
-	commonExpectedJob.PipelineSpec.PipelineName = "job1-2"
-	commonExpectedJob.CreatedAt = &timestamp.Timestamp{Seconds: 3}
-	commonExpectedJob.UpdatedAt = &timestamp.Timestamp{Seconds: 3}
+	commonExpectedJob.CreatedAt = &timestamp.Timestamp{Seconds: 2}
+	commonExpectedJob.UpdatedAt = &timestamp.Timestamp{Seconds: 2}
 	commonExpectedJob.ResourceReferences = []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeIdOne}, Relationship: apiv1beta1.Relationship_OWNER},
@@ -929,8 +927,8 @@ func TestCreateRecurringRun(t *testing.T) {
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 3},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 3},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 		Status:         apiv2beta1.RecurringRun_ENABLED,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
@@ -983,8 +981,8 @@ func TestGetRecurringRun(t *testing.T) {
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 3},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 3},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 		Status:         apiv2beta1.RecurringRun_ENABLED,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
@@ -1040,8 +1038,8 @@ func TestListRecurringRuns(t *testing.T) {
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 3},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 3},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",

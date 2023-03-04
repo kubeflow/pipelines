@@ -646,8 +646,8 @@ func TestCreateRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 3},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 3},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: run.GetPipelineSpec(),
@@ -659,7 +659,7 @@ func TestCreateRun(t *testing.T) {
 		State: apiv2beta1.RuntimeState_PENDING,
 		StateHistory: []*apiv2beta1.RuntimeStatus{
 			{
-				UpdateTime: &timestamp.Timestamp{Seconds: 4},
+				UpdateTime: &timestamp.Timestamp{Seconds: 3},
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
@@ -745,8 +745,8 @@ func TestGetRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 3},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 3},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: returnedRun.GetPipelineSpec(),
@@ -758,7 +758,7 @@ func TestGetRun(t *testing.T) {
 		State: apiv2beta1.RuntimeState_PENDING,
 		StateHistory: []*apiv2beta1.RuntimeStatus{
 			{
-				UpdateTime: &timestamp.Timestamp{Seconds: 4},
+				UpdateTime: &timestamp.Timestamp{Seconds: 3},
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
@@ -900,8 +900,8 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 		Name:           "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 3},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 3},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Pending",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -1032,8 +1032,8 @@ func TestListRuns(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 3},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 3},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: createdRun.GetPipelineSpec(),
@@ -1045,7 +1045,7 @@ func TestListRuns(t *testing.T) {
 		State: apiv2beta1.RuntimeState_PENDING,
 		StateHistory: []*apiv2beta1.RuntimeStatus{
 			{
-				UpdateTime: &timestamp.Timestamp{Seconds: 4},
+				UpdateTime: &timestamp.Timestamp{Seconds: 3},
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
