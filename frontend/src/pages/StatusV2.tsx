@@ -82,7 +82,7 @@ export function statusToIcon(
     case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
       break;
     default:
-      logger.verbose('Unknown node phase:', state);
+      logger.verbose('Unknown state:', state);
   }
   // TODO(jlyaoyuli): Additional changes is probably needed after Status IR integration.
   if (mlmdState === Execution.State.CACHED) {

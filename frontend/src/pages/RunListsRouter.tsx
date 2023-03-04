@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import { ApiRunStorageState } from 'src/apis/run';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { classes } from 'typestyle';
@@ -27,7 +28,7 @@ export enum RunListsGroupTab {
 }
 
 export type RunListsRouterProps = RunListProps & {
-  storageState: ApiRunStorageState;
+  storageState: V2beta1RunStorageState;
   refreshCount: number;
   onTabSwitch?: (tab: RunListsGroupTab) => void;
 };
@@ -88,7 +89,7 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
   }
 
   private _getSelectedTab() {
-    return this.props.storageState === ApiRunStorageState.ARCHIVED
+    return this.props.storageState === V2beta1RunStorageState.ARCHIVED
       ? RunListsGroupTab.ARCHIVE
       : RunListsGroupTab.ACTIVE;
   }

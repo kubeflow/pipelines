@@ -19,9 +19,9 @@ import * as Utils from '../lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiRunStorageState } from '../apis/run';
-import { ApiExperimentStorageState } from '../apis/experiment';
+import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
 import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
+import { V2beta1RunStorageState } from '../apisv2beta1/run';
 import { ExpandState } from './CustomTable';
 
 import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
@@ -43,7 +43,7 @@ describe('ExperimentList', () => {
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
-  const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
+  const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
 
   function generateProps(): ExperimentListProps {
     return {
@@ -278,24 +278,23 @@ describe('ExperimentList', () => {
         display_name: 'experiment with id: testexperiment1',
       },
     ]);
-    expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(1);
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+    expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(1);
+    expect(Apis.runServiceApiV2.listRuns).toHaveBeenLastCalledWith(
+      undefined,
+      'testexperiment1',
       '',
       10,
       'created_at desc',
-      'EXPERIMENT',
-      'testexperiment1',
       encodeURIComponent(
         JSON.stringify({
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.NOTEQUALS,
-              string_value: ApiExperimentStorageState.ARCHIVED.toString(),
-              // TODO(jlyaoyuli): Change to v2 storage state after run integration
+              operation: V2beta1PredicateOperation.NOTEQUALS,
+              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });
@@ -330,24 +329,23 @@ describe('ExperimentList', () => {
         display_name: 'experiment with id: testexperiment1',
       },
     ]);
-    expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(1);
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+    expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(1);
+    expect(Apis.runServiceApiV2.listRuns).toHaveBeenLastCalledWith(
+      undefined,
+      'testexperiment1',
       '',
       10,
-      'created_at desc',
-      'EXPERIMENT',
-      'testexperiment1',
+      'created_at desc',      
       encodeURIComponent(
         JSON.stringify({
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
-              string_value: ApiExperimentStorageState.ARCHIVED.toString(),
-              // TODO(jlyaoyuli): Change to v2 storage state after run integration
+              operation: V2beta1PredicateOperation.EQUALS,
+              string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });
