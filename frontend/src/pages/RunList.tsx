@@ -28,7 +28,13 @@ import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
-import { formatDateString, logger, errorToMessage, getRunDuration, getRunDurationV2 } from '../lib/Utils';
+import {
+  formatDateString,
+  logger,
+  errorToMessage,
+  getRunDuration,
+  getRunDurationV2,
+} from '../lib/Utils';
 import { statusToIcon } from './StatusV2';
 import Tooltip from '@material-ui/core/Tooltip';
 
@@ -193,7 +199,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           emptyMessage={
             `No` +
             `${
-              this.props.storageState === V2beta1RunStorageState.ARCHIVED ? ' archived' : ' available'
+              this.props.storageState === V2beta1RunStorageState.ARCHIVED
+                ? ' archived'
+                : ' available'
             }` +
             ` runs found` +
             `${
@@ -444,7 +452,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const recurringRunId = displayRun.run.recurring_run_id;
     // TBD(jlyaoyuli): how to get recurringRun name
     if (recurringRunId) {
-      displayRun.recurringRun = { id: recurringRunId};
+      displayRun.recurringRun = { id: recurringRunId };
     }
   }
 
@@ -489,7 +497,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           'Failed to get associated pipeline version: ' + (await errorToMessage(err));
         return;
       }
-    } else if (displayRun.run.pipeline_spec) { 
+    } else if (displayRun.run.pipeline_spec) {
       // pipeline_spec in v2 can store either workflow_manifest or pipeline_manifest
       displayRun.pipelineVersion = displayRun.recurringRun?.id
         ? { usePlaceholder: true, recurringRunId: displayRun.recurringRun.id }
@@ -504,7 +512,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * DisplayRun will show '-'.
    */
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
-    const experimentId = displayRun.run.experiment_id
+    const experimentId = displayRun.run.experiment_id;
     if (experimentId) {
       let experimentName;
       try {

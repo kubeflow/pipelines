@@ -107,7 +107,9 @@ describe('ArchivedRuns', () => {
 
   it('shows a list of available runs', () => {
     tree = shallow(<ArchivedRuns {...generateProps()} />);
-    expect(tree.find('RunList').prop('storageState')).toBe(V2beta1RunStorageState.ARCHIVED.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(
+      V2beta1RunStorageState.ARCHIVED.toString(),
+    );
   });
 
   it('cancells deletion when Cancel is clicked', async () => {
