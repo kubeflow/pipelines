@@ -162,7 +162,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {
@@ -426,7 +426,7 @@ exports[`ExperimentDetails removes all description text after second newline and
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {
@@ -677,7 +677,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {
@@ -926,7 +926,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {

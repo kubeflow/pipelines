@@ -19,15 +19,17 @@ import CustomTable, { Column, Row, CustomRendererProps } from '../components/Cus
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
 import { ApiRun, ApiRunMetric, ApiRunStorageState, ApiRunDetail } from '../../src/apis/run';
+import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
 import { PredicateOp, ApiFilter } from '../apis/filter';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
-import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
-import { statusToIcon } from './Status';
+import { formatDateString, logger, errorToMessage, getRunDuration, getRunDurationV2 } from '../lib/Utils';
+import { statusToIcon } from './StatusV2';
 import Tooltip from '@material-ui/core/Tooltip';
 
 interface PipelineVersionInfo {
@@ -47,7 +49,7 @@ interface RecurringRunInfo {
 interface DisplayRun {
   experiment?: ExperimentInfo;
   recurringRun?: RecurringRunInfo;
-  run: ApiRun;
+  run: V2beta1Run;
   pipelineVersion?: PipelineVersionInfo;
   error?: string;
 }
@@ -75,7 +77,7 @@ export type RunListProps = MaskProps &
     onSelectionChange?: (selectedRunIds: string[]) => void;
     runIdListMask?: string[];
     selectedIds?: string[];
-    storageState?: ApiRunStorageState;
+    storageState?: V2beta1RunStorageState;
   };
 
 interface RunListState {
@@ -129,35 +131,35 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         label: '',
       });
 
-      columns.push(
-        ...metricMetadata.map(metadata => {
-          return {
-            customRenderer: this._metricCustomRenderer,
-            flex: 0.5,
-            label: metadata.name!,
-          };
-        }),
-      );
+      // columns.push(
+      //   ...metricMetadata.map(metadata => {
+      //     return {
+      //       customRenderer: this._metricCustomRenderer,
+      //       flex: 0.5,
+      //       label: metadata.name!,
+      //     };
+      //   }),
+      // );
     }
 
     const rows: Row[] = this.state.runs.map(r => {
       const displayMetrics = metricMetadata.map(metadata => {
         const displayMetric: DisplayMetric = { metadata };
-        if (r.run.metrics) {
-          const foundMetric = r.run.metrics.find(m => m.name === metadata.name);
-          if (foundMetric && foundMetric.number_value !== undefined) {
-            displayMetric.metric = foundMetric;
-          }
-        }
+        // if (r.run.metrics) {
+        //   const foundMetric = r.run.metrics.find(m => m.name === metadata.name);
+        //   if (foundMetric && foundMetric.number_value !== undefined) {
+        //     displayMetric.metric = foundMetric;
+        //   }
+        // }
         return displayMetric;
       });
       const row = {
         error: r.error,
-        id: r.run.id!,
+        id: r.run.run_id!,
         otherFields: [
-          r.run!.name,
-          r.run.status || '-',
-          getRunDuration(r.run),
+          r.run!.display_name,
+          r.run.state || '-',
+          getRunDurationV2(r.run),
           r.pipelineVersion,
           r.recurringRun,
           formatDateString(r.run.created_at),
@@ -191,7 +193,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           emptyMessage={
             `No` +
             `${
-              this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
+              this.props.storageState === V2beta1RunStorageState.ARCHIVED ? ' archived' : ' available'
             }` +
             ` runs found` +
             `${
@@ -306,8 +308,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     );
   };
 
-  public _statusCustomRenderer: React.FC<CustomRendererProps<NodePhase>> = (
-    props: CustomRendererProps<NodePhase>,
+  public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RuntimeState>> = (
+    props: CustomRendererProps<V2beta1RuntimeState>,
   ) => {
     return statusToIcon(props.value);
   };
@@ -334,7 +336,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     let nextPageToken = '';
 
     if (Array.isArray(this.props.runIdListMask)) {
-      displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
+      displayRuns = this.props.runIdListMask.map(id => ({ run: { run_id: id } }));
       const filter = JSON.parse(
         decodeURIComponent(request.filter || '{"predicates": []}'),
       ) as ApiFilter;
@@ -347,7 +349,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
       displayRuns = displayRuns.filter(runDetail => {
         for (const sub of substrings) {
-          if (!runDetail?.run?.name?.toLowerCase().includes(sub)) {
+          if (!runDetail?.run?.display_name?.toLowerCase().includes(sub)) {
             return false;
           }
         }
@@ -367,10 +369,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
               // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
               // is missing, in which case it should be counted as available.
               op:
-                this.props.storageState === ApiRunStorageState.ARCHIVED
+                this.props.storageState === V2beta1RunStorageState.ARCHIVED
                   ? PredicateOp.EQUALS
                   : PredicateOp.NOTEQUALS,
-              string_value: ApiRunStorageState.ARCHIVED.toString(),
+              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ]);
           request.filter = encodeURIComponent(JSON.stringify(filter));
@@ -395,12 +397,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
             keyId: this.props.namespaceMask,
           };
         }
-        const response = await Apis.runServiceApi.listRuns(
+        const response = await Apis.runServiceApiV2.listRuns(
+          this.props.namespaceMask,
+          this.props.experimentIdMask,
           request.pageToken,
           request.pageSize,
           request.sortBy,
-          resourceReference.keyType,
-          resourceReference.keyId,
           request.filter,
         );
 
@@ -417,7 +419,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     await this._setColumns(displayRuns);
 
     this.setState({
-      metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
+      // metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
@@ -439,10 +441,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   }
 
   private _setRecurringRun(displayRun: DisplayRun): void {
-    const recurringRunId = RunUtils.getRecurringRunId(displayRun.run);
-    const recurringRunName = RunUtils.getRecurringRunName(displayRun.run);
+    const recurringRunId = displayRun.run.recurring_run_id;
+    // TBD(jlyaoyuli): how to get recurringRun name
     if (recurringRunId) {
-      displayRun.recurringRun = { id: recurringRunId, displayName: recurringRunName };
+      displayRun.recurringRun = { id: recurringRunId};
     }
   }
 
@@ -452,10 +454,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
       displayRuns.map(async displayRun => {
-        let getRunResponse: ApiRunDetail;
+        let getRunResponse: V2beta1Run;
         try {
-          getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);
-          displayRun.run = getRunResponse.run!;
+          getRunResponse = await Apis.runServiceApiV2.getRun(displayRun.run!.run_id!);
+          displayRun.run = getRunResponse;
         } catch (err) {
           displayRun.error = await errorToMessage(err);
         }
@@ -471,8 +473,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * '-'.
    */
   private async _getAndSetPipelineVersionNames(displayRun: DisplayRun): Promise<void> {
-    const pipelineVersionId = RunUtils.getPipelineVersionId(displayRun.run);
-    const pipelineId = RunUtils.getPipelineId(displayRun.run);
+    const pipelineVersionId = displayRun.run.pipeline_version_id;
     if (pipelineVersionId) {
       try {
         const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
@@ -488,29 +489,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           'Failed to get associated pipeline version: ' + (await errorToMessage(err));
         return;
       }
-    } else if (pipelineId) {
-      // For backward compatibility. Runs created before version is introduced
-      // refer to pipeline id instead of pipeline version id.
-      let pipelineName = RunUtils.getPipelineName(displayRun.run);
-      if (!pipelineName) {
-        try {
-          const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-          pipelineName = pipeline.name || '';
-        } catch (err) {
-          displayRun.error = 'Failed to get associated pipeline: ' + (await errorToMessage(err));
-          return;
-        }
-      }
-      displayRun.pipelineVersion = {
-        displayName: pipelineName,
-        pipelineId,
-        usePlaceholder: false,
-        versionId: undefined,
-      };
-    } else if (
-      !!RunUtils.getWorkflowManifest(displayRun.run) ||
-      displayRun.run.pipeline_spec?.pipeline_manifest
-    ) {
+    } else if (displayRun.run.pipeline_spec) { 
+      // pipeline_spec in v2 can store either workflow_manifest or pipeline_manifest
       displayRun.pipelineVersion = displayRun.recurringRun?.id
         ? { usePlaceholder: true, recurringRunId: displayRun.recurringRun.id }
         : { usePlaceholder: true };
@@ -524,17 +504,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * DisplayRun will show '-'.
    */
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
-    const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
+    const experimentId = displayRun.run.experiment_id
     if (experimentId) {
-      let experimentName = RunUtils.getFirstExperimentReferenceName(displayRun.run);
-      if (!experimentName) {
-        try {
-          const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-          experimentName = experiment.name || '';
-        } catch (err) {
-          displayRun.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
-          return;
-        }
+      let experimentName;
+      try {
+        const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+        experimentName = experiment.name || '';
+      } catch (err) {
+        displayRun.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
+        return;
       }
       displayRun.experiment = {
         displayName: experimentName,

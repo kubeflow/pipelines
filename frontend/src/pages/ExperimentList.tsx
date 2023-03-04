@@ -31,6 +31,7 @@ import {
   V2beta1ExperimentStorageState,
 } from 'src/apisv2beta1/experiment';
 import { ApiRun, ApiRunStorageState } from '../apis/run';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -280,7 +281,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         disablePaging={false}
         selectedIds={this.state.selectedIds}
         noFilterBox={true}
-        storageState={ApiRunStorageState.AVAILABLE}
+        storageState={V2beta1RunStorageState.AVAILABLE}
         onSelectionChange={this._selectionChanged.bind(this)}
         disableSorting={true}
       />
