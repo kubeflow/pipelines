@@ -58,7 +58,7 @@ type RetryRunOK struct {
 }
 
 func (o *RetryRunOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry][%d] retryRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:retry][%d] retryRunOK  %+v", 200, o.Payload)
 }
 
 func (o *RetryRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ func (o *RetryRunDefault) Code() int {
 }
 
 func (o *RetryRunDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry][%d] RetryRun default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:retry][%d] RetryRun default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *RetryRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

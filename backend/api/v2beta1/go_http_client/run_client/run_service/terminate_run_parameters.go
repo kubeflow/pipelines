@@ -61,11 +61,6 @@ for the terminate run operation typically these are written to a http.Request
 */
 type TerminateRunParams struct {
 
-	/*ExperimentID
-	  The ID of the parent experiment.
-
-	*/
-	ExperimentID string
 	/*RunID
 	  The ID of the run to be terminated.
 
@@ -110,17 +105,6 @@ func (o *TerminateRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithExperimentID adds the experimentID to the terminate run params
-func (o *TerminateRunParams) WithExperimentID(experimentID string) *TerminateRunParams {
-	o.SetExperimentID(experimentID)
-	return o
-}
-
-// SetExperimentID adds the experimentId to the terminate run params
-func (o *TerminateRunParams) SetExperimentID(experimentID string) {
-	o.ExperimentID = experimentID
-}
-
 // WithRunID adds the runID to the terminate run params
 func (o *TerminateRunParams) WithRunID(runID string) *TerminateRunParams {
 	o.SetRunID(runID)
@@ -139,11 +123,6 @@ func (o *TerminateRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
-
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
-	}
 
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {

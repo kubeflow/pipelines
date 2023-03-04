@@ -58,7 +58,7 @@ type DeleteRunOK struct {
 }
 
 func (o *DeleteRunOK) Error() string {
-	return fmt.Sprintf("[DELETE /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}][%d] deleteRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[DELETE /apis/v2beta1/runs/{run_id}][%d] deleteRunOK  %+v", 200, o.Payload)
 }
 
 func (o *DeleteRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ func (o *DeleteRunDefault) Code() int {
 }
 
 func (o *DeleteRunDefault) Error() string {
-	return fmt.Sprintf("[DELETE /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}][%d] DeleteRun default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[DELETE /apis/v2beta1/runs/{run_id}][%d] DeleteRun default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *DeleteRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

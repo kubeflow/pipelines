@@ -124,15 +124,15 @@ Class | Method | HTTP request | Description
 *RecurringRunServiceApi* | [**list_recurring_runs**](docs/RecurringRunServiceApi.md#list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
 *ReportServiceApi* | [**report_scheduled_workflow**](docs/ReportServiceApi.md#report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
 *ReportServiceApi* | [**report_workflow**](docs/ReportServiceApi.md#report_workflow) | **POST** /apis/v2beta1/workflows | 
-*RunServiceApi* | [**archive_run**](docs/RunServiceApi.md#archive_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
-*RunServiceApi* | [**create_run**](docs/RunServiceApi.md#create_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs | Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
-*RunServiceApi* | [**delete_run**](docs/RunServiceApi.md#delete_run) | **DELETE** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
-*RunServiceApi* | [**get_run**](docs/RunServiceApi.md#get_run) | **GET** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id} | Finds a specific run by ID.
-*RunServiceApi* | [**list_runs**](docs/RunServiceApi.md#list_runs) | **GET** /apis/v2beta1/experiments/{experiment_id}/runs | Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
-*RunServiceApi* | [**read_artifact**](docs/RunServiceApi.md#read_artifact) | **GET** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds artifact data in a run.
-*RunServiceApi* | [**retry_run**](docs/RunServiceApi.md#retry_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry | Re-initiates a failed or terminated run.
-*RunServiceApi* | [**terminate_run**](docs/RunServiceApi.md#terminate_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate | Terminates an active run.
-*RunServiceApi* | [**unarchive_run**](docs/RunServiceApi.md#unarchive_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
+*RunServiceApi* | [**archive_run**](docs/RunServiceApi.md#archive_run) | **POST** /apis/v2beta1/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
+*RunServiceApi* | [**create_run**](docs/RunServiceApi.md#create_run) | **POST** /apis/v2beta1/runs | Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
+*RunServiceApi* | [**delete_run**](docs/RunServiceApi.md#delete_run) | **DELETE** /apis/v2beta1/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
+*RunServiceApi* | [**get_run**](docs/RunServiceApi.md#get_run) | **GET** /apis/v2beta1/runs/{run_id} | Finds a specific run by ID.
+*RunServiceApi* | [**list_runs**](docs/RunServiceApi.md#list_runs) | **GET** /apis/v2beta1/runs | Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
+*RunServiceApi* | [**read_artifact**](docs/RunServiceApi.md#read_artifact) | **GET** /apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds artifact data in a run.
+*RunServiceApi* | [**retry_run**](docs/RunServiceApi.md#retry_run) | **POST** /apis/v2beta1/runs/{run_id}:retry | Re-initiates a failed or terminated run.
+*RunServiceApi* | [**terminate_run**](docs/RunServiceApi.md#terminate_run) | **POST** /apis/v2beta1/runs/{run_id}:terminate | Terminates an active run.
+*RunServiceApi* | [**unarchive_run**](docs/RunServiceApi.md#unarchive_run) | **POST** /apis/v2beta1/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
 *VisualizationServiceApi* | [**create_visualization_v1**](docs/VisualizationServiceApi.md#create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} | 
 
 
