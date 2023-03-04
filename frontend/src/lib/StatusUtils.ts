@@ -169,7 +169,11 @@ export function statusToBgColorV2(state?: V2beta1RuntimeState, nodeMessage?: str
     case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
     // fall through
     default:
+<<<<<<< HEAD
       logger.verbose('Unknown state:', state);
+=======
+      logger.verbose('Unknown node phase:', state);
+>>>>>>> b6ed02535 (Add helper function for v2 run in StatusUtils and Utils.)
       return statusBgColors.notStarted;
   }
 }
