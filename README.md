@@ -19,7 +19,7 @@ The Kubeflow pipelines service has the following goals:
 
 * Install Kubeflow Pipelines from choices described in [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/).
 
-* :star: [Alpha] Starting from Kubeflow Pipelines 1.7, try out [Emissary Executor](https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/#emissary-executor). Emissary executor is Container runtime agnostic meaning you are able to run Kubeflow Pipelines on Kubernetes cluster with any [Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/). The default Docker executor depends on Docker container runtime, which will be deprecated on Kubernetes 1.20+.
+* The Docker container runtime has been deprecated on Kubernetes 1.20+. Kubeflow Pipelines has switched to use [Emissary Executor](https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/#emissary-executor) by default from Kubeflow Pipelines 1.8. Emissary executor is Container runtime agnostic, meaning you are able to run Kubeflow Pipelines on Kubernetes cluster with any [Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/). 
 
 ## Documentation
 
