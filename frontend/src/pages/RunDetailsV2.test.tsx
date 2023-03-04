@@ -18,23 +18,24 @@ import { act, queryByText, render, screen, waitFor } from '@testing-library/reac
 import userEvent from '@testing-library/user-event';
 
 import * as React from 'react';
-import { ApiRelationship, ApiResourceType } from 'src/apis/run';
-import { RoutePage, RouteParams } from 'src/components/Router';
-import { Apis } from 'src/lib/Apis';
-import { Api } from 'src/mlmd/Api';
-import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
-import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
-import { CommonTestWrapper } from 'src/TestWrapper';
+import { ApiRelationship, ApiResourceType } from '../apis/run';
+import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from '../apisv2beta1/run';
+import { RoutePage, RouteParams } from '../components/Router';
+import { Apis } from '../lib/Apis';
+import { Api } from '../mlmd/Api';
+import { KFP_V2_RUN_CONTEXT_TYPE } from '../mlmd/MlmdUtils';
+import { mockResizeObserver, testBestPractices } from '../TestUtils';
+import { CommonTestWrapper } from '../TestWrapper';
 import {
   Context,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
   GetExecutionsByContextResponse,
-} from 'src/third_party/mlmd';
+} from '../third_party/mlmd';
 import {
   GetArtifactsByContextResponse,
   GetEventsByExecutionIDsResponse,
-} from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+} from '../third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
 import { RunDetailsV2 } from './RunDetailsV2';
@@ -75,36 +76,20 @@ describe('RunDetailsV2', () => {
       gkeMetadata: {},
     });
   }
-  const TEST_RUN = {
-    pipeline_runtime: {
-      workflow_manifest: '{}',
+  const TEST_RUN: V2beta1Run = {
+    created_at: new Date(2018, 8, 5, 4, 3, 2),
+    scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+    finished_at: new Date(2018, 8, 7, 4, 3, 2),
+    description: 'test run description',
+    experiment_id: 'some-experiment-id',
+    run_id: 'test-run-id',
+    display_name: 'test run',
+    pipeline_spec: {
+      pipeline_id: 'some-pipeline-id',
+      pipeline_manifest: '{some-template-string}',
     },
-    run: {
-      created_at: new Date(2018, 8, 5, 4, 3, 2),
-      scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
-      finished_at: new Date(2018, 8, 7, 4, 3, 2),
-      description: 'test run description',
-      id: 'test-run-id',
-      name: 'test run',
-      pipeline_spec: {
-        parameters: [{ name: 'param1', value: 'value1' }],
-        pipeline_id: 'some-pipeline-id',
-        pipeline_manifest: '{some-template-string}',
-      },
-      resource_references: [
-        {
-          key: { id: 'some-experiment-id', type: ApiResourceType.EXPERIMENT },
-          name: 'some experiment',
-          relationship: ApiRelationship.OWNER,
-        },
-        {
-          key: { id: 'test-run-id', type: ApiResourceType.PIPELINEVERSION },
-          name: 'default',
-          relationship: ApiRelationship.CREATOR,
-        },
-      ],
-      status: 'Succeeded',
-    },
+    runtime_config: { parameters: [{ name: 'param1', value: 'value1' }] },
+    state: V2beta1RuntimeState.SUCCEEDED,
   };
   const TEST_EXPERIMENT = {
     created_at: '2021-01-24T18:03:08Z',
@@ -125,7 +110,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
-          runDetail={TEST_RUN}
+          run={TEST_RUN}
           {...generateProps()}
         ></RunDetailsV2>
       </CommonTestWrapper>,
@@ -142,7 +127,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
-          runDetail={TEST_RUN}
+          run={TEST_RUN}
           {...generateProps()}
         ></RunDetailsV2>
       </CommonTestWrapper>,
@@ -187,7 +172,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
-          runDetail={TEST_RUN}
+          run={TEST_RUN}
           {...generateProps()}
         ></RunDetailsV2>
       </CommonTestWrapper>,
@@ -197,7 +182,7 @@ describe('RunDetailsV2', () => {
   });
 
   it("shows run title and experiments' links", async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
     const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
@@ -222,7 +207,7 @@ describe('RunDetailsV2', () => {
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={TEST_RUN}
+            run={TEST_RUN}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -252,7 +237,7 @@ describe('RunDetailsV2', () => {
   });
 
   it('shows top bar buttons', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
     const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
@@ -275,7 +260,7 @@ describe('RunDetailsV2', () => {
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={TEST_RUN}
+            run={TEST_RUN}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -302,7 +287,7 @@ describe('RunDetailsV2', () => {
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={TEST_RUN}
+            run={TEST_RUN}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -326,7 +311,7 @@ describe('RunDetailsV2', () => {
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={TEST_RUN}
+            run={TEST_RUN}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -344,22 +329,21 @@ describe('RunDetailsV2', () => {
     });
 
     it('handles no creation time', async () => {
-      const noCreateTimeRun = {
-        run: {
-          // created_at: new Date(2018, 8, 5, 4, 3, 2),
-          scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
-          finished_at: new Date(2018, 8, 7, 4, 3, 2),
-          id: 'test-run-id',
-          name: 'test run',
-          description: 'test run description',
-          status: 'Succeeded',
-        },
+      const noCreateTimeRun: V2beta1Run = {
+        // created_at: new Date(2018, 8, 5, 4, 3, 2),
+        scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+        finished_at: new Date(2018, 8, 7, 4, 3, 2),
+        experiment_id: 'some-experiment-id',
+        run_id: 'test-run-id',
+        display_name: 'test run',
+        description: 'test run description',
+        state: V2beta1RuntimeState.SUCCEEDED,
       };
       render(
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={noCreateTimeRun}
+            run={noCreateTimeRun}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -371,22 +355,21 @@ describe('RunDetailsV2', () => {
     });
 
     it('handles no finish time', async () => {
-      const noFinsihTimeRun = {
-        run: {
-          created_at: new Date(2018, 8, 5, 4, 3, 2),
-          scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
-          // finished_at: new Date(2018, 8, 7, 4, 3, 2),
-          id: 'test-run-id',
-          name: 'test run',
-          description: 'test run description',
-          status: 'Succeeded',
-        },
+      const noFinsihTimeRun: V2beta1Run = {
+        created_at: new Date(2018, 8, 5, 4, 3, 2),
+        scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+        // finished_at: new Date(2018, 8, 7, 4, 3, 2),
+        experiment_id: 'some-experiment-id',
+        run_id: 'test-run-id',
+        display_name: 'test run',
+        description: 'test run description',
+        state: V2beta1RuntimeState.SUCCEEDED,
       };
       render(
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={noFinsihTimeRun}
+            run={noFinsihTimeRun}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -402,7 +385,7 @@ describe('RunDetailsV2', () => {
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={TEST_RUN}
+            run={TEST_RUN}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -413,7 +396,7 @@ describe('RunDetailsV2', () => {
     });
 
     it('shows Execution Sidepanel', async () => {
-      const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+      const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
       getRunSpy.mockResolvedValue(TEST_RUN);
       const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
       getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
@@ -422,7 +405,7 @@ describe('RunDetailsV2', () => {
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={TEST_RUN}
+            run={TEST_RUN}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
@@ -444,7 +427,7 @@ describe('RunDetailsV2', () => {
     });
 
     it('shows Artifact Sidepanel', async () => {
-      const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+      const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
       getRunSpy.mockResolvedValue(TEST_RUN);
       const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
       getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
@@ -453,7 +436,7 @@ describe('RunDetailsV2', () => {
         <CommonTestWrapper>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            runDetail={TEST_RUN}
+            run={TEST_RUN}
             {...generateProps()}
           ></RunDetailsV2>
         </CommonTestWrapper>,
