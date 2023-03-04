@@ -22,36 +22,29 @@ def add(a: float, b: float) -> float:
   return a + b
 
 @dsl.pipeline(
-  name='addition-pipeline',
+  name='addition-pipeline-cpu-v2',
   description='Only CPU v2',
 )
 def pipeline_cpu(a: float = 1, b: float = 7):
   add_task = add(a=a, b=b).set_cpu_limit('1').set_memory_limit('650M')
 
 @dsl.pipeline(
-  name='addition-pipeline',
+  name='addition-pipeline-tesla-k80-v2',
   description='Nvidia Tesla K80 v2',
 )
 def pipeline_k80(a: float = 1, b: float = 7):
   add_task = add(a=a, b=b).set_cpu_limit('1').set_memory_limit('650M').add_node_selector_constraint('nvidia-tesla-k80').set_gpu_limit(1)
 
 @dsl.pipeline(
-  name='addition-pipeline',
+  name='addition-pipeline-tesla-k80-x2-v2',
   description='Nvidia Tesla K80 x2 v2',
 )
 def pipeline_k80_x2(a: float = 1, b: float = 7):
   add_task = add(a=a, b=b).set_cpu_limit('1').set_memory_limit('650M').add_node_selector_constraint('nvidia-tesla-k80').set_gpu_limit(2)
 
 @dsl.pipeline(
-  name='addition-pipeline',
+  name='addition-pipeline-tesla-v100-v2',
   description='Nvidia Tesla v100 v2',
 )
 def pipeline_v100(a: float = 1, b: float = 7):
   add_task = add(a=a, b=b).set_cpu_limit('1').set_memory_limit('650M').add_node_selector_constraint('nvidia-tesla-v100').set_gpu_limit(1)
-
-@dsl.pipeline(
-  name='addition-pipeline',
-  description='Nvidia Tesla p100 v2',
-)
-def pipeline_p100(a: float = 1, b: float = 7):
-  add_task = add(a=a, b=b).set_cpu_limit('1').set_memory_limit('650M').add_node_selector_constraint('nvidia-tesla-p100').set_gpu_limit(1)
