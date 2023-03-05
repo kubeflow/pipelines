@@ -18,8 +18,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'fs';
 import 'jest';
 import React from 'react';
-import { testBestPractices } from 'src/TestUtils';
-import { CommonTestWrapper } from 'src/TestWrapper';
+import { testBestPractices } from '../TestUtils';
+import { CommonTestWrapper } from '../TestWrapper';
 import {
   ApiExperiment,
   ApiExperimentStorageState,
