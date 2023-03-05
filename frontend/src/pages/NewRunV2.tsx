@@ -24,6 +24,7 @@ import {
   Radio,
 } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
+import * as JsYaml from 'js-yaml';
 import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
@@ -37,6 +38,7 @@ import {
   ApiRun,
   ApiRunDetail,
 } from 'src/apis/run';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
@@ -77,7 +79,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
 interface RunV2Props {
   namespace?: string;
   existingRunId: string | null;
-  apiRun?: ApiRunDetail;
+  existingRun?: V2beta1Run;
   originalRecurringRunId: string | null;
   apiRecurringRun?: ApiJob;
   existingPipeline?: ApiPipeline;
@@ -96,15 +98,15 @@ export type RuntimeParameters = { [key: string]: any };
 type CloneOrigin = {
   isClone: boolean;
   isRecurring: boolean;
-  run?: ApiRunDetail;
+  run?: V2beta1Run;
   recurringRun?: ApiJob;
 };
 
-function getCloneOrigin(apiRun?: ApiRunDetail, apiRecurringRun?: ApiJob) {
+function getCloneOrigin(run?: V2beta1Run, apiRecurringRun?: ApiJob) {
   let cloneOrigin: CloneOrigin = {
-    isClone: apiRun !== undefined || apiRecurringRun !== undefined,
+    isClone: run !== undefined || apiRecurringRun !== undefined,
     isRecurring: apiRecurringRun !== undefined,
-    run: apiRun,
+    run: run,
     recurringRun: apiRecurringRun,
   };
   return cloneOrigin;
@@ -115,9 +117,7 @@ function hasVersionID(cloneOrigin: CloneOrigin): boolean {
     return true;
   }
   let hasVersionType: boolean = false;
-  const existResourceRef = cloneOrigin.isRecurring
-    ? cloneOrigin.recurringRun?.resource_references
-    : cloneOrigin.run?.run?.resource_references;
+  const existResourceRef = cloneOrigin.recurringRun?.resource_references;
   if (existResourceRef) {
     existResourceRef.forEach(value => {
       hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
@@ -155,7 +155,7 @@ function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const {
     existingRunId,
-    apiRun,
+    existingRun,
     originalRecurringRunId,
     apiRecurringRun,
     existingPipeline,
@@ -165,7 +165,7 @@ function NewRunV2(props: NewRunV2Props) {
     templateString,
     chosenExperiment,
   } = props;
-  const cloneOrigin = getCloneOrigin(apiRun, apiRecurringRun);
+  const cloneOrigin = getCloneOrigin(existingRun, apiRecurringRun);
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
@@ -200,15 +200,13 @@ function NewRunV2(props: NewRunV2Props) {
 
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.pipeline_spec?.runtime_config
-    : cloneOrigin.run?.run?.pipeline_spec?.runtime_config;
+    : cloneOrigin.run?.runtime_config;
   const urlParser = new URLParser(props);
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
-  const existResourceRef = cloneOrigin.isRecurring
-    ? cloneOrigin.recurringRun?.resource_references
-    : cloneOrigin.run?.run?.resource_references;
+  const existResourceRef = cloneOrigin.recurringRun?.resource_references;
 
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';
@@ -242,8 +240,8 @@ function NewRunV2(props: NewRunV2Props) {
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
-    if (apiRun?.run?.name) {
-      const cloneRunName = 'Clone of ' + apiRun.run.name;
+    if (existingRun?.display_name) {
+      const cloneRunName = 'Clone of ' + existingRun.display_name;
       setRunName(cloneRunName);
     } else if (apiRecurringRun?.name) {
       const cloneRecurringName = 'Clone of ' + apiRecurringRun.name;
@@ -253,7 +251,7 @@ function NewRunV2(props: NewRunV2Props) {
         'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
-  }, [apiRun, apiRecurringRun, existingPipelineVersion]);
+  }, [existingRun, apiRecurringRun, existingPipelineVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -300,8 +298,8 @@ function NewRunV2(props: NewRunV2Props) {
   }, [runName, isTemplatePullSuccess]);
 
   // Defines the behavior when user clicks `Start` button.
-  const newRunMutation = useMutation((apiRun: ApiRun) => {
-    return Apis.runServiceApi.createRun(apiRun);
+  const newRunMutation = useMutation((run: V2beta1Run) => {
+    return Apis.runServiceApiV2.createRun(run);
   });
   const newRecurringRunMutation = useMutation((apiJob: ApiJob) => {
     return Apis.jobServiceApi.createJob(apiJob);
@@ -328,7 +326,20 @@ function NewRunV2(props: NewRunV2Props) {
       });
     }
 
-    let newRun: ApiRun = {
+    let newRun: V2beta1Run = {
+      description: runDescription,
+      display_name: runName,
+      pipeline_spec: JsYaml.safeLoad(templateString || ''),
+      pipeline_version_id: existingRun?.pipeline_version_id || existingPipelineVersion?.id,
+      runtime_config: {
+        // TODO(zijianjoy): determine whether to provide pipeline root.
+        pipeline_root: undefined, // pipelineRoot,
+        parameters: runtimeParameters,
+      },
+      service_account: serviceAccount,
+    };
+
+    let newRecurringRun: ApiJob = {
       description: runDescription,
       name: runName,
       pipeline_spec: {
@@ -343,38 +354,25 @@ function NewRunV2(props: NewRunV2Props) {
       //TODO(jlyaoyuli): deprecate the resource reference and use pipeline / workflow manifest
       resource_references: existResourceRef ? existResourceRef : references,
       service_account: serviceAccount,
+      enabled: true,
+      max_concurrency: maxConcurrentRuns || '1',
+      no_catchup: !needCatchup,
+      trigger: trigger,
     };
-
-    let newRecurringRun: ApiJob = Object.assign(
-      newRun,
-      isRecurringRun
-        ? {
-            enabled: true,
-            max_concurrency: maxConcurrentRuns || '1',
-            no_catchup: !needCatchup,
-            trigger: trigger,
-          }
-        : {
-            enabled: false,
-            max_concurrency: undefined,
-            no_catchup: undefined,
-            trigger: undefined,
-          },
-    );
     setIsStartingNewRun(true);
 
     const runCreation = () =>
       newRunMutation.mutate(newRun, {
         onSuccess: data => {
           setIsStartingNewRun(false);
-          if (data.run?.id) {
-            props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run.id));
+          if (data.run_id) {
+            props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
           } else {
             props.history.push(RoutePage.RUNS);
           }
 
           props.updateSnackbar({
-            message: `Successfully started new Run: ${data.run?.name}`,
+            message: `Successfully started new Run: ${data.display_name}`,
             open: true,
           });
         },
