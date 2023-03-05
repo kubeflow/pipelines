@@ -408,7 +408,7 @@ export default class Buttons {
       selectedIds,
       'Retry this run?',
       useCurrent,
-      id => Apis.runServiceApi.retryRun(id),
+      id => Apis.runServiceApiV2.retryRun(id),
       callback,
       'Retry',
       'run',
@@ -540,7 +540,7 @@ export default class Buttons {
       'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
         ' running pods, but they will not be deleted.',
       useCurrentResource,
-      id => Apis.runServiceApi.terminateRun(id),
+      id => Apis.runServiceApiV2.terminateRun(id),
       callback,
       'Terminate',
       'run',

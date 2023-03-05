@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Api, GetArtifactTypesResponse } from 'src/mlmd/library';
+import { Api } from '../mlmd/library';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { createMemoryHistory } from 'history';
 import * as React from 'react';
 import { Router } from 'react-router-dom';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { NamespaceContext } from '../lib/KubeflowClient';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from '../apis/run';
 import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis, JSONObject } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
-import * as MlmdUtils from 'src/mlmd/MlmdUtils';
+import * as MlmdUtils from '../mlmd/MlmdUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { NodePhase } from '../lib/StatusUtils';
 import * as Utils from '../lib/Utils';
@@ -35,8 +35,8 @@ import WorkflowParser from '../lib/WorkflowParser';
 import TestUtils, { testBestPractices } from '../TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
-import { Context, Execution, Value } from 'src/third_party/mlmd';
-import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
+import { Context, Execution, Value } from '../third_party/mlmd';
+import { KfpExecutionProperties } from '../mlmd/MlmdUtils';
 
 const RunDetails = TEST_ONLY.RunDetails;
 
@@ -167,8 +167,8 @@ describe('RunDetails', () => {
     pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
     pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
     loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
-    retryRunSpy = jest.spyOn(Apis.runServiceApi, 'retryRun');
-    terminateRunSpy = jest.spyOn(Apis.runServiceApi, 'terminateRun');
+    retryRunSpy = jest.spyOn(Apis.runServiceApiV2, 'retryRun');
+    terminateRunSpy = jest.spyOn(Apis.runServiceApiV2, 'terminateRun');
     artifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
     // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
     // test environments
