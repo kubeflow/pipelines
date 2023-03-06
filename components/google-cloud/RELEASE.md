@@ -1,4 +1,8 @@
 # Release 2.0.0b0
+* Change base image to ubuntu OS
+* Set google-api-core<1.34.0 to avoid 900s timeout
+
+# Release 2.0.0b0
 * Release of GCPC v2 beta
 * Supports KFP v2 beta
 * Experimental components that already in v1 folder are removed
