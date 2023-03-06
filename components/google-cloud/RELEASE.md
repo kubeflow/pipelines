@@ -1,3 +1,7 @@
+# Release 1.0.40
+* Change base image to ubuntu OS
+* Set google-api-core<1.34.0 to avoid 900s timeout
+
 # Release 1.0.39
 * Fix AutoML Table pipeline failing on importing model evaluation metrics
 

@@ -74,7 +74,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.39
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.40
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher]
     args: [
       --type, BigqueryQueryJob,
