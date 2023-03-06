@@ -30,6 +30,9 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
+from kfp.components import graph_component
+from kfp.components import pipeline_task
+from kfp.components import yaml_component
 from kfp.components.types import type_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
@@ -3178,6 +3181,441 @@ class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
         self.assertEqual(
             loaded_component.pipeline_spec.components['comp-python-component']
             .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+
+def foo_platform_set_bar_feature(task: pipeline_task.PipelineTask,
+                                 val: str) -> pipeline_task.PipelineTask:
+    platform_key = 'platform_foo'
+    feature_key = 'bar'
+
+    platform_struct = task.platform_config.get(platform_key, {})
+    platform_struct[feature_key] = val
+    task.platform_config[platform_key] = platform_struct
+    return task
+
+
+def foo_platform_append_bop_feature(task: pipeline_task.PipelineTask,
+                                    val: str) -> pipeline_task.PipelineTask:
+    platform_key = 'platform_foo'
+    feature_key = 'bop'
+
+    platform_struct = task.platform_config.get(platform_key, {})
+    feature_list = platform_struct.get(feature_key, [])
+    feature_list.append(val)
+    platform_struct[feature_key] = feature_list
+    task.platform_config[platform_key] = platform_struct
+    return task
+
+
+def baz_platform_set_bat_feature(task: pipeline_task.PipelineTask,
+                                 val: str) -> pipeline_task.PipelineTask:
+    platform_key = 'platform_baz'
+    feature_key = 'bat'
+
+    platform_struct = task.platform_config.get(platform_key, {})
+    platform_struct[feature_key] = val
+    task.platform_config[platform_key] = platform_struct
+    return task
+
+
+@dsl.component
+def comp():
+    pass
+
+
+def compile_and_reload(
+        pipeline: graph_component.GraphComponent
+) -> yaml_component.YamlComponent:
+    with tempfile.TemporaryDirectory() as tempdir:
+        output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=output_yaml)
+        return components.load_component_from_file(output_yaml)
+
+
+class TestPlatformConfig(unittest.TestCase):
+
+    def test_no_platform_config(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            loaded_comp = components.load_component_from_file(output_yaml)
+
+            with open(output_yaml) as f:
+                raw_docs = list(yaml.safe_load_all(f))
+
+        self.assertEqual(loaded_comp.platform_spec, expected)
+        # also check that it doesn't write an empty second document
+        self.assertEqual(len(raw_docs), 1)
+
+    def test_one_task_one_platform(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            foo_platform_set_bar_feature(task, 12)
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_many_tasks_multiple_platforms(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            foo_platform_set_bar_feature(task, 12)
+            foo_platform_append_bop_feature(task, 'element')
+            baz_platform_set_bat_feature(task, 'hello')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                    'bop': ['element']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_many_tasks_many_platforms(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task1 = comp()
+            foo_platform_set_bar_feature(task1, 12)
+            foo_platform_append_bop_feature(task1, 'a')
+            baz_platform_set_bat_feature(task1, 'hello')
+            task2 = comp()
+            foo_platform_set_bar_feature(task2, 20)
+            foo_platform_append_bop_feature(task2, 'b')
+            foo_platform_append_bop_feature(task2, 'c')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                    'bop': ['a']
+                                },
+                                'exec-comp-2': {
+                                    'bar': 20,
+                                    'bop': ['b', 'c']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_multiple_pipelines_with_inner_tasks(self):
+
+        @dsl.pipeline
+        def pipeline1():
+            task1 = comp()
+            foo_platform_set_bar_feature(task1, 12)
+            foo_platform_append_bop_feature(task1, 'a')
+            baz_platform_set_bat_feature(task1, 'hello')
+
+        pipeline1_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline1_platform_spec.CopyFrom(pipeline1.platform_spec)
+
+        @dsl.pipeline
+        def pipeline2():
+            task2 = comp()
+            foo_platform_set_bar_feature(task2, 20)
+            foo_platform_append_bop_feature(task2, 'b')
+            foo_platform_append_bop_feature(task2, 'c')
+
+        pipeline2_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline2_platform_spec.CopyFrom(pipeline2.platform_spec)
+
+        @dsl.pipeline
+        def my_pipeline():
+            pipeline1()
+            pipeline2()
+            task3 = comp()
+            foo_platform_set_bar_feature(task3, 20)
+            foo_platform_append_bop_feature(task3, 'd')
+            foo_platform_append_bop_feature(task3, 'e')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                    'bop': ['a']
+                                },
+                                'exec-comp-2': {
+                                    'bar': 20,
+                                    'bop': ['b', 'c']
+                                },
+                                'exec-comp-3': {
+                                    'bar': 20,
+                                    'bop': ['d', 'e']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # pipeline1 and pipeline2 platform specs should be unchanged
+        self.assertEqual(pipeline1_platform_spec, pipeline1.platform_spec)
+        self.assertEqual(pipeline2_platform_spec, pipeline2.platform_spec)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_task_with_exit_handler(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = comp()
+            foo_platform_set_bar_feature(exit_task, 12)
+            with dsl.ExitHandler(exit_task):
+                worker_task = comp()
+                foo_platform_append_bop_feature(worker_task, 'a')
+                baz_platform_set_bat_feature(worker_task, 'hello')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                },
+                                'exec-comp-2': {
+                                    'bop': ['a']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp-2': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    },
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_pipeline_as_exit_handler(self):
+
+        @dsl.pipeline
+        def pipeline1():
+            task1 = comp()
+            foo_platform_set_bar_feature(task1, 12)
+            foo_platform_append_bop_feature(task1, 'element')
+            baz_platform_set_bat_feature(task1, 'hello')
+
+        pipeline1_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline1_platform_spec.CopyFrom(pipeline1.platform_spec)
+
+        @dsl.pipeline
+        def pipeline2():
+            task2 = comp()
+            foo_platform_set_bar_feature(task2, 20)
+            foo_platform_append_bop_feature(task2, 'element1')
+            foo_platform_append_bop_feature(task2, 'element2')
+
+        pipeline2_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline2_platform_spec.CopyFrom(pipeline2.platform_spec)
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = pipeline1()
+            with dsl.ExitHandler(exit_task=exit_task):
+                pipeline2()
+                task3 = comp()
+                foo_platform_set_bar_feature(task3, 20)
+                foo_platform_append_bop_feature(task3, 'element3')
+                foo_platform_append_bop_feature(task3, 'element4')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 20,
+                                    'bop': ['element1', 'element2']
+                                },
+                                'exec-comp-2': {
+                                    'bar': 20,
+                                    'bop': ['element3', 'element4']
+                                },
+                                'exec-comp-3': {
+                                    'bar': 12,
+                                    'bop': ['element']
+                                },
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp-3': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # pipeline1 and pipeline2 platform specs should be unchanged
+        self.assertEqual(pipeline1_platform_spec, pipeline1.platform_spec)
+        self.assertEqual(pipeline2_platform_spec, pipeline2.platform_spec)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_cannot_compile_to_json(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            foo_platform_set_bar_feature(task, 12)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Platform-specific features are only supported when serializing to YAML\. Argument for 'package_path' has file extension '\.json'\."
+        ):
+            with tempfile.TemporaryDirectory() as tempdir:
+                output_yaml = os.path.join(tempdir, 'pipeline.json')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_cannot_set_platform_specific_config_on_in_memory_pipeline_task(
+            self):
+
+        @dsl.pipeline
+        def inner():
+            task = comp()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Platform\-specific features can only be set on primitive components\. Found platform\-specific feature set on a pipeline\.'
+        ):
+
+            @dsl.pipeline
+            def outer():
+                task = inner()
+                foo_platform_set_bar_feature(task, 12)
 
 
 if __name__ == '__main__':

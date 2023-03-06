@@ -2410,7 +2410,7 @@ type PlatformDeploymentConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Map of executor label to task-level config
+	// Map of executor label to executor-level config
 	// Mirrors PipelineSpec.deployment_spec.executors structure
 	Executors map[string]*structpb.Struct `protobuf:"bytes,1,rep,name=executors,proto3" json:"executors,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }

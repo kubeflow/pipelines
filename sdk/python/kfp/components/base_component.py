@@ -108,6 +108,15 @@ class BaseComponent(abc.ABC):
         with BlockPipelineTaskRegistration():
             return self.component_spec.to_pipeline_spec()
 
+    @property
+    def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
+        """Returns the PlatformSpec of the component.
+
+        Useful when the component is a GraphComponent, else will be
+        empty per component_spec.platform_spec default.
+        """
+        return self.component_spec.platform_spec
+
     @abc.abstractmethod
     def execute(self, **kwargs):
         """Executes the component locally if implemented by the inheriting
