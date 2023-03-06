@@ -1505,9 +1505,13 @@ def _merge_deployment_spec(
         old_executor_label: str,
         new_executor_label: str,
     ) -> None:
+<<<<<<< HEAD
         # make a copy so that map size doesn't change during iteration
         sub_platform_spec_copy = copy.deepcopy(sub_platform_spec)
         for platform_key, platform_config in sub_platform_spec_copy.platforms.items(
+=======
+        for platform_key, platform_config in sub_platform_spec.platforms.items(
+>>>>>>> 29bbebd1b (support compiling platform-specific features)
         ):
             for cur_exec_label, task_config in platform_config.deployment_spec.executors.items(
             ):
