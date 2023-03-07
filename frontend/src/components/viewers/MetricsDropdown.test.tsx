@@ -16,16 +16,16 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import * as React from 'react';
-import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { testBestPractices } from 'src/TestUtils';
-import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
-import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
-import * as Utils from 'src/lib/Utils';
-import { SelectedArtifact } from 'src/pages/CompareV2';
-import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import { CommonTestWrapper } from '../../TestWrapper';
+import TestUtils, { testBestPractices } from '../../TestUtils';
+import { Artifact, Event, Execution, Value } from '../../third_party/mlmd';
+import * as metricsVisualizations from '../../components/viewers/MetricsVisualizations';
+import * as Utils from '../../lib/Utils';
+import { SelectedArtifact } from '../../pages/CompareV2';
+import { LinkedArtifact } from '../../mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
 import MetricsDropdown from './MetricsDropdown';
-import { MetricsType, RunArtifact } from 'src/lib/v2/CompareUtils';
+import { MetricsType, RunArtifact } from '../../lib/v2/CompareUtils';
 
 function newMockExecution(id: number, displayName?: string): Execution {
   const execution = new Execution();
@@ -99,13 +99,8 @@ describe('MetricsDropdown', () => {
     scalarMetricsArtifacts = [
       {
         run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
+          run_id: '1',
+          display_name: 'run1',
         },
         executionArtifacts: [
           {
@@ -179,9 +174,7 @@ describe('MetricsDropdown', () => {
     const scalarMetricsArtifactsNoRunName: RunArtifact[] = [
       {
         run: {
-          run: {
-            id: '1',
-          },
+          run_id: '1',
         },
         executionArtifacts: [
           {

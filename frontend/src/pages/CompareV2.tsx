@@ -17,6 +17,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
@@ -146,7 +147,7 @@ function filterRunArtifactsByType(
   };
 }
 
-function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifact[] {
+function getRunArtifacts(runs: V2beta1Run[], mlmdPackages: MlmdPackage[]): RunArtifact[] {
   return mlmdPackages.map((mlmdPackage, index) => {
     const events = mlmdPackage.events.filter(e => e.getType() === Event.Type.OUTPUT);
 
@@ -293,9 +294,9 @@ function CompareV2(props: CompareV2Props) {
     error: errorRunDetails,
     data: runs,
     refetch,
-  } = useQuery<ApiRunDetail[], Error>(
-    ['run_details', { ids: runIds }],
-    () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
+  } = useQuery<V2beta1Run[], Error>(
+    ['v2_run_details', { ids: runIds }],
+    () => Promise.all(runIds.map(async id => await Apis.runServiceApiV2.getRun(id))),
     {
       staleTime: Infinity,
     },
@@ -348,7 +349,7 @@ function CompareV2(props: CompareV2Props) {
   ) => {
     const artifactsPresent: boolean[] = new Array(2).fill(false);
     for (const runArtifact of runArtifacts) {
-      const runName = runArtifact.run.run?.name;
+      const runName = runArtifact.run.display_name;
       if (runName === selectedArtifacts[0].selectedItem.itemName) {
         artifactsPresent[0] = true;
       } else if (runName === selectedArtifacts[1].selectedItem.itemName) {
@@ -374,7 +375,7 @@ function CompareV2(props: CompareV2Props) {
     if (runs && selectedIds && mlmdPackages && artifactTypes) {
       const selectedIdsSet = new Set(selectedIds);
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages).filter(runArtifact =>
-        selectedIdsSet.has(runArtifact.run.run!.id!),
+        selectedIdsSet.has(runArtifact.run.run_id!),
       );
       const scalarMetricsArtifactData = filterRunArtifactsByType(
         runArtifacts,
@@ -554,14 +555,14 @@ function CompareV2(props: CompareV2Props) {
 
   useEffect(() => {
     if (runs) {
-      setSelectedIds(runs.map(r => r.run!.id!));
+      setSelectedIds(runs.map(r => r.run_id!));
     }
   }, [runs]);
 
   useEffect(() => {
     if (runs) {
       const selectedIdsSet = new Set(selectedIds);
-      const selectedRuns: ApiRunDetail[] = runs.filter(run => selectedIdsSet.has(run.run!.id!));
+      const selectedRuns: V2beta1Run[] = runs.filter(run => selectedIdsSet.has(run.run_id!));
       setParamsTableProps(getParamsTableProps(selectedRuns));
     } else {
       setParamsTableProps(undefined);
