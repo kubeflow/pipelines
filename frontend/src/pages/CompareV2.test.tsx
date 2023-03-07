@@ -16,13 +16,13 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import * as React from 'react';
-import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { testBestPractices } from 'src/TestUtils';
-import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
-import { Apis } from 'src/lib/Apis';
-import { QUERY_PARAMS } from 'src/components/Router';
-import * as mlmdUtils from 'src/mlmd/MlmdUtils';
-import * as Utils from 'src/lib/Utils';
+import { CommonTestWrapper } from '../TestWrapper';
+import TestUtils, { testBestPractices } from '../TestUtils';
+import { Artifact, Context, Event, Execution } from '../third_party/mlmd';
+import { Apis } from '../lib/Apis';
+import { QUERY_PARAMS } from '../components/Router';
+import * as mlmdUtils from '../mlmd/MlmdUtils';
+import * as Utils from '../lib/Utils';
 import { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
