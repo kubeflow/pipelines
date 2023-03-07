@@ -364,8 +364,15 @@ func makePodSpecPatch(
 	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
-		return "", fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
+		if accelerator.GetType() != "" && accelerator.GetCount() > 0 {
+			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
+			if err != nil {
+				return "", err
+			}
+			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
+		}
 	}
+	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
 			Name:      "main", // argo task user container is always called "main"
