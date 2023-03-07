@@ -104,21 +104,7 @@ func New(filterProto interface{}) (*Filter, error) {
 	if err != nil {
 		return nil, err
 	}
-	f := &Filter{
-		eq:        make(map[string][]interface{}, 0),
-		neq:       make(map[string][]interface{}, 0),
-		gt:        make(map[string][]interface{}, 0),
-		gte:       make(map[string][]interface{}, 0),
-		lt:        make(map[string][]interface{}, 0),
-		lte:       make(map[string][]interface{}, 0),
-		in:        make(map[string][]interface{}, 0),
-		substring: make(map[string][]interface{}, 0),
-	}
-
-	if err := f.parsePredicates(predicates); err != nil {
-		return nil, err
-	}
-	return f, nil
+	return NewFromPredicate(predicates)
 }
 
 // NewWithKeyMap is like New, but takes an additional map and model name for mapping key names
@@ -145,7 +131,80 @@ func NewWithKeyMap(filterProto interface{}, keyMap map[string]string, modelName 
 		}
 		pred.key = modelNamePrefix + k
 	}
-	return New(filterProto)
+	return NewFromPredicate(predicates)
+}
+
+// New creates a new Filter from parsed predicates.
+func NewFromPredicate(predicates []*Predicate) (*Filter, error) {
+	if len(predicates) == 0 {
+		return nil, nil
+	}
+
+	f := &Filter{
+		eq:        make(map[string][]interface{}, 0),
+		neq:       make(map[string][]interface{}, 0),
+		gt:        make(map[string][]interface{}, 0),
+		gte:       make(map[string][]interface{}, 0),
+		lt:        make(map[string][]interface{}, 0),
+		lte:       make(map[string][]interface{}, 0),
+		in:        make(map[string][]interface{}, 0),
+		substring: make(map[string][]interface{}, 0),
+	}
+
+	if err := f.parsePredicates(predicates); err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+// Replaces and adds a prefix to the keys for an existing filter.
+// This is useful when someone wants to extend the filter with a table name.
+func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string) error {
+	if prefix != "" {
+		prefix = prefix + "."
+	}
+	if err := replaceMapKeys(f.eq, keyMap, prefix); err != nil {
+		return err
+	}
+	if err := replaceMapKeys(f.neq, keyMap, prefix); err != nil {
+		return err
+	}
+	if err := replaceMapKeys(f.gt, keyMap, prefix); err != nil {
+		return err
+	}
+	if err := replaceMapKeys(f.gte, keyMap, prefix); err != nil {
+		return err
+	}
+	if err := replaceMapKeys(f.lt, keyMap, prefix); err != nil {
+		return err
+	}
+	if err := replaceMapKeys(f.lte, keyMap, prefix); err != nil {
+		return err
+	}
+	if err := replaceMapKeys(f.in, keyMap, prefix); err != nil {
+		return err
+	}
+	if err := replaceMapKeys(f.substring, keyMap, prefix); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Replaces string keys in a map and adds a prefix.
+func replaceMapKeys(m map[string][]interface{}, keyMap map[string]string, prefix string) error {
+	keys := make([]string, 0)
+	for k := range m {
+		keys = append(keys, k)
+	}
+	for _, k := range keys {
+		newKey, ok := keyMap[k]
+		if !ok {
+			return util.NewInvalidInputError("no support for filtering on unrecognized field %q", k)
+		}
+		m[prefix+newKey] = m[k]
+		delete(m, k)
+	}
+	return nil
 }
 
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
@@ -275,9 +334,9 @@ func toPredicates(filterProto interface{}) ([]*Predicate, error) {
 		return nil, nil
 	}
 	predicates := make([]*Predicate, 0)
-	switch filterProto.(type) {
+	switch filterProto := filterProto.(type) {
 	case *apiv2beta1.Filter:
-		for _, p := range filterProto.(*apiv2beta1.Filter).GetPredicates() {
+		for _, p := range filterProto.GetPredicates() {
 			if pred, err := toPredicate(p); err != nil {
 				return nil, err
 			} else {
@@ -285,7 +344,7 @@ func toPredicates(filterProto interface{}) ([]*Predicate, error) {
 			}
 		}
 	case *apiv1beta1.Filter:
-		for _, p := range filterProto.(*apiv1beta1.Filter).GetPredicates() {
+		for _, p := range filterProto.GetPredicates() {
 			if pred, err := toPredicate(p); err != nil {
 				return nil, err
 			} else {
@@ -305,10 +364,9 @@ func toPredicate(p interface{}) (*Predicate, error) {
 	operation := ""
 	key := ""
 	var value interface{}
-	switch p.(type) {
-
-	case apiv2beta1.Predicate:
-		p := p.(apiv2beta1.Predicate)
+	switch p := p.(type) {
+	case *apiv2beta1.Predicate:
+		key = p.GetKey()
 		if temp, err := toOperation(p.GetOperation()); err != nil {
 			return nil, err
 		} else {
@@ -319,8 +377,8 @@ func toPredicate(p interface{}) (*Predicate, error) {
 		} else {
 			value = temp
 		}
-	case apiv1beta1.Predicate:
-		p := p.(apiv1beta1.Predicate)
+	case *apiv1beta1.Predicate:
+		key = p.GetKey()
 		if temp, err := toOperation(p.GetOp()); err != nil {
 			return nil, err
 		} else {
@@ -333,6 +391,9 @@ func toPredicate(p interface{}) (*Predicate, error) {
 		}
 	default:
 		return nil, util.NewUnknownApiVersionError("Filter.Predicate", p)
+	}
+	if key == "" {
+		return nil, util.NewInvalidInputError("Predicate key cannot be empty for operation %v and value %v", operation, value)
 	}
 	return &Predicate{
 		operation: operation,
@@ -365,44 +426,44 @@ func toOperation(o interface{}) (string, error) {
 }
 
 func toValue(v interface{}) (interface{}, error) {
-	switch v.(type) {
-	case apiv2beta1.Predicate_IntValue:
-		return v.(apiv2beta1.Predicate_IntValue).IntValue, nil
-	case apiv2beta1.Predicate_LongValue:
-		return v.(apiv2beta1.Predicate_LongValue).LongValue, nil
-	case apiv2beta1.Predicate_StringValue:
-		return v.(apiv2beta1.Predicate_StringValue).StringValue, nil
-	case apiv2beta1.Predicate_TimestampValue:
-		ts, err := ptypes.Timestamp(v.(apiv2beta1.Predicate_TimestampValue).TimestampValue)
+	switch v := v.(type) {
+	case *apiv2beta1.Predicate_IntValue:
+		return v.IntValue, nil
+	case *apiv2beta1.Predicate_LongValue:
+		return v.LongValue, nil
+	case *apiv2beta1.Predicate_StringValue:
+		return v.StringValue, nil
+	case *apiv2beta1.Predicate_TimestampValue:
+		ts, err := ptypes.Timestamp(v.TimestampValue)
 		if err != nil {
 			return nil, util.NewInvalidInputError("invalid timestamp: %v", err)
 		}
 		return ts.Unix(), nil
-	case apiv2beta1.Predicate_IntValues:
-		return v.(apiv2beta1.Predicate_IntValues).Values, nil
-	case apiv2beta1.Predicate_StringValues:
-		return v.(apiv2beta1.Predicate_StringValues).Values, nil
-	case apiv2beta1.Predicate_LongValues:
-		return v.(apiv2beta1.Predicate_LongValues).Values, nil
+	case *apiv2beta1.Predicate_IntValues_:
+		return v.IntValues.GetValues(), nil
+	case *apiv2beta1.Predicate_StringValues_:
+		return v.StringValues.GetValues(), nil
+	case *apiv2beta1.Predicate_LongValues_:
+		return v.LongValues.GetValues(), nil
 
-	case apiv1beta1.Predicate_IntValue:
-		return v.(apiv1beta1.Predicate_IntValue).IntValue, nil
-	case apiv1beta1.Predicate_LongValue:
-		return v.(apiv1beta1.Predicate_LongValue).LongValue, nil
-	case apiv1beta1.Predicate_StringValue:
-		return v.(apiv1beta1.Predicate_StringValue).StringValue, nil
-	case apiv1beta1.Predicate_TimestampValue:
-		ts, err := ptypes.Timestamp(v.(apiv1beta1.Predicate_TimestampValue).TimestampValue)
+	case *apiv1beta1.Predicate_IntValue:
+		return v.IntValue, nil
+	case *apiv1beta1.Predicate_LongValue:
+		return v.LongValue, nil
+	case *apiv1beta1.Predicate_StringValue:
+		return v.StringValue, nil
+	case *apiv1beta1.Predicate_TimestampValue:
+		ts, err := ptypes.Timestamp(v.TimestampValue)
 		if err != nil {
 			return nil, util.NewInvalidInputError("invalid timestamp: %v", err)
 		}
 		return ts.Unix(), nil
-	case apiv1beta1.Predicate_IntValues:
-		return v.(apiv1beta1.Predicate_IntValues).IntValues, nil
-	case apiv1beta1.Predicate_StringValues:
-		return v.(apiv1beta1.Predicate_StringValues).StringValues, nil
-	case apiv1beta1.Predicate_LongValues:
-		return v.(apiv1beta1.Predicate_LongValues).LongValues, nil
+	case *apiv1beta1.Predicate_IntValues:
+		return v.IntValues.GetValues(), nil
+	case *apiv1beta1.Predicate_StringValues:
+		return v.StringValues.GetValues(), nil
+	case *apiv1beta1.Predicate_LongValues:
+		return v.LongValues.GetValues(), nil
 
 	default:
 		return nil, util.NewUnknownApiVersionError("Filter.Predicate.Value", v)

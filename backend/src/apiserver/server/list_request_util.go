@@ -22,8 +22,10 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/jsonpb"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -34,7 +36,7 @@ const (
 	maxPageSize     = 200
 )
 
-func validateFilterV1(referenceKey *api.ResourceKey) (*model.FilterContext, error) {
+func validateFilterV1(referenceKey *apiv1beta1.ResourceKey) (*model.FilterContext, error) {
 	filterContext := &model.FilterContext{}
 	if referenceKey != nil {
 		refType, err := toModelResourceTypeV1(referenceKey.Type)
@@ -135,39 +137,50 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 // parseAPIFilter attempts to decode a url-encoded JSON-stringified api
 // filter object. An empty string is considered valid input, and equivalent to
 // the nil filter, which trivially does nothing.
-func parseAPIFilter(encoded string) (*api.Filter, error) {
+func parseAPIFilter(encoded string, apiVersion string) (interface{}, error) {
 	if encoded == "" {
 		return nil, nil
 	}
-
-	errorF := func(err error) (*api.Filter, error) {
-		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
-	}
-
 	decoded, err := url.QueryUnescape(encoded)
 	if err != nil {
-		return errorF(err)
+		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 	}
-
-	f := &api.Filter{}
-	if err := jsonpb.UnmarshalString(decoded, f); err != nil {
-		return errorF(err)
+	switch apiVersion {
+	case "v2beta1":
+		f := &apiv2beta1.Filter{}
+		if err := jsonpb.UnmarshalString(decoded, f); err != nil {
+			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
+		}
+		return f, nil
+	case "v1beta1":
+		f := &apiv1beta1.Filter{}
+		if err := jsonpb.UnmarshalString(decoded, f); err != nil {
+			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
+		}
+		return f, nil
+	default:
+		return nil, util.NewUnknownApiVersionError("filter "+apiVersion, encoded)
 	}
-	return f, nil
 }
 
-func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string) (*list.Options, error) {
+// Validates list options for a given resource and listing parameters.
+// apiVersion cat be set to "v1beta1" or "v2beta1". Depending on the value,
+// the corresponding API filter message will be used when parsing filterSpec.
+func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string, apiVersion string) (*list.Options, error) {
 	defaultOpts := func() (*list.Options, error) {
 		if listable == nil {
 			return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
 		}
-
-		f, err := parseAPIFilter(filterSpec)
+		f, err := parseAPIFilter(filterSpec, apiVersion)
+		if err != nil {
+			return nil, err
+		}
+		newFilter, err := filter.New(f)
 		if err != nil {
 			return nil, err
 		}
 
-		return list.NewOptions(listable, pageSize, sortBy, f)
+		return list.NewOptions(listable, pageSize, sortBy, newFilter)
 	}
 
 	if pageToken == "" {
