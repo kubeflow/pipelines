@@ -15,6 +15,7 @@
 from typing import Any, Dict, List, Optional
 
 import click
+import time
 from kfp import client
 from kfp.cli import output
 from kfp.cli.utils import parsing
@@ -241,13 +242,13 @@ def delete(ctx: click.Context, job_id: str):
 @recurring_run.command()
 @click.argument('job-id')
 @click.pass_context
-def enable(ctx: click.Context, job_id: str):
+def enable(ctx: click.Context, job_id: str, sleep_duration: int=0):
     """Enable a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
     client_obj.enable_job(job_id=job_id)
-    # TODO: add wait option, since enable takes time to complete
+    time.sleep(sleep_duration)
     recurring_run = client_obj.get_recurring_run(job_id=job_id)
     output.print_output(
         recurring_run,
@@ -259,13 +260,13 @@ def enable(ctx: click.Context, job_id: str):
 @recurring_run.command()
 @click.argument('job-id')
 @click.pass_context
-def disable(ctx: click.Context, job_id: str):
+def disable(ctx: click.Context, job_id: str, sleep_duration: int=0):
     """Disable a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
     client_obj.disable_job(job_id=job_id)
-    # TODO: add wait option, since disable takes time to complete
+    time.sleep(sleep_duration)
     recurring_run = client_obj.get_recurring_run(job_id=job_id)
     output.print_output(
         recurring_run,
