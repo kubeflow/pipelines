@@ -22,6 +22,7 @@ import { FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import { getArtifactTypeName, getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
@@ -31,6 +32,7 @@ import ArtifactPreview from '../ArtifactPreview';
 import DetailsTable from '../DetailsTable';
 import { FlowElementDataBase } from '../graph/Constants';
 import { getResourceStateText, ResourceType } from '../ResourceInfo';
+import { RoutePage } from '../Router';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ArtifactTitle } from './ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from './InputOutputTab';
@@ -109,6 +111,8 @@ interface TaskNodeDetailProps {
 }
 
 function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) {
+  const parentRunId = ''; // need run id from parent component
+  
   const [selectedTab, setSelectedTab] = useState(0);
   return (
     <div className={commonCss.page}>
@@ -156,6 +160,7 @@ function getTaskDetailsFields(
           .get('display_name')
           ?.getStringValue() || '-',
       ]);
+      getLogsDetails(execution, '6726ad01-f9fa-428b-9749-078ab4988bf6'); // test if getLogs is successful
 
       // Runtime execution info.
       const stateText = getResourceStateText({
@@ -184,6 +189,21 @@ function getTaskDetailsFields(
   }
 
   return details;
+}
+
+async function getLogsDetails(execution: Execution, runId: string) {
+  const podName = execution.getCustomPropertiesMap().get('pod_name')?.getStringValue();
+  const podNameSpace = execution.getCustomPropertiesMap().get('namespace')?.getStringValue();
+  if (!runId || !podName || !podName) {
+    return;
+  }
+  let response;
+  try {
+    response = await Apis.getPodLogs(runId, podName!, podNameSpace!);
+  } catch (err) {
+    console.log(err);
+  }
+  console.log(podNameSpace);
 }
 
 interface ArtifactNodeDetailProps {
