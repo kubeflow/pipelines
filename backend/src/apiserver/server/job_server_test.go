@@ -103,7 +103,7 @@ var (
 )
 
 func TestCreateJob_WrongInput(t *testing.T) {
-	clients, manager, experiment, pipelineVersion := initWithExperimentAndPipelineVersion(t)
+	clients, manager, experiment, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	tests := []struct {
@@ -151,37 +151,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 					}}},
 				ResourceReferences: validReference,
 			},
-			"InvalidInputError: unknown template format: pipeline spec is invalid",
-		},
-		{
-			"duplicate pipeline spec",
-			&apiv1beta1.Job{
-				Name:           "job1",
-				Enabled:        true,
-				MaxConcurrency: 1,
-				Trigger: &apiv1beta1.Trigger{
-					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
-						Cron:      "1 * * * *",
-					}}},
-				PipelineSpec: &apiv1beta1.PipelineSpec{
-					WorkflowManifest: v2SpecHelloWorld,
-				},
-				ResourceReferences: []*api.ResourceReference{
-					{
-						Key: &apiv1beta1.ResourceKey{
-							Type: apiv1beta1.ResourceType_EXPERIMENT,
-							Id:   DefaultFakeUUID,
-						},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: pipelineVersion.UUID},
-						Relationship: apiv1beta1.Relationship_CREATOR,
-					},
-				},
-			},
-			"Failed to create a recurring run due to mismatch in the provided manifest and pipeline version",
+			"Failed to fetch a template with an empty pipeline spec manifest",
 		},
 		{
 			"invalid pipeline spec",

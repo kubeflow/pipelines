@@ -123,7 +123,7 @@ func TestCreateRunV1_no_pipeline_source(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Nil(t, runDetail)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateRunV1_invalid_spec(t *testing.T) {
@@ -214,24 +214,6 @@ func TestCreateRunV1_pipelineversion(t *testing.T) {
 	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
-}
-
-func TestCreateRunV1_MismatchedManifests(t *testing.T) {
-	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow2.ToStringForStore(),
-			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Nil(t, runDetail)
-	assert.Contains(t, err.Error(), "Invalid input error: Failed to create a run due to mismatch in the provided manifest and pipeline version")
 }
 
 func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {

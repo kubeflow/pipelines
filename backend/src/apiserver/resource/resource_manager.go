@@ -387,60 +387,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.ExperimentId = expId
 	run.Namespace = expNs
 
-	// Fetch pipeline version based on pipeline spec (do not create anything yet)
-	var wfTemplate *template.Template
-	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(run.PipelineSpec, run.DisplayName, run.Description, run.Namespace)
+	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+	// Update the run.PipelineSpec if an existing pipeline version is used.
+	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run. Specify a valid pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
 	}
-	manifest := run.PipelineSpec.PipelineSpecManifest
-	if manifest == "" {
-		manifest = run.PipelineSpec.WorkflowSpecManifest
-	}
-	// If pipeline version does not exist, create it
-	if pipelineVersion == nil {
-		if temp, err := template.New([]byte(manifest)); err != nil {
-			return nil, util.Wrap(err, "Failed to create a run due to error reading manifest")
-		} else {
-			wfTemplate = &temp
-		}
-		pipelineVersion = &model.PipelineVersion{
-			PipelineSpec: manifest,
-			Description:  run.Description,
-		}
-	}
-	run.PipelineSpec.PipelineId = pipelineVersion.PipelineId
-	run.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
-	run.PipelineSpec.PipelineName = pipelineVersion.Name
-	if manifest == "" {
-		manifest = pipelineVersion.PipelineSpec
-	}
-	// Get manifest from either of the two places:
-	// (1) raw manifest in pipeline_spec
-	// (2) pipeline version in resource_references
-	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
-	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	var tmpl template.Template
-	if wfTemplate == nil {
-		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec manifest")
-		}
-		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
-		if manifest == "" {
-			manifest = string(tempBytes)
-		}
-		// Prevent creating runs with inconsistent manifests
-		if string(tempBytes) != manifest {
-			return nil, util.NewInvalidInputError("Failed to create a run due to mismatch in the provided manifest and pipeline version. You need to create a new parent pipeline version. Or submit a run with an empty pipeline spec manifest (or matching one with the parent pipeline version)")
-		}
-		tmpl, err = template.New(tempBytes)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a run with an invalid pipeline spec manifest")
-		}
-	} else {
-		tmpl = *wfTemplate
-	}
+
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Proposed flow:
 	// 1. Create an entry and assign creation timestamp and uuid.
@@ -854,43 +807,40 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 // 1. Pipeline version with the given pipeline version id
 // 2. The latest pipeline version with given pipeline id
 // 3. Repeats 1 and 2 for pipeline version id and pipeline id parsed from the pipeline name
-func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec model.PipelineSpec, displayName string, description string, namespace string) (*model.PipelineVersion, error) {
+func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec model.PipelineSpec) (*model.PipelineVersion, error) {
 	// Fetch or create a pipeline version
-	var pipelineVersion *model.PipelineVersion
 	if pipelineSpec.PipelineVersionId != "" {
-		pv, err := r.GetPipelineVersion(pipelineSpec.PipelineVersionId)
+		pipelineVersion, err := r.GetPipelineVersion(pipelineSpec.PipelineVersionId)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline version %v", pipelineSpec.PipelineVersionId)
 		}
-		pipelineVersion = pv
+		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineId != "" {
-		pv, err := r.GetLatestPipelineVersion(pipelineSpec.PipelineId)
+		pipelineVersion, err := r.GetLatestPipelineVersion(pipelineSpec.PipelineId)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v", pipelineSpec.PipelineId)
 		}
-		pipelineVersion = pv
+		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineName != "" {
 		resourceNames := common.ParseResourceIdsFromFullName(pipelineSpec.PipelineName)
 		if resourceNames["PipelineVersionId"] == "" && resourceNames["PipelineId"] == "" {
 			return nil, util.Wrapf(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to fetch a pipeline version and its manifest due to an empty pipeline spec source: %v", pipelineSpec.PipelineName)
 		}
 		if resourceNames["PipelineVersionId"] != "" {
-			pv, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
+			pipelineVersion, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline version %v exists", pipelineSpec.PipelineName, resourceNames["PipelineVersionId"])
 			}
-			pipelineVersion = pv
+			return pipelineVersion, nil
 		} else {
-			pv, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
+			pipelineVersion, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline %v exists", pipelineSpec.PipelineName, resourceNames["PipelineId"])
 			}
-			pipelineVersion = pv
+			return pipelineVersion, nil
 		}
-	} else {
-		return nil, nil
 	}
-	return pipelineVersion, nil
+	return nil, nil
 }
 
 // Checks if experiment exists and whether it belongs to the specified namespace.
@@ -945,63 +895,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	job.ExperimentId = expId
 	job.Namespace = expNs
 
-	// Fetch pipeline version based on pipeline spec (do not create anything yet)
-	var wfTemplate *template.Template
-	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(job.PipelineSpec, job.DisplayName, job.Description, job.Namespace)
+	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+	// Update the job.PipelineSpec if an existing pipeline version is used.
+	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run. Specify a valid pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 	}
-	manifest := job.PipelineSpec.PipelineSpecManifest
-	if manifest == "" {
-		manifest = job.PipelineSpec.WorkflowSpecManifest
-	}
-	// If pipeline version does not exist, create it
-	if pipelineVersion == nil {
-		if pipelineVersion == nil {
-			if temp, err := template.New([]byte(manifest)); err != nil {
-				return nil, util.Wrap(err, "Failed to create a recurring run due to error reading manifest")
-			} else {
-				wfTemplate = &temp
-			}
-			pipelineVersion = &model.PipelineVersion{
-				PipelineSpec: manifest,
-				Description:  job.Description,
-			}
-		}
-	}
-	job.PipelineSpec.PipelineId = pipelineVersion.PipelineId
-	job.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
-	job.PipelineSpec.PipelineName = pipelineVersion.Name
-	if manifest == "" {
-		manifest = pipelineVersion.PipelineSpec
-	}
-	// Get manifest from either of the two places:
-	// (1) raw manifest in pipeline_spec
-	// (2) pipeline version in resource_references
-	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
-	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	var tmpl template.Template
-	// This should only happen when creating a run from an existing pipeline or pipeline version
-	if wfTemplate == nil {
-		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec manifest")
-		}
-		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
-		if manifest == "" {
-			manifest = string(tempBytes)
-		}
-		// Prevent creating runs with inconsistent manifests
-		if string(tempBytes) != manifest {
-			return nil, util.NewInvalidInputError("Failed to create a recurring run due to mismatch in the provided manifest and pipeline version. You need to create a new parent pipeline version. Or submit a run with an empty pipeline spec manifest (or matching one with the parent pipeline version)")
-		}
-		tmpl, err = template.New(tempBytes)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
-		}
-	} else {
-		tmpl = *wfTemplate
-	}
+
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Convert modelJob into scheduledWorkflow.
 	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
@@ -1320,53 +1220,41 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 	return r.jobStore.UpdateJob(swf)
 }
 
-// Fetches PipelineSpec's manifest as []byte array.
-// It attempts to fetch PipelineSpec manifest in the following order:
-//  1. Directly read from PipelineSpec's PipelineSpecManifest field.
-//  2. Directly read from PipelineSpec's WorkflowSpecManifest field.
-//  3. Fetch pipeline spec manifest from the pipeline version for PipelineSpec's PipelineVersionId field.
-//  4. Fetch pipeline spec manifest from the latest pipeline version for PipelineSpec's PipelineId field.
-func (r *ResourceManager) fetchTemplateFromPipelineSpec(p *model.PipelineSpec) ([]byte, error) {
-	if p == nil {
-		return nil, util.NewInvalidInputError("Failed to read pipeline spec manifest from nil")
-	}
-	if len(p.PipelineSpecManifest) != 0 {
-		return []byte(p.PipelineSpecManifest), nil
-	}
-	if len(p.WorkflowSpecManifest) != 0 {
-		return []byte(p.WorkflowSpecManifest), nil
-	}
-	var errPv, errP error
-	if p.PipelineVersionId != "" {
-		pv, errPv1 := r.GetPipelineVersion(p.PipelineVersionId)
-		if errPv1 == nil {
-			bytes, _, errPv2 := r.fetchTemplateFromPipelineVersion(pv)
-			if errPv2 == nil {
-				return bytes, nil
-			} else {
-				errPv = errPv2
-			}
-		} else {
-			errPv = errPv1
+// Returns a workflow template based on the manifest in the following priority:
+// 1. Pipeline spec manifest from an existing pipeline version,
+// 2. Pipeline spec manifest or workflow spec manifest provided by a user.
+// If an existing pipeline version is found, the referenced pipeline and pipeline version are updated.
+func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.PipelineSpec) (template.Template, string, error) {
+	manifest := ""
+	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(*pipelineSpec)
+	if err != nil {
+		return nil, "", util.Wrapf(err, "Failed to fetch a template due to error retrieving pipeline version")
+	} else if pipelineVersion != nil {
+		// Update references to the existing pipeline version
+		pipelineSpec.PipelineId = pipelineVersion.PipelineId
+		pipelineSpec.PipelineVersionId = pipelineVersion.UUID
+		pipelineSpec.PipelineName = pipelineVersion.Name
+		// Fetch the template from PipelineSpec field or the corresponding YAML file
+		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
+		if err != nil {
+			return nil, "", util.Wrapf(err, "Failed to fetch a template due invalid manifest in pipeline version %v", pipelineSpec.PipelineVersionId)
+		}
+		manifest = string(tempBytes)
+	} else {
+		// Read the provided manifest and fail if it is empty
+		manifest = pipelineSpec.PipelineSpecManifest
+		if manifest == "" {
+			manifest = pipelineSpec.WorkflowSpecManifest
+		}
+		if manifest == "" {
+			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
-	if p.PipelineId != "" {
-		pv, errP1 := r.GetLatestPipelineVersion(p.PipelineId)
-		if errP1 == nil {
-			bytes, _, errP2 := r.fetchTemplateFromPipelineVersion(pv)
-			if errP2 == nil {
-				return bytes, nil
-			} else {
-				errP = errP2
-			}
-		} else {
-			errP = errP1
-		}
+	tmpl, err := template.New([]byte(manifest))
+	if err != nil {
+		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
-	return nil, util.Wrap(
-		util.Wrapf(errPv, "Failed to read pipeline spec for pipeline version id %v", p.PipelineVersionId),
-		util.Wrapf(errP, "Failed to read pipeline spec for pipeline id %v", p.PipelineId).Error(),
-	)
+	return tmpl, manifest, nil
 }
 
 // Fetches PipelineSpec as []byte array and a new URI of PipelineSpec.

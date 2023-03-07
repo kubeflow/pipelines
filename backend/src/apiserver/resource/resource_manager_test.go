@@ -1963,7 +1963,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
@@ -2514,7 +2514,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
