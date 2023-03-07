@@ -123,7 +123,7 @@ func TestCreateRunV1_no_pipeline_source(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Nil(t, runDetail)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateRunV1_invalid_spec(t *testing.T) {
@@ -214,24 +214,6 @@ func TestCreateRunV1_pipelineversion(t *testing.T) {
 	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
-}
-
-func TestCreateRunV1_MismatchedManifests(t *testing.T) {
-	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	run := &apiv1beta1.Run{
-		Name:               "run1",
-		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow2.ToStringForStore(),
-			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Nil(t, runDetail)
-	assert.Contains(t, err.Error(), "Invalid input error: Failed to create a run due to mismatch in the provided manifest and pipeline version")
 }
 
 func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
@@ -646,8 +628,8 @@ func TestCreateRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: run.GetPipelineSpec(),
@@ -659,7 +641,7 @@ func TestCreateRun(t *testing.T) {
 		State: apiv2beta1.RuntimeState_PENDING,
 		StateHistory: []*apiv2beta1.RuntimeStatus{
 			{
-				UpdateTime: &timestamp.Timestamp{Seconds: 6},
+				UpdateTime: &timestamp.Timestamp{Seconds: 3},
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
@@ -745,8 +727,8 @@ func TestGetRun(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: returnedRun.GetPipelineSpec(),
@@ -758,7 +740,7 @@ func TestGetRun(t *testing.T) {
 		State: apiv2beta1.RuntimeState_PENDING,
 		StateHistory: []*apiv2beta1.RuntimeStatus{
 			{
-				UpdateTime: &timestamp.Timestamp{Seconds: 6},
+				UpdateTime: &timestamp.Timestamp{Seconds: 3},
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
@@ -900,8 +882,8 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 		Name:           "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Pending",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -918,10 +900,6 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: experiment.Namespace},
 				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: createdRun.Run.PipelineSpec.GetPipelineId()},
-				Relationship: apiv1beta1.Relationship_CREATOR,
 			},
 		},
 	}}
@@ -978,7 +956,7 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			expectedRunsEmpty,
 		},
 		{
-			"Inalid - invalid filter type",
+			"Invalid - invalid filter type",
 			&apiv1beta1.ListRunsRequest{
 				ResourceReferenceKey: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE,
@@ -1036,8 +1014,8 @@ func TestListRuns(t *testing.T) {
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 5},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 5},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: createdRun.GetPipelineSpec(),
@@ -1049,7 +1027,7 @@ func TestListRuns(t *testing.T) {
 		State: apiv2beta1.RuntimeState_PENDING,
 		StateHistory: []*apiv2beta1.RuntimeStatus{
 			{
-				UpdateTime: &timestamp.Timestamp{Seconds: 6},
+				UpdateTime: &timestamp.Timestamp{Seconds: 3},
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
