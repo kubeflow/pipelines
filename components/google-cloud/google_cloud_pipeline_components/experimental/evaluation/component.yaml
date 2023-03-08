@@ -113,16 +113,16 @@ inputs:
 - {name: predictions_format, type: String, default: 'jsonl'}
 - {name: batch_prediction_job, type: google.VertexBatchPredictionJob}
 - {name: ground_truth_format, type: String, default: 'jsonl'}
-- {name: ground_truth_gcs_source, type: JsonArray, default: '{}'}
-- {name: key_columns, type: JsonArray, default: '{}'}
+- {name: ground_truth_gcs_source, type: JsonArray, default: '[]'}
+- {name: key_columns, type: JsonArray, default: '[]'}
 - {name: classification_type, type: String, default: ''}
-- {name: class_names, type: JsonArray, default: '{}'}
+- {name: class_names, type: JsonArray, default: '[]'}
 - {name: ground_truth_column, type: String}
 - {name: prediction_score_column, type: String, default: ''}
 - {name: prediction_label_column, type: String, default: ''}
 - {name: prediction_id_column, type: String, default: ''}
 - {name: example_weight_column, type: String, default: ''}
-- {name: positive_classes, type: JsonArray, default: '{}'}
+- {name: positive_classes, type: JsonArray, default: '[]'}
 - {name: generate_feature_attribution, type: Boolean, default: False}
 - {name: dataflow_service_account, type: String, default: ''}
 - {name: dataflow_disk_size, type: Integer, default: 50}
