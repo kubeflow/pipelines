@@ -139,6 +139,7 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
         )}
         {/* Logs tab */}
         {selectedTab === 2 && <div>This is logs tab.</div>}
+        {/* getLogsDetails(execution, runid); */}
       </div>
     </div>
   );
@@ -160,7 +161,6 @@ function getTaskDetailsFields(
           .get('display_name')
           ?.getStringValue() || '-',
       ]);
-      getLogsDetails(execution, '6726ad01-f9fa-428b-9749-078ab4988bf6'); // test if getLogs is successful
 
       // Runtime execution info.
       const stateText = getResourceStateText({
