@@ -196,7 +196,7 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
-			LeftJoin("pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId") // this results in total_size reflecting the number of pipeline_versions
+			LeftJoin("(SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY PipelineId ORDER BY CreatedAtInSec DESC) AS rownumber FROM pipeline_versions) as t1 WHERE t1.rownumber = 1 OR t1.rownumber IS NULL) AS pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId")
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
 			query = query.Where(
 				sq.Eq{
