@@ -188,9 +188,9 @@ spec:
           # https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_default_authentication_plugin
           # https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_authentication_policy
           - --default-authentication-plugin=mysql_native_password
-          # Set binlog expire to 10 days to restore the default behavior in MySQL 5.7.
-          # https://dev.mysql.com/doc/refman/8.0/en/replication-options-binary-log.html#sysvar_binlog_expire_logs_seconds
-          - --binlog-expire-logs-seconds=864000
+          # Disable binlog as the logs grow fast and eat up all disk spaces eventually. And KFP doesn't currently utilize binlog.
+          # https://dev.mysql.com/doc/refman/8.0/en/replication-options-binary-log.html#option_mysqld_log-bin
+          - --disable-log-bin
           env:
             - name: MYSQL_ALLOW_EMPTY_PASSWORD
               value: "true"
