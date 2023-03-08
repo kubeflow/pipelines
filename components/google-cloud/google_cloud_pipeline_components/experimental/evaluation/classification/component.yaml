@@ -110,17 +110,17 @@ inputs:
   - { name: predictions_gcs_source, type: Artifact, optional: True }
   - { name: predictions_bigquery_source, type: google.BQTable, optional: True }
   - { name: ground_truth_format, type: String, default: "jsonl" }
-  - { name: ground_truth_gcs_source, type: JsonArray, default: "{}" }
+  - { name: ground_truth_gcs_source, type: JsonArray, default: "[]" }
   - { name: ground_truth_bigquery_source, type: String, default: "" }
   - { name: classification_type, type: String, default: "" }
-  - { name: class_labels, type: JsonArray, default: "{}" }
+  - { name: class_labels, type: JsonArray, default: "[]" }
   - { name: target_field_name, type: String }
   - { name: model, type: google.VertexModel, optional: True }
   - { name: prediction_score_column, type: String, default: "" }
   - { name: prediction_label_column, type: String, default: "" }
   - { name: prediction_id_column, type: String, default: "" }
   - { name: example_weight_column, type: String, default: "" }
-  - { name: positive_classes, type: JsonArray, default: "{}" }
+  - { name: positive_classes, type: JsonArray, default: "[]" }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_disk_size, type: Integer, default: 50 }
   - { name: dataflow_machine_type, type: String, default: "n1-standard-4" }
