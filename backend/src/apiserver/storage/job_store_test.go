@@ -19,6 +19,7 @@ import (
 	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -188,7 +189,7 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 	defer db.Close()
 
 	// Add a filter
-	opts, _ := list.NewOptions(&model.Job{}, 4, "name", &api.Filter{
+	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
 				Key: "name",
@@ -200,7 +201,9 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 				},
 			},
 		},
-	})
+	}
+	newFilter, _ := filter.New(protoFilter)
+	opts, _ := list.NewOptions(&model.Job{}, 4, "name", newFilter)
 	jobs, total_size, _, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
