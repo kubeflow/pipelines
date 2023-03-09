@@ -18,7 +18,6 @@ import * as React from 'react';
 import * as Utils from '../lib/Utils';
 import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
 import TestUtils from '../TestUtils';
-import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiRunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
@@ -32,6 +31,7 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 
 // Default arguments for Apis.experimentServiceApi.listExperiment.
 const LIST_EXPERIMENT_DEFAULTS = [
@@ -43,11 +43,11 @@ const LIST_EXPERIMENT_DEFAULTS = [
       predicates: [
         {
           key: 'storage_state',
-          op: PredicateOp.NOTEQUALS,
+          operation: V2beta1PredicateOperation.NOTEQUALS,
           string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
         },
       ],
-    } as ApiFilter),
+    } as V2beta1Filter),
   ), // filter
   undefined, // resource_reference_key_type
   undefined, // resource_reference_key_id
@@ -184,11 +184,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOTEQUALS,
               string_value: ApiRunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
     expect(tree.state()).toHaveProperty('displayExperiments', [
