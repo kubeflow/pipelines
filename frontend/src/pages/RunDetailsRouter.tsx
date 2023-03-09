@@ -25,6 +25,7 @@ import { Apis } from 'src/lib/Apis';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2 } from 'src/pages/RunDetailsV2';
+import { ApiPipelineVersion } from 'src/apis/pipeline';
 
 // Retrieve the recurring run ID from run if it is a run of recurring run
 function getRecurringRunId(apiRun: ApiRunDetail | undefined): string | undefined {

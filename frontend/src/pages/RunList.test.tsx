@@ -589,7 +589,6 @@ describe('RunList', () => {
       }),
     ).toMatchSnapshot();
   });
-  */
 
   it('renders pipeline version name as link to its details page', () => {
     expect(
