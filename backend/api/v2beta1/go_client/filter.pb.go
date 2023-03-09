@@ -126,7 +126,7 @@ func (Predicate_Operation) EnumDescriptor() ([]byte, []int) {
 // filter {
 //   predicate {
 //     key: "status"
-//     op: EQUALS
+//     operation: EQUALS
 //     string_value: "Running"
 //   }
 // }
@@ -135,12 +135,12 @@ func (Predicate_Operation) EnumDescriptor() ([]byte, []int) {
 // filter {
 //   predicate {
 //     key: "status"
-//     op: EQUALS
+//     operation: EQUALS
 //     string_value: "Succeeded"
 //   }
 //   predicate {
 //     key: "created_at"
-//     op: GREATER_THAN
+//     operation: GREATER_THAN
 //     timestamp_value {
 //       seconds: 1543651200
 //     }
@@ -152,7 +152,7 @@ func (Predicate_Operation) EnumDescriptor() ([]byte, []int) {
 // filter {
 //   predicate {
 //     key: "label"
-//     op: IN
+//     operation: IN
 //     string_values {
 //       value: 'label_1'
 //       value: 'label_2'

@@ -451,6 +451,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 			},
 		},
 	}
+	newFilter, _ := filter.New(protoFilter)
 
 	protoFilterWithRightKeyNames := &api.Filter{
 		Predicates: []*api.Predicate{
@@ -467,7 +468,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
 	}
 
-	got, err := NewOptions(&fakeListable{}, 10, "timestamp", protoFilter)
+	got, err := NewOptions(&fakeListable{}, 10, "timestamp", newFilter)
 	want := &Options{
 		PageSize: 10,
 		token: &token{
@@ -502,8 +503,9 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 			},
 		},
 	}
+	newFilter, _ := filter.New(protoFilter)
 
-	got, err := NewOptions(&fakeListable{}, 10, "timestamp", protoFilter)
+	got, err := NewOptions(&fakeListable{}, 10, "timestamp", newFilter)
 	if err == nil {
 		t.Errorf("NewOptions(protoFilter=%+v) =\nGot: %+v, <nil>\nWant error", protoFilter, got)
 	}
@@ -519,6 +521,7 @@ func TestNewOptions_ModelFilter(t *testing.T) {
 			},
 		},
 	}
+	newFilter, _ := filter.New(protoFilter)
 
 	protoFilterWithRightKeyNames := &api.Filter{
 		Predicates: []*api.Predicate{
@@ -535,7 +538,7 @@ func TestNewOptions_ModelFilter(t *testing.T) {
 		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
 	}
 
-	got, err := NewOptions(&model.Run{}, 10, "name", protoFilter)
+	got, err := NewOptions(&model.Run{}, 10, "name", newFilter)
 	want := &Options{
 		PageSize: 10,
 		token: &token{
@@ -1020,7 +1023,8 @@ func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 		CodeSourceUrl:  "",
 	}
 	protoFilter := &api.Filter{}
-	listableOptions, err := NewOptions(listable, 10, "name", protoFilter)
+	newFilter, _ := filter.New(protoFilter)
+	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("pipeline_versions")
 	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder).ToSql()
@@ -1048,7 +1052,8 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 			Value: &api.Predicate_StringValue{StringValue: "Succeeded"},
 		},
 	}
-	listableOptions, err := NewOptions(listable, 10, "name", protoFilter)
+	newFilter, _ := filter.New(protoFilter)
+	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("run_details")
 	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
@@ -1064,7 +1069,8 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 			Value: &api.Predicate_StringValue{StringValue: "somevalue"},
 		},
 	}
-	listableOptions, err = NewOptions(listable, 10, "name", notEqualProtoFilter)
+	newNotEqualFilter, _ := filter.New(notEqualProtoFilter)
+	listableOptions, err = NewOptions(listable, 10, "name", newNotEqualFilter)
 	assert.Nil(t, err)
 	sqlBuilder = sq.Select("*").From("run_details")
 	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
