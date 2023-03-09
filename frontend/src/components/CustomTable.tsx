@@ -33,10 +33,10 @@ import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
 import { logger } from '../lib/Utils';
-import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
 import { InputAdornment } from '@material-ui/core';
 import { CustomTableRow } from './CustomTableRow';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 
 export enum ExpandState {
   COLLAPSED,
@@ -527,12 +527,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   private _createAndEncodeFilter(filterString: string): string {
-    const filter: ApiFilter = {
+    const filter: V2beta1Filter = {
       predicates: [
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
-          op: PredicateOp.ISSUBSTRING,
+          operation: V2beta1PredicateOperation.ISSUBSTRING,
           string_value: filterString,
         },
       ],
