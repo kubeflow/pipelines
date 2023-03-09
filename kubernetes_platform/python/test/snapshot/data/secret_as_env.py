@@ -12,16 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    'use_secret_as_env',
-    'use_secret_as_volume',
-    'CreatePVC',
-    'DeletePVC',
-    'mount_pvc',
-]
+from kfp import dsl
+from kfp import kubernetes
 
-from kfp.kubernetes.secret import use_secret_as_env
-from kfp.kubernetes.secret import use_secret_as_volume
-from kfp.kubernetes.volume import CreatePVC
-from kfp.kubernetes.volume import DeletePVC
-from kfp.kubernetes.volume import mount_pvc
+
+@dsl.component
+def comp():
+    pass
+
+
+@dsl.pipeline
+def my_pipeline():
+    task = comp()
+    kubernetes.use_secret_as_env(
+        task,
+        secret_name='my-secret',
+        secret_key_to_env={'password': 'SECRET_VAR'})
+
+
+if __name__ == '__main__':
+    from kfp import compiler
+    compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))

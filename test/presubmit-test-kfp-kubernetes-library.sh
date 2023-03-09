@@ -1,4 +1,5 @@
-# Copyright 2023 The Kubeflow Authors
+#!/bin/bash -ex
+# Copyright 2023 Kubeflow Pipelines contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    'use_secret_as_env',
-    'use_secret_as_volume',
-    'CreatePVC',
-    'DeletePVC',
-    'mount_pvc',
-]
+source_root=$(pwd)
 
-from kfp.kubernetes.secret import use_secret_as_env
-from kfp.kubernetes.secret import use_secret_as_volume
-from kfp.kubernetes.volume import CreatePVC
-from kfp.kubernetes.volume import DeletePVC
-from kfp.kubernetes.volume import mount_pvc
+pip install --upgrade pip
+pip install wheel
+
+## start remove: install from PyPI once platform-specific features are released in the KFP SDK
+pip install -e "$source_root/sdk/python"
+## end remove
+
+# generate Python proto code from source
+pushd "$source_root/kubernetes_platform"
+make clean python
+popd
+
+pip install -e "$source_root/kubernetes_platform/python[dev]"
+pytest "$source_root/kubernetes_platform/python/test" -n auto
