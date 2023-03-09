@@ -73,45 +73,50 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230203_1221_RC00
-    args:
-      - --project_id
-      - { inputValue: project }
-      - --location
-      - { inputValue: location }
-      - --root_dir
-      - { inputValue: root_dir }
-      - --test_dataset_resource_name
-      - "{{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}"
-      - --test_dataset_storage_source
-      - { inputValue: preprocessed_test_dataset_storage_source }
-      - --training_dataset_resource_name
-      - "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
-      - --training_dataset_storage_source
-      - { inputValue: preprocessed_training_dataset_storage_source }
-      - --output_dir
-      - { inputValue: output_dir }
-      - --dataflow_job_prefix
-      - "feature-extraction-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
-      - --dataflow_service_account
-      - { inputValue: dataflow_service_account }
-      - --dataflow_disk_size
-      - { inputValue: dataflow_disk_size }
-      - --dataflow_machine_type
-      - { inputValue: dataflow_machine_type }
-      - --dataflow_workers_num
-      - { inputValue: dataflow_workers_num }
-      - --dataflow_max_workers_num
-      - { inputValue: dataflow_max_workers_num }
-      - --dataflow_subnetwork
-      - { inputValue: dataflow_subnetwork }
-      - --dataflow_use_public_ips
-      - { inputValue: dataflow_use_public_ips }
-      - --kms_key_name
-      - { inputValue: encryption_spec_key_name }
-      - --embedding_output_file
-      - { outputPath: embedding_output_file }
-      - --gcp_resources
-      - { outputPath: gcp_resources }
-      - --executor_input
-      - "{{$}}"
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
+    args: [
+      --type, CustomJob,
+      --project, { inputValue: project },
+      --location, { inputValue: location },
+      --gcp_resources, { outputPath: gcp_resources },
+      --payload,
+      concat: [
+          '{"display_name": "feature-extractor-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", ',
+          '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
+          '", "machine_spec": {"machine_type": "n1-standard-16"}, "container_spec": {"image_uri":"',
+          'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230308_1221_RC00',
+          '", "args": ["--project_id=',
+          { inputValue: project },
+          '", "--location=',
+          { inputValue: location },
+          '", "--root_dir=',
+          { inputValue: root_dir },
+          '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}", "--test_dataset_resource_name=',
+          { inputValue: preprocessed_test_dataset_storage_source },
+          '", "--training_dataset_resource_name=',
+          { inputValue: preprocessed_training_dataset_storage_source },
+          '", "--output_dir=',
+          { inputValue: output_dir },
+          '", "--dataflow_job_prefix=',
+          'feature-extraction-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+          '", "--dataflow_service_account=',
+          { inputValue: dataflow_service_account },
+          '", "--dataflow_disk_size=',
+          { inputValue: dataflow_disk_size },
+          '", "--dataflow_machine_type=',
+          { inputValue: dataflow_machine_type },
+          '", "--dataflow_workers_num=',
+          { inputValue: dataflow_workers_num },
+          '", "--dataflow_max_workers_num=',
+          { inputValue: dataflow_max_workers_num },
+          '", "--dataflow_subnetwork=',
+          { inputValue: dataflow_subnetwork },
+          '", "--dataflow_use_public_ips=',
+          { inputValue: dataflow_use_public_ips },
+          '", "--kms_key_name=',
+          { inputValue: encryption_spec_key_name },
+          '", "--embedding_output_file=',
+          { outputPath: embedding_output_file },
+          '", "--executor_input={{$.json_escape[1]}}"]}}]}}',
+    ]]
