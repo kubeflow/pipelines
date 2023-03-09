@@ -18,7 +18,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import CustomTable, { Column, ExpandState, Row, css } from './CustomTable';
 import TestUtils from '../TestUtils';
-import { PredicateOp } from '../apis/filter';
+import { V2beta1PredicateOperation } from '../apisv2beta1/filter';
 import { shallow } from 'enzyme';
 
 const props = {
@@ -721,7 +721,7 @@ describe('CustomTable', () => {
         predicates: [
           {
             key: 'name',
-            op: PredicateOp.ISSUBSTRING,
+            operation: V2beta1PredicateOperation.ISSUBSTRING,
             string_value: 'test filter',
           },
         ],
@@ -759,7 +759,7 @@ describe('CustomTable', () => {
         predicates: [
           {
             key: 'name',
-            op: PredicateOp.ISSUBSTRING,
+            operation: V2beta1PredicateOperation.ISSUBSTRING,
             string_value: 'test filter',
           },
         ],
