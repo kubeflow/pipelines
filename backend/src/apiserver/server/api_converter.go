@@ -1556,7 +1556,12 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		RunDetails:     apiRd,
 	}
 	err := util.NewInvalidInputError("Failed to parse the pipeline source")
-	if r.PipelineSpec.PipelineSpecManifest != "" {
+	if r.PipelineSpec.PipelineVersionId != "" {
+		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionId{
+			PipelineVersionId: r.PipelineSpec.PipelineVersionId,
+		}
+		return apiRunV2
+	} else if r.PipelineSpec.PipelineSpecManifest != "" {
 		spec, err1 := yamlStringToProtobufStruct(r.PipelineSpec.PipelineSpecManifest)
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
@@ -1574,11 +1579,6 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 			return apiRunV2
 		}
 		err = util.Wrap(err1, err.Error()).(*util.UserError)
-	} else if r.PipelineSpec.PipelineVersionId != "" {
-		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionId{
-			PipelineVersionId: r.PipelineSpec.PipelineVersionId,
-		}
-		return apiRunV2
 	}
 	return &apiv2beta1.Run{
 		RunId:        r.UUID,
