@@ -426,44 +426,6 @@ describe('RunList', () => {
     ]);
   });
 
-  /*
-  it('adds metrics columns', async () => {
-    mockNRuns(2, {
-      run: {
-        metrics: [
-          { name: 'metric1', number_value: 5 },
-          { name: 'metric2', number_value: 10 },
-        ],
-        status: 'Succeeded',
-      },
-    });
-    const props = generateProps();
-    tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunListTest)._loadRuns({});
-    expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('adds metrics column in the same order metrics were defined', async () => {
-    const z_metric = { name: 'z_metric', number_value: 2 } as ApiRunMetric;
-    const y_metric = { name: 'y_metric', number_value: 1 } as ApiRunMetric;
-
-    let actualValues = [
-      MetricUtils.getMetricDisplayString(z_metric),
-      MetricUtils.getMetricDisplayString(y_metric),
-    ];
-
-    mockNRuns(1, { run: { metrics: [z_metric, y_metric] } });
-    const props = generateProps();
-    tree = TestUtils.mountWithRouter(<RunList {...props} />);
-    await TestUtils.flushPromises();
-    tree.update();
-
-    const metricValues = tree.find("[data-testid='metric']");
-    expect(metricValues.map(v => v.text())).toEqual(actualValues);
-  });
-  */
-
   // it('shows pipeline name', async () => {
   //   mockNRuns(1, {
   //     pipeline_version_id: 'test-pipeline-id',
@@ -667,53 +629,6 @@ describe('RunList', () => {
       }),
     ).toMatchSnapshot();
   });
-
-  /*
-  it('renders metric buffer', () => {
-    expect(
-      getShallowInstance()._metricBufferCustomRenderer({ value: {}, id: 'run-id' }),
-    ).toMatchSnapshot();
-  });
-
-  it('renders an empty metric when there is no metric', () => {
-    expect(
-      getShallowInstance()._metricCustomRenderer({ value: undefined, id: 'run-id' }),
-    ).toMatchSnapshot();
-  });
-
-  it('renders an empty metric when metric is empty', () => {
-    expect(
-      getShallowInstance()._metricCustomRenderer({ value: {}, id: 'run-id' }),
-    ).toMatchSnapshot();
-  });
-
-  it('renders an empty metric when metric value is empty', () => {
-    expect(
-      getShallowInstance()._metricCustomRenderer({ value: { metric: {} }, id: 'run-id' }),
-    ).toMatchSnapshot();
-  });
-
-  it('renders percentage metric', () => {
-    expect(
-      getShallowInstance()._metricCustomRenderer({
-        id: 'run-id',
-        value: { metric: { number_value: 0.3, format: RunMetricFormat.PERCENTAGE } },
-      }),
-    ).toMatchSnapshot();
-  });
-
-  it('renders raw metric', () => {
-    expect(
-      getShallowInstance()._metricCustomRenderer({
-        id: 'run-id',
-        value: {
-          metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
-          metric: { number_value: 55 } as ApiRunMetric,
-        },
-      }),
-    ).toMatchSnapshot();
-  });
-  */
 
   it('renders pipeline version name as link to its details page', () => {
     expect(

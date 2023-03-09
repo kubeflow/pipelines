@@ -329,7 +329,11 @@ function NewRunV2(props: NewRunV2Props) {
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
-      pipeline_spec: JsYaml.safeLoad(templateString || ''),
+      experiment_id: apiExperiment?.id,
+      // pipeline_spec and pipeline_version_id is exclusive.
+      pipeline_spec: !(existingRun?.pipeline_version_id || existingPipelineVersion?.id)
+        ? JsYaml.safeLoad(templateString || '')
+        : undefined,
       pipeline_version_id: existingRun?.pipeline_version_id || existingPipelineVersion?.id,
       runtime_config: {
         // TODO(zijianjoy): determine whether to provide pipeline root.
