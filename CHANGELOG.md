@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0-alpha.7](https://github.com/kubeflow/pipelines/compare/2.0.0-alpha.6...2.0.0-alpha.7) (2023-03-08)
+
+
+### Features
+
+* **frontend:** Implement  aws-js-sdk crendentials to support IRSA for s3 ([\#8651](https://github.com/kubeflow/pipelines/issues/8651)) ([674ee7b](https://github.com/kubeflow/pipelines/commit/674ee7b1f6a08f47ee250582b485d8528b34b606))
+
+
+### Bug Fixes
+
+* **frontend:** Use browser-compatible atob instead of Buffer for frontend graph decompression. Fixes [\#7655](https://github.com/kubeflow/pipelines/issues/7655) ([\#8343](https://github.com/kubeflow/pipelines/issues/8343)) ([2c1ab3b](https://github.com/kubeflow/pipelines/commit/2c1ab3b919b6d6bc554f85a34950035b4991b685))
+* **manifests:** disable mysql binlog ([\#8941](https://github.com/kubeflow/pipelines/issues/8941)) ([2d83685](https://github.com/kubeflow/pipelines/commit/2d836855de89ead53e04794ab63e2bdb50834bd6))
+
 ## [2.0.0-beta.0](https://github.com/kubeflow/pipelines/compare/2.0.0-alpha.6...2.0.0-beta.0) (2023-02-07)
 
 
