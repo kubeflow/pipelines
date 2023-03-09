@@ -20,6 +20,7 @@ import (
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -392,8 +393,9 @@ func TestListExperiments_Filtering(t *testing.T) {
 			},
 		},
 	}
+	newFilter, _ := filter.New(filterProto)
 
-	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", filterProto)
+	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", newFilter)
 	assert.Nil(t, err)
 	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
