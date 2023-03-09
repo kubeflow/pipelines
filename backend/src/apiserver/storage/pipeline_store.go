@@ -377,16 +377,9 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 }
 
 // TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// TODO(gkcalat): remove deduping once we support advanced SQL queries and handle this natively.
-//
 // Parses SQL results of joining `pipelines` and `pipeline_versions` tables into []Pipelines.
-// Drops duplicate pipelines, which is necessary because LEFT JOIN operation returns all
-// pipeline versions due to lack of support of advanced queries.
-// Ref. https://github.com/kubeflow/pipelines/issues/8852
 // This supports v1beta1 behavior.
 func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*model.PipelineVersion, error) {
-	parsedPipelines := make(map[string]*model.Pipeline)
-	parsedPipelineVersions := make(map[string]*model.PipelineVersion)
 	var pipelines []*model.Pipeline
 	var pipelineVersions []*model.PipelineVersion
 	for rows.Next() {
@@ -415,35 +408,32 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 		); err != nil {
 			return nil, nil, err
 		}
-		if temp, ok := parsedPipelineVersions[uuid]; ok {
-			if temp.CreatedAtInSec >= versionCreatedAtInSec.Int64 {
-				continue
-			}
-		}
-		parsedPipelines[uuid] = &model.Pipeline{
-			UUID:           uuid,
-			CreatedAtInSec: createdAtInSec.Int64,
-			Name:           name,
-			Description:    description,
-			Status:         status,
-			Namespace:      namespace.String,
-		}
-		parsedPipelineVersions[uuid] = &model.PipelineVersion{
-			UUID:            versionUUID.String,
-			CreatedAtInSec:  versionCreatedAtInSec.Int64,
-			Name:            versionName.String,
-			Parameters:      versionParameters.String,
-			PipelineId:      versionPipelineId.String,
-			Status:          model.PipelineVersionStatus(versionStatus.String),
-			CodeSourceUrl:   versionCodeSourceUrl.String,
-			Description:     versionDescription.String,
-			PipelineSpec:    pipelineSpec.String,
-			PipelineSpecURI: pipelineSpecURI.String,
-		}
-	}
-	for pid := range parsedPipelines {
-		pipelines = append(pipelines, parsedPipelines[pid])
-		pipelineVersions = append(pipelineVersions, parsedPipelineVersions[pid])
+		pipelines = append(
+			pipelines,
+			&model.Pipeline{
+				UUID:           uuid,
+				CreatedAtInSec: createdAtInSec.Int64,
+				Name:           name,
+				Description:    description,
+				Status:         status,
+				Namespace:      namespace.String,
+			},
+		)
+		pipelineVersions = append(
+			pipelineVersions,
+			&model.PipelineVersion{
+				UUID:            versionUUID.String,
+				CreatedAtInSec:  versionCreatedAtInSec.Int64,
+				Name:            versionName.String,
+				Parameters:      versionParameters.String,
+				PipelineId:      versionPipelineId.String,
+				Status:          model.PipelineVersionStatus(versionStatus.String),
+				CodeSourceUrl:   versionCodeSourceUrl.String,
+				Description:     versionDescription.String,
+				PipelineSpec:    pipelineSpec.String,
+				PipelineSpecURI: pipelineSpecURI.String,
+			},
+		)
 	}
 	return pipelines, pipelineVersions, nil
 }
