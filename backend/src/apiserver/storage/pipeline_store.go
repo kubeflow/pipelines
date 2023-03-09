@@ -194,9 +194,15 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 // total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
 // This supports v1beta1 behavior.
 func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
+	subQuery := sq.Select("t1.pvid, t1.pid").FromSelect(
+		sq.Select("UUID AS pvid, PipelineId AS pid, ROW_NUMBER () OVER (PARTITION BY PipelineId ORDER BY CreatedAtInSec DESC) rn").
+			From("pipeline_versions"), "t1").
+		Where(sq.Or{sq.Eq{"rn": 1}, sq.Eq{"rn": nil}})
+
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
-			LeftJoin("(SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY PipelineId ORDER BY CreatedAtInSec DESC) AS rownumber FROM pipeline_versions) as t1 WHERE t1.rownumber = 1 OR t1.rownumber IS NULL) AS pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId")
+			JoinClause(subQuery.Prefix("LEFT JOIN (").Suffix(") t2 ON pipelines.UUID = t2.pid")).
+			LeftJoin("pipeline_versions ON t2.pvid = pipeline_versions.UUID")
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
 			query = query.Where(
 				sq.Eq{
@@ -258,7 +264,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
 	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	totalSize, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of counting pipelines")
@@ -274,11 +280,11 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 
 	// Split results on multiple pages, if needed
 	if len(pipelines) <= opts.PageSize {
-		return pipelines, pipelineVersions, total_size, "", nil
+		return pipelines, pipelineVersions, totalSize, "", nil
 	}
 	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
 	// npt2, err2 := opts.NextPageToken(pipelineVersions[opts.PageSize])
-	return pipelines[:opts.PageSize], pipelineVersions[:opts.PageSize], total_size, npt, err
+	return pipelines[:opts.PageSize], pipelineVersions[:opts.PageSize], totalSize, npt, err
 }
 
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
@@ -371,9 +377,16 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 }
 
 // TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
+// TODO(gkcalat): remove deduping once we support advanced SQL queries and handle this natively.
+//
 // Parses SQL results of joining `pipelines` and `pipeline_versions` tables into []Pipelines.
+// Drops duplicate pipelines, which is necessary because LEFT JOIN operation returns all
+// pipeline versions due to lack of support of advanced queries.
+// Ref. https://github.com/kubeflow/pipelines/issues/8852
 // This supports v1beta1 behavior.
 func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*model.PipelineVersion, error) {
+	parsedPipelines := make(map[string]*model.Pipeline)
+	parsedPipelineVersions := make(map[string]*model.PipelineVersion)
 	var pipelines []*model.Pipeline
 	var pipelineVersions []*model.PipelineVersion
 	for rows.Next() {
@@ -402,33 +415,35 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 		); err != nil {
 			return nil, nil, err
 		}
-		pipelines = append(
-			pipelines,
-			&model.Pipeline{
-				UUID:           uuid,
-				CreatedAtInSec: createdAtInSec.Int64,
-				Name:           name,
-				Description:    description,
-				Status:         status,
-				Namespace:      namespace.String,
-			},
-		)
-		pipelineVersions = append(
-			pipelineVersions,
-			&model.PipelineVersion{
-				UUID:            versionUUID.String,
-				CreatedAtInSec:  versionCreatedAtInSec.Int64,
-				Name:            versionName.String,
-				Parameters:      versionParameters.String,
-				PipelineId:      versionPipelineId.String,
-				Status:          model.PipelineVersionStatus(versionStatus.String),
-				CodeSourceUrl:   versionCodeSourceUrl.String,
-				Description:     versionDescription.String,
-				PipelineSpec:    pipelineSpec.String,
-				PipelineSpecURI: pipelineSpecURI.String,
-			},
-		)
-		// }
+		if temp, ok := parsedPipelineVersions[uuid]; ok {
+			if temp.CreatedAtInSec >= versionCreatedAtInSec.Int64 {
+				continue
+			}
+		}
+		parsedPipelines[uuid] = &model.Pipeline{
+			UUID:           uuid,
+			CreatedAtInSec: createdAtInSec.Int64,
+			Name:           name,
+			Description:    description,
+			Status:         status,
+			Namespace:      namespace.String,
+		}
+		parsedPipelineVersions[uuid] = &model.PipelineVersion{
+			UUID:            versionUUID.String,
+			CreatedAtInSec:  versionCreatedAtInSec.Int64,
+			Name:            versionName.String,
+			Parameters:      versionParameters.String,
+			PipelineId:      versionPipelineId.String,
+			Status:          model.PipelineVersionStatus(versionStatus.String),
+			CodeSourceUrl:   versionCodeSourceUrl.String,
+			Description:     versionDescription.String,
+			PipelineSpec:    pipelineSpec.String,
+			PipelineSpecURI: pipelineSpecURI.String,
+		}
+	}
+	for pid := range parsedPipelines {
+		pipelines = append(pipelines, parsedPipelines[pid])
+		pipelineVersions = append(pipelineVersions, parsedPipelineVersions[pid])
 	}
 	return pipelines, pipelineVersions, nil
 }
