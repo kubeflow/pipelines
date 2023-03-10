@@ -41,7 +41,6 @@ class BaseComponent(abc.ABC):
         self.component_spec = component_spec
         self.name = component_spec.name
         self.description = component_spec.description or None
-        self.__doc__ = self.description
 
         # Arguments typed as PipelineTaskFinalStatus are special arguments that
         # do not count as user inputs. Instead, they are reserved to for the

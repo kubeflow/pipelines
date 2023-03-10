@@ -13,11 +13,11 @@
 # limitations under the License.
 
 __all__ = [
-    'use_secret_as_env',
-    'use_secret_as_volume',
     'CreatePVC',
     'DeletePVC',
     'mount_pvc',
+    'use_secret_as_env',
+    'use_secret_as_volume',
 ]
 
 from kfp.kubernetes.secret import use_secret_as_env

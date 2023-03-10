@@ -18,15 +18,37 @@
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
 
-import os
-import sys
+import re
 
-# -- Path setup --------------------------------------------------------------
+from kfp import dsl
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../sdk/python'))
+
+# preserve function docstrings for components by setting component decorators to passthrough decorators
+# also enables autodoc to document the components as functions without using the autodata directive (https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#directive-autodata)
+def container_component_decorator(func):
+    return func
+
+
+def component_decorator(*args, **kwargs):
+
+    def decorator(func):
+        return func
+
+    return decorator
+
+
+# class Path:
+
+#     def __init__(self, typ):
+#         print(typ)
+#         self.type = typ
+
+#     def __repr__(self):
+#         self.type
+
+# dsl.OutputPath = Path
+dsl.component = component_decorator
+dsl.container_component = container_component_decorator
 
 # -- Project information -----------------------------------------------------
 project = 'Kubeflow Pipelines'
@@ -232,3 +254,17 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+
+# TODO: align with GCPC representation of components (in particular, OutputPath and Output[])
+def strip_outputs_from_signature(app, what, name, obj, options, signature,
+                                 return_annotation):
+    if signature is not None:
+        signature = re.sub(
+            r'[0-9a-zA-Z]+: <kfp\.components\.types\.type_annotations\.OutputPath object at 0x[0-9a-fA-F]+>?,?\s',
+            '', signature)
+    return signature, return_annotation
+
+
+def setup(app):
+    app.connect('autodoc-process-signature', strip_outputs_from_signature)
