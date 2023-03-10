@@ -14,12 +14,12 @@ description: |
           Optional. A google.VertexDataset artifact of the test dataset. If `test_dataset_storage_source_uris` is
           also provided, this Vertex Dataset argument will override the GCS source.
       test_dataset_annotation_set_name (Optional[str])
-          Optional. A string of the annotation_set name containing the ground truth of the test datset used for evaluation.
+          Optional. A string of the annotation_set resource name containing the ground truth of the test datset used for evaluation.
       training_dataset (Optional[google.VertexDataset])
           Optional. A google.VertexDataset artifact of the training dataset. If `training_dataset_storage_source_uris` is
           also provided, this Vertex Dataset argument will override the GCS source.
       training_dataset_annotation_set_name (Optional[str])
-          Optional. A string of the annotation_set name containing the ground truth of the test datset used for evaluation.
+          Optional. A string of the annotation_set resource name containing the ground truth of the test datset used for evaluation.
       test_dataset_storage_source_uris (Optional[list[str]]):
           Optional. Google Cloud Storage URI(-s) to unmanaged test datasets.`jsonl` is currently the
           only allowed format.
