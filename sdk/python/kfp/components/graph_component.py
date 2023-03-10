@@ -66,7 +66,7 @@ class GraphComponent(base_component.BaseComponent):
         pipeline_group = dsl_pipeline.groups[0]
         pipeline_group.name = uuid.uuid4().hex
 
-        pipeline_spec = builder.create_pipeline_spec(
+        pipeline_spec, platform_spec = builder.create_pipeline_spec(
             pipeline=dsl_pipeline,
             component_spec=self.component_spec,
             pipeline_outputs=pipeline_outputs,
@@ -77,6 +77,7 @@ class GraphComponent(base_component.BaseComponent):
             pipeline_spec.default_pipeline_root = pipeline_root
 
         self.component_spec.implementation.graph = pipeline_spec
+        self.component_spec.platform_spec = platform_spec
 
     @property
     def pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:

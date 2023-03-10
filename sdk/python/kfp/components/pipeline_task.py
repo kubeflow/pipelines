@@ -25,6 +25,7 @@ from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components import utils
 from kfp.components.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
@@ -102,6 +103,8 @@ class PipelineTask:
         self.container_spec = None
         self.pipeline_spec = None
         self._ignore_upstream_failure_tag = False
+        # platform_config for this primitive task; empty if task is for a graph component
+        self.platform_config = {}
 
         def validate_placeholder_types(
                 component_spec: structures.ComponentSpec) -> None:
@@ -142,6 +145,20 @@ class PipelineTask:
             value for _, value in args.items()
             if not isinstance(value, pipeline_channel.PipelineChannel)
         ])
+
+    @property
+    def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
+        """PlatformSpec for all tasks in the pipeline as task.
+
+        Only for use on tasks created from GraphComponents.
+        """
+        if self.pipeline_spec:
+            return self.component_spec.platform_spec
+
+        # can only create primitive task platform spec at compile-time, since the executor label is not known until then
+        raise ValueError(
+            f'Can only access {".platform_spec"!r} property on a tasks created from pipelines. Use {".platform_config"!r} for tasks created from primitive components.'
+        )
 
     @property
     def name(self) -> str:
