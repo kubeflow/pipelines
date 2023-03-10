@@ -4,6 +4,11 @@ description: |
   training set for each item in the test set.
 
   Args:
+      project (str):
+          Required. GCP Project ID.
+      location (Optional[str]):
+          GCP Region.
+          If not set, defaulted to `us-central1`.
       embeddings_dir (str):
           Required. The GCS directory containing embeddings output from the embeddings component.
       root_dir (str):
@@ -15,6 +20,8 @@ description: |
       error_analysis_output_uri (str):
           String representing the GCS URI of the computed error analysis annotations.
 inputs:
+  - { name: project, type: String }
+  - { name: location, type: String, default: "us-central1" }
   - { name: embeddings_dir, type: String }
   - { name: root_dir, type: String }
   - { name: num_neighbors, type: Integer, default: 5 }
