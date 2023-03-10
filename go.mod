@@ -32,7 +32,7 @@ require (
 	github.com/kubeflow/pipelines/api v0.0.0-20221221212450-d6cccc92a539
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20220118175555-e78ed557ddcb
 	github.com/lestrrat-go/strftime v1.0.4
-	github.com/mattn/go-sqlite3 v1.9.0
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/minio/minio-go/v6 v6.0.57
 	github.com/peterhellberg/duration v0.0.0-20191119133758-ec6baeebcd10
 	github.com/pkg/errors v0.9.1
