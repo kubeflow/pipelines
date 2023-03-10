@@ -8,7 +8,7 @@ description: |
       location (Optional[str]):
           GCP Region.
           If not set, defaulted to `us-central1`.
-      output_dir (str):
+      root_dir (str):
           Required. The Google Cloud Storage location where the outputs will be saved to.
       test_dataset (Optional[google.VertexDataset])
           Optional. A google.VertexDataset artifact of the test dataset. If `test_dataset_storage_source_uris` is
@@ -60,7 +60,7 @@ description: |
 inputs:
   - { name: project, type: String }
   - { name: location, type: String, default: "us-central1" }
-  - { name: output_dir, type: String }
+  - { name: root_dir, type: String }
   - { name: test_dataset, type: google.VertexDataset, optional: True }
   - { name: test_dataset_annotation_set_name, type: String, optional: True }
   - { name: training_dataset, type: google.VertexDataset, optional: True }
@@ -86,8 +86,8 @@ implementation:
       - { inputValue: project }
       - --location
       - { inputValue: location }
-      - --output_dir
-      - { inputValue: output_dir }
+      - --root_dir
+      - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - if:
           cond: { isPresent: test_dataset }
           then:
