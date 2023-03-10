@@ -2,7 +2,6 @@ kfp.kubernetes
 ==========================
 
 .. automodule:: kfp.kubernetes
-   :imported-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
+
+.. autodata:: CreatePVC
+.. autodata:: DeletePVC
