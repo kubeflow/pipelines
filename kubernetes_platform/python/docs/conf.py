@@ -65,7 +65,7 @@ autodoc_default_options = {
 }
 
 html_theme = 'sphinx_immaterial'
-html_title = 'kfp-kubernetes API Reference'
+html_title = 'kfp-kubernetes Reference Documentation'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 html_logo = '_static/kubeflow.png'
