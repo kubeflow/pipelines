@@ -19,7 +19,6 @@ import * as Utils from '../lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
 import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
 import { V2beta1RunStorageState } from '../apisv2beta1/run';
 import { ExpandState } from './CustomTable';
