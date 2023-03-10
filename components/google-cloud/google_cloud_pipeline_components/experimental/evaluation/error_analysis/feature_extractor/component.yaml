@@ -12,6 +12,8 @@ description: |
           Required. The GCS directory for keeping staging files.
           A random subdirectory will be created under the directory to keep job info for resuming
           the job in case of failure.
+      output_dir (str):
+          Required. The Google Cloud Storage location where the outputs will be saved to.
       test_dataset (Optional[google.VertexDataset])
           Required. A google.VertexDataset artifact of the test dataset.
       training_dataset (Optional[google.VertexDataset])
@@ -20,8 +22,6 @@ description: |
           Required. Google Cloud Storage URI to preprocessed test dataset for Vision Analysis pipelines.
       preprocessed_training_dataset_storage_source (str):
           Required. Google Cloud Storage URI to preprocessed training dataset for Vision Error Analysis pipelines.
-      output_dir (str):
-          Required. The Google Cloud Storage location where the outputs will be saved to.
       dataflow_service_account (Optional[str]):
           Optional. Service account to run the dataflow job.
           If not set, dataflow will use the default woker service account.
@@ -55,11 +55,11 @@ inputs:
   - { name: project, type: String }
   - { name: location, type: String, default: "us-central1" }
   - { name: root_dir, type: String }
+  - { name: output_dir, type: String }
   - { name: test_dataset, type: google.VertexDataset, optional: True }
   - { name: training_dataset, type: google.VertexDataset, optional: True }
   - { name: preprocessed_test_dataset_storage_source, type: String }
   - { name: preprocessed_training_dataset_storage_source, type: String }
-  - { name: output_dir, type: String }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_disk_size, type: Integer, default: 50 }
   - { name: dataflow_machine_type, type: String, default: "n1-standard-8" }
