@@ -19,7 +19,6 @@ import * as Utils from '../lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
 import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
 import { V2beta1RunStorageState } from '../apisv2beta1/run';
 import { ExpandState } from './CustomTable';
@@ -290,11 +289,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              op: PredicateOp.NOTEQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as ApiFilter),
       ),
     );
   });
@@ -341,11 +340,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.EQUALS,
+              op: PredicateOp.EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as ApiFilter),
       ),
     );
   });
