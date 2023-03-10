@@ -77,7 +77,7 @@ def mount_pvc(
     Args:
         task: Pipeline task.
         pvc_name: Name of the PVC to mount. Can also be a runtime-generated name
-            reference provided by `kubernetes.CreatePvcOp().outputs['pvc_name']`.
+            reference provided by ```kubernetes.CreatePvcOp().outputs['name']```.
         mount_path: Path to which the PVC should be mounted as a volume.
     """
 
