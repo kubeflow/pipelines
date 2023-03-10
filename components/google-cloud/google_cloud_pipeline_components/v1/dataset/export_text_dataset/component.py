@@ -56,7 +56,7 @@ def text_dataset_export(
           All of the files that are exported in this export operation.
   """
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[
           'python3',
           '-m',

@@ -38,7 +38,7 @@ def vertex_pipelines_notification_email(
       of the upstream DAG that this component will use in the notification.
   """
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[
           'python3',
           '-u',
