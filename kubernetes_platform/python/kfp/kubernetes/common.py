@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    'use_secret_as_env',
-    'use_secret_as_volume',
-    'CreatePVC',
-    'DeletePVC',
-    'mount_pvc',
-]
+from google.protobuf import json_format
+from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
-from kfp.kubernetes.secret import use_secret_as_env
-from kfp.kubernetes.secret import use_secret_as_volume
-from kfp.kubernetes.volume import CreatePVC
-from kfp.kubernetes.volume import DeletePVC
-from kfp.kubernetes.volume import mount_pvc
+
+def get_existing_kubernetes_config_as_message(
+        task: 'PipelineTask') -> pb.KubernetesExecutorConfig:
+    cur_k8_config_dict = task.platform_config.get('kubernetes', {})
+    k8_config_msg = pb.KubernetesExecutorConfig()
+    return json_format.ParseDict(cur_k8_config_dict, k8_config_msg)
