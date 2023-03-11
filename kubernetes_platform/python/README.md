@@ -79,7 +79,7 @@ def my_pipeline():
         pvc_name_suffix='-my-pvc',
         access_modes=['ReadWriteMany'],
         size='5Gi',
-        storage_class='standard',
+        storage_class_name='standard',
     )
 
     task1 = make_data()

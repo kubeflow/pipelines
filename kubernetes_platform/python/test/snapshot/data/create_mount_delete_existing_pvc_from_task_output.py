@@ -34,7 +34,7 @@ def my_pipeline():
         pvc_name=name_task.output,
         access_modes=['ReadWriteMany'],
         size='5Gi',
-        storage_class='standard',
+        storage_class_name='standard',
     )
     task1 = comp()
 

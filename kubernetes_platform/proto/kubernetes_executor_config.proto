@@ -88,7 +88,7 @@ message CreatePvc {
     bool default_storage_class = 5;
     // Corresponds to PersistentVolumeClaim.spec.storageClassName string field.
     // Should only be used if default_storage_class is false.
-    string storage_class = 6;
+    string storage_class_name = 6;
     // Corresponds to PersistentVolumeClaim.spec.volumeName field.
     string volume_name = 7;
     // Corresponds to PersistentVolumeClaim.metadata.annotations field.

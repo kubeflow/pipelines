@@ -29,7 +29,6 @@ DEV_REQUIREMENTS = [
     'pycln==2.1.1',
     'pytest==7.1.2',
     'pytest-xdist==2.5.0',
-    'types-protobuf-4.22.0.0',
     'yapf==0.32.0',
 ]
 

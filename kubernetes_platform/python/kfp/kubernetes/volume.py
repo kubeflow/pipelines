@@ -29,7 +29,7 @@ def CreatePVC(
     size: str,
     pvc_name: Optional[str] = None,
     pvc_name_suffix: Optional[str] = None,
-    storage_class: Optional[str] = '',
+    storage_class_name: Optional[str] = '',
     volume_name: Optional[str] = None,
     annotations: Optional[Dict[str, str]] = None,
 ):
@@ -52,9 +52,9 @@ def CreatePVC(
         pvc_name_suffix: Prefix to use for a dynamically generated name, which
             will take the form <argo-workflow-name>-<pvc_name_suffix>. Only one
             of pvc_name and pvc_name_suffix can be provided.
-        storage_class: Name of StorageClass from which to provision the PV
+        storage_class_name: Name of StorageClass from which to provision the PV
             to back the PVC. `None` indicates to use the cluster's default
-            storage_class. Set to `''` for a statically specified PVC.
+            storage_class_name. Set to `''` for a statically specified PVC.
         volume_name: Pre-existing PersistentVolume that should back the
             provisioned PersistentVolumeClaim. Used for statically
             specified PV only.

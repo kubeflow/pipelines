@@ -23,6 +23,9 @@ pip install -e "$source_root/sdk/python"
 ## end remove
 
 # generate Python proto code from source
+apt-get update -y
+apt-get install -y protobuf-compiler
+
 pushd "$source_root/kubernetes_platform"
 make clean python
 popd
