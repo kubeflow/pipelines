@@ -75,6 +75,7 @@ setuptools.setup(
     install_requires=get_requirements('requirements.in'),
     extras_require={
         'all': ['docker'],
+        'kubernetes': ['kfp-kubernetes'],
     },
     packages=setuptools.find_packages(exclude=['*test*']),
     classifiers=[
