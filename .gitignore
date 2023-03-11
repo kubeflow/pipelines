@@ -64,7 +64,7 @@ sdk/python/tests/compiler/testdata/testpackage/pipeline.yaml
 _artifacts
 
 # Generated Python SDK documentation
-docs/_build
+_build
 
 # sed backups
 *.bak
