@@ -22,7 +22,7 @@ components:
           parameterType: STRING
         size:
           parameterType: STRING
-        storage_class:
+        storage_class_name:
           defaultValue: ''
           isOptional: true
           parameterType: STRING
@@ -137,7 +137,7 @@ root:
             size:
               runtimeValue:
                 constant: 5Gi
-            storage_class:
+            storage_class_name:
               runtimeValue:
                 constant: standard
         taskInfo:
