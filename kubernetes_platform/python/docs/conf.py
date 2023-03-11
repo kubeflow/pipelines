@@ -37,16 +37,6 @@ def component_decorator(*args, **kwargs):
     return decorator
 
 
-# class Path:
-
-#     def __init__(self, typ):
-#         print(typ)
-#         self.type = typ
-
-#     def __repr__(self):
-#         self.type
-
-# dsl.OutputPath = Path
 dsl.component = component_decorator
 dsl.container_component = container_component_decorator
 
@@ -148,9 +138,9 @@ html_theme_options = {
     'version_dropdown':
         True,
     'version_info': [{
-        'version': 'https://kfp-kubernetes.readthedocs.io/en/master/',
-        'title': 'master',
-        'aliases': [],
+        'version': 'https://kfp-kubernetes.readthedocs.io/en/0.0.1/',
+        'title': '0.0.1',
+        'aliases': ['stable'],
     },],
     # "toc_title_is_page_title": True,
 }
