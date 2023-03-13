@@ -26,6 +26,7 @@ import {
   logger,
   mergeApiParametersByNames,
 } from './Utils';
+import { V2beta1RecurringRunStatus, V2beta1Trigger } from '../apisv2beta1/recurringrun';
 
 describe('Utils', () => {
   describe('log', () => {
@@ -78,8 +79,9 @@ describe('Utils', () => {
     });
 
     it('handles a trigger according to the enabled flag', () => {
-      expect(enabledDisplayString({}, true)).toBe('Yes');
-      expect(enabledDisplayString({}, false)).toBe('No');
+      expect(enabledDisplayString({}, V2beta1RecurringRunStatus.ENABLED)).toBe('Yes');
+      expect(enabledDisplayString({}, V2beta1RecurringRunStatus.DISABLED)).toBe('No');
+      expect(enabledDisplayString({}, V2beta1RecurringRunStatus.STATUSUNSPECIFIED)).toBe('Unknown');
     });
   });
 

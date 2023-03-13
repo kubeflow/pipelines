@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
 import { ApiTrigger, ApiPeriodicSchedule, ApiCronSchedule } from '../../src/apis/job';
 
 export enum TriggerType {
@@ -259,7 +260,7 @@ export function dateToPickerFormat(d: Date): [string, string] {
   return [nowDate, nowTime];
 }
 
-export function triggerDisplayString(trigger?: ApiTrigger): string {
+export function triggerDisplayString(trigger?: V2beta1Trigger): string {
   if (trigger) {
     if (trigger.cron_schedule && trigger.cron_schedule.cron) {
       return trigger.cron_schedule.cron;
