@@ -13,13 +13,13 @@
                "encryption_spec_key_name":{
                   "parameterType":"STRING"
                },
+               "endpoint_name":{
+                  "parameterType":"STRING"
+               },
                "labels":{
                   "parameterType":"STRUCT"
                },
                "location":{
-                  "parameterType":"STRING"
-               },
-               "network":{
                   "parameterType":"STRING"
                },
                "project":{
@@ -53,6 +53,14 @@
                      "schemaVersion":"0.0.1"
                   }
                }
+            },
+            "parameters":{
+               "force":{
+                  "parameterType":"BOOLEAN"
+               },
+               "sync":{
+                  "parameterType":"BOOLEAN"
+               }
             }
          },
          "outputDefinitions":{
@@ -69,14 +77,24 @@
          "exec-endpoint-create":{
             "container":{
                "args":[
-                  "--type",
-                  "CreateEndpoint",
-                  "--payload",
-                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"network\": \"{{$.inputs.parameters['network']}}\"}",
-                  "--project",
+                  "--init.project",
                   "{{$.inputs.parameters['project']}}",
-                  "--location",
+                  "--init.location",
                   "{{$.inputs.parameters['location']}}",
+                  "--init.endpoint_name",
+                  "{{$.inputs.parameters['endpoint_name']}}",
+                  "--method.project",
+                  "{{$.inputs.parameters['project']}}",
+                  "--method.location",
+                  "{{$.inputs.parameters['location']}}",
+                  "--method.display_name",
+                  "{{$.inputs.parameters['display_name']}}",
+                  "--method.description",
+                  "{{$.inputs.parameters['description']}}",
+                  "--method.labels",
+                  "{{$.inputs.parameters['labels']}}",
+                  "--method.encryption_spec_key_name",
+                  "{{$.inputs.parameters['encryption_spec_key_name']}}",
                   "--gcp_resources",
                   "{{$.outputs.parameters['gcp_resources'].output_file}}",
                   "--executor_input",
@@ -86,7 +104,7 @@
                   "python3",
                   "-u",
                   "-m",
-                  "google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher"
+                  "google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, create"
                ],
                "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
             }
@@ -94,14 +112,12 @@
          "exec-endpoint-delete":{
             "container":{
                "args":[
-                  "--type",
-                  "DeleteEndpoint",
-                  "--payload",
-                  "{\"endpoint\": \"{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}\"}",
-                  "--project",
-                  "",
-                  "--location",
-                  "",
+                  "--init.endpoint_name",
+                  "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+                  "--method.force",
+                  "{{$.inputs.parameters['force']}}",
+                  "--method.sync",
+                  "{{$.inputs.parameters['sync']}}",
                   "--gcp_resources",
                   "{{$.outputs.parameters['gcp_resources'].output_file}}"
                ],
@@ -109,7 +125,7 @@
                   "python3",
                   "-u",
                   "-m",
-                  "google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint.launcher"
+                  "google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, delete"
                ],
                "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
             }
@@ -146,6 +162,11 @@
                            "constant":"some encryption_spec_key_name"
                         }
                      },
+                     "endpoint_name":{
+                        "runtimeValue":{
+                           "constant":"endpoint-name"
+                        }
+                     },
                      "labels":{
                         "runtimeValue":{
                            "constant":{
@@ -156,11 +177,6 @@
                      "location":{
                         "runtimeValue":{
                            "constant":"us-central1"
-                        }
-                     },
-                     "network":{
-                        "runtimeValue":{
-                           "constant":"abc"
                         }
                      },
                      "project":{
@@ -190,6 +206,18 @@
                         "taskOutputArtifact":{
                            "outputArtifactKey":"endpoint",
                            "producerTask":"endpoint-create"
+                        }
+                     }
+                  },
+                  "parameters":{
+                     "force":{
+                        "runtimeValue":{
+                           "constant":0.0
+                        }
+                     },
+                     "sync":{
+                        "runtimeValue":{
+                           "constant":1.0
                         }
                      }
                   }

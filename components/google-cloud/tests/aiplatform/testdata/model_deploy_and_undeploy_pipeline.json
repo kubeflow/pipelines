@@ -7,6 +7,9 @@
                "display_name":{
                   "parameterType":"STRING"
                },
+               "endpoint_name":{
+                  "parameterType":"STRING"
+               },
                "location":{
                   "parameterType":"STRING"
                },
@@ -49,25 +52,19 @@
                }
             },
             "parameters":{
-               "automatic_resources_max_replica_count":{
+               "accelerator_count":{
                   "parameterType":"NUMBER_INTEGER"
                },
-               "automatic_resources_min_replica_count":{
-                  "parameterType":"NUMBER_INTEGER"
-               },
-               "dedicated_resources_accelerator_count":{
-                  "parameterType":"NUMBER_INTEGER"
-               },
-               "dedicated_resources_accelerator_type":{
+               "accelerator_type":{
                   "parameterType":"STRING"
                },
-               "dedicated_resources_machine_type":{
+               "machine_type":{
                   "parameterType":"STRING"
                },
-               "dedicated_resources_max_replica_count":{
+               "max_replica_count":{
                   "parameterType":"NUMBER_INTEGER"
                },
-               "dedicated_resources_min_replica_count":{
+               "min_replica_count":{
                   "parameterType":"NUMBER_INTEGER"
                },
                "deployed_model_display_name":{
@@ -84,10 +81,36 @@
                },
                "traffic_split":{
                   "parameterType":"STRUCT"
+               },
+               "encryption_spec_key_name":{
+                  "parameterType":"STRING"
+               },
+               "network":{
+                  "parameterType":"STRING"
+               },
+               "sync":{
+                  "parameterType":"BOOLEAN"
+               },
+               "deploy_request_timeout":{
+                  "parameterType":"NUMBER_FLOAT"
+               },
+               "autoscaling_target_cpu_utilization":{
+                  "parameterType":"NUMBER_INTEGER"
+               },
+               "autoscaling_target_accelerator_duty_cycle":{
+                  "parameterType":"NUMBER_INTEGER"
                }
             }
          },
          "outputDefinitions":{
+            "artifacts":{
+               "endpoint":{
+                  "artifactType":{
+                     "schemaTitle":"google.VertexEndpoint",
+                     "schemaVersion":"0.0.1"
+                  }
+               }
+            },
             "parameters":{
                "gcp_resources":{
                   "parameterType":"STRING"
@@ -161,14 +184,24 @@
          "exec-endpoint-create":{
             "container":{
                "args":[
-                  "--type",
-                  "CreateEndpoint",
-                  "--payload",
-                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"\", \"labels\": , \"encryption_spec\": {\"kms_key_name\":\"\"}, \"network\": \"\"}",
-                  "--project",
+                  "--init.project",
                   "{{$.inputs.parameters['project']}}",
-                  "--location",
+                  "--init.location",
                   "{{$.inputs.parameters['location']}}",
+                  "--init.endpoint_name",
+                  "{{$.inputs.parameters['endpoint_name']}}",
+                  "--method.project",
+                  "{{$.inputs.parameters['project']}}",
+                  "--method.location",
+                  "{{$.inputs.parameters['location']}}",
+                  "--method.display_name",
+                  "{{$.inputs.parameters['display_name']}}",
+                  "--method.description",
+                  "{{$.inputs.parameters['description']}}",
+                  "--method.labels",
+                  "{{$.inputs.parameters['labels']}}",
+                  "--method.encryption_spec_key_name",
+                  "{{$.inputs.parameters['encryption_spec_key_name']}}",
                   "--gcp_resources",
                   "{{$.outputs.parameters['gcp_resources'].output_file}}",
                   "--executor_input",
@@ -178,7 +211,7 @@
                   "python3",
                   "-u",
                   "-m",
-                  "google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher"
+                  "google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, create"
                ],
                "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
             }
@@ -186,22 +219,52 @@
          "exec-model-deploy":{
             "container":{
                "args":[
-                  "--type",
-                  "DeployModel",
-                  "--payload",
-                  "{\"endpoint\": \"{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}\", \"traffic_split\": {{$.inputs.parameters['traffic_split']}}, \"deployed_model\": {\"model\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['dedicated_resources_machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['dedicated_resources_accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['dedicated_resources_accelerator_count']}}}, \"min_replica_count\": {{$.inputs.parameters['dedicated_resources_min_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['dedicated_resources_max_replica_count']}}}, \"automatic_resources\": {\"min_replica_count\": {{$.inputs.parameters['automatic_resources_min_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['automatic_resources_max_replica_count']}}}, \"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"disable_container_logging\": , \"enable_access_logging\": , \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}}}",
-                  "--project",
-                  "",
-                  "--location",
-                  "",
+                  "--init.model_name",
+                  "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+                  "--method.endpoint",
+                  "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+                  "--method.deployed_model_display_name",
+                  "{{$.inputs.parameters['deployed_model_display_name']}}",
+                  "--method.traffic_split",
+                  "{{$.inputs.parameters['traffic_split']}}",
+                  "--method.machine_type",
+                  "{{$.inputs.parameters['machine_type']}}",
+                  "--method.min_replica_count",
+                  "{{$.inputs.parameters['min_replica_count']}}",
+                  "--method.max_replica_count",
+                  "{{$.inputs.parameters['max_replica_count']}}",
+                  "--method.accelerator_type",
+                  "{{$.inputs.parameters['accelerator_type']}}",
+                  "--method.accelerator_count",
+                  "{{$.inputs.parameters['accelerator_count']}}",
+                  "--method.service_account",
+                  "{{$.inputs.parameters['service_account']}}",
+                  "--method.explanation_metadata",
+                  "{{$.inputs.parameters['explanation_metadata']}}",
+                  "--method.explanation_parameters",
+                  "{{$.inputs.parameters['explanation_parameters']}}",
+                  "--method.encryption_spec_key_name",
+                  "{{$.inputs.parameters['encryption_spec_key_name']}}",
+                  "--method.network",
+                  "{{$.inputs.parameters['network']}}",
+                  "--method.sync",
+                  "{{$.inputs.parameters['sync']}}",
+                  "--method.deploy_request_timeout",
+                  "{{$.inputs.parameters['deploy_request_timeout']}}",
+                  "--method.autoscaling_target_cpu_utilization",
+                  "{{$.inputs.parameters['autoscaling_target_cpu_utilization']}}",
+                  "--method.autoscaling_target_accelerator_duty_cycle",
+                  "{{$.inputs.parameters['autoscaling_target_accelerator_duty_cycle']}}",                  
                   "--gcp_resources",
-                  "{{$.outputs.parameters['gcp_resources'].output_file}}"
+                  "{{$.outputs.parameters['gcp_resources'].output_file}}",
+                  "--executor_input",
+                  "{{$}}"
                ],
                "command":[
                   "python3",
                   "-u",
                   "-m",
-                  "google_cloud_pipeline_components.container.v1.endpoint.deploy_model.launcher"
+                  "google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Model, --method_name, deploy"
                ],
                "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
             }
@@ -318,37 +381,27 @@
                      }
                   },
                   "parameters":{
-                     "automatic_resources_max_replica_count":{
-                        "runtimeValue":{
-                           "constant":2.0
-                        }
-                     },
-                     "automatic_resources_min_replica_count":{
+                     "accelerator_count":{
                         "runtimeValue":{
                            "constant":1.0
                         }
                      },
-                     "dedicated_resources_accelerator_count":{
-                        "runtimeValue":{
-                           "constant":1.0
-                        }
-                     },
-                     "dedicated_resources_accelerator_type":{
+                     "accelerator_type":{
                         "runtimeValue":{
                            "constant":"fake-accelerator"
                         }
                      },
-                     "dedicated_resources_machine_type":{
+                     "machine_type":{
                         "runtimeValue":{
                            "constant":"n1-standard-4"
                         }
                      },
-                     "dedicated_resources_max_replica_count":{
+                     "max_replica_count":{
                         "runtimeValue":{
                            "constant":2.0
                         }
                      },
-                     "dedicated_resources_min_replica_count":{
+                     "min_replica_count":{
                         "runtimeValue":{
                            "constant":1.0
                         }
@@ -382,6 +435,36 @@
                            "constant":{
 
                            }
+                        }
+                     },
+                     "encryption_spec_key_name":{
+                        "runtimeValue":{
+                           "constant":"some encryption_spec_key_name"
+                        }
+                     },
+                     "network":{
+                        "runtimeValue":{
+                           "constant":"fake-network"
+                        }
+                     },
+                     "sync":{
+                        "runtimeValue":{
+                           "constant":1.0
+                        }
+                     },
+                     "deploy_request_timeout":{
+                        "runtimeValue":{
+                           "constant":600.0
+                        }
+                     },
+                     "autoscaling_target_cpu_utilization":{
+                        "runtimeValue":{
+                           "constant":1.0
+                        }
+                     },
+                     "autoscaling_target_accelerator_duty_cycle":{
+                        "runtimeValue":{
+                           "constant":1.0
                         }
                      }
                   }

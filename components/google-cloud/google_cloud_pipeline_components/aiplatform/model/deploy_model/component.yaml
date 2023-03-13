@@ -1,0 +1,211 @@
+name: model_deploy
+description: |
+    Deploys a Google Cloud Vertex Model to the Endpoint, creating a DeployedModel within it.
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel.
+
+    Args:
+        model (google.VertexModel):
+            Required. The model to be deployed.
+        endpoint (Optional[google.VertexEndpoint]):
+            Optional. The endpoint to be deployed to.
+        deployed_model_display_name (Optional[str]):
+            The display name of the DeployedModel. If not provided
+            upon creation, the Model's display_name is used.
+        traffic_split (Optional[Dict[str, int]]):
+            A map from a DeployedModel's ID to the percentage
+            of this Endpoint's traffic that should be forwarded to that DeployedModel.
+
+            If this field is non-empty, then the Endpoint's trafficSplit
+            will be overwritten with it. To refer to the ID of the just
+            being deployed Model, a "0" should be used, and the actual ID
+            of the new DeployedModel will be filled in its place by this method.
+            The traffic percentage values must add up to 100.
+
+            If this field is empty, then the Endpoint's trafficSplit is not updated.
+        machine_type (Optional[str]):
+            The specification of a single machine used by the prediction.
+
+            This field is required if `min_replica_count` is not specified.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources.
+        accelerator_type (Optional[str]):
+            Hardware accelerator type. Must also set accelerator_count if used.
+            See https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
+            for available options.
+
+            This field is required if `machine_type` is specified.
+        accelerator_count (Optional[int]):
+            The number of accelerators to attach to a worker replica.
+        min_replica_count (Optional[int]):
+            The minimum number of machine replicas this DeployedModel will be
+            always deployed on. This value must be greater than or equal to 1.
+            If traffic against the DeployedModel increases, it may dynamically be deployed
+            onto more replicas, and as traffic decreases, some of these extra replicas may be freed.
+        max_replica_count (Optional[int]):
+            The maximum number of replicas this deployed model may
+            the larger value of min_replica_count or 1 will
+            be used. If value provided is smaller than min_replica_count, it
+            will automatically be increased to be min_replica_count.
+            The maximum number of replicas this deployed model may
+            be deployed on when the traffic against it increases. If requested
+            value is too large, the deployment will error, but if deployment
+            succeeds then the ability to scale the model to that many replicas
+            is guaranteed (barring service outages). If traffic against the
+            deployed model increases beyond what its replicas at maximum may
+            handle, a portion of the traffic will be dropped. If this value
+            is not provided, will use min_replica_count as
+            the default value.
+        service_account (Optional[str]):
+            The service account that the DeployedModel's container runs as. Specify the
+            email address of the service account. If this service account is not
+            specified, the container runs as a service account that doesn't have access
+            to the resource project.
+
+            Users deploying the Model must have the `iam.serviceAccounts.actAs`
+            permission on this service account.
+        explanation_metadata (Optional[dict]):
+            Metadata describing the Model's input and output for explanation.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+        explanation_parameters (Optional[dict]):
+            Parameters that configure explaining information of the Model's predictions.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+        encryption_spec_key_name (Optional[str]):
+            Optional. The Cloud KMS resource identifier of the customer managed encryption key used to protect the model.
+        network (Optional[str])
+            Optional. The full name of the Compute Engine network to which the Endpoint, if created, will be peered to.
+        deploy_request_timeout (Optional[float])
+            Optional. The timeout for the deploy request in seconds.
+        autoscaling_target_cpu_utilization (Optional[int])
+            Optional. Target CPU Utilization to use for Autoscaling Replicas.
+        autoscaling_target_accelerator_duty_cycle (Optional[int])
+            Optional. Target Accelerator Duty Cycle.
+        sync (Optional[bool])
+            Optional. Whether to execute this method synchronously.
+    Returns:
+        endpoint (google.VertexEndpoint):
+            Endpoint with the deployed model.
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the deploy model's long running operation.
+
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: model, type: google.VertexModel}
+- {name: endpoint, type: google.VertexEndpoint, optional: true}
+- {name: deployed_model_display_name, type: String, optional: true, default: ''}
+- {name: traffic_split, type: JsonObject, optional: true, default: '{}'}
+- {name: machine_type, type: String, optional: true, default: ''}
+- {name: min_replica_count, type: Integer, optional: true, default: 0}
+- {name: max_replica_count, type: Integer, optional: true, default: 0}
+- {name: accelerator_type, type: String, optional: true, default: ''}
+- {name: accelerator_count, type: Integer, optional: true, default: 0}
+- {name: service_account, type: String, optional: true, default: ''}
+- {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
+- {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
+- {name: network, type: String, optional: true, default: ''}
+- {name: sync, type: Boolean, optional: true, default: True}
+- {name: deploy_request_timeout, type: Float, optional: true}
+- {name: autoscaling_target_cpu_utilization, type: Integer, optional: true, default: 60}
+- {name: autoscaling_target_accelerator_duty_cycle, type: Integer, optional: true, default: 60}
+outputs:
+- {name: endpoint, type: google.VertexEndpoint}
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
+      --cls_name, Model, --method_name, deploy]
+    args: 
+      - --init.model_name
+      - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
+      - if:
+          cond: {isPresent: endpoint}
+          then:
+          - --method.endpoint
+          - "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}"
+      - if:
+          cond: {isPresent: deployed_model_display_name}
+          then:
+          - --method.deployed_model_display_name
+          - {inputValue: deployed_model_display_name}
+      - if:
+          cond: {isPresent: traffic_split}
+          then:
+          - --method.traffic_split
+          - {inputValue: traffic_split}
+      - if:
+          cond: {isPresent: machine_type}
+          then:
+          - --method.machine_type
+          - {inputValue: machine_type}
+      - if:
+          cond: {isPresent: min_replica_count}
+          then:
+          - --method.min_replica_count
+          - {inputValue: min_replica_count}
+      - if:
+          cond: {isPresent: max_replica_count}
+          then:
+          - --method.max_replica_count
+          - {inputValue: max_replica_count}
+      - if:
+          cond: {isPresent: accelerator_type}
+          then:
+          - --method.accelerator_type
+          - {inputValue: accelerator_type}
+      - if:
+          cond: {isPresent: accelerator_count}
+          then:
+          - --method.accelerator_count
+          - {inputValue: accelerator_count}
+      - if:
+          cond: {isPresent: service_account}
+          then:
+          - --method.service_account
+          - {inputValue: service_account}
+      - if:
+          cond: {isPresent: explanation_metadata}
+          then:
+          - --method.explanation_metadata
+          - {inputValue: explanation_metadata}
+      - if:
+          cond: {isPresent: explanation_parameters}
+          then:
+          - --method.explanation_parameters
+          - {inputValue: explanation_parameters}
+      - if:
+          cond: {isPresent: encryption_spec_key_name}
+          then:
+          - --method.encryption_spec_key_name
+          - {inputValue: encryption_spec_key_name}
+      - if:
+          cond: {isPresent: network}
+          then:
+          - --method.network
+          - {inputValue: network}
+      - if:
+          cond: {isPresent: sync}
+          then:
+          - --method.sync
+          - {inputValue: sync}
+      - if:
+          cond: {isPresent: deploy_request_timeout}
+          then:
+          - --method.deploy_request_timeout
+          - {inputValue: deploy_request_timeout}
+      - if:
+          cond: {isPresent: autoscaling_target_cpu_utilization}
+          then:
+          - --method.autoscaling_target_cpu_utilization
+          - {inputValue: autoscaling_target_cpu_utilization}
+      - if:
+          cond: {isPresent: autoscaling_target_accelerator_duty_cycle}
+          then:
+          - --method.autoscaling_target_accelerator_duty_cycle
+          - {inputValue: autoscaling_target_accelerator_duty_cycle}
+      - --gcp_resources
+      - {outputPath: gcp_resources}
+      - --executor_input
+      - "{{$}}"
