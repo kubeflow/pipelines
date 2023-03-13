@@ -3217,7 +3217,9 @@ func Test_toModelTasks_wf(t *testing.T) {
 
 	gotWf, err := toModelTasks(argWf)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedWf, gotWf)
+	if !cmp.Equal(expectedWf, gotWf) {
+		t.Errorf("toModelTasks() diff: %v", cmp.Diff(gotWf, expectedWf))
+	}
 }
 
 func Test_toApiTaskV1(t *testing.T) {
