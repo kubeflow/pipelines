@@ -26,6 +26,7 @@ import { ExpandState } from './CustomTable';
 import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
+import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
 
 class ExperimentListTest extends ExperimentList {
   public _loadExperiments(request: ListRequest): Promise<string> {
@@ -289,11 +290,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOTEQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });
@@ -340,11 +341,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
+              operation: V2beta1PredicateOperation.EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });

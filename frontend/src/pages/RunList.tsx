@@ -347,12 +347,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRuns = this.props.runIdListMask.map(id => ({ run: { run_id: id } }));
       const filter = JSON.parse(
         decodeURIComponent(request.filter || '{"predicates": []}'),
-      ) as ApiFilter;
+      ) as V2beta1Filter;
       // listRuns doesn't currently support batching by IDs, so in this case we retrieve and filter
       // each run individually.
       await this._getAndSetRuns(displayRuns);
       const predicates = filter.predicates?.filter(
-        p => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
+        p => p.key === 'name' && p.operation === V2beta1PredicateOperation.ISSUBSTRING,
       );
       const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
       displayRuns = displayRuns.filter(runDetail => {
@@ -370,16 +370,16 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           // Augment the request filter with the storage state predicate
           const filter = JSON.parse(
             decodeURIComponent(request.filter || '{"predicates": []}'),
-          ) as ApiFilter;
+          ) as V2beta1Filter;
           filter.predicates = (filter.predicates || []).concat([
             {
               key: 'storage_state',
               // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
               // is missing, in which case it should be counted as available.
-              op:
+              operation:
                 this.props.storageState === V2beta1RunStorageState.ARCHIVED
-                  ? PredicateOp.EQUALS
-                  : PredicateOp.NOTEQUALS,
+                  ? V2beta1PredicateOperation.EQUALS
+                  : V2beta1PredicateOperation.NOTEQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ]);
