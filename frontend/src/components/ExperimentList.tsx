@@ -26,7 +26,6 @@ import { errorToMessage } from '../lib/Utils';
 import { RoutePage, RouteParams } from './Router';
 import { commonCss } from '../Css';
 import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
-import { ApiRunStorageState } from 'src/apis/run';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';

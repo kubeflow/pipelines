@@ -25,7 +25,6 @@ import * as mlmdUtils from '../mlmd/MlmdUtils';
 import * as Utils from '../lib/Utils';
 import { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
-import { ApiRunDetail } from '../apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
 import { V2beta1Run } from '../apisv2beta1/run';

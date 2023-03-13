@@ -16,7 +16,6 @@
 
 import * as Utils from '../lib/Utils';
 import { statusToIcon } from './StatusV2';
-import { NodePhase } from '../lib/StatusUtils';
 import { shallow } from 'enzyme';
 import { V2beta1RuntimeState } from '../apisv2beta1/run';
 

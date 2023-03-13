@@ -32,7 +32,7 @@ import {
   ApiListPipelineVersionsResponse,
   ApiPipeline,
 } from '../apis/pipeline';
-import { ApiRelationship, ApiResourceType, ApiRunDetail } from '../apis/run';
+import { ApiRelationship, ApiResourceType } from '../apis/run';
 import { V2beta1Run, V2beta1RuntimeState } from '../apisv2beta1/run';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { QUERY_PARAMS, RoutePage } from '../components/Router';

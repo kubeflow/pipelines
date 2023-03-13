@@ -19,7 +19,6 @@ import { getArtifactName, getExecutionDisplayName, LinkedArtifact } from 'src/ml
 import { getMetadataValue } from 'src/mlmd/Utils';
 import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
-import { ApiRunDetail } from 'src/apis/run';
 import { chain, flatMapDeep, flatten } from 'lodash';
 import { stylesheet } from 'typestyle';
 import { RuntimeParameters } from 'src/pages/NewRunV2';

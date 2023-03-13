@@ -16,7 +16,6 @@
 
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
-import { ApiRunDetail } from 'src/apis/run';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';

@@ -18,7 +18,6 @@ import { act, queryByText, render, screen, waitFor } from '@testing-library/reac
 import userEvent from '@testing-library/user-event';
 
 import * as React from 'react';
-import { ApiRelationship, ApiResourceType } from '../apis/run';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from '../apisv2beta1/run';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Apis } from '../lib/Apis';

@@ -23,13 +23,9 @@ import produce from 'immer';
 import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
 import { V2beta1Run, V2beta1RunStorageState, V2beta1RuntimeState } from '../apisv2beta1/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
-import { MetricMetadata } from '../lib/RunUtils';
-import { NodePhase } from '../lib/StatusUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
-import MetricUtils from '../lib/MetricUtils';
 import { CommonTestWrapper } from '../TestWrapper';
-import CustomTable from '../components/CustomTable';
 
 class RunListTest extends RunList {
   public _loadRuns(request: ListRequest): Promise<string> {
@@ -231,12 +227,12 @@ describe('RunList', () => {
     const props = generateProps();
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-    })
+    });
 
     screen.getByText('run with id: testrun1');
     expect(screen.queryByText('run with id: testrun2')).toBeNull();
@@ -266,12 +262,12 @@ describe('RunList', () => {
     const props = generateProps();
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-    })
+    });
 
     screen.getByText('run with id: testrun1');
     screen.getByText('run with id: testrun2');
@@ -303,13 +299,13 @@ describe('RunList', () => {
 
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
       expect(getExperimentSpy).toHaveBeenCalled();
-    })
+    });
 
     screen.findByText('Failed to get associated experiment: bad stuff happened');
   });
@@ -323,14 +319,14 @@ describe('RunList', () => {
     props.runIdListMask = ['testrun1', 'testrun2'];
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
       // won't call listRuns if specific run id is provided
-      expect(listRunsSpy).toHaveBeenCalledTimes(0); 
+      expect(listRunsSpy).toHaveBeenCalledTimes(0);
       expect(getRunSpy).toHaveBeenCalledTimes(2);
-    })
+    });
 
     screen.findByText('Failed to get associated experiment: bad stuff happened');
   });
@@ -344,12 +340,12 @@ describe('RunList', () => {
     const props = generateProps();
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-    })
+    });
 
     screen.findByText('1:01:01');
   });
@@ -462,14 +458,14 @@ describe('RunList', () => {
     const props = generateProps();
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
 
     await waitFor(() => {
-      expect(listRunsSpy).toHaveBeenCalled()
+      expect(listRunsSpy).toHaveBeenCalled();
       expect(getPipelineVersionSpy).toHaveBeenCalled();
-    })
+    });
 
     screen.findByText('some pipeline version');
   });
@@ -485,13 +481,13 @@ describe('RunList', () => {
     const props = generateProps();
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
-      expect(listRunsSpy).toHaveBeenCalled()
+      expect(listRunsSpy).toHaveBeenCalled();
       expect(getExperimentSpy).toHaveBeenCalled();
-    })
+    });
 
     screen.getByText('test experiment');
   });
@@ -505,13 +501,13 @@ describe('RunList', () => {
     props.hideExperimentColumn = true;
     render(
       <CommonTestWrapper>
-        <RunList {...props}/>
-      </CommonTestWrapper>
-    )
+        <RunList {...props} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
-      expect(listRunsSpy).toHaveBeenCalled()
+      expect(listRunsSpy).toHaveBeenCalled();
       expect(getExperimentSpy).toHaveBeenCalledTimes(0);
-    })
+    });
 
     expect(screen.queryByText('test experiment')).toBeNull();
   });

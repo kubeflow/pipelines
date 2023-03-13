@@ -18,23 +18,14 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
-import { ApiRun, ApiRunMetric, ApiRunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
-import { NodePhase } from '../lib/StatusUtils';
-import { PredicateOp, ApiFilter } from '../apis/filter';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
-import {
-  formatDateString,
-  logger,
-  errorToMessage,
-  getRunDuration,
-  getRunDurationV2,
-} from '../lib/Utils';
+import { formatDateString, logger, errorToMessage, getRunDurationV2 } from '../lib/Utils';
 import { statusToIcon } from './StatusV2';
 import Tooltip from '@material-ui/core/Tooltip';
 
@@ -62,7 +53,8 @@ interface DisplayRun {
 
 interface DisplayMetric {
   metadata?: MetricMetadata;
-  metric?: ApiRunMetric;
+  // run metric field is currently not supported in v2 API
+  // Context: https://github.com/kubeflow/pipelines/issues/8957
 }
 
 // Both masks cannot be provided together.
@@ -137,26 +129,20 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         label: '',
       });
 
-      // columns.push(
-      //   ...metricMetadata.map(metadata => {
-      //     return {
-      //       customRenderer: this._metricCustomRenderer,
-      //       flex: 0.5,
-      //       label: metadata.name!,
-      //     };
-      //   }),
-      // );
+      columns.push(
+        ...metricMetadata.map(metadata => {
+          return {
+            customRenderer: this._metricCustomRenderer,
+            flex: 0.5,
+            label: metadata.name!,
+          };
+        }),
+      );
     }
 
     const rows: Row[] = this.state.runs.map(r => {
       const displayMetrics = metricMetadata.map(metadata => {
         const displayMetric: DisplayMetric = { metadata };
-        // if (r.run.metrics) {
-        //   const foundMetric = r.run.metrics.find(m => m.name === metadata.name);
-        //   if (foundMetric && foundMetric.number_value !== undefined) {
-        //     displayMetric.metric = foundMetric;
-        //   }
-        // }
         return displayMetric;
       });
       const row = {
@@ -336,7 +322,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       return <div />;
     }
 
-    return <Metric metric={displayMetric.metric} metadata={displayMetric.metadata} />;
+    return <Metric metadata={displayMetric.metadata} />;
   };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
@@ -390,21 +376,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
 
       try {
-        let resourceReference: {
-          keyType?: 'EXPERIMENT' | 'NAMESPACE';
-          keyId?: string;
-        } = {};
-        if (this.props.experimentIdMask) {
-          resourceReference = {
-            keyType: 'EXPERIMENT',
-            keyId: this.props.experimentIdMask,
-          };
-        } else if (this.props.namespaceMask) {
-          resourceReference = {
-            keyType: 'NAMESPACE',
-            keyId: this.props.namespaceMask,
-          };
-        }
         const response = await Apis.runServiceApiV2.listRuns(
           this.props.namespaceMask,
           this.props.experimentIdMask,

@@ -35,7 +35,6 @@ import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
-import { ApiRunStorageState } from 'src/apis/run';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 
 const css = stylesheet({

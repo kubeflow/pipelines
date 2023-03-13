@@ -17,7 +17,6 @@ import { useEffect, useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { ApiExperiment } from 'src/apis/experiment';
-// import { ApiRun, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
@@ -32,8 +31,8 @@ import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunUtils from 'src/lib/RunUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { hasFinished, hasFinishedV2, NodePhase, statusProtoMap } from 'src/lib/StatusUtils';
-import { formatDateString, getRunDurationFromApiRun, getRunDurationFromRunV2 } from 'src/lib/Utils';
+import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
+import { formatDateString, getRunDurationFromRunV2 } from 'src/lib/Utils';
 import {
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,

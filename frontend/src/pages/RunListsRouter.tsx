@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import { ApiRunStorageState } from 'src/apis/run';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';

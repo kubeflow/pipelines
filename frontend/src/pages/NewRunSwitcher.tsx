@@ -35,10 +35,7 @@ function NewRunSwitcher(props: PageProps) {
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
   // Retrieve run details
-  const { isSuccess: getV1RunSuccess, isFetching: v1RunIsFetching, data: v1Run } = useQuery<
-    ApiRunDetail,
-    Error
-  >(
+  const { isFetching: v1RunIsFetching, data: v1Run } = useQuery<ApiRunDetail, Error>(
     ['v1_run_details', existingRunId],
     () => {
       if (!existingRunId) {
