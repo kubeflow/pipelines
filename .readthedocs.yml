@@ -6,3 +6,5 @@ python:
   version: 3.7
   install:
     - requirements: kubernetes_platform/python/docs/requirements.txt
+    - method: pip
+      path: kubernetes_platform/python/
