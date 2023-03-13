@@ -290,11 +290,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOTEQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });
@@ -341,11 +341,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
+              operation: V2beta1PredicateOperation.EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
     );
   });
