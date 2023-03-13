@@ -4,6 +4,11 @@ description: |
   training set for each item in the test set.
 
   Args:
+      project (str):
+          Required. GCP Project ID.
+      location (Optional[str]):
+          GCP Region.
+          If not set, defaulted to `us-central1`.
       embeddings_dir (str):
           Required. The GCS directory containing embeddings output from the embeddings component.
       root_dir (str):
@@ -15,6 +20,8 @@ description: |
       error_analysis_output_uri (str):
           String representing the GCS URI of the computed error analysis annotations.
 inputs:
+  - { name: project, type: String }
+  - { name: location, type: String, default: "us-central1" }
   - { name: embeddings_dir, type: String }
   - { name: root_dir, type: String }
   - { name: num_neighbors, type: Integer, default: 5 }
@@ -23,17 +30,26 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai-restricted/vision-error-analysis/error-analysis:v0.2
-    args:
-      - --embeddings_dir
-      - { inputValue: embeddings_dir }
-      - --root_dir
-      - { inputValue: root_dir }
-      - --num_neighbors
-      - { inputValue: num_neighbors }
-      - --error_analysis_output_uri
-      - { outputPath: error_analysis_output_uri }
-      - --gcp_resources
-      - { outputPath: gcp_resources }
-      - --executor_input
-      - "{{$}}"
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
+    args: [
+      --type, CustomJob,
+      --project, { inputValue: project },
+      --location, { inputValue: location },
+      --gcp_resources, { outputPath: gcp_resources },
+      --payload,
+      concat: [
+          '{"display_name": "error-analysis-annotation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", ',
+          '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
+          '", "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+          'us-docker.pkg.dev/vertex-ai-restricted/vision-error-analysis/error-analysis:v0.2',
+          '", "args": ["--embeddings_dir=',
+          { inputValue: embeddings_dir },
+          '", "--root_dir=',
+          { inputValue: root_dir },
+          '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}", "--num_neighbors=',
+          { inputValue: num_neighbors },
+          '", "--error_analysis_output_uri=',
+          { outputPath: error_analysis_output_uri },
+          '", "--executor_input={{$.json_escape[1]}}"]}}]}}',
+    ]]

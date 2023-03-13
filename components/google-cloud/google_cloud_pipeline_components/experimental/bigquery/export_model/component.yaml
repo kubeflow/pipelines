@@ -41,6 +41,9 @@ description: |
 
             Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
     Returns:
+        exported_model_path (str):
+            The gcs bucket path where you export the model to.
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-export-model.
         gcp_resources (str):
             Serialized gcp_resources proto tracking the BigQuery job.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
@@ -75,7 +78,7 @@ implementation:
       concat: [
           '{',
             '"configuration": {',
-              '"extract": ', {inputValue: job_configuration_extract},
+              '"query": ', {inputValue: job_configuration_extract},
               ', "labels": ', {inputValue: labels},
             '}',
           '}'

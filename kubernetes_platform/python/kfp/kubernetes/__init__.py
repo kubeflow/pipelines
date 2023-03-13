@@ -12,5 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.kubernetes.kubernetes_executor_config_pb2 import \
-    KubernetesExecutorConfig
+__all__ = [
+    'use_secret_as_env',
+    'use_secret_as_volume',
+    'CreatePVC',
+    'DeletePVC',
+    'mount_pvc',
+]
+
+from kfp.kubernetes.secret import use_secret_as_env
+from kfp.kubernetes.secret import use_secret_as_volume
+from kfp.kubernetes.volume import CreatePVC
+from kfp.kubernetes.volume import DeletePVC
+from kfp.kubernetes.volume import mount_pvc

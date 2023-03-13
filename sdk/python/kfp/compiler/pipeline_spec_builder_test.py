@@ -203,10 +203,12 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
             pipeline_spec_pb2.PipelineTaskSpec(
                 component_ref=pipeline_spec_pb2.ComponentRef(name='comp-2')))
 
-        sub_pipeline_spec_copy = pipeline_spec_builder.merge_deployment_spec_and_component_spec(
+        sub_pipeline_spec_copy, sub_platform_spec = pipeline_spec_builder.merge_deployment_spec_and_component_spec(
             main_pipeline_spec=main_pipeline_spec,
             main_deployment_config=main_deployment_config,
             sub_pipeline_spec=sub_pipeline_spec,
+            main_platform_spec=pipeline_spec_pb2.PlatformSpec(),
+            sub_platform_spec=pipeline_spec_pb2.PlatformSpec(),
         )
 
         self.assertEqual(sub_pipeline_spec, expected_sub_pipeline_spec)
@@ -215,6 +217,193 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
                          expected_main_deployment_config)
         self.assertEqual(sub_pipeline_spec_copy.root,
                          expected_sub_pipeline_spec_root)
+
+
+class TestPlatformConfigToPlatformSpec(unittest.TestCase):
+
+    def test(self):
+        platform_config = {
+            'platform_key': {
+                'feat1': [1, 2, 3],
+                'feat2': 'hello',
+                'feat3': {
+                    'k': 'v'
+                }
+            }
+        }
+        actual = pipeline_spec_builder.platform_config_to_platform_spec(
+            platform_config=platform_config, executor_label='exec-comp')
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_key': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'feat1': [1, 2, 3],
+                                    'feat2': 'hello',
+                                    'feat3': {
+                                        'k': 'v'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+        self.assertEqual(actual, expected)
+
+
+class TestMergePlatformSpecs(unittest.TestCase):
+
+    def test_merge_different_executors(self):
+        main_spec = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_key': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'feat1': [1, 2, 3],
+                                    'feat2': 'hello',
+                                    'feat3': {
+                                        'k': 'v'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, main_spec)
+
+        sub_spec = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_key': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-other': {
+                                    'feat1': [4, 5, 6],
+                                    'feat2': 'goodbye',
+                                    'feat3': {
+                                        'k2': 'v2'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, sub_spec)
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_key': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-other': {
+                                    'feat1': [4, 5, 6],
+                                    'feat2': 'goodbye',
+                                    'feat3': {
+                                        'k2': 'v2'
+                                    }
+                                },
+                                'exec-comp': {
+                                    'feat1': [1, 2, 3],
+                                    'feat2': 'hello',
+                                    'feat3': {
+                                        'k': 'v'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+
+        pipeline_spec_builder.merge_platform_specs(main_spec, sub_spec)
+        self.assertEqual(main_spec, expected)
+
+    def test_merge_different_platforms(self):
+        base_spec = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform1': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'feat1': [1, 2, 3],
+                                    'feat2': 'hello',
+                                    'feat3': {
+                                        'k': 'v'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, base_spec)
+
+        sub_spec = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform2': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'feat1': [4, 5, 6],
+                                    'feat2': 'goodbye',
+                                    'feat3': {
+                                        'k2': 'v2'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, sub_spec)
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform1': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'feat1': [1, 2, 3],
+                                    'feat2': 'hello',
+                                    'feat3': {
+                                        'k': 'v'
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    'platform2': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'feat1': [4, 5, 6],
+                                    'feat2': 'goodbye',
+                                    'feat3': {
+                                        'k2': 'v2'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+
+        pipeline_spec_builder.merge_platform_specs(base_spec, sub_spec)
+        self.assertEqual(base_spec, expected)
 
 
 def pipeline_spec_from_file(filepath: str) -> str:

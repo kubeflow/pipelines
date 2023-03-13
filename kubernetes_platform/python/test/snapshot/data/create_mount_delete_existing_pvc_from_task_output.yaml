@@ -1,0 +1,178 @@
+# PIPELINE DEFINITION
+# Name: my-pipeline
+components:
+  comp-comp:
+    executorLabel: exec-comp
+  comp-createpvc:
+    executorLabel: exec-createpvc
+    inputDefinitions:
+      parameters:
+        access_modes:
+          parameterType: LIST
+        annotations:
+          isOptional: true
+          parameterType: STRUCT
+        pvc_name:
+          isOptional: true
+          parameterType: STRING
+        pvc_name_suffix:
+          isOptional: true
+          parameterType: STRING
+        size:
+          parameterType: STRING
+        storage_class_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        volume_name:
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        name:
+          parameterType: STRING
+  comp-deletepvc:
+    executorLabel: exec-deletepvc
+    inputDefinitions:
+      parameters:
+        pvc_name:
+          parameterType: STRING
+  comp-get-pvc-name:
+    executorLabel: exec-get-pvc-name
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef comp():\n    pass\n\n"
+        image: python:3.7
+    exec-createpvc:
+      container:
+        image: argostub/createpvc
+    exec-deletepvc:
+      container:
+        image: argostub/deletepvc
+    exec-get-pvc-name:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_pvc_name
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_pvc_name() -> str:\n    return 'static-pvc-name'\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks:
+      comp:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-comp
+        taskInfo:
+          name: comp
+      createpvc:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-createpvc
+        dependentTasks:
+        - get-pvc-name
+        inputs:
+          parameters:
+            access_modes:
+              runtimeValue:
+                constant:
+                - ReadWriteMany
+            pvc_name:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: get-pvc-name
+            size:
+              runtimeValue:
+                constant: 5Gi
+            storage_class_name:
+              runtimeValue:
+                constant: standard
+        taskInfo:
+          name: createpvc
+      deletepvc:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-deletepvc
+        dependentTasks:
+        - comp
+        - get-pvc-name
+        inputs:
+          parameters:
+            pvc_name:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: get-pvc-name
+        taskInfo:
+          name: deletepvc
+      get-pvc-name:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-pvc-name
+        taskInfo:
+          name: get-pvc-name
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-comp:
+          pvcMount:
+          - mountPath: /data
+            taskOutputParameter:
+              outputParameterKey: name
+              producerTask: createpvc

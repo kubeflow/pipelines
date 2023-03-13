@@ -1573,19 +1573,16 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		Namespace:      runDetail.Namespace,
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           "123e4567-e89b-12d3-a456-426655440000",
-			PipelineVersionId:    "123e4567-e89b-12d3-a456-426655440000",
-			PipelineName:         "hello-world-3",
 			PipelineSpecManifest: v2SpecHelloWorld,
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Pending",
 			State:            model.RuntimeStatePending,
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 			},
@@ -1624,20 +1621,17 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           "123e4567-e89b-12d3-a456-426655440000",
-			PipelineVersionId:    "123e4567-e89b-12d3-a456-426655440000",
-			PipelineName:         "run1-3",
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Pending",
 			State:            "PENDING",
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 			},
@@ -1678,12 +1672,12 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Pending",
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 			},
@@ -1694,9 +1688,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
 		},
 	}
-	expectedRunDetail.PipelineSpec.PipelineId = runDetail.PipelineSpec.PipelineId
 	expectedRunDetail.PipelineSpec.PipelineName = runDetail.PipelineSpec.PipelineName
-	expectedRunDetail.PipelineSpec.PipelineVersionId = runDetail.PipelineSpec.PipelineVersionId
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
@@ -1727,14 +1719,12 @@ func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
 		},
 	)
 	assert.Nil(t, err)
-	assert.NotEmpty(t, newRun.PipelineVersionId)
-	assert.NotEmpty(t, newRun.PipelineId)
 	assert.Equal(t, "run1", newRun.DisplayName)
-	assert.Equal(t, runDetail.PipelineId, newRun.PipelineId)
-	assert.Equal(t, runDetail.PipelineVersionId, newRun.PipelineVersionId)
+	assert.Empty(t, newRun.PipelineId)
+	assert.Empty(t, newRun.PipelineVersionId)
 	assert.NotEqual(t, runDetail.WorkflowRuntimeManifest, newRun.WorkflowRuntimeManifest)
 	assert.Equal(t, runDetail.WorkflowSpecManifest, newRun.WorkflowSpecManifest)
-	assert.Equal(t, runDetail.PipelineSpecManifest, newRun.PipelineSpecManifest)
+	assert.Empty(t, newRun.PipelineSpecManifest)
 
 	manager.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
@@ -1750,14 +1740,11 @@ func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
 		},
 	)
 	assert.Nil(t, err)
-	assert.NotEmpty(t, newRun2.PipelineVersionId)
-	assert.NotEmpty(t, newRun2.PipelineId)
 	assert.Equal(t, "run1", newRun2.DisplayName)
-	assert.Equal(t, newRun.PipelineId, newRun2.PipelineId)
-	assert.NotEqual(t, newRun.PipelineVersionId, newRun2.PipelineVersionId)
-	assert.NotEqual(t, newRun.WorkflowRuntimeManifest, newRun2.WorkflowRuntimeManifest)
-	assert.NotEqual(t, newRun.WorkflowSpecManifest, newRun2.WorkflowSpecManifest)
-	assert.NotEqual(t, newRun.PipelineSpecManifest, newRun2.PipelineSpecManifest)
+	assert.Empty(t, newRun2.PipelineId)
+	assert.Empty(t, newRun2.PipelineVersionId)
+	assert.Empty(t, newRun2.WorkflowRuntimeManifest)
+	assert.Equal(t, v2SpecHelloWorld, newRun2.WorkflowSpecManifest)
 	assert.Equal(t, v2SpecHelloWorld, newRun2.PipelineSpecManifest)
 }
 
@@ -1976,7 +1963,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
@@ -2308,16 +2295,14 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		ExperimentId:   DefaultFakeUUID,
 		Enabled:        true,
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 5,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 		},
 	}
-	expectedJob.PipelineSpec.PipelineId = job.PipelineSpec.PipelineId
 	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
-	expectedJob.PipelineSpec.PipelineVersionId = job.PipelineSpec.PipelineVersionId
 	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
 }
 
@@ -2332,8 +2317,8 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		ExperimentId:   DefaultFakeUUID,
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 5,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
@@ -2343,9 +2328,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 			},
 		},
 	}
-	expectedJob.PipelineSpec.PipelineId = job.PipelineSpec.PipelineId
 	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
-	expectedJob.PipelineSpec.PipelineVersionId = job.PipelineSpec.PipelineVersionId
 	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
 	fetchedJob, err := manager.GetJob(job.UUID)
 	assert.Nil(t, err)
@@ -2531,7 +2514,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
@@ -2619,8 +2602,8 @@ func TestEnableJob(t *testing.T) {
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        false,
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 6,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
 		Conditions:     "STATUS_UNSPECIFIED",
 		ExperimentId:   DefaultFakeUUID,
 		PipelineSpec: model.PipelineSpec{
@@ -2773,16 +2756,16 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Running",
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 				{
-					UpdateTimeInSec: 7,
+					UpdateTimeInSec: 4,
 					State:           model.RuntimeStateRunning,
 				},
 			},
@@ -2792,8 +2775,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
-	expectedRun.PipelineSpec.PipelineId = run.PipelineSpec.PipelineId
-	expectedRun.PipelineSpec.PipelineVersionId = run.PipelineSpec.PipelineVersionId
 	expectedRun.PipelineSpec.PipelineName = run.PipelineSpec.PipelineName
 	expectedRun.RunDetails.WorkflowRuntimeManifest = run.RunDetails.WorkflowRuntimeManifest
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
@@ -2849,7 +2830,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			State:                   model.RuntimeStateUnspecified,
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStateUnspecified,
 				},
 			},
@@ -2920,7 +2901,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			State:                   model.RuntimeStatePending,
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 			},
@@ -3093,12 +3074,10 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[]",
 			PipelineSpecManifest: actualJob.PipelineSpec.PipelineSpecManifest,
-			PipelineId:           actualJob.PipelineSpec.PipelineId,
 			PipelineName:         actualJob.PipelineSpec.PipelineName,
-			PipelineVersionId:    actualJob.PipelineSpec.PipelineVersionId,
 		},
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 6,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
 	}
 	expectedJob.Conditions = "STATUS_UNSPECIFIED"
 	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
@@ -3988,6 +3967,31 @@ root:
     parameters:
       text:
         type: STRING
+schemaVersion: 2.0.0
+sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldMutated = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        image: python:3.7
+pipelineInfo:
+  name: pipelines/p1/versions/v1
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        taskInfo:
+          name: hello-world
 schemaVersion: 2.0.0
 sdkVersion: kfp-1.6.5
 `

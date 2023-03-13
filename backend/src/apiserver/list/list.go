@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -127,7 +126,7 @@ func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
 // NewOptions creates a new Options struct for the given listable. It uses
 // sorting and filtering criteria parsed from sortBy and filterProto
 // respectively.
-func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api.Filter) (*Options, error) {
+func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.Filter) (*Options, error) {
 	pageSize, err := validatePageSize(pageSize)
 	if err != nil {
 		return nil, err
@@ -163,14 +162,12 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 	}
 
 	// Filtering.
-	if filterProto != nil {
-		f, err := filter.NewWithKeyMap(filterProto, listable.APIToModelFieldMap(), listable.GetModelName())
-		if err != nil {
+	if filter != nil {
+		if err := filter.ReplaceKeys(listable.APIToModelFieldMap(), listable.GetModelName()); err != nil {
 			return nil, err
 		}
-		token.Filter = f
+		token.Filter = filter
 	}
-
 	return &Options{PageSize: pageSize, token: token}, nil
 }
 

@@ -20,7 +20,6 @@ from kfp import components
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 import requests
-import yaml
 
 
 class YamlComponent(components.BaseComponent):
@@ -44,7 +43,8 @@ class YamlComponent(components.BaseComponent):
     @property
     def pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Returns the pipeline spec of the component."""
-        component_dict = yaml.safe_load(self.component_yaml)
+        component_dict = structures.load_documents_from_yaml(
+            self.component_yaml)[0]
         is_v1 = 'implementation' in set(component_dict.keys())
         if is_v1:
             return self.component_spec.to_pipeline_spec()
@@ -67,7 +67,7 @@ def load_component_from_text(text: str) -> YamlComponent:
         Component loaded from YAML.
     """
     return YamlComponent(
-        component_spec=structures.ComponentSpec.load_from_component_yaml(text),
+        component_spec=structures.ComponentSpec.from_yaml_documents(text),
         component_yaml=text)
 
 

@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import uuid
 
 from google.protobuf import json_format
@@ -560,6 +560,8 @@ class ComponentSpec:
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
+    platform_spec: pipeline_spec_pb2.PlatformSpec = dataclasses.field(
+        default_factory=pipeline_spec_pb2.PlatformSpec)
 
     def __post_init__(self) -> None:
         self._transform_name()
@@ -749,8 +751,13 @@ class ComponentSpec:
         )
 
     @classmethod
-    def from_pipeline_spec_dict(
-            cls, pipeline_spec_dict: Dict[str, Any]) -> 'ComponentSpec':
+    def from_ir_dicts(
+        cls,
+        pipeline_spec_dict: dict,
+        platform_spec_dict: dict,
+    ) -> 'ComponentSpec':
+        """Creates a ComponentSpec from the PipelineSpec and PlatformSpec
+        messages as dicts."""
         raw_name = pipeline_spec_dict['pipelineInfo']['name']
 
         def inputs_dict_from_component_spec_dict(
@@ -804,36 +811,27 @@ class ComponentSpec:
             implementation.container.command or
             []) if implementation.container else None
 
+        platform_spec = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(platform_spec_dict, platform_spec)
+
         return ComponentSpec(
             name=raw_name,
             implementation=implementation,
             description=description,
             inputs=inputs,
-            outputs=outputs)
+            outputs=outputs,
+            platform_spec=platform_spec,
+        )
 
     @classmethod
-    def from_pipeline_spec_yaml(cls,
-                                pipeline_spec_yaml: str) -> 'ComponentSpec':
-        """Creates a ComponentSpec from a pipeline spec in YAML format.
+    def from_yaml_documents(cls, component_yaml: str) -> 'ComponentSpec':
+        """Loads V1 or V2 component YAML into a ComponentSpec.
 
         Args:
-            component_yaml (str): Component spec in YAML format.
+            component_yaml: PipelineSpec and optionally PlatformSpec YAML documents as a single string.
 
         Returns:
-            ComponentSpec: The component spec object.
-        """
-        return ComponentSpec.from_pipeline_spec_dict(
-            yaml.safe_load(pipeline_spec_yaml))
-
-    @classmethod
-    def load_from_component_yaml(cls, component_yaml: str) -> 'ComponentSpec':
-        """Loads V1 or V2 component yaml into ComponentSpec.
-
-        Args:
-            component_yaml: the component yaml in string format.
-
-        Returns:
-            Component spec in the form of V2 ComponentSpec.
+            ComponentSpec: The ComponentSpec object.
         """
 
         def extract_description(component_yaml: str) -> Union[str, None]:
@@ -856,15 +854,17 @@ class ComponentSpec:
             else:
                 return None
 
-        json_component = yaml.safe_load(component_yaml)
-        is_v1 = 'implementation' in set(json_component.keys())
+        pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
+            component_yaml)
+
+        is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
         if is_v1:
             v1_component = v1_components._load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
         else:
-            component_spec = ComponentSpec.from_pipeline_spec_dict(
-                json_component)
+            component_spec = ComponentSpec.from_ir_dicts(
+                pipeline_spec_dict, platform_spec_dict)
             if not component_spec.description:
                 component_spec.description = extract_description(
                     component_yaml=component_yaml)
@@ -879,7 +879,12 @@ class ComponentSpec:
         from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec = self.to_pipeline_spec()
-        builder.write_pipeline_spec_to_file(pipeline_spec, None, output_file)
+        builder.write_pipeline_spec_to_file(
+            pipeline_spec,
+            None,
+            pipeline_spec_pb2.PlatformSpec(),
+            output_file,
+        )
 
     def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a
@@ -979,7 +984,9 @@ class ComponentSpec:
             rootgroup_name=root_group.name,
             task_name_to_parent_groups=task_name_to_parent_groups,
             group_name_to_parent_groups=group_name_to_parent_groups,
-            name_to_for_loop_group={},  # no for loop for single-component pipeline
+            name_to_for_loop_group={},  # no for loop in single-component pipeline
+            platform_spec=pipeline_spec_pb2.PlatformSpec(
+            ),  # no PlatformSpec single-component pipeline
         )
 
         return pipeline_spec
@@ -1031,3 +1038,24 @@ def convert_duration_to_seconds(duration: str) -> int:
         raise ValueError(
             f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
     return int(duration[:-1]) * seconds_per_unit[duration[-1]]
+
+
+def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
+    """Loads up to two YAML documents from a YAML string.
+
+    First document must always be present. If second document is
+    present, it is returned as a dict, else an empty dict.
+    """
+    documents = list(yaml.safe_load_all(component_yaml))
+    num_docs = len(documents)
+    if num_docs == 1:
+        pipeline_spec_dict = documents[0]
+        platform_spec_dict = {}
+    elif num_docs == 2:
+        pipeline_spec_dict = documents[0]
+        platform_spec_dict = documents[1]
+    else:
+        raise ValueError(
+            f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
+        )
+    return pipeline_spec_dict, platform_spec_dict

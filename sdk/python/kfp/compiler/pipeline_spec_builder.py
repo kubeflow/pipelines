@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for creating PipelineSpec proto objects."""
 
+import copy
 import json
 import typing
 from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
@@ -1051,6 +1052,7 @@ def build_spec_by_group(
                                         List[compiler_utils.GroupOrTaskType]],
     group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
     name_to_for_loop_group: Mapping[str, tasks_group.ParallelFor],
+    platform_spec: pipeline_spec_pb2.PlatformSpec,
 ) -> None:
     """Generates IR spec given a TasksGroup.
 
@@ -1129,16 +1131,31 @@ def build_spec_by_group(
                     task=subgroup)
                 deployment_config.executors[executor_label].container.CopyFrom(
                     subgroup_container_spec)
+                single_task_platform_spec = platform_config_to_platform_spec(
+                    subgroup.platform_config,
+                    executor_label,
+                )
+                merge_platform_specs(
+                    platform_spec,
+                    single_task_platform_spec,
+                )
+
             elif subgroup.importer_spec is not None:
                 subgroup_importer_spec = build_importer_spec_for_task(
                     task=subgroup)
                 deployment_config.executors[executor_label].importer.CopyFrom(
                     subgroup_importer_spec)
             elif subgroup.pipeline_spec is not None:
-                sub_pipeline_spec = merge_deployment_spec_and_component_spec(
+                if subgroup.platform_config:
+                    raise ValueError(
+                        'Platform-specific features can only be set on primitive components. Found platform-specific feature set on a pipeline.'
+                    )
+                sub_pipeline_spec, platform_spec = merge_deployment_spec_and_component_spec(
                     main_pipeline_spec=pipeline_spec,
                     main_deployment_config=deployment_config,
                     sub_pipeline_spec=subgroup.pipeline_spec,
+                    main_platform_spec=platform_spec,
+                    sub_platform_spec=subgroup.platform_spec,
                 )
                 subgroup_component_spec = sub_pipeline_spec.root
             else:
@@ -1271,11 +1288,59 @@ def build_spec_by_group(
     )
 
 
+def platform_config_to_platform_spec(
+    platform_config: dict,
+    executor_label: str,
+) -> pipeline_spec_pb2.PlatformSpec:
+    """Converts a single task's pipeline_task.platform_config dictionary to a
+    PlatformSpec message using the executor_label for the task."""
+    platform_spec_msg = pipeline_spec_pb2.PlatformSpec()
+    json_format.ParseDict(
+        {
+            'platforms': {
+                platform_key: {
+                    'deployment_spec': {
+                        'executors': {
+                            executor_label: config
+                        }
+                    }
+                } for platform_key, config in platform_config.items()
+            }
+        }, platform_spec_msg)
+    return platform_spec_msg
+
+
+def merge_platform_specs(
+    main_msg: pipeline_spec_pb2.PlatformSpec,
+    sub_msg: pipeline_spec_pb2.PlatformSpec,
+) -> None:
+    """Merges a sub_msg PlatformSpec into the main_msg PlatformSpec, leaving
+    the sub_msg unchanged."""
+    for platform_key, single_platform_spec in sub_msg.platforms.items():
+        merge_platform_deployment_config(
+            main_msg.platforms[platform_key].deployment_spec,
+            single_platform_spec.deployment_spec,
+        )
+
+
+def merge_platform_deployment_config(
+    main_msg: pipeline_spec_pb2.PlatformDeploymentConfig,
+    sub_msg: pipeline_spec_pb2.PlatformDeploymentConfig,
+) -> None:
+    """Merges a sub_msg PlatformDeploymentConfig into the main_msg
+    PlatformDeploymentConfig, leaving the sub_msg unchanged."""
+    for executor_label, addtl_body in sub_msg.executors.items():
+        body = main_msg.executors.get(executor_label, struct_pb2.Struct())
+        body.update(addtl_body)
+        main_msg.executors[executor_label].CopyFrom(body)
+
+
 def build_exit_handler_groups_recursively(
     parent_group: tasks_group.TasksGroup,
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
-):
+    platform_spec: pipeline_spec_pb2.PlatformSpec,
+) -> None:
     if not parent_group.groups:
         return
     for group in parent_group.groups:
@@ -1311,13 +1376,24 @@ def build_exit_handler_groups_recursively(
                 exit_task_component_spec.executor_label = executor_label
                 deployment_config.executors[executor_label].container.CopyFrom(
                     exit_task_container_spec)
+                single_task_platform_spec = platform_config_to_platform_spec(
+                    exit_task.platform_config,
+                    executor_label,
+                )
+                merge_platform_specs(
+                    platform_spec,
+                    single_task_platform_spec,
+                )
             elif exit_task.pipeline_spec is not None:
-                exit_task_pipeline_spec = merge_deployment_spec_and_component_spec(
+                exit_task_pipeline_spec, updated_platform_spec = merge_deployment_spec_and_component_spec(
                     main_pipeline_spec=pipeline_spec,
                     main_deployment_config=deployment_config,
                     sub_pipeline_spec=exit_task.pipeline_spec,
-                )
+                    main_platform_spec=platform_spec,
+                    sub_platform_spec=exit_task.platform_spec)
                 exit_task_component_spec = exit_task_pipeline_spec.root
+                # assign the new PlatformSpec data to the existing main PlatformSpec object
+                platform_spec.CopyFrom(updated_platform_spec)
             else:
                 raise RuntimeError(
                     f'Exit task {exit_task_name} is missing both container spec and pipeline spec.'
@@ -1342,49 +1418,65 @@ def build_exit_handler_groups_recursively(
         build_exit_handler_groups_recursively(
             parent_group=group,
             pipeline_spec=pipeline_spec,
-            deployment_config=deployment_config)
+            deployment_config=deployment_config,
+            platform_spec=platform_spec,
+        )
 
 
 def merge_deployment_spec_and_component_spec(
     main_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     main_deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
     sub_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-) -> pipeline_spec_pb2.PipelineSpec:
+    main_platform_spec: pipeline_spec_pb2.PlatformSpec,
+    sub_platform_spec: pipeline_spec_pb2.PlatformSpec,
+) -> Tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]:
     """Merges deployment spec and component spec from a sub pipeline spec into
     the main spec.
 
-    We need to make sure that we keep the original sub pipeline spec
+    Also merges sub_platform_spec into main_platform_spec, with updated executor labels.
+
+    We need to make sure that we keep the original sub PipelineSpec and PlatformSpec
     unchanged--in case the pipeline is reused (instantiated) multiple times,
     the "template" should not carry any "signs of usage".
 
+
     Args:
-        main_pipeline_spec: The main pipeline spec to merge into.
-        main_deployment_config: The main deployment config to merge into.
-        sub_pipeline_spec: The pipeline spec of an inner pipeline whose
+        main_pipeline_spec: The main PipelineSpec to merge into.
+        main_deployment_config: The main PipelineDeploymentConfig to merge into.
+        sub_pipeline_spec: The PipelineSpec of an inner pipeline whose
             deployment specs and component specs need to be copied into the main
             specs.
+        main_platform_spec: The PlatformSpec corresponding to main_pipeline_spec.
+        sub_platform_spec: The PlatformSpec corresponding to sub_pipeline_spec.
 
     Returns:
-        The possibly modified copy of pipeline spec.
+        The possibly modified version of sub_pipeline_spec and the possibly modified version of the the main_platform_spec. The sub_pipeline_spec is "folded" into the outer pipeline, whereas the main_platform_spec is updated to contain the sub_pipeline_spec's configuration.
     """
-    # Make a copy of the sub_pipeline_spec so that the "template" remains
+    # Make a copy of the messages of the inner pipeline so that the "template" remains
     # unchanged and works even the pipeline is reused multiple times.
     sub_pipeline_spec_copy = pipeline_spec_pb2.PipelineSpec()
     sub_pipeline_spec_copy.CopyFrom(sub_pipeline_spec)
+    sub_platform_spec_copy = pipeline_spec_pb2.PlatformSpec()
+    sub_platform_spec_copy.CopyFrom(sub_platform_spec)
 
     _merge_deployment_spec(
         main_deployment_config=main_deployment_config,
-        sub_pipeline_spec=sub_pipeline_spec_copy)
+        sub_pipeline_spec=sub_pipeline_spec_copy,
+        main_platform_spec=main_platform_spec,
+        sub_platform_spec=sub_platform_spec_copy,
+    )
     _merge_component_spec(
         main_pipeline_spec=main_pipeline_spec,
         sub_pipeline_spec=sub_pipeline_spec_copy,
     )
-    return sub_pipeline_spec_copy
+    return sub_pipeline_spec_copy, main_platform_spec
 
 
 def _merge_deployment_spec(
     main_deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
     sub_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+    main_platform_spec: pipeline_spec_pb2.PlatformSpec,
+    sub_platform_spec: pipeline_spec_pb2.PlatformSpec,
 ) -> None:
     """Merges deployment config from a sub pipeline spec into the main config.
 
@@ -1408,6 +1500,25 @@ def _merge_deployment_spec(
             if component_spec.executor_label == old_executor_label:
                 component_spec.executor_label = new_executor_label
 
+    def _rename_platform_config_executor_labels(
+        sub_platform_spec: pipeline_spec_pb2.PlatformSpec,
+        old_executor_label: str,
+        new_executor_label: str,
+    ) -> None:
+        # make a copy so that map size doesn't change during iteration
+        sub_platform_spec_copy = copy.deepcopy(sub_platform_spec)
+        for platform_key, platform_config in sub_platform_spec_copy.platforms.items(
+        ):
+            for cur_exec_label, task_config in platform_config.deployment_spec.executors.items(
+            ):
+                if cur_exec_label == old_executor_label:
+                    del sub_platform_spec.platforms[
+                        platform_key].deployment_spec.executors[
+                            old_executor_label]
+                    sub_platform_spec.platforms[
+                        platform_key].deployment_spec.executors[
+                            new_executor_label].CopyFrom(task_config)
+
     sub_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     json_format.ParseDict(
         json_format.MessageToDict(sub_pipeline_spec.deployment_spec),
@@ -1425,8 +1536,14 @@ def _merge_deployment_spec(
                 pipeline_spec=sub_pipeline_spec,
                 old_executor_label=old_executor_label,
                 new_executor_label=executor_label)
+            _rename_platform_config_executor_labels(
+                sub_platform_spec,
+                old_executor_label=old_executor_label,
+                new_executor_label=executor_label)
 
         main_deployment_config.executors[executor_label].CopyFrom(executor_spec)
+        merge_platform_specs(
+            main_msg=main_platform_spec, sub_msg=sub_platform_spec)
 
 
 def _merge_component_spec(
@@ -1490,7 +1607,7 @@ def create_pipeline_spec(
     pipeline: pipeline_context.Pipeline,
     component_spec: structures.ComponentSpec,
     pipeline_outputs: Optional[Any] = None,
-) -> pipeline_spec_pb2.PipelineSpec:
+) -> Tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]:
     """Creates a pipeline spec object.
 
     Args:
@@ -1555,6 +1672,7 @@ def create_pipeline_spec(
         condition_channels=condition_channels,
     )
 
+    platform_spec = pipeline_spec_pb2.PlatformSpec()
     for group in all_groups:
         build_spec_by_group(
             pipeline_spec=pipeline_spec,
@@ -1567,12 +1685,14 @@ def create_pipeline_spec(
             task_name_to_parent_groups=task_name_to_parent_groups,
             group_name_to_parent_groups=group_name_to_parent_groups,
             name_to_for_loop_group=name_to_for_loop_group,
+            platform_spec=platform_spec,
         )
 
     build_exit_handler_groups_recursively(
         parent_group=root_group,
         pipeline_spec=pipeline_spec,
         deployment_config=deployment_config,
+        platform_spec=platform_spec,
     )
 
     _build_dag_outputs(
@@ -1585,7 +1705,7 @@ def create_pipeline_spec(
         dag_outputs=modified_pipeline_outputs_dict,
         structures_component_spec=component_spec)
 
-    return pipeline_spec
+    return pipeline_spec, platform_spec
 
 
 def _validate_dag_output_types(
@@ -1620,18 +1740,24 @@ def convert_pipeline_outputs_to_dict(
         raise ValueError(f'Got unknown pipeline output: {pipeline_outputs}')
 
 
-def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-                                pipeline_description: str,
-                                package_path: str) -> None:
+def write_pipeline_spec_to_file(
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+    pipeline_description: str,
+    platform_spec: pipeline_spec_pb2.PlatformSpec,
+    package_path: str,
+) -> None:
     """Writes PipelineSpec into a YAML or JSON (deprecated) file.
 
     Args:
-        pipeline_spec (pipeline_spec_pb2.PipelineSpec): The PipelineSpec.
-        package_path (str): The path to which to write the PipelineSpec.
+        pipeline_spec: The PipelineSpec.
+        pipeline_description: Description from pipeline docstring.
+        package_path: The path to which to write the PipelineSpec.
+        platform_spec: The PlatformSpec.
     """
-    json_dict = json_format.MessageToDict(pipeline_spec)
-    yaml_comments = extract_comments_from_pipeline_spec(json_dict,
+    pipeline_spec_dict = json_format.MessageToDict(pipeline_spec)
+    yaml_comments = extract_comments_from_pipeline_spec(pipeline_spec_dict,
                                                         pipeline_description)
+    has_platform_specific_features = len(platform_spec.platforms) > 0
 
     if package_path.endswith('.json'):
         warnings.warn(
@@ -1642,12 +1768,19 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
             stacklevel=2,
         )
         with open(package_path, 'w') as json_file:
-            json.dump(json_dict, json_file, indent=2, sort_keys=True)
+            if has_platform_specific_features:
+                raise ValueError(
+                    f'Platform-specific features are only supported when serializing to YAML. Argument for {"package_path"!r} has file extension {".json"!r}.'
+                )
+            json.dump(pipeline_spec_dict, json_file, indent=2, sort_keys=True)
 
     elif package_path.endswith(('.yaml', '.yml')):
         with open(package_path, 'w') as yaml_file:
             yaml_file.write(yaml_comments)
-            yaml.dump(json_dict, yaml_file, sort_keys=True)
+            documents = [pipeline_spec_dict]
+            if has_platform_specific_features:
+                documents.append(json_format.MessageToDict(platform_spec))
+            yaml.dump_all(documents, yaml_file, sort_keys=True)
 
     else:
         raise ValueError(

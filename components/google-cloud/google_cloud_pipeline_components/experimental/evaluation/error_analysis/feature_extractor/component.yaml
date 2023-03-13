@@ -12,6 +12,8 @@ description: |
           Required. The GCS directory for keeping staging files.
           A random subdirectory will be created under the directory to keep job info for resuming
           the job in case of failure.
+      output_dir (str):
+          Required. The Google Cloud Storage location where the outputs will be saved to.
       test_dataset (Optional[google.VertexDataset])
           Required. A google.VertexDataset artifact of the test dataset.
       training_dataset (Optional[google.VertexDataset])
@@ -20,8 +22,6 @@ description: |
           Required. Google Cloud Storage URI to preprocessed test dataset for Vision Analysis pipelines.
       preprocessed_training_dataset_storage_source (str):
           Required. Google Cloud Storage URI to preprocessed training dataset for Vision Error Analysis pipelines.
-      output_dir (str):
-          Required. The Google Cloud Storage location where the outputs will be saved to.
       dataflow_service_account (Optional[str]):
           Optional. Service account to run the dataflow job.
           If not set, dataflow will use the default woker service account.
@@ -55,11 +55,11 @@ inputs:
   - { name: project, type: String }
   - { name: location, type: String, default: "us-central1" }
   - { name: root_dir, type: String }
+  - { name: output_dir, type: String }
   - { name: test_dataset, type: google.VertexDataset, optional: True }
   - { name: training_dataset, type: google.VertexDataset, optional: True }
   - { name: preprocessed_test_dataset_storage_source, type: String }
   - { name: preprocessed_training_dataset_storage_source, type: String }
-  - { name: output_dir, type: String }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_disk_size, type: Integer, default: 50 }
   - { name: dataflow_machine_type, type: String, default: "n1-standard-8" }
@@ -73,45 +73,50 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230203_1221_RC00
-    args:
-      - --project_id
-      - { inputValue: project }
-      - --location
-      - { inputValue: location }
-      - --root_dir
-      - { inputValue: root_dir }
-      - --test_dataset_resource_name
-      - "{{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}"
-      - --test_dataset_storage_source
-      - { inputValue: preprocessed_test_dataset_storage_source }
-      - --training_dataset_resource_name
-      - "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
-      - --training_dataset_storage_source
-      - { inputValue: preprocessed_training_dataset_storage_source }
-      - --output_dir
-      - { inputValue: output_dir }
-      - --dataflow_job_prefix
-      - "feature-extraction-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
-      - --dataflow_service_account
-      - { inputValue: dataflow_service_account }
-      - --dataflow_disk_size
-      - { inputValue: dataflow_disk_size }
-      - --dataflow_machine_type
-      - { inputValue: dataflow_machine_type }
-      - --dataflow_workers_num
-      - { inputValue: dataflow_workers_num }
-      - --dataflow_max_workers_num
-      - { inputValue: dataflow_max_workers_num }
-      - --dataflow_subnetwork
-      - { inputValue: dataflow_subnetwork }
-      - --dataflow_use_public_ips
-      - { inputValue: dataflow_use_public_ips }
-      - --kms_key_name
-      - { inputValue: encryption_spec_key_name }
-      - --embedding_output_file
-      - { outputPath: embedding_output_file }
-      - --gcp_resources
-      - { outputPath: gcp_resources }
-      - --executor_input
-      - "{{$}}"
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
+    args: [
+      --type, CustomJob,
+      --project, { inputValue: project },
+      --location, { inputValue: location },
+      --gcp_resources, { outputPath: gcp_resources },
+      --payload,
+      concat: [
+          '{"display_name": "feature-extractor-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", ',
+          '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
+          '", "machine_spec": {"machine_type": "n1-standard-16"}, "container_spec": {"image_uri":"',
+          'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230308_1221_RC00',
+          '", "args": ["--project_id=',
+          { inputValue: project },
+          '", "--location=',
+          { inputValue: location },
+          '", "--root_dir=',
+          { inputValue: root_dir },
+          '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}", "--test_dataset_resource_name=',
+          { inputValue: preprocessed_test_dataset_storage_source },
+          '", "--training_dataset_resource_name=',
+          { inputValue: preprocessed_training_dataset_storage_source },
+          '", "--output_dir=',
+          { inputValue: output_dir },
+          '", "--dataflow_job_prefix=',
+          'feature-extraction-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+          '", "--dataflow_service_account=',
+          { inputValue: dataflow_service_account },
+          '", "--dataflow_disk_size=',
+          { inputValue: dataflow_disk_size },
+          '", "--dataflow_machine_type=',
+          { inputValue: dataflow_machine_type },
+          '", "--dataflow_workers_num=',
+          { inputValue: dataflow_workers_num },
+          '", "--dataflow_max_workers_num=',
+          { inputValue: dataflow_max_workers_num },
+          '", "--dataflow_subnetwork=',
+          { inputValue: dataflow_subnetwork },
+          '", "--dataflow_use_public_ips=',
+          { inputValue: dataflow_use_public_ips },
+          '", "--kms_key_name=',
+          { inputValue: encryption_spec_key_name },
+          '", "--embedding_output_file=',
+          { outputPath: embedding_output_file },
+          '", "--executor_input={{$.json_escape[1]}}"]}}]}}',
+    ]]

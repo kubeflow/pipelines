@@ -59,9 +59,9 @@ implementation:
         executor_input_json = json.loads(args.executor_input)
         dataset_resource_name = args.dataset_resource_name
         get_vertex_dataset(executor_input_json, dataset_resource_name)
-      args:
-      - --dataset_name
-      - {inputValue: dataset_name}
+    args:
+      - --dataset_resource_name
+      - {inputValue: dataset_resource_name}
       - --gcp_resources
       - {outputPath: gcp_resources}
       - --executor_input

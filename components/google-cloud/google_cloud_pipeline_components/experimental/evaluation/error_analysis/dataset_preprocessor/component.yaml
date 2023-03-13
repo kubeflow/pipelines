@@ -8,42 +8,42 @@ description: |
       location (Optional[str]):
           GCP Region.
           If not set, defaulted to `us-central1`.
-      output_dir (str):
+      root_dir (str):
           Required. The Google Cloud Storage location where the outputs will be saved to.
       test_dataset (Optional[google.VertexDataset])
           Optional. A google.VertexDataset artifact of the test dataset. If `test_dataset_storage_source_uris` is
           also provided, this Vertex Dataset argument will override the GCS source.
       test_dataset_annotation_set_name (Optional[str])
-          Optional. A string of the annotation_set name containing the ground truth of the test datset used for evaluation.
+          Optional. A string of the annotation_set resource name containing the ground truth of the test datset used for evaluation.
       training_dataset (Optional[google.VertexDataset])
           Optional. A google.VertexDataset artifact of the training dataset. If `training_dataset_storage_source_uris` is
           also provided, this Vertex Dataset argument will override the GCS source.
       training_dataset_annotation_set_name (Optional[str])
-          Optional. A string of the annotation_set name containing the ground truth of the test datset used for evaluation.
-      test_dataset_storage_source_uris (Optional[Sequence[str]]):
+          Optional. A string of the annotation_set resource name containing the ground truth of the test datset used for evaluation.
+      test_dataset_storage_source_uris (Optional[list[str]]):
           Optional. Google Cloud Storage URI(-s) to unmanaged test datasets.`jsonl` is currently the
           only allowed format.
           If `test_dataset` is also provided, this field will be overriden by the provided Vertex Dataset.
-      training_dataset_storage_source_uris (Optional[Sequence[str]]):
+      training_dataset_storage_source_uris (Optional[list[str]]):
           Optional. Google Cloud Storage URI(-s) to unmanaged test datasets.`jsonl` is currently the
           only allowed format.
           If `training_dataset` is also provided, this field will be overriden by the provided Vertex Dataset.
   Returns:
-      batch_prediction_storage_source (str)
+      batch_prediction_storage_source (list[str])
         Google Cloud Storage URI to preprocessed dataset instances for Vertex Batch Prediction
         component. Target field name is removed.
-        For example,
+        For example, this is an input instance:
           {"content":"gs://flowers/roses/001.jpg","mimeType":"image/jpeg"}
-      model_evaluation_storage_source (str)
+      model_evaluation_storage_source (list[str])
         Google Cloud Storage URI to preprocessed dataset instances for Vertex Model Evaluation
         component. Target field name is defaulted to "ground_truth".
-        For example,
+        For example, this is an input instance:
           {"content":"gs://flowers/roses/001.jpg","mimeType":"image/jpeg", "ground_truth": "roses"}
       test_data_items_storage_source (str)
         Google Cloud Storage URI to preprocessed test dataset instances for Evaluated
         Annotation or Vision Error Analysis pipelines. It is the input source for Evaluated
         Annotation component and Feature Extraction component.
-        For example,
+        For example, this is an input instance:
           {"dataItemID":"projects/*/locations/*/datasets/*/dataItems/000",
           "imageGcsUri":"gs://flowers/roses/001.jpg",
           "mimeType":  "image/jpeg",
@@ -60,7 +60,7 @@ description: |
 inputs:
   - { name: project, type: String }
   - { name: location, type: String, default: "us-central1" }
-  - { name: output_dir, type: String }
+  - { name: root_dir, type: String }
   - { name: test_dataset, type: google.VertexDataset, optional: True }
   - { name: test_dataset_annotation_set_name, type: String, optional: True }
   - { name: training_dataset, type: google.VertexDataset, optional: True }
@@ -69,13 +69,13 @@ inputs:
   - { name: training_dataset_storage_source_uris, type: JsonArray, default: "[]", optional: True }
 outputs:
   - { name: gcp_resources, type: String }
-  - { name: batch_prediction_storage_source, type: String }
-  - { name: model_evaluation_storage_source, type: String }
+  - { name: batch_prediction_storage_source, type: JsonArray }
+  - { name: model_evaluation_storage_source, type: JsonArray }
   - { name: test_data_items_storage_source, type: String }
   - { name: training_data_items_storage_source, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.8.1
+    image: gcr.io/ml-pipeline/model-evaluation:v0.9
     command:
       - python
       - /main.py
@@ -86,8 +86,8 @@ implementation:
       - { inputValue: project }
       - --location
       - { inputValue: location }
-      - --output_dir
-      - { inputValue: output_dir }
+      - --root_dir
+      - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - if:
           cond: { isPresent: test_dataset }
           then:
