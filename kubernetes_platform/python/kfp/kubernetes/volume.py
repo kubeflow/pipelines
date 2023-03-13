@@ -39,24 +39,24 @@ def CreatePVC(
 
     Args:
         access_modes: AccessModes to request for the provisioned PVC. May
-            be multiple of ReadWriteOnce, ReadOnlyMany, ReadWriteMany, or
-            ReadWriteOncePod.
-        size: The size of storage requested by the PVC that will be provisioned.
-        pvc_name: Name of the PVC. Only one of pvc_name and pvc_name_suffix can
+            be one or more of ``'ReadWriteOnce'``, ``'ReadOnlyMany'``, ``'ReadWriteMany'``, or
+            ``'ReadWriteOncePod'``. Corresponds to `PersistentVolumeClaim.spec.accessModes <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.
+        size: The size of storage requested by the PVC that will be provisioned. For example, ``'5Gi'``. Corresponds to `PersistentVolumeClaim.spec.resources.requests.storage <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+        pvc_name: Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_. Only one of ``pvc_name`` and ``pvc_name_suffix`` can
             be provided.
         pvc_name_suffix: Prefix to use for a dynamically generated name, which
-            will take the form <argo-workflow-name>-<pvc_name_suffix>. Only one
-            of pvc_name and pvc_name_suffix can be provided.
+            will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only one
+            of ``pvc_name`` and ``pvc_name_suffix`` can be provided.
         storage_class_name: Name of StorageClass from which to provision the PV
-            to back the PVC. `None` indicates to use the cluster's default
-            storage_class_name. Set to `''` for a statically specified PVC.
+            to back the PVC. ``None`` indicates to use the cluster's default
+            storage_class_name. Set to ``''`` for a statically specified PVC.
         volume_name: Pre-existing PersistentVolume that should back the
             provisioned PersistentVolumeClaim. Used for statically
-            specified PV only.
-        annotations: Annotations for the PVC's metadata.
+            specified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+        annotations: Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
 
-    Outputs:
-        name: The name of the generated PVC.
+    Returns:
+        ``name: str`` \n\t\t\tName of the generated PVC.
     """
 
     return dsl.ContainerSpec(image='argostub/createpvc')
@@ -67,12 +67,11 @@ def mount_pvc(
     pvc_name: str,
     mount_path: str,
 ) -> PipelineTask:
-    """Mount a PersistentVolumeClaim to the task container.
+    """Mount a PersistentVolumeClaim to the task's container.
 
     Args:
         task: Pipeline task.
-        pvc_name: Name of the PVC to mount. Can also be a runtime-generated name
-            reference provided by `kubernetes.CreatePvcOp().outputs['pvc_name']`.
+        pvc_name: Name of the PVC to mount. Supports passing a runtime-generated name, such as a name provided by ``kubernetes.CreatePvcOp().outputs['name']``.
         mount_path: Path to which the PVC should be mounted as a volume.
 
     Returns:
@@ -95,8 +94,7 @@ def DeletePVC(pvc_name: str):
     """Delete a PersistentVolumeClaim.
 
     Args:
-        pvc_name: Name of the PVC to delete. Can also be a runtime-generated name
-            reference provided by `kubernetes.CreatePvcOp().outputs['name']`.
+        pvc_name: Name of the PVC to delete. Supports passing a runtime-generated name, such as a name provided by ``kubernetes.CreatePvcOp().outputs['name']``.
     """
     return dsl.ContainerSpec(image='argostub/deletepvc')
 
