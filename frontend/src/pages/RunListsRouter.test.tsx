@@ -18,21 +18,21 @@ import { render, screen } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import React from 'react';
-import { RouteParams } from 'src/components/Router';
-import { ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
-import { ApiExperiment } from 'src/apis/experiment';
-import { Apis } from 'src/lib/Apis';
+import { RouteParams } from '../components/Router';
+import { V2beta1Run, V2beta1RunStorageState } from '../apisv2beta1/run';
+import { ApiExperiment } from '../apis/experiment';
+import { Apis } from '../lib/Apis';
 import * as Utils from '../lib/Utils';
 import { BrowserRouter } from 'react-router-dom';
-import { PredicateOp } from 'src/apis/filter';
+import { PredicateOp } from '../apis/filter';
 
 describe('RunListsRouter', () => {
   let historyPushSpy: any;
-  let runStorageState = ApiRunStorageState.AVAILABLE;
+  let runStorageState = V2beta1RunStorageState.AVAILABLE;
 
   const onSelectionChangeMock = jest.fn();
-  const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
-  const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+  const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
+  const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -55,9 +55,9 @@ describe('RunListsRouter', () => {
       onTabSwitch: jest.fn((newTab: number) => {
         // this.refresh();
         if (newTab === 1) {
-          runStorageState = ApiRunStorageState.ARCHIVED;
+          runStorageState = V2beta1RunStorageState.ARCHIVED;
         } else {
-          runStorageState = ApiRunStorageState.AVAILABLE;
+          runStorageState = V2beta1RunStorageState.AVAILABLE;
         }
       }),
       hideExperimentColumn: true,
@@ -81,10 +81,10 @@ describe('RunListsRouter', () => {
   beforeEach(() => {
     getRunSpy.mockImplementation(id =>
       Promise.resolve(
-        produce({} as Partial<ApiRunDetail>, draft => {
-          draft.run = draft.run || {};
-          draft.run.id = id;
-          draft.run.name = 'run with id: ' + id;
+        produce({} as Partial<V2beta1Run>, draft => {
+          draft = draft || {};
+          draft.run_id = id;
+          draft.display_name = 'run with id: ' + id;
         }),
       ),
     );
@@ -96,7 +96,7 @@ describe('RunListsRouter', () => {
             {
               key: 'storage_state',
               op: PredicateOp.EQUALS,
-              string_value: ApiRunStorageState.ARCHIVED.toString(),
+              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
         }),
@@ -105,8 +105,8 @@ describe('RunListsRouter', () => {
         return Promise.resolve({
           runs: [
             {
-              id: 'achiverunid',
-              name: archiveRunDisplayName,
+              run_id: 'achiverunid',
+              display_name: archiveRunDisplayName,
             },
           ],
         });
@@ -114,8 +114,8 @@ describe('RunListsRouter', () => {
       return Promise.resolve({
         runs: [
           {
-            id: 'activerunid',
-            name: activeRunDisplayName,
+            run_id: 'activerunid',
+            display_name: activeRunDisplayName,
           },
         ],
       });

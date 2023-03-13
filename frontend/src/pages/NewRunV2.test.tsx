@@ -18,8 +18,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'fs';
 import 'jest';
 import React from 'react';
-import { testBestPractices } from 'src/TestUtils';
-import { CommonTestWrapper } from 'src/TestWrapper';
+import { testBestPractices } from '../TestUtils';
+import { CommonTestWrapper } from '../TestWrapper';
 import {
   ApiExperiment,
   ApiExperimentStorageState,
@@ -32,15 +32,19 @@ import {
   ApiListPipelineVersionsResponse,
   ApiPipeline,
 } from '../apis/pipeline';
-import { ApiRelationship, ApiResourceType, ApiRunDetail } from '../apis/run';
+import { ApiRelationship, ApiResourceType } from '../apis/run';
+import { V2beta1Run, V2beta1RuntimeState } from '../apisv2beta1/run';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { QUERY_PARAMS, RoutePage } from '../components/Router';
 import { Apis, ExperimentSortKeys } from '../lib/Apis';
+import { convertYamlToV2PipelineSpec } from '../lib/v2/WorkflowUtils';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
+import * as JsYaml from 'js-yaml';
 
 const V2_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
 const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+const v2PipelineSpec = convertYamlToV2PipelineSpec(v2YamlTemplateString);
 
 testBestPractices();
 
@@ -108,103 +112,55 @@ describe('NewRunV2', () => {
   ];
 
   // Reponse from BE while POST a run for creating New UI-Run
-  const API_UI_CREATED_NEW_RUN_DETAILS: ApiRunDetail = {
-    pipeline_runtime: {
-      workflow_manifest: '',
-    },
-    run: {
-      created_at: new Date('2021-05-17T20:58:23.000Z'),
-      description: 'V2 xgboost',
-      finished_at: new Date('2021-05-18T21:01:23.000Z'),
-      id: TEST_RUN_ID,
-      name: 'Run of v2-xgboost-ilbo',
-      pipeline_spec: {
-        pipeline_manifest: v2YamlTemplateString,
-        runtime_config: { parameters: { intParam: 123 } },
-      },
-      resource_references: TEST_RESOURCE_REFERENCE,
-      scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
-      status: 'Succeeded',
-    },
+  const API_UI_CREATED_NEW_RUN_DETAILS: V2beta1Run = {
+    created_at: new Date('2021-05-17T20:58:23.000Z'),
+    description: 'V2 xgboost',
+    finished_at: new Date('2021-05-18T21:01:23.000Z'),
+    run_id: TEST_RUN_ID,
+    display_name: 'Run of v2-xgboost-ilbo',
+    pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    runtime_config: { parameters: { intParam: 123 } },
+    scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
+    state: V2beta1RuntimeState.SUCCEEDED,
   };
 
   // Reponse from BE while POST a run for cloning UI-Run
-  const API_UI_CREATED_CLONING_RUN_DETAILS: ApiRunDetail = {
-    pipeline_runtime: {
-      workflow_manifest: '',
-    },
-    run: {
-      created_at: new Date('2022-08-12T20:58:23.000Z'),
-      description: 'V2 xgboost',
-      finished_at: new Date('2022-08-12T21:01:23.000Z'),
-      id: 'test-clone-ui-run-id',
-      name: 'Clone of Run of v2-xgboost-ilbo',
-      pipeline_spec: {
-        pipeline_manifest: v2YamlTemplateString,
-        runtime_config: { parameters: { intParam: 123 } },
-      },
-      resource_references: TEST_RESOURCE_REFERENCE,
-      scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
-      status: 'Succeeded',
-    },
+  const API_UI_CREATED_CLONING_RUN_DETAILS: V2beta1Run = {
+    created_at: new Date('2022-08-12T20:58:23.000Z'),
+    description: 'V2 xgboost',
+    finished_at: new Date('2022-08-12T21:01:23.000Z'),
+    run_id: 'test-clone-ui-run-id',
+    display_name: 'Clone of Run of v2-xgboost-ilbo',
+    pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
+    runtime_config: { parameters: { intParam: 123 } },
+    scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
+    state: V2beta1RuntimeState.SUCCEEDED,
   };
 
   // Reponse from BE while SDK POST a new run for Creating run
-  const API_SDK_CREATED_NEW_RUN_DETAILS: ApiRunDetail = {
-    pipeline_runtime: {
-      workflow_manifest: '',
-    },
-    run: {
-      created_at: new Date('2021-05-17T20:58:23.000Z'),
-      description: 'V2 xgboost',
-      finished_at: new Date('2021-05-17T21:01:23.000Z'),
-      id: 'test-clone-sdk-run-id',
-      name: 'Run of v2-xgboost-ilbo',
-      pipeline_spec: {
-        pipeline_manifest: v2YamlTemplateString,
-        runtime_config: { parameters: { intParam: 123 } },
-      },
-      resource_references: [
-        {
-          key: {
-            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
-            type: ApiResourceType.EXPERIMENT,
-          },
-          relationship: ApiRelationship.OWNER,
-        },
-      ],
-      scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
-      status: 'Succeeded',
-    },
+  const API_SDK_CREATED_NEW_RUN_DETAILS: V2beta1Run = {
+    created_at: new Date('2021-05-17T20:58:23.000Z'),
+    description: 'V2 xgboost',
+    finished_at: new Date('2021-05-17T21:01:23.000Z'),
+    run_id: 'test-clone-sdk-run-id',
+    display_name: 'Run of v2-xgboost-ilbo',
+    pipeline_spec: v2PipelineSpec,
+    runtime_config: { parameters: { intParam: 123 } },
+    scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
+    state: V2beta1RuntimeState.SUCCEEDED,
   };
 
   // Reponse from BE while POST a run for cloning SDK-Run
-  const API_SDK_CREATED_CLONING_RUN_DETAILS: ApiRunDetail = {
-    pipeline_runtime: {
-      workflow_manifest: '',
-    },
-    run: {
-      created_at: new Date('2022-08-12T20:58:23.000Z'),
-      description: 'V2 xgboost',
-      finished_at: new Date('2022-08-12T21:01:23.000Z'),
-      id: 'test-clone-sdk-run-id',
-      name: 'Clone of Run of v2-xgboost-ilbo',
-      pipeline_spec: {
-        pipeline_manifest: v2YamlTemplateString,
-        runtime_config: { parameters: { intParam: 123 } },
-      },
-      resource_references: [
-        {
-          key: {
-            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
-            type: ApiResourceType.EXPERIMENT,
-          },
-          relationship: ApiRelationship.OWNER,
-        },
-      ],
-      scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
-      status: 'Succeeded',
-    },
+  const API_SDK_CREATED_CLONING_RUN_DETAILS: V2beta1Run = {
+    created_at: new Date('2022-08-12T20:58:23.000Z'),
+    description: 'V2 xgboost',
+    finished_at: new Date('2022-08-12T21:01:23.000Z'),
+    run_id: 'test-clone-sdk-run-id',
+    display_name: 'Clone of Run of v2-xgboost-ilbo',
+    pipeline_spec: v2PipelineSpec,
+    runtime_config: { parameters: { intParam: 123 } },
+    scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
+    state: V2beta1RuntimeState.SUCCEEDED,
   };
 
   const API_UI_CREATED_NEW_RECURRING_RUN_DETAILS: ApiJob = {
@@ -357,7 +313,7 @@ describe('NewRunV2', () => {
         <NewRunV2
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
-          apiRun={undefined}
+          existingRun={undefined}
           originalRecurringRunId={null}
           apiRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -394,7 +350,7 @@ describe('NewRunV2', () => {
         <NewRunV2
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
-          apiRun={undefined}
+          existingRun={undefined}
           originalRecurringRunId={null}
           apiRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -429,7 +385,7 @@ describe('NewRunV2', () => {
         <NewRunV2
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
-          apiRun={undefined}
+          existingRun={undefined}
           originalRecurringRunId={null}
           apiRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -467,7 +423,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsNewRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -502,7 +458,7 @@ describe('NewRunV2', () => {
       getPipelineVersionTemplateSpy.mockImplementation(() =>
         Promise.resolve({ template: v2YamlTemplateString }),
       );
-      const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
+      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
 
       render(
@@ -510,7 +466,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsNewRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -530,19 +486,8 @@ describe('NewRunV2', () => {
         expect(createRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             description: '',
-            pipeline_spec: {
-              pipeline_manifest: undefined,
-              runtime_config: { parameters: {}, pipeline_root: undefined },
-            },
-            resource_references: [
-              {
-                key: {
-                  id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-                  type: ApiResourceType.PIPELINEVERSION,
-                },
-                relationship: ApiRelationship.CREATOR,
-              },
-            ],
+            pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            runtime_config: { parameters: {}, pipeline_root: undefined },
             service_account: '',
           }),
         );
@@ -567,7 +512,7 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             namespace='test-ns'
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -613,7 +558,7 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             namespace='test-ns'
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -659,7 +604,7 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             namespace='test-ns'
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -712,7 +657,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsNewRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -751,7 +696,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsNewRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -805,7 +750,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsNewRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
@@ -860,7 +805,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsNewRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -887,7 +832,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsNewRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -916,7 +861,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
-            apiRun={API_UI_CREATED_NEW_RUN_DETAILS}
+            existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={undefined}
@@ -928,11 +873,11 @@ describe('NewRunV2', () => {
           />
         </CommonTestWrapper>,
       );
-      screen.findByDisplayValue(`Clone of ${API_UI_CREATED_NEW_RUN_DETAILS.run?.name}`);
+      screen.findByDisplayValue(`Clone of ${API_UI_CREATED_NEW_RUN_DETAILS.display_name}`);
     });
 
     it('submits a run (clone UI-created run)', async () => {
-      const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
+      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RUN_DETAILS);
 
       render(
@@ -940,7 +885,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId={TEST_RUN_ID}
-            apiRun={API_UI_CREATED_NEW_RUN_DETAILS}
+            existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={undefined}
@@ -964,12 +909,9 @@ describe('NewRunV2', () => {
         expect(createRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             description: '',
-            name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: {
-              pipeline_manifest: undefined,
-              runtime_config: { parameters: { intParam: 123 } },
-            },
-            resource_references: TEST_RESOURCE_REFERENCE,
+            display_name: 'Clone of Run of v2-xgboost-ilbo',
+            pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            runtime_config: { parameters: { intParam: 123 } },
             service_account: '',
           }),
         );
@@ -977,7 +919,7 @@ describe('NewRunV2', () => {
     });
 
     it('submits a run (clone SDK-created run)', async () => {
-      const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
+      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RUN_DETAILS);
 
       render(
@@ -985,7 +927,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId={TEST_RUN_ID}
-            apiRun={API_SDK_CREATED_NEW_RUN_DETAILS}
+            existingRun={API_SDK_CREATED_NEW_RUN_DETAILS}
             originalRecurringRunId={null}
             apiRecurringRun={undefined}
             existingPipeline={undefined}
@@ -1009,20 +951,9 @@ describe('NewRunV2', () => {
         expect(createRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             description: '',
-            name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: {
-              pipeline_manifest: v2YamlTemplateString,
-              runtime_config: { parameters: { intParam: 123 } },
-            },
-            resource_references: [
-              {
-                key: {
-                  id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
-                  type: ApiResourceType.EXPERIMENT,
-                },
-                relationship: ApiRelationship.OWNER,
-              },
-            ],
+            display_name: 'Clone of Run of v2-xgboost-ilbo',
+            pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+            runtime_config: { parameters: { intParam: 123 } },
             service_account: '',
           }),
         );
@@ -1040,7 +971,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={TEST_RECURRING_RUN_ID}
             apiRecurringRun={API_UI_CREATED_NEW_RECURRING_RUN_DETAILS}
             existingPipeline={undefined}
@@ -1095,7 +1026,7 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId={null}
-            apiRun={undefined}
+            existingRun={undefined}
             originalRecurringRunId={TEST_RECURRING_RUN_ID}
             apiRecurringRun={API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS}
             existingPipeline={undefined}

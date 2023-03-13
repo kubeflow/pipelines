@@ -14,38 +14,34 @@
  * limitations under the License.
  */
 
-import { testBestPractices } from 'src/TestUtils';
+import { testBestPractices } from '../../TestUtils';
 import {
   getScalarTableProps,
   getParamsTableProps,
   getValidRocCurveArtifactData,
   RunArtifact,
 } from './CompareUtils';
-import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
-import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import { Artifact, Event, Execution, Value } from '../../third_party/mlmd';
+import { LinkedArtifact } from '../../mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { ApiRunDetail } from 'src/apis/run';
-import { RuntimeParameters } from 'src/pages/NewRunV2';
+import { ApiRunDetail } from '../../apis/run';
+import { RuntimeParameters } from '../../pages/NewRunV2';
+import { V2beta1Run } from '../../apisv2beta1/run';
 
 const MOCK_RUN_1_ID = 'mock-run-1-id';
 const MOCK_RUN_2_ID = 'mock-run-2-id';
 const MOCK_RUN_3_ID = 'mock-run-3-id';
 
-function newMockRun(parameters?: any, id?: string): ApiRunDetail {
+function newMockRun(parameters?: any, id?: string): V2beta1Run {
   return {
-    pipeline_runtime: {
-      workflow_manifest: '{}',
+    run_id: id || 'test-run-id',
+    display_name: `test run ${id}`,
+    pipeline_spec: {
+      pipeline_manifest: '',
     },
-    run: {
-      id: id || 'test-run-id',
-      name: `test run ${id}`,
-      pipeline_spec: {
-        pipeline_manifest: '',
-        runtime_config: {
-          parameters,
-        },
-      },
+    runtime_config: {
+      parameters,
     },
   };
 }
@@ -135,10 +131,8 @@ describe('CompareUtils', () => {
     const scalarMetricsArtifacts: RunArtifact[] = [
       {
         run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
+          run_id: '1',
+          display_name: 'run1',
         },
         executionArtifacts: [
           {
@@ -156,10 +150,8 @@ describe('CompareUtils', () => {
       },
       {
         run: {
-          run: {
-            id: '2',
-            name: 'run2',
-          },
+          run_id: '2',
+          display_name: 'run2',
         },
         executionArtifacts: [
           {
@@ -194,9 +186,7 @@ describe('CompareUtils', () => {
     const scalarMetricsArtifacts: RunArtifact[] = [
       {
         run: {
-          run: {
-            id: '1',
-          },
+          run_id: '1',
         },
         executionArtifacts: [
           {
@@ -214,9 +204,7 @@ describe('CompareUtils', () => {
       },
       {
         run: {
-          run: {
-            id: '2',
-          },
+          run_id: '2',
         },
         executionArtifacts: [
           {
@@ -271,10 +259,8 @@ describe('CompareUtils', () => {
     const rocCurveRunArtifacts: RunArtifact[] = [
       {
         run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
+          run_id: '1',
+          display_name: 'run1',
         },
         executionArtifacts: [
           {
@@ -289,9 +275,7 @@ describe('CompareUtils', () => {
       },
       {
         run: {
-          run: {
-            id: '2',
-          },
+          run_id: '2',
         },
         executionArtifacts: [
           {
@@ -354,7 +338,7 @@ describe('CompareUtils', () => {
       newName: { key: 2000 },
     };
 
-    const runs: ApiRunDetail[] = [
+    const runs: V2beta1Run[] = [
       newMockRun(firstParameters, MOCK_RUN_1_ID),
       newMockRun(secondParameters, MOCK_RUN_2_ID),
       newMockRun({}, MOCK_RUN_3_ID),
