@@ -20,6 +20,7 @@ import DetailsTable from '../components/DetailsTable';
 import RunUtils from '../lib/RunUtils';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiJob } from '../apis/job';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -31,7 +32,7 @@ import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/U
 import { triggerDisplayString } from '../lib/TriggerUtils';
 
 interface RecurringRunConfigState {
-  run: ApiJob | null;
+  run: V2beta1RecurringRun | null;
 }
 
 class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
@@ -47,12 +48,12 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .cloneRecurringRun(() => (this.state.run ? [this.state.run.id!] : []), true)
+        .cloneRecurringRun(() => (this.state.run ? [this.state.run.recurring_run_id!] : []), true)
         .refresh(this.refresh.bind(this))
-        .enableRecurringRun(() => (this.state.run ? this.state.run.id! : ''))
-        .disableRecurringRun(() => (this.state.run ? this.state.run.id! : ''))
+        .enableRecurringRun(() => (this.state.run ? this.state.run.recurring_run_id! : ''))
+        .disableRecurringRun(() => (this.state.run ? this.state.run.recurring_run_id! : ''))
         .delete(
-          () => (this.state.run ? [this.state.run!.id!] : []),
+          () => (this.state.run ? [this.state.run!.recurring_run_id!] : []),
           'recurring run config',
           this._deleteCallback.bind(this),
           true /* useCurrentResource */,
@@ -68,18 +69,18 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     let runDetails: Array<KeyValue<string>> = [];
     let inputParameters: Array<KeyValue<string>> = [];
     let triggerDetails: Array<KeyValue<string>> = [];
-    if (run && run.pipeline_spec) {
+    if (run) {
       runDetails = [
         ['Description', run.description!],
         ['Created at', formatDateString(run.created_at)],
       ];
-      inputParameters = (run.pipeline_spec.parameters || []).map(p => [
-        p.name || '',
-        p.value || '',
+      inputParameters = Object.entries(run.runtime_config?.parameters || []).map(param => [
+        param[0] || '',
+        param[1] || '',
       ]);
       if (run.trigger) {
         triggerDetails = [
-          ['Enabled', enabledDisplayString(run.trigger, run.enabled!)],
+          ['Enabled', enabledDisplayString(run.trigger, run.status!)],
           ['Trigger', triggerDisplayString(run.trigger)],
         ];
         if (run.max_concurrency) {
@@ -137,21 +138,21 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   public async load(): Promise<void> {
     this.clearBanner();
-    const runId = this.props.match.params[RouteParams.recurringRunId];
+    const recurringRunId = this.props.match.params[RouteParams.recurringRunId];
 
-    let run: ApiJob;
+    let run: V2beta1RecurringRun;
     try {
-      run = await Apis.jobServiceApi.getJob(runId);
+      run = await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       await this.showPageError(
-        `Error: failed to retrieve recurring run: ${runId}.`,
+        `Error: failed to retrieve recurring run: ${recurringRunId}.`,
         new Error(errorMessage),
       );
       return;
     }
 
-    const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
+    const relatedExperimentId = run.experiment_id;
     let experiment: ApiExperiment | undefined;
     if (relatedExperimentId) {
       try {
@@ -180,11 +181,13 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     } else {
       breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
     }
-    const pageTitle = run ? run.name! : runId;
+    const pageTitle = run ? run.display_name! : recurringRunId;
 
     const toolbarActions = this.props.toolbarProps.actions;
-    toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled = !!run.enabled;
-    toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled = !run.enabled;
+    toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
+      run.status === V2beta1RecurringRunStatus.ENABLED;
+    toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
+      run.status !== V2beta1RecurringRunStatus.ENABLED;
 
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 

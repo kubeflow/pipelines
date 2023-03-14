@@ -18,6 +18,7 @@ import * as React from 'react';
 import RecurringRunDetails from './RecurringRunDetails';
 import TestUtils from '../TestUtils';
 import { ApiJob, ApiResourceType } from '../apis/job';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from '../apisv2beta1/recurringrun';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
@@ -32,18 +33,18 @@ describe('RecurringRunDetails', () => {
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
-  const getJobSpy = jest.spyOn(Apis.jobServiceApi, 'getJob');
+  const getRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const deleteJobSpy = jest.spyOn(Apis.jobServiceApi, 'deleteJob');
   const enableJobSpy = jest.spyOn(Apis.jobServiceApi, 'enableJob');
   const disableJobSpy = jest.spyOn(Apis.jobServiceApi, 'disableJob');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
 
-  let fullTestJob: ApiJob = {};
+  let fullTestRecurringRun: V2beta1RecurringRun = {};
 
   function generateProps(): PageProps {
     const match = {
       isExact: true,
-      params: { [RouteParams.recurringRunId]: fullTestJob.id },
+      params: { [RouteParams.recurringRunId]: fullTestRecurringRun.recurring_run_id },
       path: '',
       url: '',
     };
@@ -60,18 +61,19 @@ describe('RecurringRunDetails', () => {
   }
 
   beforeEach(() => {
-    fullTestJob = {
+    fullTestRecurringRun = {
       created_at: new Date(2018, 8, 5, 4, 3, 2),
-      description: 'test job description',
-      enabled: true,
-      id: 'test-job-id',
+      description: 'test recurring run description',
+      display_name: 'test recurring run',
       max_concurrency: '50',
       no_catchup: true,
-      name: 'test job',
       pipeline_spec: {
-        parameters: [{ name: 'param1', value: 'value1' }],
+        // parameters: [{ name: 'param1', value: 'value1' }],
         pipeline_id: 'some-pipeline-id',
       },
+      recurring_run_id: 'test-recurring-run-id',
+      runtime_config: { parameters: { param1: 'value1' } },
+      status: V2beta1RecurringRunStatus.ENABLED,
       trigger: {
         periodic_schedule: {
           end_time: new Date(2018, 10, 9, 8, 7, 6),
@@ -79,10 +81,10 @@ describe('RecurringRunDetails', () => {
           start_time: new Date(2018, 9, 8, 7, 6),
         },
       },
-    } as ApiJob;
+    } as V2beta1RecurringRun;
 
     jest.clearAllMocks();
-    getJobSpy.mockImplementation(() => fullTestJob);
+    getRecurringRunSpy.mockImplementation(() => fullTestRecurringRun);
     deleteJobSpy.mockImplementation();
     enableJobSpy.mockImplementation();
     disableJobSpy.mockImplementation();
@@ -98,8 +100,8 @@ describe('RecurringRunDetails', () => {
   });
 
   it('renders a recurring run with cron schedule', async () => {
-    const cronTestJob = {
-      ...fullTestJob,
+    const cronTestRecurringRun = {
+      ...fullTestRecurringRun,
       no_catchup: undefined, // in api requests, it's undefined when false
       trigger: {
         cron_schedule: {
@@ -109,7 +111,7 @@ describe('RecurringRunDetails', () => {
         },
       },
     };
-    getJobSpy.mockImplementation(() => cronTestJob);
+    getRecurringRunSpy.mockImplementation(() => cronTestRecurringRun);
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
@@ -119,7 +121,7 @@ describe('RecurringRunDetails', () => {
     // The run id is in the router match object, defined inside generateProps
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    expect(getJobSpy).toHaveBeenLastCalledWith(fullTestJob.id);
+    expect(getRecurringRunSpy).toHaveBeenLastCalledWith(fullTestRecurringRun.recurring_run_id);
     expect(getExperimentSpy).not.toHaveBeenCalled();
   });
 
@@ -130,25 +132,21 @@ describe('RecurringRunDetails', () => {
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
-        pageTitle: fullTestJob.name,
+        pageTitle: fullTestRecurringRun.display_name,
       }),
     );
   });
 
   it('loads the recurring run and its experiment if it has one', async () => {
-    fullTestJob.resource_references = [
-      { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
-    ];
+    fullTestRecurringRun.experiment_id = 'test-experiment-id';
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    expect(getJobSpy).toHaveBeenLastCalledWith(fullTestJob.id);
+    expect(getRecurringRunSpy).toHaveBeenLastCalledWith(fullTestRecurringRun.recurring_run_id);
     expect(getExperimentSpy).toHaveBeenLastCalledWith('test-experiment-id');
   });
 
   it('shows Experiments -> Experiment name -> run name when there is an experiment', async () => {
-    fullTestJob.resource_references = [
-      { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
-    ];
+    fullTestRecurringRun.experiment_id = 'test-experiment-id';
     getExperimentSpy.mockImplementation(id => ({ id, name: 'test experiment name' }));
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -164,29 +162,27 @@ describe('RecurringRunDetails', () => {
             ),
           },
         ],
-        pageTitle: fullTestJob.name,
+        pageTitle: fullTestRecurringRun.display_name,
       }),
     );
   });
 
   it('shows error banner if run cannot be fetched', async () => {
-    TestUtils.makeErrorResponseOnce(getJobSpy, 'woops!');
+    TestUtils.makeErrorResponseOnce(getRecurringRunSpy, 'woops!');
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
-        message: `Error: failed to retrieve recurring run: ${fullTestJob.id}. Click Details for more information.`,
+        message: `Error: failed to retrieve recurring run: ${fullTestRecurringRun.recurring_run_id}. Click Details for more information.`,
         mode: 'error',
       }),
     );
   });
 
   it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
-    fullTestJob.resource_references = [
-      { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
-    ];
+    fullTestRecurringRun.experiment_id = 'test-experiment-id';
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops!');
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -198,7 +194,7 @@ describe('RecurringRunDetails', () => {
         mode: 'warning',
       }),
     );
-    expect(tree.state('run')).toEqual(fullTestJob);
+    expect(tree.state('run')).toEqual(fullTestRecurringRun);
   });
 
   it('has a Refresh button, clicking it refreshes the run details', async () => {
@@ -206,9 +202,9 @@ describe('RecurringRunDetails', () => {
     const instance = tree.instance() as RecurringRunDetails;
     const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
-    expect(getJobSpy).toHaveBeenCalledTimes(1);
+    expect(getRecurringRunSpy).toHaveBeenCalledTimes(1);
     await refreshBtn!.action();
-    expect(getJobSpy).toHaveBeenCalledTimes(2);
+    expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
   });
 
   it('has a clone button, clicking it navigates to new run page', async () => {
@@ -221,7 +217,7 @@ describe('RecurringRunDetails', () => {
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN +
-        `?${QUERY_PARAMS.cloneFromRecurringRun}=${fullTestJob!.id}` +
+        `?${QUERY_PARAMS.cloneFromRecurringRun}=${fullTestRecurringRun!.recurring_run_id}` +
         `&${QUERY_PARAMS.isRecurring}=1`,
     );
   });
@@ -242,7 +238,7 @@ describe('RecurringRunDetails', () => {
   });
 
   it('shows enabled Disable, and disabled Enable buttons if the run is disabled', async () => {
-    fullTestJob.enabled = false;
+    fullTestRecurringRun.status = V2beta1RecurringRunStatus.DISABLED;
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
@@ -258,7 +254,7 @@ describe('RecurringRunDetails', () => {
   });
 
   it('shows enabled Disable, and disabled Enable buttons if the run is undefined', async () => {
-    fullTestJob.enabled = undefined;
+    fullTestRecurringRun.status = undefined;
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
@@ -280,9 +276,9 @@ describe('RecurringRunDetails', () => {
     const disableBtn = instance.getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await disableBtn!.action();
     expect(disableJobSpy).toHaveBeenCalledTimes(1);
-    expect(disableJobSpy).toHaveBeenLastCalledWith('test-job-id');
-    expect(getJobSpy).toHaveBeenCalledTimes(2);
-    expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(disableJobSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
+    expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+    expect(getRecurringRunSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
   });
 
   it('shows error dialog if disable fails', async () => {
@@ -302,7 +298,7 @@ describe('RecurringRunDetails', () => {
   });
 
   it('shows error dialog if enable fails', async () => {
-    fullTestJob.enabled = false;
+    fullTestRecurringRun.status = V2beta1RecurringRunStatus.DISABLED;
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(enableJobSpy, 'could not enable');
     await TestUtils.flushPromises();
@@ -319,16 +315,16 @@ describe('RecurringRunDetails', () => {
   });
 
   it('calls enable API when enable button is clicked, refreshes the page', async () => {
-    fullTestJob.enabled = false;
+    fullTestRecurringRun.status = V2beta1RecurringRunStatus.DISABLED;
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
     const enableBtn = instance.getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await enableBtn!.action();
     expect(enableJobSpy).toHaveBeenCalledTimes(1);
-    expect(enableJobSpy).toHaveBeenLastCalledWith('test-job-id');
-    expect(getJobSpy).toHaveBeenCalledTimes(2);
-    expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(enableJobSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
+    expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+    expect(getRecurringRunSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
   });
 
   it('shows a delete button', async () => {
@@ -362,7 +358,7 @@ describe('RecurringRunDetails', () => {
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(deleteJobSpy).toHaveBeenCalledTimes(1);
-    expect(deleteJobSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(deleteJobSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
   });
 
   it('does not call delete API when delete cancel dialog button is clicked', async () => {
@@ -392,7 +388,7 @@ describe('RecurringRunDetails', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
-    expect(deleteJobSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(deleteJobSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.EXPERIMENTS);
   });
@@ -430,7 +426,7 @@ describe('RecurringRunDetails', () => {
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content:
-          'Failed to delete recurring run config: test-job-id with error: "could not delete"',
+          'Failed to delete recurring run config: test-recurring-run-id with error: "could not delete"',
         title: 'Failed to delete recurring run config',
       }),
     );

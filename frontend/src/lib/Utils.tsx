@@ -86,7 +86,10 @@ export async function errorToMessage(error: any): Promise<string> {
   return JSON.stringify(error) || '';
 }
 
-export function enabledDisplayString(trigger: V2beta1Trigger | undefined, status: V2beta1RecurringRunStatus): string {
+export function enabledDisplayString(
+  trigger: V2beta1Trigger | undefined,
+  status: V2beta1RecurringRunStatus,
+): string {
   if (trigger) {
     switch (status) {
       case V2beta1RecurringRunStatus.ENABLED:
