@@ -86,7 +86,7 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentsPara
 			getDefaultExperiment("102", "MY_THIRD_EXPERIMENT"),
 		}, 1, FinalToken, nil
 	default:
-		return nil, 0, "", fmt.Errorf(api_serer.InvalidFakeRequest, token)
+		return nil, 0, "", fmt.Errorf(api_server.InvalidFakeRequest, token)
 	}
 }
 
