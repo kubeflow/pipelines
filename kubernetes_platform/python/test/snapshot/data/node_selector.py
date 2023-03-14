@@ -12,17 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp import dsl
+from kfp import kubernetes
 
-test_cases:
-  - module: create_mount_delete_dynamic_pvc
-    name: my_pipeline
-  - module: create_mount_delete_existing_pvc
-    name: my_pipeline
-  - module: create_mount_delete_existing_pvc_from_task_output
-    name: my_pipeline
-  - module: secret_as_env
-    name: my_pipeline
-  - module: secret_as_vol
-    name: my_pipeline
-  - module: node_selector
-    name: my_pipeline
+
+@dsl.component
+def comp():
+    pass
+
+
+@dsl.pipeline
+def my_pipeline():
+    task = comp()
+    kubernetes.add_node_selector(
+        task,
+        label_key='cloud.google.com/gke-accelerator',
+        label_value='nvidia-tesla-p4',
+    )
+
+
+if __name__ == '__main__':
+    from kfp import compiler
+    compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))

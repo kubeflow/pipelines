@@ -24,7 +24,7 @@ def use_secret_as_env(
     task: PipelineTask,
     secret_name: str,
     secret_key_to_env: Dict[str, str],
-) -> None:
+) -> PipelineTask:
     """Use a Kubernetes Secret as an environment variable as described in
     https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-
     environment-variables.
@@ -33,6 +33,9 @@ def use_secret_as_env(
         task: Pipeline task.
         secret_name: Name of the Secret.
         secret_key_to_env: Map of Secret key's to environment variable names. E.g., {'password': 'PASSWORD'} maps the Secret's password value to the environment variable PASSWORD.
+
+    Returns:
+        Task object with updated secret configuration.
     """
 
     msg = common.get_existing_kubernetes_config_as_message(task)
@@ -52,12 +55,14 @@ def use_secret_as_env(
 
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
+    return task
+
 
 def use_secret_as_volume(
     task: PipelineTask,
     secret_name: str,
     mount_path: str,
-) -> None:
+) -> PipelineTask:
     """Use a Kubernetes Secret by mounting its data to the task's container as
     described in
     https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-
@@ -67,6 +72,9 @@ def use_secret_as_volume(
         task: Pipeline task.
         secret_name: Name of the Secret.
         mount_path: Path to which to mount the Secret data.
+
+    Returns:
+        Task object with updated secret configuration.
     """
 
     msg = common.get_existing_kubernetes_config_as_message(task)
@@ -79,3 +87,5 @@ def use_secret_as_volume(
     msg.secret_as_volume.append(secret_as_vol)
 
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
+
+    return task
