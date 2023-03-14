@@ -32,7 +32,7 @@ import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunUtils from 'src/lib/RunUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
-import { formatDateString, getRunDurationFromRunV2 } from 'src/lib/Utils';
+import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
@@ -335,6 +335,6 @@ function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
     ['Created at', run?.created_at ? formatDateString(run.created_at) : '-'],
     ['Started at', formatDateString(run?.scheduled_at)],
     ['Finished at', finishedAt > new Date(0) ? formatDateString(run?.finished_at) : '-'],
-    ['Duration', finishedAt > new Date(0) ? getRunDurationFromRunV2(run) : '-'],
+    ['Duration', finishedAt > new Date(0) ? getRunDurationV2(run) : '-'],
   ];
 }

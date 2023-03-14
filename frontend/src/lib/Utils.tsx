@@ -142,12 +142,6 @@ export function getRunDurationFromApiRun(apiRun?: ApiRun): string {
   return getDuration(new Date(apiRun.created_at), new Date(apiRun.finished_at));
 }
 
-export function getRunDurationFromRunV2(run?: V2beta1Run): string {
-  return !run || !run.created_at || !run.finished_at
-    ? '-'
-    : getDuration(new Date(run.created_at), new Date(run.finished_at));
-}
-
 /**
  * Calculate the time duration a task has taken as a node in workflow. If start time or end time
  * is not available, return '-'.
