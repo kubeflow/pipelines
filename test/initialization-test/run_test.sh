@@ -25,7 +25,7 @@ usage()
     echo "usage: run_test.sh
     --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/initialization_test
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
-    [--test-v2-api run test using v2 API]
+    [--test-v2-api    run test using v2 API]
     [-h help]"
 }
 

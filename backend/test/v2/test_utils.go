@@ -33,7 +33,7 @@ import (
 
 func WaitForReady(namespace string, initializeTimeout time.Duration) error {
 	operation := func() error {
-		response, err := http.Get(fmt.Sprintf("http://ml-pipeline.%s.svc.cluster.local:8888/apis/v2beta11/healthz", namespace))
+		response, err := http.Get(fmt.Sprintf("http://ml-pipeline.%s.svc.cluster.local:8888/apis/v2beta1/healthz", namespace))
 		if err != nil {
 			return err
 		}
@@ -59,19 +59,6 @@ func GetClientConfig(namespace string) clientcmd.ClientConfig {
 	overrides := clientcmd.ConfigOverrides{Context: clientcmdapi.Context{Namespace: namespace}}
 	return clientcmd.NewInteractiveDeferredLoadingClientConfig(loadingRules,
 		&overrides, os.Stdin)
-}
-
-func GetExperiment(name string, description string, namespace string) *experiment_model.V2beta1Experiment {
-	experiment := &experiment_model.V2beta1Experiment{
-		DisplayName: name,
-		Description: description,
-	}
-
-	if namespace != "" {
-		experiment.Namespace = namespace
-	}
-
-	return experiment
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.V2beta1Experiment, int, string, error) {
