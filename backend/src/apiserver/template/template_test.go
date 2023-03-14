@@ -297,9 +297,22 @@ func TestNewTemplate_WithExecutorConfig(t *testing.T) {
 }
 
 // Verify that the V2Spec object created from Bytes() method is the same as the original object.
-// The byte slice may be slightly different from the original input during the conversion.
-func TestBytes_V2(t *testing.T) {
+// The byte slice may be slightly different from the original input during the conversion,
+// so we verify the parsed object.
+func TestBytes_V2_WithExecutorConfig(t *testing.T) {
 	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
+	templateV2Spec, _ := New([]byte(template))
+	templateBytes := templateV2Spec.Bytes()
+	newTemplateV2Spec, err := New(templateBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
+}
+
+// Verify that the V2Spec object created from Bytes() method is the same as the original object.
+// The byte slice may be slightly different from the original input during the conversion,
+// so we verify the parsed object.
+func TestBytes_V2(t *testing.T) {
+	template := loadYaml(t, "testdata/hello_world.yaml")
 	templateV2Spec, _ := New([]byte(template))
 	templateBytes := templateV2Spec.Bytes()
 	newTemplateV2Spec, err := New(templateBytes)

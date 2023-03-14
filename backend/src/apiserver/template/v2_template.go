@@ -178,24 +178,25 @@ func (t *V2Spec) Bytes() []byte {
 		// this is unexpected, cannot convert proto message to JSON
 		return nil
 	}
-	bytesSpecYaml, err := yaml.JSONToYAML(bytesSpec)
+	bytes, err := yaml.JSONToYAML(bytesSpec)
 	if err != nil {
 		// this is unexpected, cannot convert JSON to YAML
 		return nil
 	}
-	bytesExecutorConfig, err := protojson.Marshal(t.platformSpec)
-	if err != nil {
-		// this is unexpected, cannot convert proto message to JSON
-		return nil
+	if t.platformSpec != nil {
+		bytesExecutorConfig, err := protojson.Marshal(t.platformSpec)
+		if err != nil {
+			// this is unexpected, cannot convert proto message to JSON
+			return nil
+		}
+		bytesExecutorConfigYaml, err := yaml.JSONToYAML(bytesExecutorConfig)
+		if err != nil {
+			// this is unexpected, cannot convert JSON to YAML
+			return nil
+		}
+		bytes = append(bytes, []byte("\n---\n")...)
+		bytes = append(bytes, bytesExecutorConfigYaml...)
 	}
-	bytesExecutorConfigYaml, err := yaml.JSONToYAML(bytesExecutorConfig)
-	if err != nil {
-		// this is unexpected, cannot convert JSON to YAML
-		return nil
-	}
-
-	bytes := append(bytesSpecYaml, []byte("\n---\n")...)
-	bytes = append(bytes, bytesExecutorConfigYaml...)
 	return bytes
 }
 
