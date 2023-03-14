@@ -124,6 +124,9 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 		}
 		if isPipelineSpec(valueBytes) {
 			// Pick out the yaml document with pipeline spec
+			if v2Spec.spec != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "multiple pipeline specs provided")
+			}
 			pipelineSpecJson, err := yaml.YAMLToJSON(valueBytes)
 			if err != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
@@ -145,6 +148,9 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 			v2Spec.spec = &spec
 		} else if isKubernetesExecutorConfig(valueBytes) {
 			// Pick out the yaml document with platform spec
+			if v2Spec.platformSpec != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, "multiple Kubernetes executor config provided")
+			}
 			var platformSpec pipelinespec.PlatformSpec
 			platformSpecJson, err := yaml.YAMLToJSON(valueBytes)
 			if err != nil {
@@ -156,6 +162,9 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 			}
 			v2Spec.platformSpec = &platformSpec
 		}
+	}
+	if v2Spec.spec == nil {
+		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "no pipeline spec is provided")
 	}
 	return &v2Spec, nil
 }
@@ -169,19 +178,25 @@ func (t *V2Spec) Bytes() []byte {
 		// this is unexpected, cannot convert proto message to JSON
 		return nil
 	}
-
+	bytesSpecYaml, err := yaml.JSONToYAML(bytesSpec)
+	if err != nil {
+		// this is unexpected, cannot convert JSON to YAML
+		return nil
+	}
 	bytesExecutorConfig, err := protojson.Marshal(t.platformSpec)
 	if err != nil {
 		// this is unexpected, cannot convert proto message to JSON
 		return nil
 	}
-	bytes := append(bytesSpec, bytesExecutorConfig...)
-	bytesYAML, err := yaml.JSONToYAML(bytes)
+	bytesExecutorConfigYaml, err := yaml.JSONToYAML(bytesExecutorConfig)
 	if err != nil {
 		// this is unexpected, cannot convert JSON to YAML
 		return nil
 	}
-	return bytesYAML
+
+	bytes := append(bytesSpecYaml, []byte("\n---\n")...)
+	bytes = append(bytes, bytesExecutorConfigYaml...)
+	return bytes
 }
 
 func (t *V2Spec) IsV2() bool {

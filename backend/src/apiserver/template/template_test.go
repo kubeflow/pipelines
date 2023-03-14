@@ -259,6 +259,7 @@ func TestIsKubernetesExecutorConfig(t *testing.T) {
 	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
 	splitTemplate := strings.Split(template, "\n---\n")
 	assert.True(t, isKubernetesExecutorConfig([]byte(splitTemplate[1])))
+	assert.False(t, isKubernetesExecutorConfig([]byte(splitTemplate[0])))
 }
 
 func TestNewTemplate_V2(t *testing.T) {
@@ -293,4 +294,15 @@ func TestNewTemplate_WithExecutorConfig(t *testing.T) {
 	templateV2Spec, err := New([]byte(template))
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
+}
+
+// Verify that the V2Spec object created from Bytes() method is the same as the original object.
+// The byte slice may be slightly different from the original input during the conversion.
+func TestBytes_V2(t *testing.T) {
+	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
+	templateV2Spec, _ := New([]byte(template))
+	templateBytes := templateV2Spec.Bytes()
+	newTemplateV2Spec, err := New(templateBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
 }
