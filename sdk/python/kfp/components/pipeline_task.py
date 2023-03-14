@@ -275,7 +275,7 @@ class PipelineTask:
 
     def set_accelerator_limit(self, limit: int) -> 'PipelineTask':
         """Sets accelerator limit (maximum) for the task. Only applies if
-        accelerator type is also set via .add_node_selector_constraint().
+        accelerator type is also set via .set_accelerator_type().
 
         Args:
             limit: Maximum number of accelerators allowed.
@@ -302,7 +302,7 @@ class PipelineTask:
 
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
         """Sets GPU limit (maximum) for the task. Only applies if accelerator
-        type is also set via .add_node_selector_constraint().
+        type is also set via .add_accelerator_type().
 
         Args:
             gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
@@ -401,8 +401,21 @@ class PipelineTask:
         """Sets accelerator type to use when executing this task.
 
         Args:
-            value: The name of the accelerator. Available values include
-                ``'NVIDIA_TESLA_K80'`` and ``'TPU_V3'``.
+            accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        warnings.warn(
+            f'{self.add_node_selector_constraint.__name__!r} is deprecated. Please use {self.set_accelerator_type.__name__!r} instead.',
+            category=DeprecationWarning)
+        return self.set_accelerator_type(accelerator)
+
+    def set_accelerator_type(self, accelerator: str) -> 'PipelineTask':
+        """Sets accelerator type to use when executing this task.
+
+        Args:
+            accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
 
         Returns:
             Self return to allow chained setting calls.

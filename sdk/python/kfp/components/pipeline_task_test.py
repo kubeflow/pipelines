@@ -191,6 +191,20 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(expected_gpu_number,
                          task.container_spec.resources.accelerator_count)
 
+    def test_add_valid_node_selector_constraint(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertWarnsRegex(
+                DeprecationWarning,
+                "'add_node_selector_constraint' is deprecated. Please use 'set_accelerator_type' instead."
+        ):
+            task.add_node_selector_constraint('TPU_V3')
+        self.assertEqual(task.container_spec.resources.accelerator_type,
+                         'TPU_V3')
+
     @parameterized.parameters(
         {
             'limit': '123',
@@ -276,25 +290,25 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(expected_memory_number,
                          task.container_spec.resources.memory_limit)
 
-    def test_add_node_selector_constraint_type_only(self):
+    def test_set_accelerator_type_with_type_only(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.add_node_selector_constraint('NVIDIA_TESLA_K80')
+        task.set_accelerator_type('NVIDIA_TESLA_K80')
         self.assertEqual(
             structures.ResourceSpec(
                 accelerator_type='NVIDIA_TESLA_K80', accelerator_count=1),
             task.container_spec.resources)
 
-    def test_add_node_selector_constraint_accelerator_count(self):
+    def test_set_accelerator_type_with_accelerator_count(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.set_gpu_limit('5').add_node_selector_constraint('TPU_V3')
+        task.set_accelerator_limit('5').set_accelerator_type('TPU_V3')
         self.assertEqual(
             structures.ResourceSpec(
                 accelerator_type='TPU_V3', accelerator_count=5),
