@@ -34,12 +34,7 @@ def CreatePVC(
     annotations: Optional[Dict[str, str]] = None,
 ):
     """Create a PersistentVolumeClaim, which can be used by downstream tasks.
-    See `PersistentVolume.
-
-    <https://kubernetes.io/docs/concepts/storage/persistent-
-    volumes/#persistent-volumes>`_ and `PersistentVolumeClaim
-    <https://kubernetes.io/docs/concepts/storage/persistent-
-    volumes/#persistentvolumeclaims>`_ documentation for more information about
+    See `PersistentVolume <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_ and `PersistentVolumeClaim <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims>`_ documentation for more information about
     the component input parameters.
 
     Args:
@@ -79,6 +74,9 @@ def mount_pvc(
         pvc_name: Name of the PVC to mount. Can also be a runtime-generated name
             reference provided by `kubernetes.CreatePvcOp().outputs['pvc_name']`.
         mount_path: Path to which the PVC should be mounted as a volume.
+
+    Returns:
+        Task object with updated PVC mount configuration.
     """
 
     msg = common.get_existing_kubernetes_config_as_message(task)
