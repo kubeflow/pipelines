@@ -401,7 +401,7 @@ class PipelineTask:
         """Sets accelerator type to use when executing this task.
 
         Args:
-            value: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'`` and ``'TPU_V3'``.
+            accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
 
         Returns:
             Self return to allow chained setting calls.
@@ -415,7 +415,7 @@ class PipelineTask:
         """Sets accelerator type to use when executing this task.
 
         Args:
-            value: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'`` and ``'TPU_V3'``.
+            accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
 
         Returns:
             Self return to allow chained setting calls.
