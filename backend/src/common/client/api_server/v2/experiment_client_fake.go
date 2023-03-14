@@ -20,12 +20,11 @@ import (
 	"github.com/go-openapi/strfmt"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	experimentmodel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 )
 
 const (
 	v2ExperimentForClientErrorTest = "EXPERIMENT_CLIENT_ERROR"
-	clientErrorString              = "Error with client"
-	invalidFakeRequest             = "Invalid fake request, don't know how to handle '%s' in the fake client."
 )
 
 func getDefaultExperiment(id string, name string) *experimentmodel.V2beta1Experiment {
@@ -47,7 +46,7 @@ func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentP
 	*experimentmodel.V2beta1Experiment, error) {
 	switch params.Body.DisplayName {
 	case v2ExperimentForClientErrorTest:
-		return nil, fmt.Errorf(clientErrorString)
+		return nil, fmt.Errorf(api_server.ClientErrorString)
 	default:
 		return getDefaultExperiment("500", params.Body.DisplayName), nil
 	}
@@ -57,7 +56,7 @@ func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentParams)
 	*experimentmodel.V2beta1Experiment, error) {
 	switch params.ExperimentID {
 	case v2ExperimentForClientErrorTest:
-		return nil, fmt.Errorf(clientErrorString)
+		return nil, fmt.Errorf(api_server.ClientErrorString)
 	default:
 		return getDefaultExperiment(params.ExperimentID, "EXPERIMENT_NAME"), nil
 	}
@@ -87,7 +86,7 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentsPara
 			getDefaultExperiment("102", "MY_THIRD_EXPERIMENT"),
 		}, 1, FinalToken, nil
 	default:
-		return nil, 0, "", fmt.Errorf(invalidFakeRequest, token)
+		return nil, 0, "", fmt.Errorf(api_serer.InvalidFakeRequest, token)
 	}
 }
 
