@@ -24,7 +24,7 @@ message KubernetesExecutorConfig {
     repeated SecretAsVolume secret_as_volume = 1;
     repeated SecretAsEnv secret_as_env = 2;
     repeated PvcMount pvc_mount = 3;
-    repeated NodeSelector node_selector = 4;
+    NodeSelector node_selector = 4;
 }
 
 message SecretAsVolume {
@@ -110,6 +110,7 @@ message DeletePvc {
 }
 
 message NodeSelector {
-    string label_key = 1;
-    string label_value = 2;
+    // map of label key to label value
+    // corresponds to Pod.spec.nodeSelector field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+    map<string, string> labels = 1;
 }

@@ -16,7 +16,7 @@ import os
 import re
 import sys
 import tempfile
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 import unittest
 
 from kfp import compiler
@@ -70,12 +70,13 @@ def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
     return spec
 
 
-def load_compiled_file(filename: str) -> Dict[str, Any]:
+def load_pipeline_spec_and_platform_spec(
+        filename: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     with open(filename) as f:
-        pipeline_spec, _ = tuple(yaml.safe_load_all(f))
+        pipeline_spec, platform_spec = tuple(yaml.safe_load_all(f))
         # ignore the sdkVersion
         del pipeline_spec['sdkVersion']
-        return ignore_kfp_version_helper(pipeline_spec)
+        return ignore_kfp_version_helper(pipeline_spec), platform_spec
 
 
 def handle_placeholders(
@@ -119,11 +120,12 @@ class TestReadWrite:
 
     def _compile_and_read_yaml(
         self, compilable: Union[Callable[..., Any],
-                                python_component.PythonComponent]):
+                                python_component.PythonComponent]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_file = os.path.join(tmp_dir, 're_compiled_output.yaml')
             compiler.Compiler().compile(compilable, tmp_file)
-            return load_compiled_file(tmp_file)
+            return load_pipeline_spec_and_platform_spec(tmp_file)
 
     def _test_serialization_deserialization_consistency(self, yaml_file: str):
         """Tests serialization and deserialization consistency."""
@@ -142,9 +144,12 @@ class TestReadWrite:
     ):
         """Tests serialization correctness."""
         pipeline = import_obj_from_file(python_file, function_name)
-        compiled_result = self._compile_and_read_yaml(pipeline)
-        golden_result = load_compiled_file(yaml_file)
-        assert compiled_result == golden_result
+        compiled_pipeline_spec, compiled_platform_spec = self._compile_and_read_yaml(
+            pipeline)
+        golden_pipeline_spec, golden_platform_spec = load_pipeline_spec_and_platform_spec(
+            yaml_file)
+        assert compiled_pipeline_spec == golden_pipeline_spec
+        assert compiled_platform_spec == golden_platform_spec
 
     @pytest.mark.parametrize('test_case,function', create_test_cases())
     def test(

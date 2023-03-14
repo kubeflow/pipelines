@@ -18,8 +18,10 @@ __all__ = [
     'CreatePVC',
     'DeletePVC',
     'mount_pvc',
+    'add_node_selector',
 ]
 
+from kfp.kubernetes.node_selector import add_node_selector
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
 from kfp.kubernetes.volume import CreatePVC
