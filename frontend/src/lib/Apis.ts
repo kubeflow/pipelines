@@ -13,15 +13,15 @@
 // limitations under the License.
 
 import * as portableFetch from 'portable-fetch';
-import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
-import { ExperimentServiceApi as ExperimentServiceApiV2 } from '../apisv2beta1/experiment';
-import { JobServiceApi } from '../apis/job';
-import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from '../apis/pipeline';
-import { RunServiceApi as RunServiceApiV1 } from '../apis/run';
+import { ExperimentServiceApi, FetchAPI } from 'src/apis/experiment';
+import { ExperimentServiceApi as ExperimentServiceApiV2 } from 'src/apisv2beta1/experiment';
+import { JobServiceApi } from 'src/apis/job';
+import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from 'src/apis/pipeline';
+import { RunServiceApi as RunServiceApiV1 } from 'src/apis/run';
 import { RunServiceApi as RunServiceApiV2 } from 'src/apisv2beta1/run';
-import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { PlotType } from '../components/viewers/Viewer';
+import { ApiVisualization, VisualizationServiceApi } from 'src/apis/visualization';
+import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { PlotType } from 'src/components/viewers/Viewer';
 import * as Utils from './Utils';
 import { buildQuery } from './Utils';
 import { StoragePath, StorageService } from './WorkflowParser';
