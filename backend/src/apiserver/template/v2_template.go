@@ -144,7 +144,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 			}
 			v2Spec.spec = &spec
 		} else if isKubernetesExecutorConfig(valueBytes) {
-			// Pick out the yaml document with kubernetesExecutorConfig
+			// Pick out the yaml document with platform spec
 			var platformSpec pipelinespec.PlatformSpec
 			platformSpecJson, err := yaml.YAMLToJSON(valueBytes)
 			if err != nil {
