@@ -24,6 +24,7 @@ message KubernetesExecutorConfig {
     repeated SecretAsVolume secret_as_volume = 1;
     repeated SecretAsEnv secret_as_env = 2;
     repeated PvcMount pvc_mount = 3;
+    repeated NodeSelector node_selector = 4;
 }
 
 message SecretAsVolume {
@@ -106,4 +107,9 @@ message DeletePvc {
         // Pass the input parameter from parent component input parameter.
         string component_input_parameter = 3;
     }
+}
+
+message NodeSelector {
+    string label_key = 1;
+    string label_value = 2;
 }
