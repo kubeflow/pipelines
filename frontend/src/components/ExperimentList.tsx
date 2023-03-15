@@ -22,13 +22,13 @@ import {
   V2beta1Experiment,
   V2beta1ExperimentStorageState,
 } from 'src/apisv2beta1/experiment';
-import { errorToMessage } from '../lib/Utils';
+import { errorToMessage } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from './Router';
-import { commonCss } from '../Css';
-import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
+import { commonCss } from 'src/Css';
+import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import RunList from '../pages/RunList';
-import { PredicateOp, ApiFilter } from '../apis/filter';
+import RunList from 'src/pages/RunList';
+import { PredicateOp, ApiFilter } from 'src/apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
 

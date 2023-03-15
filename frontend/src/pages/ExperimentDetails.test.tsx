@@ -16,16 +16,16 @@
 
 import * as React from 'react';
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
-import TestUtils from '../TestUtils';
-import { V2beta1Experiment, V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
-import { V2beta1RunStorageState } from '../apisv2beta1/run';
-import { Apis } from '../lib/Apis';
+import TestUtils from 'src/TestUtils';
+import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { range } from 'lodash';
-import { ButtonKeys } from '../lib/Buttons';
+import { ButtonKeys } from 'src/lib/Buttons';
 import { render, screen } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';

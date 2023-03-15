@@ -77,14 +77,14 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!originalRecurringRunId, staleTime: Infinity },
   );
 
-  if (v1Run !== undefined && apiRecurringRun !== undefined) {
+  if ((v1Run !== undefined || v2Run !== undefined) && apiRecurringRun !== undefined) {
     throw new Error('The existence of run and recurring run should be exclusive.');
   }
 
   // template string from cloned object
   let pipelineManifest = '';
-  if (getV2RunSuccess && v2Run) {
-    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec) || '';
+  if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
+    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
   }
 
   if (getRecurringRunSuccess && apiRecurringRun) {
@@ -108,13 +108,14 @@ function NewRunSwitcher(props: PageProps) {
   >(
     ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
     () => {
-      const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
+      const pipelineVersionId =
+        pipelineVersionIdParam || apiPipeline?.default_version?.id || v2Run?.pipeline_version_id;
       if (!pipelineVersionId) {
         throw new Error('Pipeline Version ID is missing');
       }
       return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
     },
-    { enabled: !!apiPipeline, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!apiPipeline || !!v2Run, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const {

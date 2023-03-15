@@ -18,16 +18,16 @@ import { isFunction } from 'lodash';
 import * as pako from 'pako';
 import * as React from 'react';
 import { classes } from 'typestyle';
-import { Workflow } from '../third_party/mlmd/argo_template';
-import { ApiTrigger } from '../apis/job';
-import { ApiRun } from '../apis/run';
-import { Column, ExpandState, Row } from '../components/CustomTable';
-import { css, CustomTableRow } from '../components/CustomTableRow';
-import { padding } from '../Css';
+import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { ApiTrigger } from 'src/apis/job';
+import { ApiRun } from 'src/apis/run';
+import { Column, ExpandState, Row } from 'src/components/CustomTable';
+import { css, CustomTableRow } from 'src/components/CustomTableRow';
+import { padding } from 'src/Css';
 import { Apis, ListRequest } from './Apis';
 import { hasFinished, hasFinishedV2, NodePhase } from './StatusUtils';
 import { StorageService } from './WorkflowParser';
-import { ApiParameter } from '../apis/pipeline';
+import { ApiParameter } from 'src/apis/pipeline';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 
 export const logger = {

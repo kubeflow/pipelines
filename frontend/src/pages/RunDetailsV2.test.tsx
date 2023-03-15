@@ -18,23 +18,23 @@ import { act, queryByText, render, screen, waitFor } from '@testing-library/reac
 import userEvent from '@testing-library/user-event';
 
 import * as React from 'react';
-import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from '../apisv2beta1/run';
-import { RoutePage, RouteParams } from '../components/Router';
-import { Apis } from '../lib/Apis';
-import { Api } from '../mlmd/Api';
-import { KFP_V2_RUN_CONTEXT_TYPE } from '../mlmd/MlmdUtils';
-import { mockResizeObserver, testBestPractices } from '../TestUtils';
-import { CommonTestWrapper } from '../TestWrapper';
+import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { RoutePage, RouteParams } from 'src/components/Router';
+import { Apis } from 'src/lib/Apis';
+import { Api } from 'src/mlmd/Api';
+import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
+import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import { CommonTestWrapper } from 'src/TestWrapper';
 import {
   Context,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
   GetExecutionsByContextResponse,
-} from '../third_party/mlmd';
+} from 'src/third_party/mlmd';
 import {
   GetArtifactsByContextResponse,
   GetEventsByExecutionIDsResponse,
-} from '../third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+} from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
 import { RunDetailsV2 } from './RunDetailsV2';

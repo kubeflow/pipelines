@@ -15,13 +15,13 @@
  */
 
 import * as React from 'react';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
+import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { ToolbarProps } from '../components/Toolbar';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { commonCss, padding } from 'src/Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedRunsState {

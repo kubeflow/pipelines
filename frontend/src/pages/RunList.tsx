@@ -15,17 +15,17 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
-import Metric from '../components/Metric';
-import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
+import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
+import Metric from 'src/components/Metric';
+import RunUtils, { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
+import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { URLParser } from '../lib/URLParser';
-import { commonCss, color } from '../Css';
-import { formatDateString, logger, errorToMessage, getRunDurationV2 } from '../lib/Utils';
+import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
+import { URLParser } from 'src/lib/URLParser';
+import { commonCss, color } from 'src/Css';
+import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import Tooltip from '@material-ui/core/Tooltip';
 

@@ -17,16 +17,16 @@
 import * as React from 'react';
 import ErrorIcon from '@material-ui/icons/Error';
 import PendingIcon from '@material-ui/icons/Schedule';
-import RunningIcon from '../icons/statusRunning';
+import RunningIcon from 'src/icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
-import CachedIcon from '../icons/statusCached';
-import TerminatedIcon from '../icons/statusTerminated';
+import CachedIcon from 'src/icons/statusCached';
+import TerminatedIcon from 'src/icons/statusTerminated';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
-import { color } from '../Css';
-import { logger, formatDateString } from '../lib/Utils';
-import { checkIfTerminatedV2 } from '../lib/StatusUtils';
+import { color } from 'src/Css';
+import { logger, formatDateString } from 'src/lib/Utils';
+import { checkIfTerminatedV2 } from 'src/lib/StatusUtils';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 

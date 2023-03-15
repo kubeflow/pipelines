@@ -18,13 +18,13 @@ import { render, screen } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import React from 'react';
-import { RouteParams } from '../components/Router';
-import { V2beta1Run, V2beta1RunStorageState } from '../apisv2beta1/run';
-import { ApiExperiment } from '../apis/experiment';
-import { Apis } from '../lib/Apis';
-import * as Utils from '../lib/Utils';
+import { RouteParams } from 'src/components/Router';
+import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { ApiExperiment } from 'src/apis/experiment';
+import { Apis } from 'src/lib/Apis';
+import * as Utils from 'src/lib/Utils';
 import { BrowserRouter } from 'react-router-dom';
-import { PredicateOp } from '../apis/filter';
+import { PredicateOp } from 'src/apis/filter';
 
 describe('RunListsRouter', () => {
   let historyPushSpy: any;

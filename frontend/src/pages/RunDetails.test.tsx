@@ -13,34 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Api } from '../mlmd/library';
+import { Api } from 'src/mlmd/library';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { createMemoryHistory } from 'history';
 import * as React from 'react';
 import { Router } from 'react-router-dom';
-import { NamespaceContext } from '../lib/KubeflowClient';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from '../apis/run';
-import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
-import { PlotType } from '../components/viewers/Viewer';
-import { Apis, JSONObject } from '../lib/Apis';
-import { ButtonKeys } from '../lib/Buttons';
-import * as MlmdUtils from '../mlmd/MlmdUtils';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import { NodePhase } from '../lib/StatusUtils';
-import * as Utils from '../lib/Utils';
-import WorkflowParser from '../lib/WorkflowParser';
-import TestUtils, { testBestPractices } from '../TestUtils';
+import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
+import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import { PlotType } from 'src/components/viewers/Viewer';
+import { Apis, JSONObject } from 'src/lib/Apis';
+import { ButtonKeys } from 'src/lib/Buttons';
+import * as MlmdUtils from 'src/mlmd/MlmdUtils';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import { NodePhase } from 'src/lib/StatusUtils';
+import * as Utils from 'src/lib/Utils';
+import WorkflowParser from 'src/lib/WorkflowParser';
+import TestUtils, { testBestPractices } from 'src/TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
-import { Context, Execution, Value } from '../third_party/mlmd';
-import { KfpExecutionProperties } from '../mlmd/MlmdUtils';
+import { Context, Execution, Value } from 'src/third_party/mlmd';
+import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
 
 const RunDetails = TEST_ONLY.RunDetails;
 
-jest.mock('../components/Graph', () => {
+jest.mock('src/components/Graph', () => {
   return function GraphMock({ graph }: { graph: dagre.graphlib.Graph }) {
     return (
       <pre data-testid='graph'>

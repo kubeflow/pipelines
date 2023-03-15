@@ -15,18 +15,18 @@
  */
 
 import * as React from 'react';
-import * as Utils from '../lib/Utils';
+import * as Utils from 'src/lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
-import TestUtils from '../TestUtils';
-import { ApiFilter, PredicateOp } from '../apis/filter';
-import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
-import { V2beta1RunStorageState } from '../apisv2beta1/run';
+import TestUtils from 'src/TestUtils';
+import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ExpandState } from './CustomTable';
 
-import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
+import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
-import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 
 class ExperimentListTest extends ExperimentList {
   public _loadExperiments(request: ListRequest): Promise<string> {

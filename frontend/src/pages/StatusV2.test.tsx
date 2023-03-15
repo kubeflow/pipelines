@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import * as Utils from '../lib/Utils';
+import * as Utils from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import { shallow } from 'enzyme';
-import { V2beta1RuntimeState } from '../apisv2beta1/run';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
 describe('Status', () => {
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI

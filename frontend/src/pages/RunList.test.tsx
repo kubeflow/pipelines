@@ -15,17 +15,17 @@
  */
 
 import * as React from 'react';
-import * as Utils from '../lib/Utils';
+import * as Utils from 'src/lib/Utils';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
-import TestUtils from '../TestUtils';
+import TestUtils from 'src/TestUtils';
 import produce from 'immer';
-import { V2beta1Filter, V2beta1PredicateOperation } from '../apisv2beta1/filter';
-import { V2beta1Run, V2beta1RunStorageState, V2beta1RuntimeState } from '../apisv2beta1/run';
-import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { V2beta1Run, V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
-import { CommonTestWrapper } from '../TestWrapper';
+import { CommonTestWrapper } from 'src/TestWrapper';
 
 class RunListTest extends RunList {
   public _loadRuns(request: ListRequest): Promise<string> {

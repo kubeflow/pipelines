@@ -18,26 +18,26 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'fs';
 import 'jest';
 import React from 'react';
-import { testBestPractices } from '../TestUtils';
-import { CommonTestWrapper } from '../TestWrapper';
+import { testBestPractices } from 'src/TestUtils';
+import { CommonTestWrapper } from 'src/TestWrapper';
 import {
   ApiExperiment,
   ApiExperimentStorageState,
   ApiListExperimentsResponse,
-} from '../apis/experiment';
-import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiJob } from '../apis/job';
+} from 'src/apis/experiment';
+import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { ApiJob } from 'src/apis/job';
 import {
   ApiListPipelinesResponse,
   ApiListPipelineVersionsResponse,
   ApiPipeline,
-} from '../apis/pipeline';
-import { ApiRelationship, ApiResourceType } from '../apis/run';
-import { V2beta1Run, V2beta1RuntimeState } from '../apisv2beta1/run';
-import { NameWithTooltip } from '../components/CustomTableNameColumn';
-import { QUERY_PARAMS, RoutePage } from '../components/Router';
-import { Apis, ExperimentSortKeys } from '../lib/Apis';
-import { convertYamlToV2PipelineSpec } from '../lib/v2/WorkflowUtils';
+} from 'src/apis/pipeline';
+import { ApiRelationship, ApiResourceType } from 'src/apis/run';
+import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import { Apis, ExperimentSortKeys } from 'src/lib/Apis';
+import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import * as JsYaml from 'js-yaml';
