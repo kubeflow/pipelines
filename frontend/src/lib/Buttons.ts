@@ -523,7 +523,7 @@ export default class Buttons {
       [id],
       'Do you want to delete this recurring run config? This action cannot be undone.',
       useCurrentResource,
-      jobId => Apis.jobServiceApi.deleteJob(jobId),
+      recurringRunId => Apis.recurringRunServiceApi.deleteRecurringRun(recurringRunId),
       callback,
       'Delete',
       'recurring run config',
@@ -708,7 +708,9 @@ export default class Buttons {
       toolbarActions[buttonKey].busy = true;
       this._props.updateToolbar({ actions: toolbarActions });
       try {
-        await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
+        await (enabled
+          ? Apis.recurringRunServiceApi.enableRecurringRun(id)
+          : Apis.recurringRunServiceApi.disableRecurringRun(id));
         this._refresh();
       } catch (err) {
         const errorMessage = await errorToMessage(err);
