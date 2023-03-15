@@ -15,6 +15,7 @@
 package template
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 
@@ -26,11 +27,13 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
+	goyaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type V2Spec struct {
-	spec *pipelinespec.PipelineSpec
+	spec         *pipelinespec.PipelineSpec
+	platformSpec *pipelinespec.PlatformSpec
 }
 
 // Converts modelJob to ScheduledWorkflow.
@@ -107,43 +110,94 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 
 func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	var spec pipelinespec.PipelineSpec
-	templateJson, err := yaml.YAMLToJSON(template)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
+	var v2Spec V2Spec
+	decoder := goyaml.NewDecoder(bytes.NewReader(template))
+	for {
+		var value map[string]interface{}
+		// Break at end of file
+		if decoder.Decode(&value) != nil {
+			break
+		}
+		valueBytes, err := goyaml.Marshal(value)
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to marshal this yaml document: %s", err.Error()))
+		}
+		if isPipelineSpec(valueBytes) {
+			// Pick out the yaml document with pipeline spec
+			if v2Spec.spec != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "multiple pipeline specs provided")
+			}
+			pipelineSpecJson, err := yaml.YAMLToJSON(valueBytes)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
+			}
+			err = protojson.Unmarshal(pipelineSpecJson, &spec)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
+			}
+			if spec.GetPipelineInfo().GetName() == "" {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name is empty")
+			}
+			match, _ := regexp.MatchString("[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*", spec.GetPipelineInfo().GetName())
+			if !match {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name should consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character")
+			}
+			if spec.GetRoot() == nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
+			}
+			v2Spec.spec = &spec
+		} else if isPlatformSpecWithKubernetesConfig(valueBytes) {
+			// Pick out the yaml document with platform spec
+			if v2Spec.platformSpec != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, "multiple platform specs provided")
+			}
+			var platformSpec pipelinespec.PlatformSpec
+			platformSpecJson, err := yaml.YAMLToJSON(valueBytes)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, fmt.Sprintf("cannot convert platform specific configs to json format: %s", err.Error()))
+			}
+			err = protojson.Unmarshal(platformSpecJson, &platformSpec)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, fmt.Sprintf("cannot unmarshal platform specific configs: %s", err.Error()))
+			}
+			v2Spec.platformSpec = &platformSpec
+		}
 	}
-	err = protojson.Unmarshal(templateJson, &spec)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
+	if v2Spec.spec == nil {
+		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "no pipeline spec is provided")
 	}
-	if spec.GetPipelineInfo().GetName() == "" {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name is empty")
-	}
-	match, _ := regexp.MatchString("[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*", spec.GetPipelineInfo().GetName())
-	if !match {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name should consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character")
-	}
-	if spec.GetRoot() == nil {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
-	}
-
-	return &V2Spec{spec: &spec}, nil
+	return &v2Spec, nil
 }
 
 func (t *V2Spec) Bytes() []byte {
 	if t == nil {
 		return nil
 	}
-	bytes, err := protojson.Marshal(t.spec)
+	bytesSpec, err := protojson.Marshal(t.spec)
 	if err != nil {
 		// this is unexpected, cannot convert proto message to JSON
 		return nil
 	}
-	bytesYAML, err := yaml.JSONToYAML(bytes)
+	bytes, err := yaml.JSONToYAML(bytesSpec)
 	if err != nil {
 		// this is unexpected, cannot convert JSON to YAML
 		return nil
 	}
-	return bytesYAML
+	if t.platformSpec != nil {
+		bytesExecutorConfig, err := protojson.Marshal(t.platformSpec)
+		if err != nil {
+			// this is unexpected, cannot convert proto message to JSON
+			return nil
+		}
+		bytesExecutorConfigYaml, err := yaml.JSONToYAML(bytesExecutorConfig)
+		if err != nil {
+			// this is unexpected, cannot convert JSON to YAML
+			return nil
+		}
+		bytes = append(bytes, []byte("\n---\n")...)
+		bytes = append(bytes, bytesExecutorConfigYaml...)
+	}
+	return bytes
 }
 
 func (t *V2Spec) IsV2() bool {
@@ -216,4 +270,18 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	return executionSpec, nil
+}
+
+func isPlatformSpecWithKubernetesConfig(template []byte) bool {
+	var platformSpec pipelinespec.PlatformSpec
+	templateJson, err := yaml.YAMLToJSON(template)
+	if err != nil {
+		return false
+	}
+	err = protojson.Unmarshal(templateJson, &platformSpec)
+	if err != nil {
+		return false
+	}
+	_, ok := platformSpec.Platforms["kubernetes"]
+	return ok
 }
