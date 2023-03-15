@@ -255,11 +255,12 @@ func loadYaml(t *testing.T, path string) string {
 	return string(res)
 }
 
-func TestIsKubernetesExecutorConfig(t *testing.T) {
+func TestisPlatformSpec(t *testing.T) {
 	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
 	splitTemplate := strings.Split(template, "\n---\n")
-	assert.True(t, isKubernetesExecutorConfig([]byte(splitTemplate[1])))
-	assert.False(t, isKubernetesExecutorConfig([]byte(splitTemplate[0])))
+	assert.True(t, isPlatformSpec([]byte(splitTemplate[1])))
+	assert.False(t, isPlatformSpec([]byte(splitTemplate[0])))
+	assert.False(t, isPlatformSpec([]byte(" ")))
 }
 
 func TestNewTemplate_V2(t *testing.T) {
@@ -275,7 +276,7 @@ func TestNewTemplate_V2(t *testing.T) {
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
 
-func TestNewTemplate_WithExecutorConfig(t *testing.T) {
+func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
 	var expectedPipelineSpec pipelinespec.PipelineSpec
 	var expectedPlatformSpec pipelinespec.PlatformSpec

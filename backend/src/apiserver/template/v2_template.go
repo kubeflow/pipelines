@@ -146,7 +146,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
 			}
 			v2Spec.spec = &spec
-		} else if isKubernetesExecutorConfig(valueBytes) {
+		} else if isPlatformSpec(valueBytes) {
 			// Pick out the yaml document with platform spec
 			if v2Spec.platformSpec != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, "multiple Kubernetes executor config provided")
@@ -272,7 +272,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	return executionSpec, nil
 }
 
-func isKubernetesExecutorConfig(template []byte) bool {
+func isPlatformSpec(template []byte) bool {
 	var platformSpec pipelinespec.PlatformSpec
 	templateJson, err := yaml.YAMLToJSON(template)
 	if err != nil {
@@ -282,5 +282,6 @@ func isKubernetesExecutorConfig(template []byte) bool {
 	if err != nil {
 		return false
 	}
-	return true
+	_, ok := platformSpec.Platforms["kubernetes"]
+	return ok
 }
