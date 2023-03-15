@@ -45,6 +45,7 @@ const (
 )
 
 var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
+var ErrorInvalidPlatformSpec = fmt.Errorf("Platform spec is invalid")
 
 // inferTemplateFormat infers format from pipeline template.
 // There is no guarantee that the template is valid in inferred format, so validation
