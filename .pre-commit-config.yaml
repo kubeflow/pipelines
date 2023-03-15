@@ -43,4 +43,6 @@ repos:
         name: docformatter
         language: python
         entry: docformatter -i -r
-        exclude: sdk/python/kfp/compiler/compiler_test.py
+        # docformatter messes up certain sphinx link formatting.
+        # The kubernetes_platform/python docstrings are heavy on links, so ignore.
+        exclude: (sdk/python/kfp/compiler/compiler_test.py|kubernetes_platform/python/)

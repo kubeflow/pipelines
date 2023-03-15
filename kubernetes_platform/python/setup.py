@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import re
+
 import setuptools
 
 NAME = 'kfp-kubernetes'
-VERSION = '0.0.1'
 REQUIREMENTS = [
     'protobuf>=3.13.0,<4',
     # bump version when platform-specific compilation is released and tests no longer install kfp from source
@@ -32,9 +34,28 @@ DEV_REQUIREMENTS = [
     'yapf==0.32.0',
 ]
 
+
+def find_version(*file_path_parts: str) -> str:
+    """Get version from kfp.__init__.__version__."""
+
+    file_path = os.path.join(os.path.dirname(__file__), *file_path_parts)
+    with open(file_path, 'r') as f:
+        version_file_text = f.read()
+
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]",
+        version_file_text,
+        re.M,
+    )
+    if version_match:
+        return version_match[1]
+    else:
+        raise ValueError('Could not find version.')
+
+
 setuptools.setup(
     name=NAME,
-    version=VERSION,
+    version=find_version('kfp', 'kubernetes', '__init__.py'),
     description='Kubernetes platform configuration library and generated protos.',
     author='google',
     author_email='kubeflow-pipelines@google.com',
