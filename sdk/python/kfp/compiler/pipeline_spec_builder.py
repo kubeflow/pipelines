@@ -507,10 +507,12 @@ def build_container_spec_for_task(
             ]))
 
     if task.container_spec.resources is not None:
-        container_spec.resources.cpu_limit = (
-            task.container_spec.resources.cpu_limit)
-        container_spec.resources.memory_limit = (
-            task.container_spec.resources.memory_limit)
+        if task.container_spec.resources.cpu_limit is not None:
+            container_spec.resources.cpu_limit = (
+                task.container_spec.resources.cpu_limit)
+        if task.container_spec.resources.memory_limit is not None:
+            container_spec.resources.memory_limit = (
+                task.container_spec.resources.memory_limit)
         if task.container_spec.resources.accelerator_count is not None:
             container_spec.resources.accelerator.CopyFrom(
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
