@@ -12,20 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '0.0.1'
+# Minimal makefile for Sphinx documentation
+#
 
-__all__ = [
-    'CreatePVC',
-    'DeletePVC',
-    'mount_pvc',
-    'use_secret_as_env',
-    'use_secret_as_volume',
-    'add_node_selector',
-]
+# You can set these variables from the command line.
+SPHINXOPTS    =
+SPHINXBUILD   = sphinx-build
+SOURCEDIR     = .
+BUILDDIR      = _build
 
-from kfp.kubernetes.node_selector import add_node_selector
-from kfp.kubernetes.secret import use_secret_as_env
-from kfp.kubernetes.secret import use_secret_as_volume
-from kfp.kubernetes.volume import CreatePVC
-from kfp.kubernetes.volume import DeletePVC
-from kfp.kubernetes.volume import mount_pvc
+# Put it first so that "make" without argument is like "make help".
+help:
+	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+.PHONY: help Makefile
+
+# Catch-all target: route all unknown targets to Sphinx using the new
+# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+%: Makefile
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

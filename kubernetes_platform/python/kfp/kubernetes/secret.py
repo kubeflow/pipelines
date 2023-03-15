@@ -32,7 +32,7 @@ def use_secret_as_env(
     Args:
         task: Pipeline task.
         secret_name: Name of the Secret.
-        secret_key_to_env: Map of Secret key's to environment variable names. E.g., {'password': 'PASSWORD'} maps the Secret's password value to the environment variable PASSWORD.
+        secret_key_to_env: Dictionary of Secret data key to environment variable name. For example, ``{'password': 'PASSWORD'}`` sets the data of the Secret's password field to the environment variable ``PASSWORD``.
 
     Returns:
         Task object with updated secret configuration.
@@ -64,9 +64,7 @@ def use_secret_as_volume(
     mount_path: str,
 ) -> PipelineTask:
     """Use a Kubernetes Secret by mounting its data to the task's container as
-    described in
-    https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-
-    files-from-a-pod.
+    described by the `Kubernetes documentation <https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod>`_.
 
     Args:
         task: Pipeline task.
