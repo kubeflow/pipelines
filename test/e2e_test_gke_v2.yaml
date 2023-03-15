@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,6 +93,14 @@ spec:
           parameters:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: initialization-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
+    - - name: run-initialization-tests-v2
+        template: run-initialization-tests-v2
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}/v2"
           - name: initialization-test-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
     - - name: run-api-integration-tests
@@ -229,6 +237,20 @@ spec:
       - /go/src/github.com/kubeflow/pipelines/test/initialization-test/run_test.sh
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+
+  - name: run-initialization-tests-v2
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: initialization-test-image
+    container:
+      image: "{{inputs.parameters.initialization-test-image}}"
+      command:
+      - /go/src/github.com/kubeflow/pipelines/test/initialization-test/run_test.sh
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}/v2",
+        "--test_v2_api",
       ]
 
   - name: run-api-integration-tests

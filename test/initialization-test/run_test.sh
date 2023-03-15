@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2019-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ usage()
     echo "usage: run_test.sh
     --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/initialization_test
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
+    [--test-v2-api    run test using v2 API]
     [-h help]"
 }
 
@@ -35,6 +36,9 @@ while [ "$1" != "" ]; do
                                 ;;
              --namespace )      shift
                                 NAMESPACE=$1
+                                ;;
+             --test_v2_api )
+                                TEST_V2_API=true
                                 ;;
              -h | --help )      usage
                                 exit
@@ -57,8 +61,11 @@ fi
 GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/go/src/github.com/${GITHUB_REPO}
 JUNIT_TEST_RESULT=junit_InitializationTestOutput.xml
-TEST_DIR=backend/test/initialization
-
+if [ -n "$TEST_V2_API" ]; then
+  TEST_DIR=backend/test/v2/initialization
+else
+  TEST_DIR=backend/test/initialization
+fi
 cd "${BASE_DIR}/${TEST_DIR}"
 
 # turn on go module
