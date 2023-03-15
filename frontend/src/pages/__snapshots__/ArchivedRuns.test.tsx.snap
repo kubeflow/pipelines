@@ -15,7 +15,7 @@ exports[`ArchivedRuns renders archived runs 1`] = `
     onError={[Function]}
     onSelectionChange={[Function]}
     selectedIds={Array []}
-    storageState="STORAGESTATE_ARCHIVED"
+    storageState="ARCHIVED"
     toolbarProps={
       Object {
         "actions": Object {

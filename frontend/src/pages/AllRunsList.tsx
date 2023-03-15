@@ -15,13 +15,13 @@
  */
 
 import * as React from 'react';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
+import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
-import { ApiRunStorageState } from '../apis/run';
-import { ToolbarProps } from '../components/Toolbar';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { commonCss, padding } from 'src/Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface AllRunsListState {
@@ -67,7 +67,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
-          storageState={ApiRunStorageState.AVAILABLE}
+          storageState={V2beta1RunStorageState.AVAILABLE}
           hideMetricMetadata={true}
           namespaceMask={this.props.namespace}
           {...this.props}

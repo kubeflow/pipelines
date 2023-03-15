@@ -16,12 +16,12 @@
 
 import * as React from 'react';
 import { ArchivedRuns } from './ArchivedRuns';
-import TestUtils from '../TestUtils';
+import TestUtils from 'src/TestUtils';
 import { PageProps } from './Page';
-import { ApiRunStorageState } from '../apis/run';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ShallowWrapper, shallow } from 'enzyme';
-import { ButtonKeys } from '../lib/Buttons';
-import { Apis } from '../lib/Apis';
+import { ButtonKeys } from 'src/lib/Buttons';
+import { Apis } from 'src/lib/Apis';
 
 describe('ArchivedRuns', () => {
   const updateBannerSpy = jest.fn();
@@ -107,7 +107,9 @@ describe('ArchivedRuns', () => {
 
   it('shows a list of available runs', () => {
     tree = shallow(<ArchivedRuns {...generateProps()} />);
-    expect(tree.find('RunList').prop('storageState')).toBe(ApiRunStorageState.ARCHIVED.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(
+      V2beta1RunStorageState.ARCHIVED.toString(),
+    );
   });
 
   it('cancells deletion when Cancel is clicked', async () => {

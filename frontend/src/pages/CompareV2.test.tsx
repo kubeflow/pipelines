@@ -25,9 +25,9 @@ import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as Utils from 'src/lib/Utils';
 import { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
-import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 
 const CompareV2 = TEST_ONLY.CompareV2;
 testBestPractices();
@@ -53,18 +53,13 @@ describe('CompareV2', () => {
     return pageProps;
   }
 
-  let runs: ApiRunDetail[] = [];
+  let runs: V2beta1Run[] = [];
 
-  function newMockRun(id?: string, hideName?: boolean): ApiRunDetail {
+  function newMockRun(id?: string, hideName?: boolean): V2beta1Run {
     return {
-      pipeline_runtime: {
-        workflow_manifest: '{}',
-      },
-      run: {
-        id: id || 'test-run-id',
-        name: hideName ? undefined : 'test run ' + id,
-        pipeline_spec: { pipeline_manifest: '' },
-      },
+      run_id: id || 'test-run-id',
+      display_name: hideName ? undefined : 'test run ' + id,
+      pipeline_spec: { pipeline_manifest: '' },
     };
   }
 
@@ -172,9 +167,9 @@ describe('CompareV2', () => {
   });
 
   it('getRun is called with query param IDs', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -188,9 +183,9 @@ describe('CompareV2', () => {
   });
 
   it('Clear banner when getRun and MLMD requests succeed', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -238,9 +233,9 @@ describe('CompareV2', () => {
   });
 
   it('Log warning when artifact with specified ID is not found', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -286,7 +281,7 @@ describe('CompareV2', () => {
   });
 
   it('Show page error on page when getRun request fails', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation(_ => {
       throw {
@@ -311,9 +306,9 @@ describe('CompareV2', () => {
   });
 
   it('Failed MLMD request creates error banner', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
     jest
       .spyOn(mlmdUtils, 'getKfpV2RunContext')
       .mockRejectedValue(new Error('Not connected to MLMD'));
@@ -335,9 +330,9 @@ describe('CompareV2', () => {
   });
 
   it('Failed getArtifactTypes request creates error banner', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
     jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
@@ -362,9 +357,9 @@ describe('CompareV2', () => {
   });
 
   it('Allows individual sections to be collapsed and expanded', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -393,9 +388,9 @@ describe('CompareV2', () => {
   });
 
   it('All runs are initially selected', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -415,9 +410,9 @@ describe('CompareV2', () => {
   });
 
   it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -449,9 +444,9 @@ describe('CompareV2', () => {
   });
 
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
     jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
@@ -484,9 +479,9 @@ describe('CompareV2', () => {
   });
 
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -561,9 +556,9 @@ describe('CompareV2', () => {
   });
 
   it('Confusion matrix shown on select and removed after run is de-selected', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -633,9 +628,9 @@ describe('CompareV2', () => {
   });
 
   it('One ROC Curve shown on select, hidden on run de-select', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -696,9 +691,9 @@ describe('CompareV2', () => {
   });
 
   it('Multiple ROC Curves shown on select', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),

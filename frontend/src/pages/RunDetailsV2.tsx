@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { ApiExperiment } from 'src/apis/experiment';
-import { ApiRun, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
+import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
@@ -31,8 +31,8 @@ import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunUtils from 'src/lib/RunUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
-import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
+import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
+import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
@@ -50,7 +50,7 @@ import {
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
 import { RunDetailsProps } from './RunDetails';
-import { statusToIcon } from './Status';
+import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
@@ -70,14 +70,14 @@ export interface NodeMlmdInfo {
 
 interface RunDetailsV2Info {
   pipeline_job: string;
-  runDetail: ApiRunDetail;
+  run: V2beta1Run;
 }
 
 export type RunDetailsV2Props = RunDetailsV2Info & RunDetailsProps;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
-  const runDetail = props.runDetail;
+  const run = props.run;
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
   const elements = convertFlowElements(pipelineSpec);
@@ -157,7 +157,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   };
 
   // Retrieves experiment detail.
-  const experimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
+  const experimentId = run.experiment_id || null;
   const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
     ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
     () => getExperiment(experimentId),
@@ -167,26 +167,26 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Update page title and experiment information.
   useEffect(() => {
-    updateToolBar(runDetail, apiExperiment, props.updateToolbar);
-  }, [runDetail, apiExperiment, props.updateToolbar]);
+    updateToolBar(run, apiExperiment, props.updateToolbar);
+  }, [run, apiExperiment, props.updateToolbar]);
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
   const [runIdFromParams] = useState(props.match.params[RouteParams.runId]);
   useEffect(() => {
-    if (hasFinished(runDetail.run?.status as NodePhase)) {
+    if (hasFinishedV2(run.state)) {
       setRunFinished(true);
     }
     updateToolBarActions(
       buttons,
       runIdFromParams,
-      runDetail,
+      run,
       runFinished,
       props.updateToolbar,
       () => forceUpdate,
       () => setRunFinished(false),
     );
-  }, [buttons, runIdFromParams, runDetail, runFinished, props.updateToolbar]);
+  }, [buttons, runIdFromParams, run, runFinished, props.updateToolbar]);
 
   return (
     <>
@@ -226,7 +226,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         {/* Run details tab */}
         {selectedTab === 1 && (
           <div className={padding()}>
-            <DetailsTable title='Run details' fields={getDetailsFields(runDetail.run)} />
+            <DetailsTable title='Run details' fields={getDetailsFields(run)} />
           </div>
 
           // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
@@ -251,20 +251,20 @@ async function getExperiment(experimentId: string | null): Promise<ApiExperiment
 }
 
 function updateToolBar(
-  apiRunDetail: ApiRunDetail | undefined,
+  run: V2beta1Run | undefined,
   apiExperiment: ApiExperiment | undefined,
   updateToolBarCallback: (toolbarProps: Partial<ToolbarProps>) => void,
 ) {
-  const runMetadata = apiRunDetail?.run;
+  const runMetadata = run;
   if (runMetadata) {
     const pageTitle = (
       <div className={commonCss.flex}>
-        {statusToIcon(runMetadata.status as NodePhase, runMetadata.created_at)}
-        <span style={{ marginLeft: 10 }}>{runMetadata.name || 'Run name unknown'}</span>
+        {statusToIcon(runMetadata.state, runMetadata.created_at)}
+        <span style={{ marginLeft: 10 }}>{runMetadata.display_name || 'Run name unknown'}</span>
       </div>
     );
 
-    updateToolBarCallback({ pageTitle, pageTitleTooltip: runMetadata.name });
+    updateToolBarCallback({ pageTitle, pageTitleTooltip: runMetadata.display_name });
   }
 
   const breadcrumbs: Array<{ displayName: string; href: string }> = [];
@@ -288,51 +288,53 @@ function updateToolBar(
 function updateToolBarActions(
   buttons: Buttons,
   runIdFromParams: string,
-  apiRunDetail: ApiRunDetail | undefined,
+  run: V2beta1Run | undefined,
   runFinished: boolean,
   updateToolbar: (toolbarProps: Partial<ToolbarProps>) => void,
   refresh: () => void,
   retry: () => void,
 ) {
-  const runMetadata = apiRunDetail?.run;
+  const runMetadata = run;
   const getRunIdList = () =>
-    runMetadata && runMetadata.id ? [runMetadata.id] : runIdFromParams ? [runIdFromParams] : [];
+    runMetadata && runMetadata.run_id
+      ? [runMetadata.run_id]
+      : runIdFromParams
+      ? [runIdFromParams]
+      : [];
 
   buttons
     .retryRun(getRunIdList, true, () => retry())
     .cloneRun(getRunIdList, true)
     .terminateRun(getRunIdList, true, () => refresh());
-  !runMetadata || runMetadata.storage_state === ApiRunStorageState.ARCHIVED
+  !runMetadata || runMetadata.storage_state === V2beta1RunStorageState.ARCHIVED
     ? buttons.restore('run', getRunIdList, true, () => refresh())
     : buttons.archive('run', getRunIdList, true, () => refresh());
 
   const actions = buttons.getToolbarActionMap();
   actions[ButtonKeys.TERMINATE_RUN].disabled =
-    (runMetadata && (runMetadata.status as NodePhase) === NodePhase.TERMINATING) || runFinished;
+    (runMetadata && runMetadata.state === V2beta1RuntimeState.CANCELING) || runFinished;
   actions[ButtonKeys.RETRY].disabled =
-    !runMetadata ||
-    ((runMetadata.status as NodePhase) !== NodePhase.FAILED &&
-      (runMetadata.status as NodePhase) !== NodePhase.ERROR);
+    !runMetadata || runMetadata.state !== V2beta1RuntimeState.FAILED;
 
   updateToolbar({ actions });
 }
 
-function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
+function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
   // check if the run has finished or not. The default value for apiRun.finished_at is
   // Date(0), when it is not specified.
   let finishedAt = new Date(0);
-  if (apiRun?.finished_at) {
-    finishedAt = apiRun?.finished_at;
+  if (run?.finished_at) {
+    finishedAt = run?.finished_at;
   }
 
   return [
-    ['Run ID', apiRun?.id || '-'],
-    ['Workflow name', apiRun?.name || '-'],
-    ['Status', apiRun?.status],
-    ['Description', apiRun?.description || ''],
-    ['Created at', apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
-    ['Started at', formatDateString(apiRun?.scheduled_at)],
-    ['Finished at', finishedAt > new Date(0) ? formatDateString(apiRun?.finished_at) : '-'],
-    ['Duration', finishedAt > new Date(0) ? getRunDurationFromApiRun(apiRun) : '-'],
+    ['Run ID', run?.run_id || '-'],
+    ['Workflow name', run?.display_name || '-'],
+    ['Status', run?.state ? statusProtoMap.get(run?.state) : '-'],
+    ['Description', run?.description || ''],
+    ['Created at', run?.created_at ? formatDateString(run.created_at) : '-'],
+    ['Started at', formatDateString(run?.scheduled_at)],
+    ['Finished at', finishedAt > new Date(0) ? formatDateString(run?.finished_at) : '-'],
+    ['Duration', finishedAt > new Date(0) ? getRunDurationV2(run) : '-'],
   ];
 }
