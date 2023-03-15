@@ -17,9 +17,9 @@
 import AddIcon from '@material-ui/icons/Add';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
-import { QUERY_PARAMS, RoutePage } from '../components/Router';
-import { ToolbarActionMap } from '../components/Toolbar';
-import { PageProps } from '../pages/Page';
+import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import { ToolbarActionMap } from 'src/components/Toolbar';
+import { PageProps } from 'src/pages/Page';
 import { Apis } from './Apis';
 import { URLParser } from './URLParser';
 import { errorToMessage, s } from './Utils';
@@ -408,7 +408,7 @@ export default class Buttons {
       selectedIds,
       'Retry this run?',
       useCurrent,
-      id => Apis.runServiceApi.retryRun(id),
+      id => Apis.runServiceApiV2.retryRun(id),
       callback,
       'Retry',
       'run',
@@ -429,7 +429,7 @@ export default class Buttons {
         `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
         `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
-      id => Apis.runServiceApi.archiveRun(id),
+      id => Apis.runServiceApiV2.archiveRun(id),
       callback,
       'Archive',
       'run',
@@ -447,7 +447,7 @@ export default class Buttons {
         selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
       } original location?`,
       useCurrent,
-      id => Apis.runServiceApi.unarchiveRun(id),
+      id => Apis.runServiceApiV2.unarchiveRun(id),
       callback,
       'Restore',
       'run',
@@ -540,7 +540,7 @@ export default class Buttons {
       'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
         ' running pods, but they will not be deleted.',
       useCurrentResource,
-      id => Apis.runServiceApi.terminateRun(id),
+      id => Apis.runServiceApiV2.terminateRun(id),
       callback,
       'Terminate',
       'run',

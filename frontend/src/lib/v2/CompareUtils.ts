@@ -19,10 +19,10 @@ import { getArtifactName, getExecutionDisplayName, LinkedArtifact } from 'src/ml
 import { getMetadataValue } from 'src/mlmd/Utils';
 import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
-import { ApiRunDetail } from 'src/apis/run';
 import { chain, flatMapDeep, flatten } from 'lodash';
 import { stylesheet } from 'typestyle';
 import { RuntimeParameters } from 'src/pages/NewRunV2';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 
 export const compareCss = stylesheet({
   smallRelativeContainer: {
@@ -41,7 +41,7 @@ export interface ExecutionArtifact {
 }
 
 export interface RunArtifact {
-  run: ApiRunDetail;
+  run: V2beta1Run;
   executionArtifacts: ExecutionArtifact[];
 }
 
@@ -89,16 +89,15 @@ export interface RocCurveArtifactData {
 export const mlmdDisplayName = (id: string, mlmdTypeStr: string, displayName?: string) =>
   displayName || `${mlmdTypeStr} ID #${id}`;
 
-export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps | undefined => {
+export const getParamsTableProps = (runs: V2beta1Run[]): CompareTableProps | undefined => {
   const xLabels: string[] = [];
   const parameterNames: string[][] = [];
   const dataMap: { [key: string]: RuntimeParameters } = {};
   for (const run of runs) {
-    const runId: string = run.run!.id!;
-    const parameters: RuntimeParameters | undefined =
-      run.run?.pipeline_spec?.runtime_config?.parameters;
+    const runId: string = run.run_id!;
+    const parameters: RuntimeParameters | undefined = run.runtime_config?.parameters;
 
-    xLabels.push(mlmdDisplayName(runId, 'Run', run.run?.name));
+    xLabels.push(mlmdDisplayName(runId, 'Run', run.display_name));
     dataMap[runId] = parameters || {};
 
     if (parameters) {
@@ -115,7 +114,7 @@ export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps | u
 
   const rows: string[][] = yLabels.map(yLabel => {
     return runs.map(run => {
-      const dataValue = dataMap[run.run!.id!][yLabel];
+      const dataValue = dataMap[run.run_id!][yLabel];
       return dataValue === undefined ? '' : JSON.stringify(dataValue);
     });
   });
@@ -184,13 +183,13 @@ const getValidArtifacts = (executionArtifact: ExecutionArtifact): LinkedArtifact
 
 // This path is used to populate the ROC Curve filter table data.
 const getFullArtifactPath = (
-  run: ApiRunDetail,
+  run: V2beta1Run,
   execution: Execution,
   linkedArtifact: LinkedArtifact,
 ): FullArtifactPath => ({
   run: {
-    name: mlmdDisplayName(run.run!.id!, 'Run', run.run?.name),
-    id: run.run!.id!,
+    name: mlmdDisplayName(run.run_id!, 'Run', run.display_name),
+    id: run.run_id!,
   },
   execution: {
     name: mlmdDisplayName(
@@ -250,7 +249,7 @@ const getScalarTableData = (
 
   let artifactIndex = 0;
   for (const runArtifact of scalarMetricsArtifacts) {
-    const runName = runArtifact.run.run?.name || '-';
+    const runName = runArtifact.run.display_name || '-';
 
     const newArtifactIndex = loadScalarExecutionArtifacts(
       runArtifact.executionArtifacts,

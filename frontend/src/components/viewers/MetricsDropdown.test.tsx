@@ -99,13 +99,8 @@ describe('MetricsDropdown', () => {
     scalarMetricsArtifacts = [
       {
         run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
+          run_id: '1',
+          display_name: 'run1',
         },
         executionArtifacts: [
           {
@@ -179,9 +174,7 @@ describe('MetricsDropdown', () => {
     const scalarMetricsArtifactsNoRunName: RunArtifact[] = [
       {
         run: {
-          run: {
-            id: '1',
-          },
+          run_id: '1',
         },
         executionArtifacts: [
           {

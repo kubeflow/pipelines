@@ -18,16 +18,17 @@ import { isFunction } from 'lodash';
 import * as pako from 'pako';
 import * as React from 'react';
 import { classes } from 'typestyle';
-import { Workflow } from '../third_party/mlmd/argo_template';
-import { ApiTrigger } from '../apis/job';
-import { ApiRun } from '../apis/run';
-import { Column, ExpandState, Row } from '../components/CustomTable';
-import { css, CustomTableRow } from '../components/CustomTableRow';
-import { padding } from '../Css';
+import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { ApiTrigger } from 'src/apis/job';
+import { ApiRun } from 'src/apis/run';
+import { Column, ExpandState, Row } from 'src/components/CustomTable';
+import { css, CustomTableRow } from 'src/components/CustomTableRow';
+import { padding } from 'src/Css';
 import { Apis, ListRequest } from './Apis';
-import { hasFinished, NodePhase } from './StatusUtils';
+import { hasFinished, hasFinishedV2, NodePhase } from './StatusUtils';
 import { StorageService } from './WorkflowParser';
-import { ApiParameter } from '../apis/pipeline';
+import { ApiParameter } from 'src/apis/pipeline';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -107,6 +108,7 @@ function getDuration(start: Date, end: Date): string {
   return `${sign}${hours}:${minutes}:${seconds}`;
 }
 
+// TODO(jlyaoyuli): remove this after v2 API integration.
 export function getRunDuration(run?: ApiRun): string {
   if (!run || !run.created_at || !run.finished_at || !hasFinished(run.status as NodePhase)) {
     return '-';
@@ -116,6 +118,12 @@ export function getRunDuration(run?: ApiRun): string {
   // as they should be, when in reality they are transferred as strings.
   // See: https://github.com/swagger-api/swagger-codegen/issues/2776
   return getDuration(new Date(run.created_at), new Date(run.finished_at));
+}
+
+export function getRunDurationV2(run?: V2beta1Run): string {
+  return !run || !run.created_at || !run.finished_at || !hasFinishedV2(run.state)
+    ? '-'
+    : getDuration(new Date(run.created_at), new Date(run.finished_at));
 }
 
 export function getRunDurationFromWorkflow(workflow?: Workflow): string {

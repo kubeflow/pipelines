@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as JsYaml from 'js-yaml';
 import { useQuery } from 'react-query';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { isFeatureEnabled, FeatureKey } from 'src/features';
@@ -13,6 +14,7 @@ import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { ApiRunDetail } from 'src/apis/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { ApiJob } from 'src/apis/job';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -33,16 +35,28 @@ function NewRunSwitcher(props: PageProps) {
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
   // Retrieve run details
-  const { isSuccess: getRunSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
-    ApiRunDetail,
-    Error
-  >(
-    ['ApiRun', existingRunId],
+  const { isFetching: v1RunIsFetching, data: v1Run } = useQuery<ApiRunDetail, Error>(
+    ['v1_run_details', existingRunId],
     () => {
       if (!existingRunId) {
         throw new Error('Run ID is missing');
       }
       return Apis.runServiceApi.getRun(existingRunId);
+    },
+    { enabled: !!existingRunId, staleTime: Infinity },
+  );
+
+  // Retrieve run details
+  const { isSuccess: getV2RunSuccess, isFetching: v2RunIsFetching, data: v2Run } = useQuery<
+    V2beta1Run,
+    Error
+  >(
+    ['v2_run_details', existingRunId],
+    () => {
+      if (!existingRunId) {
+        throw new Error('Run ID is missing');
+      }
+      return Apis.runServiceApiV2.getRun(existingRunId);
     },
     { enabled: !!existingRunId, staleTime: Infinity },
   );
@@ -63,14 +77,18 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!originalRecurringRunId, staleTime: Infinity },
   );
 
-  if (apiRun !== undefined && apiRecurringRun !== undefined) {
+  if ((v1Run !== undefined || v2Run !== undefined) && apiRecurringRun !== undefined) {
     throw new Error('The existence of run and recurring run should be exclusive.');
   }
 
   // template string from cloned object
-  let pipelineManifest = apiRun?.run?.pipeline_spec?.pipeline_manifest;
+  let pipelineManifest = '';
+  if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
+    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
+  }
+
   if (getRecurringRunSuccess && apiRecurringRun) {
-    pipelineManifest = apiRecurringRun.pipeline_spec?.pipeline_manifest;
+    pipelineManifest = apiRecurringRun.pipeline_spec?.pipeline_manifest || '';
   }
 
   const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
@@ -90,13 +108,14 @@ function NewRunSwitcher(props: PageProps) {
   >(
     ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
     () => {
-      const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
+      const pipelineVersionId =
+        pipelineVersionIdParam || apiPipeline?.default_version?.id || v2Run?.pipeline_version_id;
       if (!pipelineVersionId) {
         throw new Error('Pipeline Version ID is missing');
       }
       return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
     },
-    { enabled: !!apiPipeline, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!apiPipeline || !!v2Run, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const {
@@ -131,7 +150,7 @@ function NewRunSwitcher(props: PageProps) {
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     if (
-      (getRunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) &&
+      (getV2RunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) &&
       isTemplateV2(templateString || '')
     ) {
       return (
@@ -139,7 +158,7 @@ function NewRunSwitcher(props: PageProps) {
           {...props}
           namespace={namespace}
           existingRunId={existingRunId}
-          apiRun={apiRun}
+          existingRun={v2Run}
           originalRecurringRunId={originalRecurringRunId}
           apiRecurringRun={apiRecurringRun}
           existingPipeline={apiPipeline}
@@ -157,7 +176,8 @@ function NewRunSwitcher(props: PageProps) {
   // Currently use NewRunV1 as default
   // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
   if (
-    runIsFetching ||
+    v1RunIsFetching ||
+    v2RunIsFetching ||
     recurringRunIsFetching ||
     pipelineIsFetching ||
     pipelineVersionIsFetching ||

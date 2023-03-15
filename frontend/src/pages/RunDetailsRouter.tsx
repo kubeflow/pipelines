@@ -15,9 +15,11 @@
  */
 
 import React from 'react';
+import * as JsYaml from 'js-yaml';
 import { useQuery } from 'react-query';
 import { ApiJob } from 'src/apis/job';
 import { ApiResourceType, ApiRunDetail } from 'src/apis/run';
+import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -42,16 +44,23 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   const runId = props.match.params[RouteParams.runId];
   let recurringRunId: string | undefined;
 
-  // Retrieves run detail.
-  const { isSuccess: getRunSuccess, data: apiRun } = useQuery<ApiRunDetail, Error>(
-    ['run_detail', { id: runId }],
+  // Retrieves v1 run detail.
+  const { isSuccess: getV1RunSuccess, data: v1Run } = useQuery<ApiRunDetail, Error>(
+    ['v1_run_detail', { id: runId }],
     () => Apis.runServiceApi.getRun(runId),
     {},
   );
 
+  // Retrieves v2 run detail.
+  const { isSuccess: getV2RunSuccess, data: v2Run } = useQuery<V2beta1Run, Error>(
+    ['v2_run_detail', { id: runId }],
+    () => Apis.runServiceApiV2.getRun(runId),
+    {},
+  );
+
   // Get Recurring run ID (if it is existed) for retrieve recurring run detail (PipelineSpec IR).
-  if (getRunSuccess && apiRun) {
-    recurringRunId = getRecurringRunId(apiRun);
+  if (getV1RunSuccess && v1Run) {
+    recurringRunId = getRecurringRunId(v1Run);
   }
 
   // Retrieves recurring run detail.
@@ -66,30 +75,48 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     { enabled: !!recurringRunId, staleTime: Infinity },
   );
 
-  if (apiRun === undefined) {
-    return <></>;
-  }
-
   let pipelineManifestFromRecurringRun: string | undefined;
   let pipelineManifestFromRun: string | undefined;
+  let pipelineVersionId: string | undefined;
 
   if (getRecurringRunSuccess && apiRecurringRun) {
     pipelineManifestFromRecurringRun = apiRecurringRun.pipeline_spec?.pipeline_manifest;
   }
 
-  if (getRunSuccess && apiRun) {
-    pipelineManifestFromRun = apiRun.run?.pipeline_spec?.pipeline_manifest;
+  if (getV2RunSuccess && v2Run) {
+    pipelineManifestFromRun = JsYaml.safeDump(v2Run.pipeline_spec || '');
+    pipelineVersionId = v2Run.pipeline_version_id;
   }
 
+  const { data: templateStrFromVersionId } = useQuery<string, Error>(
+    ['PipelineVersionTemplate', pipelineVersionId],
+    async () => {
+      if (!pipelineVersionId) {
+        return '';
+      }
+      // TODO(jlyaoyuli): temporarily use v1 API here, need to change in pipeline API integration.
+      const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
+      return template?.template || '';
+    },
+    { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
+  );
+
+  if (v1Run === undefined || v2Run === undefined) {
+    return <></>;
+  }
+
+  // TODO(jlyaoyuli): Simplify the logic for using either template string or manifest after API integration.
   let pipelineManifest = pipelineManifestFromRun
     ? pipelineManifestFromRun
     : pipelineManifestFromRecurringRun;
 
-  if (getRunSuccess && apiRun && pipelineManifest) {
+  const templateString = templateStrFromVersionId ? templateStrFromVersionId : pipelineManifest;
+
+  if (getV2RunSuccess && v2Run && templateString) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
-    const isV2Pipeline = WorkflowUtils.isPipelineSpec(pipelineManifest);
+    const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
-      return <RunDetailsV2 pipeline_job={pipelineManifest} runDetail={apiRun} {...props} />;
+      return <RunDetailsV2 pipeline_job={templateString} run={v2Run} {...props} />;
     }
   }
 

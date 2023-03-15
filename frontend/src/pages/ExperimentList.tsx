@@ -15,13 +15,13 @@
  */
 
 import * as React from 'react';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
+import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import CustomTable, {
   Column,
   Row,
   ExpandState,
   CustomRendererProps,
-} from '../components/CustomTable';
+} from 'src/components/CustomTable';
 import RunList from './RunList';
 import produce from 'immer';
 import {
@@ -30,16 +30,17 @@ import {
   V2beta1ExperimentStorageState,
 } from 'src/apisv2beta1/experiment';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { ApiRun, ApiRunStorageState } from '../apis/run';
-import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
+import { ApiRun, ApiRunStorageState } from 'src/apis/run';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from 'src/lib/Apis';
 import { Link } from 'react-router-dom';
-import { NodePhase } from '../lib/StatusUtils';
+import { NodePhase } from 'src/lib/StatusUtils';
 import { Page, PageProps } from './Page';
-import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { commonCss, padding } from 'src/Css';
+import { logger } from 'src/lib/Utils';
 import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
@@ -280,7 +281,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         disablePaging={false}
         selectedIds={this.state.selectedIds}
         noFilterBox={true}
-        storageState={ApiRunStorageState.AVAILABLE}
+        storageState={V2beta1RunStorageState.AVAILABLE}
         onSelectionChange={this._selectionChanged.bind(this)}
         disableSorting={true}
       />
