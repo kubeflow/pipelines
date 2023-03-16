@@ -125,14 +125,14 @@ describe('PipelineDetails', () => {
 
     testRun = {
       display_name: 'test run',
-      experiment_id: '',      
+      experiment_id: '',
       run_id: 'test-run-id',
       pipeline_spec: {},
     };
 
     testRecurringRun = {
       display_name: 'test recurring run',
-      experiment_id:'',
+      experiment_id: '',
       recurring_run_id: 'test-recurring-run-id',
       pipeline_spec: {},
     };
@@ -331,9 +331,7 @@ describe('PipelineDetails', () => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'Unexpected token o in JSON at position 1',
-          message: `Failed to parse pipeline spec from run with ID: ${
-            testRun.run_id
-          }. Click Details for more information.`,
+          message: `Failed to parse pipeline spec from run with ID: ${testRun.run_id}. Click Details for more information.`,
           mode: 'error',
         }),
       );
