@@ -16,6 +16,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -283,6 +284,42 @@ class TestClient(unittest.TestCase):
         with self.assertRaises(TimeoutError):
             self.client.get_kfp_healthz(sleep_duration=0)
             mock_get_kfp_healthz.assert_called()
+
+    @patch('kfp.Client.create_run_from_pipeline_package')
+    @patch('kfp.Client.get_recurring_run')
+    def test_trigger_recurring_run(self, mock_get_recurring_run,
+                                   mock_create_run):
+        # Create and populate fake ApiJob.
+        fake_job = kfp_server_api.ApiJob()
+        fake_job.resource_references = [
+            kfp_server_api.ApiResourceReference(
+                key=kfp_server_api.ApiResourceKey(
+                    type='NAMESPACE',
+                    id='kubeflow',
+                ),),
+            kfp_server_api.ApiResourceReference(
+                key=kfp_server_api.ApiResourceKey(
+                    type='EXPERIMENT',
+                    id='foo',
+                ),),
+        ]
+        fake_job.pipeline_spec = kfp_server_api.ApiPipelineSpec()
+        fake_job.pipeline_spec.pipeline_manifest = 'foo'
+
+        mock_get_recurring_run.return_value = fake_job
+
+        self.client.trigger_recurring_run(job_id='foo', run_name='foo')
+
+        mock_get_recurring_run.assert_called_once_with(job_id='foo')
+        mock_create_run.assert_called_once_with(
+            pipeline_file=ANY,
+            arguments=None,
+            run_name='foo',
+            experiment_id='foo',
+            namespace='kubeflow',
+            pipeline_root=None,
+            enable_caching=None,
+            service_account=None)
 
     def test_upload_pipeline_without_name(self):
 
