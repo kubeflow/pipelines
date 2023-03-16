@@ -34,7 +34,7 @@ import {
 } from '../apis/pipeline';
 import { ApiRelationship, ApiResourceType } from '../apis/run';
 import { V2beta1Run, V2beta1RuntimeState } from '../apisv2beta1/run';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus} from '../apisv2beta1/recurringrun'
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from '../apisv2beta1/recurringrun';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { QUERY_PARAMS, RoutePage } from '../components/Router';
 import { Apis, ExperimentSortKeys } from '../lib/Apis';

@@ -103,7 +103,8 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!pipelineId, staleTime: Infinity, cacheTime: Infinity },
   );
 
-  const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id || recurringRun?.pipeline_version_id;
+  const pipelineVersionId =
+    pipelineVersionIdParam || apiPipeline?.default_version?.id || recurringRun?.pipeline_version_id;
 
   const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
     ApiPipelineVersion,
