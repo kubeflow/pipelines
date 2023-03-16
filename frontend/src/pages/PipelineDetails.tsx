@@ -48,6 +48,8 @@ import PipelineDetailsV1 from './PipelineDetailsV1';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 import { ApiRunDetail } from 'src/apis/run';
 import { ApiJob } from 'src/apis/job';
+import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
@@ -65,8 +67,8 @@ type Origin = {
   isRecurring: boolean;
   runId: string | null;
   recurringRunId: string | null;
-  run?: ApiRunDetail;
-  recurringRun?: ApiJob;
+  run?: V2beta1Run;
+  recurringRun?: V2beta1RecurringRun;
 };
 
 class PipelineDetails extends Page<{}, PipelineDetailsState> {
@@ -236,24 +238,42 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
         if (origin.isRecurring) {
-          origin.recurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
+          origin.recurringRun = await Apis.recurringRunServiceApi.getRecurringRun(
+            origin.recurringRunId!,
+          );
         } else {
-          origin.run = await Apis.runServiceApi.getRun(origin.runId!);
+          origin.run = await Apis.runServiceApiV2.getRun(origin.runId!);
         }
-        const pipelineManifest = origin.isRecurring
-          ? origin.recurringRun!.pipeline_spec?.pipeline_manifest
-          : origin.run!.run?.pipeline_spec?.pipeline_manifest;
+
+        const pipelineVersionIdFromOrigin = origin.isRecurring
+          ? origin.recurringRun?.pipeline_version_id
+          : origin.run?.pipeline_version_id;
+        let templateStrFromOrigin = '';
+
+        if (pipelineVersionIdFromOrigin) {
+          version = await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionIdFromOrigin);
+          const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(
+            pipelineVersionIdFromOrigin,
+          );
+          templateStrFromOrigin = response.template || '';
+        }
+
+        let pipelineManifest = '';
+        if (origin.run?.pipeline_spec) {
+          pipelineManifest = JsYaml.safeDump(origin.run.pipeline_spec);
+        }
+        if (origin.recurringRun?.pipeline_spec) {
+          pipelineManifest = JsYaml.safeDump(origin.recurringRun.pipeline_spec);
+        }
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
-        // V2: Use the pipeline spec string directly because it can be translated in JSON format.
-        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && pipelineManifest) {
-          templateString = pipelineManifest;
+        // V2: Use the pipeline spec string or original template string directly
+        // because it can be translated in JSON format.
+        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && (templateStrFromOrigin || pipelineManifest)) {
+          templateString = pipelineManifest ? pipelineManifest : templateStrFromOrigin;
         } else {
           try {
-            const workflowManifestString =
-              RunUtils.getWorkflowManifest(
-                origin.isRecurring ? origin.recurringRun : origin.run!.run,
-              ) || '';
+            const workflowManifestString = pipelineManifest || '';
             const workflowManifest = JSON.parse(workflowManifestString || '{}');
             try {
               templateString = WorkflowUtils.isPipelineSpec(workflowManifestString)
@@ -262,13 +282,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             } catch (err) {
               await this.showPageError(
                 `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
-                  origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                  origin.isRecurring ? origin.recurringRun!.recurring_run_id : origin.run!.run_id
                 }.`,
                 err,
               );
               logger.error(
                 `Failed to convert pipeline spec YAML from ${msgRunOrRecurringRun} with ID: ${
-                  origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                  origin.isRecurring ? origin.recurringRun!.recurring_run_id : origin.run!.run_id
                 }.`,
                 err,
               );
@@ -276,22 +296,22 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           } catch (err) {
             await this.showPageError(
               `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
-                origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                origin.isRecurring ? origin.recurringRun!.recurring_run_id : origin.run!.run_id
               }.`,
               err,
             );
             logger.error(
               `Failed to parse pipeline spec JSON from ${msgRunOrRecurringRun} with ID: ${
-                origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                origin.isRecurring ? origin.recurringRun!.recurring_run_id : origin.run!.run_id
               }.`,
               err,
             );
           }
         }
 
-        const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(
-          origin.isRecurring ? origin.recurringRun : origin.run!.run,
-        );
+        const relatedExperimentId = origin.isRecurring
+          ? origin.recurringRun?.experiment_id
+          : origin.run?.experiment_id;
         let experiment: ApiExperiment | undefined;
         if (relatedExperimentId) {
           experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
@@ -316,7 +336,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           });
         }
         breadcrumbs.push({
-          displayName: origin.isRecurring ? origin.recurringRun!.name! : origin.run!.run!.name!,
+          displayName: origin.isRecurring
+            ? origin.recurringRun!.display_name!
+            : origin.run!.display_name!,
           href: origin.isRecurring
             ? RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,

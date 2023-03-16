@@ -15,6 +15,7 @@ import { ApiRunDetail } from 'src/apis/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { ApiJob } from 'src/apis/job';
 import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -65,19 +66,19 @@ function NewRunSwitcher(props: PageProps) {
   const {
     isSuccess: getRecurringRunSuccess,
     isFetching: recurringRunIsFetching,
-    data: apiRecurringRun,
-  } = useQuery<ApiJob, Error>(
-    ['ApiRecurringRun', originalRecurringRunId],
+    data: recurringRun,
+  } = useQuery<V2beta1RecurringRun, Error>(
+    ['recurringRun', originalRecurringRunId],
     () => {
       if (!originalRecurringRunId) {
         throw new Error('Recurring Run ID is missing');
       }
-      return Apis.jobServiceApi.getJob(originalRecurringRunId);
+      return Apis.recurringRunServiceApi.getRecurringRun(originalRecurringRunId);
     },
     { enabled: !!originalRecurringRunId, staleTime: Infinity },
   );
 
-  if ((v1Run !== undefined || v2Run !== undefined) && apiRecurringRun !== undefined) {
+  if (v1Run !== undefined && recurringRun !== undefined) {
     throw new Error('The existence of run and recurring run should be exclusive.');
   }
 
@@ -87,8 +88,8 @@ function NewRunSwitcher(props: PageProps) {
     pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
   }
 
-  if (getRecurringRunSuccess && apiRecurringRun) {
-    pipelineManifest = apiRecurringRun.pipeline_spec?.pipeline_manifest || '';
+  if (getRecurringRunSuccess && recurringRun && recurringRun.pipeline_spec) {
+    pipelineManifest = JsYaml.safeDump(recurringRun.pipeline_spec);
   }
 
   const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
@@ -102,20 +103,21 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!pipelineId, staleTime: Infinity, cacheTime: Infinity },
   );
 
+  const pipelineVersionId =
+    pipelineVersionIdParam || apiPipeline?.default_version?.id || recurringRun?.pipeline_version_id;
+
   const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
     ApiPipelineVersion,
     Error
   >(
-    ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
+    ['ApiPipelineVersion', pipelineVersionId],
     () => {
-      const pipelineVersionId =
-        pipelineVersionIdParam || apiPipeline?.default_version?.id || v2Run?.pipeline_version_id;
       if (!pipelineVersionId) {
         throw new Error('Pipeline Version ID is missing');
       }
       return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
     },
-    { enabled: !!apiPipeline || !!v2Run, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const {
@@ -123,9 +125,8 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: pipelineTemplateStrIsFetching,
     data: templateStrFromPipelineId,
   } = useQuery<string, Error>(
-    ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
+    ['ApiPipelineVersionTemplate', pipelineVersionId],
     async () => {
-      const pipelineVersionId = apiPipelineVersion?.id;
       if (!pipelineVersionId) {
         return '';
       }
@@ -159,8 +160,8 @@ function NewRunSwitcher(props: PageProps) {
           namespace={namespace}
           existingRunId={existingRunId}
           existingRun={v2Run}
-          originalRecurringRunId={originalRecurringRunId}
-          apiRecurringRun={apiRecurringRun}
+          existingRecurringRunId={originalRecurringRunId}
+          existingRecurringRun={recurringRun}
           existingPipeline={apiPipeline}
           handlePipelineIdChange={setPipelineId}
           existingPipelineVersion={apiPipelineVersion}

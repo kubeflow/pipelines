@@ -12,7 +12,7 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
         Array [
           Array [
             "Description",
-            "test job description",
+            "test recurring run description",
           ],
           Array [
             "Created at",
@@ -80,7 +80,7 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
         Array [
           Array [
             "Description",
-            "test job description",
+            "test recurring run description",
           ],
           Array [
             "Created at",
