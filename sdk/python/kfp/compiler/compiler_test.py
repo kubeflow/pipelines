@@ -3233,6 +3233,49 @@ def compile_and_reload(
         return components.load_component_from_file(output_yaml)
 
 
+class TestResourceConfig(unittest.TestCase):
+
+    def test_cpu_memory_optional(self):
+
+        @dsl.component
+        def predict_op() -> str:
+            return 'a'
+
+        @dsl.pipeline
+        def simple_pipeline():
+            predict_op()
+            predict_op().set_cpu_limit('5')
+            predict_op().set_memory_limit('50G')
+            predict_op().set_cpu_limit('5').set_memory_limit('50G')
+
+        dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
+
+        self.assertNotIn(
+            'resources', dict_format['deploymentSpec']['executors']
+            ['exec-predict-op']['container'])
+
+        self.assertEqual(
+            5, dict_format['deploymentSpec']['executors']['exec-predict-op-2']
+            ['container']['resources']['cpuLimit'])
+        self.assertNotIn(
+            'memoryLimit', dict_format['deploymentSpec']['executors']
+            ['exec-predict-op-2']['container']['resources'])
+
+        self.assertEqual(
+            50, dict_format['deploymentSpec']['executors']['exec-predict-op-3']
+            ['container']['resources']['memoryLimit'])
+        self.assertNotIn(
+            'cpuLimit', dict_format['deploymentSpec']['executors']
+            ['exec-predict-op-3']['container']['resources'])
+
+        self.assertEqual(
+            5, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['cpuLimit'])
+        self.assertEqual(
+            50, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['memoryLimit'])
+
+
 class TestPlatformConfig(unittest.TestCase):
 
     def test_no_platform_config(self):
