@@ -24,7 +24,11 @@ import { commonCss, color } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiJob, ApiTrigger } from '../apis/job';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
+import {
+  V2beta1RecurringRun,
+  V2beta1RecurringRunStatus,
+  V2beta1Trigger,
+} from 'src/apisv2beta1/recurringrun';
 
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;

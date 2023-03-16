@@ -238,17 +238,23 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
         if (origin.isRecurring) {
-          origin.recurringRun = await Apis.recurringRunServiceApi.getRecurringRun(origin.recurringRunId!);
+          origin.recurringRun = await Apis.recurringRunServiceApi.getRecurringRun(
+            origin.recurringRunId!,
+          );
         } else {
           origin.run = await Apis.runServiceApiV2.getRun(origin.runId!);
         }
 
-        const pipelineVersionIdFromOrigin = origin.isRecurring ? origin.recurringRun?.pipeline_version_id : origin.run?.pipeline_version_id;
+        const pipelineVersionIdFromOrigin = origin.isRecurring
+          ? origin.recurringRun?.pipeline_version_id
+          : origin.run?.pipeline_version_id;
         let templateStrFromOrigin = '';
 
         if (pipelineVersionIdFromOrigin) {
           version = await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionIdFromOrigin);
-          const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionIdFromOrigin);
+          const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(
+            pipelineVersionIdFromOrigin,
+          );
           templateStrFromOrigin = response.template || '';
         }
 
@@ -259,9 +265,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         if (origin.recurringRun?.pipeline_spec) {
           pipelineManifest = JsYaml.safeDump(origin.recurringRun.pipeline_spec);
         }
-        
+
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
-        // V2: Use the pipeline spec string or original template string directly 
+        // V2: Use the pipeline spec string or original template string directly
         // because it can be translated in JSON format.
         if (isFeatureEnabled(FeatureKey.V2_ALPHA) && (templateStrFromOrigin || pipelineManifest)) {
           templateString = pipelineManifest ? pipelineManifest : templateStrFromOrigin;
@@ -303,7 +309,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           }
         }
 
-        const relatedExperimentId = origin.isRecurring ? origin.recurringRun?.experiment_id : origin.run?.experiment_id;
+        const relatedExperimentId = origin.isRecurring
+          ? origin.recurringRun?.experiment_id
+          : origin.run?.experiment_id;
         let experiment: ApiExperiment | undefined;
         if (relatedExperimentId) {
           experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
@@ -328,7 +336,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           });
         }
         breadcrumbs.push({
-          displayName: origin.isRecurring ? origin.recurringRun!.display_name! : origin.run!.display_name!,
+          displayName: origin.isRecurring
+            ? origin.recurringRun!.display_name!
+            : origin.run!.display_name!,
           href: origin.isRecurring
             ? RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,
