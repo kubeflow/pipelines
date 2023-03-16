@@ -29,7 +29,6 @@ import { RunDetailsV2 } from 'src/pages/RunDetailsV2';
 export default function RunDetailsRouter(props: RunDetailsProps) {
   const runId = props.match.params[RouteParams.runId];
   let pipelineManifest: string | undefined;
-  let pipelineVersionId: string | undefined;
 
   // Retrieves v1 run detail.
   const { data: v1Run } = useQuery<ApiRunDetail, Error>(
@@ -45,10 +44,11 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     {},
   );
 
-  if (getV2RunSuccess && v2Run) {
-    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec || '');
-    pipelineVersionId = v2Run.pipeline_version_id;
+  if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
+    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
   }
+
+  const pipelineVersionId = v2Run?.pipeline_version_id;
 
   const { data: templateStrFromVersionId } = useQuery<string, Error>(
     ['PipelineVersionTemplate', pipelineVersionId],
@@ -67,7 +67,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     return <></>;
   }
 
-  const templateString = templateStrFromVersionId ? templateStrFromVersionId : pipelineManifest;
+  const templateString = pipelineManifest ? pipelineManifest : templateStrFromVersionId;
 
   if (getV2RunSuccess && v2Run && templateString) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
