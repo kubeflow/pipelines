@@ -24,7 +24,7 @@ import { ApiExperiment } from 'src/apis/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from 'src/lib/Utils';
 import { BrowserRouter } from 'react-router-dom';
-import { PredicateOp } from '../apis/filter';
+import { PredicateOp } from 'src/apis/filter';
 
 describe('RunListsRouter', () => {
   let historyPushSpy: any;

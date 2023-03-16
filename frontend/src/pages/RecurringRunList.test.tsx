@@ -15,15 +15,14 @@
  */
 
 import * as React from 'react';
-import * as Utils from '../lib/Utils';
+import * as Utils from 'src/lib/Utils';
 import RecurringRunList, { RecurringRunListProps } from './RecurringRunList';
-import TestUtils from '../TestUtils';
+import TestUtils from 'src/TestUtils';
 import produce from 'immer';
-import { ApiJob, ApiResourceType } from '../apis/job';
-import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
+import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from '../apisv2beta1/recurringrun';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 class RecurringRunListTest extends RecurringRunList {
   public _loadRecurringRuns(request: ListRequest): Promise<string> {

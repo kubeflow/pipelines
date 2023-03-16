@@ -18,8 +18,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'fs';
 import 'jest';
 import React from 'react';
-import { testBestPractices } from '../TestUtils';
-import { CommonTestWrapper } from '../TestWrapper';
+import { testBestPractices } from 'src/TestUtils';
+import { CommonTestWrapper } from 'src/TestWrapper';
 import {
   ApiExperiment,
   ApiExperimentStorageState,
@@ -95,22 +95,6 @@ describe('NewRunV2', () => {
     name: NEW_TEST_PIPELINE_VERSION_NAME,
     description: '',
   };
-  const TEST_RESOURCE_REFERENCE = [
-    {
-      key: {
-        id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
-        type: ApiResourceType.EXPERIMENT,
-      },
-      relationship: ApiRelationship.OWNER,
-    },
-    {
-      key: {
-        id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-        type: ApiResourceType.PIPELINEVERSION,
-      },
-      relationship: ApiRelationship.CREATOR,
-    },
-  ];
 
   // Reponse from BE while POST a run for creating New UI-Run
   const API_UI_CREATED_NEW_RUN_DETAILS: V2beta1Run = {

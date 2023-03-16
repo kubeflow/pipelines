@@ -17,8 +17,7 @@
 import React from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from 'react-query';
-import { ApiJob } from 'src/apis/job';
-import { ApiResourceType, ApiRunDetail } from 'src/apis/run';
+import { ApiRunDetail } from 'src/apis/run';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -33,7 +32,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   let pipelineVersionId: string | undefined;
 
   // Retrieves v1 run detail.
-  const { isSuccess: getV1RunSuccess, data: v1Run } = useQuery<ApiRunDetail, Error>(
+  const { data: v1Run } = useQuery<ApiRunDetail, Error>(
     ['v1_run_detail', { id: runId }],
     () => Apis.runServiceApi.getRun(runId),
     {},

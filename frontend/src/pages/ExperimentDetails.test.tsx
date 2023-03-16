@@ -30,7 +30,7 @@ import { render, screen } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import { V2beta1RecurringRunStatus } from '../apisv2beta1/recurringrun';
+import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 describe('ExperimentDetails', () => {
   let tree: ReactWrapper | ShallowWrapper;

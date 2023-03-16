@@ -30,11 +30,11 @@ import {
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
   GetExecutionsByContextResponse,
-} from '../third_party/mlmd';
+} from 'src/third_party/mlmd';
 import {
   GetArtifactsByContextResponse,
   GetEventsByExecutionIDsResponse,
-} from '../third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+} from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
 import { RunDetailsV2 } from './RunDetailsV2';

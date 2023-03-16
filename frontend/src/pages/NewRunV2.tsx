@@ -29,9 +29,7 @@ import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { ApiJob } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRelationship, ApiResourceReference, ApiResourceType } from 'src/apis/run';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -106,20 +104,6 @@ function getCloneOrigin(run?: V2beta1Run, recurringRun?: V2beta1RecurringRun) {
   };
   return cloneOrigin;
 }
-
-// function hasVersionID(cloneOrigin: CloneOrigin): boolean {
-//   if (!cloneOrigin.isClone) {
-//     return true;
-//   }
-//   let hasVersionType: boolean = false;
-//   const existResourceRef = cloneOrigin.recurringRun?.resource_references;
-//   if (existResourceRef) {
-//     existResourceRef.forEach(value => {
-//       hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
-//     });
-//   }
-//   return hasVersionType;
-// }
 
 function getPipelineDetailsUrl(
   props: NewRunV2Props,

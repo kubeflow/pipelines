@@ -16,14 +16,13 @@
 
 import * as React from 'react';
 import RecurringRunDetails from './RecurringRunDetails';
-import TestUtils from '../TestUtils';
-import { ApiJob, ApiResourceType } from '../apis/job';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from '../apisv2beta1/recurringrun';
-import { Apis } from '../lib/Apis';
+import TestUtils from 'src/TestUtils';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
-import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
+import { RouteParams, RoutePage, QUERY_PARAMS } from 'src/components/Router';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
-import { ButtonKeys } from '../lib/Buttons';
+import { ButtonKeys } from 'src/lib/Buttons';
 
 describe('RecurringRunDetails', () => {
   let tree: ReactWrapper<any> | ShallowWrapper<any>;

@@ -16,14 +16,13 @@
 
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
-import RunUtils, { ExperimentInfo } from '../../src/lib/RunUtils';
+import { ExperimentInfo } from '../../src/lib/RunUtils';
 import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { RoutePage, RouteParams } from '../components/Router';
 import { commonCss, color } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
 import Tooltip from '@material-ui/core/Tooltip';
-import { ApiJob, ApiTrigger } from '../apis/job';
 import {
   V2beta1RecurringRun,
   V2beta1RecurringRunStatus,
@@ -240,21 +239,6 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       await this._getAndSetRecurringRuns(displayRecurringRuns);
     } else {
       try {
-        let resourceReference: {
-          keyType?: 'EXPERIMENT' | 'NAMESPACE';
-          keyId?: string;
-        } = {};
-        if (this.props.experimentIdMask) {
-          resourceReference = {
-            keyType: 'EXPERIMENT',
-            keyId: this.props.experimentIdMask,
-          };
-        } else if (this.props.namespaceMask) {
-          resourceReference = {
-            keyType: 'NAMESPACE',
-            keyId: this.props.namespaceMask,
-          };
-        }
         const response = await Apis.recurringRunServiceApi.listRecurringRuns(
           request.pageToken,
           request.pageSize,
