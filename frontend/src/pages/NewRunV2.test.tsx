@@ -163,80 +163,52 @@ describe('NewRunV2', () => {
     state: V2beta1RuntimeState.SUCCEEDED,
   };
 
-  const API_UI_CREATED_NEW_RECURRING_RUN_DETAILS: ApiJob = {
+  const API_UI_CREATED_NEW_RECURRING_RUN_DETAILS: V2beta1RecurringRun = {
     created_at: new Date('2021-05-17T20:58:23.000Z'),
     description: 'V2 xgboost',
-    id: TEST_RECURRING_RUN_ID,
-    name: 'Run of v2-xgboost-ilbo',
-    pipeline_spec: {
-      pipeline_manifest: v2YamlTemplateString,
-      runtime_config: { parameters: { intParam: 123 } },
-    },
-    resource_references: TEST_RESOURCE_REFERENCE,
+    display_name: 'Run of v2-xgboost-ilbo',
+    pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    recurring_run_id: TEST_RECURRING_RUN_ID,
+    runtime_config: { parameters: { intParam: 123 } },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
     max_concurrency: '10',
   };
 
-  const API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS: ApiJob = {
+  const API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS: V2beta1RecurringRun = {
     created_at: new Date('2023-01-04T20:58:23.000Z'),
     description: 'V2 xgboost',
-    id: 'test-clone-ui-recurring-run-id',
-    name: 'Clone of Run of v2-xgboost-ilbo',
-    pipeline_spec: {
-      pipeline_manifest: v2YamlTemplateString,
-      runtime_config: { parameters: { intParam: 123 } },
-    },
-    resource_references: TEST_RESOURCE_REFERENCE,
+    display_name: 'Clone of Run of v2-xgboost-ilbo',
+    pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
+    recurring_run_id: 'test-clone-ui-recurring-run-id',
+    runtime_config: { parameters: { intParam: 123 } },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
     max_concurrency: '10',
   };
 
-  const API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS: ApiJob = {
+  const API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS: V2beta1RecurringRun = {
     created_at: new Date('2021-05-17T20:58:23.000Z'),
     description: 'V2 xgboost',
-    id: TEST_RECURRING_RUN_ID,
-    name: 'Run of v2-xgboost-ilbo',
-    pipeline_spec: {
-      pipeline_manifest: v2YamlTemplateString,
-      runtime_config: { parameters: { intParam: 123 } },
-    },
-    resource_references: [
-      {
-        key: {
-          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
-          type: ApiResourceType.EXPERIMENT,
-        },
-        relationship: ApiRelationship.OWNER,
-      },
-    ],
+    display_name: 'Run of v2-xgboost-ilbo',
+    pipeline_spec: v2PipelineSpec,
+    recurring_run_id: TEST_RECURRING_RUN_ID,
+    runtime_config: { parameters: { intParam: 123 } },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
     max_concurrency: '10',
   };
 
-  const API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS: ApiJob = {
+  const API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS: V2beta1RecurringRun = {
     created_at: new Date('2023-01-04T20:58:23.000Z'),
     description: 'V2 xgboost',
-    id: 'test-clone-ui-recurring-run-id',
-    name: 'Clone of Run of v2-xgboost-ilbo',
-    pipeline_spec: {
-      pipeline_manifest: v2YamlTemplateString,
-      runtime_config: { parameters: { intParam: 123 } },
-    },
-    resource_references: [
-      {
-        key: {
-          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
-          type: ApiResourceType.EXPERIMENT,
-        },
-        relationship: ApiRelationship.OWNER,
-      },
-    ],
+    display_name: 'Clone of Run of v2-xgboost-ilbo',
+    pipeline_spec: v2PipelineSpec,
+    recurring_run_id: 'test-clone-sdk-recurring-run-id',
+    runtime_config: { parameters: { intParam: 123 } },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -314,8 +286,8 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           existingRun={undefined}
-          originalRecurringRunId={null}
-          apiRecurringRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
           handlePipelineIdChange={jest.fn()}
           existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -351,8 +323,8 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           existingRun={undefined}
-          originalRecurringRunId={null}
-          apiRecurringRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
           handlePipelineIdChange={jest.fn()}
           existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -386,8 +358,8 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           existingRun={undefined}
-          originalRecurringRunId={null}
-          apiRecurringRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
           handlePipelineIdChange={jest.fn()}
           existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -424,8 +396,8 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -467,8 +439,8 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -513,8 +485,8 @@ describe('NewRunV2', () => {
             namespace='test-ns'
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -559,8 +531,8 @@ describe('NewRunV2', () => {
             namespace='test-ns'
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -605,8 +577,8 @@ describe('NewRunV2', () => {
             namespace='test-ns'
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -658,8 +630,8 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -688,8 +660,8 @@ describe('NewRunV2', () => {
 
   describe('creating a recurring run', () => {
     it('submits a new recurring run', async () => {
-      const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
-      createJobSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
+      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
       render(
         <CommonTestWrapper>
@@ -697,8 +669,8 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -721,10 +693,10 @@ describe('NewRunV2', () => {
       fireEvent.click(startButton);
 
       await waitFor(() => {
-        expect(createJobSpy).toHaveBeenCalledWith(
+        expect(createRecurringRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            enabled: true,
             max_concurrency: '10',
+            status: V2beta1RecurringRunStatus.ENABLED,
             trigger: {
               periodic_schedule: {
                 interval_second: '3600',
@@ -743,7 +715,7 @@ describe('NewRunV2', () => {
     });
 
     it('enables to change the trigger parameters.', async () => {
-      const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
+      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
 
       render(
         <CommonTestWrapper>
@@ -751,8 +723,8 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -785,10 +757,10 @@ describe('NewRunV2', () => {
       fireEvent.click(startButton);
 
       await waitFor(() => {
-        expect(createJobSpy).toHaveBeenCalledWith(
+        expect(createRecurringRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            enabled: true,
             max_concurrency: '5',
+            status: V2beta1RecurringRunStatus.ENABLED,
             trigger: {
               periodic_schedule: {
                 interval_second: '300',
@@ -862,8 +834,8 @@ describe('NewRunV2', () => {
             {...generatePropsClonedRun()}
             existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={undefined}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={undefined}
@@ -886,8 +858,8 @@ describe('NewRunV2', () => {
             {...generatePropsClonedRun()}
             existingRunId={TEST_RUN_ID}
             existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={undefined}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={undefined}
@@ -928,8 +900,8 @@ describe('NewRunV2', () => {
             {...generatePropsClonedRun()}
             existingRunId={TEST_RUN_ID}
             existingRun={API_SDK_CREATED_NEW_RUN_DETAILS}
-            originalRecurringRunId={null}
-            apiRecurringRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={undefined}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={undefined}
@@ -963,8 +935,8 @@ describe('NewRunV2', () => {
 
   describe('clone an existing recurring run', () => {
     it('submits a recurring run with same runtimeConfig and trigger from clone UI-created recurring run', async () => {
-      const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
-      createJobSpy.mockResolvedValue(API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS);
+      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
       render(
         <CommonTestWrapper>
@@ -972,8 +944,8 @@ describe('NewRunV2', () => {
             {...generatePropsClonedRun()}
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={TEST_RECURRING_RUN_ID}
-            apiRecurringRun={API_UI_CREATED_NEW_RECURRING_RUN_DETAILS}
+            existingRecurringRunId={TEST_RECURRING_RUN_ID}
+            existingRecurringRun={API_UI_CREATED_NEW_RECURRING_RUN_DETAILS}
             existingPipeline={undefined}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={undefined}
@@ -992,15 +964,12 @@ describe('NewRunV2', () => {
       fireEvent.click(startButton);
 
       await waitFor(() => {
-        expect(createJobSpy).toHaveBeenCalledWith(
+        expect(createRecurringRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             description: '',
-            name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: {
-              pipeline_manifest: undefined,
-              runtime_config: { parameters: { intParam: 123 } },
-            },
-            resource_references: TEST_RESOURCE_REFERENCE,
+            display_name: 'Clone of Run of v2-xgboost-ilbo',
+            pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+            runtime_config: { parameters: { intParam: 123 } },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },
@@ -1018,8 +987,8 @@ describe('NewRunV2', () => {
     });
 
     it('submits a recurring run with same runtimeConfig and trigger from clone SDK-created recurring run', async () => {
-      const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
-      createJobSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS);
+      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
       render(
         <CommonTestWrapper>
@@ -1027,8 +996,8 @@ describe('NewRunV2', () => {
             {...generatePropsClonedRun()}
             existingRunId={null}
             existingRun={undefined}
-            originalRecurringRunId={TEST_RECURRING_RUN_ID}
-            apiRecurringRun={API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS}
+            existingRecurringRunId={TEST_RECURRING_RUN_ID}
+            existingRecurringRun={API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS}
             existingPipeline={undefined}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={undefined}
@@ -1047,23 +1016,12 @@ describe('NewRunV2', () => {
       fireEvent.click(startButton);
 
       await waitFor(() => {
-        expect(createJobSpy).toHaveBeenCalledWith(
+        expect(createRecurringRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             description: '',
-            name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: {
-              pipeline_manifest: v2YamlTemplateString,
-              runtime_config: { parameters: { intParam: 123 } },
-            },
-            resource_references: [
-              {
-                key: {
-                  id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
-                  type: ApiResourceType.EXPERIMENT,
-                },
-                relationship: ApiRelationship.OWNER,
-              },
-            ],
+            display_name: 'Clone of Run of v2-xgboost-ilbo',
+            pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+            runtime_config: { parameters: { intParam: 123 } },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },
