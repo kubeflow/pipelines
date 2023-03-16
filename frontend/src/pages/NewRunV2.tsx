@@ -368,7 +368,10 @@ function NewRunV2(props: NewRunV2Props) {
           setIsStartingNewRun(false);
           if (data.recurring_run_id) {
             props.history.push(
-              RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, data.recurring_run_id),
+              RoutePage.RECURRING_RUN_DETAILS.replace(
+                ':' + RouteParams.recurringRunId,
+                data.recurring_run_id,
+              ),
             );
           } else {
             props.history.push(RoutePage.RECURRING_RUNS);
