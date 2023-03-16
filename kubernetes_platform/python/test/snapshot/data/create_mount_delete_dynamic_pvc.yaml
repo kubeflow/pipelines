@@ -109,6 +109,8 @@ root:
           enableCache: true
         componentRef:
           name: comp-comp
+        dependentTasks:
+        - createpvc
         taskInfo:
           name: comp
       comp-2:
@@ -118,6 +120,7 @@ root:
           name: comp-comp-2
         dependentTasks:
         - comp
+        - createpvc
         taskInfo:
           name: comp-2
       createpvc:
