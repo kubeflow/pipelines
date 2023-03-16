@@ -24,7 +24,7 @@ import { commonCss, color } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiJob, ApiTrigger } from '../apis/job';
-import { V2beta1RecurringRun, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
 
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;
@@ -208,16 +208,16 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     return <div>-</div>;
   };
 
-  public _statusCustomRenderer: React.FC<CustomRendererProps<string>> = (
-    props: CustomRendererProps<string>,
+  public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
+    props: CustomRendererProps<V2beta1RecurringRunStatus>,
   ) => {
     if (!props.value) {
       return <div>-</div>;
     }
     const textColor =
-      props.value === 'Enabled'
+      props.value === V2beta1RecurringRunStatus.ENABLED
         ? color.success
-        : props.value === 'Disabled'
+        : props.value === V2beta1RecurringRunStatus.DISABLED
         ? color.inactive
         : color.errorText;
     return <div style={{ color: textColor }}>{props.value}</div>;
