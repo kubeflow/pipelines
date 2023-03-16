@@ -824,7 +824,7 @@ describe('RecurringRunList', () => {
       <div
         style={
           Object {
-            "color": "#34a853",
+            "color": "#d50000",
           }
         }
       >
@@ -843,7 +843,7 @@ describe('RecurringRunList', () => {
       <div
         style={
           Object {
-            "color": "#5f6368",
+            "color": "#d50000",
           }
         }
       >
