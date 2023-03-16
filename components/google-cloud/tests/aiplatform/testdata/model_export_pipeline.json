@@ -1,210 +1,303 @@
 {
-   "components":{
-      "comp-model-export":{
-         "executorLabel":"exec-model-export",
-         "inputDefinitions":{
-            "artifacts":{
-               "model":{
-                  "artifactType":{
-                     "schemaTitle":"google.VertexModel",
-                     "schemaVersion":"0.0.1"
-                  }
-               }
-            },
-            "parameters":{
-               "artifact_destination":{
-                  "parameterType":"STRING"
-               },
-               "export_format_id":{
-                  "parameterType":"STRING"
-               },
-               "image_destination":{
-                  "parameterType":"STRING"
-               }
-            }
+   "components": {
+     "comp-model-export": {
+       "executorLabel": "exec-model-export",
+       "inputDefinitions": {
+         "artifacts": {
+           "model": {
+             "artifactType": {
+               "schemaTitle": "google.VertexModel",
+               "schemaVersion": "0.0.1"
+             }
+           }
          },
-         "outputDefinitions":{
-            "parameters":{
-               "gcp_resources":{
-                  "parameterType":"STRING"
-               },
-               "output_info":{
-                  "parameterType":"STRUCT"
-               }
-            }
+         "parameters": {
+           "artifact_destination": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "export_format_id": {
+             "parameterType": "STRING"
+           },
+           "image_destination": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           }
          }
-      },
-      "comp-model-upload":{
-         "executorLabel":"exec-model-upload",
-         "inputDefinitions":{
-            "parameters":{
-               "artifact_uri":{
-                  "parameterType":"STRING"
-               },
-               "display_name":{
-                  "parameterType":"STRING"
-               },
-               "project":{
-                  "parameterType":"STRING"
-               },
-               "serving_container_image_uri":{
-                  "parameterType":"STRING"
-               }
-            }
+       },
+       "outputDefinitions": {
+         "parameters": {
+           "gcp_resources": {
+             "parameterType": "STRING"
+           },
+           "output_info": {
+             "parameterType": "STRUCT"
+           }
+         }
+       }
+     },
+     "comp-model-upload": {
+       "executorLabel": "exec-model-upload",
+       "inputDefinitions": {
+         "artifacts": {
+           "unmanaged_container_model": {
+             "artifactType": {
+               "schemaTitle": "google.UnmanagedContainerModel",
+               "schemaVersion": "0.0.1"
+             },
+             "isOptional": true
+           }
          },
-         "outputDefinitions":{
-            "artifacts":{
-               "model":{
-                  "artifactType":{
-                     "schemaTitle":"google.VertexModel",
-                     "schemaVersion":"0.0.1"
-                  }
-               }
-            },
-            "parameters":{
-               "gcp_resources":{
-                  "parameterType":"STRING"
-               }
-            }
+         "parameters": {
+           "artifact_uri": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "description": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "display_name": {
+             "parameterType": "STRING"
+           },
+           "encryption_spec_key_name": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "explanation_metadata": {
+             "defaultValue": {},
+             "isOptional": true,
+             "parameterType": "STRUCT"
+           },
+           "explanation_parameters": {
+             "defaultValue": {},
+             "isOptional": true,
+             "parameterType": "STRUCT"
+           },
+           "instance_schema_uri": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "labels": {
+             "defaultValue": {},
+             "isOptional": true,
+             "parameterType": "STRUCT"
+           },
+           "location": {
+             "defaultValue": "us-central1",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "parameters_schema_uri": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "prediction_schema_uri": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "project": {
+             "parameterType": "STRING"
+           },
+           "serving_container_args": {
+             "defaultValue": [],
+             "isOptional": true,
+             "parameterType": "LIST"
+           },
+           "serving_container_command": {
+             "defaultValue": [],
+             "isOptional": true,
+             "parameterType": "LIST"
+           },
+           "serving_container_environment_variables": {
+             "defaultValue": [],
+             "isOptional": true,
+             "parameterType": "LIST"
+           },
+           "serving_container_health_route": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "serving_container_image_uri": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           },
+           "serving_container_ports": {
+             "defaultValue": [],
+             "isOptional": true,
+             "parameterType": "LIST"
+           },
+           "serving_container_predict_route": {
+             "defaultValue": "",
+             "isOptional": true,
+             "parameterType": "STRING"
+           }
          }
-      }
-   },
-   "deploymentSpec":{
-      "executors":{
-         "exec-model-export":{
-            "container":{
-               "args":[
-                  "--type",
-                  "ExportModel",
-                  "--payload",
-                  "{\"name\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"output_config\": {\"export_format_id\": \"{{$.inputs.parameters['export_format_id']}}\", \"artifact_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['artifact_destination']}}\"}, \"image_destination\":  {\"output_uri\": \"{{$.inputs.parameters['image_destination']}}\"}}}",
-                  "--project",
-                  "",
-                  "--location",
-                  "",
-                  "--gcp_resources",
-                  "{{$.outputs.parameters['gcp_resources'].output_file}}",
-                  "--output_info",
-                  "{{$.outputs.parameters['output_info'].output_file}}"
-               ],
-               "command":[
-                  "python3",
-                  "-u",
-                  "-m",
-                  "google_cloud_pipeline_components.container.v1.model.export_model.launcher"
-               ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
-            }
+       },
+       "outputDefinitions": {
+         "artifacts": {
+           "model": {
+             "artifactType": {
+               "schemaTitle": "google.VertexModel",
+               "schemaVersion": "0.0.1"
+             }
+           }
          },
-         "exec-model-upload":{
-            "container":{
-               "args":[
-                  "--type",
-                  "UploadModel",
-                  "--payload",
-                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"\", \"predict_schemata\": {\"instance_schema_uri\": \"\", \"parameters_schema_uri\": \"\", \"prediction_schema_uri\": \"\"}, \"container_spec\": {\"image_uri\": \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"command\": , \"args\": , \"env\": , \"ports\": , \"predict_route\": \"\", \"health_route\": \"\"}, \"artifact_uri\": \"{{$.inputs.parameters['artifact_uri']}}\", \"explanation_spec\": {\"parameters\": , \"metadata\": }, \"encryption_spec\": {\"kms_key_name\":\"\"}, \"labels\": }",
-                  "--project",
-                  "{{$.inputs.parameters['project']}}",
-                  "--location",
-                  "--gcp_resources",
-                  "{{$.outputs.parameters['gcp_resources'].output_file}}",
-                  "--executor_input",
-                  "{{$}}"
-               ],
-               "command":[
-                  "python3",
-                  "-u",
-                  "-m",
-                  "google_cloud_pipeline_components.container.v1.model.upload_model.launcher"
-               ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
-            }
+         "parameters": {
+           "gcp_resources": {
+             "parameterType": "STRING"
+           }
          }
-      }
+       }
+     }
    },
-   "pipelineInfo":{
-      "name":"training-test"
-   },
-   "root":{
-      "dag":{
-         "tasks":{
-            "model-export":{
-               "cachingOptions":{
-                  "enableCache":true
-               },
-               "componentRef":{
-                  "name":"comp-model-export"
-               },
-               "dependentTasks":[
-                  "model-upload"
-               ],
-               "inputs":{
-                  "artifacts":{
-                     "model":{
-                        "taskOutputArtifact":{
-                           "outputArtifactKey":"model",
-                           "producerTask":"model-upload"
-                        }
-                     }
-                  },
-                  "parameters":{
-                     "artifact_destination":{
-                        "runtimeValue":{
-                           "constant":"artifact_destination"
-                        }
-                     },
-                     "export_format_id":{
-                        "runtimeValue":{
-                           "constant":"export_format"
-                        }
-                     },
-                     "image_destination":{
-                        "runtimeValue":{
-                           "constant":"image_destination"
-                        }
-                     }
-                  }
-               },
-               "taskInfo":{
-                  "name":"model-export"
-               }
-            },
-            "model-upload":{
-               "cachingOptions":{
-                  "enableCache":true
-               },
-               "componentRef":{
-                  "name":"comp-model-upload"
-               },
-               "inputs":{
-                  "parameters":{
-                     "artifact_uri":{
-                        "runtimeValue":{
-                           "constant":"project/test_artifact_uri"
-                        }
-                     },
-                     "display_name":{
-                        "runtimeValue":{
-                           "constant":"test_display_name"
-                        }
-                     },
-                     "project":{
-                        "runtimeValue":{
-                           "constant":"test_project"
-                        }
-                     },
-                     "serving_container_image_uri":{
-                        "runtimeValue":{
-                           "constant":"gcr.io/test_project/test_image:test_tag"
-                        }
-                     }
-                  }
-               },
-               "taskInfo":{
-                  "name":"model-upload"
-               }
-            }
+   "deploymentSpec": {
+     "executors": {
+       "exec-model-export": {
+         "container": {
+           "args": [
+             "--type",
+             "ExportModel",
+             "--payload",
+             "{\"Concat\": [\"{\", \"\\\"name\\\": \\\"\", \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"\\\"\", \", \\\"output_config\\\": {\", \"\\\"export_format_id\\\": \\\"\", \"{{$.inputs.parameters['export_format_id']}}\", \"\\\"\", \", \\\"artifact_destination\\\": {\", \"\\\"output_uri_prefix\\\": \\\"\", \"{{$.inputs.parameters['artifact_destination']}}\", \"\\\"\", \"}\", \", \\\"image_destination\\\":  {\", \"\\\"output_uri\\\": \\\"\", \"{{$.inputs.parameters['image_destination']}}\", \"\\\"\", \"}\", \"}\", \"}\"]}",
+             "--project",
+             "",
+             "--location",
+             "",
+             "--gcp_resources",
+             "{{$.outputs.parameters['gcp_resources'].output_file}}",
+             "--output_info",
+             "{{$.outputs.parameters['output_info'].output_file}}"
+           ],
+           "command": [
+             "python3",
+             "-u",
+             "-m",
+             "google_cloud_pipeline_components.container.v1.model.export_model.launcher"
+           ],
+           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
          }
-      }
+       },
+       "exec-model-upload": {
+         "container": {
+           "args": [
+             "--type",
+             "UploadModel",
+             "--payload",
+             "{\"Concat\": [\"{\", \"\\\"display_name\\\": \\\"\", \"{{$.inputs.parameters['display_name']}}\", \"\\\"\", \", \\\"description\\\": \\\"\", \"{{$.inputs.parameters['description']}}\", \"\\\"\", \", \\\"predict_schemata\\\": {\", \"\\\"instance_schema_uri\\\": \\\"\", \"{{$.inputs.parameters['instance_schema_uri']}}\", \"\\\"\", \", \\\"parameters_schema_uri\\\": \\\"\", \"{{$.inputs.parameters['parameters_schema_uri']}}\", \"\\\"\", \", \\\"prediction_schema_uri\\\": \\\"\", \"{{$.inputs.parameters['prediction_schema_uri']}}\", \"\\\"\", \"}\", \", \\\"container_spec\\\": {\", \"\\\"image_uri\\\": \\\"\", \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"\\\"\", \", \\\"command\\\": \", \"{{$.inputs.parameters['serving_container_command']}}\", \", \\\"args\\\": \", \"{{$.inputs.parameters['serving_container_args']}}\", \", \\\"env\\\": \", \"{{$.inputs.parameters['serving_container_environment_variables']}}\", \", \\\"ports\\\": \", \"{{$.inputs.parameters['serving_container_ports']}}\", \", \\\"predict_route\\\": \\\"\", \"{{$.inputs.parameters['serving_container_predict_route']}}\", \"\\\"\", \", \\\"health_route\\\": \\\"\", \"{{$.inputs.parameters['serving_container_health_route']}}\", \"\\\"\", \"}\", \", \\\"artifact_uri\\\": \\\"\", \"{{$.inputs.parameters['artifact_uri']}}\", \"\\\"\", \", \\\"explanation_spec\\\": {\", \"\\\"parameters\\\": \", \"{{$.inputs.parameters['explanation_parameters']}}\", \", \\\"metadata\\\": \", \"{{$.inputs.parameters['explanation_metadata']}}\", \"}\", \", \\\"encryption_spec\\\": {\\\"kms_key_name\\\":\\\"\", \"{{$.inputs.parameters['encryption_spec_key_name']}}\", \"\\\"}\", \", \\\"labels\\\": \", \"{{$.inputs.parameters['labels']}}\", \"}\"]}",
+             "--project",
+             "{{$.inputs.parameters['project']}}",
+             "--location",
+             "{{$.inputs.parameters['location']}}",
+             "--gcp_resources",
+             "{{$.outputs.parameters['gcp_resources'].output_file}}",
+             "--executor_input",
+             "{{$}}"
+           ],
+           "command": [
+             "python3",
+             "-u",
+             "-m",
+             "google_cloud_pipeline_components.container.v1.model.upload_model.launcher"
+           ],
+           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+         }
+       }
+     }
+   },
+   "pipelineInfo": {
+     "name": "training-test"
+   },
+   "root": {
+     "dag": {
+       "tasks": {
+         "model-export": {
+           "cachingOptions": {
+             "enableCache": true
+           },
+           "componentRef": {
+             "name": "comp-model-export"
+           },
+           "dependentTasks": [
+             "model-upload"
+           ],
+           "inputs": {
+             "artifacts": {
+               "model": {
+                 "taskOutputArtifact": {
+                   "outputArtifactKey": "model",
+                   "producerTask": "model-upload"
+                 }
+               }
+             },
+             "parameters": {
+               "artifact_destination": {
+                 "runtimeValue": {
+                   "constant": "artifact_destination"
+                 }
+               },
+               "export_format_id": {
+                 "runtimeValue": {
+                   "constant": "export_format"
+                 }
+               },
+               "image_destination": {
+                 "runtimeValue": {
+                   "constant": "image_destination"
+                 }
+               }
+             }
+           },
+           "taskInfo": {
+             "name": "model-export"
+           }
+         },
+         "model-upload": {
+           "cachingOptions": {
+             "enableCache": true
+           },
+           "componentRef": {
+             "name": "comp-model-upload"
+           },
+           "inputs": {
+             "parameters": {
+               "artifact_uri": {
+                 "runtimeValue": {
+                   "constant": "project/test_artifact_uri"
+                 }
+               },
+               "display_name": {
+                 "runtimeValue": {
+                   "constant": "test_display_name"
+                 }
+               },
+               "project": {
+                 "runtimeValue": {
+                   "constant": "test_project"
+                 }
+               },
+               "serving_container_image_uri": {
+                 "runtimeValue": {
+                   "constant": "gcr.io/test_project/test_image:test_tag"
+                 }
+               }
+             }
+           },
+           "taskInfo": {
+             "name": "model-upload"
+           }
+         }
+       }
+     }
    }
-}
+ }

@@ -5,63 +5,101 @@
       "inputDefinitions": {
         "parameters": {
           "archive_uris": {
+            "defaultValue": [],
+            "isOptional": true,
             "parameterType": "LIST"
           },
           "args": {
+            "defaultValue": [],
+            "isOptional": true,
             "parameterType": "LIST"
           },
           "batch_id": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "container_image": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "file_uris": {
+            "defaultValue": [],
+            "isOptional": true,
             "parameterType": "LIST"
           },
           "jar_file_uris": {
+            "defaultValue": [],
+            "isOptional": true,
             "parameterType": "LIST"
           },
           "kms_key": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "labels": {
+            "defaultValue": {},
+            "isOptional": true,
             "parameterType": "STRUCT"
           },
           "location": {
+            "defaultValue": "us-central1",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "main_class": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "main_jar_file_uri": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "metastore_service": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "network_tags": {
+            "defaultValue": [],
+            "isOptional": true,
             "parameterType": "LIST"
           },
           "network_uri": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "project": {
             "parameterType": "STRING"
           },
           "runtime_config_properties": {
+            "defaultValue": {},
+            "isOptional": true,
             "parameterType": "STRUCT"
           },
           "runtime_config_version": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "service_account": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "spark_history_dataproc_cluster": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           },
           "subnetwork_uri": {
+            "defaultValue": "",
+            "isOptional": true,
             "parameterType": "STRING"
           }
         }
@@ -83,7 +121,7 @@
             "--type",
             "DataprocSparkBatch",
             "--payload",
-            "{\"labels\": {{$.inputs.parameters['labels']}}, \"runtime_config\": {\"version\": \"{{$.inputs.parameters['runtime_config_version']}}\", \"container_image\": \"{{$.inputs.parameters['container_image']}}\", \"properties\": {{$.inputs.parameters['runtime_config_properties']}}}, \"environment_config\": {\"execution_config\": {\"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"network_tags\": {{$.inputs.parameters['network_tags']}}, \"kms_key\": \"{{$.inputs.parameters['kms_key']}}\", \"network_uri\": \"{{$.inputs.parameters['network_uri']}}\", \"subnetwork_uri\": \"{{$.inputs.parameters['subnetwork_uri']}}\"}, \"peripherals_config\": {\"metastore_service\": \"{{$.inputs.parameters['metastore_service']}}\", \"spark_history_server_config\": { \"dataproc_cluster\": \"{{$.inputs.parameters['spark_history_dataproc_cluster']}}\"}}}, \"spark_batch\": {\"main_jar_file_uri\": \"{{$.inputs.parameters['main_jar_file_uri']}}\", \"main_class\": \"{{$.inputs.parameters['main_class']}}\", \"jar_file_uris\": {{$.inputs.parameters['jar_file_uris']}}, \"file_uris\": {{$.inputs.parameters['file_uris']}}, \"archive_uris\": {{$.inputs.parameters['archive_uris']}}, \"args\": {{$.inputs.parameters['args']}}}}",
+            "{\"Concat\": [\"{\", \"\\\"labels\\\": \", \"{{$.inputs.parameters['labels']}}\", \", \\\"runtime_config\\\": {\", \"\\\"version\\\": \\\"\", \"{{$.inputs.parameters['runtime_config_version']}}\", \"\\\"\", \", \\\"container_image\\\": \\\"\", \"{{$.inputs.parameters['container_image']}}\", \"\\\"\", \", \\\"properties\\\": \", \"{{$.inputs.parameters['runtime_config_properties']}}\", \"}\", \", \\\"environment_config\\\": {\", \"\\\"execution_config\\\": {\", \"\\\"service_account\\\": \\\"\", \"{{$.inputs.parameters['service_account']}}\", \"\\\"\", \", \\\"network_tags\\\": \", \"{{$.inputs.parameters['network_tags']}}\", \", \\\"kms_key\\\": \\\"\", \"{{$.inputs.parameters['kms_key']}}\", \"\\\"\", \", \\\"network_uri\\\": \\\"\", \"{{$.inputs.parameters['network_uri']}}\", \"\\\"\", \", \\\"subnetwork_uri\\\": \\\"\", \"{{$.inputs.parameters['subnetwork_uri']}}\", \"\\\"\", \"}\", \", \\\"peripherals_config\\\": {\", \"\\\"metastore_service\\\": \\\"\", \"{{$.inputs.parameters['metastore_service']}}\", \"\\\"\", \", \\\"spark_history_server_config\\\": { \", \"\\\"dataproc_cluster\\\": \\\"\", \"{{$.inputs.parameters['spark_history_dataproc_cluster']}}\", \"\\\"\", \"}\", \"}\", \"}\", \", \\\"spark_batch\\\": {\", \"\\\"main_jar_file_uri\\\": \\\"\", \"{{$.inputs.parameters['main_jar_file_uri']}}\", \"\\\"\", \", \\\"main_class\\\": \\\"\", \"{{$.inputs.parameters['main_class']}}\", \"\\\"\", \", \\\"jar_file_uris\\\": \", \"{{$.inputs.parameters['jar_file_uris']}}\", \", \\\"file_uris\\\": \", \"{{$.inputs.parameters['file_uris']}}\", \", \\\"archive_uris\\\": \", \"{{$.inputs.parameters['archive_uris']}}\", \", \\\"args\\\": \", \"{{$.inputs.parameters['args']}}\", \"}\", \"}\"]}",
             "--project",
             "{{$.inputs.parameters['project']}}",
             "--location",

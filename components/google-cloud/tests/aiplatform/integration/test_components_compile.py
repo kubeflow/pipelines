@@ -87,7 +87,7 @@ class ComponentsCompileTest(unittest.TestCase):
           display_name=self._display_name,
           prediction_type="classification",
           model_type="CLOUD",
-          # dataset=dataset_create_op.outputs["dataset"],
+          dataset=dataset_create_op.outputs["dataset"],
           model_display_name=self._model_display_name,
           training_fraction_split=0.6,
           validation_fraction_split=0.2,
