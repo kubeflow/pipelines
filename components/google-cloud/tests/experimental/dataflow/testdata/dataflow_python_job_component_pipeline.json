@@ -5,9 +5,13 @@
          "inputDefinitions":{
             "parameters":{
                "args":{
+                  "defaultValue":[],
+                  "isOptional":true,
                   "parameterType":"LIST"
                },
                "location":{
+                  "defaultValue":"us-central1",
+                  "isOptional":true,
                   "parameterType":"STRING"
                },
                "project":{
@@ -17,6 +21,8 @@
                   "parameterType":"STRING"
                },
                "requirements_file_path":{
+                  "defaultValue":"",
+                  "isOptional":true,
                   "parameterType":"STRING"
                },
                "temp_location":{

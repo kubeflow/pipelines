@@ -5,15 +5,22 @@
          "inputDefinitions":{
             "parameters":{
                "encryption_spec_key_name":{
+                  "isOptional":true,
                   "parameterType":"STRING"
                },
                "job_configuration_query":{
+                  "defaultValue":{},
+                  "isOptional":true,
                   "parameterType":"STRUCT"
                },
                "labels":{
+                  "defaultValue":{},
+                  "isOptional":true,
                   "parameterType":"STRUCT"
                },
                "location":{
+                  "defaultValue":"us-central1",
+                  "isOptional":true,
                   "parameterType":"STRING"
                },
                "project":{
@@ -23,6 +30,8 @@
                   "parameterType":"STRING"
                },
                "query_parameters":{
+                  "defaultValue":[],
+                  "isOptional":true,
                   "parameterType":"LIST"
                }
             }
@@ -56,9 +65,9 @@
                   "--location",
                   "{{$.inputs.parameters['location']}}",
                   "--payload",
-                  "{\"configuration\": {\"query\": {{$.inputs.parameters['job_configuration_query']}}, \"labels\": {{$.inputs.parameters['labels']}}}}",
+                  "{\"Concat\": [\"{\", \"\\\"configuration\\\": {\", \"\\\"query\\\": \", \"{{$.inputs.parameters['job_configuration_query']}}\", \", \\\"labels\\\": \", \"{{$.inputs.parameters['labels']}}\", \"}\", \"}\"]}",
                   "--job_configuration_query_override",
-                  "{\"query\": \"{{$.inputs.parameters['query']}}\", \"query_parameters\": {{$.inputs.parameters['query_parameters']}}, \"destination_encryption_configuration\": {\"kmsKeyName\": \"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
+                  "{\"Concat\": [\"{\", \"\\\"query\\\": \\\"\", \"{{$.inputs.parameters['query']}}\", \"\\\"\", \", \\\"query_parameters\\\": \", \"{{$.inputs.parameters['query_parameters']}}\", \", \\\"destination_encryption_configuration\\\": {\", \"\\\"kmsKeyName\\\": \\\"\", \"{{$.inputs.parameters['encryption_spec_key_name']}}\", \"\\\"}\", \"}\"]}",
                   "--gcp_resources",
                   "{{$.outputs.parameters['gcp_resources'].output_file}}",
                   "--executor_input",

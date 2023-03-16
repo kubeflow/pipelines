@@ -15,6 +15,7 @@
 
 # Prior to release of kfp V2, we have to use a mix of kfp v1 and v2.
 # TODO(chavoshi): switch to using V2 only once it is ready.
+# TODO(kglee): Remove deprecated dependencies.
 import copy
 import json
 import tempfile
@@ -22,9 +23,10 @@ from typing import Callable, Dict, Optional, Sequence
 
 from google_cloud_pipeline_components.aiplatform import utils
 from kfp import components
+from kfp.components import placeholders
 from kfp.components import structures
-from kfp.dsl import dsl_utils
-from kfp.v2.components.types import type_utils
+from kfp.components.types import type_utils
+from kfp.deprecated.dsl import dsl_utils
 
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 # Executor replacement is used as executor content needs to be jsonified before
@@ -230,7 +232,6 @@ def create_custom_training_job_op_from_component(
         'kms_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name']}}"
     input_specs.append(
         structures.InputSpec(
-            name='encryption_spec_key_name',
             type='String',
             optional=True,
             default=encryption_spec_key_name),)
@@ -257,29 +258,26 @@ def create_custom_training_job_op_from_component(
       name=component_spec.component_spec.name,
       inputs=input_specs + [
           structures.InputSpec(
-              name='base_output_directory',
               type='String',
               optional=True,
               default=base_output_directory),
           structures.InputSpec(
-              name='tensorboard',
               type='String',
               optional=True,
               default=tensorboard),
           structures.InputSpec(
-              name='network', type='String', optional=True, default=network),
+              type='String', optional=True, default=network),
           structures.InputSpec(
-              name='service_account',
               type='String',
               optional=True,
               default=service_account),
-          structures.InputSpec(name='project', type='String'),
-          structures.InputSpec(name='location', type='String')
+          structures.InputSpec(type='String'),
+          structures.InputSpec(type='String')
       ],
       outputs=output_specs +
-      [structures.OutputSpec(name='gcp_resources', type='String')],
-      implementation=structures.ContainerImplementation(
-          container=structures.ContainerSpec(
+      [structures.OutputSpec(type='String')],
+      implementation=structures.Implementation(container=structures.ContainerSpecImplementation.from_container_spec(
+          container_spec=structures.ContainerSpec(
               image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
               command=[
                   'python3', '-u', '-m',
@@ -291,16 +289,16 @@ def create_custom_training_job_op_from_component(
                   '--payload',
                   json.dumps(custom_job_payload),
                   '--project',
-                  structures.InputValuePlaceholder(input_name='project'),
+                  placeholders.InputValuePlaceholder(input_name='project'),
                   '--location',
-                  structures.InputValuePlaceholder(input_name='location'),
+                  placeholders.InputValuePlaceholder(input_name='location'),
                   '--gcp_resources',
-                  structures.OutputPathPlaceholder(output_name='gcp_resources'),
+                  placeholders.OutputPathPlaceholder(output_name='gcp_resources'),
               ],
-          )))
+          ))))
 
   # pytype: enable=attribute-error
 
   component_path = tempfile.mktemp()
-  custom_job_component_spec.save(component_path)
+  custom_job_component_spec.save_to_component_yaml(component_path)
   return components.load_component_from_file(component_path)
