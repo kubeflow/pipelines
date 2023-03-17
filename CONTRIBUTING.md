@@ -54,7 +54,7 @@ If the team agreed with the overall proposal, you would be asked to write a
 design documentation, explaining why you want to make a change, what changes are
 you proposing, and how do you plan to implement it. The design review process
 would be required by default unless the team agreed that the change is too
-trivial. It is recommended that you use this [Google doc template](https://docs.google.com/document/d/1VrfuMo8ZeMmV75a-rUq9SO-E6KotBodAf-P0WZeFDZA/edit?usp=sharing&resourcekey=0-BklOgu8ivhdLCplZuPDZZg)
+trivial. It is recommended that you use this [Google doc template](https://docs.google.com/document/d/1VrfuMo8ZeMmV75a-rUq9SO-E6KotBodAf-P0WZeFDZA/edit?usp=sharing&resourcekey=0-BklOgu8ivhdLCplZuPDZZg) (You need to join [kubeflow-discuss](https://groups.google.com/g/kubeflow-discuss) google group to get access)
 for your design, and share it with kubeflow-discuss@googlegroups.com for
 commenting. After sharing the design documentation, you could optionally join a
 session of the bi-weekly Kubeflow Pipelines community meetings
