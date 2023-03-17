@@ -176,7 +176,7 @@ def prepare_data_for_train(
 
 
 if __name__ == '__main__':
-  prepare_data_for_train_op = kfp.components.component_decorator.component(
+  prepare_data_for_train_op = kfp.components.create_component_from_func(
       prepare_data_for_train,
       base_image='python:3.8',
       output_component_file='component.yaml',
