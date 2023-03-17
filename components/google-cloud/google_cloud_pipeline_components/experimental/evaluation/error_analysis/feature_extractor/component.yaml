@@ -97,7 +97,7 @@ implementation:
           '", "--training_dataset_storage_source=',
           { inputValue: preprocessed_training_dataset_storage_source },
           '", "--test_dataset_resource_name={{$.inputs.artifacts["test_dataset"].metadata["resourceName"]}}',
-          '", "--training_dataset_resource_name={{$.inputs.artifacts["training_dataset"].metadata["resourceName"]}}'
+          '", "--training_dataset_resource_name={{$.inputs.artifacts["training_dataset"].metadata["resourceName"]}}',
           '", "--output_dir=',
           { inputValue: output_dir },
           '", "--dataflow_job_prefix=',
