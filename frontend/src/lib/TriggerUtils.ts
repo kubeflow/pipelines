@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-import { V2beta1Trigger, V2beta1PeriodicSchedule, V2beta1CronSchedule } from 'src/apisv2beta1/recurringrun';
+import {
+  V2beta1Trigger,
+  V2beta1PeriodicSchedule,
+  V2beta1CronSchedule,
+} from 'src/apisv2beta1/recurringrun';
 
 export enum TriggerType {
   INTERVALED,
