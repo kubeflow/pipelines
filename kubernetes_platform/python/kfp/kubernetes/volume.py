@@ -64,7 +64,7 @@ def CreatePVC(
 
 def mount_pvc(
     task: PipelineTask,
-    pvc_name: str,
+    pvc_name: Union[str, 'PipelineChannel'],
     mount_path: str,
 ) -> PipelineTask:
     """Mount a PersistentVolumeClaim to the task's container.
@@ -81,7 +81,9 @@ def mount_pvc(
     msg = common.get_existing_kubernetes_config_as_message(task)
 
     pvc_mount = pb.PvcMount(mount_path=mount_path)
-    _assign_pvc_name_to_msg(pvc_mount, pvc_name)
+    pvc_name_from_task = _assign_pvc_name_to_msg(pvc_mount, pvc_name)
+    if pvc_name_from_task:
+        task.after(pvc_name.task)
 
     msg.pvc_mount.append(pvc_mount)
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
@@ -99,16 +101,22 @@ def DeletePVC(pvc_name: str):
     return dsl.ContainerSpec(image='argostub/deletepvc')
 
 
-def _assign_pvc_name_to_msg(msg: message.Message,
-                            pvc_name: Union[str, 'PipelineChannel']) -> None:
+def _assign_pvc_name_to_msg(
+    msg: message.Message,
+    pvc_name: Union[str, 'PipelineChannel'],
+) -> bool:
+    """Assigns pvc_name to the msg's pvc_reference oneof. Returns True if pvc_name is an upstream task output. Else, returns False."""
     if isinstance(pvc_name, str):
         msg.constant = pvc_name
+        return False
     elif hasattr(pvc_name, 'task_name'):
         if pvc_name.task_name is None:
             msg.component_input_parameter = pvc_name.name
+            return False
         else:
             msg.task_output_parameter.producer_task = pvc_name.task_name
             msg.task_output_parameter.output_parameter_key = pvc_name.name
+            return True
     else:
         raise ValueError(
             f'Argument for {"pvc_name"!r} must be an instance of str or PipelineChannel. Got unknown input type: {type(pvc_name)!r}. '

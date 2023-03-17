@@ -97,6 +97,14 @@ class PipelineChannel(abc.ABC):
         # so that serialization and unserialization remain consistent
         # (i.e. None => '' => None)
         self.task_name = task_name or None
+        from kfp.components import pipeline_context
+
+        default_pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        if self.task_name is not None and default_pipeline is not None and default_pipeline.tasks:
+            self.task = pipeline_context.Pipeline.get_default_pipeline().tasks[
+                self.task_name]
+        else:
+            self.task = None
 
     @property
     def full_name(self) -> str:
