@@ -235,6 +235,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     if (origin) {
       const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
+        // TODO(jlyaoyuli): change to v2 API after v1 is deprecated
         if (origin.isRecurring) {
           origin.recurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
         } else {
