@@ -81,6 +81,8 @@ root:
           enableCache: true
         componentRef:
           name: comp-comp
+        dependentTasks:
+        - createpvc
         taskInfo:
           name: comp
       createpvc:
