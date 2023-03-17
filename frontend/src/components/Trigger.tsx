@@ -20,7 +20,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
-import { ApiTrigger } from '../apis/job';
+import { V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
 import { HelpButton } from '../atoms/HelpButton';
 import { ExternalLink } from '../atoms/ExternalLink';
 import Input from '../atoms/Input';
@@ -42,13 +42,13 @@ import { logger } from 'src/lib/Utils';
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;
   catchup?: boolean;
-  trigger?: ApiTrigger;
+  trigger?: V2beta1Trigger;
 };
 
 interface TriggerProps {
   initialProps?: TriggerInitialProps;
   onChange?: (config: {
-    trigger?: ApiTrigger;
+    trigger?: V2beta1Trigger;
     maxConcurrentRuns?: string;
     catchup: boolean;
   }) => void;

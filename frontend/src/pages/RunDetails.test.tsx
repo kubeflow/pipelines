@@ -20,7 +20,7 @@ import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { createMemoryHistory } from 'history';
 import * as React from 'react';
 import { Router } from 'react-router-dom';
-import { NamespaceContext } from '../lib/KubeflowClient';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
@@ -35,8 +35,8 @@ import WorkflowParser from 'src/lib/WorkflowParser';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
-import { Context, Execution, Value } from '../third_party/mlmd';
-import { KfpExecutionProperties } from '../mlmd/MlmdUtils';
+import { Context, Execution, Value } from 'src/third_party/mlmd';
+import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
 
 const RunDetails = TEST_ONLY.RunDetails;
 

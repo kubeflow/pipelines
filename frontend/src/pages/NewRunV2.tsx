@@ -314,8 +314,8 @@ function NewRunV2(props: NewRunV2Props) {
         : {
             max_concurrency: undefined,
             no_catchup: undefined,
+            status: undefined,
             trigger: undefined,
-            enabled: false,
           },
     );
     setIsStartingNewRun(true);

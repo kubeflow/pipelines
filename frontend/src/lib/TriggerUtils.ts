@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import { V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
-import { ApiTrigger, ApiPeriodicSchedule, ApiCronSchedule } from '../../src/apis/job';
+import { V2beta1Trigger, V2beta1PeriodicSchedule, V2beta1CronSchedule } from 'src/apisv2beta1/recurringrun';
 
 export enum TriggerType {
   INTERVALED,
@@ -159,14 +158,14 @@ export function buildTrigger(
   endDateTime: Date | undefined,
   type: TriggerType,
   cron: string,
-): ApiTrigger {
-  let trigger: ApiTrigger;
+): V2beta1Trigger {
+  let trigger: V2beta1Trigger;
   switch (type) {
     case TriggerType.INTERVALED:
       trigger = {
         periodic_schedule: {
           interval_second: getPeriodInSeconds(intervalCategory, intervalValue).toString(),
-        } as ApiPeriodicSchedule,
+        } as V2beta1PeriodicSchedule,
       };
       trigger.periodic_schedule!.start_time = startDateTime;
       trigger.periodic_schedule!.end_time = endDateTime;
@@ -175,7 +174,7 @@ export function buildTrigger(
       trigger = {
         cron_schedule: {
           cron,
-        } as ApiCronSchedule,
+        } as V2beta1CronSchedule,
       };
       trigger.cron_schedule!.start_time = startDateTime;
       trigger.cron_schedule!.end_time = endDateTime;
@@ -205,7 +204,7 @@ export type ParsedTrigger =
       cron: string;
     };
 
-export function parseTrigger(trigger: ApiTrigger): ParsedTrigger {
+export function parseTrigger(trigger: V2beta1Trigger): ParsedTrigger {
   if (trigger.periodic_schedule) {
     const periodicSchedule = trigger.periodic_schedule;
     const intervalSeconds = parseInt(periodicSchedule.interval_second || '', 10);
