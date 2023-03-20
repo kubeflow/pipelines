@@ -15,6 +15,9 @@
 
 import json
 import os
+import re
+from typing import Dict, Any
+import yaml
 
 from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import HyperparameterTuningJobRunOp, serialize_metrics, GetTrialsOp, GetBestTrialOp, GetBestHyperparametersOp, GetHyperparametersOp, GetWorkerPoolSpecsOp, IsMetricBeyondThresholdOp
 import kfp
@@ -145,4 +148,23 @@ class UtilComponentsCompileTest(unittest.TestCase):
     # Ignore the kfp SDK & schema version during comparison
     del executor_output_json["sdkVersion"]
     del executor_output_json["schemaVersion"]
+    executor_output_json = ignore_kfp_version_helper(executor_output_json)
+    expected_executor_output_json = ignore_kfp_version_helper(expected_executor_output_json)
     self.assertEqual(executor_output_json, expected_executor_output_json)
+
+
+def ignore_kfp_version_helper(pipeline_spec: Dict[str, Any]) -> Dict[str, Any]:
+  """Strips the KFP SDK pip install version number injected at compile time for lightweight Python components."""
+  if "executors" in pipeline_spec["deploymentSpec"]:
+    for executor in pipeline_spec["deploymentSpec"]["executors"]:
+      pipeline_spec["deploymentSpec"]["executors"][executor] = yaml.safe_load(
+          re.sub(
+              r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'",
+              "kfp",
+              yaml.dump(
+                  pipeline_spec["deploymentSpec"]["executors"][executor],
+                  sort_keys=True,
+              ),
+          )
+      )
+  return pipeline_spec
