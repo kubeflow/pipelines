@@ -33,7 +33,7 @@ def dataset_preprocessor_error_analysis(
     root_dir: str,
     location: str = 'us-central1',
     test_dataset: Input[VertexDataset] = None,
-    test_dataset_annotation_set_name: str | None = '',
+    test_dataset_annotation_set_name: str = '',
     training_dataset: Input[VertexDataset] = None,
     training_dataset_annotation_set_name: str = '',
     test_dataset_storage_source_uris: list[str] = [],
