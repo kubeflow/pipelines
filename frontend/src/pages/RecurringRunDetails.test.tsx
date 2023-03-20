@@ -280,7 +280,7 @@ describe('RecurringRunDetails', () => {
     const disableBtn = instance.getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await disableBtn!.action();
     expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
-    expect(disableRecurringRunSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
+    expect(disableRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(getJobSpy).toHaveBeenCalledTimes(2);
     expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
   });
@@ -326,7 +326,7 @@ describe('RecurringRunDetails', () => {
     const enableBtn = instance.getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await enableBtn!.action();
     expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
-    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
+    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(getJobSpy).toHaveBeenCalledTimes(2);
     expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
   });
@@ -362,7 +362,7 @@ describe('RecurringRunDetails', () => {
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(deleteRecurringRunSpy).toHaveBeenCalledTimes(1);
-    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
+    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
   });
 
   it('does not call delete API when delete cancel dialog button is clicked', async () => {
@@ -392,7 +392,7 @@ describe('RecurringRunDetails', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
-    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-recurring-run-id');
+    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.EXPERIMENTS);
   });

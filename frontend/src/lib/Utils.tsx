@@ -19,6 +19,7 @@ import * as pako from 'pako';
 import * as React from 'react';
 import { classes } from 'typestyle';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { ApiTrigger } from 'src/apis/job';
 import { V2beta1RecurringRunStatus, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
 import { ApiRun } from 'src/apis/run';
 import { Column, ExpandState, Row } from 'src/components/CustomTable';
@@ -85,7 +86,17 @@ export async function errorToMessage(error: any): Promise<string> {
   return JSON.stringify(error) || '';
 }
 
-export function enabledDisplayString(trigger: V2beta1Trigger | undefined, status: V2beta1RecurringRunStatus): string {
+export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: boolean): string {
+  if (trigger) {
+    return enabled ? 'Yes' : 'No';
+  }
+  return '-';
+}
+
+export function enabledDisplayStringV2(
+  trigger: V2beta1Trigger | undefined,
+  status: V2beta1RecurringRunStatus,
+): string {
   if (trigger) {
     switch (status) {
       case V2beta1RecurringRunStatus.ENABLED:
