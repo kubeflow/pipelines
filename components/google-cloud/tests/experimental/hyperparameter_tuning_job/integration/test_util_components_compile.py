@@ -22,6 +22,7 @@ from kfp.v2 import compiler
 
 import unittest
 
+print('test')
 
 class UtilComponentsCompileTest(unittest.TestCase):
 
