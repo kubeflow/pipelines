@@ -15,6 +15,8 @@
 
 import os
 
+from .dataset_preprocessor import component as dataset_preprocessor
+
 try:
   from kfp.v2.components import load_component_from_file
 except ImportError:
@@ -28,11 +30,8 @@ __all__ = [
     'ModelImportEvaluatedAnnotationOp',
 ]
 
-EvaluationDatasetPreprocessorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'dataset_preprocessor/component.yaml',
-    )
+EvaluationDatasetPreprocessorOp = (
+    dataset_preprocessor.dataset_preprocessor_error_analysis
 )
 
 EvaluatedAnnotationOp = load_component_from_file(
