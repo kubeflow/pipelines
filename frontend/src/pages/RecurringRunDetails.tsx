@@ -15,11 +15,12 @@
  */
 
 import * as React from 'react';
-import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import DetailsTable from 'src/components/DetailsTable';
-import { ApiExperiment } from 'src/apis/experiment';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
-import { Apis } from 'src/lib/Apis';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
+import DetailsTable from '../components/DetailsTable';
+import RunUtils from '../lib/RunUtils';
+import { ApiExperiment } from '../apis/experiment';
+import { ApiJob } from '../apis/job';
+import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Breadcrumb, ToolbarProps } from 'src/components/Toolbar';
@@ -30,7 +31,7 @@ import { formatDateString, enabledDisplayString, errorToMessage } from 'src/lib/
 import { triggerDisplayString } from 'src/lib/TriggerUtils';
 
 interface RecurringRunConfigState {
-  run: V2beta1RecurringRun | null;
+  run: ApiJob | null;
 }
 
 class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
@@ -46,12 +47,12 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .cloneRecurringRun(() => (this.state.run ? [this.state.run.recurring_run_id!] : []), true)
+        .cloneRecurringRun(() => (this.state.run ? [this.state.run.id!] : []), true)
         .refresh(this.refresh.bind(this))
-        .enableRecurringRun(() => (this.state.run ? this.state.run.recurring_run_id! : ''))
-        .disableRecurringRun(() => (this.state.run ? this.state.run.recurring_run_id! : ''))
+        .enableRecurringRun(() => (this.state.run ? this.state.run.id! : ''))
+        .disableRecurringRun(() => (this.state.run ? this.state.run.id! : ''))
         .delete(
-          () => (this.state.run ? [this.state.run!.recurring_run_id!] : []),
+          () => (this.state.run ? [this.state.run!.id!] : []),
           'recurring run config',
           this._deleteCallback.bind(this),
           true /* useCurrentResource */,
@@ -67,18 +68,18 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     let runDetails: Array<KeyValue<string>> = [];
     let inputParameters: Array<KeyValue<string>> = [];
     let triggerDetails: Array<KeyValue<string>> = [];
-    if (run) {
+    if (run && run.pipeline_spec) {
       runDetails = [
         ['Description', run.description!],
         ['Created at', formatDateString(run.created_at)],
       ];
-      inputParameters = Object.entries(run.runtime_config?.parameters || []).map(param => [
-        param[0] || '',
-        param[1] || '',
+      inputParameters = (run.pipeline_spec.parameters || []).map(p => [
+        p.name || '',
+        p.value || '',
       ]);
       if (run.trigger) {
         triggerDetails = [
-          ['Enabled', enabledDisplayString(run.trigger, run.status!)],
+          ['Enabled', enabledDisplayString(run.trigger, run.enabled!)],
           ['Trigger', triggerDisplayString(run.trigger)],
         ];
         if (run.max_concurrency) {
@@ -136,21 +137,21 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   public async load(): Promise<void> {
     this.clearBanner();
-    const recurringRunId = this.props.match.params[RouteParams.recurringRunId];
+    const runId = this.props.match.params[RouteParams.recurringRunId];
 
-    let run: V2beta1RecurringRun;
+    let run: ApiJob;
     try {
-      run = await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
+      run = await Apis.jobServiceApi.getJob(runId);
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       await this.showPageError(
-        `Error: failed to retrieve recurring run: ${recurringRunId}.`,
+        `Error: failed to retrieve recurring run: ${runId}.`,
         new Error(errorMessage),
       );
       return;
     }
 
-    const relatedExperimentId = run.experiment_id;
+    const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
     let experiment: ApiExperiment | undefined;
     if (relatedExperimentId) {
       try {
@@ -179,13 +180,11 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     } else {
       breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
     }
-    const pageTitle = run ? run.display_name! : recurringRunId;
+    const pageTitle = run ? run.name! : runId;
 
     const toolbarActions = this.props.toolbarProps.actions;
-    toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
-      run.status === V2beta1RecurringRunStatus.ENABLED;
-    toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
-      run.status !== V2beta1RecurringRunStatus.ENABLED;
+    toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled = !!run.enabled;
+    toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled = !run.enabled;
 
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
