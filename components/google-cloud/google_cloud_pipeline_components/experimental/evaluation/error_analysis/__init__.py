@@ -15,6 +15,7 @@
 
 import os
 
+from .feature_extractor import component as feature_extractor
 from .dataset_preprocessor import component as dataset_preprocessor
 from .error_analysis_annotation import component as error_analysis_annotation
 
@@ -42,12 +43,7 @@ EvaluatedAnnotationOp = load_component_from_file(
     )
 )
 
-FeatureExtractorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'feature_extractor/component.yaml',
-    )
-)
+FeatureExtractorOp = feature_extractor.feature_extractor_error_analysis
 
 ErrorAnalysisAnnotationOp = error_analysis_annotation.error_analysis_annotation
 
