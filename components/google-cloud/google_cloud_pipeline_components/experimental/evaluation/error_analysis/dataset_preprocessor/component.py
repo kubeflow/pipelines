@@ -25,8 +25,8 @@ from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 @container_component
 def dataset_preprocessor_error_analysis(
     gcp_resources: OutputPath(str),
-    batch_prediction_storage_source: OutputPath(list[str]),
-    model_evaluation_storage_source: OutputPath(list[str]),
+    batch_prediction_storage_source: OutputPath(list),
+    model_evaluation_storage_source: OutputPath(list),
     test_data_items_storage_source: OutputPath(str),
     training_data_items_storage_source: OutputPath(str),
     project: str,
@@ -36,8 +36,8 @@ def dataset_preprocessor_error_analysis(
     test_dataset_annotation_set_name: str = '',
     training_dataset: Input[VertexDataset] = None,
     training_dataset_annotation_set_name: str = '',
-    test_dataset_storage_source_uris: list[str] = [],
-    training_dataset_storage_source_uris: list[str] = [],
+    test_dataset_storage_source_uris: list = [],
+    training_dataset_storage_source_uris: list = [],
 ):
   """Preprocesses datasets for Vision Error Analysis pipelines.
 
@@ -128,7 +128,7 @@ def dataset_preprocessor_error_analysis(
               input_name='test_dataset',
               then=[
                   '--test_dataset',
-                  '{{$.inputs.artifacts["test_dataset"].metadata["resourceName"]}}',
+                  "{{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}",
                   '--test_dataset_annotation_set_name',
                   test_dataset_annotation_set_name,
               ],
@@ -137,7 +137,7 @@ def dataset_preprocessor_error_analysis(
               input_name='training_dataset',
               then=[
                   '--training_dataset',
-                  '{{$.inputs.artifacts["training_dataset"].metadata["resourceName"`]}}',
+                  "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}",
                   '--training_dataset_annotation_set_name',
                   training_dataset_annotation_set_name,
               ],
