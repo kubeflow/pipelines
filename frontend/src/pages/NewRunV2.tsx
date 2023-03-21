@@ -145,7 +145,6 @@ function NewRunV2(props: NewRunV2Props) {
     chosenExperiment,
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
-  // console.log(cloneOrigin)
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
