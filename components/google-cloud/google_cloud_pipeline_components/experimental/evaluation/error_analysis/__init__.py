@@ -16,6 +16,7 @@
 import os
 
 from .dataset_preprocessor import component as dataset_preprocessor
+from .error_analysis_annotation import component as error_analysis_annotation
 
 try:
   from kfp.v2.components import load_component_from_file
@@ -48,12 +49,7 @@ FeatureExtractorOp = load_component_from_file(
     )
 )
 
-ErrorAnalysisAnnotationOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'error_analysis_annotation/component.yaml',
-    )
-)
+ErrorAnalysisAnnotationOp = error_analysis_annotation.error_analysis_annotation
 
 ModelImportEvaluatedAnnotationOp = load_component_from_file(
     os.path.join(
