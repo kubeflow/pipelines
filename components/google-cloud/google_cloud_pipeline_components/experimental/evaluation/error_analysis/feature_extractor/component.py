@@ -25,7 +25,7 @@ from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 @container_component
 def feature_extractor_error_analysis(
     gcp_resources: OutputPath(str),
-    embedding_output_file: OutputPath(str),
+    embeddings_dir: OutputPath(str),
     project: str,
     root_dir: str,
     test_dataset: Input[VertexDataset],
@@ -82,7 +82,7 @@ def feature_extractor_error_analysis(
         Dataflow job will be encrypted with the provided encryption key.
 
   Returns:
-      embedding_output_file (str):
+      embeddings_dir (str):
           Google Cloud Storage URI to computed feature embeddings of the image
           datasets.
       gcp_resources (str):
@@ -117,7 +117,7 @@ def feature_extractor_error_analysis(
               '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
               '", "machine_spec": {"machine_type": "n1-standard-4"},',
               ' "container_spec": {"image_uri":"',
-              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230321_1710_RC00',
+              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230322_1221_RC00',
               '", "args": ["--project_id=',
               project,
               '", "--location=',
@@ -150,8 +150,8 @@ def feature_extractor_error_analysis(
               dataflow_use_public_ips,
               '", "--kms_key_name=',
               encryption_spec_key_name,
-              '", "--embedding_output_file=',
-              embedding_output_file,
+              '", "--embeddings_dir=',
+              embeddings_dir,
               '", "--executor_input={{$.json_escape[1]}}"]}}]}}',
           ]),
       ],
