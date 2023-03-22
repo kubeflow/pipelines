@@ -121,16 +121,17 @@ func getJobIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReferen
 // 1) pipeline spec passed directly
 // 2) pipeline spec along with platform specific configs, each as a sub struct
 // 3) pipeline spec as a sub struct, with platform specific field empty
+// Note: this method does not verify the validity of pipeline spec.
 func pipelineSpecStructToYamlString(s *structpb.Struct) (string, error) {
 	var bytes []byte
 	var err error
-	if _, ok := s.GetFields()["pipelineSpec"]; ok {
-		bytes, err = yaml.Marshal(s.GetFields()["pipelineSpec"])
+	if spec, ok := s.GetFields()["pipelineSpec"]; ok {
+		bytes, err = yaml.Marshal(spec)
 		if err != nil {
 			return "", util.Wrap(err, "Failed to convert pipeline protobuf struct to a yaml string")
 		}
-		if _, ok = s.GetFields()["platforms"]; ok {
-			bytesPlatforms, err := yaml.Marshal(s.GetFields()["platforms"])
+		if platforms, ok := s.GetFields()["platforms"]; ok {
+			bytesPlatforms, err := yaml.Marshal(platforms)
 			if err != nil {
 				return "", util.Wrap(err, "Failed to convert platforms protobuf struct to a yaml string")
 			}
@@ -180,7 +181,7 @@ func yamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
 			hasPlatformSpec = true
 			jsonBytes, err := yaml.YAMLToJSON([]byte(yamlString))
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to convert pipelineSpec yaml string into a protobuf struct")
+				return nil, util.Wrap(err, "Failed to convert platformSpec yaml string into a protobuf struct")
 			}
 			err = protojson.Unmarshal(jsonBytes, &platformSpec)
 			if err != nil {
