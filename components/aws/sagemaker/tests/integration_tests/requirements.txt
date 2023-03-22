@@ -1,9 +1,9 @@
-boto3=1.18.5
-pytest-xdist=3.0.2
-pyyaml=5.3.*
-flake8=3.7.*
-flake8-black=0.1.*
-filelock=3.0.*
+boto3==1.18.5
+pytest-xdist==3.0.2
+pyyaml==5.3.*
+flake8==3.7.*
+flake8-black==0.1.*
+filelock==3.0.*
 kubernetes==11.0.*
 kfp==1.8.14
 minio==5.0.10
