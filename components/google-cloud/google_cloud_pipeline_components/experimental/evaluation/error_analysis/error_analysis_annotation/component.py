@@ -40,8 +40,6 @@ def error_analysis_annotation(
         output from the embeddings component.
       root_dir (str): Required. The GCS directory for storing error analysis
         annotation output.
-      training_dataset (google.VertexDataset): Required. A google.VertexDataset
-        artifact of the training dataset.
       num_neighbors (Optional[int]): Number of nearest neighbors to look for. If
         not set, defaulted to `5`.
 
