@@ -71,6 +71,10 @@
            "project": {
              "parameterType": "STRING"
            },
+           "test_filter_split": {
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
            "test_fraction_split": {
              "isOptional": true,
              "parameterType": "NUMBER_DOUBLE"
@@ -79,10 +83,18 @@
              "isOptional": true,
              "parameterType": "STRING"
            },
+           "training_filter_split": {
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
            "training_fraction_split": {
              "isOptional": true,
              "parameterType": "NUMBER_DOUBLE"
            },
+           "validation_filter_split": {
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
            "validation_fraction_split": {
              "isOptional": true,
              "parameterType": "NUMBER_DOUBLE"
@@ -263,6 +275,9 @@
              "{\"IfPresent\": {\"InputName\": \"validation_fraction_split\", \"Then\": [\"--method.validation_fraction_split\", \"{{$.inputs.parameters['validation_fraction_split']}}\"]}}",
              "{\"IfPresent\": {\"InputName\": \"test_fraction_split\", \"Then\": [\"--method.test_fraction_split\", \"{{$.inputs.parameters['test_fraction_split']}}\"]}}",
              "{\"IfPresent\": {\"InputName\": \"budget_milli_node_hours\", \"Then\": [\"--method.budget_milli_node_hours\", \"{{$.inputs.parameters['budget_milli_node_hours']}}\"]}}",
+             "{\"IfPresent\": {\"InputName\": \"training_filter_split\", \"Then\": [\"--method.training_filter_split\", \"{{$.inputs.parameters['training_filter_split']}}\"]}}",
+             "{\"IfPresent\": {\"InputName\": \"validation_filter_split\", \"Then\": [\"--method.validation_filter_split\", \"{{$.inputs.parameters['validation_filter_split']}}\"]}}",
+             "{\"IfPresent\": {\"InputName\": \"test_filter_split\", \"Then\": [\"--method.test_filter_split\", \"{{$.inputs.parameters['test_filter_split']}}\"]}}",
              "{\"IfPresent\": {\"InputName\": \"base_model\", \"Then\": [\"--init.base_model\", \"{{$.inputs.artifacts['base_model'].metadata['resourceName']}}\"]}}",
              "{\"IfPresent\": {\"InputName\": \"model_labels\", \"Then\": [\"--method.model_labels\", \"{{$.inputs.parameters['model_labels']}}\"]}}",
              "--executor_input",
