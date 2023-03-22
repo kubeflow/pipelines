@@ -15,14 +15,20 @@
 package server
 
 import (
+	"io/ioutil"
+	"strings"
 	"testing"
 
+	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestValidateExperimentResourceReference(t *testing.T) {
@@ -369,4 +375,48 @@ func TestValidateRunMetric_InvalidNodeIDs(t *testing.T) {
 	metric.NodeID = string(make([]byte, 129))
 	err = validateRunMetric(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
+}
+
+func loadYaml(t *testing.T, path string) string {
+	res, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Error(err)
+	}
+	return string(res)
+}
+
+// Tests both yamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+func TestPipelineSpecStructToYamlString(t *testing.T) {
+	template := loadYaml(t, "test/pipeline_with_volume.yaml")
+
+	var pipelineSpec structpb.Struct
+	var platformSpec structpb.Struct
+
+	splitTemplate := strings.Split(template, "\n---\n")
+	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
+	protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+
+	platformSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[1]))
+	protojson.Unmarshal(platformSpecJson, &platformSpec)
+
+	pipelineSpecValue := structpb.NewStructValue(&pipelineSpec)
+	platformSpecValue := structpb.NewStructValue(&platformSpec)
+	pipeline := structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"pipelineSpec": pipelineSpecValue,
+			"platforms":    platformSpecValue,
+		},
+	}
+	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
+	assert.Nil(t, err)
+	glog.Infof("actualTemplate: %s \n", actualTemplate)
+
+	actualPipeline, err := yamlStringToPipelineSpecStruct(actualTemplate)
+	assert.Nil(t, err)
+
+	// Compare the marshalled JSON due to flakiness of structpb values
+	// See https://github.com/stretchr/testify/issues/758
+	j1, _ := pipeline.MarshalJSON()
+	j2, _ := actualPipeline.MarshalJSON()
+	assert.Equal(t, j1, j2)
 }

@@ -122,7 +122,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to marshal this yaml document: %s", err.Error()))
 		}
-		if isPipelineSpec(valueBytes) {
+		if IsPipelineSpec(valueBytes) {
 			// Pick out the yaml document with pipeline spec
 			if v2Spec.spec != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "multiple pipeline specs provided")
@@ -146,7 +146,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
 			}
 			v2Spec.spec = &spec
-		} else if isPlatformSpecWithKubernetesConfig(valueBytes) {
+		} else if IsPlatformSpecWithKubernetesConfig(valueBytes) {
 			// Pick out the yaml document with platform spec
 			if v2Spec.platformSpec != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, "multiple platform specs provided")
@@ -272,7 +272,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	return executionSpec, nil
 }
 
-func isPlatformSpecWithKubernetesConfig(template []byte) bool {
+func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
 	var platformSpec pipelinespec.PlatformSpec
 	templateJson, err := yaml.YAMLToJSON(template)
 	if err != nil {

@@ -398,7 +398,7 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		return toModelPipelineVersion(apiPipelineVersionV1)
 	case *apiv2beta1.PipelineVersion:
 		apiPipelineVersionV2 := p
-		spec, err := protobufStructToYamlString(apiPipelineVersionV2.GetPipelineSpec())
+		spec, err := pipelineSpecStructToYamlString(apiPipelineVersionV2.GetPipelineSpec())
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to convert API pipeline version to internal pipeline version representation due to pipeline spec conversion error")
 		}
@@ -521,7 +521,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 	}
 
 	// Convert pipeline spec
-	spec, err := yamlStringToProtobufStruct(pv.PipelineSpec)
+	spec, err := yamlStringToPipelineSpecStruct(pv.PipelineSpec)
 	if err != nil {
 		return &apiv2beta1.PipelineVersion{
 			PipelineVersionId: pv.UUID,
@@ -1159,7 +1159,7 @@ func toModelRunDetails(r interface{}) (*model.RunDetails, error) {
 			PipelineRunContextId: apiRunV2.GetRunDetails().GetPipelineRunContextId(),
 		}
 		if apiRunV2.GetPipelineSpec() != nil {
-			spec, err := protobufStructToYamlString(apiRunV2.GetPipelineSpec())
+			spec, err := pipelineSpecStructToYamlString(apiRunV2.GetPipelineSpec())
 			if err != nil {
 				return nil, util.NewInternalServerError(err, "Failed to convert a API run to internal run details representation due to pipeline spec parsing error")
 			}
@@ -1335,7 +1335,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 
 		if apiRunV2.GetPipelineSpec() == nil {
 			pipelineSpec = ""
-		} else if spec, err := protobufStructToYamlString(apiRunV2.GetPipelineSpec()); err == nil {
+		} else if spec, err := pipelineSpecStructToYamlString(apiRunV2.GetPipelineSpec()); err == nil {
 			pipelineSpec = spec
 		} else {
 			pipelineSpec = ""
@@ -1562,7 +1562,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		}
 		return apiRunV2
 	} else if r.PipelineSpec.PipelineSpecManifest != "" {
-		spec, err1 := yamlStringToProtobufStruct(r.PipelineSpec.PipelineSpecManifest)
+		spec, err1 := yamlStringToPipelineSpecStruct(r.PipelineSpec.PipelineSpecManifest)
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
 				PipelineSpec: spec,
@@ -1571,7 +1571,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		}
 		err = util.Wrap(err1, err.Error()).(*util.UserError)
 	} else if r.PipelineSpec.WorkflowSpecManifest != "" {
-		spec, err1 := yamlStringToProtobufStruct(r.PipelineSpec.WorkflowSpecManifest)
+		spec, err1 := yamlStringToPipelineSpecStruct(r.PipelineSpec.WorkflowSpecManifest)
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
 				PipelineSpec: spec,
@@ -1930,7 +1930,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		k8sName = jobName
 	case *apiv2beta1.RecurringRun:
 		pipelineVersionId = apiJob.GetPipelineVersionId()
-		if spec, err := protobufStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
+		if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
 			pipelineSpec = spec
 		} else {
 			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
@@ -2257,7 +2257,7 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 	}
 
 	if j.PipelineSpec.PipelineVersionId == "" {
-		spec, err := yamlStringToProtobufStruct(j.PipelineSpec.PipelineSpecManifest)
+		spec, err := yamlStringToPipelineSpecStruct(j.PipelineSpec.PipelineSpecManifest)
 		if err != nil {
 			return &apiv2beta1.RecurringRun{
 				RecurringRunId: j.UUID,

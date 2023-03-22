@@ -25,7 +25,9 @@ import (
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -114,11 +116,32 @@ func getJobIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReferen
 	return jobId
 }
 
-// Converts structpb.Struct to a yaml string.
-func protobufStructToYamlString(s *structpb.Struct) (string, error) {
-	bytes, err := yaml.Marshal(s)
-	if err != nil {
-		return "", util.Wrap(err, "Failed to convert a protobuf struct to a yaml string")
+// Converts pipeline spec in the form of structpb.Struct to a yaml string.
+// Handles three possible cases:
+// 1) pipeline spec passed directly
+// 2) pipeline spec along with platform specific configs, each as a sub struct
+// 3) pipeline spec as a sub struct, with platform specific field empty
+func pipelineSpecStructToYamlString(s *structpb.Struct) (string, error) {
+	var bytes []byte
+	var err error
+	if _, ok := s.GetFields()["pipelineSpec"]; ok {
+		bytes, err = yaml.Marshal(s.GetFields()["pipelineSpec"])
+		if err != nil {
+			return "", util.Wrap(err, "Failed to convert pipeline protobuf struct to a yaml string")
+		}
+		if _, ok = s.GetFields()["platforms"]; ok {
+			bytesPlatforms, err := yaml.Marshal(s.GetFields()["platforms"])
+			if err != nil {
+				return "", util.Wrap(err, "Failed to convert platforms protobuf struct to a yaml string")
+			}
+			bytes = append(bytes, []byte("\n---\n")...)
+			bytes = append(bytes, bytesPlatforms...)
+		}
+	} else {
+		bytes, err = yaml.Marshal(s)
+		if err != nil {
+			return "", util.Wrap(err, "Failed to convert pipeline spec protobuf struct to a yaml string")
+		}
 	}
 	return string(bytes), nil
 }
@@ -137,14 +160,57 @@ func GetResourceReferenceFromRunInterface(r interface{}) ([]*apiv1beta1.Resource
 	}
 }
 
-// Converts a yaml string into structpb.Struct (v2).
-func yamlStringToProtobufStruct(s string) (*structpb.Struct, error) {
-	st := &structpb.Struct{}
-	err := yaml.Unmarshal([]byte(s), st)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert a yaml string into a protobuf struct")
+// Converts pipeline spec in yaml string into structpb.Struct (v2).
+// The string may contain multiple yaml documents, where there has to be one doc for pipeline spec,
+// and there may be a second doc for platform specific spec.
+// If platform spec is empty, then return pipeline spec directly. Else, return a struct with
+// pipeline spec and platform spec as subfields.
+func yamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
+	if s == "" {
+		return nil, nil
 	}
-	return st, nil
+	var pipelineSpec structpb.Struct
+	var platformSpec structpb.Struct
+	hasPipelineSpec := false
+	hasPlatformSpec := false
+
+	yamlStrings := strings.Split(s, "\n---\n")
+	for _, yamlString := range yamlStrings {
+		if template.IsPlatformSpecWithKubernetesConfig([]byte(yamlString)) {
+			hasPlatformSpec = true
+			jsonBytes, err := yaml.YAMLToJSON([]byte(yamlString))
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert pipelineSpec yaml string into a protobuf struct")
+			}
+			err = protojson.Unmarshal(jsonBytes, &platformSpec)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert platformSpec yaml string into a protobuf struct")
+			}
+		} else {
+			hasPipelineSpec = true
+			jsonBytes, err := yaml.YAMLToJSON([]byte(yamlString))
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert pipelineSpec yaml string into a protobuf struct")
+			}
+			err = protojson.Unmarshal(jsonBytes, &pipelineSpec)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert pipelineSpec yaml string into a protobuf struct")
+			}
+		}
+	}
+	if !hasPipelineSpec {
+		return nil, util.NewInvalidInputError("No pipeline spec provided in yaml doc")
+	} else if !hasPlatformSpec {
+		return &pipelineSpec, nil
+	} else {
+		pipeline := &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"pipelineSpec": structpb.NewStructValue(&pipelineSpec),
+				"platforms":    structpb.NewStructValue(&platformSpec),
+			},
+		}
+		return pipeline, nil
+	}
 }
 
 // Fetches a PipelineRoot from a Run.
