@@ -13,7 +13,7 @@ RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install
     unzip
 
 # Install eksctl
-RUN curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.134.0eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
+RUN curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.134.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
 && chmod +x /tmp/eksctl && mv /tmp/eksctl /usr/local/bin/
 
 ##clean up any temporary files and cahes that were created during the installation process
