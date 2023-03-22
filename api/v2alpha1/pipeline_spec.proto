@@ -478,7 +478,7 @@ message PipelineTaskSpec {
     // The trigger strategy of this task.  The `strategy` and `condition` are
     // in logic "AND", as a task will only be tested for the `condition` when
     // the `strategy` is meet.
-    // Unset or set to default value of TRIGGER_STATEGY_UNDEFINED behaves the
+    // Unset or set to default value of TRIGGER_STRATEGY_UNDEFINED behaves the
     // same as ALL_UPSTREAM_TASKS_SUCCEEDED.
     TriggerStrategy strategy = 2;
   }
