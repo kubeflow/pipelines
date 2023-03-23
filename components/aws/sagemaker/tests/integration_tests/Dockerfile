@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM public.ecr.aws/lts/ubuntu:18.04_stable
 
 RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install-recommends \
     curl \
