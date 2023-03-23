@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/ghodss/yaml"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client"
@@ -14,6 +13,7 @@ import (
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/yaml"
 )
 
 type RunInterface interface {
