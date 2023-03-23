@@ -49,6 +49,8 @@ RUN wget https://github.com/mikefarah/yq/releases/download/v4.27.3/yq_linux_amd6
 RUN ln -s /usr/bin/python3.8 /usr/bin/python \
  && python -m pip install --upgrade pip
 
+COPY ./components/aws/sagemaker/tests/integration_tests/requirements.txt requirements.txt
+
 RUN python -m pip install -r requirements.txt
 
 
