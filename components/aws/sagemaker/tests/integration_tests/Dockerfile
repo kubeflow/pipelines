@@ -1,4 +1,4 @@
-FROM continuumio/miniconda:4.7.12
+FROM public.ecr.aws/lts/ubuntu:18.04_stable
 
 RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install-recommends \
     curl \
@@ -6,11 +6,23 @@ RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install
     git \
     jq \
     tar \
-    sudo
+    sudo \
+    python3.8 \
+    python3-pip \
+    python3.8-dev \
+    unzip
 
 # Install eksctl
-RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.113.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
- && mv /tmp/eksctl /usr/local/bin
+RUN curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.134.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
+&& chmod +x /tmp/eksctl && mv /tmp/eksctl /usr/local/bin/
+
+##clean up any temporary files and cahes that were created during the installation process
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install awscli
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+ && unzip -qq awscliv2.zip \
+ && ./aws/install
 
 # Install aws-iam-authenticator
 RUN curl -S -o /usr/local/bin/aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/aws-iam-authenticator \
@@ -33,13 +45,14 @@ RUN wget https://get.helm.sh/helm-v3.8.2-linux-amd64.tar.gz \
 RUN wget https://github.com/mikefarah/yq/releases/download/v4.27.3/yq_linux_amd64 -O /usr/bin/yq &&\
     chmod +x /usr/bin/yq
 
-# Copy conda environment early to avoid cache busting
-COPY ./components/aws/sagemaker/tests/integration_tests/environment.yml environment.yml
+# install dependencies through pip
+RUN ln -s /usr/bin/python3.8 /usr/bin/python \
+ && python -m pip install --upgrade pip
 
-# Create conda environment for running tests and set as start-up environment
-RUN conda env create -f environment.yml
-RUN echo "source activate kfp_test_env" > ~/.bashrc
-ENV PATH "/opt/conda/envs/kfp_test_env/bin":$PATH
+COPY ./components/aws/sagemaker/tests/integration_tests/requirements.txt requirements.txt
+
+RUN python -m pip install -r requirements.txt
+
 
 # Environment variables to be used by tests
 ENV REGION="us-west-2"
