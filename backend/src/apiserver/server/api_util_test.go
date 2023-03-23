@@ -426,8 +426,8 @@ func TestPipelineSpecStructToYamlString_WithPlatform(t *testing.T) {
 
 	pipeline := structpb.Struct{
 		Fields: map[string]*structpb.Value{
-			"pipelineSpec": pipelineSpecValue,
-			"platforms":    platformSpecValue,
+			"pipeline_spec": pipelineSpecValue,
+			"platform_spec": platformSpecValue,
 		},
 	}
 	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
@@ -458,7 +458,7 @@ func TestPipelineSpecStructToYamlString_NestedPipelineSpec(t *testing.T) {
 
 	pipeline := structpb.Struct{
 		Fields: map[string]*structpb.Value{
-			"pipelineSpec": pipelineSpecValue,
+			"pipeline_spec": pipelineSpecValue,
 		},
 	}
 	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)

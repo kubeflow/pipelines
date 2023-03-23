@@ -125,12 +125,12 @@ func getJobIdFromResourceReferencesV1(resourceRefs []*apiv1beta1.ResourceReferen
 func pipelineSpecStructToYamlString(s *structpb.Struct) (string, error) {
 	var bytes []byte
 	var err error
-	if spec, ok := s.GetFields()["pipelineSpec"]; ok {
+	if spec, ok := s.GetFields()["pipeline_spec"]; ok {
 		bytes, err = yaml.Marshal(spec)
 		if err != nil {
 			return "", util.Wrap(err, "Failed to convert pipeline protobuf struct to a yaml string")
 		}
-		if platforms, ok := s.GetFields()["platforms"]; ok {
+		if platforms, ok := s.GetFields()["platform_spec"]; ok {
 			bytesPlatforms, err := yaml.Marshal(platforms)
 			if err != nil {
 				return "", util.Wrap(err, "Failed to convert platforms protobuf struct to a yaml string")
@@ -206,8 +206,8 @@ func yamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
 	} else {
 		pipeline := &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"pipelineSpec": structpb.NewStructValue(&pipelineSpec),
-				"platforms":    structpb.NewStructValue(&platformSpec),
+				"pipeline_spec": structpb.NewStructValue(&pipelineSpec),
+				"platform_spec": structpb.NewStructValue(&platformSpec),
 			},
 		}
 		return pipeline, nil
