@@ -17,7 +17,6 @@
 import React from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from 'react-query';
-import { ApiRunDetail } from 'src/apis/run';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
