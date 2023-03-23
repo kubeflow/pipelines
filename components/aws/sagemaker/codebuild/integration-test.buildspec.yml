@@ -7,15 +7,7 @@ env:
 phases:
   pre_build:
     commands:
-      # Get cached test image
-      - aws ecr get-login-password --region $CLUSTER_REGION | docker login --username AWS --password-stdin $ECR_CACHE_URI || true
-      - docker pull ${ECR_CACHE_URI}:latest --quiet || true
-
-      # Build test image
-      - >
-        docker build -f ./components/aws/sagemaker/tests/integration_tests/Dockerfile . -t ${ECR_CACHE_URI}:latest --quiet
-        || echo "Docker Build Failed" || true
-
+      - docker login -u $DOCKER_CONFIG_USERNAME -p $DOCKER_CONFIG_PASSWORD
   build:
     commands:
       - docker build . -f ./components/aws/sagemaker/tests/integration_tests/Dockerfile -t amazon/integration-test-image --quiet

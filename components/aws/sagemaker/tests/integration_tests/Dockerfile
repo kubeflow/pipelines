@@ -65,4 +65,4 @@ COPY ./ ./pipelines/
 
 WORKDIR /pipelines/components/aws/sagemaker/tests/integration_tests/scripts/
 
-CMD ["./components/aws/sagemaker/tests/integration_tests/scripts/run_integration_tests"]
+ENTRYPOINT [ "/bin/bash", "./run_integration_tests" ]
