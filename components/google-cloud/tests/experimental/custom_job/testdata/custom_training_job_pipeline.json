@@ -66,6 +66,8 @@
              "parameterType": "STRING"
            },
            "worker_pool_specs": {
+             "defaultValue": [],
+             "isOptional": true,
              "parameterType": "LIST"
            }
          }
