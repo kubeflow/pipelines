@@ -30,13 +30,6 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   const runId = props.match.params[RouteParams.runId];
   let pipelineManifest: string | undefined;
 
-  // Retrieves v1 run detail.
-  const { data: v1Run } = useQuery<ApiRunDetail, Error>(
-    ['v1_run_detail', { id: runId }],
-    () => Apis.runServiceApi.getRun(runId),
-    {},
-  );
-
   // Retrieves v2 run detail.
   const { isSuccess: getV2RunSuccess, data: v2Run } = useQuery<V2beta1Run, Error>(
     ['v2_run_detail', { id: runId }],
@@ -62,10 +55,6 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     },
     { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
   );
-
-  if (v1Run === undefined || v2Run === undefined) {
-    return <></>;
-  }
 
   const templateString = pipelineManifest ? pipelineManifest : templateStrFromVersionId;
 
