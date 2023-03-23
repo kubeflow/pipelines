@@ -1,4 +1,4 @@
-FROM selenium/standalone-chrome:109.0.5414.119-chromedriver-109.0.5414.74-20230131
+FROM selenium/standalone-chrome:110.0.5481.177-chromedriver-110.0.5481.77
 
 USER root
 
@@ -25,7 +25,7 @@ RUN apt-get update -qqy && apt-get install -qqy \
     rm -rf /var/lib/apt/lists/* /tmp/* /usr/share/locale/* /usr/share/i18n/locales/*
 
 
-RUN curl --silent --show-error --location https://deb.nodesource.com/setup_14.x | bash - && \
+RUN curl --silent --show-error --location https://deb.nodesource.com/setup_16.x | bash - && \
     apt-get install -y nodejs
 
 USER seluser
