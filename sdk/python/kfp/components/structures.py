@@ -651,6 +651,9 @@ class ComponentSpec:
             default = type_utils.deserialize_v1_component_yaml_default(
                 type_=type_, default=default)
 
+            if isinstance(type_, str):
+                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
+
             if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=type_, optional=True)
@@ -706,6 +709,8 @@ class ComponentSpec:
         outputs = {}
         for spec in component_dict.get('outputs', []):
             type_ = spec.get('type')
+            if isinstance(type_, str):
+                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
 
             if isinstance(type_, str) and type_.lower(
             ) in type_utils._PARAMETER_TYPES_MAPPING:

@@ -166,6 +166,23 @@ COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER = structures.ComponentSpec(
     inputs={'input': structures.InputSpec(type='String')},
 )
 
+V1_NONCANONICAL_GENERIC_TYPES_COMPONENT_SPEC = textwrap.dedent("""\
+    name: generic_types_test
+    inputs:
+    - {name: input1, type: "List[str]"}
+    - {name: input2, type: "typing.List[str]"}
+    - {name: input3, type: "Dict[str, str]"}
+    - {name: input4, type: "typing.Dict[str, str]"}
+    outputs:
+    - {name: output1, type: "List[str]"}
+    - {name: output2, type: "typing.List[str]"}
+    - {name: output3, type: "Dict[str, str]"}
+    - {name: output4, type: "typing.Dict[str, str]"}
+    implementation:
+      container:
+        image: alpine
+    """)
+
 
 class StructuresTest(parameterized.TestCase):
 
@@ -1079,6 +1096,21 @@ implementation:
         self.assertFalse(comp.component_spec.inputs['val'].optional)
         self.assertFalse(comp.pipeline_spec.root.input_definitions
                          .artifacts['val'].is_optional)
+
+    def test_load_noncanonical_v1_generic_types(self):
+        loaded_comp = components.load_component_from_text(
+            V1_NONCANONICAL_GENERIC_TYPES_COMPONENT_SPEC)
+        inputs = loaded_comp.component_spec.inputs
+        outputs = loaded_comp.component_spec.outputs
+        self.assertEqual(inputs['input1'].type, 'List')
+        self.assertEqual(inputs['input2'].type, 'List')
+        self.assertEqual(inputs['input3'].type, 'Dict')
+        self.assertEqual(inputs['input4'].type, 'Dict')
+
+        self.assertEqual(outputs['output1'].type, 'List')
+        self.assertEqual(outputs['output2'].type, 'List')
+        self.assertEqual(outputs['output3'].type, 'Dict')
+        self.assertEqual(outputs['output4'].type, 'Dict')
 
 
 class TestLoadDocumentsFromYAML(unittest.TestCase):
