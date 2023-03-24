@@ -175,7 +175,10 @@ def _display_run(client: click.Context,
             if key not in ['pipeline_spec'
                           ]  # useless but too much detailed field
         }
-        click.echo(data)
+        if output_format == OutputFormat.json.name:
+            click.echo(json.dumps(data, indent=4))
+        else:
+            click.echo(data)
         return
 
     _print_runs([run], output_format)
