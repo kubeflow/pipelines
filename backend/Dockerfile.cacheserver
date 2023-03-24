@@ -31,7 +31,11 @@ RUN go-licenses csv ./backend/src/cache > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/cache_server.csv && \
     go-licenses save ./backend/src/cache --save_path /tmp/NOTICES
 
-FROM alpine:3.8
+FROM alpine:3.17
+
+RUN adduser -S appuser
+USER appuser
+
 WORKDIR /bin
 
 COPY --from=builder /bin/cache_server /bin/cache_server
