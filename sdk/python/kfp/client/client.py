@@ -18,6 +18,7 @@ import datetime
 import json
 import logging
 import os
+import random
 import re
 import tarfile
 import tempfile
@@ -1015,11 +1016,73 @@ class Client:
         )
         return JobConfig(spec=spec, resource_references=resource_references)
 
+    def trigger_recurring_run(
+        self,
+        job_id: str,
+        run_name: Optional[str] = None,
+        enable_caching: Optional[bool] = None,
+    ) -> kfp_server_api.ApiJob:
+        """Create a single ad hoc run from a recurring run.
+
+        Args:
+            job_id: ID of the recurring run / job to trigger.
+            run_name: Optional name for run; defaults to recurring run name + randomized string.
+            enable_caching: Whether or not to enable caching for the
+                run. If not set, defaults to the compile time settings, which
+                is ``True`` for all tasks by default, while users may specify
+                different caching options for individual tasks. If set, the
+                setting applies to all tasks in the pipeline (overrides the
+                compile time settings).
+
+        Returns:
+            ``RunPipelineResult`` object containing information about the pipeline run.
+        """
+        rr = self.get_recurring_run(job_id=job_id)
+
+        service_account = rr.service_account
+
+        namespace = ''
+        experiment_id = ''
+        for api_resource_reference in rr.resource_references:
+            if api_resource_reference.key.type == 'NAMESPACE':
+                namespace = api_resource_reference.key.id
+            if api_resource_reference.key.type == 'EXPERIMENT':
+                experiment_id = api_resource_reference.key.id
+
+        pipeline_manifest_serialized = rr.pipeline_spec.pipeline_manifest
+
+        pipeline_root = None
+        if hasattr(rr.pipeline_spec.runtime_config, 'pipeline_root'):
+            pipeline_root = rr.pipeline_spec.runtime_config.pipeline_root
+
+        arguments = rr.pipeline_spec.parameters
+
+        if not run_name:
+            run_name = f'{rr.name}-adhoc-{str(random.randrange(10**10, (10**11) - 1))}'
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
+
+            with open(pipeline_package_path, 'w') as f:
+                f.write(pipeline_manifest_serialized)
+
+            return self.create_run_from_pipeline_package(
+                pipeline_file=pipeline_package_path,
+                arguments=arguments,
+                run_name=run_name,
+                experiment_id=experiment_id,
+                namespace=namespace,
+                pipeline_root=pipeline_root,
+                enable_caching=enable_caching,
+                service_account=service_account,
+            )
+
     def create_run_from_pipeline_func(
         self,
         pipeline_func: base_component.BaseComponent,
         arguments: Optional[Dict[str, Any]] = None,
         run_name: Optional[str] = None,
+        experiment_id: Optional[str] = None,
         experiment_name: Optional[str] = None,
         namespace: Optional[str] = None,
         pipeline_root: Optional[str] = None,
@@ -1035,6 +1098,7 @@ class Client:
             pipeline_func: Pipeline function constructed with ``@kfp.dsl.pipeline`` decorator.
             arguments: Arguments to the pipeline function provided as a dict.
             run_name: Name of the run to be shown in the UI.
+            experiment_id: ID of the experiment to add the run to.
             experiment_name: Name of the experiment to add the run to.
             namespace: Kubernetes namespace to use. Used for multi-user deployments. For single-user deployments, this should be left as ``None``.
             pipeline_root: Root path of the pipeline outputs.
@@ -1066,6 +1130,7 @@ class Client:
                 pipeline_file=pipeline_package_path,
                 arguments=arguments,
                 run_name=run_name,
+                experiment_id=experiment_id,
                 experiment_name=experiment_name,
                 namespace=namespace,
                 pipeline_root=pipeline_root,
@@ -1078,6 +1143,7 @@ class Client:
         pipeline_file: str,
         arguments: Optional[Dict[str, Any]] = None,
         run_name: Optional[str] = None,
+        experiment_id: Optional[str] = None,
         experiment_name: Optional[str] = None,
         namespace: Optional[str] = None,
         pipeline_root: Optional[str] = None,
@@ -1093,6 +1159,7 @@ class Client:
             pipeline_file: A compiled pipeline package file.
             arguments: Arguments to the pipeline function provided as a dict.
             run_name:  Name of the run to be shown in the UI.
+            experiment_id: ID of experiment to add the run to.
             experiment_name: Name of the experiment to add the run to.
             namespace: Kubernetes namespace to use. Used for multi-user deployments. For single-user deployments, this should be left as ``None``.
             pipeline_root: Root path of the pipeline outputs.
@@ -1111,22 +1178,26 @@ class Client:
 
         #TODO: Check arguments against the pipeline function
         pipeline_name = os.path.basename(pipeline_file)
-        experiment_name = experiment_name or os.environ.get(
-            KF_PIPELINES_DEFAULT_EXPERIMENT_NAME, None)
-        overridden_experiment_name = os.environ.get(
-            KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME, experiment_name)
-        if overridden_experiment_name != experiment_name:
-            warnings.warn(
-                f'Changing experiment name from "{experiment_name}" to "{overridden_experiment_name}".'
-            )
-        experiment_name = overridden_experiment_name or 'Default'
+
+        if not experiment_id:
+            experiment_name = experiment_name or os.environ.get(
+                KF_PIPELINES_DEFAULT_EXPERIMENT_NAME, None)
+            overridden_experiment_name = os.environ.get(
+                KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME, experiment_name)
+            if overridden_experiment_name != experiment_name:
+                warnings.warn(
+                    f'Changing experiment name from "{experiment_name}" to "{overridden_experiment_name}".'
+                )
+            experiment_name = overridden_experiment_name or 'Default'
+            experiment = self.create_experiment(
+                name=experiment_name, namespace=namespace)
+            experiment_id = experiment.id
+
         run_name = run_name or (
             pipeline_name + ' ' +
             datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S'))
-        experiment = self.create_experiment(
-            name=experiment_name, namespace=namespace)
         run_info = self.run_pipeline(
-            experiment_id=experiment.id,
+            experiment_id=experiment_id,
             job_name=run_name,
             pipeline_package_path=pipeline_file,
             params=arguments,
