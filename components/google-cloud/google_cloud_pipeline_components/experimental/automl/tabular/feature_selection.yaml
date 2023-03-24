@@ -71,7 +71,7 @@ inputs:
 - {name: target_column_name, type: String}
 - {name: algorithm, type: String, default: "AMI"}
 - {name: prediction_type, type: String, default: "unknown"}
-- {name: binary_classification, type: Boolean, default: "false"}
+- {name: binary_classification, type: String, default: "false"}
 - {name: max_selected_features, type: Integer, default: 1000}
 
 outputs:
@@ -81,7 +81,7 @@ outputs:
 
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
     args: [
       --type, CustomJob,
@@ -93,7 +93,7 @@ implementation:
         '{"display_name": "tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325',
         '", "args": ["feature_selection",
         "--data_source=',
         {inputUri: data_source},
@@ -120,7 +120,7 @@ implementation:
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
         {inputValue: dataflow_max_num_workers},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325',
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_disk_size_gb=',

@@ -60,10 +60,6 @@ description: |
             the delimiter.
         transformations_path (Optional[str]):
             Path to a GCS file containing JSON string for transformations.
-        split_spec (str):
-            Quote escaped JSON string for split spec.
-        data_source (str):
-            Quote escaped JSON string for data source.
         dataflow_machine_type (Optional[str]):
             The machine type used for dataflow jobs. If not set, default to n1-standard-16.
         dataflow_max_num_workers (Optional[int]):
@@ -117,8 +113,6 @@ inputs:
 - {name: optimization_objective_precision_value, type: Float, default: "-1"}
 - {name: transformations, type: String}
 - {name: transformations_path, type: String, default: ""}
-- {name: split_spec, type: String, optional: true}
-- {name: data_source, type: String, optional: true}
 - {name: request_type, type: String, default: "COLUMN_STATS_ONLY"}
 - {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
 - {name: dataflow_max_num_workers, type: Integer, default: "25"}
@@ -155,7 +149,7 @@ outputs:
 
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
     args: [
       --type, CustomJob,
@@ -167,7 +161,7 @@ implementation:
         '{"display_name": "tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325',
         '", "args": ["stats_generator",',
         '"--train_spec={\"prediction_type\": \"',
         {inputValue: prediction_type},
@@ -185,10 +179,6 @@ implementation:
         {inputValue: enable_probabilistic_inference},
         '}", "--transformations_override_path=',
         {inputValue: transformations_path},
-        '", "--split_spec=',
-        {inputValue: split_spec},
-        '", "--data_source=',
-        {inputValue: data_source},
         '", "--data_source_csv_filenames=',
         {inputValue: data_source_csv_filenames},
         '", "--data_source_bigquery_table_path=',
@@ -233,7 +223,7 @@ implementation:
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
         {inputValue: dataflow_max_num_workers},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230123_2125',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325',
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_disk_size_gb=',

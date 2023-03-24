@@ -11,11 +11,15 @@ _DEFAULT_NUM_PARALLEL_TRAILS = 35
 _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS = 5
 _NUM_FOLDS = 5
 _DISTILL_TOTAL_TRIALS = 100
-_EVALUATION_BATCH_PREDICT_MACHINE_TYPE = 'n1-standard-16'
-_EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT = 25
-_EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT = 25
+_EVALUATION_BATCH_PREDICT_MACHINE_TYPE = 'n1-highmem-8'
+_EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT = 20
+_EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT = 20
+_EVALUATION_BATCH_EXPLAIN_MACHINE_TYPE = 'n1-highmem-8'
+_EVALUATION_BATCH_EXPLAIN_STARTING_REPLICA_COUNT = 10
+_EVALUATION_BATCH_EXPLAIN_MAX_REPLICA_COUNT = 10
 _EVALUATION_DATAFLOW_MACHINE_TYPE = 'n1-standard-4'
-_EVALUATION_DATAFLOW_MAX_NUM_WORKERS = 25
+_EVALUATION_DATAFLOW_STARTING_NUM_WORKERS = 10
+_EVALUATION_DATAFLOW_MAX_NUM_WORKERS = 100
 _EVALUATION_DATAFLOW_DISK_SIZE_GB = 50
 
 
@@ -68,9 +72,13 @@ def _get_default_pipeline_params(
     apply_feature_selection_tuning: bool = False,
     run_evaluation: bool = True,
     evaluation_batch_predict_machine_type: Optional[str] = None,
-    evaluation_batch_predict_starting_replica_count: Optional[str] = None,
-    evaluation_batch_predict_max_replica_count: Optional[str] = None,
+    evaluation_batch_predict_starting_replica_count: Optional[int] = None,
+    evaluation_batch_predict_max_replica_count: Optional[int] = None,
+    evaluation_batch_explain_machine_type: Optional[str] = None,
+    evaluation_batch_explain_starting_replica_count: Optional[int] = None,
+    evaluation_batch_explain_max_replica_count: Optional[int] = None,
     evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_starting_num_workers: Optional[int] = None,
     evaluation_dataflow_max_num_workers: Optional[int] = None,
     evaluation_dataflow_disk_size_gb: Optional[int] = None,
     run_distillation: bool = False,
@@ -199,9 +207,20 @@ def _get_default_pipeline_params(
     evaluation_batch_predict_max_replica_count:
       The max number of prediction
       server for batch predict components during evaluation.
+    evaluation_batch_explain_machine_type:
+      The prediction server machine type for batch explain components during
+      evaluation.
+    evaluation_batch_explain_starting_replica_count:
+      The initial number of prediction server for batch explain components
+      during evaluation.
+    evaluation_batch_explain_max_replica_count:
+      The max number of prediction server for batch explain components during
+      evaluation.
     evaluation_dataflow_machine_type:
       The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers:
       The max number of Dataflow workers for
       evaluation components.
@@ -238,7 +257,7 @@ def _get_default_pipeline_params(
     Tuple of pipeline_definiton_path and parameter_values.
   """
   if not study_spec_parameters_override:
-    study_spec_parameters_override = {}
+    study_spec_parameters_override = []
   if not stage_1_tuner_worker_pool_specs_override:
     stage_1_tuner_worker_pool_specs_override = []
   if not cv_trainer_worker_pool_specs_override:
@@ -350,8 +369,16 @@ def _get_default_pipeline_params(
             evaluation_batch_predict_starting_replica_count,
         'evaluation_batch_predict_max_replica_count':
             evaluation_batch_predict_max_replica_count,
+        'evaluation_batch_explain_machine_type':
+            evaluation_batch_explain_machine_type,
+        'evaluation_batch_explain_starting_replica_count':
+            evaluation_batch_explain_starting_replica_count,
+        'evaluation_batch_explain_max_replica_count':
+            evaluation_batch_explain_max_replica_count,
         'evaluation_dataflow_machine_type':
             evaluation_dataflow_machine_type,
+        'evaluation_dataflow_starting_num_workers':
+            evaluation_dataflow_starting_num_workers,
         'evaluation_dataflow_max_num_workers':
             evaluation_dataflow_max_num_workers,
         'evaluation_dataflow_disk_size_gb':
@@ -423,9 +450,13 @@ def get_automl_tabular_pipeline_and_parameters(
     dataflow_service_account: Optional[str] = None,
     run_evaluation: bool = True,
     evaluation_batch_predict_machine_type: Optional[str] = None,
-    evaluation_batch_predict_starting_replica_count: Optional[str] = None,
-    evaluation_batch_predict_max_replica_count: Optional[str] = None,
+    evaluation_batch_predict_starting_replica_count: Optional[int] = None,
+    evaluation_batch_predict_max_replica_count: Optional[int] = None,
+    evaluation_batch_explain_machine_type: Optional[str] = None,
+    evaluation_batch_explain_starting_replica_count: Optional[int] = None,
+    evaluation_batch_explain_max_replica_count: Optional[int] = None,
     evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_starting_num_workers: Optional[int] = None,
     evaluation_dataflow_max_num_workers: Optional[int] = None,
     evaluation_dataflow_disk_size_gb: Optional[int] = None,
     run_distillation: bool = False,
@@ -550,9 +581,20 @@ def get_automl_tabular_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count:
       The max number of prediction
       server for batch predict components during evaluation.
+    evaluation_batch_explain_machine_type:
+      The prediction server machine type for batch explain components during
+      evaluation.
+    evaluation_batch_explain_starting_replica_count:
+      The initial number of prediction server for batch explain components
+      during evaluation.
+    evaluation_batch_explain_max_replica_count:
+      The max number of prediction server for batch explain components during
+      evaluation.
     evaluation_dataflow_machine_type:
       The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers:
       The max number of Dataflow workers for
       evaluation components.
@@ -630,7 +672,11 @@ def get_automl_tabular_pipeline_and_parameters(
       evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
       evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
       evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+      evaluation_batch_explain_machine_type=evaluation_batch_explain_machine_type,
+      evaluation_batch_explain_starting_replica_count=evaluation_batch_explain_starting_replica_count,
+      evaluation_batch_explain_max_replica_count=evaluation_batch_explain_max_replica_count,
       evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+      evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
       run_distillation=run_distillation,
@@ -643,7 +689,7 @@ def get_automl_tabular_pipeline_and_parameters(
   )
 
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'automl_tabular_pipeline.json')
+      pathlib.Path(__file__).parent.resolve(), 'automl_tabular_pipeline.yaml')
   return pipeline_definition_path, parameter_values
 
 
@@ -689,7 +735,11 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
     evaluation_batch_predict_machine_type: Optional[str] = None,
     evaluation_batch_predict_starting_replica_count: Optional[int] = None,
     evaluation_batch_predict_max_replica_count: Optional[int] = None,
+    evaluation_batch_explain_machine_type: Optional[str] = None,
+    evaluation_batch_explain_starting_replica_count: Optional[int] = None,
+    evaluation_batch_explain_max_replica_count: Optional[int] = None,
     evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_starting_num_workers: Optional[int] = None,
     evaluation_dataflow_max_num_workers: Optional[int] = None,
     evaluation_dataflow_disk_size_gb: Optional[int] = None,
     max_selected_features: int = 1000,
@@ -813,9 +863,20 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count:
       The max number of prediction
       server for batch predict components during evaluation.
+    evaluation_batch_explain_machine_type:
+      The prediction server machine type for batch explain components during
+      evaluation.
+    evaluation_batch_explain_starting_replica_count:
+      The initial number of prediction server for batch explain components
+      during evaluation.
+    evaluation_batch_explain_max_replica_count:
+      The max number of prediction server for batch explain components during
+      evaluation.
     evaluation_dataflow_machine_type:
       The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers:
       The max number of Dataflow workers for
       evaluation components.
@@ -885,7 +946,11 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
       evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
       evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
       evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+      evaluation_batch_explain_machine_type=evaluation_batch_explain_machine_type,
+      evaluation_batch_explain_starting_replica_count=evaluation_batch_explain_starting_replica_count,
+      evaluation_batch_explain_max_replica_count=evaluation_batch_explain_max_replica_count,
       evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+      evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
       run_distillation=run_distillation,
@@ -896,7 +961,7 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'automl_tabular_feature_selection_pipeline.json')
+      'automl_tabular_feature_selection_pipeline.yaml')
   return pipeline_definition_path, parameter_values
 
 
@@ -1512,7 +1577,7 @@ def get_feature_selection_pipeline_and_parameters(
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'feature_selection_pipeline.json')
+      'feature_selection_pipeline.yaml')
 
   return pipeline_definition_path, parameter_values
 
@@ -1557,7 +1622,11 @@ def get_skip_architecture_search_pipeline_and_parameters(
     evaluation_batch_predict_machine_type: Optional[str] = None,
     evaluation_batch_predict_starting_replica_count: Optional[int] = None,
     evaluation_batch_predict_max_replica_count: Optional[int] = None,
+    evaluation_batch_explain_machine_type: Optional[str] = None,
+    evaluation_batch_explain_starting_replica_count: Optional[int] = None,
+    evaluation_batch_explain_max_replica_count: Optional[int] = None,
     evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_starting_num_workers: Optional[int] = None,
     evaluation_dataflow_max_num_workers: Optional[int] = None,
     evaluation_dataflow_disk_size_gb: Optional[int] = None
 ) -> Tuple[str, Dict[str, Any]]:
@@ -1667,9 +1736,20 @@ def get_skip_architecture_search_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count:
       The max number of prediction
       server for batch predict components during evaluation.
+    evaluation_batch_explain_machine_type:
+      The prediction server machine type for batch explain components during
+      evaluation.
+    evaluation_batch_explain_starting_replica_count:
+      The initial number of prediction server for batch explain components
+      during evaluation.
+    evaluation_batch_explain_max_replica_count:
+      The max number of prediction server for batch explain components during
+      evaluation.
     evaluation_dataflow_machine_type:
       The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers:
       The max number of Dataflow workers for
       evaluation components.
@@ -1723,7 +1803,11 @@ def get_skip_architecture_search_pipeline_and_parameters(
       evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
       evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
       evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+      evaluation_batch_explain_machine_type=evaluation_batch_explain_machine_type,
+      evaluation_batch_explain_starting_replica_count=evaluation_batch_explain_starting_replica_count,
+      evaluation_batch_explain_max_replica_count=evaluation_batch_explain_max_replica_count,
       evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+      evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
       run_distillation=None,
@@ -1945,6 +2029,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count:
     int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
     evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_starting_num_workers:
+    int = _EVALUATION_DATAFLOW_STARTING_NUM_WORKERS,
     evaluation_dataflow_max_num_workers:
     int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
     evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
@@ -2103,6 +2189,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     evaluation_dataflow_machine_type:
       The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers:
       The max number of Dataflow workers for
       evaluation components.
@@ -2226,6 +2314,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
+      'evaluation_dataflow_starting_num_workers':
+          evaluation_dataflow_starting_num_workers,
       'evaluation_dataflow_max_num_workers':
           evaluation_dataflow_max_num_workers,
       'evaluation_dataflow_disk_size_gb':
@@ -2283,7 +2373,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'wide_and_deep_trainer_pipeline.json')
+      'wide_and_deep_trainer_pipeline.yaml')
 
   return pipeline_definition_path, parameter_values
 
@@ -2335,6 +2425,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count:
     int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
     evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_starting_num_workers:
+    int = _EVALUATION_DATAFLOW_STARTING_NUM_WORKERS,
     evaluation_dataflow_max_num_workers:
     int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
     evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
@@ -2454,6 +2546,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     evaluation_dataflow_machine_type:
       The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers:
       The max number of Dataflow workers for
       evaluation components.
@@ -2476,8 +2570,10 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     Tuple of pipeline_definiton_path and parameter_values.
   """
   warnings.warn(
-      'This method is deprecated. Please use get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters '
-      'or get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters instead.'
+      'This method is deprecated. Please use'
+      ' get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters or'
+      ' get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters'
+      ' instead.'
   )
 
   if algorithm == 'tabnet':
@@ -2524,6 +2620,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
         evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
         evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
+        evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
         evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
         dataflow_service_account=dataflow_service_account,
         dataflow_subnetwork=dataflow_subnetwork,
@@ -2573,6 +2670,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
         evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
         evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
+        evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
         evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
         dataflow_service_account=dataflow_service_account,
         dataflow_subnetwork=dataflow_subnetwork,
@@ -2580,7 +2678,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         encryption_spec_key_name=encryption_spec_key_name)
   else:
     raise ValueError(
-        'Invalid algorithm provided. Supported values are "tabnet" and "wide_and_deep".'
+        'Invalid algorithm provided. Supported values are "tabnet" and'
+        ' "wide_and_deep".'
     )
 
 
@@ -2634,6 +2733,8 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count:
     int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
     evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_starting_num_workers:
+    int = _EVALUATION_DATAFLOW_STARTING_NUM_WORKERS,
     evaluation_dataflow_max_num_workers:
     int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
     evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
@@ -2661,31 +2762,24 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       parameter specification of the metric.
     max_trial_count: The desired total number of trials.
     parallel_trial_count: The desired number of trials to run in parallel.
-    transform_config:
-      Path to v1 TF transformation configuration.
-    dataset_level_custom_transformation_definitions:
-      Dataset-level custom transformation definitions in string format.
-    dataset_level_transformations:
-      Dataset-level transformation configuration in string format.
+    transform_config: Path to v1 TF transformation configuration.
+    dataset_level_custom_transformation_definitions: Dataset-level custom
+      transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in
+      string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
     max_selected_features: Maximum number of features to select.
-    predefined_split_key:
-      Predefined split key.
-    stratified_split_key:
-      Stratified split key.
-    training_fraction:
-      Training fraction.
-    validation_fraction:
-      Validation fraction.
-    test_fraction:
-      Test fraction.
-    tf_auto_transform_features:
-      List of auto transform features in the comma-separated string format.
-    tf_custom_transformation_definitions:
-      TF custom transformation definitions in string format.
-    tf_transformations_path:
-      Path to TF transformation configuration.
+    predefined_split_key: Predefined split key.
+    stratified_split_key: Stratified split key.
+    training_fraction: Training fraction.
+    validation_fraction: Validation fraction.
+    test_fraction: Test fraction.
+    tf_auto_transform_features: List of auto transform features in the
+      comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions
+      in string format.
+    tf_transformations_path: Path to TF transformation configuration.
     enable_profiler: Enables profiling and saves a trace during evaluation.
     cache_data: Whether to cache data or not. If set to 'auto', caching is
       determined based on the dataset size.
@@ -2727,6 +2821,8 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       server for batch predict components during evaluation.
     evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
       evaluation components.
     evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
@@ -2813,6 +2909,8 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
           evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
+      'evaluation_dataflow_starting_num_workers':
+          evaluation_dataflow_starting_num_workers,
       'evaluation_dataflow_max_num_workers':
           evaluation_dataflow_max_num_workers,
       'evaluation_dataflow_disk_size_gb':
@@ -2869,7 +2967,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'tabnet_hyperparameter_tuning_job_pipeline.json'
+      'tabnet_hyperparameter_tuning_job_pipeline.yaml'
   )
 
   return pipeline_definition_path, parameter_values
@@ -2925,6 +3023,8 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count:
     int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
     evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_starting_num_workers:
+    int = _EVALUATION_DATAFLOW_STARTING_NUM_WORKERS,
     evaluation_dataflow_max_num_workers:
     int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
     evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
@@ -3018,6 +3118,8 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
       server for batch predict components during evaluation.
     evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
       evaluation components.
     evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
@@ -3104,6 +3206,8 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
           evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
+      'evaluation_dataflow_starting_num_workers':
+          evaluation_dataflow_starting_num_workers,
       'evaluation_dataflow_max_num_workers':
           evaluation_dataflow_max_num_workers,
       'evaluation_dataflow_disk_size_gb':
@@ -3160,7 +3264,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'wide_and_deep_hyperparameter_tuning_job_pipeline.json'
+      'wide_and_deep_hyperparameter_tuning_job_pipeline.yaml'
   )
 
   return pipeline_definition_path, parameter_values
@@ -3226,12 +3330,20 @@ def get_tabnet_trainer_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     worker_pool_specs_override: Optional[Dict[str, Any]] = None,
     run_evaluation: bool = True,
-    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
-    evaluation_batch_predict_starting_replica_count: int = 25,
-    evaluation_batch_predict_max_replica_count: int = 25,
-    evaluation_dataflow_machine_type: str = 'n1-standard-4',
-    evaluation_dataflow_max_num_workers: int = 25,
-    evaluation_dataflow_disk_size_gb: int = 50,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type:
+    str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_starting_num_workers:
+    int = _EVALUATION_DATAFLOW_STARTING_NUM_WORKERS,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb:
+    int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
     dataflow_service_account: str = '',
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
@@ -3398,6 +3510,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
     evaluation_dataflow_machine_type:
       The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers:
       The max number of Dataflow workers for
       evaluation components.
@@ -3525,6 +3639,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
+      'evaluation_dataflow_starting_num_workers':
+          evaluation_dataflow_starting_num_workers,
       'evaluation_dataflow_max_num_workers':
           evaluation_dataflow_max_num_workers,
       'evaluation_dataflow_disk_size_gb':
@@ -3581,7 +3697,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
   _update_parameters(parameter_values, data_source_and_split_parameters)
 
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'tabnet_trainer_pipeline.json')
+      pathlib.Path(__file__).parent.resolve(), 'tabnet_trainer_pipeline.yaml')
 
   return pipeline_definition_path, parameter_values
 
@@ -3857,6 +3973,7 @@ def get_xgboost_trainer_pipeline_and_parameters(
     evaluation_batch_predict_starting_replica_count: Optional[int] = None,
     evaluation_batch_predict_max_replica_count: Optional[int] = None,
     evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_starting_num_workers: Optional[int] = None,
     evaluation_dataflow_max_num_workers: Optional[int] = None,
     evaluation_dataflow_disk_size_gb: Optional[int] = None,
     dataflow_service_account: Optional[str] = None,
@@ -3986,6 +4103,8 @@ def get_xgboost_trainer_pipeline_and_parameters(
       server for batch predict components during evaluation.
     evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
       evaluation components.
     evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
@@ -4121,6 +4240,8 @@ def get_xgboost_trainer_pipeline_and_parameters(
           evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
+      'evaluation_dataflow_starting_num_workers':
+          evaluation_dataflow_starting_num_workers,
       'evaluation_dataflow_max_num_workers':
           evaluation_dataflow_max_num_workers,
       'evaluation_dataflow_disk_size_gb':
@@ -4177,7 +4298,7 @@ def get_xgboost_trainer_pipeline_and_parameters(
   _update_parameters(parameter_values, data_source_and_split_parameters)
 
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'xgboost_trainer_pipeline.json')
+      pathlib.Path(__file__).parent.resolve(), 'xgboost_trainer_pipeline.yaml')
 
   return pipeline_definition_path, parameter_values
 
@@ -4230,6 +4351,7 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     evaluation_batch_predict_starting_replica_count: Optional[int] = None,
     evaluation_batch_predict_max_replica_count: Optional[int] = None,
     evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_starting_num_workers: Optional[int] = None,
     evaluation_dataflow_max_num_workers: Optional[int] = None,
     evaluation_dataflow_disk_size_gb: Optional[int] = None,
     dataflow_service_account: Optional[str] = None,
@@ -4314,6 +4436,8 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
       server for batch predict components during evaluation.
     evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
+    evaluation_dataflow_starting_num_workers:
+      The initial number of Dataflow workers for evaluation components.
     evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
       evaluation components.
     evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
@@ -4392,6 +4516,8 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
           evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
+      'evaluation_dataflow_starting_num_workers':
+          evaluation_dataflow_starting_num_workers,
       'evaluation_dataflow_max_num_workers':
           evaluation_dataflow_max_num_workers,
       'evaluation_dataflow_disk_size_gb':
@@ -4449,6 +4575,6 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'xgboost_hyperparameter_tuning_job_pipeline.json')
+      'xgboost_hyperparameter_tuning_job_pipeline.yaml')
 
   return pipeline_definition_path, parameter_values
