@@ -207,7 +207,7 @@ def enable(ctx: click.Context, job_id: str):
 @click.argument("job-id")
 @click.pass_context
 def disable(ctx: click.Context, job_id: str):
-    """Enable a recurring run."""
+    """Disable a recurring run."""
     client = ctx.obj["client"]
     client.disable_job(job_id=job_id)
     click.echo(f"Disabled job {job_id}.")
