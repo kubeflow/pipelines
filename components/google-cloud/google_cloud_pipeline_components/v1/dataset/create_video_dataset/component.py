@@ -96,7 +96,7 @@ def video_dataset_create(
           resource.
   """
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[
           'python3',
           '-m',
