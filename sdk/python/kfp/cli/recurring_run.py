@@ -193,6 +193,26 @@ def delete(ctx: click.Context, job_id: str):
     client.delete_job(job_id)
 
 
+@recurring_run.command()
+@click.argument("job-id")
+@click.pass_context
+def enable(ctx: click.Context, job_id: str):
+    """Enable a recurring run."""
+    client = ctx.obj["client"]
+    client.enable_job(job_id=job_id)
+    click.echo(f"Enabled job {job_id}.")
+
+
+@recurring_run.command()
+@click.argument("job-id")
+@click.pass_context
+def disable(ctx: click.Context, job_id: str):
+    """Disable a recurring run."""
+    client = ctx.obj["client"]
+    client.disable_job(job_id=job_id)
+    click.echo(f"Disabled job {job_id}.")
+
+
 def _display_recurring_runs(recurring_runs: List[kfp_server_api.ApiJob],
                             output_format: OutputFormat):
     headers = ["Recurring Run ID", "Name"]
