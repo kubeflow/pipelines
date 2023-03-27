@@ -9,6 +9,7 @@
 
 ## Bug fixes and other changes
 * Support python 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
+* Fix loading non-canonical generic type strings from v1 component YAML (e.g., `List[str]`, `typing.List[str]`, `Dict[str]`, `typing.Dict[str, str]` [\#9041](https://github.com/kubeflow/pipelines/pull/9041)
 
 ## Documentation updates
 # 2.0.0-beta.13
