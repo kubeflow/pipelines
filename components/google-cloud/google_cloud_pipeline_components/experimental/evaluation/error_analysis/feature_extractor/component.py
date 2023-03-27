@@ -117,7 +117,7 @@ def feature_extractor_error_analysis(
               '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
               '", "machine_spec": {"machine_type": "n1-standard-4"},',
               ' "container_spec": {"image_uri":"',
-              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230323_1221_RC00',
+              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230327_1221_RC00',
               '", "args": ["--project_id=',
               project,
               '", "--location=',
