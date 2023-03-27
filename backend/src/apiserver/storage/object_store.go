@@ -19,9 +19,9 @@ import (
 	"path"
 	"regexp"
 
-	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	minio "github.com/minio/minio-go/v6"
+	"sigs.k8s.io/yaml"
 )
 
 const (

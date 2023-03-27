@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/ghodss/yaml"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -29,6 +28,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	goyaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 type V2Spec struct {
