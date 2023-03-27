@@ -15,6 +15,10 @@
 
 import os
 
+from .feature_extractor import component as feature_extractor
+from .dataset_preprocessor import component as dataset_preprocessor
+from .error_analysis_annotation import component as error_analysis_annotation
+
 try:
   from kfp.v2.components import load_component_from_file
 except ImportError:
@@ -28,11 +32,8 @@ __all__ = [
     'ModelImportEvaluatedAnnotationOp',
 ]
 
-EvaluationDatasetPreprocessorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'dataset_preprocessor/component.yaml',
-    )
+EvaluationDatasetPreprocessorOp = (
+    dataset_preprocessor.dataset_preprocessor_error_analysis
 )
 
 EvaluatedAnnotationOp = load_component_from_file(
@@ -42,19 +43,9 @@ EvaluatedAnnotationOp = load_component_from_file(
     )
 )
 
-FeatureExtractorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'feature_extractor/component.yaml',
-    )
-)
+FeatureExtractorOp = feature_extractor.feature_extractor_error_analysis
 
-ErrorAnalysisAnnotationOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'error_analysis_annotation/component.yaml',
-    )
-)
+ErrorAnalysisAnnotationOp = error_analysis_annotation.error_analysis_annotation
 
 ModelImportEvaluatedAnnotationOp = load_component_from_file(
     os.path.join(

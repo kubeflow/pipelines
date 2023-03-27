@@ -185,7 +185,7 @@
              "-m",
              "google_cloud_pipeline_components.container.v1.model.export_model.launcher"
            ],
-           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
          }
        },
        "exec-model-upload": {
@@ -210,7 +210,7 @@
              "-m",
              "google_cloud_pipeline_components.container.v1.model.upload_model.launcher"
            ],
-           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
          }
        }
      }

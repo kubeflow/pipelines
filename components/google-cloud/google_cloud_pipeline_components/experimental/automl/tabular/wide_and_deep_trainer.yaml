@@ -124,6 +124,8 @@ description: |
             Serialized gcp_resources proto tracking the custom training job.
         unmanaged_container_model (google.UnmanagedContainerModel):
             The UnmanagedContainerModel artifact.
+
+# LINT.IfChange
 inputs:
   - { name: project, type: String }
   - { name: location, type: String }
@@ -166,16 +168,17 @@ inputs:
   - { name: materialized_train_split, type: MaterializedSplit }
   - { name: materialized_eval_split, type: MaterializedSplit }
   - { name: transform_output, type: TransformOutput }
-  - { name: training_schema_uri, type: TrainingSchema }
+  - { name: training_schema_uri, type: DatasetSchema }
   - { name: encryption_spec_key_name, type: String, default: "" }
 
 outputs:
   - { name: gcp_resources, type: String }
   - { name: unmanaged_container_model, type: google.UnmanagedContainerModel }
+# LINT.ThenChange(//depot/google3/java/com/google/cloud/ai/platform/boq/shared/tasks/pipelinejob/tabularusagemetricshelper/WideAndDeepTrainerComponentMetricsHelper.java)
 
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
     args: [
       --type, CustomJob,
@@ -193,7 +196,7 @@ implementation:
           ', "disk_spec": ',
           { inputValue: training_disk_spec },
           ', "container_spec": {"image_uri":"',
-          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20230123_2125',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20230322_0325',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -201,7 +204,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230123_2125',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230322_0325',
           '", "--baseline_path=',
           { inputUri: instance_baseline },
           '", "--metadata_path=',

@@ -465,10 +465,18 @@ def get_canonical_name_for_outer_generic(type_name: Any) -> str:
     Returns:
         str: The canonical type.
     """
-    if not isinstance(type_name, str) or not type_name.startswith('typing.'):
+    if not isinstance(type_name, str):
         return type_name
 
-    return type_name.lstrip('typing.').split('[')[0]
+    if type_name.startswith('typing.'):
+        type_name = type_name.lstrip('typing.')
+
+    if type_name.lower().startswith('list') or type_name.lower().startswith(
+            'dict'):
+        return type_name.split('[')[0]
+
+    else:
+        return type_name
 
 
 def create_bundled_artifact_type(schema_title: str,

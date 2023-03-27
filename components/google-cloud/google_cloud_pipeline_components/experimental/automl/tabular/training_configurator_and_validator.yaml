@@ -23,7 +23,7 @@ description: |
           JSON string of data split example counts for train, validate, and test splits.
       training_schema_path (DatasetSchema):
           Schema of input data to the tf_model at training time.
-      instance_schema_path (DatasetSchema):
+      instance_schema (InstanceSchema):
           Schema of input data to the tf_model at serving time.
       target_column (str):
           Target column of input data.
@@ -59,7 +59,7 @@ description: |
         Whether we are running evaluation in the training pipeline.
       run_distill (bool):
           Whether the distillation should be applied to the training.
-      enable_probabilistic_inference: If probabilistic inference is enabled, the
+      enable_probabilistic_inference (bool): If probabilistic inference is enabled, the
         model will fit a distribution that captures the uncertainty of a
         prediction. At inference time, the predictive distribution is used to make
         a point prediction that minimizes the optimization objective. For example,
@@ -86,6 +86,10 @@ description: |
         The model types, e.g. l2l, seq2seq, tft.
       forecasting_transformations_path (str):
         The path to the JSON format forecasting transformations. Used by forecasting only.
+      stage_1_deadline_hours (Optional[float]):
+        Stage 1 training budget in hours.
+      stage_2_deadline_hours (Optional[float]):
+        Stage 2 training budget in hours.
 
   Returns:
       metadata (TabularExampleGenMetadata):
@@ -94,8 +98,8 @@ description: |
 inputs:
 - {name: dataset_stats, type: AutoMLTabularDatasetStats}
 - {name: split_example_counts, type: String}
-- {name: training_schema, type: TrainingSchema}
-- {name: instance_schema, type: InstanceSchema}
+- {name: training_schema, type: DatasetSchema}
+- {name: instance_schema, type: DatasetSchema}
 - {name: target_column, type: String, default: ""}
 - {name: weight_column, type: String, default: ""}
 - {name: prediction_type, type: String, default: ""}
@@ -115,6 +119,8 @@ inputs:
 - {name: forecast_horizon, type: Integer, default: "-1"}
 - {name: forecasting_model_type, type: String, default: ""}
 - {name: forecasting_transformations_path, type: String, default: ""}
+- {name: stage_1_deadline_hours, type: Float, optional: true}
+- {name: stage_2_deadline_hours, type: Float, optional: true}
 
 outputs:
 - {name: metadata, type: TabularExampleGenMetadata}
@@ -122,7 +128,7 @@ outputs:
 
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230123_2125
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
     args: [
       training_configurator_and_validator,
       concat: [
@@ -224,5 +230,21 @@ implementation:
       concat: [
         "--forecasting_transformations_path=",
         {inputValue: forecasting_transformations_path}
-      ]
+      ],
+      {if: {
+        cond: {isPresent: stage_1_deadline_hours},
+        then:
+          {concat: [
+            "--stage_1_deadline_hours=",
+            {inputValue: stage_1_deadline_hours}
+          ]},
+      }},
+      {if: {
+        cond: {isPresent: stage_2_deadline_hours},
+        then:
+          {concat: [
+            "--stage_2_deadline_hours=",
+            {inputValue: stage_2_deadline_hours}
+          ]},
+      }}
     ]

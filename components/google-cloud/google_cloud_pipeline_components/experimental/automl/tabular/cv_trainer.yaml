@@ -55,6 +55,8 @@ description: |
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
         execution_metrics (JsonObject):
             Core metrics in dictionary of component execution.
+
+# LINT.IfChange
 inputs:
 - {name: project, type: String}
 - {name: location, type: String}
@@ -75,10 +77,11 @@ outputs:
 - {name: gcp_resources, type: String}
 - {name: tuning_result_output, type: AutoMLTabularTuningResult}
 - {name: execution_metrics, type: JsonObject}
+# LINT.ThenChange(//depot/google3/java/com/google/cloud/ai/platform/boq/shared/tasks/pipelinejob/tabularusagemetricshelper/CrossValidationTrainerComponentMetricsHelper.java)
 
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
     args: [
       --type, CustomJob,
@@ -90,11 +93,11 @@ implementation:
         '{"display_name": "automl-tabular-cv-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325',
         '", "args": ["l2l_cv_tuner", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--training_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230123_2125',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325',
         '", "--component_id={{$.pipeline_task_uuid}}", "--training_base_dir=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--num_parallel_trial=',
