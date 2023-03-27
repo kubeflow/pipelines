@@ -56,7 +56,7 @@ func inferTemplateFormat(template []byte) TemplateType {
 		return Unknown
 	case isArgoWorkflow(template):
 		return V1
-	case IsPipelineSpec(template):
+	case isPipelineSpec(template):
 		return V2
 	default:
 		return Unknown
@@ -73,8 +73,8 @@ func isArgoWorkflow(template []byte) bool {
 	return strings.HasPrefix(meta.APIVersion, argoGroup) && meta.Kind == argoK8sResource
 }
 
-// IsPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
-func IsPipelineSpec(template []byte) bool {
+// isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
+func isPipelineSpec(template []byte) bool {
 	var spec pipelinespec.PipelineSpec
 	templateJson, err := yaml.YAMLToJSON(template)
 	if err != nil {

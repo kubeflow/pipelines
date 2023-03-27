@@ -122,7 +122,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to marshal this yaml document: %s", err.Error()))
 		}
-		if IsPipelineSpec(valueBytes) {
+		if isPipelineSpec(valueBytes) {
 			// Pick out the yaml document with pipeline spec
 			if v2Spec.spec != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "multiple pipeline specs provided")
