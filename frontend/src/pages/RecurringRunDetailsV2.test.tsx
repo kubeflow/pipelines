@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Kubeflow Authors
+ * Copyright 2023 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import fs from 'fs';
-import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
 import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
@@ -25,17 +24,13 @@ import TestUtils from 'src/TestUtils';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
-import { RouteParams, RoutePage, QUERY_PARAMS } from 'src/components/Router';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
-import { ButtonKeys } from 'src/lib/Buttons';
+import { RouteParams, RoutePage } from 'src/components/Router';
 import * as features from 'src/features';
 
 const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
 const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 describe('RecurringRunDetailsV2', () => {
-  let tree: ReactWrapper<any> | ShallowWrapper<any>;
-
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
@@ -103,12 +98,6 @@ describe('RecurringRunDetailsV2', () => {
     enableRecurringRunSpy.mockImplementation();
     disableRecurringRunSpy.mockImplementation();
     getExperimentSpy.mockImplementation();
-  });
-
-  afterEach(() => {
-    if (tree) {
-      tree.unmount();
-    }
   });
 
   it('renders a recurring run with periodic schedule', async () => {
@@ -270,8 +259,15 @@ describe('RecurringRunDetailsV2', () => {
   it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops!');
-    tree = shallow(<RecurringRunDetailsV2 {...generateProps()} />);
-    await TestUtils.flushPromises();
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -280,7 +276,18 @@ describe('RecurringRunDetailsV2', () => {
         mode: 'warning',
       }),
     );
-    expect(tree.state('run')).toEqual(fullTestV2RecurringRun);
+
+    // "Still loads run" means that the details are still rendered successfully.
+    screen.getByText('Enabled');
+    screen.getByText('Yes');
+    screen.getByText('Trigger');
+    screen.getByText('Every 1 hours');
+    screen.getByText('Max. concurrent runs');
+    screen.getByText('50');
+    screen.getByText('Catchup');
+    screen.getByText('false');
+    screen.getByText('param1');
+    screen.getByText('value1');
   });
 
   it('shows top bar buttons', async () => {
