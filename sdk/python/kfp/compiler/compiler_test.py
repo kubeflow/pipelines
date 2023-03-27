@@ -25,6 +25,7 @@ import unittest
 from absl.testing import parameterized
 from click import testing
 from google.protobuf import json_format
+import kfp
 from kfp import components
 from kfp import dsl
 from kfp.cli import cli
@@ -62,6 +63,21 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
 
 
 class TestCompilePipeline(parameterized.TestCase):
+
+    def test_can_use_dsl_attribute_on_kfp(self):
+
+        @kfp.dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @kfp.dsl.pipeline
+        def my_pipeline(string: str = 'string'):
+            op1 = identity(string=string)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'))
 
     def test_compile_simple_pipeline(self):
         with tempfile.TemporaryDirectory() as tmpdir:
