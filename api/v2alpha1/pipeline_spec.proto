@@ -188,6 +188,10 @@ message ComponentInputsSpec {
     // task), or can be missing from the runtimeArtifact (if it's the root
     // component).
     bool is_optional = 3;
+
+    // The description for this input artifact of the component.
+    // Should not exceed 1024 characters.
+    string description = 4;
   }
   // Definition of a parameter input.
   message ParameterSpec {
@@ -211,6 +215,10 @@ message ComponentInputsSpec {
     // if default_value is not provided, the default value of the parameter's
     // type will be used.
     bool is_optional = 4;
+
+    // The description for this input parameter of the component.
+    // Should not exceed 1024 characters.
+    string description = 5;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;
@@ -233,6 +241,10 @@ message ComponentOutputsSpec {
 
     // Indicates whether output is a single artifact or list of artifacts
     bool is_artifact_list = 5;
+
+    // The description for this output artifact of the component.
+    // Should not exceed 1024 characters.
+    string description = 6;
   }
   // Definition of a parameter output.
   message ParameterSpec {
@@ -242,6 +254,10 @@ message ComponentOutputsSpec {
 
     // Specifies an output parameter's type.
     ParameterType.ParameterTypeEnum parameter_type = 2;
+
+    // The description for this output parameter of the component.
+    // Should not exceed 1024 characters.
+    string description = 3;
   }
   // Name to artifact output.
   map<string, ArtifactSpec> artifacts = 1;
@@ -633,6 +649,14 @@ message ArtifactTypeSchema {
 message PipelineTaskInfo {
   // The display name of the task.
   string name = 1;
+
+  // Optional fields. The readable display name for the pipeline template.
+  // Should not exceed 1024 characters.
+  string display_name = 2;
+
+  // Optional fields. The readable description for the pipeline template.
+  // Should not exceed 1024 characters.
+  string description = 3;
 }
 
 // Definition for a value or reference to a runtime parameter. A
