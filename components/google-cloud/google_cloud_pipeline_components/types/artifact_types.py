@@ -22,14 +22,13 @@ ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 
 
 def google_artifact(type_name):
-  "Decorator for Google Artifact types for handling KFP v1/v2 artifact types"
+  'Set v2 artifact schema_title and schema_version attributes.'
+
   def add_type_name(cls):
-    if hasattr(dsl.Artifact, 'schema_title'):
-      cls.schema_title = type_name
-      cls.schema_version = '0.0.1'
-    else:
-      cls.TYPE_NAME = type_name
+    cls.schema_title = type_name
+    cls.schema_version = '0.0.1'
     return cls
+
   return add_type_name
 
 @google_artifact('google.VertexModel')
