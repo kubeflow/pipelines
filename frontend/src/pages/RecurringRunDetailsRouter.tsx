@@ -30,10 +30,11 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
   let pipelineManifest: string | undefined;
 
-  const { isSuccess: getRecurringRunSuccess, isFetching, data: v2RecurringRun } = useQuery<
-    V2beta1RecurringRun,
-    Error
-  >(
+  const {
+    isSuccess: getRecurringRunSuccess,
+    isFetching: recurringRunIsFetching,
+    data: v2RecurringRun,
+  } = useQuery<V2beta1RecurringRun, Error>(
     ['v2_recurring_run_detail', { id: recurringRunId }],
     () => {
       if (!recurringRunId) {
@@ -50,7 +51,10 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
 
   const pipelineVersionId = v2RecurringRun?.pipeline_version_id;
 
-  const { data: templateStrFromVersionId } = useQuery<string, Error>(
+  const { isFetching: pipelineTemplateStrIsFetching, data: templateStrFromVersionId } = useQuery<
+    string,
+    Error
+  >(
     ['PipelineVersionTemplate', pipelineVersionId],
     async () => {
       if (!pipelineVersionId) {
@@ -63,7 +67,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
   );
 
-  const templateString = pipelineManifest ? pipelineManifest : templateStrFromVersionId;
+  const templateString = pipelineManifest ?? templateStrFromVersionId;
 
   if (getRecurringRunSuccess && v2RecurringRun && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
@@ -72,7 +76,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     }
   }
 
-  if (isFetching) {
+  if (recurringRunIsFetching || pipelineTemplateStrIsFetching) {
     return <div>Currently loading recurring run information</div>;
   }
 

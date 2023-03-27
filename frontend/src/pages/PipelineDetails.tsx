@@ -222,6 +222,26 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return fromRunId || fromRecurringRunId ? origin : undefined;
   }
 
+  private async getTempStrFromRunOrRecurringRun(existingObj: V2beta1Run | V2beta1RecurringRun) {
+    // existing run or recurring run have two kinds of resources that can provide template string
+
+    // 1. Pipeline version id
+    const pipelineVersionId = existingObj.pipeline_version_id;
+    let templateStrFromOrigin: string | undefined;
+    if (pipelineVersionId) {
+      const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
+      templateStrFromOrigin = response.template || '';
+    }
+
+    // 2. Pipeline_spec
+    let pipelineManifest: string | undefined;
+    if (existingObj.pipeline_spec) {
+      pipelineManifest = JsYaml.safeDump(existingObj.pipeline_spec);
+    }
+
+    return pipelineManifest ?? templateStrFromOrigin;
+  }
+
   public async load(): Promise<void> {
     this.clearBanner();
     const origin = this.getOrigin();
@@ -250,33 +270,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           origin.v2Run = await Apis.runServiceApiV2.getRun(origin.runId!);
         }
 
-        // v2 run or recurring run with pipeline_version_id
-        const pipelineVersionIdFromOrigin = origin.isRecurring
-          ? origin.v2RecurringRun?.pipeline_version_id
-          : origin.v2Run?.pipeline_version_id;
-
-        let templateStrFromOrigin = '';
-        if (pipelineVersionIdFromOrigin) {
-          const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(
-            pipelineVersionIdFromOrigin,
-          );
-          templateStrFromOrigin = response.template || '';
-        }
-
-        // v2 run or recurring run with pipeline_spec
-        let pipelineManifest = '';
-        if (origin.v2Run?.pipeline_spec) {
-          pipelineManifest = JsYaml.safeDump(origin.v2Run.pipeline_spec);
-        }
-        if (origin.v2RecurringRun?.pipeline_spec) {
-          pipelineManifest = JsYaml.safeDump(origin.v2RecurringRun.pipeline_spec);
-        }
+        // If v2 run or recurring is existing, get template string from it
+        const templateStrFromOrigin = origin.isRecurring
+          ? await this.getTempStrFromRunOrRecurringRun(origin.v2RecurringRun!)
+          : await this.getTempStrFromRunOrRecurringRun(origin.v2Run!);
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
-        // V2: Use the pipeline spec string directly or use template from getPipelineVersionTemplate
+        // V2: Directly Use the template string from existing run or recurring run
         // because it can be translated in JSON format.
-        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && (templateStrFromOrigin || pipelineManifest)) {
-          templateString = pipelineManifest ? pipelineManifest : templateStrFromOrigin;
+        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && templateStrFromOrigin) {
+          templateString = templateStrFromOrigin;
         } else {
           try {
             const workflowManifestString =

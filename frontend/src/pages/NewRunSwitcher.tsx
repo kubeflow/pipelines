@@ -82,7 +82,7 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   // template string from cloned object
-  let pipelineManifest = '';
+  let pipelineManifest: string | undefined;
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
     pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
   }
@@ -149,7 +149,7 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  const templateString = pipelineManifest ? pipelineManifest : templateStrFromPipelineId;
+  const templateString = pipelineManifest ?? templateStrFromPipelineId;
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     if (

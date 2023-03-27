@@ -163,9 +163,9 @@ export function getRunDurationFromApiRun(apiRun?: ApiRun): string {
 }
 
 export function getRunDurationFromRunV2(run?: V2beta1Run): string {
-  return !run || !run.created_at || !run.finished_at
-    ? '-'
-    : getDuration(new Date(run.created_at), new Date(run.finished_at));
+  return run && run.created_at && run.finished_at
+    ? getDuration(new Date(run.created_at), new Date(run.finished_at))
+    : '-';
 }
 
 /**

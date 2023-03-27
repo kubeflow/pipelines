@@ -55,7 +55,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
   );
 
-  const templateString = pipelineManifest ? pipelineManifest : templateStrFromVersionId;
+  const templateString = pipelineManifest ?? templateStrFromVersionId;
 
   if (getV2RunSuccess && v2Run && templateString) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
