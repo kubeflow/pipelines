@@ -56,7 +56,10 @@ description: |
       forecasting_quantiles (Optional[Sequence[Float]]):
           Required for a `quantile` forecasting_type.
           The list of quantiles in the same order appeared in the quantile prediction score column.
-          If one of the quantiles is set to `0.5f`, point evaluation will be set on that index.
+      point_evaluation_quantile (Optional[Float]):
+          Required for a `quantile` forecasting_type.
+          A quantile in the list of forecasting_quantiles that will be used for point evaluation
+          metrics.
       example_weight_column (Optional[str]):
           Optional. The column name of the field containing example weights.
             Each value of positive_classes provided.
@@ -102,6 +105,7 @@ inputs:
   - { name: prediction_score_column, type: String, default: "" }
   - { name: forecasting_type, type: String, default: "point" }
   - { name: forecasting_quantiles, type: JsonArray, default: "[0.5]" }
+  - { name: point_evaluation_quantile, type: Float, default: 0.5 }
   - { name: example_weight_column, type: String, default: "" }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_disk_size, type: Integer, default: 50 }
@@ -116,7 +120,7 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.8.1
+    image: gcr.io/ml-pipeline/model-evaluation:v0.9
     command:
       - python
       - /main.py
@@ -135,6 +139,8 @@ implementation:
       - { inputValue: forecasting_type }
       - --forecasting_quantiles
       - { inputValue: forecasting_quantiles }
+      - --point_evaluation_quantile
+      - { inputValue: point_evaluation_quantile }
       - --batch_prediction_format
       - { inputValue: predictions_format }
       - if:
