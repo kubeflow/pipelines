@@ -6,28 +6,39 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1RuntimeState Describes the runtime state of an entity.
 //
-//  - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.
-//  - PENDING: Service is preparing to execute an entity.
-//  - RUNNING: Entity execution is in progress.
-//  - SUCCEEDED: Entity completed successfully.
-//  - SKIPPED: Entity has been skipped. For example, due to caching.
-//  - FAILED: Entity execution has failed.
-//  - CANCELING: Entity is being canceled. From this state, an entity may only
+//   - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.
+//   - PENDING: Service is preparing to execute an entity.
+//   - RUNNING: Entity execution is in progress.
+//   - SUCCEEDED: Entity completed successfully.
+//   - SKIPPED: Entity has been skipped. For example, due to caching.
+//   - FAILED: Entity execution has failed.
+//   - CANCELING: Entity is being canceled. From this state, an entity may only
+//
 // change its state to SUCCEEDED, FAILED or CANCELED.
-//  - CANCELED: Entity has been canceled.
-//  - PAUSED: Entity has been paused. It can be resumed.
+//   - CANCELED: Entity has been canceled.
+//   - PAUSED: Entity has been paused. It can be resumed.
+//
 // swagger:model v2beta1RuntimeState
 type V2beta1RuntimeState string
+
+func NewV2beta1RuntimeState(value V2beta1RuntimeState) *V2beta1RuntimeState {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated V2beta1RuntimeState.
+func (m V2beta1RuntimeState) Pointer() *V2beta1RuntimeState {
+	return &m
+}
 
 const (
 
@@ -73,7 +84,7 @@ func init() {
 }
 
 func (m V2beta1RuntimeState) validateV2beta1RuntimeStateEnum(path, location string, value V2beta1RuntimeState) error {
-	if err := validate.Enum(path, location, value, v2beta1RuntimeStateEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, v2beta1RuntimeStateEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -91,5 +102,10 @@ func (m V2beta1RuntimeState) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this v2beta1 runtime state based on context it is used
+func (m V2beta1RuntimeState) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

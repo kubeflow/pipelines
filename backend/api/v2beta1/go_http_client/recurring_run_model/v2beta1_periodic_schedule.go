@@ -6,27 +6,29 @@ package recurring_run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1PeriodicSchedule PeriodicSchedule allow scheduling the recurring run periodically with certain interval.
+//
 // swagger:model v2beta1PeriodicSchedule
 type V2beta1PeriodicSchedule struct {
 
 	// The end time of the periodic recurring run.
 	// Format: date-time
-	EndTime strfmt.DateTime `json:"end_time,omitempty"`
+	EndTime strfmt.DateTime `json:"endTime,omitempty"`
 
 	// The time interval between the starting time of consecutive recurring runs.
-	IntervalSecond int64 `json:"interval_second,omitempty,string"`
+	IntervalSecond string `json:"intervalSecond,omitempty"`
 
 	// The start time of the periodic recurring run.
 	// Format: date-time
-	StartTime strfmt.DateTime `json:"start_time,omitempty"`
+	StartTime strfmt.DateTime `json:"startTime,omitempty"`
 }
 
 // Validate validates this v2beta1 periodic schedule
@@ -48,12 +50,11 @@ func (m *V2beta1PeriodicSchedule) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1PeriodicSchedule) validateEndTime(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.EndTime) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("end_time", "body", "date-time", m.EndTime.String(), formats); err != nil {
+	if err := validate.FormatOf("endTime", "body", "date-time", m.EndTime.String(), formats); err != nil {
 		return err
 	}
 
@@ -61,15 +62,19 @@ func (m *V2beta1PeriodicSchedule) validateEndTime(formats strfmt.Registry) error
 }
 
 func (m *V2beta1PeriodicSchedule) validateStartTime(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StartTime) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("start_time", "body", "date-time", m.StartTime.String(), formats); err != nil {
+	if err := validate.FormatOf("startTime", "body", "date-time", m.StartTime.String(), formats); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this v2beta1 periodic schedule based on context it is used
+func (m *V2beta1PeriodicSchedule) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

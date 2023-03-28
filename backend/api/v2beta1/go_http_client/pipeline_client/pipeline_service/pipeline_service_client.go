@@ -7,12 +7,11 @@ package pipeline_service
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new pipeline service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -24,265 +23,372 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption is the option for Client methods
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	PipelineServiceCreatePipeline(params *PipelineServiceCreatePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineOK, error)
+
+	PipelineServiceCreatePipelineVersion(params *PipelineServiceCreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineVersionOK, error)
+
+	PipelineServiceDeletePipeline(params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineOK, error)
+
+	PipelineServiceDeletePipelineVersion(params *PipelineServiceDeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineVersionOK, error)
+
+	PipelineServiceGetPipeline(params *PipelineServiceGetPipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineOK, error)
+
+	PipelineServiceGetPipelineByName(params *PipelineServiceGetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineByNameOK, error)
+
+	PipelineServiceGetPipelineVersion(params *PipelineServiceGetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionOK, error)
+
+	PipelineServiceListPipelineVersions(params *PipelineServiceListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelineVersionsOK, error)
+
+	PipelineServiceListPipelines(params *PipelineServiceListPipelinesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelinesOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
-CreatePipeline creates a pipeline
+PipelineServiceCreatePipeline creates a pipeline
 */
-func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineOK, error) {
+func (a *Client) PipelineServiceCreatePipeline(params *PipelineServiceCreatePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreatePipelineParams()
+		params = NewPipelineServiceCreatePipelineParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreatePipeline",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_CreatePipeline",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/pipelines",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &CreatePipelineReader{formats: a.formats},
+		Reader:             &PipelineServiceCreatePipelineReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreatePipelineOK), nil
-
+	success, ok := result.(*PipelineServiceCreatePipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceCreatePipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-CreatePipelineVersion adds a pipeline version to the specified pipeline ID
+PipelineServiceCreatePipelineVersion adds a pipeline version to the specified pipeline ID
 */
-func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineVersionOK, error) {
+func (a *Client) PipelineServiceCreatePipelineVersion(params *PipelineServiceCreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreatePipelineVersionParams()
+		params = NewPipelineServiceCreatePipelineVersionParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreatePipelineVersion",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_CreatePipelineVersion",
 		Method:             "POST",
-		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipelineId}/versions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &CreatePipelineVersionReader{formats: a.formats},
+		Reader:             &PipelineServiceCreatePipelineVersionReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreatePipelineVersionOK), nil
-
+	success, ok := result.(*PipelineServiceCreatePipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceCreatePipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-DeletePipeline deletes an empty pipeline by ID returns error if the pipeline has pipeline versions
+PipelineServiceDeletePipeline deletes an empty pipeline by ID returns error if the pipeline has pipeline versions
 */
-func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error) {
+func (a *Client) PipelineServiceDeletePipeline(params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDeletePipelineParams()
+		params = NewPipelineServiceDeletePipelineParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeletePipeline",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_DeletePipeline",
 		Method:             "DELETE",
-		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipelineId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DeletePipelineReader{formats: a.formats},
+		Reader:             &PipelineServiceDeletePipelineReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeletePipelineOK), nil
-
+	success, ok := result.(*PipelineServiceDeletePipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceDeletePipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-DeletePipelineVersion deletes a specific pipeline version by pipeline version ID and pipeline ID
+PipelineServiceDeletePipelineVersion deletes a specific pipeline version by pipeline version ID and pipeline ID
 */
-func (a *Client) DeletePipelineVersion(params *DeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineVersionOK, error) {
+func (a *Client) PipelineServiceDeletePipelineVersion(params *PipelineServiceDeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDeletePipelineVersionParams()
+		params = NewPipelineServiceDeletePipelineVersionParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeletePipelineVersion",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_DeletePipelineVersion",
 		Method:             "DELETE",
-		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipelineId}/versions/{pipelineVersionId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DeletePipelineVersionReader{formats: a.formats},
+		Reader:             &PipelineServiceDeletePipelineVersionReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeletePipelineVersionOK), nil
-
+	success, ok := result.(*PipelineServiceDeletePipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceDeletePipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-GetPipeline finds a specific pipeline by ID
+PipelineServiceGetPipeline finds a specific pipeline by ID
 */
-func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineOK, error) {
+func (a *Client) PipelineServiceGetPipeline(params *PipelineServiceGetPipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetPipelineParams()
+		params = NewPipelineServiceGetPipelineParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetPipeline",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_GetPipeline",
 		Method:             "GET",
-		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipelineId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetPipelineReader{formats: a.formats},
+		Reader:             &PipelineServiceGetPipelineReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetPipelineOK), nil
-
+	success, ok := result.(*PipelineServiceGetPipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceGetPipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-GetPipelineByName finds a specific pipeline by name and namespace
+PipelineServiceGetPipelineByName finds a specific pipeline by name and namespace
 */
-func (a *Client) GetPipelineByName(params *GetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineByNameOK, error) {
+func (a *Client) PipelineServiceGetPipelineByName(params *PipelineServiceGetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineByNameOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetPipelineByNameParams()
+		params = NewPipelineServiceGetPipelineByNameParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetPipelineByName",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_GetPipelineByName",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/pipelines/names/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetPipelineByNameReader{formats: a.formats},
+		Reader:             &PipelineServiceGetPipelineByNameReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetPipelineByNameOK), nil
-
+	success, ok := result.(*PipelineServiceGetPipelineByNameOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceGetPipelineByNameDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-GetPipelineVersion gets a pipeline version by pipeline version ID and pipeline ID
+PipelineServiceGetPipelineVersion gets a pipeline version by pipeline version ID and pipeline ID
 */
-func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionOK, error) {
+func (a *Client) PipelineServiceGetPipelineVersion(params *PipelineServiceGetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetPipelineVersionParams()
+		params = NewPipelineServiceGetPipelineVersionParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetPipelineVersion",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_GetPipelineVersion",
 		Method:             "GET",
-		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipelineId}/versions/{pipelineVersionId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetPipelineVersionReader{formats: a.formats},
+		Reader:             &PipelineServiceGetPipelineVersionReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetPipelineVersionOK), nil
-
+	success, ok := result.(*PipelineServiceGetPipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceGetPipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-ListPipelineVersions lists all pipeline versions of a given pipeline ID
+PipelineServiceListPipelineVersions lists all pipeline versions of a given pipeline ID
 */
-func (a *Client) ListPipelineVersions(params *ListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelineVersionsOK, error) {
+func (a *Client) PipelineServiceListPipelineVersions(params *PipelineServiceListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelineVersionsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListPipelineVersionsParams()
+		params = NewPipelineServiceListPipelineVersionsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListPipelineVersions",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_ListPipelineVersions",
 		Method:             "GET",
-		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipelineId}/versions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ListPipelineVersionsReader{formats: a.formats},
+		Reader:             &PipelineServiceListPipelineVersionsReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListPipelineVersionsOK), nil
-
+	success, ok := result.(*PipelineServiceListPipelineVersionsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceListPipelineVersionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-ListPipelines finds all pipelines within a namespace
+PipelineServiceListPipelines finds all pipelines within a namespace
 */
-func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelinesOK, error) {
+func (a *Client) PipelineServiceListPipelines(params *PipelineServiceListPipelinesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelinesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListPipelinesParams()
+		params = NewPipelineServiceListPipelinesParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListPipelines",
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_ListPipelines",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/pipelines",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ListPipelinesReader{formats: a.formats},
+		Reader:             &PipelineServiceListPipelinesReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListPipelinesOK), nil
-
+	success, ok := result.(*PipelineServiceListPipelinesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceListPipelinesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

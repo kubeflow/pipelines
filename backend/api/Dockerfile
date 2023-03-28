@@ -13,11 +13,11 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.15.10 as generator
-ENV GRPC_GATEWAY_VERSION v1.9.6
-ENV GO_SWAGGER_VERSION v0.18.0
-ENV GOLANG_PROTOBUF_VERSION v1.5.1
-ENV GRPC_VERSION v1.23.0
+FROM golang:1.17 as generator
+ENV GRPC_GATEWAY_VERSION v2.15.2
+ENV GO_SWAGGER_VERSION v0.30.4
+ENV GOLANG_PROTOBUF_VERSION v1.5.3
+ENV GRPC_VERSION v1.54.0
 ENV PROTOC_VERSION 3.17.3
 ENV GOBIN=/go/bin
 
@@ -35,10 +35,10 @@ WORKDIR /go/src/github.com
 RUN mkdir grpc-ecosystem && cd grpc-ecosystem && git clone --depth 1 --branch $GRPC_GATEWAY_VERSION https://github.com/grpc-ecosystem/grpc-gateway.git
 RUN mkdir grpc && git clone --depth 1 --branch $GRPC_VERSION https://github.com/grpc/grpc-go
 
-# Install protoc-gen-rpc-gateway && protoc-gen-swagger.
+# Install protoc-gen-rpc-gateway && protoc-gen-swagger (protoc-gen-openapiv2 for v2).
 RUN cd grpc-ecosystem/grpc-gateway && GO111MODULE=on go mod vendor
-RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+RUN go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@$GRPC_GATEWAY_VERSION
+RUN go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@$GRPC_GATEWAY_VERSION
 
 # Download go-swagger binary.
 RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
@@ -48,7 +48,7 @@ RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
 RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git
 # Install protoc-gen-go.
 RUN cd golang/protobuf && GO111MODULE=on go mod vendor
-RUN go install github.com/golang/protobuf/protoc-gen-go
+RUN go install github.com/golang/protobuf/protoc-gen-go@$GOLANG_PROTOBUF_VERSION
 
 # WORKAROUND: https://github.com/docker-library/golang/issues/225#issuecomment-403170792
 ENV XDG_CACHE_HOME /tmp/.cache
