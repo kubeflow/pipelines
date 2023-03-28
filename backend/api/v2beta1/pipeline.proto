@@ -100,6 +100,7 @@ service PipelineService {
       returns (PipelineVersion) {
     option (google.api.http) = {
       post: "/apis/v2beta1/pipelines/{pipeline_id}/versions"
+      body: "pipeline_version"
     };
   }
 

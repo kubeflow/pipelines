@@ -293,6 +293,15 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "body",
+            "description": "Required input. Pipeline version ID to be created.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineVersion"
+            }
           }
         ],
         "tags": [
