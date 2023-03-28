@@ -6,12 +6,14 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1RuntimeConfig The runtime config.
+//
 // swagger:model v2beta1RuntimeConfig
 type V2beta1RuntimeConfig struct {
 
@@ -28,6 +30,11 @@ type V2beta1RuntimeConfig struct {
 
 // Validate validates this v2beta1 runtime config
 func (m *V2beta1RuntimeConfig) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 runtime config based on context it is used
+func (m *V2beta1RuntimeConfig) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

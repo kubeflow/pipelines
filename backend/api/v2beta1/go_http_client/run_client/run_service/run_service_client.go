@@ -7,12 +7,11 @@ package run_service
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new run service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -24,265 +23,372 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption is the option for Client methods
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	RunServiceArchiveRun(params *RunServiceArchiveRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceArchiveRunOK, error)
+
+	RunServiceCreateRun(params *RunServiceCreateRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceCreateRunOK, error)
+
+	RunServiceDeleteRun(params *RunServiceDeleteRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceDeleteRunOK, error)
+
+	RunServiceGetRun(params *RunServiceGetRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceGetRunOK, error)
+
+	RunServiceListRuns(params *RunServiceListRunsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceListRunsOK, error)
+
+	RunServiceReadArtifact(params *RunServiceReadArtifactParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceReadArtifactOK, error)
+
+	RunServiceRetryRun(params *RunServiceRetryRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceRetryRunOK, error)
+
+	RunServiceTerminateRun(params *RunServiceTerminateRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceTerminateRunOK, error)
+
+	RunServiceUnarchiveRun(params *RunServiceUnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceUnarchiveRunOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
-ArchiveRun archives a run in an experiment given by run ID and experiment ID
+RunServiceArchiveRun archives a run in an experiment given by run ID and experiment ID
 */
-func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunOK, error) {
+func (a *Client) RunServiceArchiveRun(params *RunServiceArchiveRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceArchiveRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewArchiveRunParams()
+		params = NewRunServiceArchiveRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ArchiveRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_ArchiveRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/runs/{run_id}:archive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ArchiveRunReader{formats: a.formats},
+		Reader:             &RunServiceArchiveRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ArchiveRunOK), nil
-
+	success, ok := result.(*RunServiceArchiveRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceArchiveRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-CreateRun creates a new run in an experiment specified by experiment ID if experiment ID is not specified the run is created in the default experiment
+RunServiceCreateRun creates a new run in an experiment specified by experiment ID if experiment ID is not specified the run is created in the default experiment
 */
-func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error) {
+func (a *Client) RunServiceCreateRun(params *RunServiceCreateRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceCreateRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreateRunParams()
+		params = NewRunServiceCreateRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_CreateRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &CreateRunReader{formats: a.formats},
+		Reader:             &RunServiceCreateRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateRunOK), nil
-
+	success, ok := result.(*RunServiceCreateRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceCreateRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-DeleteRun deletes a run in an experiment given by run ID and experiment ID
+RunServiceDeleteRun deletes a run in an experiment given by run ID and experiment ID
 */
-func (a *Client) DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteRunOK, error) {
+func (a *Client) RunServiceDeleteRun(params *RunServiceDeleteRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceDeleteRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDeleteRunParams()
+		params = NewRunServiceDeleteRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_DeleteRun",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v2beta1/runs/{run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DeleteRunReader{formats: a.formats},
+		Reader:             &RunServiceDeleteRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteRunOK), nil
-
+	success, ok := result.(*RunServiceDeleteRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceDeleteRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-GetRun finds a specific run by ID
+RunServiceGetRun finds a specific run by ID
 */
-func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error) {
+func (a *Client) RunServiceGetRun(params *RunServiceGetRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceGetRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetRunParams()
+		params = NewRunServiceGetRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_GetRun",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/runs/{run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetRunReader{formats: a.formats},
+		Reader:             &RunServiceGetRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetRunOK), nil
-
+	success, ok := result.(*RunServiceGetRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceGetRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-ListRuns finds all runs in an experiment given by experiment ID if experiment id is not specified finds all runs across all experiments
+RunServiceListRuns finds all runs in an experiment given by experiment ID if experiment id is not specified finds all runs across all experiments
 */
-func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error) {
+func (a *Client) RunServiceListRuns(params *RunServiceListRunsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceListRunsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListRunsParams()
+		params = NewRunServiceListRunsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListRuns",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_ListRuns",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ListRunsReader{formats: a.formats},
+		Reader:             &RunServiceListRunsReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListRunsOK), nil
-
+	success, ok := result.(*RunServiceListRunsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceListRunsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-ReadArtifact finds artifact data in a run
+RunServiceReadArtifact finds artifact data in a run
 */
-func (a *Client) ReadArtifact(params *ReadArtifactParams, authInfo runtime.ClientAuthInfoWriter) (*ReadArtifactOK, error) {
+func (a *Client) RunServiceReadArtifact(params *RunServiceReadArtifactParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceReadArtifactOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewReadArtifactParams()
+		params = NewRunServiceReadArtifactParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ReadArtifact",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_ReadArtifact",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ReadArtifactReader{formats: a.formats},
+		Reader:             &RunServiceReadArtifactReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ReadArtifactOK), nil
-
+	success, ok := result.(*RunServiceReadArtifactOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceReadArtifactDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-RetryRun res initiates a failed or terminated run
+RunServiceRetryRun res initiates a failed or terminated run
 */
-func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
+func (a *Client) RunServiceRetryRun(params *RunServiceRetryRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceRetryRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRetryRunParams()
+		params = NewRunServiceRetryRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RetryRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_RetryRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/runs/{run_id}:retry",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &RetryRunReader{formats: a.formats},
+		Reader:             &RunServiceRetryRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RetryRunOK), nil
-
+	success, ok := result.(*RunServiceRetryRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceRetryRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-TerminateRun terminates an active run
+RunServiceTerminateRun terminates an active run
 */
-func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error) {
+func (a *Client) RunServiceTerminateRun(params *RunServiceTerminateRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceTerminateRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewTerminateRunParams()
+		params = NewRunServiceTerminateRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "TerminateRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_TerminateRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/runs/{run_id}:terminate",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &TerminateRunReader{formats: a.formats},
+		Reader:             &RunServiceTerminateRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TerminateRunOK), nil
-
+	success, ok := result.(*RunServiceTerminateRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceTerminateRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-UnarchiveRun restores an archived run in an experiment given by run ID and experiment ID
+RunServiceUnarchiveRun restores an archived run in an experiment given by run ID and experiment ID
 */
-func (a *Client) UnarchiveRun(params *UnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunOK, error) {
+func (a *Client) RunServiceUnarchiveRun(params *RunServiceUnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceUnarchiveRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewUnarchiveRunParams()
+		params = NewRunServiceUnarchiveRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "UnarchiveRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RunService_UnarchiveRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/runs/{run_id}:unarchive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &UnarchiveRunReader{formats: a.formats},
+		Reader:             &RunServiceUnarchiveRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UnarchiveRunOK), nil
-
+	success, ok := result.(*RunServiceUnarchiveRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RunServiceUnarchiveRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

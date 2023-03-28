@@ -6,12 +6,14 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1PipelineTaskExecutorDetail Runtime information of a pipeline task executor.
+//
 // swagger:model v2beta1PipelineTaskExecutorDetail
 type V2beta1PipelineTaskExecutorDetail struct {
 
@@ -38,6 +40,11 @@ type V2beta1PipelineTaskExecutorDetail struct {
 
 // Validate validates this v2beta1 pipeline task executor detail
 func (m *V2beta1PipelineTaskExecutorDetail) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 pipeline task executor detail based on context it is used
+func (m *V2beta1PipelineTaskExecutorDetail) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

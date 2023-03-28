@@ -6,16 +6,17 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1Run v2beta1 run
+//
 // swagger:model v2beta1Run
 type V2beta1Run struct {
 
@@ -71,14 +72,14 @@ type V2beta1Run struct {
 	ServiceAccount string `json:"service_account,omitempty"`
 
 	// Output. Runtime state of a run.
-	State V2beta1RuntimeState `json:"state,omitempty"`
+	State *V2beta1RuntimeState `json:"state,omitempty"`
 
 	// Output. A sequence of run statuses. This field keeps a record
 	// of state transitions.
 	StateHistory []*V2beta1RuntimeStatus `json:"state_history"`
 
 	// Output. Specifies whether this run is in archived or available mode.
-	StorageState V2beta1RunStorageState `json:"storage_state,omitempty"`
+	StorageState *V2beta1RunStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this v2beta1 run
@@ -128,7 +129,6 @@ func (m *V2beta1Run) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -141,7 +141,6 @@ func (m *V2beta1Run) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateError(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Error) { // not required
 		return nil
 	}
@@ -150,6 +149,8 @@ func (m *V2beta1Run) validateError(formats strfmt.Registry) error {
 		if err := m.Error.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
 			}
 			return err
 		}
@@ -159,7 +160,6 @@ func (m *V2beta1Run) validateError(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateFinishedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.FinishedAt) { // not required
 		return nil
 	}
@@ -172,7 +172,6 @@ func (m *V2beta1Run) validateFinishedAt(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateRunDetails(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.RunDetails) { // not required
 		return nil
 	}
@@ -181,6 +180,8 @@ func (m *V2beta1Run) validateRunDetails(formats strfmt.Registry) error {
 		if err := m.RunDetails.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("run_details")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("run_details")
 			}
 			return err
 		}
@@ -190,7 +191,6 @@ func (m *V2beta1Run) validateRunDetails(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateRuntimeConfig(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.RuntimeConfig) { // not required
 		return nil
 	}
@@ -199,6 +199,8 @@ func (m *V2beta1Run) validateRuntimeConfig(formats strfmt.Registry) error {
 		if err := m.RuntimeConfig.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("runtime_config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("runtime_config")
 			}
 			return err
 		}
@@ -208,7 +210,6 @@ func (m *V2beta1Run) validateRuntimeConfig(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateScheduledAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ScheduledAt) { // not required
 		return nil
 	}
@@ -221,23 +222,25 @@ func (m *V2beta1Run) validateScheduledAt(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateState(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.State) { // not required
 		return nil
 	}
 
-	if err := m.State.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("state")
+	if m.State != nil {
+		if err := m.State.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("state")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
 }
 
 func (m *V2beta1Run) validateStateHistory(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StateHistory) { // not required
 		return nil
 	}
@@ -251,6 +254,8 @@ func (m *V2beta1Run) validateStateHistory(formats strfmt.Registry) error {
 			if err := m.StateHistory[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("state_history" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("state_history" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -262,16 +267,153 @@ func (m *V2beta1Run) validateStateHistory(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateStorageState(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StorageState) { // not required
 		return nil
 	}
 
-	if err := m.StorageState.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("storage_state")
+	if m.StorageState != nil {
+		if err := m.StorageState.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storage_state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storage_state")
+			}
+			return err
 		}
-		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 run based on the context it is used
+func (m *V2beta1Run) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateError(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRunDetails(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRuntimeConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateState(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStateHistory(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStorageState(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1Run) contextValidateError(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Error != nil {
+		if err := m.Error.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) contextValidateRunDetails(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.RunDetails != nil {
+		if err := m.RunDetails.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("run_details")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("run_details")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) contextValidateRuntimeConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.RuntimeConfig != nil {
+		if err := m.RuntimeConfig.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("runtime_config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("runtime_config")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) contextValidateState(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.State != nil {
+		if err := m.State.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("state")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) contextValidateStateHistory(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.StateHistory); i++ {
+
+		if m.StateHistory[i] != nil {
+			if err := m.StateHistory[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("state_history" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("state_history" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) contextValidateStorageState(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.StorageState != nil {
+		if err := m.StorageState.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storage_state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storage_state")
+			}
+			return err
+		}
 	}
 
 	return nil
