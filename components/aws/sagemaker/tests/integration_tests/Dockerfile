@@ -10,7 +10,8 @@ RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install
     python3.8 \
     python3-pip \
     python3.8-dev \
-    unzip
+    unzip \
+    gzip
 
 # Install eksctl
 RUN curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.134.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
@@ -25,24 +26,24 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
  && ./aws/install
 
 # Install aws-iam-authenticator
-RUN curl -S -o /usr/local/bin/aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/aws-iam-authenticator \
+RUN curl -Lo /usr/local/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 \
  && chmod +x /usr/local/bin/aws-iam-authenticator
 
 # Install kubectl
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.21.8/bin/linux/amd64/kubectl \
+RUN curl -LO https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl \
  && chmod +x ./kubectl \
  && cp ./kubectl /bin
 
 # Install Argo CLI
-RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo-workflows/releases/download/v2.8.0/argo-linux-amd64 \
- && chmod +x /usr/local/bin/argo
+RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/v3.4.5/argo-linux-amd64.gz \
+&& gunzip argo-linux-amd64.gz && chmod +x argo-linux-amd64 && mv ./argo-linux-amd64 /usr/local/bin/argo
 
 #Install helm(for ack)
 RUN wget https://get.helm.sh/helm-v3.8.2-linux-amd64.tar.gz \ 
  && tar xvf helm-v3.8.2-linux-amd64.tar.gz && sudo mv linux-amd64/helm /usr/local/bin
 
 #Install yq for ack
-RUN wget https://github.com/mikefarah/yq/releases/download/v4.27.3/yq_linux_amd64 -O /usr/bin/yq &&\
+RUN wget https://github.com/mikefarah/yq/releases/download/v4.31.2/yq_linux_amd64 -O /usr/bin/yq &&\
     chmod +x /usr/bin/yq
 
 # install dependencies through pip
