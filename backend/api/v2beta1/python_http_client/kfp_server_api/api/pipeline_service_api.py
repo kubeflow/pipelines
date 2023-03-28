@@ -162,17 +162,19 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def create_pipeline_version(self, pipeline_id, **kwargs):  # noqa: E501
+    def create_pipeline_version(self, pipeline_id, body, **kwargs):  # noqa: E501
         """Adds a pipeline version to the specified pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline_version(pipeline_id, async_req=True)
+        >>> thread = api.create_pipeline_version(pipeline_id, body, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
         :type pipeline_id: str
+        :param body: Required input. Pipeline version ID to be created. (required)
+        :type body: V2beta1PipelineVersion
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -188,19 +190,21 @@ class PipelineServiceApi(object):
         :rtype: V2beta1PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_pipeline_version_with_http_info(pipeline_id, **kwargs)  # noqa: E501
+        return self.create_pipeline_version_with_http_info(pipeline_id, body, **kwargs)  # noqa: E501
 
-    def create_pipeline_version_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
+    def create_pipeline_version_with_http_info(self, pipeline_id, body, **kwargs):  # noqa: E501
         """Adds a pipeline version to the specified pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline_version_with_http_info(pipeline_id, async_req=True)
+        >>> thread = api.create_pipeline_version_with_http_info(pipeline_id, body, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
         :type pipeline_id: str
+        :param body: Required input. Pipeline version ID to be created. (required)
+        :type body: V2beta1PipelineVersion
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -223,7 +227,8 @@ class PipelineServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'pipeline_id'
+            'pipeline_id',
+            'body'
         ]
         all_params.extend(
             [
@@ -246,6 +251,10 @@ class PipelineServiceApi(object):
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
             raise ApiValueError("Missing the required parameter `pipeline_id` when calling `create_pipeline_version`")  # noqa: E501
+        # verify the required parameter 'body' is set
+        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
+                                                        local_var_params['body'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `create_pipeline_version`")  # noqa: E501
 
         collection_formats = {}
 
@@ -261,8 +270,14 @@ class PipelineServiceApi(object):
         local_var_files = {}
 
         body_params = None
+        if 'body' in local_var_params:
+            body_params = local_var_params['body']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
+            ['application/json'])  # noqa: E501
+
+        # HTTP header `Content-Type`
+        header_params['Content-Type'] = self.api_client.select_header_content_type(  # noqa: E501
             ['application/json'])  # noqa: E501
 
         # Authentication setting

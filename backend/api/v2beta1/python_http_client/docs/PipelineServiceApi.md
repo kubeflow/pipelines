@@ -92,7 +92,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_pipeline_version**
-> V2beta1PipelineVersion create_pipeline_version(pipeline_id)
+> V2beta1PipelineVersion create_pipeline_version(pipeline_id, body)
 
 Adds a pipeline version to the specified pipeline ID.
 
@@ -131,10 +131,11 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the parent pipeline.
+body = kfp_server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Required input. Pipeline version ID to be created.
 
     try:
         # Adds a pipeline version to the specified pipeline ID.
-        api_response = api_instance.create_pipeline_version(pipeline_id)
+        api_response = api_instance.create_pipeline_version(pipeline_id, body)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineServiceApi->create_pipeline_version: %s\n" % e)
@@ -145,6 +146,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
+ **body** | [**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)| Required input. Pipeline version ID to be created. | 
 
 ### Return type
 
@@ -156,7 +158,7 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
