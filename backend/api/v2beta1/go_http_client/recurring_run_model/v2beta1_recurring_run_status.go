@@ -6,17 +6,27 @@ package recurring_run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1RecurringRunStatus Output. The status of the recurring run.
+//
 // swagger:model v2beta1RecurringRunStatus
 type V2beta1RecurringRunStatus string
+
+func NewV2beta1RecurringRunStatus(value V2beta1RecurringRunStatus) *V2beta1RecurringRunStatus {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated V2beta1RecurringRunStatus.
+func (m V2beta1RecurringRunStatus) Pointer() *V2beta1RecurringRunStatus {
+	return &m
+}
 
 const (
 
@@ -44,7 +54,7 @@ func init() {
 }
 
 func (m V2beta1RecurringRunStatus) validateV2beta1RecurringRunStatusEnum(path, location string, value V2beta1RecurringRunStatus) error {
-	if err := validate.Enum(path, location, value, v2beta1RecurringRunStatusEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, v2beta1RecurringRunStatusEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -62,5 +72,10 @@ func (m V2beta1RecurringRunStatus) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this v2beta1 recurring run status based on context it is used
+func (m V2beta1RecurringRunStatus) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

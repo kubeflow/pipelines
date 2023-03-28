@@ -6,19 +6,29 @@ package visualization_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1VisualizationType Type of visualization to be generated.
 // This is required when creating the pipeline through CreateVisualization
 // API.
+//
 // swagger:model v2beta1VisualizationType
 type V2beta1VisualizationType string
+
+func NewV2beta1VisualizationType(value V2beta1VisualizationType) *V2beta1VisualizationType {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated V2beta1VisualizationType.
+func (m V2beta1VisualizationType) Pointer() *V2beta1VisualizationType {
+	return &m
+}
 
 const (
 
@@ -52,7 +62,7 @@ func init() {
 }
 
 func (m V2beta1VisualizationType) validateV2beta1VisualizationTypeEnum(path, location string, value V2beta1VisualizationType) error {
-	if err := validate.Enum(path, location, value, v2beta1VisualizationTypeEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, v2beta1VisualizationTypeEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -70,5 +80,10 @@ func (m V2beta1VisualizationType) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this v2beta1 visualization type based on context it is used
+func (m V2beta1VisualizationType) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

@@ -7,12 +7,11 @@ package experiment_service
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new experiment service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -24,172 +23,246 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption is the option for Client methods
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	ExperimentServiceArchiveExperiment(params *ExperimentServiceArchiveExperimentParams, opts ...ClientOption) (*ExperimentServiceArchiveExperimentOK, error)
+
+	ExperimentServiceCreateExperiment(params *ExperimentServiceCreateExperimentParams, opts ...ClientOption) (*ExperimentServiceCreateExperimentOK, error)
+
+	ExperimentServiceDeleteExperiment(params *ExperimentServiceDeleteExperimentParams, opts ...ClientOption) (*ExperimentServiceDeleteExperimentOK, error)
+
+	ExperimentServiceGetExperiment(params *ExperimentServiceGetExperimentParams, opts ...ClientOption) (*ExperimentServiceGetExperimentOK, error)
+
+	ExperimentServiceListExperiments(params *ExperimentServiceListExperimentsParams, opts ...ClientOption) (*ExperimentServiceListExperimentsOK, error)
+
+	ExperimentServiceUnarchiveExperiment(params *ExperimentServiceUnarchiveExperimentParams, opts ...ClientOption) (*ExperimentServiceUnarchiveExperimentOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
-ArchiveExperiment archives an experiment and the experiment s runs and recurring runs
+ExperimentServiceArchiveExperiment archives an experiment and the experiment s runs and recurring runs
 */
-func (a *Client) ArchiveExperiment(params *ArchiveExperimentParams) (*ArchiveExperimentOK, error) {
+func (a *Client) ExperimentServiceArchiveExperiment(params *ExperimentServiceArchiveExperimentParams, opts ...ClientOption) (*ExperimentServiceArchiveExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewArchiveExperimentParams()
+		params = NewExperimentServiceArchiveExperimentParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ArchiveExperiment",
+	op := &runtime.ClientOperation{
+		ID:                 "ExperimentService_ArchiveExperiment",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}:archive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ArchiveExperimentReader{formats: a.formats},
+		Reader:             &ExperimentServiceArchiveExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ArchiveExperimentOK), nil
-
+	success, ok := result.(*ExperimentServiceArchiveExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ExperimentServiceArchiveExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-CreateExperiment creates a new experiment
+ExperimentServiceCreateExperiment creates a new experiment
 */
-func (a *Client) CreateExperiment(params *CreateExperimentParams) (*CreateExperimentOK, error) {
+func (a *Client) ExperimentServiceCreateExperiment(params *ExperimentServiceCreateExperimentParams, opts ...ClientOption) (*ExperimentServiceCreateExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreateExperimentParams()
+		params = NewExperimentServiceCreateExperimentParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateExperiment",
+	op := &runtime.ClientOperation{
+		ID:                 "ExperimentService_CreateExperiment",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/experiments",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &CreateExperimentReader{formats: a.formats},
+		Reader:             &ExperimentServiceCreateExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateExperimentOK), nil
-
+	success, ok := result.(*ExperimentServiceCreateExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ExperimentServiceCreateExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-DeleteExperiment deletes an experiment without deleting the experiment s runs and recurring runs to avoid unexpected behaviors delete an experiment s runs and recurring runs before deleting the experiment
+ExperimentServiceDeleteExperiment deletes an experiment without deleting the experiment s runs and recurring runs to avoid unexpected behaviors delete an experiment s runs and recurring runs before deleting the experiment
 */
-func (a *Client) DeleteExperiment(params *DeleteExperimentParams) (*DeleteExperimentOK, error) {
+func (a *Client) ExperimentServiceDeleteExperiment(params *ExperimentServiceDeleteExperimentParams, opts ...ClientOption) (*ExperimentServiceDeleteExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDeleteExperimentParams()
+		params = NewExperimentServiceDeleteExperimentParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteExperiment",
+	op := &runtime.ClientOperation{
+		ID:                 "ExperimentService_DeleteExperiment",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DeleteExperimentReader{formats: a.formats},
+		Reader:             &ExperimentServiceDeleteExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteExperimentOK), nil
-
+	success, ok := result.(*ExperimentServiceDeleteExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ExperimentServiceDeleteExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-GetExperiment finds a specific experiment by ID
+ExperimentServiceGetExperiment finds a specific experiment by ID
 */
-func (a *Client) GetExperiment(params *GetExperimentParams) (*GetExperimentOK, error) {
+func (a *Client) ExperimentServiceGetExperiment(params *ExperimentServiceGetExperimentParams, opts ...ClientOption) (*ExperimentServiceGetExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetExperimentParams()
+		params = NewExperimentServiceGetExperimentParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetExperiment",
+	op := &runtime.ClientOperation{
+		ID:                 "ExperimentService_GetExperiment",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetExperimentReader{formats: a.formats},
+		Reader:             &ExperimentServiceGetExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetExperimentOK), nil
-
+	success, ok := result.(*ExperimentServiceGetExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ExperimentServiceGetExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-ListExperiments finds all experiments supports pagination and sorting on certain fields
+ExperimentServiceListExperiments finds all experiments supports pagination and sorting on certain fields
 */
-func (a *Client) ListExperiments(params *ListExperimentsParams) (*ListExperimentsOK, error) {
+func (a *Client) ExperimentServiceListExperiments(params *ExperimentServiceListExperimentsParams, opts ...ClientOption) (*ExperimentServiceListExperimentsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListExperimentsParams()
+		params = NewExperimentServiceListExperimentsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListExperiments",
+	op := &runtime.ClientOperation{
+		ID:                 "ExperimentService_ListExperiments",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/experiments",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ListExperimentsReader{formats: a.formats},
+		Reader:             &ExperimentServiceListExperimentsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListExperimentsOK), nil
-
+	success, ok := result.(*ExperimentServiceListExperimentsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ExperimentServiceListExperimentsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-UnarchiveExperiment restores an archived experiment the experiment s archived runs and recurring runs will stay archived
+ExperimentServiceUnarchiveExperiment restores an archived experiment the experiment s archived runs and recurring runs will stay archived
 */
-func (a *Client) UnarchiveExperiment(params *UnarchiveExperimentParams) (*UnarchiveExperimentOK, error) {
+func (a *Client) ExperimentServiceUnarchiveExperiment(params *ExperimentServiceUnarchiveExperimentParams, opts ...ClientOption) (*ExperimentServiceUnarchiveExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewUnarchiveExperimentParams()
+		params = NewExperimentServiceUnarchiveExperimentParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "UnarchiveExperiment",
+	op := &runtime.ClientOperation{
+		ID:                 "ExperimentService_UnarchiveExperiment",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}:unarchive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &UnarchiveExperimentReader{formats: a.formats},
+		Reader:             &ExperimentServiceUnarchiveExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UnarchiveExperimentOK), nil
-
+	success, ok := result.(*ExperimentServiceUnarchiveExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ExperimentServiceUnarchiveExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

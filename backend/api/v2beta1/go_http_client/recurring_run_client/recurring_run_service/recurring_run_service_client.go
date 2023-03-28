@@ -7,12 +7,11 @@ package recurring_run_service
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new recurring run service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -24,172 +23,246 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption is the option for Client methods
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	RecurringRunServiceCreateRecurringRun(params *RecurringRunServiceCreateRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceCreateRecurringRunOK, error)
+
+	RecurringRunServiceDeleteRecurringRun(params *RecurringRunServiceDeleteRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceDeleteRecurringRunOK, error)
+
+	RecurringRunServiceDisableRecurringRun(params *RecurringRunServiceDisableRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceDisableRecurringRunOK, error)
+
+	RecurringRunServiceEnableRecurringRun(params *RecurringRunServiceEnableRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceEnableRecurringRunOK, error)
+
+	RecurringRunServiceGetRecurringRun(params *RecurringRunServiceGetRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceGetRecurringRunOK, error)
+
+	RecurringRunServiceListRecurringRuns(params *RecurringRunServiceListRecurringRunsParams, opts ...ClientOption) (*RecurringRunServiceListRecurringRunsOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
-CreateRecurringRun creates a new recurring run in an experiment given the experiment ID
+RecurringRunServiceCreateRecurringRun creates a new recurring run in an experiment given the experiment ID
 */
-func (a *Client) CreateRecurringRun(params *CreateRecurringRunParams) (*CreateRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceCreateRecurringRun(params *RecurringRunServiceCreateRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceCreateRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreateRecurringRunParams()
+		params = NewRecurringRunServiceCreateRecurringRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateRecurringRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RecurringRunService_CreateRecurringRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/recurringruns",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &CreateRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceCreateRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateRecurringRunOK), nil
-
+	success, ok := result.(*RecurringRunServiceCreateRecurringRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RecurringRunServiceCreateRecurringRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-DeleteRecurringRun deletes a recurring run
+RecurringRunServiceDeleteRecurringRun deletes a recurring run
 */
-func (a *Client) DeleteRecurringRun(params *DeleteRecurringRunParams) (*DeleteRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceDeleteRecurringRun(params *RecurringRunServiceDeleteRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceDeleteRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDeleteRecurringRunParams()
+		params = NewRecurringRunServiceDeleteRecurringRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteRecurringRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RecurringRunService_DeleteRecurringRun",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DeleteRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceDeleteRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteRecurringRunOK), nil
-
+	success, ok := result.(*RecurringRunServiceDeleteRecurringRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RecurringRunServiceDeleteRecurringRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-DisableRecurringRun stops a recurring run and all its associated runs the recurring run is not deleted
+RecurringRunServiceDisableRecurringRun stops a recurring run and all its associated runs the recurring run is not deleted
 */
-func (a *Client) DisableRecurringRun(params *DisableRecurringRunParams) (*DisableRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceDisableRecurringRun(params *RecurringRunServiceDisableRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceDisableRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDisableRecurringRunParams()
+		params = NewRecurringRunServiceDisableRecurringRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DisableRecurringRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RecurringRunService_DisableRecurringRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}:disable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DisableRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceDisableRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DisableRecurringRunOK), nil
-
+	success, ok := result.(*RecurringRunServiceDisableRecurringRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RecurringRunServiceDisableRecurringRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-EnableRecurringRun restarts a recurring run that was previously stopped all runs associated with the recurring run will continue
+RecurringRunServiceEnableRecurringRun restarts a recurring run that was previously stopped all runs associated with the recurring run will continue
 */
-func (a *Client) EnableRecurringRun(params *EnableRecurringRunParams) (*EnableRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceEnableRecurringRun(params *RecurringRunServiceEnableRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceEnableRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewEnableRecurringRunParams()
+		params = NewRecurringRunServiceEnableRecurringRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "EnableRecurringRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RecurringRunService_EnableRecurringRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}:enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &EnableRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceEnableRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*EnableRecurringRunOK), nil
-
+	success, ok := result.(*RecurringRunServiceEnableRecurringRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RecurringRunServiceEnableRecurringRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-GetRecurringRun finds a specific recurring run by ID
+RecurringRunServiceGetRecurringRun finds a specific recurring run by ID
 */
-func (a *Client) GetRecurringRun(params *GetRecurringRunParams) (*GetRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceGetRecurringRun(params *RecurringRunServiceGetRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceGetRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetRecurringRunParams()
+		params = NewRecurringRunServiceGetRecurringRunParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetRecurringRun",
+	op := &runtime.ClientOperation{
+		ID:                 "RecurringRunService_GetRecurringRun",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceGetRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetRecurringRunOK), nil
-
+	success, ok := result.(*RecurringRunServiceGetRecurringRunOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RecurringRunServiceGetRecurringRunDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
-ListRecurringRuns finds all recurring runs given experiment and namespace if experiment ID is not specified find all recurring runs across all experiments
+RecurringRunServiceListRecurringRuns finds all recurring runs given experiment and namespace if experiment ID is not specified find all recurring runs across all experiments
 */
-func (a *Client) ListRecurringRuns(params *ListRecurringRunsParams) (*ListRecurringRunsOK, error) {
+func (a *Client) RecurringRunServiceListRecurringRuns(params *RecurringRunServiceListRecurringRunsParams, opts ...ClientOption) (*RecurringRunServiceListRecurringRunsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListRecurringRunsParams()
+		params = NewRecurringRunServiceListRecurringRunsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListRecurringRuns",
+	op := &runtime.ClientOperation{
+		ID:                 "RecurringRunService_ListRecurringRuns",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/recurringruns",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &ListRecurringRunsReader{formats: a.formats},
+		Reader:             &RecurringRunServiceListRecurringRunsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListRecurringRunsOK), nil
-
+	success, ok := result.(*RecurringRunServiceListRecurringRunsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RecurringRunServiceListRecurringRunsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client
