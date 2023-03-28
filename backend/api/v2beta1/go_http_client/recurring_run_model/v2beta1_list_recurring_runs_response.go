@@ -6,26 +6,27 @@ package recurring_run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1ListRecurringRunsResponse v2beta1 list recurring runs response
+//
 // swagger:model v2beta1ListRecurringRunsResponse
 type V2beta1ListRecurringRunsResponse struct {
 
 	// The token to list the next page of recurring runs.
-	NextPageToken string `json:"next_page_token,omitempty"`
+	NextPageToken string `json:"nextPageToken,omitempty"`
 
 	// A list of recurring runs returned.
 	RecurringRuns []*V2beta1RecurringRun `json:"recurringRuns"`
 
 	// The total number of recurring runs for the given query.
-	TotalSize int32 `json:"total_size,omitempty"`
+	TotalSize int32 `json:"totalSize,omitempty"`
 }
 
 // Validate validates this v2beta1 list recurring runs response
@@ -43,7 +44,6 @@ func (m *V2beta1ListRecurringRunsResponse) Validate(formats strfmt.Registry) err
 }
 
 func (m *V2beta1ListRecurringRunsResponse) validateRecurringRuns(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.RecurringRuns) { // not required
 		return nil
 	}
@@ -57,6 +57,42 @@ func (m *V2beta1ListRecurringRunsResponse) validateRecurringRuns(formats strfmt.
 			if err := m.RecurringRuns[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("recurringRuns" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("recurringRuns" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 list recurring runs response based on the context it is used
+func (m *V2beta1ListRecurringRunsResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateRecurringRuns(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1ListRecurringRunsResponse) contextValidateRecurringRuns(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.RecurringRuns); i++ {
+
+		if m.RecurringRuns[i] != nil {
+			if err := m.RecurringRuns[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("recurringRuns" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("recurringRuns" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

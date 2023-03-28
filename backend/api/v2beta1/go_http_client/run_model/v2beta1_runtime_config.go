@@ -6,28 +6,35 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1RuntimeConfig The runtime config.
+//
 // swagger:model v2beta1RuntimeConfig
 type V2beta1RuntimeConfig struct {
 
 	// The runtime parameters of the Pipeline. The parameters will be
 	// used to replace the placeholders at runtime.
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters interface{} `json:"parameters,omitempty"`
 
 	// A path in a object store bucket which will be treated as the root
 	// output directory of the pipeline. It is used by the system to
 	// generate the paths of output artifacts.
 	// Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-	PipelineRoot string `json:"pipeline_root,omitempty"`
+	PipelineRoot string `json:"pipelineRoot,omitempty"`
 }
 
 // Validate validates this v2beta1 runtime config
 func (m *V2beta1RuntimeConfig) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 runtime config based on context it is used
+func (m *V2beta1RuntimeConfig) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

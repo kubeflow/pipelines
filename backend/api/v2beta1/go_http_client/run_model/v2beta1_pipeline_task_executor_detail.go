@@ -6,38 +6,45 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1PipelineTaskExecutorDetail Runtime information of a pipeline task executor.
+//
 // swagger:model v2beta1PipelineTaskExecutorDetail
 type V2beta1PipelineTaskExecutorDetail struct {
 
 	// The names of the previously failed job for the main container
 	// executions. The list includes the all attempts in chronological order.
-	FailedMainJobs []string `json:"failed_main_jobs"`
+	FailedMainJobs []string `json:"failedMainJobs"`
 
 	// The names of the previously failed job for the
 	// pre-caching-check container executions. This job will be available if the
 	// Run.pipeline_spec specifies the `pre_caching_check` hook in
 	// the lifecycle events.
 	// The list includes the all attempts in chronological order.
-	FailedPreCachingCheckJobs []string `json:"failed_pre_caching_check_jobs"`
+	FailedPreCachingCheckJobs []string `json:"failedPreCachingCheckJobs"`
 
 	// The name of the job for the main container execution.
-	MainJob string `json:"main_job,omitempty"`
+	MainJob string `json:"mainJob,omitempty"`
 
 	// The name of the job for the pre-caching-check container
 	// execution. This job will be available if the
 	// Run.pipeline_spec specifies the `pre_caching_check` hook in
 	// the lifecycle events.
-	PreCachingCheckJob string `json:"pre_caching_check_job,omitempty"`
+	PreCachingCheckJob string `json:"preCachingCheckJob,omitempty"`
 }
 
 // Validate validates this v2beta1 pipeline task executor detail
 func (m *V2beta1PipelineTaskExecutorDetail) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 pipeline task executor detail based on context it is used
+func (m *V2beta1PipelineTaskExecutorDetail) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

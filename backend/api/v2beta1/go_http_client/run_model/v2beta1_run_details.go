@@ -6,26 +6,27 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1RunDetails Runtime details of a run.
+//
 // swagger:model v2beta1RunDetails
 type V2beta1RunDetails struct {
 
 	// Pipeline context ID of a run.
-	PipelineContextID string `json:"pipeline_context_id,omitempty"`
+	PipelineContextID string `json:"pipelineContextId,omitempty"`
 
 	// Pipeline run context ID of a run.
-	PipelineRunContextID string `json:"pipeline_run_context_id,omitempty"`
+	PipelineRunContextID string `json:"pipelineRunContextId,omitempty"`
 
 	// Runtime details of the tasks that belong to the run.
-	TaskDetails []*V2beta1PipelineTaskDetail `json:"task_details"`
+	TaskDetails []*V2beta1PipelineTaskDetail `json:"taskDetails"`
 }
 
 // Validate validates this v2beta1 run details
@@ -43,7 +44,6 @@ func (m *V2beta1RunDetails) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1RunDetails) validateTaskDetails(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.TaskDetails) { // not required
 		return nil
 	}
@@ -56,7 +56,43 @@ func (m *V2beta1RunDetails) validateTaskDetails(formats strfmt.Registry) error {
 		if m.TaskDetails[i] != nil {
 			if err := m.TaskDetails[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("task_details" + "." + strconv.Itoa(i))
+					return ve.ValidateName("taskDetails" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("taskDetails" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 run details based on the context it is used
+func (m *V2beta1RunDetails) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateTaskDetails(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1RunDetails) contextValidateTaskDetails(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.TaskDetails); i++ {
+
+		if m.TaskDetails[i] != nil {
+			if err := m.TaskDetails[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("taskDetails" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("taskDetails" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

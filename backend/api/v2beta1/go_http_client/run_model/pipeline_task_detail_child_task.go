@@ -6,26 +6,33 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // PipelineTaskDetailChildTask A dependent task that requires this one to succeed.
 // Represented by either task_id or pod_name.
+//
 // swagger:model PipelineTaskDetailChildTask
 type PipelineTaskDetailChildTask struct {
 
 	// Name of the corresponding pod assigned by the orchestration engine.
 	// Also known as node_id.
-	PodName string `json:"pod_name,omitempty"`
+	PodName string `json:"podName,omitempty"`
 
 	// System-generated ID of a task.
-	TaskID string `json:"task_id,omitempty"`
+	TaskID string `json:"taskId,omitempty"`
 }
 
 // Validate validates this pipeline task detail child task
 func (m *PipelineTaskDetailChildTask) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this pipeline task detail child task based on context it is used
+func (m *PipelineTaskDetailChildTask) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

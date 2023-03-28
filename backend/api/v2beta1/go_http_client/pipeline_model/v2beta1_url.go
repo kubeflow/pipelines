@@ -6,21 +6,28 @@ package pipeline_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1URL v2beta1 Url
+//
 // swagger:model v2beta1Url
 type V2beta1URL struct {
 
 	// URL of the pipeline version definition.
-	PipelineURL string `json:"pipeline_url,omitempty"`
+	PipelineURL string `json:"pipelineUrl,omitempty"`
 }
 
 // Validate validates this v2beta1 Url
 func (m *V2beta1URL) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 Url based on context it is used
+func (m *V2beta1URL) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

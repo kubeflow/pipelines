@@ -6,26 +6,27 @@ package pipeline_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1ListPipelineVersionsResponse v2beta1 list pipeline versions response
+//
 // swagger:model v2beta1ListPipelineVersionsResponse
 type V2beta1ListPipelineVersionsResponse struct {
 
 	// The token to list the next page of pipeline versions.
-	NextPageToken string `json:"next_page_token,omitempty"`
+	NextPageToken string `json:"nextPageToken,omitempty"`
 
 	// Returned pipeline versions.
-	PipelineVersions []*V2beta1PipelineVersion `json:"pipeline_versions"`
+	PipelineVersions []*V2beta1PipelineVersion `json:"pipelineVersions"`
 
 	// The total number of pipeline versions for the given query.
-	TotalSize int32 `json:"total_size,omitempty"`
+	TotalSize int32 `json:"totalSize,omitempty"`
 }
 
 // Validate validates this v2beta1 list pipeline versions response
@@ -43,7 +44,6 @@ func (m *V2beta1ListPipelineVersionsResponse) Validate(formats strfmt.Registry) 
 }
 
 func (m *V2beta1ListPipelineVersionsResponse) validatePipelineVersions(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PipelineVersions) { // not required
 		return nil
 	}
@@ -56,7 +56,43 @@ func (m *V2beta1ListPipelineVersionsResponse) validatePipelineVersions(formats s
 		if m.PipelineVersions[i] != nil {
 			if err := m.PipelineVersions[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("pipeline_versions" + "." + strconv.Itoa(i))
+					return ve.ValidateName("pipelineVersions" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("pipelineVersions" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 list pipeline versions response based on the context it is used
+func (m *V2beta1ListPipelineVersionsResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidatePipelineVersions(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1ListPipelineVersionsResponse) contextValidatePipelineVersions(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.PipelineVersions); i++ {
+
+		if m.PipelineVersions[i] != nil {
+			if err := m.PipelineVersions[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("pipelineVersions" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("pipelineVersions" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

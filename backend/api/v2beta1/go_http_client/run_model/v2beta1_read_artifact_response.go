@@ -6,13 +6,14 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
-	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1ReadArtifactResponse v2beta1 read artifact response
+//
 // swagger:model v2beta1ReadArtifactResponse
 type V2beta1ReadArtifactResponse struct {
 
@@ -23,26 +24,11 @@ type V2beta1ReadArtifactResponse struct {
 
 // Validate validates this v2beta1 read artifact response
 func (m *V2beta1ReadArtifactResponse) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateData(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
 	return nil
 }
 
-func (m *V2beta1ReadArtifactResponse) validateData(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Data) { // not required
-		return nil
-	}
-
-	// Format "byte" (base64 string) is already validated when unmarshalled
-
+// ContextValidate validates this v2beta1 read artifact response based on context it is used
+func (m *V2beta1ReadArtifactResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 
