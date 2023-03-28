@@ -100,7 +100,7 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 				log.Println("Unable to create cache entry.")
 				continue
 			}
-			err = patchCacheID(ctx, k8sCore, pod, namespaceToWatch, cacheEntryCreated.ID)
+			err = patchCacheID(ctx, k8sCore, pod, cacheEntryCreated.ID)
 			if err != nil {
 				log.Printf(err.Error())
 			}
@@ -117,7 +117,7 @@ func isCacheWriten(labels map[string]string) bool {
 	return cacheID != ""
 }
 
-func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod, namespaceToWatch string, id int64) error {
+func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod, id int64) error {
 	labels := podToPatch.ObjectMeta.Labels
 	labels[CacheIDLabelKey] = strconv.FormatInt(id, 10)
 	log.Println(id)
@@ -131,7 +131,7 @@ func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, p
 	if err != nil {
 		return fmt.Errorf("Unable to patch cache_id to pod: %s", podToPatch.ObjectMeta.Name)
 	}
-	_, err = k8sCore.PodClient(namespaceToWatch).Patch(ctx, podToPatch.ObjectMeta.Name, types.JSONPatchType, patchBytes, metav1.PatchOptions{})
+	_, err = k8sCore.PodClient(podToPatch.Namespace).Patch(ctx, podToPatch.ObjectMeta.Name, types.JSONPatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
