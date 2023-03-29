@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ type Options struct {
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
-func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, error) {
+func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
 	// clone jobArg, because we don't want to change it
 	jobMsg := proto.Clone(jobArg)
 	job, ok := jobMsg.(*pipelinespec.PipelineJob)
@@ -73,6 +73,17 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			}
 		}
 	}
+
+	var kubernetesSpec *pipelinespec.SinglePlatformSpec
+	if kubernetesSpecArg != nil {
+		// clone kubernetesSpecArg, because we don't want to change it
+		kubernetesSpecMsg := proto.Clone(kubernetesSpecArg)
+		kubernetesSpec, ok = kubernetesSpecMsg.(*pipelinespec.SinglePlatformSpec)
+		if !ok {
+			return nil, fmt.Errorf("bug: cloned Kubernetes spec message does not have expected type")
+		}
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -126,7 +137,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	}
 
 	// compile
-	err = compiler.Accept(job, c)
+	err = compiler.Accept(job, kubernetesSpec, c)
 
 	return c.wf, err
 }
@@ -174,8 +185,9 @@ func (c *workflowCompiler) templateName(componentName string) string {
 // WIP: store component spec, task spec and executor spec in annotations
 
 const (
-	annotationComponents = "pipelines.kubeflow.org/components-"
-	annotationContainers = "pipelines.kubeflow.org/implementations-"
+	annotationComponents     = "pipelines.kubeflow.org/components-"
+	annotationContainers     = "pipelines.kubeflow.org/implementations-"
+	annotationKubernetesSpec = "pipelines.kubeflow.org/kubernetes-"
 )
 
 func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
@@ -194,6 +206,10 @@ func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) err
 
 func (c *workflowCompiler) useComponentImpl(name string) (string, error) {
 	return c.annotationPlaceholder(annotationContainers + name)
+}
+
+func (c *workflowCompiler) saveKubernetesSpec(name string, spec *structpb.Struct) error {
+	return c.saveProtoToAnnotation(annotationKubernetesSpec+name, spec)
 }
 
 // TODO(Bobgy): sanitize component name
