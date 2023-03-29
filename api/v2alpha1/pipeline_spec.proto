@@ -437,6 +437,9 @@ message ParameterType {
     // are serialized to JSON when passed as an input or output of a pipeline
     // step.
     STRUCT = 6;
+    // Indicates that a parameter is a TaskFinalStatus type; these types can only accept inputs
+    // specified by InputParameterSpec.task_final_status
+    TASK_FINAL_STATUS = 7;
   }
 }
 
