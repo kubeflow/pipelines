@@ -212,6 +212,10 @@ func (c *workflowCompiler) saveKubernetesSpec(name string, spec *structpb.Struct
 	return c.saveProtoToAnnotation(annotationKubernetesSpec+name, spec)
 }
 
+func (c *workflowCompiler) useKubernetesImpl(name string) (string, error) {
+	return c.annotationPlaceholder(annotationKubernetesSpec + name)
+}
+
 // TODO(Bobgy): sanitize component name
 func (c *workflowCompiler) saveProtoToAnnotation(name string, msg proto.Message) error {
 	if c == nil {
@@ -255,9 +259,10 @@ const (
 	paramIterationIndex = "iteration-index"
 	paramExecutorInput  = "executor-input"
 	paramDriverType     = "driver-type"
-	paramCachedDecision = "cached-decision" // indicate hit cache or not
-	paramPodSpecPatch   = "pod-spec-patch"  // a strategic patch merged with the pod spec
-	paramCondition      = "condition"       // condition = false -> skip the task
+	paramCachedDecision = "cached-decision"   // indicate hit cache or not
+	paramPodSpecPatch   = "pod-spec-patch"    // a strategic patch merged with the pod spec
+	paramCondition      = "condition"         // condition = false -> skip the task
+	kubernetesConfig    = "kubernetes-config" // stores Kubernetes cofig
 )
 
 func runID() string {

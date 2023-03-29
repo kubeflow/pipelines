@@ -44,11 +44,12 @@ type containerDriverOutputs struct {
 }
 
 type containerDriverInputs struct {
-	component      string
-	task           string
-	container      string
-	parentDagID    string
-	iterationIndex string // optional, when this is an iteration task
+	component        string
+	task             string
+	container        string
+	parentDagID      string
+	iterationIndex   string // optional, when this is an iteration task
+	kubernetesConfig string // optional, used when Kubernetes config is not empty
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -68,6 +69,12 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 		dagTask.Arguments.Parameters = append(
 			dagTask.Arguments.Parameters,
 			wfapi.Parameter{Name: paramIterationIndex, Value: wfapi.AnyStringPtr(inputs.iterationIndex)},
+		)
+	}
+	if inputs.kubernetesConfig != "" {
+		dagTask.Arguments.Parameters = append(
+			dagTask.Arguments.Parameters,
+			wfapi.Parameter{Name: kubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)},
 		)
 	}
 	outputs := &containerDriverOutputs{
@@ -117,6 +124,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--cached_decision_path", outputPath(paramCachedDecision),
 				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 				"--condition_path", outputPath(paramCondition),
+				"--kubernetes_config", inputValue(kubernetesConfig),
 			},
 			Resources: driverResources,
 		},
