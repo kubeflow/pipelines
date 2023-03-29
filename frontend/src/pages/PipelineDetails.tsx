@@ -260,6 +260,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
         // TODO(jlyaoyuli): change to v2 API after v1 is deprecated
+        // Note: v2 getRecurringRun() api can retrieve v1 job
+        // (ApiParameter can be only retrieve in the response of v1 getJob() api)
+        // Experiment ID and pipeline version id are preserved.
         if (origin.isRecurring) {
           origin.v1RecurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
           origin.v2RecurringRun = await Apis.recurringRunServiceApi.getRecurringRun(
@@ -321,6 +324,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           }
         }
 
+        // We have 2 options to get experiment id (resource_ref in v1, experiment_id in v2)
+        // and use it to getExperiment().
+        // We choose v2 to make the API integration more comprehensively.
         const relatedExperimentId = origin.isRecurring
           ? origin.v2RecurringRun?.experiment_id
           : origin.v2Run?.experiment_id;
