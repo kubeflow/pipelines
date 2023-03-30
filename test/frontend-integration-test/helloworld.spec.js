@@ -24,7 +24,7 @@ const runWithoutExperimentName = 'helloworld-2-' + Date.now();
 const runWithoutExperimentDescription =
   'test run without experiment description ' + runWithoutExperimentName;
 const waitTimeout = 5000;
-const outputParameterValue = 'hello world';
+const inputParameterValue = 'Hello world in test';
 
 async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
@@ -114,7 +114,7 @@ describe('deploy helloworld sample run', () => {
     await browser.keys('Tab');
 
     await browser.keys('Tab');
-    await browser.keys(outputParameterValue);
+    await browser.keys(inputParameterValue);
 
     // Deploy
     await $('#startNewRunBtn').click();
@@ -180,7 +180,7 @@ describe('deploy helloworld sample run', () => {
 
   it('displays run inputs correctly', async () => {
     const paramValue = await getValueFromDetailsTable('message');
-    assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
+    assert.equal(paramValue, inputParameterValue, 'run message is not shown correctly');
   });
 
   it('switches back to graph tab', async () => {
@@ -204,7 +204,7 @@ describe('deploy helloworld sample run', () => {
     await $('#logViewer').waitForDisplayed();
     await browser.waitUntil(async () => {
       const logs = await $('#logViewer').getText();
-      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
+      return logs.indexOf(inputParameterValue + ' from node: ') > -1;
     }, waitTimeout);
   });
 
@@ -245,7 +245,7 @@ describe('deploy helloworld sample run', () => {
     await browser.keys('Tab');
 
     await browser.keys('Tab');
-    await browser.keys(outputParameterValue);
+    await browser.keys(inputParameterValue);
 
     // Deploy
     await $('#startNewRunBtn').click();
