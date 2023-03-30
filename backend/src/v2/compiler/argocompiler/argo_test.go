@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,24 +32,31 @@ var update = flag.Bool("update", false, "update golden files")
 
 func Test_argo_compiler(t *testing.T) {
 	tests := []struct {
-		jobPath      string // path of input PipelineJob to compile
-		argoYAMLPath string // path of expected output argo workflow YAML
+		jobPath          string // path of input PipelineJob to compile
+		platformSpecPath string // path of possible input PlatformSpec to compile
+		argoYAMLPath     string // path of expected output argo workflow YAML
 	}{
 		{
-			jobPath:      "../testdata/hello_world.json",
-			argoYAMLPath: "testdata/hello_world.yaml",
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world.yaml",
 		},
 		{
-			jobPath:      "../testdata/importer.json",
-			argoYAMLPath: "testdata/importer.yaml",
+			jobPath:          "../testdata/importer.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/importer.yaml",
+		},
+		{
+			jobPath:          "../testdata/create_mount_delete_dynamic_pvc.json",
+			platformSpecPath: "../testdata/create_mount_delete_dynamic_pvc_platform.json",
+			argoYAMLPath:     "testdata/create_mount_delete_dynamic_pvc.yaml",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
-
-			job := load(t, tt.jobPath)
+			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
-				wf, err := argocompiler.Compile(job, nil)
+				wf, err := argocompiler.Compile(job, platformSpec, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -66,7 +73,7 @@ func Test_argo_compiler(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wf, err := argocompiler.Compile(job, nil)
+			wf, err := argocompiler.Compile(job, platformSpec, nil)
 			if err != nil {
 				t.Error(err)
 			}
@@ -84,7 +91,7 @@ func Test_argo_compiler(t *testing.T) {
 
 }
 
-func load(t *testing.T, path string) *pipelinespec.PipelineJob {
+func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
 	t.Helper()
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -94,5 +101,17 @@ func load(t *testing.T, path string) *pipelinespec.PipelineJob {
 	if err := protojson.Unmarshal(content, job); err != nil {
 		t.Errorf("Failed to parse pipeline job, error: %s, job: %v", err, string(content))
 	}
-	return job
+
+	platformSpec := &pipelinespec.PlatformSpec{}
+	if platformSpecPath != "" {
+		content, err = ioutil.ReadFile(platformSpecPath)
+		if err != nil {
+			t.Error(err)
+		}
+		if err := protojson.Unmarshal(content, platformSpec); err != nil {
+			t.Errorf("Failed to parse platform spec, error: %s, spec: %v", err, string(content))
+		}
+		return job, platformSpec.Platforms["kubernetes"]
+	}
+	return job, nil
 }

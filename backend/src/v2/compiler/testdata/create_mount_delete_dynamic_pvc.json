@@ -1,0 +1,219 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-comp": {
+        "executorLabel": "exec-comp"
+      },
+      "comp-comp-2": {
+        "executorLabel": "exec-comp-2"
+      },
+      "comp-createpvc": {
+        "executorLabel": "exec-createpvc",
+        "inputDefinitions": {
+          "parameters": {
+            "access_modes": {
+              "parameterType": "LIST"
+            },
+            "annotations": {
+              "isOptional": true,
+              "parameterType": "STRUCT"
+            },
+            "pvc_name": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "pvc_name_suffix": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "size": {
+              "parameterType": "STRING"
+            },
+            "storage_class_name": {
+              "defaultValue": "",
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "volume_name": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "name": {
+              "parameterType": "STRING"
+            }
+          }
+        }
+      },
+      "comp-deletepvc": {
+        "executorLabel": "exec-deletepvc",
+        "inputDefinitions": {
+          "parameters": {
+            "pvc_name": {
+              "parameterType": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-comp": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "comp"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d) printf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\" python3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\" ",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef comp():\n    pass\n\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-comp-2": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "comp"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d) printf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\" python3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\" ",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef comp():\n    pass\n\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-createpvc": {
+          "container": {
+            "image": "argostub/createpvc"
+          }
+        },
+        "exec-deletepvc": {
+          "container": {
+            "image": "argostub/deletepvc"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "my-pipeline"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "comp": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-comp"
+            },
+            "dependentTasks": [
+              "createpvc"
+            ],
+            "taskInfo": {
+              "name": "comp"
+            }
+          },
+          "comp-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-comp-2"
+            },
+            "dependentTasks": [
+              "comp",
+              "createpvc"
+            ],
+            "taskInfo": {
+              "name": "comp-2"
+            }
+          },
+          "createpvc": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-createpvc"
+            },
+            "inputs": {
+              "parameters": {
+                "access_modes": {
+                  "runtimeValue": {
+                    "constant": [
+                      "ReadWriteMany"
+                    ]
+                  }
+                },
+                "pvc_name_suffix": {
+                  "runtimeValue": {
+                    "constant": "-my-pvc"
+                  }
+                },
+                "size": {
+                  "runtimeValue": {
+                    "constant": "5Gi"
+                  }
+                },
+                "storage_class_name": {
+                  "runtimeValue": {
+                    "constant": "standard"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "createpvc"
+            }
+          },
+          "deletepvc": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-deletepvc"
+            },
+            "dependentTasks": [
+              "comp-2",
+              "createpvc"
+            ],
+            "inputs": {
+              "parameters": {
+                "pvc_name": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "name",
+                    "producerTask": "createpvc"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "deletepvc"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-2.0.0-beta.13"
+  }
+}

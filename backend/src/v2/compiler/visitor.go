@@ -1,3 +1,17 @@
+// Copyright 2021-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package compiler is the backend compiler package for Kubeflow Pipelines v2.
 //
 // KFP pipeline DSL in python are first compiled by KFP SDK (the frontend compiler)
@@ -14,6 +28,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Visitor interface is called when each component is visited.
@@ -23,6 +38,7 @@ type Visitor interface {
 	Importer(name string, component *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error
 	Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error
 	DAG(name string, component *pipelinespec.ComponentSpec, dag *pipelinespec.DagSpec) error
+	AddKubernetesSpec(name string, kubernetesSpec *structpb.Struct) error
 }
 
 const (
@@ -37,7 +53,7 @@ const (
 // visited first, then DAG components. When a DAG component is visited, it's
 // guaranteed that all the components used in it have already been visited.
 // * Each component is visited exactly once.
-func Accept(job *pipelinespec.PipelineJob, v Visitor) error {
+func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePlatformSpec, v Visitor) error {
 	if job == nil {
 		return nil
 	}
@@ -51,18 +67,20 @@ func Accept(job *pipelinespec.PipelineJob, v Visitor) error {
 		return err
 	}
 	state := &pipelineDFS{
-		spec:    spec,
-		deploy:  deploy,
-		visitor: v,
-		visited: make(map[string]bool),
+		spec:           spec,
+		deploy:         deploy,
+		kubernetesSpec: kubernetesSpec,
+		visitor:        v,
+		visited:        make(map[string]bool),
 	}
 	return state.dfs(RootComponentName, spec.GetRoot())
 }
 
 type pipelineDFS struct {
-	spec    *pipelinespec.PipelineSpec
-	deploy  *pipelinespec.PipelineDeploymentConfig
-	visitor Visitor
+	spec           *pipelinespec.PipelineSpec
+	deploy         *pipelinespec.PipelineDeploymentConfig
+	kubernetesSpec *pipelinespec.SinglePlatformSpec
+	visitor        Visitor
 	// Records which DAG components are visited, map key is component name.
 	visited map[string]bool
 }
@@ -89,6 +107,15 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		if !ok {
 			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config", executorLabel))
 		}
+
+		// Add kubernetes spec to annotation
+		if state.kubernetesSpec != nil {
+			kubernetesSpec, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
+			if ok {
+				state.visitor.AddKubernetesSpec(name, kubernetesSpec)
+			}
+		}
+
 		container := executor.GetContainer()
 		if container != nil {
 			return state.visitor.Container(name, component, container)

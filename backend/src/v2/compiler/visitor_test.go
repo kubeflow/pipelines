@@ -1,3 +1,16 @@
+// Copyright 2021-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package compiler_test
 
 import (
@@ -9,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type testVisitor struct {
@@ -28,6 +42,10 @@ func (v *testVisitor) Resolver(name string, component *pipelinespec.ComponentSpe
 	return nil
 }
 func (v *testVisitor) DAG(name string, component *pipelinespec.ComponentSpec, dag *pipelinespec.DagSpec) error {
+	v.visited = append(v.visited, fmt.Sprintf("DAG(name=%q)", name))
+	return nil
+}
+func (v *testVisitor) AddKubernetesSpec(name string, kubernetesSpec *structpb.Struct) error {
 	v.visited = append(v.visited, fmt.Sprintf("DAG(name=%q)", name))
 	return nil
 }
@@ -56,7 +74,7 @@ func Test_AcceptTestVisitor(t *testing.T) {
 		t.Run(fmt.Sprintf("%q", tt.specPath), func(t *testing.T) {
 			job := load(t, tt.specPath)
 			v := &testVisitor{visited: make([]string, 0)}
-			err := compiler.Accept(job, v)
+			err := compiler.Accept(job, nil, v)
 			if err != nil {
 				t.Fatal(err)
 			}

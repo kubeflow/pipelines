@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ func main() {
 }
 
 func compile(job *pipelinespec.PipelineJob) error {
-	wf, err := argocompiler.Compile(job, &argocompiler.Options{
+	wf, err := argocompiler.Compile(job, nil, &argocompiler.Options{
 		DriverImage:   *driver,
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
