@@ -728,6 +728,14 @@ message PipelineDeploymentConfig {
       // memory_limit RAM to run.
       double memory_limit = 2;
 
+      // The request of the number of vCPU cores. This container execution
+      // needs at least cpu_request vCPU to run.
+      double cpu_request = 5;
+
+      // The memory request in GB. This container execution needs at least
+      // memory_request RAM to run.
+      double memory_request = 6;
+
       // The specification on the accelerators being attached to this container.
       message AcceleratorConfig {
         // The type of accelerators.
@@ -736,6 +744,8 @@ message PipelineDeploymentConfig {
         int64 count = 2;
       }
       AcceleratorConfig accelerator = 3;
+      
+      reserved 4;
     }
     ResourceSpec resources = 5;
 
