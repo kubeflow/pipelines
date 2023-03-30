@@ -190,12 +190,14 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				return nil, err
 			}
 			driverTaskName := name + "-driver"
+			kubernetesConfigPlaceholder, err := c.useKubernetesImpl(componentName)
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
-				component:      componentSpecPlaceholder,
-				task:           taskSpecJson,
-				container:      containerPlaceholder,
-				parentDagID:    inputs.parentDagID,
-				iterationIndex: inputs.iterationIndex,
+				component:        componentSpecPlaceholder,
+				task:             taskSpecJson,
+				container:        containerPlaceholder,
+				parentDagID:      inputs.parentDagID,
+				iterationIndex:   inputs.iterationIndex,
+				kubernetesConfig: kubernetesConfigPlaceholder,
 			})
 			if task.GetTriggerPolicy().GetCondition() == "" {
 				driverOutputs.condition = ""

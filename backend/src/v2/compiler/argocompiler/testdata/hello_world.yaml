@@ -46,6 +46,8 @@ spec:
       - '{{outputs.parameters.pod-spec-patch.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
       command:
       - driver
       image: gcr.io/ml-pipeline-test/dev/kfp-driver@sha256:d8f18e6f6cd84a43d45eb339d7e6d2dfed45358e713aaf0ddf7812b06234e9f5
@@ -65,6 +67,8 @@ spec:
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
+      - default: ""
+        name: kubernetes-config
     metadata: {}
     name: system-container-driver
     outputs:

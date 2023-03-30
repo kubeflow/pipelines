@@ -47,6 +47,7 @@ var (
 	taskSpecJson      = flag.String("task", "", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	kubernetesConfig  = flag.String("kubernetes_config", "", "Kuberntes specific configurations")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
