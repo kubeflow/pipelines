@@ -24,7 +24,7 @@ const runWithoutExperimentName = 'helloworld-2-' + Date.now();
 const runWithoutExperimentDescription =
   'test run without experiment description ' + runWithoutExperimentName;
 const waitTimeout = 5000;
-const outputParameterValue = 'Other parameter';
+const outputParameterValue = 'hello world';
 
 async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
