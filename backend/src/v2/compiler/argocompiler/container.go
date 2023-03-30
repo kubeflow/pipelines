@@ -74,7 +74,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 	if inputs.kubernetesConfig != "" {
 		dagTask.Arguments.Parameters = append(
 			dagTask.Arguments.Parameters,
-			wfapi.Parameter{Name: kubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)},
+			wfapi.Parameter{Name: paramKubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)},
 		)
 	}
 	outputs := &containerDriverOutputs{
@@ -100,6 +100,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramContainer},
 				{Name: paramParentDagID},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
+				{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
 			},
 		},
 		Outputs: wfapi.Outputs{
@@ -124,7 +125,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--cached_decision_path", outputPath(paramCachedDecision),
 				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 				"--condition_path", outputPath(paramCondition),
-				"--kubernetes_config", inputValue(kubernetesConfig),
+				"--kubernetes_config", inputValue(paramKubernetesConfig),
 			},
 			Resources: driverResources,
 		},

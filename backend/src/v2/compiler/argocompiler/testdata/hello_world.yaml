@@ -67,6 +67,8 @@ spec:
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
+      - default: ""
+        name: kubernetes-config
     metadata: {}
     name: system-container-driver
     outputs:

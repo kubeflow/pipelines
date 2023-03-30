@@ -248,21 +248,21 @@ func (c *workflowCompiler) annotationPlaceholder(name string) (string, error) {
 }
 
 const (
-	paramComponent      = "component"      // component spec
-	paramTask           = "task"           // task spec
-	paramContainer      = "container"      // container spec
-	paramImporter       = "importer"       // importer spec
-	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID    = "parent-dag-id"
-	paramExecutionID    = "execution-id"
-	paramIterationCount = "iteration-count"
-	paramIterationIndex = "iteration-index"
-	paramExecutorInput  = "executor-input"
-	paramDriverType     = "driver-type"
-	paramCachedDecision = "cached-decision"   // indicate hit cache or not
-	paramPodSpecPatch   = "pod-spec-patch"    // a strategic patch merged with the pod spec
-	paramCondition      = "condition"         // condition = false -> skip the task
-	kubernetesConfig    = "kubernetes-config" // stores Kubernetes cofig
+	paramComponent        = "component"      // component spec
+	paramTask             = "task"           // task spec
+	paramContainer        = "container"      // container spec
+	paramImporter         = "importer"       // importer spec
+	paramRuntimeConfig    = "runtime-config" // job runtime config, pipeline level inputs
+	paramParentDagID      = "parent-dag-id"
+	paramExecutionID      = "execution-id"
+	paramIterationCount   = "iteration-count"
+	paramIterationIndex   = "iteration-index"
+	paramExecutorInput    = "executor-input"
+	paramDriverType       = "driver-type"
+	paramCachedDecision   = "cached-decision"   // indicate hit cache or not
+	paramPodSpecPatch     = "pod-spec-patch"    // a strategic patch merged with the pod spec
+	paramCondition        = "condition"         // condition = false -> skip the task
+	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes cofig
 )
 
 func runID() string {

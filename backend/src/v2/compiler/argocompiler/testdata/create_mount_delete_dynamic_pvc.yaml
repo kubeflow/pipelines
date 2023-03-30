@@ -84,6 +84,8 @@ spec:
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
+      - default: ""
+        name: kubernetes-config
     metadata: {}
     name: system-container-driver
     outputs:
@@ -171,29 +173,6 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.annotations.pipelines.kubeflow.org/components-comp-deletepvc}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["comp-2","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}'
-          - name: container
-            value: '{{workflow.annotations.pipelines.kubeflow.org/implementations-comp-deletepvc}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        depends: comp-2.Succeeded && createpvc.Succeeded
-        name: deletepvc-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.deletepvc-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.deletepvc-driver.outputs.parameters.cached-decision}}'
-        depends: deletepvc-driver.Succeeded
-        name: deletepvc
-        template: system-container-executor
-      - arguments:
-          parameters:
-          - name: component
             value: '{{workflow.annotations.pipelines.kubeflow.org/components-comp-comp}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"dependentTasks":["createpvc"],"taskInfo":{"name":"comp"}}'
@@ -262,6 +241,29 @@ spec:
             value: '{{tasks.createpvc-driver.outputs.parameters.cached-decision}}'
         depends: createpvc-driver.Succeeded
         name: createpvc
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.annotations.pipelines.kubeflow.org/components-comp-deletepvc}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["comp-2","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}'
+          - name: container
+            value: '{{workflow.annotations.pipelines.kubeflow.org/implementations-comp-deletepvc}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: comp-2.Succeeded && createpvc.Succeeded
+        name: deletepvc-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.deletepvc-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.deletepvc-driver.outputs.parameters.cached-decision}}'
+        depends: deletepvc-driver.Succeeded
+        name: deletepvc
         template: system-container-executor
     inputs:
       parameters:
