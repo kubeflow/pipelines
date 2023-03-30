@@ -70,6 +70,14 @@ type PipelineUploadServer struct {
 	options         *PipelineUploadServerOptions
 }
 
+func (s *PipelineUploadServer) UploadPipelineV1(w http.ResponseWriter, r *http.Request) {
+	s.uploadPipeline("v1beta1", w, r)
+}
+
+func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Request) {
+	s.uploadPipeline("v2beta1", w, r)
+}
+
 // Creates a pipeline and a pipeline version.
 // HTTP multipart endpoint for uploading pipeline file.
 // https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
@@ -77,7 +85,7 @@ type PipelineUploadServer struct {
 // endpoint to the HTTP endpoint.
 // See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
 // Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
-func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Request) {
+func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.ResponseWriter, r *http.Request) {
 	if s.options.CollectMetrics {
 		uploadPipelineRequests.Inc()
 		uploadPipelineVersionRequests.Inc()
@@ -155,11 +163,28 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
-	err = marshaler.Marshal(w, toApiPipelineV1(newPipeline, newPipelineVersion))
+
+	if api_version == "v1beta1" {
+		err = marshaler.Marshal(w, toApiPipelineV1(newPipeline, newPipelineVersion))
+	} else if api_version == "v2beta1" {
+		err = marshaler.Marshal(w, toApiPipeline(newPipeline))
+	} else {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Invalid API version"))
+		return
+	}
+
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline due to error marshalling the pipeline"))
 		return
 	}
+}
+
+func (s *PipelineUploadServer) UploadPipelineVersionV1(w http.ResponseWriter, r *http.Request) {
+	s.uploadPipelineVersion("v1beta1", w, r)
+}
+
+func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
+	s.uploadPipelineVersion("v2beta1", w, r)
 }
 
 // Creates a pipeline version under an existing pipeline.
@@ -169,7 +194,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 // endpoint to the HTTP endpoint.
 // See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
 // Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
-func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
+func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.ResponseWriter, r *http.Request) {
 	if s.options.CollectMetrics {
 		uploadPipelineVersionRequests.Inc()
 	}
@@ -235,12 +260,15 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 
 	w.Header().Set("Content-Type", "application/json")
 	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
-	createdPipelineVersion := toApiPipelineVersionV1(newPipelineVersion)
-	if createdPipelineVersion == nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.NewInternalServerError(errors.New("Failed to convert internal pipeline version representation to its v1beta1 API counterpart"), "Failed to create a pipeline version due to error converting it to API"))
+	if api_version == "v1beta1" {
+		err = marshaler.Marshal(w, toApiPipelineVersionV1(newPipelineVersion))
+	} else if api_version == "v2beta1" {
+		err = marshaler.Marshal(w, toApiPipelineVersion(newPipelineVersion))
+	} else {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Invalid API version"))
 		return
 	}
-	err = marshaler.Marshal(w, createdPipelineVersion)
+
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version due to marshalling error"))
 		return
