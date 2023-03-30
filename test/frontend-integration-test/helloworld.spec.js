@@ -33,6 +33,11 @@ async function getValueFromDetailsTable(key) {
   return rowText.substr(`${key}\n`.length);
 }
 
+async function getparmValue(key) {
+  const rowText = await $(`id=newRunPipelineParam${key}`).$('..').getText();
+  return rowText.substr(`newRunPipelineParam${key}\n`.length);
+}
+
 describe('deploy helloworld sample run', () => {
   before(async () => {
     await browser.url('/');
@@ -113,7 +118,7 @@ describe('deploy helloworld sample run', () => {
     // Skip over "Run Type" radio button
     await browser.keys('Tab');
 
-    const paramVal = await getValueFromDetailsTable('message');
+    const paramVal = await getparmValue('0');
     const defaultParam = 'hello world';
     // console.log('Before editing the param');
     // console.log(paramVal);
