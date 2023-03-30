@@ -115,15 +115,15 @@ describe('deploy helloworld sample run', () => {
 
     const paramVal = await getValueFromDetailsTable('message');
     const defaultParam = 'hello world';
-    console.log('Before editing the param');
-    console.log(paramVal);
+    // console.log('Before editing the param');
+    // console.log(paramVal);
     assert.equal(paramVal, defaultParam, 'incorrect default input value');
 
     await browser.keys('Tab');
     await browser.keys(inputParameterValue);
 
-    console.log('After editing the param');
-    console.log(paramVal);
+    // console.log('After editing the param');
+    // console.log(paramVal);
     assert.equal(paramVal, inputParameterValue, 'incorrect updated input value');
 
 
