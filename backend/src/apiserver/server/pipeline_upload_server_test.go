@@ -45,36 +45,65 @@ const (
 func TestUploadPipeline(t *testing.T) {
 	// TODO(v2): when we add a field to distinguish between v1 and v2 template, verify it's in the response
 	tt := []struct {
-		name string
-		spec []byte
+		name        string
+		spec        []byte
+		api_version string
 	}{{
-		name: "upload argo workflow YAML",
-		spec: []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		name:        "upload argo workflow YAML",
+		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		api_version: "v1beta1",
 	}, {
-		name: "upload pipeline v2 job in proto yaml",
-		spec: []byte(v2SpecHelloWorld),
+		name:        "upload argo workflow YAML",
+		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		api_version: "v2beta1",
+	}, {
+		name:        "upload pipeline v2 job in proto yaml",
+		spec:        []byte(v2SpecHelloWorld),
+		api_version: "v1beta1",
+	}, {
+		name:        "upload pipeline v2 job in proto yaml",
+		spec:        []byte(v2SpecHelloWorld),
+		api_version: "v2beta1",
 	}}
 	for _, test := range tt {
 		t.Run(test.name, func(t *testing.T) {
 			clientManager, server := setupClientManagerAndServer()
 			bytesBuffer, writer := setupWriter("")
 			setWriterWithBuffer("uploadfile", "hello-world.yaml", string(test.spec), writer)
-			response := uploadPipeline("/apis/v1beta1/pipelines/upload",
-				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+			var response *httptest.ResponseRecorder
+			if test.api_version == "v1beta1" {
+				response = uploadPipeline("/apis/v1beta1/pipelines/upload",
+					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineV1)
+			} else if test.api_version == "v2beta1" {
+				response = uploadPipeline("/apis/v2beta1/pipelines/upload",
+					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+			}
+
 			if response.Code != 200 {
 				t.Fatalf("Upload response is not 200, message: %s", response.Body.String())
 			}
 
-			// Verify time format is RFC3339.
 			parsedResponse := struct {
-				CreatedAt      string `json:"created_at"`
-				DefaultVersion struct {
-					CreatedAt string `json:"created_at"`
-				} `json:"default_version"`
+				// v1 API only field
+				ID string `json:"id"`
+				// v2 API only field
+				PipelineID string `json:"pipeline_id"`
+				// v1 API and v2 API shared field
+				CreatedAt string `json:"created_at"`
 			}{}
 			json.Unmarshal(response.Body.Bytes(), &parsedResponse)
+
+			// Verify time format is RFC3339.
 			assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
-			assert.Equal(t, "1970-01-01T00:00:02Z", parsedResponse.DefaultVersion.CreatedAt)
+
+			// Verify v1 API returns v1 object while v2 API returns v2 object.
+			if test.api_version == "v1beta1" {
+				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.ID)
+				assert.Equal(t, "", parsedResponse.PipelineID)
+			} else if test.api_version == "v2beta1" {
+				assert.Equal(t, "", parsedResponse.ID)
+				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
+			}
 
 			// Verify stored in object store
 			objStore := clientManager.ObjectStore()
