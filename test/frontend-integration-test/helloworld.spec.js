@@ -34,7 +34,8 @@ async function getValueFromDetailsTable(key) {
 }
 
 async function getparmValue(key) {
-  const rowText = await $(`id=newRunPipelineParam${key}`).$('..').getText();
+  // const rowText = await $(`id=newRunPipelineParam${key}`).$('..').getText();
+  const rowText = browser.driver.findElement(by.id(`newRunPipelineParam${key}`));
   return rowText.substr(`newRunPipelineParam${key}\n`.length);
 }
 
