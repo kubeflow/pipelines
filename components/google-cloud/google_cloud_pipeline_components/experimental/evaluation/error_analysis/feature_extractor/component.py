@@ -33,13 +33,7 @@ def feature_extractor_error_analysis(
     preprocessed_test_dataset_storage_source: str,
     preprocessed_training_dataset_storage_source: str,
     location: str = 'us-central1',
-    dataflow_service_account: str = '',
-    dataflow_disk_size: int = 50,
-    dataflow_machine_type: str = 'n1-standard-8',
-    dataflow_workers_num: int = 1,
-    dataflow_max_workers_num: int = 5,
-    dataflow_subnetwork: str = '',
-    dataflow_use_public_ips: bool = True,
+    feature_extractor_machine_type: str = 'n1-standard-32',
     encryption_spec_key_name: str = '',
 ):
   """Extracts feature embeddings of a dataset.
@@ -60,26 +54,13 @@ def feature_extractor_error_analysis(
       preprocessed_training_dataset_storage_source (str): Required. Google Cloud
         Storage URI to preprocessed training dataset for Vision Error Analysis
         pipelines.
-      dataflow_service_account (Optional[str]): Optional. Service account to run
-        the dataflow job. If not set, dataflow will use the default woker
-        service account.  For more details, see
-        https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
-      dataflow_disk_size (Optional[int]): Optional. The disk size (in GB) of the
-        machine executing the evaluation run. If not set, defaulted to `50`.
-      dataflow_machine_type (Optional[str]): Optional. The machine type
-        executing the evaluation run. If not set, defaulted to `n1-standard-4`.
-      dataflow_workers_num (Optional[int]): Optional. The number of workers
-        executing the evaluation run. If not set, defaulted to `10`.
-      dataflow_max_workers_num (Optional[int]): Optional. The max number of
-        workers executing the evaluation run. If not set, defaulted to `25`.
-      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
-        name, when empty the default subnetwork will be used. More details:
-          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
-        workers use public IP addresses.
+      feature_extractor_machine_type (Optional[str]): The machine type executing
+        the Apache Beam pipeline using DirectRunner. If not set, defaulted to
+        `n1-standard-32`. More details:
+        https://cloud.google.com/compute/docs/machine-resource
       encryption_spec_key_name (Optional[str]): Customer-managed encryption key
-        for the Dataflow job. If this is set, then all resources created by the
-        Dataflow job will be encrypted with the provided encryption key.
+        options for the CustomJob. If this is set, then all resources created by
+        the CustomJob will be encrypted with the provided encryption key.
 
   Returns:
       embeddings_dir (str):
@@ -115,9 +96,11 @@ def feature_extractor_error_analysis(
               f' "feature-extractor-{PIPELINE_JOB_ID_PLACEHOLDER}',
               f'-{PIPELINE_TASK_ID_PLACEHOLDER}", ',
               '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
-              '", "machine_spec": {"machine_type": "n1-standard-4"},',
+              '", "machine_spec": {"machine_type": "',
+              feature_extractor_machine_type,
+              '"},',
               ' "container_spec": {"image_uri":"',
-              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230323_1221_RC00',
+              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230329_0621_RC00',
               '", "args": ["--project_id=',
               project,
               '", "--location=',
@@ -132,27 +115,13 @@ def feature_extractor_error_analysis(
               "{{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}",
               '", "--training_dataset_resource_name=',
               "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}",
-              '", "--dataflow_job_prefix=',
-              f'feature-extraction-{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
-              '", "--dataflow_service_account=',
-              dataflow_service_account,
-              '", "--dataflow_disk_size=',
-              dataflow_disk_size,
-              '", "--dataflow_machine_type=',
-              dataflow_machine_type,
-              '", "--dataflow_workers_num=',
-              dataflow_workers_num,
-              '", "--dataflow_max_workers_num=',
-              dataflow_max_workers_num,
-              '", "--dataflow_subnetwork=',
-              dataflow_subnetwork,
-              '", "--dataflow_use_public_ips=',
-              dataflow_use_public_ips,
-              '", "--kms_key_name=',
-              encryption_spec_key_name,
               '", "--embeddings_dir=',
               embeddings_dir,
-              '", "--executor_input={{$.json_escape[1]}}"]}}]}}',
+              '", "--executor_input={{$.json_escape[1]}}"]}}]}',
+              ', "encryption_spec": {"kms_key_name":"',
+              encryption_spec_key_name,
+              '"}',
+              '}',
           ]),
       ],
   )
