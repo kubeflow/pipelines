@@ -88,6 +88,35 @@ func TestCreatePipelineV1_YAML(t *testing.T) {
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
 
+func TestCreatePipelineV1_LargeFile(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, "default")
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
+		Pipeline: &api.Pipeline{
+			Url:         &api.Url{PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml"},
+			Name:        "xgboost-url",
+			Description: "pipeline description",
+		},
+	})
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pipeline)
+	assert.Equal(t, "xgboost-url", pipeline.Name)
+	newPipeline, err := resourceManager.GetPipeline(pipeline.Id)
+	assert.Nil(t, err)
+	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(pipeline.Id)
+	assert.Nil(t, err)
+	assert.NotNil(t, newPipeline)
+	assert.Equal(t, "pipeline description", newPipeline.Description)
+	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
+}
+
 func TestCreatePipelineV1_Tarball(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
