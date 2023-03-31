@@ -647,6 +647,28 @@ implementation:
             def my_pipeline(text: bool):
                 print_op()
 
+    def test_task_final_status_parameter_type_is_used(self):
+        # previously compiled to STRUCT type, so checking that this is updated
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.component
+        def exit_comp(status: dsl.PipelineTaskFinalStatus):
+            print(status)
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = exit_comp()
+            with dsl.ExitHandler(exit_task=exit_task):
+                identity(string='hi')
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-exit-comp']
+            .input_definitions.parameters['status'].parameter_type,
+            pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS)
+
     def test_compile_parallel_for_with_valid_parallelism(self):
 
         @dsl.component
