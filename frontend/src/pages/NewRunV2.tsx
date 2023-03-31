@@ -29,9 +29,7 @@ import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { ApiJob } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRelationship, ApiResourceReference, ApiResourceType } from 'src/apis/run';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -53,6 +51,7 @@ import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import ResourceSelector from './ResourceSelector';
 import PipelinesDialog from 'src/components/PipelinesDialog';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 const css = stylesheet({
   nonEditableInput: {
@@ -74,8 +73,8 @@ interface RunV2Props {
   namespace?: string;
   existingRunId: string | null;
   existingRun?: V2beta1Run;
-  originalRecurringRunId: string | null;
-  apiRecurringRun?: ApiJob;
+  existingRecurringRunId: string | null;
+  existingRecurringRun?: V2beta1RecurringRun;
   existingPipeline?: ApiPipeline;
   handlePipelineIdChange: (pipelineId: string) => void;
   existingPipelineVersion?: ApiPipelineVersion;
@@ -93,31 +92,17 @@ type CloneOrigin = {
   isClone: boolean;
   isRecurring: boolean;
   run?: V2beta1Run;
-  recurringRun?: ApiJob;
+  recurringRun?: V2beta1RecurringRun;
 };
 
-function getCloneOrigin(run?: V2beta1Run, apiRecurringRun?: ApiJob) {
+function getCloneOrigin(run?: V2beta1Run, recurringRun?: V2beta1RecurringRun) {
   let cloneOrigin: CloneOrigin = {
-    isClone: run !== undefined || apiRecurringRun !== undefined,
-    isRecurring: apiRecurringRun !== undefined,
+    isClone: run !== undefined || recurringRun !== undefined,
+    isRecurring: recurringRun !== undefined,
     run: run,
-    recurringRun: apiRecurringRun,
+    recurringRun: recurringRun,
   };
   return cloneOrigin;
-}
-
-function hasVersionID(cloneOrigin: CloneOrigin): boolean {
-  if (!cloneOrigin.isClone) {
-    return true;
-  }
-  let hasVersionType: boolean = false;
-  const existResourceRef = cloneOrigin.recurringRun?.resource_references;
-  if (existResourceRef) {
-    existResourceRef.forEach(value => {
-      hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
-    });
-  }
-  return hasVersionType;
 }
 
 function getPipelineDetailsUrl(
@@ -150,8 +135,8 @@ function NewRunV2(props: NewRunV2Props) {
   const {
     existingRunId,
     existingRun,
-    originalRecurringRunId,
-    apiRecurringRun,
+    existingRecurringRunId,
+    existingRecurringRun,
     existingPipeline,
     handlePipelineIdChange,
     existingPipelineVersion,
@@ -159,7 +144,7 @@ function NewRunV2(props: NewRunV2Props) {
     templateString,
     chosenExperiment,
   } = props;
-  const cloneOrigin = getCloneOrigin(existingRun, apiRecurringRun);
+  const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
@@ -193,19 +178,16 @@ function NewRunV2(props: NewRunV2Props) {
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
 
   const clonedRuntimeConfig = cloneOrigin.isRecurring
-    ? cloneOrigin.recurringRun?.pipeline_spec?.runtime_config
+    ? cloneOrigin.recurringRun?.runtime_config
     : cloneOrigin.run?.runtime_config;
   const urlParser = new URLParser(props);
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
-  const existResourceRef = cloneOrigin.recurringRun?.resource_references;
 
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';
-
-  // dummy test.
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -239,15 +221,15 @@ function NewRunV2(props: NewRunV2Props) {
     if (existingRun?.display_name) {
       const cloneRunName = 'Clone of ' + existingRun.display_name;
       setRunName(cloneRunName);
-    } else if (apiRecurringRun?.name) {
-      const cloneRecurringName = 'Clone of ' + apiRecurringRun.name;
+    } else if (existingRecurringRun?.display_name) {
+      const cloneRecurringName = 'Clone of ' + existingRecurringRun.display_name;
       setRunName(cloneRecurringName);
     } else if (existingPipelineVersion?.name) {
       const initRunName =
         'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
-  }, [existingRun, apiRecurringRun, existingPipelineVersion]);
+  }, [existingRun, existingRecurringRun, existingPipelineVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -297,31 +279,11 @@ function NewRunV2(props: NewRunV2Props) {
   const newRunMutation = useMutation((run: V2beta1Run) => {
     return Apis.runServiceApiV2.createRun(run);
   });
-  const newRecurringRunMutation = useMutation((apiJob: ApiJob) => {
-    return Apis.jobServiceApi.createJob(apiJob);
+  const newRecurringRunMutation = useMutation((recurringRun: V2beta1RecurringRun) => {
+    return Apis.recurringRunServiceApi.createRecurringRun(recurringRun);
   });
 
   const startRun = () => {
-    const references: ApiResourceReference[] = [];
-    if (apiExperiment) {
-      references.push({
-        key: {
-          id: apiExperiment.id,
-          type: ApiResourceType.EXPERIMENT,
-        },
-        relationship: ApiRelationship.OWNER,
-      });
-    }
-    if (existingPipelineVersion && hasVersionID(cloneOrigin)) {
-      references.push({
-        key: {
-          id: existingPipelineVersion.id,
-          type: ApiResourceType.PIPELINEVERSION,
-        },
-        relationship: ApiRelationship.CREATOR,
-      });
-    }
-
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
@@ -339,26 +301,22 @@ function NewRunV2(props: NewRunV2Props) {
       service_account: serviceAccount,
     };
 
-    let newRecurringRun: ApiJob = {
-      description: runDescription,
-      name: runName,
-      pipeline_spec: {
-        // FE can only provide either pipeline_manifest or pipeline version
-        pipeline_manifest: hasVersionID(cloneOrigin) ? undefined : templateString,
-        runtime_config: {
-          // TODO(zijianjoy): determine whether to provide pipeline root.
-          pipeline_root: undefined, // pipelineRoot,
-          parameters: runtimeParameters,
-        },
-      },
-      //TODO(jlyaoyuli): deprecate the resource reference and use pipeline / workflow manifest
-      resource_references: existResourceRef ? existResourceRef : references,
-      service_account: serviceAccount,
-      enabled: true,
-      max_concurrency: maxConcurrentRuns || '1',
-      no_catchup: !needCatchup,
-      trigger: trigger,
-    };
+    let newRecurringRun: V2beta1RecurringRun = Object.assign(
+      newRun,
+      isRecurringRun
+        ? {
+            max_concurrency: maxConcurrentRuns || '1',
+            no_catchup: !needCatchup,
+            status: V2beta1RecurringRunStatus.ENABLED,
+            trigger: trigger,
+          }
+        : {
+            max_concurrency: undefined,
+            no_catchup: undefined,
+            status: undefined,
+            trigger: undefined,
+          },
+    );
     setIsStartingNewRun(true);
 
     const runCreation = () =>
@@ -391,16 +349,19 @@ function NewRunV2(props: NewRunV2Props) {
       newRecurringRunMutation.mutate(newRecurringRun, {
         onSuccess: data => {
           setIsStartingNewRun(false);
-          if (data.id) {
+          if (data.recurring_run_id) {
             props.history.push(
-              RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, data.id),
+              RoutePage.RECURRING_RUN_DETAILS.replace(
+                ':' + RouteParams.recurringRunId,
+                data.recurring_run_id,
+              ),
             );
           } else {
             props.history.push(RoutePage.RECURRING_RUNS);
           }
 
           props.updateSnackbar({
-            message: `Successfully started new recurring Run: ${data.name}`,
+            message: `Successfully started new recurring Run: ${data.display_name}`,
             open: true,
           });
         },
@@ -437,7 +398,7 @@ function NewRunV2(props: NewRunV2Props) {
                     props,
                     cloneOrigin.isRecurring,
                     existingRunId,
-                    originalRecurringRunId,
+                    existingRecurringRunId,
                   )}
                 >
                   [View pipeline]
