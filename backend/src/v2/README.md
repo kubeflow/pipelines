@@ -56,17 +56,17 @@ Prerequisites:
 it should have the following content:
 
   ```makefile
-  DEV_IMAGE_PREFIX=<an container image registry prefix you own>
+  export DEV_IMAGE_PREFIX=<an container image registry prefix you own>
   ```
 
   For example:
 
   ```makefile
-  DEV_IMAGE_PREFIX?=gcr.io/ml-pipeline-test/dev/kfp-
+  export DEV_IMAGE_PREFIX=gcr.io/ml-pipeline-test/kfp-
   ```
 
   Then after images are built, they will be pushed to locations like
-  `gcr.io/ml-pipeline-test/dev/kfp-driver`.
+  `gcr.io/ml-pipeline-test/kfp-driver`.
 
   The `.env` file is ignored by git, it's your local development configuration.
 
