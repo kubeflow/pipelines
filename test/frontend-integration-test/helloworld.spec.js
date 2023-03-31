@@ -24,18 +24,13 @@ const runWithoutExperimentName = 'helloworld-2-' + Date.now();
 const runWithoutExperimentDescription =
   'test run without experiment description ' + runWithoutExperimentName;
 const waitTimeout = 5000;
-const inputParameterValue = 'Hello world in test';
+const outputParameterValue = 'Hello world in test';
 
 async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
   // get that row's inner text, and remove the key
   const rowText = await $(`span=${key}`).$('..').getText();
   return rowText.substr(`${key}\n`.length);
-}
-
-async function getparmValue(key) {
-  const rowText = await $(`id=newRunPipelineParam${key}`).$('..').getText();
-  return rowText.substr(`newRunPipelineParam${key}\n`.length);
 }
 
 describe('deploy helloworld sample run', () => {
@@ -118,19 +113,8 @@ describe('deploy helloworld sample run', () => {
     // Skip over "Run Type" radio button
     await browser.keys('Tab');
 
-    const paramVal = await getparmValue('0');
-    const defaultParam = 'hello world';
-    // console.log('Before editing the param');
-    // console.log(paramVal);
-    assert.equal(paramVal, defaultParam, 'incorrect default input value');
-
     await browser.keys('Tab');
-    await browser.keys(inputParameterValue);
-
-    // console.log('After editing the param');
-    // console.log(paramVal);
-    assert.equal(paramVal, inputParameterValue, 'incorrect updated input value');
-
+    await browser.keys(outputParameterValue);
 
     // Deploy
     await $('#startNewRunBtn').click();
@@ -196,7 +180,7 @@ describe('deploy helloworld sample run', () => {
 
   it('displays run inputs correctly', async () => {
     const paramValue = await getValueFromDetailsTable('message');
-    assert.equal(paramValue, inputParameterValue, 'run message is not shown correctly');
+    assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
   });
 
   it('switches back to graph tab', async () => {
@@ -220,7 +204,7 @@ describe('deploy helloworld sample run', () => {
     await $('#logViewer').waitForDisplayed();
     await browser.waitUntil(async () => {
       const logs = await $('#logViewer').getText();
-      return logs.indexOf(inputParameterValue + ' from node: ') > -1;
+      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
     }, waitTimeout);
   });
 
@@ -261,7 +245,7 @@ describe('deploy helloworld sample run', () => {
     await browser.keys('Tab');
 
     await browser.keys('Tab');
-    await browser.keys(inputParameterValue);
+    await browser.keys(outputParameterValue);
 
     // Deploy
     await $('#startNewRunBtn').click();

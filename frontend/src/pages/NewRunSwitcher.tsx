@@ -11,7 +11,6 @@ import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRunDetail } from 'src/apis/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
@@ -34,19 +33,7 @@ function NewRunSwitcher(props: PageProps) {
   );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
-  // Retrieve run details
-  const { isFetching: v1RunIsFetching, data: v1Run } = useQuery<ApiRunDetail, Error>(
-    ['v1_run_details', existingRunId],
-    () => {
-      if (!existingRunId) {
-        throw new Error('Run ID is missing');
-      }
-      return Apis.runServiceApi.getRun(existingRunId);
-    },
-    { enabled: !!existingRunId, staleTime: Infinity },
-  );
-
-  // Retrieve run details
+  // Retrieve v2 run details
   const { isSuccess: getV2RunSuccess, isFetching: v2RunIsFetching, data: v2Run } = useQuery<
     V2beta1Run,
     Error
@@ -77,7 +64,7 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!originalRecurringRunId, staleTime: Infinity },
   );
 
-  if (v1Run !== undefined && recurringRun !== undefined) {
+  if (v2Run !== undefined && recurringRun !== undefined) {
     throw new Error('The existence of run and recurring run should be exclusive.');
   }
 
@@ -105,14 +92,14 @@ function NewRunSwitcher(props: PageProps) {
   const pipelineVersionId =
     pipelineVersionIdParam ||
     apiPipeline?.default_version?.id ||
-    recurringRun?.pipeline_version_id ||
-    v2Run?.pipeline_version_id;
+    v2Run?.pipeline_version_id ||
+    recurringRun?.pipeline_version_id;
 
   const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
     ApiPipelineVersion,
     Error
   >(
-    ['ApiPipelineVersion', pipelineVersionId],
+    ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
     () => {
       if (!pipelineVersionId) {
         throw new Error('Pipeline Version ID is missing');
@@ -127,7 +114,7 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: pipelineTemplateStrIsFetching,
     data: templateStrFromPipelineId,
   } = useQuery<string, Error>(
-    ['ApiPipelineVersionTemplate', pipelineVersionId],
+    ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
     async () => {
       if (!pipelineVersionId) {
         return '';
@@ -179,7 +166,6 @@ function NewRunSwitcher(props: PageProps) {
   // Currently use NewRunV1 as default
   // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
   if (
-    v1RunIsFetching ||
     v2RunIsFetching ||
     recurringRunIsFetching ||
     pipelineIsFetching ||
