@@ -618,6 +618,14 @@ message PipelineInfo {
   // Required field. The name of the pipeline.
   // The name will be used to create or find pipeline context in MLMD.
   string name = 1;
+  
+  // Optional fields. The readable display name for the pipeline template.
+  // Should not exceed 1024 characters.
+  string display_name = 2;
+
+  // Optional fields. The readable description for the pipeline template.
+  // Should not exceed 1024 characters.
+  string description = 3;
 }
 
 // The definition of a artifact type in MLMD.
@@ -652,14 +660,6 @@ message ArtifactTypeSchema {
 message PipelineTaskInfo {
   // The display name of the task.
   string name = 1;
-
-  // Optional fields. The readable display name for the pipeline template.
-  // Should not exceed 1024 characters.
-  string display_name = 2;
-
-  // Optional fields. The readable description for the pipeline template.
-  // Should not exceed 1024 characters.
-  string description = 3;
 }
 
 // Definition for a value or reference to a runtime parameter. A
