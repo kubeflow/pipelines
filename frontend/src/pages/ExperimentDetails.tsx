@@ -36,6 +36,7 @@ import { logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 const css = stylesheet({
   card: {
@@ -319,15 +320,17 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       // Fetch this experiment's jobs
       try {
         // TODO: get ALL jobs in the experiment
-        const recurringRuns = await Apis.jobServiceApi.listJobs(
+        const recurringRuns = await Apis.recurringRunServiceApi.listRecurringRuns(
           undefined,
           100,
           '',
-          'EXPERIMENT',
+          undefined,
+          undefined,
           experimentId,
         );
-        activeRecurringRunsCount = (recurringRuns.jobs || []).filter(j => j.enabled === true)
-          .length;
+        activeRecurringRunsCount = (recurringRuns.recurringRuns || []).filter(
+          rr => rr.status === V2beta1RecurringRunStatus.ENABLED,
+        ).length;
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
