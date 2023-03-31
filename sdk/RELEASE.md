@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Support compiling primitive components with `dsl.PipelineTaskFinalStatus` input [\#9080](https://github.com/kubeflow/pipelines/pull/9080), [\#9082](https://github.com/kubeflow/pipelines/pull/9082)
 
 ## Breaking changes
 
