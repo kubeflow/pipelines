@@ -17,6 +17,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -1747,8 +1748,15 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 		runId := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
 		namespace := execSpec.ExecutionNamespace()
 		createdAt := execSpec.GetCreationTimestamp().Unix()
+		// Get sorted node names to make the results repeatable
+		nodeNames := make([]string, 0, len(execSpec.Status.Nodes))
+		for nodeName := range execSpec.Status.Nodes {
+			nodeNames = append(nodeNames, nodeName)
+		}
+		sort.Strings(nodeNames)
 		modelTasks := make([]*model.Task, 0)
-		for _, node := range execSpec.Status.Nodes {
+		for nodeName := range nodeNames {
+			node := execSpec.Status.Nodes[nodeName]
 			modelTask, err := toModelTask(node)
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to convert Argo workflow to tasks details")
