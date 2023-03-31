@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -48,7 +49,18 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		},
 		DAG: &wfapi.DAGTemplate{},
 	}
-	for taskName, kfpTask := range dagSpec.GetTasks() {
+	tasks := dagSpec.GetTasks()
+	// Iterate through tasks in deterministic order to facilitate testing.
+	// Note, order doesn't affect compiler with real effect right now.
+	// In the future, we may consider using topology sort when building local
+	// executor that runs on pipeline spec directly.
+	keys := make([]string, 0, len(tasks))
+	for key := range tasks {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, taskName := range keys {
+		kfpTask := dagSpec.GetTasks()[taskName]
 		if kfpTask.GetParameterIterator() != nil && kfpTask.GetArtifactIterator() != nil {
 			return fmt.Errorf("invalid task %q: parameterIterator and artifactIterator cannot be specified at the same time", taskName)
 		}
