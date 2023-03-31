@@ -17,7 +17,7 @@ import json
 import os
 from google_cloud_pipeline_components.experimental.bigquery import BigqueryQueryJobOp
 import kfp
-from kfp.v2 import compiler
+from kfp import compiler
 import unittest
 
 

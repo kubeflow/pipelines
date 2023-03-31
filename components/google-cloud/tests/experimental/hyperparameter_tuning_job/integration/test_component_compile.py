@@ -19,7 +19,7 @@ import os
 from google.cloud.aiplatform import hyperparameter_tuning as hpt
 from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import HyperparameterTuningJobRunOp, serialize_parameters, serialize_metrics
 import kfp
-from kfp.v2 import compiler
+from kfp import compiler
 
 import unittest
 
