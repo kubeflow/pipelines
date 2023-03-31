@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Core modules for AI Platform Pipeline Components."""
-
+print('trigger test')
 import os
 
 from . import component as batch_predict_job_component
