@@ -31,23 +31,25 @@ import {
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
-import { Workflow } from '../third_party/mlmd/argo_template';
-import { ApiExperiment } from '../apis/experiment';
-import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
-import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { commonCss, padding } from '../Css';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
-import RunUtils from '../lib/RunUtils';
-import * as StaticGraphParser from '../lib/StaticGraphParser';
-import { compareGraphEdges, transitiveReduction } from '../lib/StaticGraphParser';
-import { URLParser } from '../lib/URLParser';
-import { logger } from '../lib/Utils';
+import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { ApiExperiment } from 'src/apis/experiment';
+import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
+import { commonCss, padding } from 'src/Css';
+import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import RunUtils from 'src/lib/RunUtils';
+import * as StaticGraphParser from 'src/lib/StaticGraphParser';
+import { compareGraphEdges, transitiveReduction } from 'src/lib/StaticGraphParser';
+import { URLParser } from 'src/lib/URLParser';
+import { logger } from 'src/lib/Utils';
 import { Page } from './Page';
 import PipelineDetailsV1 from './PipelineDetailsV1';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 import { ApiRunDetail } from 'src/apis/run';
 import { ApiJob } from 'src/apis/job';
+import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
@@ -65,8 +67,10 @@ type Origin = {
   isRecurring: boolean;
   runId: string | null;
   recurringRunId: string | null;
-  run?: ApiRunDetail;
-  recurringRun?: ApiJob;
+  v1Run?: ApiRunDetail;
+  v2Run?: V2beta1Run;
+  v1RecurringRun?: ApiJob;
+  v2RecurringRun?: V2beta1RecurringRun;
 };
 
 class PipelineDetails extends Page<{}, PipelineDetailsState> {
@@ -218,6 +222,26 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return fromRunId || fromRecurringRunId ? origin : undefined;
   }
 
+  private async getTempStrFromRunOrRecurringRun(existingObj: V2beta1Run | V2beta1RecurringRun) {
+    // existing run or recurring run have two kinds of resources that can provide template string
+
+    // 1. Pipeline version id
+    const pipelineVersionId = existingObj.pipeline_version_id;
+    let templateStrFromOrigin: string | undefined;
+    if (pipelineVersionId) {
+      const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
+      templateStrFromOrigin = response.template || '';
+    }
+
+    // 2. Pipeline_spec
+    let pipelineManifest: string | undefined;
+    if (existingObj.pipeline_spec) {
+      pipelineManifest = JsYaml.safeDump(existingObj.pipeline_spec);
+    }
+
+    return pipelineManifest ?? templateStrFromOrigin;
+  }
+
   public async load(): Promise<void> {
     this.clearBanner();
     const origin = this.getOrigin();
@@ -235,24 +259,35 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     if (origin) {
       const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
+        // TODO(jlyaoyuli): change to v2 API after v1 is deprecated
+        // Note: v2 getRecurringRun() api can retrieve v1 job
+        // (ApiParameter can be only retrieve in the response of v1 getJob() api)
+        // Experiment ID and pipeline version id are preserved.
         if (origin.isRecurring) {
-          origin.recurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
+          origin.v1RecurringRun = await Apis.jobServiceApi.getJob(origin.recurringRunId!);
+          origin.v2RecurringRun = await Apis.recurringRunServiceApi.getRecurringRun(
+            origin.recurringRunId!,
+          );
         } else {
-          origin.run = await Apis.runServiceApi.getRun(origin.runId!);
+          origin.v1Run = await Apis.runServiceApi.getRun(origin.runId!);
+          origin.v2Run = await Apis.runServiceApiV2.getRun(origin.runId!);
         }
-        const pipelineManifest = origin.isRecurring
-          ? origin.recurringRun!.pipeline_spec?.pipeline_manifest
-          : origin.run!.run?.pipeline_spec?.pipeline_manifest;
+
+        // If v2 run or recurring is existing, get template string from it
+        const templateStrFromOrigin = origin.isRecurring
+          ? await this.getTempStrFromRunOrRecurringRun(origin.v2RecurringRun!)
+          : await this.getTempStrFromRunOrRecurringRun(origin.v2Run!);
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
-        // V2: Use the pipeline spec string directly because it can be translated in JSON format.
-        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && pipelineManifest) {
-          templateString = pipelineManifest;
+        // V2: Directly Use the template string from existing run or recurring run
+        // because it can be translated in JSON format.
+        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && templateStrFromOrigin) {
+          templateString = templateStrFromOrigin;
         } else {
           try {
             const workflowManifestString =
               RunUtils.getWorkflowManifest(
-                origin.isRecurring ? origin.recurringRun : origin.run!.run,
+                origin.isRecurring ? origin.v1RecurringRun : origin.v1Run!.run,
               ) || '';
             const workflowManifest = JSON.parse(workflowManifestString || '{}');
             try {
@@ -262,13 +297,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             } catch (err) {
               await this.showPageError(
                 `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
-                  origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                  origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
                 }.`,
                 err,
               );
               logger.error(
                 `Failed to convert pipeline spec YAML from ${msgRunOrRecurringRun} with ID: ${
-                  origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                  origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
                 }.`,
                 err,
               );
@@ -276,22 +311,25 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           } catch (err) {
             await this.showPageError(
               `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
-                origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
               }.`,
               err,
             );
             logger.error(
               `Failed to parse pipeline spec JSON from ${msgRunOrRecurringRun} with ID: ${
-                origin.isRecurring ? origin.recurringRun!.id : origin.run!.run!.id
+                origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
               }.`,
               err,
             );
           }
         }
 
-        const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(
-          origin.isRecurring ? origin.recurringRun : origin.run!.run,
-        );
+        // We have 2 options to get experiment id (resource_ref in v1, experiment_id in v2)
+        // and use it to getExperiment().
+        // We choose v2 to make the API integration more comprehensively.
+        const relatedExperimentId = origin.isRecurring
+          ? origin.v2RecurringRun?.experiment_id
+          : origin.v2Run?.experiment_id;
         let experiment: ApiExperiment | undefined;
         if (relatedExperimentId) {
           experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
@@ -316,7 +354,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           });
         }
         breadcrumbs.push({
-          displayName: origin.isRecurring ? origin.recurringRun!.name! : origin.run!.run!.name!,
+          displayName: origin.isRecurring
+            ? origin.v2RecurringRun!.display_name!
+            : origin.v2Run!.display_name!,
           href: origin.isRecurring
             ? RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,
