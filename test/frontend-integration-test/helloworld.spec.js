@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+driver = webdriver.Chrome(`./chromedriver`);
+
 const assert = require('assert');
 const URL = require('url').URL;
 
@@ -35,7 +37,7 @@ async function getValueFromDetailsTable(key) {
 
 async function getparmValue(key) {
   // const rowText = await $(`id=newRunPipelineParam${key}`).$('..').getText();
-  const rowText = browser.driver.findElement(by.id(`newRunPipelineParam${key}`));
+  const rowText = browser.driver.find_element_by_id(`newRunPipelineParam${key}`);
   return rowText.substr(`newRunPipelineParam${key}\n`.length);
 }
 
