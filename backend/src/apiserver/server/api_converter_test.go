@@ -179,22 +179,19 @@ func TestToModelPipeline(t *testing.T) {
 			&apiv1beta1.Pipeline{
 				Name:        "p1",
 				Description: "This is a pipeline1",
-				CreatedAt:   &timestamp.Timestamp{Seconds: 2},
 			},
 			false,
 			"",
 			&model.Pipeline{
-				Name:           "p1",
-				Description:    "This is a pipeline1",
-				Status:         "READY",
-				CreatedAtInSec: 2,
+				Name:        "p1",
+				Description: "This is a pipeline1",
+				Status:      model.PipelineCreating,
 			},
 		},
 		{
 			"Invalid resource reference v1",
 			&apiv1beta1.Pipeline{
 				Name:        "p2",
-				Id:          "123",
 				Description: "This is a pipeline2",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
@@ -206,10 +203,9 @@ func TestToModelPipeline(t *testing.T) {
 			false,
 			"",
 			&model.Pipeline{
-				UUID:        "123",
 				Name:        "p2",
 				Description: "This is a pipeline2",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 			},
 		},
 		{
@@ -229,7 +225,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "p3",
 				Description: "This is a pipeline3",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
 			},
 		},
@@ -250,7 +246,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "p4",
 				Description: "This is a pipeline4",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
 			},
 		},
@@ -271,7 +267,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "p5",
 				Description: "This is a pipeline5",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "",
 			},
 		},
@@ -281,18 +277,14 @@ func TestToModelPipeline(t *testing.T) {
 				DisplayName: "p6",
 				Description: "This is a pipeline6",
 				Namespace:   "",
-				PipelineId:  "222",
-				CreatedAt:   &timestamp.Timestamp{Seconds: 123},
 			},
 			false,
 			"",
 			&model.Pipeline{
-				UUID:           "222",
-				Name:           "p6",
-				Description:    "This is a pipeline6",
-				Status:         "READY",
-				Namespace:      "",
-				CreatedAtInSec: 123,
+				Name:        "p6",
+				Description: "This is a pipeline6",
+				Status:      model.PipelineCreating,
+				Namespace:   "",
 			},
 		},
 		{
@@ -301,16 +293,14 @@ func TestToModelPipeline(t *testing.T) {
 				DisplayName: "p7",
 				Description: "This is a pipeline7",
 				Namespace:   "ns2",
-				PipelineId:  "333",
 				Error:       &status.Status{Message: "test error"},
 			},
 			false,
 			"",
 			&model.Pipeline{
-				UUID:        "333",
 				Name:        "p7",
 				Description: "This is a pipeline7",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns2",
 			},
 		},
@@ -326,7 +316,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "",
 				Description: "This is a pipeline8",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns3",
 			},
 		},
@@ -680,10 +670,6 @@ func TestToModelRunMetric(t *testing.T) {
 }
 
 func TestToModelPipelineVersion(t *testing.T) {
-	wrongParams := make([]*apiv1beta1.Parameter, 10000)
-	for i := 0; i < 10000; i++ {
-		wrongParams[i] = &apiv1beta1.Parameter{Name: "param2", Value: "world"}
-	}
 	tests := []struct {
 		name                    string
 		pipeline                interface{}
@@ -694,9 +680,9 @@ func TestToModelPipelineVersion(t *testing.T) {
 		{
 			"happy version v1",
 			&apiv1beta1.PipelineVersion{
-				Id:            "pipelineversion1",
-				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-				Parameters:    []*apiv1beta1.Parameter{},
+				PackageUrl: &apiv1beta1.Url{
+					PipelineUrl: "http://package/11111",
+				},
 				CodeSourceUrl: "http://repo/11111",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
@@ -709,22 +695,20 @@ func TestToModelPipelineVersion(t *testing.T) {
 				},
 			},
 			&model.PipelineVersion{
-				UUID:           "pipelineversion1",
-				CreatedAtInSec: 1,
-				Parameters:     "",
-				PipelineId:     "pipeline1",
-				CodeSourceUrl:  "http://repo/11111",
-				Status:         model.PipelineVersionReady,
+				PipelineId:      "pipeline1",
+				PipelineSpecURI: "http://package/11111",
+				CodeSourceUrl:   "http://repo/11111",
+				Status:          model.PipelineVersionCreating,
 			},
 			false,
 			"",
 		},
 		{
-			"wrong parameters v1",
+			"missing pipeline url v1",
 			&apiv1beta1.PipelineVersion{
-				Id:            "pipelineversion1",
-				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-				Parameters:    wrongParams,
+				PackageUrl: &apiv1beta1.Url{
+					PipelineUrl: "",
+				},
 				CodeSourceUrl: "http://repo/11111",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
@@ -738,124 +722,38 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			nil,
 			true,
-			"Failed to convert v1beta1 API pipeline version to its internal representation due to conversion error of the parameters",
-		},
-		{
-			"happy pipeline v1",
-			&apiv1beta1.Pipeline{
-				Id: "pipeline1",
-				Parameters: []*apiv1beta1.Parameter{
-					{
-						Name:  "param1",
-						Value: "value1",
-					},
-				},
-				Url: &apiv1beta1.Url{PipelineUrl: "http://repo/2222"},
-				DefaultVersion: &apiv1beta1.PipelineVersion{
-					Id:        "pipelineversion1",
-					CreatedAt: &timestamp.Timestamp{Seconds: 1},
-					ResourceReferences: []*apiv1beta1.ResourceReference{
-						{
-							Key: &apiv1beta1.ResourceKey{
-								Id:   "pipeline2",
-								Type: apiv1beta1.ResourceType_PIPELINE,
-							},
-							Relationship: apiv1beta1.Relationship_OWNER,
-						},
-					},
-					Parameters: []*apiv1beta1.Parameter{
-						{
-							Name:  "param2",
-							Value: "value2",
-						},
-					},
-				},
-			},
-			&model.PipelineVersion{
-				UUID:           "pipelineversion1",
-				CreatedAtInSec: 1,
-				Parameters:     `[{"name":"param2","value":"value2"}]`,
-				PipelineId:     "pipeline1",
-				CodeSourceUrl:  "http://repo/2222",
-				Status:         model.PipelineVersionReady,
-			},
-			false,
-			"",
-		},
-		{
-			"happy pipeline v1",
-			&apiv1beta1.Pipeline{
-				Parameters: []*apiv1beta1.Parameter{
-					{
-						Name:  "param1",
-						Value: "value1",
-					},
-				},
-				DefaultVersion: &apiv1beta1.PipelineVersion{
-					Id:         "version2",
-					CreatedAt:  &timestamp.Timestamp{Seconds: 1},
-					PackageUrl: &apiv1beta1.Url{PipelineUrl: "http://repo/11111"},
-					ResourceReferences: []*apiv1beta1.ResourceReference{
-						{
-							Key: &apiv1beta1.ResourceKey{
-								Id:   "pipeline2",
-								Type: apiv1beta1.ResourceType_PIPELINE,
-							},
-							Relationship: apiv1beta1.Relationship_OWNER,
-						},
-					},
-				},
-			},
-			&model.PipelineVersion{
-				UUID:           "version2",
-				CreatedAtInSec: 1,
-				Parameters:     `[{"name":"param1","value":"value1"}]`,
-				PipelineId:     "pipeline2",
-				CodeSourceUrl:  "http://repo/11111",
-				Status:         model.PipelineVersionReady,
-			},
-			false,
-			"",
+			"Invalid input error: Failed to convert v1beta1 API pipeline version to its internal representation due to missing pipeline URL",
 		},
 		{
 			"happy pipeline version v2",
 			&apiv2beta1.PipelineVersion{
-				PipelineVersionId: "pv1",
-				CreatedAt:         &timestamppb.Timestamp{Seconds: 2},
-				DisplayName:       "Version 2 v2beta1",
-				PipelineId:        "pipeline 333",
-				PackageUrl:        &apiv2beta1.Url{PipelineUrl: "http://repo/3333"},
-				Description:       "This is pipeline version 333",
-				PipelineSpec:      &structpb.Struct{Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "PipelineVersion222"}}}},
+				DisplayName:   "Version 2 v2beta1",
+				PipelineId:    "pipeline 333",
+				PackageUrl:    &apiv2beta1.Url{PipelineUrl: "http://package/3333"},
+				CodeSourceUrl: "http://repo/3333",
+				Description:   "This is pipeline version 333",
 			},
 			&model.PipelineVersion{
-				UUID:           "pv1",
-				CreatedAtInSec: 2,
-				Name:           "Version 2 v2beta1",
-				Parameters:     "",
-				PipelineId:     "pipeline 333",
-				CodeSourceUrl:  "http://repo/3333",
-				Description:    "This is pipeline version 333",
-				PipelineSpec:   "name: PipelineVersion222\n",
-				Status:         model.PipelineVersionReady,
+				Name:            "Version 2 v2beta1",
+				PipelineId:      "pipeline 333",
+				PipelineSpecURI: "http://package/3333",
+				CodeSourceUrl:   "http://repo/3333",
+				Description:     "This is pipeline version 333",
+				Status:          model.PipelineVersionCreating,
 			},
 			false,
 			"",
 		},
 		{
-			"happy pipeline version v2",
+			"missing package Url v2",
 			&apiv2beta1.PipelineVersion{
-				PipelineVersionId: "pv1",
-				CreatedAt:         &timestamppb.Timestamp{Seconds: 2},
-				DisplayName:       "Version 2 v2beta1",
-				PipelineId:        "pipeline 333",
-				PackageUrl:        &apiv2beta1.Url{PipelineUrl: "http://repo/3333"},
-				Description:       "This is pipeline version 333",
-				PipelineSpec:      &structpb.Struct{Fields: map[string]*structpb.Value{"name": {Kind: nil}}},
+				DisplayName: "Version 2 v2beta1",
+				PipelineId:  "pipeline 333",
+				Description: "This is pipeline version 333",
 			},
 			nil,
 			true,
-			"Failed to convert API pipeline version to internal pipeline version representation due to pipeline spec conversion error",
+			"Invalid input error: Failed to convert v2beta1 API pipeline version to its internal representation due to missing pipeline URL",
 		},
 	}
 	for _, tt := range tests {
