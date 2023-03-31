@@ -532,9 +532,13 @@
           "$ref": "#/definitions/v2beta1Url",
           "description": "Required input field. Pipeline version package url.\nWhen calling CreatePipelineVersion, one needs to provide \none package file location."
         },
+        "code_source_url": {
+          "type": "string",
+          "description": "Optional input field. Pipeline version code source URL."
+        },
         "pipeline_spec": {
           "type": "object",
-          "description": "Required input field. Specifies the pipeline spec for the pipeline version."
+          "description": "Output. The pipeline spec for the pipeline version."
         },
         "error": {
           "$ref": "#/definitions/googlerpcStatus",

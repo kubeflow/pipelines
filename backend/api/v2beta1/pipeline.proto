@@ -173,7 +173,10 @@ message PipelineVersion {
   // one package file location.
   Url package_url = 6;
 
-  // Required input field. Specifies the pipeline spec for the pipeline version.
+  // Optional input field. Pipeline version code source URL.
+  string code_source_url = 9;
+
+  // Output. The pipeline spec for the pipeline version.
   google.protobuf.Struct pipeline_spec = 7;
     
   // In case any error happens retrieving a pipeline version field, only
