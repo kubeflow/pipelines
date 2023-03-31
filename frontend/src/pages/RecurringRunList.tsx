@@ -15,19 +15,23 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
-import RunUtils, { ExperimentInfo } from '../../src/lib/RunUtils';
-import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
+import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
+import { ExperimentInfo } from 'src/lib/RunUtils';
+import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
-import { RoutePage, RouteParams } from '../components/Router';
-import { commonCss, color } from '../Css';
-import { formatDateString, errorToMessage } from '../lib/Utils';
+import { RoutePage, RouteParams } from 'src/components/Router';
+import { commonCss, color } from 'src/Css';
+import { formatDateString, errorToMessage } from 'src/lib/Utils';
 import Tooltip from '@material-ui/core/Tooltip';
-import { ApiJob, ApiTrigger } from '../apis/job';
+import {
+  V2beta1RecurringRun,
+  V2beta1RecurringRunStatus,
+  V2beta1Trigger,
+} from 'src/apisv2beta1/recurringrun';
 
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;
-  job: ApiJob;
+  recurringRun: V2beta1RecurringRun;
   error?: string;
 }
 
@@ -97,12 +101,12 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     const rows: Row[] = this.state.recurringRuns.map(j => {
       const row = {
         error: j.error,
-        id: j.job.id!,
+        id: j.recurringRun.recurring_run_id!,
         otherFields: [
-          j.job!.name,
-          j.job.status,
-          j.job.trigger,
-          formatDateString(j.job.created_at),
+          j.recurringRun!.display_name,
+          j.recurringRun.status,
+          j.recurringRun.trigger,
+          formatDateString(j.recurringRun.created_at),
         ] as any,
       };
       if (!this.props.hideExperimentColumn) {
@@ -182,8 +186,8 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     );
   };
 
-  public _triggerCustomRenderer: React.FC<CustomRendererProps<ApiTrigger>> = (
-    props: CustomRendererProps<ApiTrigger>,
+  public _triggerCustomRenderer: React.FC<CustomRendererProps<V2beta1Trigger>> = (
+    props: CustomRendererProps<V2beta1Trigger>,
   ) => {
     if (props.value?.cron_schedule) {
       return <div>Cron: {props.value.cron_schedule.cron}</div>;
@@ -207,16 +211,16 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     return <div>-</div>;
   };
 
-  public _statusCustomRenderer: React.FC<CustomRendererProps<string>> = (
-    props: CustomRendererProps<string>,
+  public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
+    props: CustomRendererProps<V2beta1RecurringRunStatus>,
   ) => {
     if (!props.value) {
       return <div>-</div>;
     }
     const textColor =
-      props.value === 'Enabled'
+      props.value === V2beta1RecurringRunStatus.ENABLED
         ? color.success
-        : props.value === 'Disabled'
+        : props.value === V2beta1RecurringRunStatus.DISABLED
         ? color.inactive
         : color.errorText;
     return <div style={{ color: textColor }}>{props.value}</div>;
@@ -227,42 +231,29 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     let nextPageToken = '';
 
     if (Array.isArray(this.props.recurringRunIdListMask)) {
-      displayRecurringRuns = this.props.recurringRunIdListMask.map(id => ({ job: { id } }));
-      // listJobs doesn't currently support batching by IDs, so in this case we
-      // retrieve each job individually.
-      await this._getAndSetJobs(displayRecurringRuns);
+      displayRecurringRuns = this.props.recurringRunIdListMask.map(id => ({
+        recurringRun: { recurring_run_id: id },
+      }));
+      // listRecurringRuns doesn't currently support batching by IDs, so in this case we
+      // retrieve each recurring run individually.
+      await this._getAndSetRecurringRuns(displayRecurringRuns);
     } else {
       try {
-        let resourceReference: {
-          keyType?: 'EXPERIMENT' | 'NAMESPACE';
-          keyId?: string;
-        } = {};
-        if (this.props.experimentIdMask) {
-          resourceReference = {
-            keyType: 'EXPERIMENT',
-            keyId: this.props.experimentIdMask,
-          };
-        } else if (this.props.namespaceMask) {
-          resourceReference = {
-            keyType: 'NAMESPACE',
-            keyId: this.props.namespaceMask,
-          };
-        }
-        const response = await Apis.jobServiceApi.listJobs(
+        const response = await Apis.recurringRunServiceApi.listRecurringRuns(
           request.pageToken,
           request.pageSize,
           request.sortBy,
-          resourceReference.keyType,
-          resourceReference.keyId,
+          this.props.namespaceMask,
           request.filter,
+          this.props.experimentIdMask,
         );
 
-        displayRecurringRuns = (response.jobs || []).map(j => ({ job: j }));
+        displayRecurringRuns = (response.recurringRuns || []).map(rr => ({ recurringRun: rr }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
         this.props.onError('Error: failed to fetch recurring runs.', error);
-        // No point in continuing if we couldn't retrieve any jobs.
+        // No point in continuing if we couldn't retrieve any recurring runs.
         return '';
       }
     }
@@ -275,29 +266,34 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     return nextPageToken;
   }
 
-  private async _setColumns(displayJobs: DisplayRecurringRun[]): Promise<DisplayRecurringRun[]> {
+  private async _setColumns(
+    displayRecurringRuns: DisplayRecurringRun[],
+  ): Promise<DisplayRecurringRun[]> {
     return Promise.all(
-      displayJobs.map(async displayJob => {
+      displayRecurringRuns.map(async displayRecurringRun => {
         if (!this.props.hideExperimentColumn) {
-          await this._getAndSetExperimentNames(displayJob);
+          await this._getAndSetExperimentNames(displayRecurringRun);
         }
-        return displayJob;
+        return displayRecurringRun;
       }),
     );
   }
 
   /**
-   * For each job ID, fetch its corresponding job, and set it in DisplayJobs
+   * For each recurring run ID, fetch its corresponding recurring run,
+   * and set it in DisplayRecurringRuns
    */
-  private _getAndSetJobs(
+  private _getAndSetRecurringRuns(
     displayRecurringRuns: DisplayRecurringRun[],
   ): Promise<DisplayRecurringRun[]> {
     return Promise.all(
       displayRecurringRuns.map(async displayRecurringRun => {
-        let getJobResponse: ApiJob;
+        let getRecurringRunResponse: V2beta1RecurringRun;
         try {
-          getJobResponse = await Apis.jobServiceApi.getJob(displayRecurringRun.job!.id!);
-          displayRecurringRun.job = getJobResponse!;
+          getRecurringRunResponse = await Apis.recurringRunServiceApi.getRecurringRun(
+            displayRecurringRun.recurringRun!.recurring_run_id!,
+          );
+          displayRecurringRun.recurringRun = getRecurringRunResponse!;
         } catch (err) {
           displayRecurringRun.error = await errorToMessage(err);
         }
@@ -307,24 +303,22 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
   }
 
   /**
-   * For the given DisplayRecurringRun, get its ApiJob and retrieve that ApiJob's Experiment ID if it has
-   * one, then use that Experiment ID to fetch its associated Experiment and attach that
-   * Experiment's name to the DisplayRecurringRun. If the ApiJob has no Experiment ID, then the corresponding
-   * DisplayRecurringRun will show '-'.
+   * For the given DisplayRecurringRun, get its recurring run and retrieve the Experiment ID
+   * if it has one, then use that Experiment ID to fetch its associated Experiment and attach
+   * that Experiment's name to the DisplayRecurringRun. If the recurring run has no Experiment ID,
+   * then the corresponding DisplayRecurringRun will show '-'.
    */
   private async _getAndSetExperimentNames(displayRecurringRun: DisplayRecurringRun): Promise<void> {
-    const experimentId = RunUtils.getFirstExperimentReferenceId(displayRecurringRun.job);
+    const experimentId = displayRecurringRun.recurringRun.experiment_id;
     if (experimentId) {
-      let experimentName = RunUtils.getFirstExperimentReferenceName(displayRecurringRun.job);
-      if (!experimentName) {
-        try {
-          const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-          experimentName = experiment.name || '';
-        } catch (err) {
-          displayRecurringRun.error =
-            'Failed to get associated experiment: ' + (await errorToMessage(err));
-          return;
-        }
+      let experimentName;
+      try {
+        const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+        experimentName = experiment.name || '';
+      } catch (err) {
+        displayRecurringRun.error =
+          'Failed to get associated experiment: ' + (await errorToMessage(err));
+        return;
       }
       displayRecurringRun.experiment = {
         displayName: experimentName,
