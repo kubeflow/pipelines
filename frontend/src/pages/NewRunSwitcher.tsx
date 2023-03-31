@@ -99,7 +99,7 @@ function NewRunSwitcher(props: PageProps) {
     ApiPipelineVersion,
     Error
   >(
-    ['ApiPipelineVersion', pipelineVersionId],
+    ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
     () => {
       if (!pipelineVersionId) {
         throw new Error('Pipeline Version ID is missing');
@@ -114,7 +114,7 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: pipelineTemplateStrIsFetching,
     data: templateStrFromPipelineId,
   } = useQuery<string, Error>(
-    ['ApiPipelineVersionTemplate', pipelineVersionId],
+    ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
     async () => {
       if (!pipelineVersionId) {
         return '';
