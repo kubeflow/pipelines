@@ -15,11 +15,11 @@
  */
 
 import * as React from 'react';
-import TestUtils from '../TestUtils';
-import { ListRequest, Apis } from '../lib/Apis';
+import TestUtils from 'src/TestUtils';
+import { ListRequest, Apis } from 'src/lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import RecurringRunsManager, { RecurringRunListProps } from './RecurringRunsManager';
-import { ApiJob, ApiResourceType } from '../apis/job';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 describe('RecurringRunsManager', () => {
   class TestRecurringRunsManager extends RecurringRunsManager {
@@ -35,28 +35,29 @@ describe('RecurringRunsManager', () => {
 
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
-  const listJobsSpy = jest.spyOn(Apis.jobServiceApi, 'listJobs');
-  const enableJobSpy = jest.spyOn(Apis.jobServiceApi, 'enableJob');
-  const disableJobSpy = jest.spyOn(Apis.jobServiceApi, 'disableJob');
+  const listRecurringRunsSpy = jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
+  const enableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
+  const disableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun');
   jest.spyOn(console, 'error').mockImplementation();
 
-  const JOBS: ApiJob[] = [
+  const RECURRINGRUNS: V2beta1RecurringRun[] = [
     {
       created_at: new Date(2018, 10, 9, 8, 7, 6),
-      enabled: true,
-      id: 'job1',
-      name: 'test recurring run name',
+      display_name: 'test recurring run name',
+      recurring_run_id: 'recurringrun1',
+      status: V2beta1RecurringRunStatus.ENABLED,
     },
     {
       created_at: new Date(2018, 10, 9, 8, 7, 6),
-      enabled: false,
-      id: 'job2',
-      name: 'test recurring run name2',
+      display_name: 'test recurring run name2',
+      recurring_run_id: 'recurringrun2',
+      status: V2beta1RecurringRunStatus.DISABLED,
     },
     {
       created_at: new Date(2018, 10, 9, 8, 7, 6),
-      id: 'job3',
-      name: 'test recurring run name3',
+      display_name: 'test recurring run name3',
+      recurring_run_id: 'recurringrun3',
+      status: V2beta1RecurringRunStatus.STATUSUNSPECIFIED,
     },
   ];
 
@@ -72,10 +73,10 @@ describe('RecurringRunsManager', () => {
   }
 
   beforeEach(() => {
-    listJobsSpy.mockReset();
-    listJobsSpy.mockImplementation(() => ({ jobs: JOBS }));
-    enableJobSpy.mockReset();
-    disableJobSpy.mockReset();
+    listRecurringRunsSpy.mockReset();
+    listRecurringRunsSpy.mockImplementation(() => ({ recurringRuns: RECURRINGRUNS }));
+    enableRecurringRunSpy.mockReset();
+    disableRecurringRunSpy.mockReset();
     updateDialogSpy.mockReset();
     updateSnackbarSpy.mockReset();
   });
@@ -85,25 +86,25 @@ describe('RecurringRunsManager', () => {
   it('calls API to load recurring runs', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._loadRuns({});
-    expect(listJobsSpy).toHaveBeenCalledTimes(1);
-    expect(listJobsSpy).toHaveBeenLastCalledWith(
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
+    expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
-      ApiResourceType.EXPERIMENT,
+      undefined,
+      undefined,
       'test-experiment',
-      undefined,
     );
-    expect(tree.state('runs')).toEqual(JOBS);
+    expect(tree.state('runs')).toEqual(RECURRINGRUNS);
     expect(tree).toMatchSnapshot();
   });
 
   it('shows error dialog if listing fails', async () => {
-    TestUtils.makeErrorResponseOnce(listJobsSpy, 'woops!');
+    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy, 'woops!');
     jest.spyOn(console, 'error').mockImplementation();
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._loadRuns({});
-    expect(listJobsSpy).toHaveBeenCalledTimes(1);
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content: 'List recurring run configs request failed with:\nwoops!',
@@ -116,20 +117,20 @@ describe('RecurringRunsManager', () => {
   it('calls API to enable run', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
-    expect(enableJobSpy).toHaveBeenCalledTimes(1);
-    expect(enableJobSpy).toHaveBeenLastCalledWith('test-run');
+    expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
+    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('test-run');
   });
 
   it('calls API to disable run', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
-    expect(disableJobSpy).toHaveBeenCalledTimes(1);
-    expect(disableJobSpy).toHaveBeenLastCalledWith('test-run');
+    expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
+    expect(disableRecurringRunSpy).toHaveBeenLastCalledWith('test-run');
   });
 
   it('shows error if enable API call fails', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    TestUtils.makeErrorResponseOnce(enableJobSpy, 'cannot enable');
+    TestUtils.makeErrorResponseOnce(enableRecurringRunSpy, 'cannot enable');
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
@@ -142,7 +143,7 @@ describe('RecurringRunsManager', () => {
 
   it('shows error if disable API call fails', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    TestUtils.makeErrorResponseOnce(disableJobSpy, 'cannot disable');
+    TestUtils.makeErrorResponseOnce(disableRecurringRunSpy, 'cannot disable');
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
@@ -173,8 +174,8 @@ describe('RecurringRunsManager', () => {
 
     enableBtn.simulate('click');
     await TestUtils.flushPromises();
-    expect(disableJobSpy).toHaveBeenCalledTimes(1);
-    expect(disableJobSpy).toHaveBeenLastCalledWith(JOBS[0].id);
+    expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
+    expect(disableRecurringRunSpy).toHaveBeenLastCalledWith(RECURRINGRUNS[0].recurring_run_id);
   });
 
   it('renders an enable button if the run is disabled, clicking the button calls enable API', async () => {
@@ -187,8 +188,8 @@ describe('RecurringRunsManager', () => {
 
     enableBtn.simulate('click');
     await TestUtils.flushPromises();
-    expect(enableJobSpy).toHaveBeenCalledTimes(1);
-    expect(enableJobSpy).toHaveBeenLastCalledWith(JOBS[1].id);
+    expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
+    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith(RECURRINGRUNS[1].recurring_run_id);
   });
 
   it("renders an enable button if the run's enabled field is undefined, clicking the button calls enable API", async () => {
@@ -201,8 +202,8 @@ describe('RecurringRunsManager', () => {
 
     enableBtn.simulate('click');
     await TestUtils.flushPromises();
-    expect(enableJobSpy).toHaveBeenCalledTimes(1);
-    expect(enableJobSpy).toHaveBeenLastCalledWith(JOBS[2].id);
+    expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
+    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith(RECURRINGRUNS[2].recurring_run_id);
   });
 
   it('reloads the list of runs after enable/disabling', async () => {
@@ -213,9 +214,9 @@ describe('RecurringRunsManager', () => {
     const enableBtn = tree.find('.tableRow Button').at(0);
     expect(enableBtn).toMatchSnapshot();
 
-    expect(listJobsSpy).toHaveBeenCalledTimes(1);
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
     enableBtn.simulate('click');
     await TestUtils.flushPromises();
-    expect(listJobsSpy).toHaveBeenCalledTimes(2);
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(2);
   });
 });

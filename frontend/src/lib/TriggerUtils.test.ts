@@ -25,7 +25,7 @@ import {
   triggerDisplayString,
   parseTrigger,
 } from './TriggerUtils';
-import { ApiTrigger } from '../apis/job';
+import { TriggerSchedule } from 'src/lib/TriggerUtils';
 
 describe('TriggerUtils', () => {
   describe('getPeriodInSeconds', () => {
@@ -301,7 +301,7 @@ describe('TriggerUtils', () => {
       expect(triggerDisplayString({ cron_schedule: { cron: 'some cron' } })).toBe('some cron');
     });
 
-    const testTrigger: ApiTrigger = { periodic_schedule: {} };
+    const testTrigger: TriggerSchedule = { periodic_schedule: {} };
     it('handles a periodic trigger with no body', () => {
       expect(triggerDisplayString(testTrigger)).toBe('-');
     });
@@ -313,86 +313,88 @@ describe('TriggerUtils', () => {
     });
 
     it('says never if the interval is zero', () => {
-      const trigger: ApiTrigger = { periodic_schedule: { interval_second: '0' } };
+      const trigger: TriggerSchedule = { periodic_schedule: { interval_second: '0' } };
       expect(triggerDisplayString(trigger)).toBe('Never');
     });
 
     it('uses seconds for less than a minute', () => {
-      const trigger: ApiTrigger = { periodic_schedule: { interval_second: '1' } };
+      const trigger: TriggerSchedule = { periodic_schedule: { interval_second: '1' } };
       expect(triggerDisplayString(trigger)).toBe('Every 1 seconds');
     });
 
     it('uses seconds for less than a minute', () => {
-      const trigger: ApiTrigger = { periodic_schedule: { interval_second: '59' } };
+      const trigger: TriggerSchedule = { periodic_schedule: { interval_second: '59' } };
       expect(triggerDisplayString(trigger)).toBe('Every 59 seconds');
     });
 
     it('uses minutes for less than an hour', () => {
-      const trigger: ApiTrigger = { periodic_schedule: { interval_second: '60' } };
+      const trigger: TriggerSchedule = { periodic_schedule: { interval_second: '60' } };
       expect(triggerDisplayString(trigger)).toBe('Every 1 minutes');
     });
 
     it('uses minutes for less than an hour', () => {
-      const trigger: ApiTrigger = { periodic_schedule: { interval_second: '61' } };
+      const trigger: TriggerSchedule = { periodic_schedule: { interval_second: '61' } };
       expect(triggerDisplayString(trigger)).toBe('Every 1 minutes, and 1 seconds');
     });
 
     it('uses minutes for less than an hour', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (60 * 60 - 1).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 59 minutes, and 59 seconds');
     });
 
     it('uses hours for less than a day', () => {
-      const trigger: ApiTrigger = { periodic_schedule: { interval_second: (60 * 60).toString() } };
+      const trigger: TriggerSchedule = {
+        periodic_schedule: { interval_second: (60 * 60).toString() },
+      };
       expect(triggerDisplayString(trigger)).toBe('Every 1 hours');
     });
 
     it('uses hours for less than a day', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (60 * 60 + 1).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 1 hours, and 1 seconds');
     });
 
     it('uses hours for less than a day', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (2 * 60 * 60 + 63).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 2 hours, 1 minutes, and 3 seconds');
     });
 
     it('uses days for less than a week', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (24 * 60 * 60).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 1 days');
     });
 
     it('uses days for less than a week', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (24 * 60 * 60 + 1).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 1 days, and 1 seconds');
     });
 
     it('uses weeks for less than a month', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (7 * 24 * 60 * 60).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 1 weeks');
     });
 
     it('uses weeks for less than a month', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (8 * 24 * 60 * 60 + 63).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 1 weeks, 1 days, 1 minutes, and 3 seconds');
     });
 
     it('uses months for anything large', () => {
-      const trigger: ApiTrigger = {
+      const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (80 * 24 * 60 * 60).toString() },
       };
       expect(triggerDisplayString(trigger)).toBe('Every 2 months, 2 weeks, and 3 days');

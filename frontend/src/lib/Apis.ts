@@ -16,6 +16,7 @@ import * as portableFetch from 'portable-fetch';
 import { ExperimentServiceApi, FetchAPI } from 'src/apis/experiment';
 import { ExperimentServiceApi as ExperimentServiceApiV2 } from 'src/apisv2beta1/experiment';
 import { JobServiceApi } from 'src/apis/job';
+import { RecurringRunServiceApi } from 'src/apisv2beta1/recurringrun';
 import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from 'src/apis/pipeline';
 import { RunServiceApi as RunServiceApiV1 } from 'src/apis/run';
 import { RunServiceApi as RunServiceApiV2 } from 'src/apisv2beta1/run';
@@ -172,6 +173,17 @@ export class Apis {
       );
     }
     return this._jobServiceApi;
+  }
+
+  public static get recurringRunServiceApi(): RecurringRunServiceApi {
+    if (!this._recurringRunServiceApi) {
+      this._recurringRunServiceApi = new RecurringRunServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
+    }
+    return this._recurringRunServiceApi;
   }
 
   public static get pipelineServiceApi(): PipelineServiceApi {
@@ -408,6 +420,7 @@ export class Apis {
   private static _experimentServiceApi?: ExperimentServiceApi;
   private static _experimentServiceApiV2?: ExperimentServiceApiV2;
   private static _jobServiceApi?: JobServiceApi;
+  private static _recurringRunServiceApi?: RecurringRunServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;
   private static _runServiceApiV1?: RunServiceApiV1;
   private static _runServiceApiV2?: RunServiceApiV2;
