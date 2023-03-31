@@ -157,12 +157,6 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	}
 	pipeline.Name = pipelineName
 
-	// Get pipeline parameters
-	parameters, err := toModelParameters(request.GetPipeline().GetParameters())
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid pipeline parameters (%v)", request.GetPipeline().GetParameters())
-	}
-
 	// Create the pipeline
 	createdPipeline, perr := s.createPipeline(ctx, pipeline)
 	if perr == nil {
@@ -184,7 +178,6 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	createdPipelineVersion, pverr := s.createPipelineVersion(ctx, &model.PipelineVersion{
 		Name:            pipeline.Name,
 		PipelineId:      createdPipeline.UUID,
-		Parameters:      parameters,
 		PipelineSpecURI: request.GetPipeline().GetUrl().GetPipelineUrl(),
 		Description:     request.GetPipeline().GetDescription(),
 		Status:          model.PipelineVersionCreating,

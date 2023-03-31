@@ -156,11 +156,14 @@ type PipelineVersion struct {
 	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	// Output. Creation time of the pipeline version.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	// Required input field. Pipeline version package url.
-	// When calling CreatePipelineVersion, one needs to provide
-	// one package file location.
+	// Input. Required. The URL to the source of the pipeline version.
+	// This is required when creating the pipeine version through
+	// CreatePipelineVersion API.
 	PackageUrl *Url `protobuf:"bytes,6,opt,name=package_url,json=packageUrl,proto3" json:"package_url,omitempty"`
-	// Optional input field. Pipeline version code source URL.
+	// Input. Optional. The URL to the code source of the pipeline version.
+	// The code is usually the Python definition of the pipeline and potentially
+	// related the component definitions. This allows users to trace back to how
+	// the pipeline YAML was created.
 	CodeSourceUrl string `protobuf:"bytes,9,opt,name=code_source_url,json=codeSourceUrl,proto3" json:"code_source_url,omitempty"`
 	// Output. The pipeline spec for the pipeline version.
 	PipelineSpec *structpb.Struct `protobuf:"bytes,7,opt,name=pipeline_spec,json=pipelineSpec,proto3" json:"pipeline_spec,omitempty"`

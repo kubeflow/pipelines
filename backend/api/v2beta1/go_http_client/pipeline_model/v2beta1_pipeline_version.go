@@ -17,7 +17,10 @@ import (
 // swagger:model v2beta1PipelineVersion
 type V2beta1PipelineVersion struct {
 
-	// Optional input field. Pipeline version code source URL.
+	// Input. Optional. The URL to the code source of the pipeline version.
+	// The code is usually the Python definition of the pipeline and potentially
+	// related the component definitions. This allows users to trace back to how
+	// the pipeline YAML was created.
 	CodeSourceURL string `json:"code_source_url,omitempty"`
 
 	// Output. Creation time of the pipeline version.
@@ -36,9 +39,9 @@ type V2beta1PipelineVersion struct {
 	// This is especially useful during List() calls.
 	Error *GooglerpcStatus `json:"error,omitempty"`
 
-	// Required input field. Pipeline version package url.
-	// When calling CreatePipelineVersion, one needs to provide
-	// one package file location.
+	// Input. Required. The URL to the source of the pipeline version.
+	// This is required when creating the pipeine version through
+	// CreatePipelineVersion API.
 	PackageURL *V2beta1URL `json:"package_url,omitempty"`
 
 	// Required input field. Unique ID of the parent pipeline.

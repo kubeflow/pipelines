@@ -670,10 +670,6 @@ func TestToModelRunMetric(t *testing.T) {
 }
 
 func TestToModelPipelineVersion(t *testing.T) {
-	wrongParams := make([]*apiv1beta1.Parameter, 10000)
-	for i := 0; i < 10000; i++ {
-		wrongParams[i] = &apiv1beta1.Parameter{Name: "param2", Value: "world"}
-	}
 	tests := []struct {
 		name                    string
 		pipeline                interface{}
@@ -684,7 +680,6 @@ func TestToModelPipelineVersion(t *testing.T) {
 		{
 			"happy version v1",
 			&apiv1beta1.PipelineVersion{
-				Parameters: []*apiv1beta1.Parameter{},
 				PackageUrl: &apiv1beta1.Url{
 					PipelineUrl: "http://package/11111",
 				},
@@ -700,7 +695,6 @@ func TestToModelPipelineVersion(t *testing.T) {
 				},
 			},
 			&model.PipelineVersion{
-				Parameters:      "",
 				PipelineId:      "pipeline1",
 				PipelineSpecURI: "http://package/11111",
 				CodeSourceUrl:   "http://repo/11111",
@@ -710,11 +704,10 @@ func TestToModelPipelineVersion(t *testing.T) {
 			"",
 		},
 		{
-			"wrong parameters v1",
+			"missing pipeline url v1",
 			&apiv1beta1.PipelineVersion{
-				Parameters: wrongParams,
 				PackageUrl: &apiv1beta1.Url{
-					PipelineUrl: "http://pipeline-package",
+					PipelineUrl: "",
 				},
 				CodeSourceUrl: "http://repo/11111",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
@@ -729,7 +722,7 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			nil,
 			true,
-			"Failed to convert v1beta1 API pipeline version to its internal representation due to conversion error of the parameters",
+			"Invalid input error: Failed to convert v1beta1 API pipeline version to its internal representation due to missing pipeline URL",
 		},
 		{
 			"happy pipeline version v2",
@@ -742,7 +735,6 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			&model.PipelineVersion{
 				Name:            "Version 2 v2beta1",
-				Parameters:      "",
 				PipelineId:      "pipeline 333",
 				PipelineSpecURI: "http://package/3333",
 				CodeSourceUrl:   "http://repo/3333",

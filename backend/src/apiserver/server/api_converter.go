@@ -309,21 +309,16 @@ func toApiPipelines(pipelines []*model.Pipeline) []*apiv2beta1.Pipeline {
 // Supports both v1beta1 abd v2beta1 API.
 // Note: supports v1beta1 API pipeline's conversion based on default pipeline version.
 func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
-	var name, description, pipelineId, pipelineUrl, codeUrl, parameters string
+	var name, description, pipelineId, pipelineUrl, codeUrl string
 	switch p := p.(type) {
 	case *apiv1beta1.PipelineVersion:
 		apiPipelineVersionV1 := p
 		if apiPipelineVersionV1.GetPackageUrl() == nil || len(apiPipelineVersionV1.GetPackageUrl().GetPipelineUrl()) == 0 {
-			return nil, util.NewInvalidInputError("Failed to convert v1beta1 API pipeline version to its internal representation due to missing pipeline URL.")
+			return nil, util.NewInvalidInputError("Failed to convert v1beta1 API pipeline version to its internal representation due to missing pipeline URL")
 		}
 		pipelineUrl = apiPipelineVersionV1.GetPackageUrl().GetPipelineUrl()
 		codeUrl = apiPipelineVersionV1.GetCodeSourceUrl()
 		name = apiPipelineVersionV1.GetName()
-		ps, err := toModelParameters(apiPipelineVersionV1.GetParameters())
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to convert v1beta1 API pipeline version to its internal representation due to conversion error of the parameters")
-		}
-		parameters = ps
 		pipelineId = getPipelineIdFromResourceReferencesV1(apiPipelineVersionV1.GetResourceReferences())
 		description = apiPipelineVersionV1.GetDescription()
 	case *apiv2beta1.PipelineVersion:
@@ -341,7 +336,6 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 	}
 	return &model.PipelineVersion{
 		Name:            name,
-		Parameters:      parameters,
 		PipelineId:      pipelineId,
 		PipelineSpecURI: pipelineUrl,
 		CodeSourceUrl:   codeUrl,
