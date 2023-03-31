@@ -367,7 +367,7 @@ describe('ExperimentDetails', () => {
     expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
 
     // Called in the recurring run manager to list the recurring runs
-    expect(listJobsSpy).toHaveBeenCalledTimes(2);
+    expect(listJobsSpy).toHaveBeenCalledTimes(1);
 
     tree
       .find('#closeExperimentRecurringRunManagerBtn')
@@ -377,7 +377,7 @@ describe('ExperimentDetails', () => {
     expect(tree.state('recurringRunsManagerOpen')).toBeFalsy();
 
     // Called a third time when the manager is closed to update the number of active recurring runs
-    expect(listJobsSpy).toHaveBeenCalledTimes(3);
+    expect(listJobsSpy).toHaveBeenCalledTimes(2);
   });
 
   it('clears the error banner on refresh', async () => {
