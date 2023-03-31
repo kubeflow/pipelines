@@ -344,7 +344,8 @@ func makePodSpecPatch(
 		"--", // separater before user command and args
 	}
 	res := k8score.ResourceRequirements{
-		Limits: map[k8score.ResourceName]k8sres.Quantity{},
+		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
+		Requests: map[k8score.ResourceName]k8sres.Quantity{},
 	}
 	memoryLimit := container.GetResources().GetMemoryLimit()
 	if memoryLimit != 0 {

@@ -252,8 +252,7 @@ func Test_makePodSpecPatch_resourceRequests(t *testing.T) {
 		name    string
 		args    args
 		want    string
-		wantErr bool
-		errMsg  string
+		notWant string
 	}{
 		{
 			"Valid - with requests",
@@ -288,8 +287,7 @@ func Test_makePodSpecPatch_resourceRequests(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 			},
-			``,
-			false,
+			`"resources":{"limits":{"cpu":"2","memory":"1500M"},"requests":{"cpu":"1","memory":"650M"}}`,
 			"",
 		},
 		{
@@ -325,21 +323,20 @@ func Test_makePodSpecPatch_resourceRequests(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 			},
-			``,
-			false,
-			"",
+			`"resources":{"limits":{"cpu":"2","memory":"1500M"}}`,
+			`"requests"`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := makePodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
-			if tt.wantErr {
-				assert.Empty(t, got)
-				assert.NotNil(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.Nil(t, err)
+			assert.Nil(t, err)
+			assert.NotEmpty(t, got)
+			if tt.want != "" {
 				assert.Contains(t, got, tt.want)
+			}
+			if tt.notWant != "" {
+				assert.NotContains(t, got, tt.notWant)
 			}
 		})
 	}
