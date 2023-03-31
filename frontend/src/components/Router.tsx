@@ -46,7 +46,7 @@ import NewPipelineVersion from '../pages/NewPipelineVersion';
 import NewRunSwitcher from '../pages/NewRunSwitcher';
 import PipelineDetails from '../pages/PipelineDetails';
 import PrivateAndSharedPipelines, { PrivateAndSharedTab } from '../pages/PrivateAndSharedPipelines';
-import RecurringRunDetails from '../pages/RecurringRunDetails';
+import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
 import SideNav from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
@@ -207,7 +207,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
     { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
     { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsList },
-    { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetails },
+    { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetailsRouter },
     { path: RoutePage.RUN_DETAILS, Component: RunDetailsRouter },
     { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetailsRouter },
     { path: RoutePage.COMPARE, Component: Compare },
