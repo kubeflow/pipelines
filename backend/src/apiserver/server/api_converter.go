@@ -1755,7 +1755,7 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 		}
 		sort.Strings(nodeNames)
 		modelTasks := make([]*model.Task, 0)
-		for nodeName := range nodeNames {
+		for _, nodeName := range nodeNames {
 			node := execSpec.Status.Nodes[nodeName]
 			modelTask, err := toModelTask(node)
 			if err != nil {
