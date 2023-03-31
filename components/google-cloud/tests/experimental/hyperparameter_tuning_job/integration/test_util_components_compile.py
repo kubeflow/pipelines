@@ -21,7 +21,7 @@ import yaml
 
 from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import HyperparameterTuningJobRunOp, serialize_metrics, GetTrialsOp, GetBestTrialOp, GetBestHyperparametersOp, GetHyperparametersOp, GetWorkerPoolSpecsOp, IsMetricBeyondThresholdOp
 import kfp
-from kfp.v2 import compiler
+from kfp import compiler
 
 import unittest
 
