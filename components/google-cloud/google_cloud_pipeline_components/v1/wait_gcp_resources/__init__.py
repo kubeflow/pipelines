@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Wait GCP Resource Components."""
+"""Google Cloud Pipeline wait GCP resource component."""
 
 import os
 from kfp.components import load_component_from_file
