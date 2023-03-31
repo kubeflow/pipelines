@@ -317,11 +317,8 @@ message Pipeline {
   // the latter.
   repeated Parameter parameters = 5;
 
-  // The URL to the source of the pipeline. This is required when creating the
-  // pipeine through CreatePipeline API.
-  // TODO(jingzhang36): replace this url field with the code_source_urls field
-  // inside PipelineVersion when all usage of the former has been changed to use
-  // the latter.
+  // Input. Required. The URL to the source of the pipeline.
+  // This is required when creating the pipeine through CreatePipeline API.
   Url url = 7;
 
   // In case any error happens retrieving a pipeline field, only pipeline ID
@@ -352,12 +349,15 @@ message PipelineVersion {
   // Output. The input parameters for this pipeline.
   repeated Parameter parameters = 4;
 
-  // Input. Optional. Pipeline version code source.
+  // Input. Optional. The URL to the code source of the pipeline version.
+  // The code is usually the Python definition of the pipeline and potentially
+  // the related component definitions. This allows users to trace back to how
+  // the pipeline YAML was created.
   string code_source_url = 5;
 
-  // Input. Required. Pipeline version package url.
-  // Whe calling CreatePipelineVersion API method, need to provide one package
-  // file location.
+  // Input. Required. The URL to the source of the pipeline version.
+  // This is required when creating the pipeine version through
+  // CreatePipelineVersion API.
   Url package_url = 6;
 
   // Input field. Specify which resource this pipeline version belongs to.

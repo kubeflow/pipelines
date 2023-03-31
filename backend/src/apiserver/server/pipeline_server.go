@@ -148,16 +148,12 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to pipeline conversion error")
 	}
-	pipelineVersion, err := toModelPipelineVersion(request.GetPipeline())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to pipeline version conversion error")
-	}
-
 	// Get pipeline name
-	pipelineFileName := path.Base(pipelineVersion.CodeSourceUrl)
-	pipelineName, err := buildPipelineName(pipeline.Name, pipelineFileName)
+	pipelineName := request.GetPipeline().GetName()
+	pipelineFileName := path.Base(request.GetPipeline().GetUrl().GetPipelineUrl())
+	pipelineName, err = buildPipelineName(pipelineName, pipelineFileName)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", pipeline.Name, pipelineFileName)
+		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", pipelineName, pipelineFileName)
 	}
 	pipeline.Name = pipelineName
 
@@ -177,10 +173,15 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	} else {
 		return nil, util.Wrap(perr, "Failed to create a new pipeline (v1beta1). Check the error stack")
 	}
-	pipelineVersion.PipelineId = createdPipeline.UUID
 
 	// Create the pipeline version
-	createdPipelineVersion, pverr := s.createPipelineVersion(ctx, pipelineVersion)
+	createdPipelineVersion, pverr := s.createPipelineVersion(ctx, &model.PipelineVersion{
+		Name:            pipeline.Name,
+		PipelineId:      createdPipeline.UUID,
+		PipelineSpecURI: request.GetPipeline().GetUrl().GetPipelineUrl(),
+		Description:     request.GetPipeline().GetDescription(),
+		Status:          model.PipelineVersionCreating,
+	})
 	if pverr == nil {
 		if s.options.CollectMetrics {
 			// Increment if a new pipeline version has been created
@@ -588,9 +589,9 @@ func NewPipelineServer(resourceManager *resource.ResourceManager, options *Pipel
 // Creates a pipeline version from. Not exported.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.PipelineVersion) (*model.PipelineVersion, error) {
-	// Fail if pipeline spec is missing
-	if (pv.PipelineSpec == "") && (pv.CodeSourceUrl == "") && (pv.PipelineSpecURI == "") {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline spec")
+	// Fail if pipeline URL is missing
+	if pv.PipelineSpecURI == "" {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline URL")
 	}
 
 	// Check authorization
@@ -602,28 +603,24 @@ func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.Pi
 	}
 
 	// Read pipeline file
-	if pv.PipelineSpec == "" {
-		pipelineUrl, err := url.ParseRequestURI(pv.CodeSourceUrl)
-		if err != nil {
-			pipelineUrl, err = url.ParseRequestURI(pv.PipelineSpecURI)
-			if err != nil {
-				return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. CodeSourceUrl: %v. Please specify a valid URL", pv.PipelineSpecURI, pv.CodeSourceUrl)
-			}
-		}
-		resp, err := s.httpClient.Get(pipelineUrl.String())
-		if err != nil || resp.StatusCode != http.StatusOK {
-			return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
-		}
-		defer resp.Body.Close()
-		pipelineFileName := path.Base(pipelineUrl.String())
-		pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
-		}
-		pv.PipelineSpec = string(pipelineFile)
-		if pv.Name == "" {
-			pv.Name = pipelineFileName
-		}
+	pipelineUrl, err := url.ParseRequestURI(pv.PipelineSpecURI)
+	if err != nil {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. Please specify a valid URL", pv.PipelineSpecURI)
+	}
+
+	resp, err := s.httpClient.Get(pipelineUrl.String())
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
+	}
+	defer resp.Body.Close()
+	pipelineFileName := path.Base(pipelineUrl.String())
+	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
+	}
+	pv.PipelineSpec = string(pipelineFile)
+	if pv.Name == "" {
+		pv.Name = pipelineFileName
 	}
 
 	// Validate the pipeline version
