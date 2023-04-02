@@ -23,6 +23,7 @@ from kfp.dsl import Input
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
+print('trigger test')
 
 @container_component
 def bigquery_ml_feature_importance_job(
