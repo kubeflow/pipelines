@@ -16,10 +16,7 @@
 import os
 from .convert_dataset_export_for_batch_predict.component import convert_dataset_export_for_batch_predict as ConvertDatasetExportForBatchPredictOp
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from kfp.components import load_component_from_file
 
 __all__ = [
     'ConvertDatasetExportForBatchPredictOp',
