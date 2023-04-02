@@ -14,7 +14,7 @@
 # ============================================================================
 """Component for converting classification text dataset for batch prediction."""
 from typing import List, NamedTuple
-from kfp.v2 import dsl
+from kfp import dsl
 
 
 @dsl.component(

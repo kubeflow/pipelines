@@ -15,7 +15,7 @@
 from typing import Dict
 import json
 import os
-from kfp.v2 import dsl
+from kfp import dsl
 
 
 def update_output_artifact(executor_input: str,
