@@ -230,7 +230,7 @@ components:
               query:
                 runtimeValue:
                   constant: "\n      WITH\n        base_data AS (\n          SELECT\
-                    \ * FROM {{$.inputs.parameters['pipelinechannel--get-first-valid-Output']}}\n\
+                    \ * FROM `{{$.inputs.parameters['pipelinechannel--get-first-valid-Output']}}`\n\
                     \        )\n      SELECT\n        CAST({{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\
                     \ AS STRING) AS {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
                     \        ARRAY_AGG(TIMESTAMP({{$.inputs.parameters['pipelinechannel--time_column']}})\
