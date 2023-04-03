@@ -2165,6 +2165,7 @@ func TestToApiRecurringRun(t *testing.T) {
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
+			PipelineId:        "p1",
 			PipelineVersionId: "pv1",
 			PipelineName:      "p1",
 			RuntimeConfig: model.RuntimeConfig{
@@ -2189,7 +2190,12 @@ func TestToApiRecurringRun(t *testing.T) {
 				Cron:      "2 * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "pv1"},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionReference{
+			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+				PipelineId:        "p1",
+				PipelineVersionId: "pv1",
+			},
+		},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
 				"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
@@ -3624,8 +3630,11 @@ func TestToModelRun(t *testing.T) {
 				DisplayName:  "name1",
 				Description:  "this is a run",
 				StorageState: apiv2beta1.Run_ARCHIVED,
-				PipelineSource: &apiv2beta1.Run_PipelineVersionId{
-					PipelineVersionId: "pv1",
+				PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+					PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+						PipelineId:        "p1",
+						PipelineVersionId: "pv1",
+					},
 				},
 				RuntimeConfig: &apiv2beta1.RuntimeConfig{
 					Parameters: map[string]*structpb.Value{
@@ -3718,6 +3727,7 @@ func TestToModelRun(t *testing.T) {
 					RuntimeConfig: model.RuntimeConfig{
 						Parameters: "{\"param2\":\"world\"}",
 					},
+					PipelineId:        "p1",
 					PipelineVersionId: "pv1",
 					PipelineName:      "pipelines/pv1",
 				},
@@ -4046,6 +4056,7 @@ func Test_toApiRun(t *testing.T) {
 					WorkflowRuntimeManifest: "workflow123",
 				},
 				PipelineSpec: model.PipelineSpec{
+					PipelineId:        "p1",
 					PipelineVersionId: "pv1",
 				},
 				ResourceReferences: []*model.ResourceReference{
@@ -4061,8 +4072,11 @@ func Test_toApiRun(t *testing.T) {
 				Description:    "this is run",
 				ServiceAccount: "sa1",
 				State:          apiv2beta1.RuntimeState_RUNNING,
-				PipelineSource: &apiv2beta1.Run_PipelineVersionId{
-					PipelineVersionId: "pv1",
+				PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+					PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+						PipelineId:        "p1",
+						PipelineVersionId: "pv1",
+					},
 				},
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
