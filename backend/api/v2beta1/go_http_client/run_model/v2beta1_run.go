@@ -49,6 +49,9 @@ type V2beta1Run struct {
 	// ID of an existing pipeline version.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 
+	// Reference to a pipeline version containing pipeline_id and pipeline_version_id.
+	PipelineVersionReference *V2beta1PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+
 	// ID of the recurring run that triggered this run.
 	RecurringRunID string `json:"recurring_run_id,omitempty"`
 
@@ -94,6 +97,10 @@ func (m *V2beta1Run) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateFinishedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePipelineVersionReference(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -166,6 +173,24 @@ func (m *V2beta1Run) validateFinishedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("finished_at", "body", "date-time", m.FinishedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) validatePipelineVersionReference(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.PipelineVersionReference) { // not required
+		return nil
+	}
+
+	if m.PipelineVersionReference != nil {
+		if err := m.PipelineVersionReference.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_version_reference")
+			}
+			return err
+		}
 	}
 
 	return nil

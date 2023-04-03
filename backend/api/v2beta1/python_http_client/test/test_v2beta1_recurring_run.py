@@ -41,6 +41,9 @@ class TestV2beta1RecurringRun(unittest.TestCase):
                 description = '0', 
                 pipeline_version_id = '0', 
                 pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
+                pipeline_version_reference = kfp_server_api.models.v2beta1_pipeline_version_reference.v2beta1PipelineVersionReference(
+                    pipeline_id = '0', 
+                    pipeline_version_id = '0', ), 
                 runtime_config = kfp_server_api.models.v2beta1_runtime_config.v2beta1RuntimeConfig(
                     parameters = {
                         'key' : None

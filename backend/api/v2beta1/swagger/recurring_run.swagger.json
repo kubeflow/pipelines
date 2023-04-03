@@ -324,6 +324,20 @@
       },
       "description": "PeriodicSchedule allow scheduling the recurring run periodically with certain interval."
     },
+    "v2beta1PipelineVersionReference": {
+      "type": "object",
+      "properties": {
+        "pipeline_id": {
+          "type": "string",
+          "description": "Input. Required. Unique ID of the parent pipeline."
+        },
+        "pipeline_version_id": {
+          "type": "string",
+          "description": "Input. Required. Unique ID of an existing pipeline version."
+        }
+      },
+      "description": "Reference to an existing pipeline version."
+    },
     "v2beta1RecurringRun": {
       "type": "object",
       "properties": {
@@ -346,6 +360,10 @@
         "pipeline_spec": {
           "type": "object",
           "description": "The pipeline spec."
+        },
+        "pipeline_version_reference": {
+          "$ref": "#/definitions/v2beta1PipelineVersionReference",
+          "description": "Reference to a pipeline version containing pipeline_id and pipeline_version_id."
         },
         "runtime_config": {
           "$ref": "#/definitions/v2beta1RuntimeConfig",

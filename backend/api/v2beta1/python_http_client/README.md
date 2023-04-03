@@ -173,6 +173,7 @@ Class | Method | HTTP request | Description
  - [V2beta1PipelineTaskDetail](docs/V2beta1PipelineTaskDetail.md)
  - [V2beta1PipelineTaskExecutorDetail](docs/V2beta1PipelineTaskExecutorDetail.md)
  - [V2beta1PipelineVersion](docs/V2beta1PipelineVersion.md)
+ - [V2beta1PipelineVersionReference](docs/V2beta1PipelineVersionReference.md)
  - [V2beta1Predicate](docs/V2beta1Predicate.md)
  - [V2beta1PredicateOperation](docs/V2beta1PredicateOperation.md)
  - [V2beta1ReadArtifactResponse](docs/V2beta1ReadArtifactResponse.md)

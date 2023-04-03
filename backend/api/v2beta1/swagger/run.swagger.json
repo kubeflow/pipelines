@@ -582,6 +582,20 @@
       },
       "description": "Runtime information of a pipeline task executor."
     },
+    "v2beta1PipelineVersionReference": {
+      "type": "object",
+      "properties": {
+        "pipeline_id": {
+          "type": "string",
+          "description": "Input. Required. Unique ID of the parent pipeline."
+        },
+        "pipeline_version_id": {
+          "type": "string",
+          "description": "Input. Required. Unique ID of an existing pipeline version."
+        }
+      },
+      "description": "Reference to an existing pipeline version."
+    },
     "v2beta1ReadArtifactResponse": {
       "type": "object",
       "properties": {
@@ -622,6 +636,10 @@
         "pipeline_spec": {
           "type": "object",
           "description": "Pipeline spec."
+        },
+        "pipeline_version_reference": {
+          "$ref": "#/definitions/v2beta1PipelineVersionReference",
+          "description": "Reference to a pipeline version containing pipeline_id and pipeline_version_id."
         },
         "runtime_config": {
           "$ref": "#/definitions/v2beta1RuntimeConfig",
