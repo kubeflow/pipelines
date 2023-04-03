@@ -2142,7 +2142,6 @@ func TestToApiRecurringRun(t *testing.T) {
 				Cron:      "2 * *",
 			}},
 		},
-		// PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "1"},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
 				"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
