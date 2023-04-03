@@ -22,7 +22,6 @@ import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
-import { ApiResourceType, ApiRelationship } from '../apis/pipeline';
 
 class TestNewPipelineVersion extends NewPipelineVersion {
   public _pipelineSelectorClosed = super._pipelineSelectorClosed;
@@ -42,39 +41,17 @@ describe('NewPipelineVersion', () => {
   let getPipelineSpy: jest.SpyInstance<{}>;
   let createPipelineSpy: jest.SpyInstance<{}>;
   let createPipelineVersionSpy: jest.SpyInstance<{}>;
-  let uploadPipelineSpy: jest.SpyInstance<{}>;
+  let uploadPipelineVersionSpy: jest.SpyInstance<{}>;
 
   let MOCK_PIPELINE = {
-    id: 'original-run-pipeline-id',
-    name: 'original mock pipeline name',
-    default_version: {
-      id: 'original-run-pipeline-version-id',
-      name: 'original mock pipeline version name',
-      resource_references: [
-        {
-          key: {
-            id: 'original-run-pipeline-id',
-            type: ApiResourceType.PIPELINE,
-          },
-          relationship: 1,
-        },
-      ],
-    },
+    pipeline_id: 'original-run-pipeline-id',
+    display_name: 'original mock pipeline name',
   };
 
   let MOCK_PIPELINE_VERSION = {
-    id: 'original-run-pipeline-version-id',
-    name: 'original mock pipeline version name',
+    pipeline_version_id: 'original-run-pipeline-version-id',
+    display_name: 'original mock pipeline version name',
     description: 'original mock pipeline version description',
-    resource_references: [
-      {
-        key: {
-          id: 'original-run-pipeline-id',
-          type: ApiResourceType.PIPELINE,
-        },
-        relationship: 1,
-      },
-    ],
   };
 
   function generateProps(search?: string): PageProps {
@@ -96,15 +73,17 @@ describe('NewPipelineVersion', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getPipelineSpy = jest
-      .spyOn(Apis.pipelineServiceApi, 'getPipeline')
+      .spyOn(Apis.pipelineServiceApiV2, 'getPipeline')
       .mockImplementation(() => MOCK_PIPELINE);
     createPipelineVersionSpy = jest
-      .spyOn(Apis.pipelineServiceApi, 'createPipelineVersion')
+      .spyOn(Apis.pipelineServiceApiV2, 'createPipelineVersion')
       .mockImplementation(() => MOCK_PIPELINE_VERSION);
     createPipelineSpy = jest
-      .spyOn(Apis.pipelineServiceApi, 'createPipeline')
+      .spyOn(Apis.pipelineServiceApiV2, 'createPipeline')
       .mockImplementation(() => MOCK_PIPELINE);
-    uploadPipelineSpy = jest.spyOn(Apis, 'uploadPipeline').mockImplementation(() => MOCK_PIPELINE);
+    uploadPipelineVersionSpy = jest
+      .spyOn(Apis, 'uploadPipelineVersionV2')
+      .mockImplementation(() => MOCK_PIPELINE);
   });
 
   afterEach(async () => {
@@ -160,7 +139,7 @@ describe('NewPipelineVersion', () => {
     it('does not include any action buttons in the toolbar', async () => {
       tree = shallow(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
       await TestUtils.flushPromises();
@@ -176,7 +155,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating pipeline version name', async () => {
       tree = shallow(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
       await TestUtils.flushPromises();
@@ -192,7 +171,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating pipeline version description', async () => {
       tree = shallow(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
       await TestUtils.flushPromises();
@@ -240,7 +219,7 @@ describe('NewPipelineVersion', () => {
     it("sends a request to create a version when 'Create' is clicked", async () => {
       tree = shallow(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
       await TestUtils.flushPromises();
@@ -263,22 +242,13 @@ describe('NewPipelineVersion', () => {
       await TestUtils.flushPromises();
 
       expect(createPipelineVersionSpy).toHaveBeenCalledTimes(1);
-      expect(createPipelineVersionSpy).toHaveBeenLastCalledWith({
-        code_source_url: '',
-        name: 'test version name',
+      expect(createPipelineVersionSpy).toHaveBeenLastCalledWith('original-run-pipeline-id', {
+        pipeline_id: 'original-run-pipeline-id',
+        display_name: 'test version name',
         description: 'some description',
         package_url: {
           pipeline_url: 'https://dummy_package_url',
         },
-        resource_references: [
-          {
-            key: {
-              id: MOCK_PIPELINE.id,
-              type: ApiResourceType.PIPELINE,
-            },
-            relationship: 1,
-          },
-        ],
       });
     });
 
@@ -333,11 +303,7 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).toHaveBeenCalledTimes(1);
       expect(createPipelineSpy).toHaveBeenLastCalledWith({
         description: 'test pipeline description',
-        name: 'test pipeline name',
-        url: {
-          pipeline_url: 'https://dummy_package_url',
-        },
-        resource_references: [],
+        display_name: 'test pipeline name',
       });
     });
 
@@ -369,19 +335,8 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).toHaveBeenCalledTimes(1);
       expect(createPipelineSpy).toHaveBeenLastCalledWith({
         description: 'test pipeline description',
-        name: 'test pipeline name',
-        url: {
-          pipeline_url: 'https://dummy_package_url',
-        },
-        resource_references: [
-          {
-            key: {
-              id: 'ns',
-              type: ApiResourceType.NAMESPACE,
-            },
-            relationship: ApiRelationship.OWNER,
-          },
-        ],
+        display_name: 'test pipeline name',
+        namespace: 'ns',
       });
     });
 
@@ -414,11 +369,7 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).toHaveBeenCalledTimes(1);
       expect(createPipelineSpy).toHaveBeenLastCalledWith({
         description: 'test pipeline description',
-        name: 'test pipeline name',
-        url: {
-          pipeline_url: 'https://dummy_package_url',
-        },
-        resource_references: [],
+        display_name: 'test pipeline name',
       });
     });
 
@@ -444,13 +395,13 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state()).toHaveProperty('isPrivate', false);
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
-        'test pipeline name',
-        'test pipeline description',
-        file,
-        undefined,
-      );
-      expect(createPipelineSpy).not.toHaveBeenCalled();
+      // create pipeline first
+      expect(createPipelineSpy).toHaveBeenLastCalledWith({
+        description: 'test pipeline description',
+        display_name: 'test pipeline name',
+      });
+      // then call uploadPipelineVersion
+      expect(uploadPipelineVersionSpy).toHaveBeenCalled();
     });
 
     it('creates private pipeline from local file in multi user mode', async () => {
@@ -480,13 +431,14 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state()).toHaveProperty('isPrivate', true);
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
-        'test pipeline name',
-        'test pipeline description',
-        file,
-        'ns',
-      );
-      expect(createPipelineSpy).not.toHaveBeenCalled();
+      // create pipeline first
+      expect(createPipelineSpy).toHaveBeenLastCalledWith({
+        description: 'test pipeline description',
+        display_name: 'test pipeline name',
+        namespace: 'ns',
+      });
+      // then call uploadPipelineVersion
+      expect(uploadPipelineVersionSpy).toHaveBeenCalled();
     });
 
     it('creates shared pipeline from local file in multi user mode', async () => {
@@ -516,13 +468,13 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state()).toHaveProperty('isPrivate', false);
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
-        'test pipeline name',
-        'test pipeline description',
-        file,
-        undefined,
-      );
-      expect(createPipelineSpy).not.toHaveBeenCalled();
+      // create pipeline first
+      expect(createPipelineSpy).toHaveBeenLastCalledWith({
+        description: 'test pipeline description',
+        display_name: 'test pipeline name',
+      });
+      // then call uploadPipelineVersion
+      expect(uploadPipelineVersionSpy).toHaveBeenCalled();
     });
 
     it('allows updating pipeline version name', async () => {

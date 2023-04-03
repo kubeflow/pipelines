@@ -23,13 +23,6 @@ import * as React from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
 import { classes, stylesheet } from 'typestyle';
-import {
-  ApiPipeline,
-  ApiPipelineVersion,
-  ApiRelationship,
-  ApiResourceReference,
-} from '../apis/pipeline';
-import { ApiResourceType } from '../apis/run';
 import BusyButton from '../atoms/BusyButton';
 import Input from '../atoms/Input';
 import { CustomRendererProps } from '../components/CustomTable';
@@ -43,8 +36,12 @@ import { errorToMessage, logger } from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import PrivateSharedSelector from '../components/PrivateSharedSelector';
-import PipelinesDialog from 'src/components/PipelinesDialog';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import PipelinesDialogV2, {
+  customV2Pipeline,
+  getCustomV2Pipeline,
+} from 'src/components/PipelinesDialogV2';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -56,7 +53,7 @@ interface NewPipelineVersionState {
   pipelineName?: string;
   pipelineVersionName: string;
   pipelineVersionDescription: string;
-  pipeline?: ApiPipeline;
+  pipeline?: customV2Pipeline;
 
   codeSourceUrl: string;
 
@@ -72,7 +69,7 @@ interface NewPipelineVersionState {
 
   // Select existing pipeline
   pipelineSelectorOpen: boolean;
-  unconfirmedSelectedPipeline?: ApiPipeline;
+  unconfirmedSelectedPipeline?: customV2Pipeline;
 
   isPrivate: boolean;
 }
@@ -296,18 +293,18 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 }}
               />
 
-              <PipelinesDialog
+              <PipelinesDialogV2
                 {...this.props}
                 open={pipelineSelectorOpen}
                 selectorDialog={css.selectorDialog}
-                onClose={(confirmed, selectedPipeline?: ApiPipeline) => {
+                onClose={(confirmed, selectedPipeline?: customV2Pipeline) => {
                   this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline }, () => {
                     this._pipelineSelectorClosed(confirmed);
                   });
                 }}
                 namespace={this.props.namespace}
                 pipelineSelectorColumns={this.pipelineSelectorColumns}
-              ></PipelinesDialog>
+              ></PipelinesDialogV2>
 
               {/* Set pipeline version name */}
               <Input
@@ -468,12 +465,17 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
-      const apiPipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-      this.setState({ pipelineId, pipelineName: apiPipeline.name, pipeline: apiPipeline });
+      const pipelineResponse = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
+      this.setState({
+        pipelineId,
+        pipelineName: pipelineResponse.display_name,
+        pipeline: getCustomV2Pipeline(pipelineResponse),
+      });
       // Suggest a version name based on pipeline name
       const currDate = new Date();
       this.setState({
-        pipelineVersionName: apiPipeline.name + '_version_at_' + currDate.toISOString(),
+        pipelineVersionName:
+          pipelineResponse.display_name + '_version_at_' + currDate.toISOString(),
       });
     }
 
@@ -524,17 +526,9 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   private async _create(): Promise<void> {
     this.setState({ isbeingCreated: true }, async () => {
       try {
-        const resource_references: Array<ApiResourceReference> = [];
         let namespace: undefined | string;
         if (this.props.buildInfo?.apiServerMultiUser) {
           if (this.state.isPrivate) {
-            resource_references.push({
-              key: {
-                id: this.props.namespace,
-                type: ApiResourceType.NAMESPACE,
-              },
-              relationship: ApiRelationship.OWNER,
-            });
             namespace = this.props.namespace;
           }
         }
@@ -542,37 +536,30 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         // (1) new pipeline (and a default version) from local file
         // (2) new pipeline (and a default version) from url
         // (3) new pipeline version (under an existing pipeline) from url
-        const response =
-          this.state.newPipeline && this.state.importMethod === ImportMethod.LOCAL
-            ? (
-                await Apis.uploadPipeline(
-                  this.state.pipelineName!,
-                  this.state.pipelineDescription,
-                  this.state.file!,
-                  namespace,
-                )
-              ).default_version!
-            : this.state.newPipeline && this.state.importMethod === ImportMethod.URL
-            ? (
-                await Apis.pipelineServiceApi.createPipeline({
-                  description: this.state.pipelineDescription,
-                  name: this.state.pipelineName!,
-                  url: { pipeline_url: this.state.packageUrl },
-                  resource_references,
-                })
-              ).default_version!
-            : await this._createPipelineVersion();
+        if (this.state.newPipeline) {
+          const newPipeline: V2beta1Pipeline = {
+            description: this.state.pipelineDescription,
+            display_name: this.state.pipelineName,
+            namespace,
+          };
+          const response = await Apis.pipelineServiceApiV2.createPipeline(newPipeline);
+          this.setState({ pipelineId: response.pipeline_id });
+        }
+        const pipelineVersionResponse = await this._createPipelineVersion();
 
         // If success, go to pipeline details page of the new version
         this.props.history.push(
           RoutePage.PIPELINE_DETAILS.replace(
             `:${RouteParams.pipelineId}`,
-            response.resource_references![0].key!.id! /* pipeline id of this version */,
-          ).replace(`:${RouteParams.pipelineVersionId}`, response.id!),
+            pipelineVersionResponse.pipeline_id! /* pipeline id of this version */,
+          ).replace(
+            `:${RouteParams.pipelineVersionId}`,
+            pipelineVersionResponse.pipeline_version_id!,
+          ),
         );
         this.props.updateSnackbar({
           autoHideDuration: 10000,
-          message: `Successfully created new pipeline version: ${response.name}`,
+          message: `Successfully created new pipeline version: ${pipelineVersionResponse.display_name}`,
           open: true,
         });
       } catch (err) {
@@ -584,47 +571,26 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     });
   }
 
-  private async _createPipelineVersion(): Promise<ApiPipelineVersion> {
-    const getPipelineId = async () => {
-      if (this.state.pipelineId) {
-        // Get existing pipeline's id.
-        return this.state.pipelineId;
-      } else {
-        // Get the new pipeline's id.
-        // The new pipeline version is going to be put under this new pipeline
-        // instead of an eixsting pipeline. So create this new pipeline first.
-        const newPipeline: ApiPipeline = {
-          description: this.state.pipelineDescription,
-          name: this.state.pipelineName,
-          url: { pipeline_url: this.state.packageUrl },
-        };
-        const response = await Apis.pipelineServiceApi.createPipeline(newPipeline);
-        return response.id!;
-      }
-    };
-
+  private async _createPipelineVersion(): Promise<V2beta1PipelineVersion> {
     if (this.state.importMethod === ImportMethod.LOCAL) {
       if (!this.state.file) {
         throw new Error('File should be selected');
       }
-      return Apis.uploadPipelineVersion(
+      return Apis.uploadPipelineVersionV2(
         this.state.pipelineVersionName,
-        await getPipelineId(),
+        this.state.pipelineId!,
         this.state.file,
         this.state.pipelineVersionDescription,
       );
     } else {
       // this.state.importMethod === ImportMethod.URL
-      const newPipeline: ApiPipelineVersion = {
-        code_source_url: this.state.codeSourceUrl,
-        name: this.state.pipelineVersionName,
+      let newPipeline: V2beta1PipelineVersion = {
+        pipeline_id: this.state.pipelineId,
+        display_name: this.state.pipelineVersionName,
         description: this.state.pipelineVersionDescription,
         package_url: { pipeline_url: this.state.packageUrl },
-        resource_references: [
-          { key: { id: await getPipelineId(), type: ApiResourceType.PIPELINE }, relationship: 1 },
-        ],
       };
-      return Apis.pipelineServiceApi.createPipelineVersion(newPipeline);
+      return Apis.pipelineServiceApiV2.createPipelineVersion(this.state.pipelineId!, newPipeline);
     }
   }
 
