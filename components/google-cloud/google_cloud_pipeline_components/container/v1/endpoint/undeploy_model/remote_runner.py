@@ -20,7 +20,7 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import err
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 
 
-_MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
+_MODEL_NAME_TEMPLATE = r'((?P<modelname>projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))@(?P<modelversionid>\d*))'
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
 
 
@@ -60,10 +60,24 @@ def undeploy_model(
 
     # Get the deployed_model_id
     deployed_model_id = ''
-    model_name = undeploy_model_request['model']
+    model_resource_name = undeploy_model_request['model']
+    
+    model_uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
+    match = model_uri_pattern.match(model_resource_name)
+    try:
+      model_name = match.group("modelname")
+      model_version_id = match.group("modelversionid")
+    except AttributeError as err:
+      # TODO(ruifang) propagate the error.
+      raise ValueError('Invalid model name: {}. Expect: {}.'.format(
+          model_resource_name,
+          'projects/[project_id]/locations/[location]/models/[model_id]@[model_version_id]'))
 
     for deployed_model in endpoint['deployedModels']:
-      if deployed_model['model'] == model_name:
+      if (
+        deployed_model['model'] == model_name
+        and deployed_model["modelVersionId"] == model_version_id
+      ):
         deployed_model_id = deployed_model['id']
         break
 
@@ -80,15 +94,13 @@ def undeploy_model(
       undeploy_model_lro_request['traffic_split'] = undeploy_model_request[
           'traffic_split']
 
-    model_uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
-    match = model_uri_pattern.match(model_name)
     try:
       location = match.group('location')
     except AttributeError as err:
       # TODO(ruifang) propagate the error.
       raise ValueError('Invalid model name: {}. Expect: {}.'.format(
-          model_name,
-          'projects/[project_id]/locations/[location]/models/[model_id]'))
+          model_resource_name,
+          'projects/[project_id]/locations/[location]/models/[model_id]@[model_version_id]'))
     api_endpoint = location + '-aiplatform.googleapis.com'
     vertex_uri_prefix = f'https://{api_endpoint}/v1/'
 
