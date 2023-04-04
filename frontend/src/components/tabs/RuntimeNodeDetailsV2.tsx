@@ -24,15 +24,17 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
+import { errorToMessage } from 'src/lib/Utils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import { getArtifactTypeName, getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
+import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
 import { FlowElementDataBase } from '../graph/Constants';
+import LogViewer from '../LogViewer';
 import { getResourceStateText, ResourceType } from '../ResourceInfo';
-import { RoutePage } from '../Router';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ArtifactTitle } from './ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from './InputOutputTab';
@@ -56,6 +58,7 @@ const NODE_STATE_UNAVAILABLE = (
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
   onLayerChange: (layers: string[]) => void;
+  runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
@@ -64,6 +67,7 @@ interface RuntimeNodeDetailsV2Props {
 export function RuntimeNodeDetailsV2({
   layers,
   onLayerChange,
+  runId,
   element,
   elementMlmdInfo,
   namespace,
@@ -76,6 +80,7 @@ export function RuntimeNodeDetailsV2({
     if (NodeTypeNames.EXECUTION === element.type) {
       return (
         <TaskNodeDetail
+          runId={runId}
           element={element}
           execution={elementMlmdInfo?.execution}
           namespace={namespace}
@@ -105,14 +110,28 @@ export function RuntimeNodeDetailsV2({
 }
 
 interface TaskNodeDetailProps {
+  runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   execution?: Execution;
   namespace: string | undefined;
 }
 
-function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) {
-  const parentRunId = ''; // need run id from parent component
-  
+function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetailProps) {
+  const { data: logsInfo } = useQuery<Map<string, string>, Error>(
+    ['log_details'],
+    async () => {
+      if (!execution) {
+        throw new Error('No execution is found.');
+      }
+      return await getLogsDetails(execution, runId);
+    },
+    { enabled: !!execution },
+  );
+
+  const logsDetails = logsInfo?.get('logsDetails');
+  const logsBannerMessage = logsInfo?.get('logsBannerMessage');
+  const logsBannerAdditionalInfo = logsInfo?.get('logsBannerAdditionalInfo');
+
   const [selectedTab, setSelectedTab] = useState(0);
   return (
     <div className={commonCss.page}>
@@ -138,8 +157,20 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
           </div>
         )}
         {/* Logs tab */}
-        {selectedTab === 2 && <div>This is logs tab.</div>}
-        {/* getLogsDetails(execution, runid); */}
+        {selectedTab === 2 && (
+          <div>
+            {logsBannerMessage && (
+              <React.Fragment>
+                <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
+              </React.Fragment>
+            )}
+            {!logsBannerMessage && (
+              <div>
+                <LogViewer logLines={(logsDetails || 'no logs to show').split('\n')} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -191,19 +222,42 @@ function getTaskDetailsFields(
   return details;
 }
 
-async function getLogsDetails(execution: Execution, runId: string) {
-  const podName = execution.getCustomPropertiesMap().get('pod_name')?.getStringValue();
-  const podNameSpace = execution.getCustomPropertiesMap().get('namespace')?.getStringValue();
-  if (!runId || !podName || !podName) {
-    return;
+async function getLogsDetails(execution: Execution, runId?: string): Promise<Map<string, string>> {
+  const logsInfo = new Map<string, string>();
+  let podName = '';
+  let podNameSpace = '';
+  let logsDetails = '';
+  let logsBannerMessage = '';
+  let logsBannerAdditionalInfo = '';
+
+  if (execution) {
+    podName =
+      execution
+        .getCustomPropertiesMap()
+        .get('pod_name')
+        ?.getStringValue() || '';
+    podNameSpace =
+      execution
+        .getCustomPropertiesMap()
+        .get('namespace')
+        ?.getStringValue() || '';
   }
-  let response;
+
+  if (!runId || !podName || !podNameSpace) {
+    return new Map<string, string>();
+  }
+
   try {
-    response = await Apis.getPodLogs(runId, podName!, podNameSpace!);
+    logsDetails = await Apis.getPodLogs(runId, podName, podNameSpace);
+    logsInfo.set('logsDetails', logsDetails);
   } catch (err) {
-    console.log(err);
+    let errMsg = await errorToMessage(err);
+    logsBannerMessage = 'Failed to retrieve pod logs.';
+    logsInfo.set('logsBannerMessage', logsBannerMessage);
+    logsBannerAdditionalInfo += 'Error response: ' + errMsg;
+    logsInfo.set('logsBannerAdditionalInfo', logsBannerAdditionalInfo);
   }
-  console.log(podNameSpace);
+  return logsInfo;
 }
 
 interface ArtifactNodeDetailProps {
