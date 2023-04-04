@@ -333,6 +333,26 @@ export interface V2beta1PipelineTaskExecutorDetail {
 }
 
 /**
+ * Reference to an existing pipeline version.
+ * @export
+ * @interface V2beta1PipelineVersionReference
+ */
+export interface V2beta1PipelineVersionReference {
+  /**
+   * Input. Required. Unique ID of the parent pipeline.
+   * @type {string}
+   * @memberof V2beta1PipelineVersionReference
+   */
+  pipeline_id?: string;
+  /**
+   * Input. Required. Unique ID of an existing pipeline version.
+   * @type {string}
+   * @memberof V2beta1PipelineVersionReference
+   */
+  pipeline_version_id?: string;
+}
+
+/**
  *
  * @export
  * @interface V2beta1ReadArtifactResponse
@@ -394,6 +414,12 @@ export interface V2beta1Run {
    * @memberof V2beta1Run
    */
   pipeline_spec?: any;
+  /**
+   * Reference to a pipeline version containing pipeline_id and pipeline_version_id.
+   * @type {V2beta1PipelineVersionReference}
+   * @memberof V2beta1Run
+   */
+  pipeline_version_reference?: V2beta1PipelineVersionReference;
   /**
    * Required input. Runtime config of the run.
    * @type {V2beta1RuntimeConfig}

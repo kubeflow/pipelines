@@ -269,13 +269,19 @@ export interface V2beta1PipelineVersion {
    */
   created_at?: Date;
   /**
-   * Required input field. Pipeline version package url. When calling CreatePipelineVersion, one needs to provide  one package file location.
+   * Input. Required. The URL to the source of the pipeline version. This is required when creating the pipeine version through CreatePipelineVersion API.
    * @type {V2beta1Url}
    * @memberof V2beta1PipelineVersion
    */
   package_url?: V2beta1Url;
   /**
-   * Required input field. Specifies the pipeline spec for the pipeline version.
+   * Input. Optional. The URL to the code source of the pipeline version. The code is usually the Python definition of the pipeline and potentially related the component definitions. This allows users to trace back to how the pipeline YAML was created.
+   * @type {string}
+   * @memberof V2beta1PipelineVersion
+   */
+  code_source_url?: string;
+  /**
+   * Output. The pipeline spec for the pipeline version.
    * @type {any}
    * @memberof V2beta1PipelineVersion
    */
