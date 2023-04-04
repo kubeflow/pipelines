@@ -26,7 +26,7 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
-from kfp.v2 import dsl
+from kfp import dsl
 
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
 LABELS_PAYLOAD_KEY = 'labels'

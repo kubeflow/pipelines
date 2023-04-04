@@ -19,7 +19,7 @@ description: |
 
             The model can be passed from an upstream step, or imported via an importer.
             ```
-              from kfp.v2.dsl import importer
+              from kfp.dsl import importer
               from google_cloud_pipeline_components.types import artifact_types
 
               importer_spec = importer(

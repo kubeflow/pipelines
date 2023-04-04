@@ -15,8 +15,7 @@
 package model
 
 type PipelineSpec struct {
-	// Creation of runs via pipeline ID was deprecated in v2beta1.
-	// It is available only in older resources created through a pipeline ID.
+	// Parent pipeline's id.
 	PipelineId string `gorm:"column:PipelineId; not null;"`
 
 	// Pipeline version's id.

@@ -14,10 +14,7 @@
 """Google Cloud Pipeline Experimental Dataset components."""
 import os
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from kfp.components import load_component_from_file
 
 __all__ = [
     'GetVertexDatasetOp',

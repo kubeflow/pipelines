@@ -15,12 +15,7 @@
 
 import os
 
-# pylint: disable=g-import-not-at-top
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
-# pylint: enable=g-import-not-at-top
+from kfp.components import load_component_from_file  # pylint: enable=g-import-not-at-top
 
 __all__ = [
     'ForecastingStage1TunerOp',

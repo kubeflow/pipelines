@@ -19,10 +19,7 @@ from typing import Optional
 from google.cloud import aiplatform as aiplatform_sdk
 from google_cloud_pipeline_components.aiplatform import utils
 
-try:
-    from kfp.v2.components import load_component_from_file
-except ImportError:
-    from kfp.components import load_component_from_file
+from kfp.components import load_component_from_file
 
 
 __all__ = [
