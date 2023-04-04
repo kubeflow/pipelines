@@ -49,7 +49,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     pipelineManifest = JsYaml.safeDump(v2RecurringRun.pipeline_spec);
   }
 
-  const pipelineVersionId = v2RecurringRun?.pipeline_version_id;
+  const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
 
   const { isFetching: pipelineTemplateStrIsFetching, data: templateStrFromVersionId } = useQuery<
     string,

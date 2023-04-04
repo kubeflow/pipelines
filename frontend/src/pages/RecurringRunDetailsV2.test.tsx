@@ -74,7 +74,10 @@ describe('RecurringRunDetailsV2', () => {
       display_name: 'test recurring run',
       max_concurrency: '50',
       no_catchup: true,
-      pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_version_reference: {
+        pipeline_id: 'test-pipeline-id',
+        pipeline_version_id: 'test-pipeline-version-id',
+      },
       recurring_run_id: 'test-recurring-run-id',
       runtime_config: { parameters: { param1: 'value1' } },
       status: V2beta1RecurringRunStatus.ENABLED,

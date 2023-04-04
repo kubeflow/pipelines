@@ -145,11 +145,13 @@ describe('PipelineDetails', () => {
     testV2Run = {
       run_id: 'test-run-id',
       display_name: 'test run',
+      pipeline_version_reference: {},
     };
 
     testV2RecurringRun = {
       recurring_run_id: 'test-recurring-run-id',
       display_name: 'test recurring run',
+      pipeline_version_reference: {},
     };
 
     getPipelineSpy.mockImplementation(() => Promise.resolve(testPipeline));
@@ -359,7 +361,7 @@ describe('PipelineDetails', () => {
 
   it('use pipeline_version_id in run to get pipeline template string (v2)', async () => {
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
-    testV2Run.pipeline_version_id = 'test-pipeline-version-id';
+    testV2Run.pipeline_version_reference.pipeline_version_id = 'test-pipeline-version-id';
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getV1RunSpy;
@@ -372,7 +374,7 @@ describe('PipelineDetails', () => {
 
   it('use pipeline_version_id in recurring run to get pipeline template string (v2)', async () => {
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
-    testV2RecurringRun.pipeline_version_id = 'test-pipeline-version-id';
+    testV2RecurringRun.pipeline_version_reference.pipeline_version_id = 'test-pipeline-version-id';
 
     tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
     await getV1RecurringRunSpy;

@@ -30,7 +30,7 @@ import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
@@ -189,6 +189,19 @@ function NewRunV2(props: NewRunV2Props) {
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';
 
+  // Pipeline version reference from selected pipeline (version) when "creating" run
+  const pipelineVersionRefNew: V2beta1PipelineVersionReference | undefined = cloneOrigin.isClone
+    ? undefined
+    : {
+        pipeline_id: existingPipeline?.id,
+        pipeline_version_id: existingPipelineVersion?.id,
+      };
+
+  // Pipeline version reference from existing run or recurring run when "cloning" run
+  const pipelineVersionRefClone = cloneOrigin.isRecurring
+    ? cloneOrigin.recurringRun?.pipeline_version_reference
+    : cloneOrigin.run?.pipeline_version_reference;
+
   // Title and list of actions on the top of page.
   useEffect(() => {
     props.updateToolbar({
@@ -288,11 +301,16 @@ function NewRunV2(props: NewRunV2Props) {
       description: runDescription,
       display_name: runName,
       experiment_id: apiExperiment?.id,
-      // pipeline_spec and pipeline_version_id is exclusive.
-      pipeline_spec: !(existingRun?.pipeline_version_id || existingPipelineVersion?.id)
+      // pipeline_spec and pipeline_version_reference is exclusive.
+      pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
         ? JsYaml.safeLoad(templateString || '')
         : undefined,
-      pipeline_version_id: existingRun?.pipeline_version_id || existingPipelineVersion?.id,
+      pipeline_version_reference:
+        pipelineVersionRefClone || pipelineVersionRefNew
+          ? cloneOrigin.isClone
+            ? pipelineVersionRefClone
+            : pipelineVersionRefNew
+          : undefined,
       runtime_config: {
         // TODO(zijianjoy): determine whether to provide pipeline root.
         pipeline_root: undefined, // pipelineRoot,

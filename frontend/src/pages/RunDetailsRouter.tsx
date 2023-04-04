@@ -40,7 +40,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
   }
 
-  const pipelineVersionId = v2Run?.pipeline_version_id;
+  const pipelineVersionId = v2Run?.pipeline_version_reference?.pipeline_version_id;
 
   const { data: templateStrFromVersionId } = useQuery<string, Error>(
     ['PipelineVersionTemplate', pipelineVersionId],

@@ -226,7 +226,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     // existing run or recurring run have two kinds of resources that can provide template string
 
     // 1. Pipeline version id
-    const pipelineVersionId = existingObj.pipeline_version_id;
+    const pipelineVersionId = existingObj.pipeline_version_reference?.pipeline_version_id;
     let templateStrFromOrigin: string | undefined;
     if (pipelineVersionId) {
       const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
