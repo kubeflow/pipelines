@@ -121,7 +121,7 @@ describe('NewRunV2', () => {
     display_name: 'Clone of Run of v2-xgboost-ilbo',
     pipeline_version_reference: {
       pipeline_id: NEW_TEST_PIPELINE_ID,
-      pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+      pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
     },
     runtime_config: { parameters: { intParam: 123 } },
     scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
