@@ -38,6 +38,14 @@ func TestLoadFile_ExceedSizeLimit(t *testing.T) {
 	assert.Contains(t, err.Error(), "File size too large")
 }
 
+func TestLoadFile_LargeDoc(t *testing.T) {
+	bytes, _ := os.ReadFile("test/xgboost_sample_pipeline.yaml")
+	file := string(bytes)
+	readBytes, err := loadFile(strings.NewReader(file), common.MaxFileLength)
+	assert.Nil(t, err)
+	assert.Equal(t, bytes, readBytes)
+}
+
 func TestDecompressPipelineTarball(t *testing.T) {
 	tarballByte, _ := ioutil.ReadFile("test/arguments_tarball/arguments.tar.gz")
 	pipelineFile, err := DecompressPipelineTarball(tarballByte)
