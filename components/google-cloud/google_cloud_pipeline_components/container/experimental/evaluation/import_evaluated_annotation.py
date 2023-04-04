@@ -18,7 +18,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, Optional
 
 from google.api_core import gapic_v1
 from google.cloud import storage
@@ -168,7 +168,7 @@ def get_error_analysis_map(output_uri: str) -> dict[str, Any]:
 def get_evaluated_annotations_by_slice_map(
     output_uri: str,
     slice_value_to_resource_name: dict[str, str],
-    error_analysis: dict[str, Any] | None = None,
+    error_analysis: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
   """Returns a dictionary evaluated_annotations_by_slice.
 
