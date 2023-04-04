@@ -29,7 +29,7 @@ For details about previous and upcoming releases, please see the [release notes]
 
 ### Requirements
 
--   Python >= 3.6
+-   Python >= 3.7
 -   [A Google Cloud project with the Vertex API enabled.](https://cloud.google.com/vertex-ai/docs/start/cloud-environment)
 -   An
     [authenticated GCP account](https://cloud.google.com/ai-platform/docs/getting-started-keras#authenticate_your_gcp_account)
