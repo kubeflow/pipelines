@@ -277,6 +277,9 @@ class ContainerSpec:
     args: Optional[List[placeholders.CommandLineElement]] = None
     """Arguments to the container entrypoint."""
 
+    env: Optional[Mapping[str, placeholders.CommandLineElement]] = None
+    """Environment variables to be passed to the container."""
+
 
 @dataclasses.dataclass
 class ContainerSpecImplementation:
@@ -321,7 +324,7 @@ class ContainerSpecImplementation:
             image=container_spec.image,
             command=container_spec.command,
             args=container_spec.args,
-            env=None,
+            env=container_spec.env,
             resources=None)
 
     @classmethod
