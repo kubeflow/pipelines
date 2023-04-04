@@ -15,14 +15,14 @@
  */
 
 import * as React from 'react';
-import * as Utils from '../lib/Utils';
+import * as Utils from 'src/lib/Utils';
 import RecurringRunList, { RecurringRunListProps } from './RecurringRunList';
-import TestUtils from '../TestUtils';
+import TestUtils from 'src/TestUtils';
 import produce from 'immer';
-import { ApiJob, ApiResourceType } from '../apis/job';
-import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
+import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 class RecurringRunListTest extends RecurringRunList {
   public _loadRecurringRuns(request: ListRequest): Promise<string> {
@@ -34,8 +34,8 @@ describe('RecurringRunList', () => {
   let tree: ShallowWrapper | ReactWrapper;
 
   const onErrorSpy = jest.fn();
-  const listJobsSpy = jest.spyOn(Apis.jobServiceApi, 'listJobs');
-  const getJobSpy = jest.spyOn(Apis.jobServiceApi, 'getJob');
+  const listRecurringRunsSpy = jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
+  const getRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test environments
@@ -51,29 +51,29 @@ describe('RecurringRunList', () => {
     };
   }
 
-  function mockNJobs(n: number, jobTemplate: Partial<ApiJob>): void {
-    getJobSpy.mockImplementation(id =>
+  function mockNRecurringRuns(n: number, recurringRunTemplate: Partial<V2beta1RecurringRun>): void {
+    getRecurringRunSpy.mockImplementation(id =>
       Promise.resolve(
-        produce(jobTemplate, draft => {
-          draft.id = id;
-          draft.name = 'job with id: ' + id;
+        produce(recurringRunTemplate, draft => {
+          draft.recurring_run_id = id;
+          draft.display_name = 'recurring run with id: ' + id;
         }),
       ),
     );
 
-    listJobsSpy.mockImplementation(() =>
+    listRecurringRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        jobs: range(1, n + 1).map(i => {
-          if (jobTemplate) {
-            return produce(jobTemplate as Partial<ApiJob>, draft => {
-              draft.id = 'testjob' + i;
-              draft.name = 'job with id: testjob' + i;
+        recurringRuns: range(1, n + 1).map(i => {
+          if (recurringRunTemplate) {
+            return produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, draft => {
+              draft.recurring_run_id = 'testrecurringrun' + i;
+              draft.display_name = 'recurring run with id: testrecurringrun' + i;
             });
           }
           return {
-            id: 'testjob' + i,
-            name: 'job with id: testjob' + i,
-          } as ApiJob;
+            recurring_run_id: 'testrecurringrun' + i,
+            display_name: 'recurring run with id: testrecurringrun' + i,
+          } as V2beta1RecurringRun;
         }),
       }),
     );
@@ -91,8 +91,8 @@ describe('RecurringRunList', () => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
     onErrorSpy.mockClear();
-    listJobsSpy.mockClear();
-    getJobSpy.mockClear();
+    listRecurringRunsSpy.mockClear();
+    getRecurringRunSpy.mockClear();
     getExperimentSpy.mockClear();
   });
 
@@ -149,12 +149,12 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('loads one job', async () => {
-    mockNJobs(1, {});
+  it('loads one recurring run', async () => {
+    mockNRecurringRuns(1, {});
     const props = generateProps();
     tree = shallow(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
-    expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
+    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -204,9 +204,9 @@ describe('RecurringRunList', () => {
             Array [
               Object {
                 "error": undefined,
-                "id": "testjob1",
+                "id": "testrecurringrun1",
                 "otherFields": Array [
-                  "job with id: testjob1",
+                  "recurring run with id: testrecurringrun1",
                   undefined,
                   undefined,
                   undefined,
@@ -220,26 +220,26 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('reloads the job when refresh is called', async () => {
-    mockNJobs(0, {});
+  it('reloads the recurring run when refresh is called', async () => {
+    mockNRecurringRuns(0, {});
     const props = generateProps();
     tree = TestUtils.mountWithRouter(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunList).refresh();
     tree.update();
-    expect(Apis.jobServiceApi.listJobs).toHaveBeenCalledTimes(2);
-    expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
+    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenCalledTimes(2);
+    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
       '',
       10,
       JobSortKeys.CREATED_AT + ' desc',
       undefined,
-      undefined,
       '',
+      undefined,
     );
     expect(props.onError).not.toHaveBeenCalled();
   });
 
-  it('loads multiple jobs', async () => {
-    mockNJobs(5, {});
+  it('loads multiple recurring runs', async () => {
+    mockNRecurringRuns(5, {});
     const props = generateProps();
     tree = shallow(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
@@ -285,9 +285,9 @@ describe('RecurringRunList', () => {
             Array [
               Object {
                 "error": undefined,
-                "id": "testjob1",
+                "id": "testrecurringrun1",
                 "otherFields": Array [
-                  "job with id: testjob1",
+                  "recurring run with id: testrecurringrun1",
                   undefined,
                   undefined,
                   undefined,
@@ -296,9 +296,9 @@ describe('RecurringRunList', () => {
               },
               Object {
                 "error": undefined,
-                "id": "testjob2",
+                "id": "testrecurringrun2",
                 "otherFields": Array [
-                  "job with id: testjob2",
+                  "recurring run with id: testrecurringrun2",
                   undefined,
                   undefined,
                   undefined,
@@ -307,9 +307,9 @@ describe('RecurringRunList', () => {
               },
               Object {
                 "error": undefined,
-                "id": "testjob3",
+                "id": "testrecurringrun3",
                 "otherFields": Array [
-                  "job with id: testjob3",
+                  "recurring run with id: testrecurringrun3",
                   undefined,
                   undefined,
                   undefined,
@@ -318,9 +318,9 @@ describe('RecurringRunList', () => {
               },
               Object {
                 "error": undefined,
-                "id": "testjob4",
+                "id": "testrecurringrun4",
                 "otherFields": Array [
-                  "job with id: testjob4",
+                  "recurring run with id: testrecurringrun4",
                   undefined,
                   undefined,
                   undefined,
@@ -329,9 +329,9 @@ describe('RecurringRunList', () => {
               },
               Object {
                 "error": undefined,
-                "id": "testjob5",
+                "id": "testrecurringrun5",
                 "otherFields": Array [
-                  "job with id: testjob5",
+                  "recurring run with id: testrecurringrun5",
                   undefined,
                   undefined,
                   undefined,
@@ -345,9 +345,9 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('calls error callback when loading jobs fails', async () => {
+  it('calls error callback when loading recurring runs fails', async () => {
     TestUtils.makeErrorResponseOnce(
-      jest.spyOn(Apis.jobServiceApi, 'listJobs'),
+      jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns'),
       'bad stuff happened',
     );
     const props = generateProps();
@@ -359,56 +359,56 @@ describe('RecurringRunList', () => {
     );
   });
 
-  it('loads jobs for a given experiment id', async () => {
-    mockNJobs(1, {});
+  it('loads recurring runs for a given experiment id', async () => {
+    mockNRecurringRuns(1, {});
     const props = generateProps();
     props.experimentIdMask = 'experiment1';
     tree = shallow(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
+    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
-      'EXPERIMENT',
+      undefined,
+      undefined,
       'experiment1',
-      undefined,
     );
   });
 
-  it('loads jobs for a given namespace', async () => {
-    mockNJobs(1, {});
+  it('loads recurring runs for a given namespace', async () => {
+    mockNRecurringRuns(1, {});
     const props = generateProps();
     props.namespaceMask = 'namespace1';
     tree = shallow(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
+    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
-      'NAMESPACE',
       'namespace1',
+      undefined,
       undefined,
     );
   });
 
-  it('loads given list of jobs only', async () => {
-    mockNJobs(5, {});
+  it('loads given list of recurring runs only', async () => {
+    mockNRecurringRuns(5, {});
     const props = generateProps();
-    props.recurringRunIdListMask = ['job1', 'job2'];
+    props.recurringRunIdListMask = ['recurring run1', 'recurring run2'];
     tree = shallow(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(Apis.jobServiceApi.listJobs).not.toHaveBeenCalled();
-    expect(Apis.jobServiceApi.getJob).toHaveBeenCalledTimes(2);
-    expect(Apis.jobServiceApi.getJob).toHaveBeenCalledWith('job1');
-    expect(Apis.jobServiceApi.getJob).toHaveBeenCalledWith('job2');
+    expect(Apis.recurringRunServiceApi.listRecurringRuns).not.toHaveBeenCalled();
+    expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledTimes(2);
+    expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledWith('recurring run1');
+    expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledWith('recurring run2');
   });
 
-  it('shows job status', async () => {
-    mockNJobs(1, {
-      status: 'ENABLED',
+  it('shows recurring run status', async () => {
+    mockNRecurringRuns(1, {
+      status: V2beta1RecurringRunStatus.ENABLED,
     });
     const props = generateProps();
     tree = shallow(<RecurringRunList {...props} />);
@@ -455,9 +455,9 @@ describe('RecurringRunList', () => {
             Array [
               Object {
                 "error": undefined,
-                "id": "testjob1",
+                "id": "testrecurringrun1",
                 "otherFields": Array [
-                  "job with id: testjob1",
+                  "recurring run with id: testrecurringrun1",
                   "ENABLED",
                   undefined,
                   undefined,
@@ -472,7 +472,7 @@ describe('RecurringRunList', () => {
   });
 
   it('shows trigger periodic', async () => {
-    mockNJobs(1, {
+    mockNRecurringRuns(1, {
       trigger: { periodic_schedule: { interval_second: '3600' } },
     });
     const props = generateProps();
@@ -520,9 +520,9 @@ describe('RecurringRunList', () => {
             Array [
               Object {
                 "error": undefined,
-                "id": "testjob1",
+                "id": "testrecurringrun1",
                 "otherFields": Array [
-                  "job with id: testjob1",
+                  "recurring run with id: testrecurringrun1",
                   undefined,
                   Object {
                     "periodic_schedule": Object {
@@ -541,7 +541,7 @@ describe('RecurringRunList', () => {
   });
 
   it('shows trigger cron', async () => {
-    mockNJobs(1, {
+    mockNRecurringRuns(1, {
       trigger: { cron_schedule: { cron: '0 * * * * ?' } },
     });
     const props = generateProps();
@@ -589,9 +589,9 @@ describe('RecurringRunList', () => {
             Array [
               Object {
                 "error": undefined,
-                "id": "testjob1",
+                "id": "testrecurringrun1",
                 "otherFields": Array [
-                  "job with id: testjob1",
+                  "recurring run with id: testrecurringrun1",
                   undefined,
                   Object {
                     "cron_schedule": Object {
@@ -610,12 +610,8 @@ describe('RecurringRunList', () => {
   });
 
   it('shows experiment name', async () => {
-    mockNJobs(1, {
-      resource_references: [
-        {
-          key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT },
-        },
-      ],
+    mockNRecurringRuns(1, {
+      experiment_id: 'test-experiment-id',
     });
     getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
     const props = generateProps();
@@ -663,9 +659,9 @@ describe('RecurringRunList', () => {
             Array [
               Object {
                 "error": undefined,
-                "id": "testjob1",
+                "id": "testrecurringrun1",
                 "otherFields": Array [
-                  "job with id: testjob1",
+                  "recurring run with id: testrecurringrun1",
                   undefined,
                   undefined,
                   Object {
@@ -683,12 +679,8 @@ describe('RecurringRunList', () => {
   });
 
   it('hides experiment name if instructed', async () => {
-    mockNJobs(1, {
-      resource_references: [
-        {
-          key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT },
-        },
-      ],
+    mockNRecurringRuns(1, {
+      experiment_id: 'test-experiment-id',
     });
     getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
     const props = generateProps();
@@ -732,9 +724,9 @@ describe('RecurringRunList', () => {
             Array [
               Object {
                 "error": undefined,
-                "id": "testjob1",
+                "id": "testrecurringrun1",
                 "otherFields": Array [
-                  "job with id: testjob1",
+                  "recurring run with id: testrecurringrun1",
                   undefined,
                   undefined,
                   "-",
@@ -747,11 +739,11 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('renders job trigger in seconds', () => {
+  it('renders recurring run trigger in seconds', () => {
     expect(
       getMountedInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '42' } },
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div>
@@ -762,11 +754,11 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('renders job trigger in minutes', () => {
+  it('renders recurring run trigger in minutes', () => {
     expect(
       getMountedInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '120' } },
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div>
@@ -777,11 +769,11 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('renders job trigger in hours', () => {
+  it('renders recurring run trigger in hours', () => {
     expect(
       getMountedInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '7200' } },
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div>
@@ -792,11 +784,11 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('renders job trigger in days', () => {
+  it('renders recurring run trigger in days', () => {
     expect(
       getMountedInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '86400' } },
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div>
@@ -807,11 +799,11 @@ describe('RecurringRunList', () => {
     `);
   });
 
-  it('renders job trigger as cron', () => {
+  it('renders recurring run trigger as cron', () => {
     expect(
       getMountedInstance()._triggerCustomRenderer({
         value: { cron_schedule: { cron: '0 * * * * ?' } },
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div>
@@ -825,13 +817,13 @@ describe('RecurringRunList', () => {
     expect(
       getMountedInstance()._statusCustomRenderer({
         value: 'Enabled',
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div
         style={
           Object {
-            "color": "#34a853",
+            "color": "#d50000",
           }
         }
       >
@@ -844,13 +836,13 @@ describe('RecurringRunList', () => {
     expect(
       getMountedInstance()._statusCustomRenderer({
         value: 'Disabled',
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div
         style={
           Object {
-            "color": "#5f6368",
+            "color": "#d50000",
           }
         }
       >
@@ -863,7 +855,7 @@ describe('RecurringRunList', () => {
     expect(
       getMountedInstance()._statusCustomRenderer({
         value: 'Unknown Status',
-        id: 'job-id',
+        id: 'recurring run-id',
       }),
     ).toMatchInlineSnapshot(`
       <div

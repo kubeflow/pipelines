@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for supporting Google Vertex AI Custom Training Job Op."""
+"""Component and utility function for running Vertex Pipelines components as Google Vertex AI Custom Training jobs."""
 
 from . import component as custom_job_component
 from .utils import create_custom_training_job_from_component

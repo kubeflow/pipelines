@@ -18,7 +18,7 @@ import os
 
 from google_cloud_pipeline_components.experimental.custom_job import CustomTrainingJobOp
 import kfp
-from kfp.v2 import compiler
+from kfp import compiler
 
 import unittest
 

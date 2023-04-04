@@ -14,7 +14,7 @@
 """Classes for ML Metadata input/output Artifacts for tracking Google resources."""
 
 from typing import Dict, Optional
-from kfp.v2 import dsl
+from kfp import dsl
 import json
 
 # The artifact property key for the resource name

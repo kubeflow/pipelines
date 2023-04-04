@@ -17,7 +17,7 @@ import json
 import os
 import unittest
 import kfp
-from kfp.v2 import compiler
+from kfp import compiler
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.aiplatform import (
     ImageDatasetCreateOp,

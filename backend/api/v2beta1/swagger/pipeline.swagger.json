@@ -530,11 +530,15 @@
         },
         "package_url": {
           "$ref": "#/definitions/v2beta1Url",
-          "description": "Required input field. Pipeline version package url.\nWhen calling CreatePipelineVersion, one needs to provide \none package file location."
+          "description": "Input. Required. The URL to the source of the pipeline version.\nThis is required when creating the pipeine version through\nCreatePipelineVersion API."
+        },
+        "code_source_url": {
+          "type": "string",
+          "description": "Input. Optional. The URL to the code source of the pipeline version.\nThe code is usually the Python definition of the pipeline and potentially\nrelated the component definitions. This allows users to trace back to how\nthe pipeline YAML was created."
         },
         "pipeline_spec": {
           "type": "object",
-          "description": "Required input field. Specifies the pipeline spec for the pipeline version."
+          "description": "Output. The pipeline spec for the pipeline version."
         },
         "error": {
           "$ref": "#/definitions/googlerpcStatus",

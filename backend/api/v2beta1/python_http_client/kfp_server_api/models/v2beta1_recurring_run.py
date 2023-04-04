@@ -38,6 +38,7 @@ class V2beta1RecurringRun(object):
         'description': 'str',
         'pipeline_version_id': 'str',
         'pipeline_spec': 'object',
+        'pipeline_version_reference': 'V2beta1PipelineVersionReference',
         'runtime_config': 'V2beta1RuntimeConfig',
         'service_account': 'str',
         'max_concurrency': 'str',
@@ -58,6 +59,7 @@ class V2beta1RecurringRun(object):
         'description': 'description',
         'pipeline_version_id': 'pipeline_version_id',
         'pipeline_spec': 'pipeline_spec',
+        'pipeline_version_reference': 'pipeline_version_reference',
         'runtime_config': 'runtime_config',
         'service_account': 'service_account',
         'max_concurrency': 'max_concurrency',
@@ -72,7 +74,7 @@ class V2beta1RecurringRun(object):
         'experiment_id': 'experiment_id'
     }
 
-    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_version_id=None, pipeline_spec=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1RecurringRun - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -83,6 +85,7 @@ class V2beta1RecurringRun(object):
         self._description = None
         self._pipeline_version_id = None
         self._pipeline_spec = None
+        self._pipeline_version_reference = None
         self._runtime_config = None
         self._service_account = None
         self._max_concurrency = None
@@ -107,6 +110,8 @@ class V2beta1RecurringRun(object):
             self.pipeline_version_id = pipeline_version_id
         if pipeline_spec is not None:
             self.pipeline_spec = pipeline_spec
+        if pipeline_version_reference is not None:
+            self.pipeline_version_reference = pipeline_version_reference
         if runtime_config is not None:
             self.runtime_config = runtime_config
         if service_account is not None:
@@ -246,6 +251,27 @@ class V2beta1RecurringRun(object):
         """
 
         self._pipeline_spec = pipeline_spec
+
+    @property
+    def pipeline_version_reference(self):
+        """Gets the pipeline_version_reference of this V2beta1RecurringRun.  # noqa: E501
+
+
+        :return: The pipeline_version_reference of this V2beta1RecurringRun.  # noqa: E501
+        :rtype: V2beta1PipelineVersionReference
+        """
+        return self._pipeline_version_reference
+
+    @pipeline_version_reference.setter
+    def pipeline_version_reference(self, pipeline_version_reference):
+        """Sets the pipeline_version_reference of this V2beta1RecurringRun.
+
+
+        :param pipeline_version_reference: The pipeline_version_reference of this V2beta1RecurringRun.  # noqa: E501
+        :type pipeline_version_reference: V2beta1PipelineVersionReference
+        """
+
+        self._pipeline_version_reference = pipeline_version_reference
 
     @property
     def runtime_config(self):

@@ -17,8 +17,8 @@ import os
 
 from google_cloud_pipeline_components import aiplatform
 from google_cloud_pipeline_components.experimental import forecasting
-from kfp.v2 import compiler
-from kfp.v2 import dsl
+from kfp import compiler
+from kfp import dsl
 
 import unittest
 

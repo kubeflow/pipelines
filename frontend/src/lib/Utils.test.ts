@@ -18,6 +18,7 @@ import { NodePhase } from './StatusUtils';
 import {
   decodeCompressedNodes,
   enabledDisplayString,
+  enabledDisplayStringV2,
   formatDateString,
   generateMinioArtifactUrl,
   generateS3ArtifactUrl,
@@ -26,6 +27,7 @@ import {
   logger,
   mergeApiParametersByNames,
 } from './Utils';
+import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 describe('Utils', () => {
   describe('log', () => {
@@ -80,6 +82,14 @@ describe('Utils', () => {
     it('handles a trigger according to the enabled flag', () => {
       expect(enabledDisplayString({}, true)).toBe('Yes');
       expect(enabledDisplayString({}, false)).toBe('No');
+    });
+
+    it('handles a trigger according to the enabled flag (v2)', () => {
+      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.ENABLED)).toBe('Yes');
+      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.DISABLED)).toBe('No');
+      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.STATUSUNSPECIFIED)).toBe(
+        'Unknown',
+      );
     });
   });
 

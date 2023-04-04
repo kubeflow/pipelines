@@ -14,7 +14,7 @@
 """Module for supporting Google Vertex AI Hyperparameter Tuning Job Op."""
 
 from google.cloud.aiplatform_v1.types import study
-from kfp.v2 import dsl
+from kfp import dsl
 
 
 @dsl.component(

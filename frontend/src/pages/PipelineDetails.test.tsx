@@ -27,9 +27,12 @@ import { ButtonKeys } from '../lib/Buttons';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import TestUtils from '../TestUtils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import * as features from 'src/features';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
 import { ApiJob } from '../apis/job';
+import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -40,8 +43,10 @@ describe('PipelineDetails', () => {
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
-  const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-  const getRecurringRunSpy = jest.spyOn(Apis.jobServiceApi, 'getJob');
+  const getV1RunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+  const getV1RecurringRunSpy = jest.spyOn(Apis.jobServiceApi, 'getJob');
+  const getV2RunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+  const getV2RecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
   const getPipelineVersionTemplateSpy = jest.spyOn(
@@ -53,8 +58,10 @@ describe('PipelineDetails', () => {
   let tree: ShallowWrapper | ReactWrapper;
   let testPipeline: ApiPipeline = {};
   let testPipelineVersion: ApiPipelineVersion = {};
-  let testRun: ApiRunDetail = {};
-  let testRecurringRun: ApiJob = {};
+  let testV1Run: ApiRunDetail = {};
+  let testV1RecurringRun: ApiJob = {};
+  let testV2Run: V2beta1Run = {};
+  let testV2RecurringRun: V2beta1RecurringRun = {};
 
   function generateProps(fromRunSpec = false, fromRecurringRunSpec = false): PageProps {
     let params = {};
@@ -117,7 +124,7 @@ describe('PipelineDetails', () => {
       name: 'test-pipeline-version',
     };
 
-    testRun = {
+    testV1Run = {
       run: {
         id: 'test-run-id',
         name: 'test run',
@@ -127,7 +134,7 @@ describe('PipelineDetails', () => {
       },
     };
 
-    testRecurringRun = {
+    testV1RecurringRun = {
       id: 'test-recurring-run-id',
       name: 'test recurring run',
       pipeline_spec: {
@@ -135,13 +142,25 @@ describe('PipelineDetails', () => {
       },
     };
 
+    testV2Run = {
+      run_id: 'test-run-id',
+      display_name: 'test run',
+    };
+
+    testV2RecurringRun = {
+      recurring_run_id: 'test-recurring-run-id',
+      display_name: 'test recurring run',
+    };
+
     getPipelineSpy.mockImplementation(() => Promise.resolve(testPipeline));
     getPipelineVersionSpy.mockImplementation(() => Promise.resolve(testPipelineVersion));
     listPipelineVersionsSpy.mockImplementation(() =>
       Promise.resolve({ versions: [testPipelineVersion] }),
     );
-    getRunSpy.mockImplementation(() => Promise.resolve(testRun));
-    getRecurringRunSpy.mockImplementation(() => Promise.resolve(testRecurringRun));
+    getV1RunSpy.mockImplementation(() => Promise.resolve(testV1Run));
+    getV1RecurringRunSpy.mockImplementation(() => Promise.resolve(testV1RecurringRun));
+    getV2RunSpy.mockImplementation(() => Promise.resolve(testV2Run));
+    getV2RecurringRunSpy.mockImplementation(() => Promise.resolve(testV2RecurringRun));
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'test-experiment-id', name: 'test experiment' } as ApiExperiment),
     );
@@ -176,7 +195,9 @@ describe('PipelineDetails', () => {
       'comes from a run spec that does not have an experiment',
     async () => {
       tree = shallow(<PipelineDetails {...generateProps(true)} />);
-      await getRunSpy;
+      await getV1RunSpy;
+      await getV2RunSpy;
+      await createGraphSpy;
       await getPipelineVersionTemplateSpy;
       await TestUtils.flushPromises();
       expect(updateToolbarSpy).toHaveBeenLastCalledWith(
@@ -184,8 +205,8 @@ describe('PipelineDetails', () => {
           breadcrumbs: [
             { displayName: 'All runs', href: RoutePage.RUNS },
             {
-              displayName: testRun.run!.name,
-              href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, testRun.run!.id!),
+              displayName: testV1Run.run!.name,
+              href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, testV1Run.run!.id!),
             },
           ],
           pageTitle: 'Pipeline details',
@@ -199,7 +220,8 @@ describe('PipelineDetails', () => {
       'comes from a recurring run spec that does not have an experiment',
     async () => {
       tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
-      await getRecurringRunSpy;
+      await getV1RecurringRunSpy;
+      await getV2RecurringRunSpy;
       await getPipelineVersionTemplateSpy;
       await TestUtils.flushPromises();
       expect(updateToolbarSpy).toHaveBeenLastCalledWith(
@@ -207,10 +229,10 @@ describe('PipelineDetails', () => {
           breadcrumbs: [
             { displayName: 'All recurring runs', href: RoutePage.RECURRING_RUNS },
             {
-              displayName: testRecurringRun.name,
+              displayName: testV1RecurringRun.name,
               href: RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,
-                testRecurringRun.id!,
+                testV1RecurringRun.id!,
               ),
             },
           ],
@@ -224,11 +246,10 @@ describe('PipelineDetails', () => {
     'shows all runs breadcrumbs, and "Pipeline details" as page title when the pipeline ' +
       'comes from a run spec that has an experiment',
     async () => {
-      testRun.run!.resource_references = [
-        { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
-      ];
+      testV2Run.experiment_id = 'test-experiment-id';
       tree = shallow(<PipelineDetails {...generateProps(true)} />);
-      await getRunSpy;
+      await getV1RunSpy;
+      await getV2RunSpy;
       await getExperimentSpy;
       await getPipelineVersionTemplateSpy;
       await TestUtils.flushPromises();
@@ -244,8 +265,8 @@ describe('PipelineDetails', () => {
               ),
             },
             {
-              displayName: testRun.run!.name,
-              href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, testRun.run!.id!),
+              displayName: testV2Run.display_name,
+              href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, testV2Run.run_id!),
             },
           ],
           pageTitle: 'Pipeline details',
@@ -258,11 +279,10 @@ describe('PipelineDetails', () => {
     'shows all runs breadcrumbs, and "Pipeline details" as page title when the pipeline ' +
       'comes from a recurring run spec that has an experiment',
     async () => {
-      testRecurringRun.resource_references = [
-        { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
-      ];
+      testV2RecurringRun.experiment_id = 'test-experiment-id';
       tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
-      await getRecurringRunSpy;
+      await getV1RecurringRunSpy;
+      await getV2RecurringRunSpy;
       await getExperimentSpy;
       await getPipelineVersionTemplateSpy;
       await TestUtils.flushPromises();
@@ -278,10 +298,10 @@ describe('PipelineDetails', () => {
               ),
             },
             {
-              displayName: testRecurringRun.name,
+              displayName: testV1RecurringRun.name,
               href: RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,
-                testRecurringRun.id!,
+                testV1RecurringRun.id!,
               ),
             },
           ],
@@ -292,12 +312,14 @@ describe('PipelineDetails', () => {
   );
 
   it('parses the workflow source in embedded pipeline spec as JSON and then converts it to YAML (v1)', async () => {
-    testRun.run!.pipeline_spec = {
+    testV1Run.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
       workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
     };
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await getV1RunSpy;
+    await getV2RunSpy;
     await TestUtils.flushPromises();
 
     expect(tree.state('templateString')).toBe(
@@ -305,14 +327,13 @@ describe('PipelineDetails', () => {
     );
   });
 
-  it('directly uses pipeline manifest as template string (v2)', async () => {
-    testRun.run!.pipeline_spec = {
-      pipeline_id: 'run-pipeline-id',
-      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
-      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-    };
+  it('directly use pipeline_manifest dumped from pipeline_spec in run as template string (v2)', async () => {
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    testV2Run.pipeline_spec = { spec: { arguments: { parameters: [{ name: 'output' }] } } };
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await getV1RunSpy;
+    await getV2RunSpy;
     await TestUtils.flushPromises();
 
     expect(tree.state('templateString')).toBe(
@@ -320,14 +341,15 @@ describe('PipelineDetails', () => {
     );
   });
 
-  it('directly uses pipeline manifest from recurring run as template string (v2)', async () => {
-    testRecurringRun.pipeline_spec = {
-      pipeline_id: 'run-pipeline-id',
-      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
-      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+  it('directly use pipeline_manifest dumped from pipeline_spec in recurring run as template string (v2)', async () => {
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    testV2RecurringRun.pipeline_spec = {
+      spec: { arguments: { parameters: [{ name: 'output' }] } },
     };
 
     tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+    await getV1RecurringRunSpy;
+    await getV2RecurringRunSpy;
     await TestUtils.flushPromises();
 
     expect(tree.state('templateString')).toBe(
@@ -335,8 +357,34 @@ describe('PipelineDetails', () => {
     );
   });
 
+  it('use pipeline_version_id in run to get pipeline template string (v2)', async () => {
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    testV2Run.pipeline_version_id = 'test-pipeline-version-id';
+
+    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await getV1RunSpy;
+    await getV2RunSpy;
+    await getPipelineVersionTemplateSpy;
+    await TestUtils.flushPromises();
+
+    expect(tree.state('templateString')).toBe('test template');
+  });
+
+  it('use pipeline_version_id in recurring run to get pipeline template string (v2)', async () => {
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    testV2RecurringRun.pipeline_version_id = 'test-pipeline-version-id';
+
+    tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+    await getV1RecurringRunSpy;
+    await getV2RecurringRunSpy;
+    await getPipelineVersionTemplateSpy;
+    await TestUtils.flushPromises();
+
+    expect(tree.state('templateString')).toBe('test template');
+  });
+
   it('shows load error banner when failing to parse the workflow source in embedded pipeline spec', async () => {
-    testRun.run!.pipeline_spec = {
+    testV1Run.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
       workflow_manifest: 'not valid JSON',
     };
@@ -348,7 +396,7 @@ describe('PipelineDetails', () => {
         expect.objectContaining({
           additionalInfo: 'Unexpected token o in JSON at position 1',
           message: `Failed to parse pipeline spec from run with ID: ${
-            testRun.run!.id
+            testV1Run.run!.id
           }. Click Details for more information.`,
           mode: 'error',
         }),
@@ -357,7 +405,7 @@ describe('PipelineDetails', () => {
   });
 
   it('shows load error banner when failing to get run details, when loading from run spec', async () => {
-    TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
+    TestUtils.makeErrorResponseOnce(getV1RunSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getPipelineSpy;
     await TestUtils.flushPromises();
@@ -372,9 +420,7 @@ describe('PipelineDetails', () => {
   });
 
   it('shows load error banner when failing to get experiment details, when loading from run spec', async () => {
-    testRun.run!.resource_references = [
-      { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
-    ];
+    testV2Run.experiment_id = 'test-experiment-id';
     TestUtils.makeErrorResponse(getExperimentSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getPipelineSpy;
@@ -506,7 +552,7 @@ describe('PipelineDetails', () => {
     newRunBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
-      RoutePage.NEW_RUN + `?${QUERY_PARAMS.fromRunId}=${testRun.run!.id}`,
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.fromRunId}=${testV1Run.run!.id}`,
     );
   });
 

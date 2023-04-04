@@ -15,17 +15,17 @@
  */
 
 import * as React from 'react';
-import BusyButton from '../atoms/BusyButton';
-import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
-import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
-import { ApiJob } from '../apis/job';
-import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
-import { DialogProps, RoutePage, RouteParams } from '../components/Router';
+import BusyButton from 'src/atoms/BusyButton';
+import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
+import Toolbar, { ToolbarActionMap } from 'src/components/Toolbar';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
+import { DialogProps, RoutePage, RouteParams } from 'src/components/Router';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
-import { commonCss } from '../Css';
-import { logger, formatDateString, errorToMessage } from '../lib/Utils';
+import { commonCss } from 'src/Css';
+import { logger, formatDateString, errorToMessage } from 'src/lib/Utils';
 
 export interface RecurringRunListProps extends RouteComponentProps {
   experimentId: string;
@@ -35,7 +35,7 @@ export interface RecurringRunListProps extends RouteComponentProps {
 
 interface RecurringRunListState {
   busyIds: Set<string>;
-  runs: ApiJob[];
+  runs: V2beta1RecurringRun[];
   selectedIds: string[];
   toolbarActionMap: ToolbarActionMap;
 }
@@ -70,9 +70,9 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
 
     const rows: Row[] = runs.map(r => {
       return {
-        error: r.error,
-        id: r.id!,
-        otherFields: [r.name, formatDateString(r.created_at), r.enabled],
+        error: r.error?.toString(),
+        id: r.recurring_run_id!,
+        otherFields: [r.display_name, formatDateString(r.created_at), r.status],
       };
     });
 
@@ -114,20 +114,22 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     );
   };
 
-  public _enabledCustomRenderer: React.FC<CustomRendererProps<boolean>> = (
-    props: CustomRendererProps<boolean>,
+  public _enabledCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
+    props: CustomRendererProps<V2beta1RecurringRunStatus>,
   ) => {
     const isBusy = this.state.busyIds.has(props.id);
     return (
       <BusyButton
-        outlined={props.value}
-        title={props.value === true ? 'Enabled' : 'Disabled'}
+        outlined={props.value === V2beta1RecurringRunStatus.ENABLED}
+        title={props.value === V2beta1RecurringRunStatus.ENABLED ? 'Enabled' : 'Disabled'}
         busy={isBusy}
         onClick={() => {
           let busyIds = this.state.busyIds;
           busyIds.add(props.id);
           this.setState({ busyIds }, async () => {
-            await this._setEnabledState(props.id, !props.value);
+            props.value === V2beta1RecurringRunStatus.ENABLED
+              ? await this._setEnabledState(props.id, false)
+              : await this._setEnabledState(props.id, true);
             busyIds = this.state.busyIds;
             busyIds.delete(props.id);
             this.setState({ busyIds });
@@ -139,18 +141,18 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
   };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
-    let runs: ApiJob[] = [];
+    let runs: V2beta1RecurringRun[] = [];
     let nextPageToken = '';
     try {
-      const response = await Apis.jobServiceApi.listJobs(
+      const response = await Apis.recurringRunServiceApi.listRecurringRuns(
         request.pageToken,
         request.pageSize,
         request.sortBy,
-        'EXPERIMENT',
-        this.props.experimentId,
+        undefined,
         request.filter,
+        this.props.experimentId,
       );
-      runs = response.jobs || [];
+      runs = response.recurringRuns || [];
       nextPageToken = response.next_page_token || '';
     } catch (err) {
       const errorMessage = await errorToMessage(err);
@@ -168,7 +170,9 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
 
   protected async _setEnabledState(id: string, enabled: boolean): Promise<void> {
     try {
-      await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
+      await (enabled
+        ? Apis.recurringRunServiceApi.enableRecurringRun(id)
+        : Apis.recurringRunServiceApi.disableRecurringRun(id));
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       this.props.updateDialog({

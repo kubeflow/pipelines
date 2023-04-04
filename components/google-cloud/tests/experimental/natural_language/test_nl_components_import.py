@@ -16,8 +16,8 @@
 import os
 
 from google_cloud_pipeline_components.experimental import natural_language
-from kfp.v2 import compiler
-from kfp.v2 import dsl
+from kfp import compiler
+from kfp import dsl
 
 import unittest
 
