@@ -452,7 +452,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * '-'.
    */
   private async _getAndSetPipelineVersionNames(displayRun: DisplayRun): Promise<void> {
-    const pipelineVersionId = displayRun.run.pipeline_version_id;
+    const pipelineVersionId = displayRun.run.pipeline_version_reference?.pipeline_version_id;
     if (pipelineVersionId) {
       try {
         const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);

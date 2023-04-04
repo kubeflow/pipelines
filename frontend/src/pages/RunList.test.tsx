@@ -56,31 +56,42 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
-    getRunSpy.mockImplementation(id =>
-      Promise.resolve(
+    getRunSpy.mockImplementation(id => {
+      let pipelineVersionRef = {
+        pipeline_id: 'testpipeline' + id,
+        pipeline_version_id: 'testversion' + id,
+      };
+      return Promise.resolve(
         produce(runTemplate, draft => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
-          draft.pipeline_version_id = 'testversion' + id;
+          draft.pipeline_version_reference = pipelineVersionRef;
         }),
-      ),
-    );
+      );
+    });
 
     listRunsSpy.mockImplementation(() =>
       Promise.resolve({
         runs: range(1, n + 1).map(i => {
           if (runTemplate) {
+            let pipelineVersionRef = {
+              pipeline_id: 'testpipeline' + i,
+              pipeline_version_id: 'testversion' + i,
+            };
             return produce(runTemplate as Partial<V2beta1Run>, draft => {
               draft.run_id = 'testrun' + i;
               draft.display_name = 'run with id: testrun' + i;
-              draft.pipeline_version_id = 'testversion' + i;
+              draft.pipeline_version_reference = pipelineVersionRef;
             });
           }
           return {
             run_id: 'testrun' + i,
             display_name: 'run with id: testrun' + i,
-            pipeline_version_id: 'testversion' + i,
+            pipeline_version_reference: {
+              pipeline_id: 'testpipeline' + i,
+              pipeline_version_id: 'testversion' + i,
+            },
           } as V2beta1Run;
         }),
       }),
@@ -453,7 +464,10 @@ describe('RunList', () => {
 
   it('shows pipeline version name', async () => {
     mockNRuns(1, {
-      pipeline_version_id: 'testversion1',
+      pipeline_version_reference: {
+        pipeline_id: 'testpipeline1',
+        pipeline_version_id: 'testversion1',
+      },
     });
     const props = generateProps();
     render(
