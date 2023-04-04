@@ -103,7 +103,10 @@ describe('NewRunV2', () => {
     finished_at: new Date('2021-05-18T21:01:23.000Z'),
     run_id: TEST_RUN_ID,
     display_name: 'Run of v2-xgboost-ilbo',
-    pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    pipeline_version_reference: {
+      pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+      pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    },
     runtime_config: { parameters: { intParam: 123 } },
     scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
@@ -116,7 +119,10 @@ describe('NewRunV2', () => {
     finished_at: new Date('2022-08-12T21:01:23.000Z'),
     run_id: 'test-clone-ui-run-id',
     display_name: 'Clone of Run of v2-xgboost-ilbo',
-    pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
+    pipeline_version_reference: {
+      pipeline_id: NEW_TEST_PIPELINE_ID,
+      pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    },
     runtime_config: { parameters: { intParam: 123 } },
     scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
@@ -152,7 +158,10 @@ describe('NewRunV2', () => {
     created_at: new Date('2021-05-17T20:58:23.000Z'),
     description: 'V2 xgboost',
     display_name: 'Run of v2-xgboost-ilbo',
-    pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    pipeline_version_reference: {
+      pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+      pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    },
     recurring_run_id: TEST_RECURRING_RUN_ID,
     runtime_config: { parameters: { intParam: 123 } },
     trigger: {
@@ -165,7 +174,10 @@ describe('NewRunV2', () => {
     created_at: new Date('2023-01-04T20:58:23.000Z'),
     description: 'V2 xgboost',
     display_name: 'Clone of Run of v2-xgboost-ilbo',
-    pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
+    pipeline_version_reference: {
+      pipeline_id: NEW_TEST_PIPELINE_ID,
+      pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
+    },
     recurring_run_id: 'test-clone-ui-recurring-run-id',
     runtime_config: { parameters: { intParam: 123 } },
     trigger: {
@@ -443,7 +455,10 @@ describe('NewRunV2', () => {
         expect(createRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             description: '',
-            pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+              pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            },
             runtime_config: { parameters: {}, pipeline_root: undefined },
             service_account: '',
           }),
@@ -867,7 +882,10 @@ describe('NewRunV2', () => {
           expect.objectContaining({
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+              pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            },
             runtime_config: { parameters: { intParam: 123 } },
             service_account: '',
           }),
@@ -953,7 +971,10 @@ describe('NewRunV2', () => {
           expect.objectContaining({
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+              pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            },
             runtime_config: { parameters: { intParam: 123 } },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
