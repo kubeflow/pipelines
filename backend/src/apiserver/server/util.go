@@ -29,6 +29,7 @@ import (
 )
 
 func loadFile(fileReader io.Reader, MaxFileLength int) ([]byte, error) {
+	// TODO(lingqinggan): investigate ways to increase the buffer size, so we don't have to use a loop.
 	reader := bufio.NewReaderSize(fileReader, MaxFileLength)
 	var pipelineFile []byte
 	for {
