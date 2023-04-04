@@ -465,6 +465,7 @@ describe('RunList', () => {
   it('shows pipeline version name', async () => {
     mockNRuns(1, {
       pipeline_version_reference: {
+        pipeline_id: 'testpipeline1',
         pipeline_version_id: 'testversion1',
       },
     });

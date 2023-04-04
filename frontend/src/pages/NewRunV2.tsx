@@ -305,9 +305,12 @@ function NewRunV2(props: NewRunV2Props) {
       pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
         ? JsYaml.safeLoad(templateString || '')
         : undefined,
-      pipeline_version_reference: cloneOrigin.isClone
-        ? pipelineVersionRefClone
-        : pipelineVersionRefNew,
+      pipeline_version_reference:
+        pipelineVersionRefClone || pipelineVersionRefNew
+          ? cloneOrigin.isClone
+            ? pipelineVersionRefClone
+            : pipelineVersionRefNew
+          : undefined,
       runtime_config: {
         // TODO(zijianjoy): determine whether to provide pipeline root.
         pipeline_root: undefined, // pipelineRoot,
