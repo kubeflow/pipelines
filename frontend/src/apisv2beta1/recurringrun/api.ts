@@ -226,6 +226,26 @@ export interface V2beta1PeriodicSchedule {
 }
 
 /**
+ * Reference to an existing pipeline version.
+ * @export
+ * @interface V2beta1PipelineVersionReference
+ */
+export interface V2beta1PipelineVersionReference {
+  /**
+   * Input. Required. Unique ID of the parent pipeline.
+   * @type {string}
+   * @memberof V2beta1PipelineVersionReference
+   */
+  pipeline_id?: string;
+  /**
+   * Input. Required. Unique ID of an existing pipeline version.
+   * @type {string}
+   * @memberof V2beta1PipelineVersionReference
+   */
+  pipeline_version_id?: string;
+}
+
+/**
  *
  * @export
  * @interface V2beta1RecurringRun
@@ -261,6 +281,12 @@ export interface V2beta1RecurringRun {
    * @memberof V2beta1RecurringRun
    */
   pipeline_spec?: any;
+  /**
+   * Reference to a pipeline version containing pipeline_id and pipeline_version_id.
+   * @type {V2beta1PipelineVersionReference}
+   * @memberof V2beta1RecurringRun
+   */
+  pipeline_version_reference?: V2beta1PipelineVersionReference;
   /**
    * Runtime config of the pipeline.
    * @type {V2beta1RuntimeConfig}
