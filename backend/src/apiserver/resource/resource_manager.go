@@ -814,6 +814,11 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline version %v", pipelineSpec.PipelineVersionId)
 		}
+		// Requests in v1beta1 may have empty pipeline ID. Therefore, we only catch
+		// v2beta1 calls to create a run or recurring run with inconsistent pipeline ID.
+		if pipelineVersion.PipelineId != "" && pipelineSpec.PipelineId != "" && pipelineVersion.PipelineId != pipelineSpec.PipelineId {
+			return nil, util.NewInvalidInputError("Pipeline version %v belongs to pipeline %v (not %v)", pipelineSpec.PipelineVersionId, pipelineVersion.PipelineId, pipelineSpec.PipelineId)
+		}
 		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineId != "" {
 		pipelineVersion, err := r.GetLatestPipelineVersion(pipelineSpec.PipelineId)
