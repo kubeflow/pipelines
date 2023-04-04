@@ -20,6 +20,7 @@ from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import OutputPath
 
+print('trigger tests')
 
 @container_component
 def dataproc_create_pyspark_batch(
