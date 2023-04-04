@@ -1197,7 +1197,6 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state history")
 		}
 		namespace = ""
-		pipelineId = ""
 		workflowSpec = ""
 		// TODO(gkcalat): implement runtime details of a run logic based on the apiRunV2.RuDetails().
 		runtimePipelineSpec = ""
@@ -1206,7 +1205,8 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		if runName == "" {
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run name cannot be empty"), "Failed to convert a API run detail to its internal representation")
 		}
-		pipelineVersionId = apiRunV2.GetPipelineVersionId()
+		pipelineId = apiRunV2.GetPipelineVersionReference().GetPipelineId()
+		pipelineVersionId = apiRunV2.GetPipelineVersionReference().GetPipelineVersionId()
 		experimentId = apiRunV2.GetExperimentId()
 		runId = apiRunV2.GetRunId()
 		recRunId = apiRunV2.GetRecurringRunId()
@@ -1476,8 +1476,11 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 	}
 	err := util.NewInvalidInputError("Failed to parse the pipeline source")
 	if r.PipelineSpec.PipelineVersionId != "" {
-		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionId{
-			PipelineVersionId: r.PipelineSpec.PipelineVersionId,
+		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionReference{
+			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+				PipelineId:        r.PipelineSpec.PipelineId,
+				PipelineVersionId: r.PipelineSpec.PipelineVersionId,
+			},
 		}
 		return apiRunV2
 	} else if r.PipelineSpec.PipelineSpecManifest != "" {
@@ -1855,7 +1858,8 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		workflowSpec = apiJob.GetPipelineSpec().GetWorkflowManifest()
 		k8sName = jobName
 	case *apiv2beta1.RecurringRun:
-		pipelineVersionId = apiJob.GetPipelineVersionId()
+		pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
+		pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
 		if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
 			pipelineSpec = spec
 		} else {
@@ -1896,7 +1900,6 @@ func toModelJob(j interface{}) (*model.Job, error) {
 
 		k8sName = jobName
 		specParams = ""
-		pipelineId = ""
 		workflowSpec = ""
 	default:
 		return nil, util.NewUnknownApiVersionError("RecurringRun", j)
@@ -2196,7 +2199,12 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 			}
 		}
 	} else {
-		apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: j.PipelineSpec.PipelineVersionId}
+		apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineVersionReference{
+			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+				PipelineId:        j.PipelineSpec.PipelineId,
+				PipelineVersionId: j.PipelineSpec.PipelineVersionId,
+			},
+		}
 	}
 	if j.Enabled {
 		apiRecurringRunV2.Status = apiv2beta1.RecurringRun_ENABLED

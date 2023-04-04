@@ -162,10 +162,13 @@ message Run {
   // run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
     // ID of an existing pipeline version.
-    string pipeline_version_id = 6;
+    string pipeline_version_id = 6 [deprecated = true];
 
     // Pipeline spec.
     google.protobuf.Struct pipeline_spec = 7;
+
+    // Reference to a pipeline version containing pipeline_id and pipeline_version_id.
+    PipelineVersionReference pipeline_version_reference = 18;
   }
  
   // Required input. Runtime config of the run. 
@@ -202,6 +205,15 @@ message Run {
   // Output. A sequence of run statuses. This field keeps a record 
   // of state transitions.
   repeated RuntimeStatus state_history = 17;
+}
+
+// Reference to an existing pipeline version.
+message PipelineVersionReference {
+  // Input. Required. Unique ID of the parent pipeline.
+  string pipeline_id = 1;
+
+  // Input. Required. Unique ID of an existing pipeline version.
+  string pipeline_version_id = 2;
 }
 
 // Describes the runtime state of an entity.

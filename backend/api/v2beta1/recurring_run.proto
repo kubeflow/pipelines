@@ -18,6 +18,7 @@ option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client
 package kubeflow.pipelines.backend.api.v2beta1;
 
 import "backend/api/v2beta1/runtime_config.proto";
+import "backend/api/v2beta1/run.proto";
 import "google/protobuf/struct.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
@@ -85,9 +86,11 @@ message RecurringRun {
   // recurring run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
     // The ID of the pipeline version used for creating runs.
-    string pipeline_version_id = 4;
+    string pipeline_version_id = 4 [deprecated=true];
     // The pipeline spec.
     google.protobuf.Struct pipeline_spec = 5;
+    // Reference to a pipeline version containing pipeline_id and pipeline_version_id.
+    PipelineVersionReference pipeline_version_reference = 18;
   }
 
   // Runtime config of the pipeline. 
