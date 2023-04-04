@@ -40,6 +40,7 @@ class V2beta1Run(object):
         'description': 'str',
         'pipeline_version_id': 'str',
         'pipeline_spec': 'object',
+        'pipeline_version_reference': 'V2beta1PipelineVersionReference',
         'runtime_config': 'V2beta1RuntimeConfig',
         'service_account': 'str',
         'created_at': 'datetime',
@@ -60,6 +61,7 @@ class V2beta1Run(object):
         'description': 'description',
         'pipeline_version_id': 'pipeline_version_id',
         'pipeline_spec': 'pipeline_spec',
+        'pipeline_version_reference': 'pipeline_version_reference',
         'runtime_config': 'runtime_config',
         'service_account': 'service_account',
         'created_at': 'created_at',
@@ -72,7 +74,7 @@ class V2beta1Run(object):
         'state_history': 'state_history'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -85,6 +87,7 @@ class V2beta1Run(object):
         self._description = None
         self._pipeline_version_id = None
         self._pipeline_spec = None
+        self._pipeline_version_reference = None
         self._runtime_config = None
         self._service_account = None
         self._created_at = None
@@ -111,6 +114,8 @@ class V2beta1Run(object):
             self.pipeline_version_id = pipeline_version_id
         if pipeline_spec is not None:
             self.pipeline_spec = pipeline_spec
+        if pipeline_version_reference is not None:
+            self.pipeline_version_reference = pipeline_version_reference
         if runtime_config is not None:
             self.runtime_config = runtime_config
         if service_account is not None:
@@ -290,6 +295,27 @@ class V2beta1Run(object):
         """
 
         self._pipeline_spec = pipeline_spec
+
+    @property
+    def pipeline_version_reference(self):
+        """Gets the pipeline_version_reference of this V2beta1Run.  # noqa: E501
+
+
+        :return: The pipeline_version_reference of this V2beta1Run.  # noqa: E501
+        :rtype: V2beta1PipelineVersionReference
+        """
+        return self._pipeline_version_reference
+
+    @pipeline_version_reference.setter
+    def pipeline_version_reference(self, pipeline_version_reference):
+        """Sets the pipeline_version_reference of this V2beta1Run.
+
+
+        :param pipeline_version_reference: The pipeline_version_reference of this V2beta1Run.  # noqa: E501
+        :type pipeline_version_reference: V2beta1PipelineVersionReference
+        """
+
+        self._pipeline_version_reference = pipeline_version_reference
 
     @property
     def runtime_config(self):

@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **description** | **str** | Optional input field. Describes the purpose of the recurring run. | [optional] 
 **pipeline_version_id** | **str** | The ID of the pipeline version used for creating runs. | [optional] 
 **pipeline_spec** | [**object**](.md) | The pipeline spec. | [optional] 
+**pipeline_version_reference** | [**V2beta1PipelineVersionReference**](V2beta1PipelineVersionReference.md) |  | [optional] 
 **runtime_config** | [**V2beta1RuntimeConfig**](V2beta1RuntimeConfig.md) |  | [optional] 
 **service_account** | **str** | Optional input field. Specifies which Kubernetes service account this recurring run uses. | [optional] 
 **max_concurrency** | **str** | Required input field. Specifies how many runs can be executed concurrently. Range [1-10]. | [optional] 
