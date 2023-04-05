@@ -65,8 +65,6 @@ type UploadPipelineVersionParams struct {
 	Description *string
 	/*Name*/
 	Name *string
-	/*Namespace*/
-	Namespace *string
 	/*Pipelineid*/
 	Pipelineid *string
 	/*Uploadfile
@@ -135,17 +133,6 @@ func (o *UploadPipelineVersionParams) SetName(name *string) {
 	o.Name = name
 }
 
-// WithNamespace adds the namespace to the upload pipeline version params
-func (o *UploadPipelineVersionParams) WithNamespace(namespace *string) *UploadPipelineVersionParams {
-	o.SetNamespace(namespace)
-	return o
-}
-
-// SetNamespace adds the namespace to the upload pipeline version params
-func (o *UploadPipelineVersionParams) SetNamespace(namespace *string) {
-	o.Namespace = namespace
-}
-
 // WithPipelineid adds the pipelineid to the upload pipeline version params
 func (o *UploadPipelineVersionParams) WithPipelineid(pipelineid *string) *UploadPipelineVersionParams {
 	o.SetPipelineid(pipelineid)
@@ -202,22 +189,6 @@ func (o *UploadPipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 		qName := qrName
 		if qName != "" {
 			if err := r.SetQueryParam("name", qName); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	if o.Namespace != nil {
-
-		// query param namespace
-		var qrNamespace string
-		if o.Namespace != nil {
-			qrNamespace = *o.Namespace
-		}
-		qNamespace := qrNamespace
-		if qNamespace != "" {
-			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
 				return err
 			}
 		}
