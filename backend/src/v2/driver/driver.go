@@ -15,6 +15,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -46,6 +47,10 @@ type Options struct {
 
 	// optional, required only by container driver
 	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+
+	// optional, allows to set k8s-specific configurations
+	// for container-based driver.
+	KubernetesExecutorCfg *kubernetesplatform.KubernetesExecutorConfig
 }
 
 // Identifying information used for error messages
@@ -68,6 +73,14 @@ func (o Options) info() string {
 	}
 	if o.Component.GetImplementation() != nil {
 		msg = msg + ", componentSpec" // this only means componentSpec is not empty
+	}
+	if o.KubernetesExecutorCfg != nil {
+		execCfgJSON, err := protojson.Marshal(o.KubernetesExecutorCfg)
+		if err != nil {
+			msg = msg + fmt.Sprintf(", non-serializable k8s-specific executor config due to %v", err.Error())
+		} else {
+			msg = msg + fmt.Sprintf(", KubernetesExecutorCfg=%v", string(execCfgJSON))
+		}
 	}
 	return msg
 }
@@ -285,7 +298,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.KubernetesExecutorCfg, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
 	if err != nil {
 		return execution, err
 	}
@@ -298,6 +311,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 // defined in compiler, because they are static.
 func makePodSpecPatch(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
+	k8sExecutorCfg *kubernetesplatform.KubernetesExecutorConfig,
 	componentSpec *pipelinespec.ComponentSpec,
 	executorInput *pipelinespec.ExecutorInput,
 	executionID int64,
@@ -372,7 +386,6 @@ func makePodSpecPatch(
 			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
 		}
 	}
-	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
 			Name:      "main", // argo task user container is always called "main"
@@ -382,6 +395,11 @@ func makePodSpecPatch(
 			Resources: res,
 			Env:       userEnvVar,
 		}},
+	}
+	if k8sExecutorCfg != nil {
+		if k8sExecutorCfg.GetNodeSelector() != nil {
+			podSpec.NodeSelector = k8sExecutorCfg.GetNodeSelector().GetLabels()
+		}
 	}
 	podSpecPatchBytes, err := json.Marshal(podSpec)
 	if err != nil {

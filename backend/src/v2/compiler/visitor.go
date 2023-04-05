@@ -28,6 +28,8 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -110,9 +112,12 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 
 		// Add kubernetes spec to annotation
 		if state.kubernetesSpec != nil {
-			kubernetesSpec, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
+			execCfgStruct, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
 			if ok {
-				state.visitor.AddKubernetesSpec(name, kubernetesSpec)
+				execCfg := kubernetesplatform.KubernetesExecutorConfig{}
+				if err := util.ProtoStructToProtoMessage(execCfgStruct, &execCfg); err == nil {
+					state.visitor.AddKubernetesSpec(name, execCfg)
+				}
 			}
 		}
 

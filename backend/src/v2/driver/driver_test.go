@@ -4,9 +4,170 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
+
+func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
+	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
+	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
+	type args struct {
+		container         *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+		kubernetesExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		componentSpec     *pipelinespec.ComponentSpec
+		executorInput     *pipelinespec.ExecutorInput
+		executionID       int64
+		pipelineName      string
+		runID             string
+	}
+	tests := []struct {
+		name       string
+		args       args
+		expected   string
+		unexpected string
+	}{
+		{
+			"Valid - NVIDIA GPU on GKE",
+			args{
+				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image:   "python:3.7",
+					Args:    []string{"--function_to_execute", "add"},
+					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+						CpuLimit:    1.0,
+						MemoryLimit: 0.65,
+						Accelerator: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig{
+							Type:  "nvidia.com/gpu",
+							Count: 1,
+						},
+					},
+				},
+				&kubernetesplatform.KubernetesExecutorConfig{
+					NodeSelector: &kubernetesplatform.NodeSelector{
+						Labels: map[string]string{
+							"cloud.google.com/gke-accelerator": "nvidia-tesla-k80",
+						},
+					},
+				},
+				&pipelinespec.ComponentSpec{
+					Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "addition"},
+					InputDefinitions: &pipelinespec.ComponentInputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+							"a": {Type: pipelinespec.PrimitiveType_DOUBLE},
+							"b": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+					OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+							"Output": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+				},
+				nil,
+				1,
+				"MyPipeline",
+				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+			},
+			`"nodeSelector":{"cloud.google.com/gke-accelerator":"nvidia-tesla-k80"}`,
+			"",
+		},
+		{
+			"Valid - operating system and arch",
+			args{
+				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image:   "python:3.7",
+					Args:    []string{"--function_to_execute", "add"},
+					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+						CpuLimit:    1.0,
+						MemoryLimit: 0.65,
+					},
+				},
+				&kubernetesplatform.KubernetesExecutorConfig{
+					NodeSelector: &kubernetesplatform.NodeSelector{
+						Labels: map[string]string{
+							"beta.kubernetes.io/os":   "linux",
+							"beta.kubernetes.io/arch": "amd64",
+						},
+					},
+				},
+				&pipelinespec.ComponentSpec{
+					Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "addition"},
+					InputDefinitions: &pipelinespec.ComponentInputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+							"a": {Type: pipelinespec.PrimitiveType_DOUBLE},
+							"b": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+					OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+							"Output": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+				},
+				nil,
+				1,
+				"MyPipeline",
+				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+			},
+			`"nodeSelector":{"beta.kubernetes.io/arch":"amd64","beta.kubernetes.io/os":"linux"}`,
+			"",
+		},
+		{
+			"Valid - empty",
+			args{
+				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image:   "python:3.7",
+					Args:    []string{"--function_to_execute", "add"},
+					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+						CpuLimit:    1.0,
+						MemoryLimit: 0.65,
+					},
+				},
+				&kubernetesplatform.KubernetesExecutorConfig{
+					NodeSelector: &kubernetesplatform.NodeSelector{
+						Labels: map[string]string{},
+					},
+				},
+				&pipelinespec.ComponentSpec{
+					Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "addition"},
+					InputDefinitions: &pipelinespec.ComponentInputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+							"a": {Type: pipelinespec.PrimitiveType_DOUBLE},
+							"b": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+					OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+							"Output": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+				},
+				nil,
+				1,
+				"MyPipeline",
+				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+			},
+			"",
+			"nodeSelector",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := makePodSpecPatch(tt.args.container, tt.args.kubernetesExecCfg, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
+			assert.Nil(t, err)
+			assert.NotEmpty(t, got)
+			if tt.expected != "" {
+				assert.Contains(t, got, tt.expected)
+			}
+			if tt.unexpected != "" {
+				assert.NotContains(t, got, tt.unexpected)
+			}
+		})
+	}
+}
 
 func Test_makePodSpecPatch_acceleratorConfig(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
@@ -224,7 +385,7 @@ func Test_makePodSpecPatch_acceleratorConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := makePodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
+			got, err := makePodSpecPatch(tt.args.container, nil, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
 			if tt.wantErr {
 				assert.Empty(t, got)
 				assert.NotNil(t, err)

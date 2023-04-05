@@ -26,6 +26,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
@@ -52,6 +53,7 @@ var (
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
 	containerSpecJson = flag.String("container", "{}", "container spec")
+	k8sExecConfigJson = flag.String("kubernetes_exec_config", "{}", "kubernetes executor config")
 
 	// config
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
@@ -119,6 +121,13 @@ func drive() (err error) {
 	if err := jsonpb.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
 	}
+	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+	if *k8sExecConfigJson != "" {
+		glog.Infof("input KubernetesExecutorConfig:%s\n", prettyPrint(*k8sExecConfigJson))
+		if err := jsonpb.UnmarshalString(*runtimeConfigJson, k8sExecCfg); err != nil {
+			return fmt.Errorf("failed to unmarshal kubernetes executor config, error: %w\nk8sExecConfigJson: %v", err, k8sExecConfigJson)
+		}
+	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if *runtimeConfigJson != "" {
 		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
@@ -158,6 +167,7 @@ func drive() (err error) {
 		execution, driverErr = driver.DAG(ctx, options, client)
 	case "CONTAINER":
 		options.Container = containerSpec
+		options.KubernetesExecutorCfg = k8sExecCfg
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)

@@ -20,6 +20,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -227,7 +228,7 @@ func (c *workflowCompiler) saveProtoToAnnotation(name string, msg proto.Message)
 	if _, alreadyExists := c.wf.Annotations[name]; alreadyExists {
 		return fmt.Errorf("annotation %q already exists", name)
 	}
-	json, err := stablyMarshalJSON(msg)
+	json, err := util.StablyMarshalJSON(msg)
 	if err != nil {
 		return fmt.Errorf("saving component spec of %q to annotations: %w", name, err)
 	}
@@ -262,7 +263,7 @@ const (
 	paramCachedDecision   = "cached-decision"   // indicate hit cache or not
 	paramPodSpecPatch     = "pod-spec-patch"    // a strategic patch merged with the pod spec
 	paramCondition        = "condition"         // condition = false -> skip the task
-	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes cofig
+	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes config
 )
 
 func runID() string {
