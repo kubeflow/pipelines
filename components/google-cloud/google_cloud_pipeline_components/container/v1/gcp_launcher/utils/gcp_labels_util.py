@@ -31,7 +31,7 @@ def attach_system_labels(existing_labels=None):
 
   Args:
     existing_labels: Optional[dict[str,str]]. If provided, will combine with the
-    system labels read from the environmental variable.
+      system labels read from the environmental variable.
 
   Returns:
     Optional[dict[str,str]] The combined labels, or None if existing_labels is

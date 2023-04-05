@@ -90,34 +90,53 @@ def bigquery_detect_anomalies_model_job(
       executor_input: A json serialized pipeline executor input.
   """
   settings_field_sql_list = []
-  if contamination is not None and contamination >= 0.0 and contamination <= 0.5:
+  if (
+      contamination is not None
+      and contamination >= 0.0
+      and contamination <= 0.5
+  ):
     settings_field_sql_list.append('%s AS contamination' % contamination)
 
-  if anomaly_prob_threshold is not None and anomaly_prob_threshold > 0.0 and anomaly_prob_threshold < 1.0:
-    settings_field_sql_list.append('%s AS anomaly_prob_threshold' %
-                                   anomaly_prob_threshold)
+  if (
+      anomaly_prob_threshold is not None
+      and anomaly_prob_threshold > 0.0
+      and anomaly_prob_threshold < 1.0
+  ):
+    settings_field_sql_list.append(
+        '%s AS anomaly_prob_threshold' % anomaly_prob_threshold
+    )
 
   settings_field_sql = ','.join(settings_field_sql_list)
 
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
+      job_configuration_query_override, strict=False
+  )
 
   if query_statement or table_name:
-    input_data_sql = ('TABLE %s' %
-                      bigquery_util.back_quoted_if_needed(table_name)
-                      if table_name else '(%s)' % query_statement)
+    input_data_sql = (
+        'TABLE %s' % bigquery_util.back_quoted_if_needed(table_name)
+        if table_name
+        else '(%s)' % query_statement
+    )
     settings_sql = ' STRUCT(%s), ' % settings_field_sql
-    job_configuration_query_override_json[
-        'query'] = 'SELECT * FROM ML.DETECT_ANOMALIES(MODEL `%s`, %s%s)' % (
-            model_name, settings_sql, input_data_sql)
+    job_configuration_query_override_json['query'] = (
+        'SELECT * FROM ML.DETECT_ANOMALIES(MODEL `%s`, %s%s)'
+        % (model_name, settings_sql, input_data_sql)
+    )
   else:
     settings_sql = ' STRUCT(%s)' % settings_field_sql
-    job_configuration_query_override_json[
-        'query'] = 'SELECT * FROM ML.DETECT_ANOMALIES(MODEL `%s`, %s)' % (
-            model_name, settings_sql)
+    job_configuration_query_override_json['query'] = (
+        'SELECT * FROM ML.DETECT_ANOMALIES(MODEL `%s`, %s)'
+        % (model_name, settings_sql)
+    )
 
   # TODO(mingge): check if model is a valid BigQuery model resource.
   return bigquery_util.bigquery_query_job(
-      type, project, location, payload,
-      json.dumps(job_configuration_query_override_json), gcp_resources,
-      executor_input)
+      type,
+      project,
+      location,
+      payload,
+      json.dumps(job_configuration_query_override_json),
+      gcp_resources,
+      executor_input,
+  )

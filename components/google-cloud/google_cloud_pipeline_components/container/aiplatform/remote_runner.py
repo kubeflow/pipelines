@@ -46,12 +46,12 @@ RESOURCE_NAME_PATTERN = re.compile(
 def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
   """Splits args into constructor and method args.
 
-    Args:
-        kwargs: kwargs with parameter names preprended with init or method
+  Args:
+      kwargs: kwargs with parameter names preprended with init or method
 
-    Returns:
-        constructor kwargs, method kwargs
-    """
+  Returns:
+      constructor kwargs, method kwargs
+  """
   init_args = {}
   method_args = {}
 
@@ -68,8 +68,9 @@ def write_to_artifact(executor_input, text):
   """Write output to local artifact and metadata path (uses GCSFuse)."""
 
   output_artifacts = {}
-  for name, artifacts in executor_input.get('outputs', {}).get('artifacts',
-                                                               {}).items():
+  for name, artifacts in (
+      executor_input.get('outputs', {}).get('artifacts', {}).items()
+  ):
     artifacts_list = artifacts.get('artifacts')
     if artifacts_list:
       output_artifacts[name] = artifacts_list[0]
@@ -95,7 +96,8 @@ def write_to_artifact(executor_input, text):
       elif text.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
         uri_with_prefix = text.replace(
             RESOURCE_PREFIX['google_cloud_storage_gcs_fuse'],
-            RESOURCE_PREFIX.get('google_cloud_storage'))
+            RESOURCE_PREFIX.get('google_cloud_storage'),
+        )
 
       # "bq://": For BigQuery resources.
       elif text.startswith(RESOURCE_PREFIX.get('bigquery')):
@@ -106,14 +108,15 @@ def write_to_artifact(executor_input, text):
       runtime_artifact = {
           'name': artifact.get('name'),
           'uri': uri_with_prefix,
-          'metadata': metadata
+          'metadata': metadata,
       }
       artifacts_list = {'artifacts': [runtime_artifact]}
 
       executor_output['artifacts'][name] = artifacts_list
 
   os.makedirs(
-      os.path.dirname(executor_input['outputs']['outputFile']), exist_ok=True)
+      os.path.dirname(executor_input['outputs']['outputFile']), exist_ok=True
+  )
   with open(executor_input['outputs']['outputFile'], 'w') as f:
     f.write(json.dumps(executor_output))
 
@@ -121,14 +124,15 @@ def write_to_artifact(executor_input, text):
 def resolve_input_args(value, type_to_resolve):
   """If this is an input from Pipelines, read it directly from gcs."""
   if inspect.isclass(type_to_resolve) and issubclass(
-      type_to_resolve, aiplatform.base.VertexAiResourceNoun):
+      type_to_resolve, aiplatform.base.VertexAiResourceNoun
+  ):
     # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
     if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
-      value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):]
+      value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']) :]
     # Remove `aiplatform` prefix from resource name
     if value.startswith(RESOURCE_PREFIX.get('aiplatform')):
       prefix_str = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/"
-      value = value[len(prefix_str):]
+      value = value[len(prefix_str) :]
 
   # No action needed for Google Cloud Storage prefix.
   # No action needed for BigQuery resource names.
@@ -141,11 +145,11 @@ def resolve_init_args(key, value):
     # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
     if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
       # not a resource noun, remove the /gcs/ prefix
-      value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):]
+      value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']) :]
     # Remove `aiplatform` prefix from resource name
     if value.startswith(RESOURCE_PREFIX.get('aiplatform')):
       prefix_str = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/"
-      value = value[len(prefix_str):]
+      value = value[len(prefix_str) :]
 
   # No action needed for Google Cloud Storage prefix.
   # No action needed for BigQuery resource names.
@@ -183,9 +187,9 @@ def cast(value: str, annotation_type: Type[T]) -> T:
   return annotation_type(value)
 
 
-def prepare_parameters(kwargs: Dict[str, Any],
-                       method: Callable,
-                       is_init: bool = False):
+def prepare_parameters(
+    kwargs: Dict[str, Any], method: Callable, is_init: bool = False
+):
   """Prepares parameters passed into components before calling SDK.
 
   1. Determines the annotation type that should used with the parameter
@@ -203,8 +207,11 @@ def prepare_parameters(kwargs: Dict[str, Any],
     if key in kwargs:
       value = kwargs[key]
       param_type = utils.resolve_annotation(param.annotation)
-      value = resolve_init_args(key, value) if is_init else resolve_input_args(
-          value, param_type)
+      value = (
+          resolve_init_args(key, value)
+          if is_init
+          else resolve_input_args(value, param_type)
+      )
       deserializer = utils.get_deserializer(param_type)
       if deserializer:
         value = deserializer(value)
@@ -231,14 +238,22 @@ def prepare_parameters(kwargs: Dict[str, Any],
 
 def attach_system_labels(method_args, cls_name, method_name):
   """Add or append the system labels to the labels arg."""
-  if cls_name in [
-      'ImageDataset', 'TabularDataset', 'TextDataset', 'TimeSeriesDataset',
-      'VideoDataset'
-  ] and method_name == 'create':
+  if (
+      cls_name
+      in [
+          'ImageDataset',
+          'TabularDataset',
+          'TextDataset',
+          'TimeSeriesDataset',
+          'VideoDataset',
+      ]
+      and method_name == 'create'
+  ):
     method_args['labels'] = json.dumps(
         gcp_labels_util.attach_system_labels(
-            json.loads(method_args['labels']) if 'labels' in
-            method_args else {}))
+            json.loads(method_args['labels']) if 'labels' in method_args else {}
+        )
+    )
   return method_args
 
 
@@ -258,9 +273,11 @@ def runner(cls_name, method_name, executor_input, kwargs):
   prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
 
   with execution_context.ExecutionContext(
-      on_cancel=getattr(obj, 'cancel', None)):
+      on_cancel=getattr(obj, 'cancel', None)
+  ):
     print(
-        f'method:{method} is being called with parameters {serialized_args[METHOD_KEY]}'
+        f'method:{method} is being called with parameters'
+        f' {serialized_args[METHOD_KEY]}'
     )
     output = method(**serialized_args[METHOD_KEY])
     print('resource_name: %s', obj.resource_name)
@@ -283,7 +300,6 @@ def main():
 
   key_value = None
   for arg in unknown_args:
-
     print(arg)
 
     # Remove whitespace from arg.

@@ -39,6 +39,7 @@ def dataproc_create_spark_sql_batch(
     query_variables: Dict[str, str] = {},
     jar_file_uris: List[str] = [],
 ):
+  # fmt: off
   """Create a Dataproc Spark SQL batch workload and wait for it to finish.
 
   Args:
@@ -97,6 +98,7 @@ def dataproc_create_spark_sql_batch(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

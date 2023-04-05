@@ -18,10 +18,12 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image="us-docker.pkg.dev/vertex-ai/training/tf-cpu.2-8:latest")
+    base_image="us-docker.pkg.dev/vertex-ai/training/tf-cpu.2-8:latest"
+)
 def convert_dataset_export_for_batch_predict(
-    file_paths: List[str], classification_type: str,
-    output_dir: dsl.OutputPath(list)
+    file_paths: List[str],
+    classification_type: str,
+    output_dir: dsl.OutputPath(list),
 ) -> NamedTuple("Outputs", [("output_files", list)]):
   """Converts classification dataset export for batch prediction input.
 
@@ -86,7 +88,8 @@ def convert_dataset_export_for_batch_predict(
             ]
           else:
             result_obj[LABELS_KEY] = json_obj[CLASSIFICATION_ANNOTATION_KEY][
-                DISPLAY_NAME_KEY]
+                DISPLAY_NAME_KEY
+            ]
           results_file.write(json.dumps(result_obj) + "\n")
       # Subsequent components will not understand "/gcs/" prefix. Convert to use
       # "gs://" prefix for compatibility.

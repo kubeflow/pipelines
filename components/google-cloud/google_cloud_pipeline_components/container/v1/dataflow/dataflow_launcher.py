@@ -36,49 +36,53 @@ def _parse_args(args) -> Dict[str, Any]:
     and a list containing all unknonw args.
   """
   parser = argparse.ArgumentParser(
-      prog='Dataflow python job Pipelines service launcher', description='')
+      prog='Dataflow python job Pipelines service launcher', description=''
+  )
   parser.add_argument(
       '--project',
       dest='project',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--location',
       dest='location',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--python_module_path',
       dest='python_module_path',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--temp_location',
       dest='temp_location',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--requirements_file_path',
       dest='requirements_file_path',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
-      '--args',
-      dest='args',
-      type=str,
-      required=False,
-      default=argparse.SUPPRESS)
+      '--args', dest='args', type=str, required=False, default=argparse.SUPPRESS
+  )
   parser.add_argument(
       '--gcp_resources',
       dest='gcp_resources',
       type=_make_parent_dirs_and_return_path,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

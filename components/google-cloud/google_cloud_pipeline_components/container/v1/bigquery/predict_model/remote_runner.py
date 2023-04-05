@@ -82,22 +82,33 @@ def bigquery_predict_model_job(
   if not (not query_statement) ^ (not table_name):
     raise ValueError(
         'One and only one of query_statement and table_name should be '
-        'populated for BigQuery predict model job.')
-  input_data_sql = ('TABLE %s' % bigquery_util.back_quoted_if_needed(table_name)
-                    if table_name else '(%s)' % query_statement)
+        'populated for BigQuery predict model job.'
+    )
+  input_data_sql = (
+      'TABLE %s' % bigquery_util.back_quoted_if_needed(table_name)
+      if table_name
+      else '(%s)' % query_statement
+  )
 
   threshold_sql = ''
   if threshold is not None and threshold > 0.0 and threshold < 1.0:
     threshold_sql = ', STRUCT(%s AS threshold)' % threshold
 
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.PREDICT(MODEL `%s`, %s%s)' % (
-          model_name, input_data_sql, threshold_sql)
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.PREDICT(MODEL `%s`, %s%s)'
+      % (model_name, input_data_sql, threshold_sql)
+  )
 
   # TODO(mingge): check if model is a valid BigQuery model resource.
   return bigquery_util.bigquery_query_job(
-      type, project, location, payload,
-      json.dumps(job_configuration_query_override_json), gcp_resources,
-      executor_input)
+      type,
+      project,
+      location,
+      payload,
+      json.dumps(job_configuration_query_override_json),
+      gcp_resources,
+      executor_input,
+  )

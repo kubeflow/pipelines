@@ -31,12 +31,11 @@ def undeploy_model(
     payload,
     gcp_resources,
 ):
-  """
-  Undeploy a model from the endpoint and poll the LongRunningOperator till it reaches a final state.
-  """
+  """Undeploy a model from the endpoint and poll the LongRunningOperator till it reaches a final state."""
   # TODO(IronPan) temporarily remove the empty fields from the spec
   undeploy_model_request = json_util.recursive_remove_empty(
-      json.loads(payload, strict=False))
+      json.loads(payload, strict=False)
+  )
   endpoint_name = undeploy_model_request['endpoint']
 
   # Get the endpoint where the model is deployed to
@@ -46,9 +45,12 @@ def undeploy_model(
     location = match.group('location')
   except AttributeError as err:
     # TODO(ruifang) propagate the error.
-    raise ValueError('Invalid endpoint name: {}. Expect: {}.'.format(
-        endpoint_name,
-        'projects/[project_id]/locations/[location]/endpoints/[endpoint_id]'))
+    raise ValueError(
+        'Invalid endpoint name: {}. Expect: {}.'.format(
+            endpoint_name,
+            'projects/[project_id]/locations/[location]/endpoints/[endpoint_id]',
+        )
+    )
   api_endpoint = location + '-aiplatform.googleapis.com'
   vertex_uri_prefix = f'https://{api_endpoint}/v1/'
 
@@ -69,8 +71,9 @@ def undeploy_model(
 
     if not deployed_model_id:
       # TODO(ruifang) propagate the error.
-      raise ValueError('Model {} not found at endpoint {}.'.format(
-          model_name, endpoint_name))
+      raise ValueError(
+          'Model {} not found at endpoint {}.'.format(model_name, endpoint_name)
+      )
 
     # Undeploy the model
     undeploy_model_lro_request = {
@@ -78,7 +81,8 @@ def undeploy_model(
     }
     if 'traffic_split' in undeploy_model_request:
       undeploy_model_lro_request['traffic_split'] = undeploy_model_request[
-          'traffic_split']
+          'traffic_split'
+      ]
 
     model_uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
     match = model_uri_pattern.match(model_name)
@@ -86,18 +90,24 @@ def undeploy_model(
       location = match.group('location')
     except AttributeError as err:
       # TODO(ruifang) propagate the error.
-      raise ValueError('Invalid model name: {}. Expect: {}.'.format(
-          model_name,
-          'projects/[project_id]/locations/[location]/models/[model_id]'))
+      raise ValueError(
+          'Invalid model name: {}. Expect: {}.'.format(
+              model_name,
+              'projects/[project_id]/locations/[location]/models/[model_id]',
+          )
+      )
     api_endpoint = location + '-aiplatform.googleapis.com'
     vertex_uri_prefix = f'https://{api_endpoint}/v1/'
 
     undeploy_model_url = f'{vertex_uri_prefix}{endpoint_name}:undeployModel'
     undeploy_model_remote_runner = lro_remote_runner.LroRemoteRunner(location)
     undeploy_model_lro = undeploy_model_remote_runner.create_lro(
-        undeploy_model_url, json.dumps(undeploy_model_lro_request),
-        gcp_resources)
+        undeploy_model_url,
+        json.dumps(undeploy_model_lro_request),
+        gcp_resources,
+    )
     undeploy_model_lro = undeploy_model_remote_runner.poll_lro(
-        lro=undeploy_model_lro)
+        lro=undeploy_model_lro
+    )
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

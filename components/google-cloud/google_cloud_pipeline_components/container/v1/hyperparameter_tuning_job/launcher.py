@@ -29,7 +29,8 @@ def _parse_args(args):
       dest='execution_metrics',
       type=str,
       required=False,
-      default=None)
+      default=None,
+  )
 
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
@@ -54,7 +55,8 @@ def main(argv):
   job_type = parsed_args['type']
 
   if job_type not in [
-      'HyperparameterTuningJob', 'HyperparameterTuningJobWithMetrics'
+      'HyperparameterTuningJob',
+      'HyperparameterTuningJobWithMetrics',
   ]:
     raise ValueError('Incorrect job type: ' + job_type)
 

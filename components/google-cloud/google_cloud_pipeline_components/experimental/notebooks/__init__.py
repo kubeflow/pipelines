@@ -23,4 +23,5 @@ __all__ = [
 ]
 
 NotebooksExecutorOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'executor/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'executor/component.yaml')
+)

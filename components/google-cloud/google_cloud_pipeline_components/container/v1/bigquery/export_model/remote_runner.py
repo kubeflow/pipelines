@@ -28,7 +28,7 @@ def _get_model(model_reference, creds):
     creds.refresh(google.auth.transport.requests.Request())
   headers = {
       'Content-type': 'application/json',
-      'Authorization': 'Bearer ' + creds.token
+      'Authorization': 'Bearer ' + creds.token,
   }
   model_uri = 'https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/models/{modelId}'.format(
       projectId=model_reference['projectId'],
@@ -90,7 +90,8 @@ def bigquery_export_model_job(
     model_name_split = model_name.split('.')
     if len(model_name_split) != 3:
       raise ValueError(
-          'The model name must be in the format "projectId.datasetId.modelId"')
+          'The model name must be in the format "projectId.datasetId.modelId"'
+      )
     model_reference = {
         'projectId': model_name_split[0],
         'datasetId': model_name_split[1],
@@ -100,16 +101,20 @@ def bigquery_export_model_job(
     model = _get_model(model_reference, creds)
     if not model or 'modelType' not in model:
       raise ValueError(
-          'Cannot get model resource. The model name must be in the format "projectId.datasetId.modelId" '
+          'Cannot get model resource. The model name must be in the format'
+          ' "projectId.datasetId.modelId" '
       )
 
     job_request_json = json.loads(payload, strict=False)
 
-    job_request_json['configuration']['query'][
-        'query'] = f'EXPORT MODEL {bigquery_util.back_quoted_if_needed(model_name)} OPTIONS(URI="{model_destination_path}",add_serving_default_signature={True})'
+    job_request_json['configuration']['query']['query'] = (
+        'EXPORT MODEL'
+        f' {bigquery_util.back_quoted_if_needed(model_name)} OPTIONS(URI="{model_destination_path}",add_serving_default_signature={True})'
+    )
     job_request_json['configuration']['query']['useLegacySql'] = False
-    job_uri = bigquery_util.create_job(project, location, job_request_json,
-                                       creds, gcp_resources)
+    job_uri = bigquery_util.create_job(
+        project, location, job_request_json, creds, gcp_resources
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
