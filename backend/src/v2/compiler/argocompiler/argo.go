@@ -118,7 +118,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		driverImage:   "gcr.io/ml-pipeline-test/kfp-driver@sha256:690e078d675f9cc91b25465aaabd6bf8d7fa2b745741ad36ac2fce0ce217c11c",
+		driverImage:   "gcr.io/ml-pipeline-test/kfp-driver@sha256:0a26d38f18d538e2df30d1f1ca44ac77deff7bd1d4bf35246bb12bae1bf72967",
 		launcherImage: "gcr.io/ml-pipeline-test/kfp-launcher-v2@sha256:2b29da85580823f524a349d2e94db3822be00bd49afa82c9f4a718d51a3b7c06",
 		job:           job,
 		spec:          spec,
@@ -326,3 +326,8 @@ var launcherResources = k8score.ResourceRequirements{
 const (
 	tmplEntrypoint = "entrypoint"
 )
+
+var dummyImages = map[string]bool{
+	"argostub/createpvc": true,
+	"argostub/deletepvc": true,
+}

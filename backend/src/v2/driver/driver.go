@@ -1,3 +1,16 @@
+// Copyright 2021-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package driver
 
 import (
@@ -9,17 +22,21 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
-	k8score "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -46,6 +63,9 @@ type Options struct {
 
 	// optional, required only by container driver
 	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+
+	// optional, required only by container driver when there is Kubernetes config
+	KubernetesConfig *kubernetesplatform.KubernetesExecutorConfig
 }
 
 // Identifying information used for error messages
@@ -68,6 +88,9 @@ func (o Options) info() string {
 	}
 	if o.Component.GetImplementation() != nil {
 		msg = msg + ", componentSpec" // this only means componentSpec is not empty
+	}
+	if o.KubernetesConfig != nil {
+		msg = msg + ", KubernetesConfig" // this only means KubernetesConfig is not empty
 	}
 	return msg
 }
@@ -209,6 +232,10 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
+	dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
+	if err != nil {
+		return nil, err
+	}
 	expr, err := expression.New()
 	if err != nil {
 		return nil, err
@@ -217,6 +244,27 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return nil, err
 	}
+
+	// When the container image is a dummy image, there is no launcher for this task.
+	// This happens when this task is created to implements a Kubernetes-specific configuration, i.e., there is nothing to run.
+
+	// This task creates a PVC.
+	var pvcName string
+	if opts.Container.Image == "argostub/createpvc" {
+		pvcName, err = CreatePVC(inputs, opts.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failure creating PVC: %w", err)
+		}
+	}
+
+	// This task deletes a PVC.
+	if opts.Container.Image == "argostub/deletepvc" {
+		err = DeletePVC(inputs, opts.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failure deleting PVC: %w", err)
+		}
+	}
+
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
@@ -285,7 +333,28 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	// Write execution details to mlmd. This is usually done in launcher, but we skip launcher when acting Kubernetes specific actions.
+	// Thus we need to write the execution info in the driver.
+	if opts.Container.Image == "argostub/createpvc" {
+		executorOutput := &pipelinespec.ExecutorOutput{
+			ParameterValues: map[string]*structpb.Value{},
+			Artifacts:       map[string]*pipelinespec.ArtifactList{},
+		}
+		executorOutput.ParameterValues["name"] = structpb.NewStringValue(pvcName)
+
+		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), nil, pb.Execution_COMPLETE); err != nil {
+			return execution, fmt.Errorf("failed to publish execution: %w", err)
+		}
+		glog.Infof("Published this execution (createpvc).")
+	}
+	if opts.Container.Image == "argostub/deletepvc" {
+		if err := mlmd.PublishExecution(ctx, createdExecution, nil, nil, pb.Execution_COMPLETE); err != nil {
+			return execution, fmt.Errorf("failed to publish execution: %w", err)
+		}
+		glog.Infof("Published this execution (deletepvc).")
+	}
+
+	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.KubernetesConfig, opts.Task, dag, dagTasks)
 	if err != nil {
 		return execution, err
 	}
@@ -303,6 +372,10 @@ func makePodSpecPatch(
 	executionID int64,
 	pipelineName string,
 	runID string,
+	kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig,
+	task *pipelinespec.PipelineTaskSpec,
+	dag *metadata.DAG,
+	dagTasks map[string]*metadata.Execution,
 ) (string, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -314,9 +387,15 @@ func makePodSpecPatch(
 	}
 
 	// Convert environment variables
-	userEnvVar := make([]k8score.EnvVar, 0)
+	userEnvVar := make([]corev1.EnvVar, 0)
 	for _, envVar := range container.GetEnv() {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
+		userEnvVar = append(userEnvVar, corev1.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
+	}
+
+	// Get volume mount information
+	volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesConfig.GetPvcMount(), task, dag, dagTasks)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract volume mount info: %w", err)
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
@@ -343,8 +422,8 @@ func makePodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 		"--", // separater before user command and args
 	}
-	res := k8score.ResourceRequirements{
-		Limits: map[k8score.ResourceName]k8sres.Quantity{},
+	res := corev1.ResourceRequirements{
+		Limits: map[corev1.ResourceName]k8sres.Quantity{},
 	}
 	memoryLimit := container.GetResources().GetMemoryLimit()
 	if memoryLimit != 0 {
@@ -352,7 +431,7 @@ func makePodSpecPatch(
 		if err != nil {
 			return "", err
 		}
-		res.Limits[k8score.ResourceMemory] = q
+		res.Limits[corev1.ResourceMemory] = q
 	}
 	cpuLimit := container.GetResources().GetCpuLimit()
 	if cpuLimit != 0 {
@@ -360,7 +439,7 @@ func makePodSpecPatch(
 		if err != nil {
 			return "", err
 		}
-		res.Limits[k8score.ResourceCPU] = q
+		res.Limits[corev1.ResourceCPU] = q
 	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
@@ -369,19 +448,21 @@ func makePodSpecPatch(
 			if err != nil {
 				return "", err
 			}
-			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
+			res.Limits[corev1.ResourceName(accelerator.GetType())] = q
 		}
 	}
 	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
-	podSpec := &k8score.PodSpec{
-		Containers: []k8score.Container{{
-			Name:      "main", // argo task user container is always called "main"
-			Command:   launcherCmd,
-			Args:      userCmdArgs,
-			Image:     container.Image,
-			Resources: res,
-			Env:       userEnvVar,
+	podSpec := &corev1.PodSpec{
+		Containers: []corev1.Container{{
+			Name:         "main", // argo task user container is always called "main"
+			Command:      launcherCmd,
+			Args:         userCmdArgs,
+			Image:        container.Image,
+			Resources:    res,
+			Env:          userEnvVar,
+			VolumeMounts: volumeMounts,
 		}},
+		Volumes: volumes,
 	}
 	podSpecPatchBytes, err := json.Marshal(podSpec)
 	if err != nil {
@@ -939,4 +1020,204 @@ func generateOutputURI(root, artifactName string, taskName string) string {
 	// we cannot path.Join(root, taskName, artifactName), because root
 	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
 	return fmt.Sprintf("%s/%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName))
+}
+
+var accessModeMap = map[string]corev1.PersistentVolumeAccessMode{
+	"ReadWriteOnce":    corev1.ReadWriteOnce,
+	"ReadOnlyMany":     corev1.ReadOnlyMany,
+	"ReadWriteMany":    corev1.ReadWriteMany,
+	"ReadWriteOncePod": corev1.ReadWriteOncePod,
+}
+
+func CreatePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvcName string, err error) {
+
+	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+
+	// Requied input: access_modes
+	accessModeInput, ok := inputs.ParameterValues["access_modes"]
+	if !ok {
+		return "", fmt.Errorf("failed to create pvc: parameter access_modes not provided")
+	}
+	var accessModes []corev1.PersistentVolumeAccessMode
+	for _, value := range accessModeInput.GetListValue().GetValues() {
+		accessModes = append(accessModes, accessModeMap[value.GetStringValue()])
+	}
+
+	// Optional input: pvc_name and pvc_name_suffix
+	// Can only provide at most one of these two parameters.
+	// If neither is provided, PVC name is a random generated UUID.
+	pvcNameSuffixInput := inputs.ParameterValues["pvc_name_suffix"]
+	pvcNameInput := inputs.ParameterValues["pvc_name"]
+	if pvcNameInput.GetStringValue() != "" && pvcNameSuffixInput.GetStringValue() != "" {
+		return "", fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
+	} else if pvcNameSuffixInput.GetStringValue() != "" {
+		pvcName = uuid.NewString() + pvcNameSuffixInput.GetStringValue()
+	} else if pvcNameInput.GetStringValue() != "" {
+		pvcName = pvcNameInput.GetStringValue()
+	} else {
+		pvcName = uuid.NewString()
+	}
+
+	// Required input: size
+	volumeSizeInput, ok := inputs.ParameterValues["size"]
+	if !ok {
+		return "", fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
+	}
+
+	// Optional input: storage_class_name
+	// When not provided, use default value `standard`
+	storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]
+	var storageClassName string
+	if !ok {
+		storageClassName = "standard"
+	} else {
+		storageClassName = storageClassNameInput.GetStringValue()
+	}
+
+	// Optional input: annotations
+	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
+	pvcAnnotations := make(map[string]string)
+	for key, val := range pvcAnnotationsInput.GetStructValue().AsMap() {
+		typedVal := val.(structpb.Value)
+		pvcAnnotations[key] = typedVal.GetStringValue()
+	}
+
+	// Optional input: volume_name
+	volumeNameInput := inputs.ParameterValues["volume_name"]
+	volumeName := volumeNameInput.GetStringValue()
+
+	// Initialize Kubernetes client set
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return "", fmt.Errorf("failed to initialize kubernetes client: cannot get incluster config: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+
+	// Create a PersistentVolumeClaim object
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        pvcName,
+			Annotations: pvcAnnotations,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: accessModes,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse(volumeSizeInput.GetStringValue()),
+				},
+			},
+			StorageClassName: &storageClassName,
+			VolumeName:       volumeName,
+		},
+	}
+
+	// Create the PVC in the cluster
+	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to create pvc: %w", err)
+	}
+	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
+	return createdPVC.ObjectMeta.Name, nil
+}
+
+func DeletePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) error {
+	// Required input: pvc_name
+	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
+	if !ok {
+		return fmt.Errorf("failed to delete pvc: required parameter pvc_name not provided")
+	}
+	pvcName := pvcNameInput.GetStringValue()
+
+	// Initialize Kubernetes client set
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+	}
+
+	// Get the PVC you want to delete, verify that it exists.
+	_, err = k8sClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
+	}
+
+	// Delete the PVC.
+	err = k8sClient.CoreV1().PersistentVolumeClaims(namespace).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
+	}
+
+	glog.Infof("Deleted PVC %s\n", pvcName)
+	return nil
+}
+
+func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, task *pipelinespec.PipelineTaskSpec, dag *metadata.DAG, dagTasks map[string]*metadata.Execution) ([]corev1.VolumeMount, []corev1.Volume, error) {
+	if pvcMount == nil {
+		return nil, nil, nil
+	}
+	var volumeMounts []corev1.VolumeMount
+	var volumes []corev1.Volume
+	for _, vmc := range pvcMount {
+		// Find mount path
+		if vmc.GetMountPath() == "" {
+			return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume mount path not provided")
+		}
+		volumeMount := corev1.VolumeMount{
+			MountPath: vmc.GetMountPath(),
+		}
+		volume := corev1.Volume{}
+
+		// Volume name may come from three different sources:
+		// 1) A constant
+		// 2) As a task output parameter
+		// 3) As a component input parameter
+		if vmc.GetConstant() != "" {
+			volumeMount.Name = vmc.GetConstant()
+			volume.Name = vmc.GetConstant()
+		} else if vmc.GetTaskOutputParameter() != nil {
+			if vmc.GetTaskOutputParameter().GetProducerTask() == "" {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: producer task empty")
+			}
+			if vmc.GetTaskOutputParameter().GetOutputParameterKey() == "" {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: OutputParameterKey")
+			}
+			producer, ok := dagTasks[vmc.GetTaskOutputParameter().GetProducerTask()]
+			if !ok {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: cannot find producer task %s", vmc.GetTaskOutputParameter().GetProducerTask())
+			}
+			_, outputs, err := producer.GetParameters()
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: cannot get producer output: %w", err)
+			}
+			pvcName, ok := outputs[vmc.GetTaskOutputParameter().GetOutputParameterKey()]
+			if !ok {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: cannot find output parameter %s from producer task %s", vmc.GetTaskOutputParameter().GetOutputParameterKey(), vmc.GetTaskOutputParameter().GetProducerTask())
+			}
+			volumeMount.Name = pvcName.GetStringValue()
+			volume.Name = pvcName.GetStringValue()
+		} else if vmc.GetComponentInputParameter() != "" {
+			inputParams, _, err := dag.Execution.GetParameters()
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: error getting input parameters")
+			}
+			glog.Infof("parent DAG input parameters %+v", inputParams)
+			pvcName, ok := inputParams[vmc.GetComponentInputParameter()]
+			if !ok {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount:component input parameters %s doesn't exist", vmc.GetComponentInputParameter())
+			}
+			volumeMount.Name = pvcName.GetStringValue()
+			volume.Name = pvcName.GetStringValue()
+		} else {
+			return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume name not provided")
+		}
+		volumeMounts = append(volumeMounts, volumeMount)
+		volumes = append(volumes, volume)
+	}
+	return volumeMounts, volumes, nil
 }
