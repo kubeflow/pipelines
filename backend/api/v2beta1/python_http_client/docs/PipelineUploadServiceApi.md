@@ -9,7 +9,7 @@ Method | HTTP request | Description
 
 
 # **upload_pipeline**
-> ApiPipeline upload_pipeline(uploadfile, name=name, description=description, namespace=namespace)
+> V2beta1Pipeline upload_pipeline(uploadfile, name=name, description=description, namespace=namespace)
 
 
 
@@ -70,7 +70,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**ApiPipeline**](ApiPipeline.md)
+[**V2beta1Pipeline**](V2beta1Pipeline.md)
 
 ### Authorization
 
@@ -90,7 +90,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **upload_pipeline_version**
-> ApiPipelineVersion upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description, namespace=namespace)
+> V2beta1PipelineVersion upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description)
 
 
 
@@ -132,10 +132,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 name = 'name_example' # str |  (optional)
 pipelineid = 'pipelineid_example' # str |  (optional)
 description = 'description_example' # str |  (optional)
-namespace = 'namespace_example' # str |  (optional)
 
     try:
-        api_response = api_instance.upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description, namespace=namespace)
+        api_response = api_instance.upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineUploadServiceApi->upload_pipeline_version: %s\n" % e)
@@ -149,11 +148,10 @@ Name | Type | Description  | Notes
  **name** | **str**|  | [optional] 
  **pipelineid** | **str**|  | [optional] 
  **description** | **str**|  | [optional] 
- **namespace** | **str**|  | [optional] 
 
 ### Return type
 
-[**ApiPipelineVersion**](ApiPipelineVersion.md)
+[**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)
 
 ### Authorization
 
