@@ -120,7 +120,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:690e078d675f9cc91b25465aaabd6bf8d7fa2b745741ad36ac2fce0ce217c11c
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:fd53656e109ff9269d9041a49aade07fd9fa5b0a00e6e0c76440b7ce0cf449fc
       name: ""
       resources:
         limits:
