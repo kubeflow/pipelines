@@ -17,11 +17,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import fs from 'fs';
+import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
 import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
 import TestUtils from 'src/TestUtils';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
 import { RouteParams, RoutePage } from 'src/components/Router';
@@ -41,12 +43,10 @@ describe('RecurringRunDetailsV2', () => {
   const enableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
   const disableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-  const getPipelineVersionTemplateSpy = jest.spyOn(
-    Apis.pipelineServiceApi,
-    'getPipelineVersionTemplate',
-  );
+  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
 
   let fullTestV2RecurringRun: V2beta1RecurringRun = {};
+  let testPipelineVersion: V2beta1PipelineVersion = {};
 
   function generateProps(): PageProps {
     const match = {
@@ -90,13 +90,19 @@ describe('RecurringRunDetailsV2', () => {
       },
     } as V2beta1RecurringRun;
 
+    testPipelineVersion = {
+      display_name: 'test_pipeline_version',
+      pipeline_id: 'test_pipeline_id',
+      pipeline_version_id: 'test_pipeline_version_id',
+      pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+    };
+
     jest.clearAllMocks();
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
-    getPipelineVersionTemplateSpy.mockImplementation(() =>
-      Promise.resolve({ template: v2YamlTemplateString }),
-    );
+    getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);
+
     deleteRecurringRunSpy.mockImplementation();
     enableRecurringRunSpy.mockImplementation();
     disableRecurringRunSpy.mockImplementation();
@@ -111,7 +117,7 @@ describe('RecurringRunDetailsV2', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
-      expect(getPipelineVersionTemplateSpy).toHaveBeenCalled();
+      expect(getPipelineVersionSpy).toHaveBeenCalled();
     });
 
     screen.getByText('Enabled');
