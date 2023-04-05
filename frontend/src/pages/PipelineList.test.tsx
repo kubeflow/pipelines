@@ -41,8 +41,8 @@ describe('PipelineList', () => {
     updateDialogSpy = jest.fn();
     updateSnackbarSpy = jest.fn();
     updateToolbarSpy = jest.fn();
-    listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
-    listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
+    listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
+    listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
     deletePipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipeline');
     deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
   }
@@ -63,12 +63,8 @@ describe('PipelineList', () => {
   async function mountWithNPipelines(n: number): Promise<ReactWrapper> {
     listPipelinesSpy.mockImplementation(() => ({
       pipelines: range(n).map(i => ({
-        id: 'test-pipeline-id' + i,
-        name: 'test pipeline name' + i,
-        defaultVersion: {
-          id: 'test-pipeline-id' + i + '_default_version',
-          name: 'test-pipeline-id' + i + '_default_version_name',
-        },
+        pipeline_id: 'test-pipeline-id' + i,
+        display_name: 'test pipeline name' + i,
       })),
     }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace='test-ns' />);
@@ -102,7 +98,7 @@ describe('PipelineList', () => {
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           description: 'test pipeline description',
-          name: 'pipeline1',
+          display_name: 'pipeline1',
           parameters: [],
         },
       ],
@@ -116,7 +112,7 @@ describe('PipelineList', () => {
     tree.setState({
       displayPipelines: [
         {
-          name: 'pipeline1',
+          display_name: 'pipeline1',
           parameters: [],
         },
       ],
@@ -133,7 +129,7 @@ describe('PipelineList', () => {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           description: 'test pipeline description',
           error: 'oops! could not load pipeline',
-          name: 'pipeline1',
+          display_name: 'pipeline1',
           parameters: [],
         },
       ],
@@ -143,19 +139,12 @@ describe('PipelineList', () => {
   });
 
   it('calls Apis to list pipelines, sorted by creation time in descending order', async () => {
-    listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
+    listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ display_name: 'pipeline1' }] }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace='test-ns' />);
     await listPipelinesSpy;
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
-      '',
-      10,
-      'created_at desc',
-      '',
-      'NAMESPACE',
-      'test-ns',
-    );
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('test-ns', '', 10, 'created_at desc', '');
     expect(tree.state()).toHaveProperty('displayPipelines', [
-      { expandState: 0, name: 'pipeline1' },
+      { expandState: 0, display_name: 'pipeline1' },
     ]);
   });
 
@@ -167,14 +156,7 @@ describe('PipelineList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
-      '',
-      10,
-      'created_at desc',
-      '',
-      'NAMESPACE',
-      'test-ns',
-    );
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('test-ns', '', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -200,14 +182,7 @@ describe('PipelineList', () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
-      '',
-      10,
-      'created_at desc',
-      '',
-      undefined,
-      undefined,
-    );
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith(undefined, '', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
@@ -233,7 +208,7 @@ describe('PipelineList', () => {
     updateBannerSpy.mockReset();
 
     const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
-    listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
+    listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ display_name: 'pipeline1' }] }));
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
@@ -525,10 +500,11 @@ describe('PipelineList', () => {
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     deletePipelineVersionSpy.mockImplementation(() => Promise.resolve());
     listPipelineVersionsSpy.mockImplementation(() => ({
-      versions: [
+      pipeline_versions: [
         {
-          id: 'test-pipeline-id1_default_version',
-          name: 'test-pipeline-id1_default_version_name',
+          display_name: 'test-pipeline-id1_name',
+          pipeline_id: 'test-pipeline-id1',
+          pipeline_version_id: 'test-pipeline-version-id1',
         },
       ],
     }));
@@ -554,7 +530,7 @@ describe('PipelineList', () => {
 
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
     expect(tree.state()).toHaveProperty('selectedVersionIds', {
-      'test-pipeline-id1': ['test-pipeline-id1_default_version'],
+      'test-pipeline-id1': ['test-pipeline-version-id1'],
     });
 
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
@@ -572,7 +548,7 @@ describe('PipelineList', () => {
     expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
 
     expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
-    expect(deletePipelineVersionSpy).toHaveBeenCalledWith('test-pipeline-id1_default_version');
+    expect(deletePipelineVersionSpy).toHaveBeenCalledWith('test-pipeline-version-id1');
 
     expect(tree.state()).toHaveProperty('selectedIds', []);
     expect(tree.state()).toHaveProperty('selectedVersionIds', { 'test-pipeline-id1': [] });

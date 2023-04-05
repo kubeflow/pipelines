@@ -19,7 +19,7 @@ import produce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
-import { ApiListPipelinesResponse, ApiPipeline } from '../apis/pipeline';
+import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 import CustomTable, {
   Column,
   CustomRendererProps,
@@ -36,7 +36,7 @@ import { formatDateString } from '../lib/Utils';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
 
-interface DisplayPipeline extends ApiPipeline {
+interface DisplayPipeline extends V2beta1Pipeline {
   expandState?: ExpandState;
 }
 
@@ -101,8 +101,8 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     const rows: Row[] = this.state.displayPipelines.map(p => {
       return {
         expandState: p.expandState,
-        id: p.id!,
-        otherFields: [p.name!, p.description!, formatDateString(p.created_at!)],
+        id: p.pipeline_id!,
+        otherFields: [p.display_name!, p.description!, formatDateString(p.created_at!)],
       };
     });
 
@@ -146,12 +146,12 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     const pipeline = this.state.displayPipelines[rowIndex];
     return (
       <PipelineVersionList
-        pipelineId={pipeline.id}
+        pipelineId={pipeline.pipeline_id}
         onError={() => null}
         {...this.props}
-        selectedIds={this.state.selectedVersionIds[pipeline.id!] || []}
+        selectedIds={this.state.selectedVersionIds[pipeline.pipeline_id!] || []}
         noFilterBox={true}
-        onSelectionChange={this._selectionChanged.bind(this, pipeline.id)}
+        onSelectionChange={this._selectionChanged.bind(this, pipeline.pipeline_id)}
         disableSorting={false}
         disablePaging={false}
       />
@@ -159,16 +159,15 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private async _reload(request: ListRequest): Promise<string> {
-    let response: ApiListPipelinesResponse | null = null;
+    let response: V2beta1ListPipelinesResponse | null = null;
     let displayPipelines: DisplayPipeline[];
     try {
-      response = await Apis.pipelineServiceApi.listPipelines(
+      response = await Apis.pipelineServiceApiV2.listPipelines(
+        this.props.namespace,
         request.pageToken,
         request.pageSize,
         request.sortBy,
         request.filter,
-        this.props.namespace ? 'NAMESPACE' : undefined,
-        this.props.namespace || undefined,
       );
       displayPipelines = response.pipelines || [];
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));

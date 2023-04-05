@@ -19,6 +19,10 @@ import CustomTable, { Column, CustomRendererProps, Row } from '../components/Cus
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { ApiPipelineVersion, ApiListPipelineVersionsResponse } from '../apis/pipeline';
+import {
+  V2beta1PipelineVersion,
+  V2beta1ListPipelineVersionsResponse,
+} from 'src/apisv2beta1/pipeline';
 import { Description } from '../components/Description';
 import { Apis, ListRequest, PipelineVersionSortKeys } from '../lib/Apis';
 import { errorToMessage, formatDateString } from '../lib/Utils';
@@ -37,7 +41,7 @@ export interface PipelineVersionListProps extends RouteComponentProps {
 }
 
 interface PipelineVersionListState {
-  pipelineVersions: ApiPipelineVersion[];
+  pipelineVersions: V2beta1PipelineVersion[];
 }
 
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
@@ -106,10 +110,10 @@ class PipelineVersionList extends React.PureComponent<
       { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
     ];
 
-    const rows: Row[] = this.state.pipelineVersions.map(r => {
+    const rows: Row[] = this.state.pipelineVersions.map(v => {
       const row = {
-        id: r.id!,
-        otherFields: [r.name, r.description, formatDateString(r.created_at)] as any,
+        id: v.pipeline_version_id!,
+        otherFields: [v.display_name, v.description, formatDateString(v.created_at)] as any,
       };
       return row;
     });
@@ -135,16 +139,16 @@ class PipelineVersionList extends React.PureComponent<
   }
 
   protected async _loadPipelineVersions(request: ListRequest): Promise<string> {
-    let response: ApiListPipelineVersionsResponse | null = null;
+    let response: V2beta1ListPipelineVersionsResponse | null = null;
 
     if (this.props.pipelineId) {
       try {
-        response = await Apis.pipelineServiceApi.listPipelineVersions(
-          'PIPELINE',
+        response = await Apis.pipelineServiceApiV2.listPipelineVersions(
           this.props.pipelineId,
-          request.pageSize,
           request.pageToken,
+          request.pageSize,
           request.sortBy,
+          request.filter,
         );
       } catch (err) {
         const error = new Error(await errorToMessage(err));
@@ -154,7 +158,7 @@ class PipelineVersionList extends React.PureComponent<
       }
 
       this.setState({
-        pipelineVersions: response.versions || [],
+        pipelineVersions: response.pipeline_versions || [],
       });
     }
     return response ? response.next_page_token || '' : '';
