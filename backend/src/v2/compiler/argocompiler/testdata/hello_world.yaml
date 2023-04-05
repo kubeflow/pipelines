@@ -50,7 +50,7 @@ spec:
       - '{{inputs.parameters.kubernetes-config}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:690e078d675f9cc91b25465aaabd6bf8d7fa2b745741ad36ac2fce0ce217c11c
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:0a26d38f18d538e2df30d1f1ca44ac77deff7bd1d4bf35246bb12bae1bf72967
       name: ""
       resources:
         limits:
@@ -207,7 +207,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:690e078d675f9cc91b25465aaabd6bf8d7fa2b745741ad36ac2fce0ce217c11c
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:0a26d38f18d538e2df30d1f1ca44ac77deff7bd1d4bf35246bb12bae1bf72967
       name: ""
       resources:
         limits:
