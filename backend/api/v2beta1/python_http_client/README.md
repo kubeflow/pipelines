@@ -138,15 +138,6 @@ Class | Method | HTTP request | Description
 
 ## Documentation For Models
 
- - [ApiParameter](docs/ApiParameter.md)
- - [ApiPipeline](docs/ApiPipeline.md)
- - [ApiPipelineVersion](docs/ApiPipelineVersion.md)
- - [ApiRelationship](docs/ApiRelationship.md)
- - [ApiResourceKey](docs/ApiResourceKey.md)
- - [ApiResourceReference](docs/ApiResourceReference.md)
- - [ApiResourceType](docs/ApiResourceType.md)
- - [ApiStatus](docs/ApiStatus.md)
- - [ApiUrl](docs/ApiUrl.md)
  - [AuthorizeRequestResources](docs/AuthorizeRequestResources.md)
  - [AuthorizeRequestVerb](docs/AuthorizeRequestVerb.md)
  - [GooglerpcStatus](docs/GooglerpcStatus.md)
