@@ -15,6 +15,7 @@ def dataflow_python(
     requirements_file_path: str = '',
     args: List[str] = [],
 ):
+  # fmt: off
   """Launch a self-executing beam python file on Google Cloud using the DataflowRunner.
 
     Args:
@@ -40,11 +41,14 @@ def dataflow_python(
             For more details, see
             https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[
-          'python3', '-u', '-m',
-          'google_cloud_pipeline_components.container.v1.dataflow.dataflow_launcher'
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.dataflow.dataflow_launcher',
       ],
       args=[
           '--project',
@@ -61,4 +65,5 @@ def dataflow_python(
           args,
           '--gcp_resources',
           gcp_resources,
-      ])
+      ],
+  )

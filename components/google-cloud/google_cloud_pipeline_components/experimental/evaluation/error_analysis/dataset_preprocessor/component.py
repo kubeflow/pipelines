@@ -39,6 +39,7 @@ def dataset_preprocessor_error_analysis(
     test_dataset_storage_source_uris: list = [],
     training_dataset_storage_source_uris: list = [],
 ):
+  # fmt: off
   """Preprocesses datasets for Vision Error Analysis pipelines.
 
   Args:
@@ -112,6 +113,7 @@ def dataset_preprocessor_error_analysis(
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/model-evaluation:v0.9',
       command=['python3', '/main.py'],

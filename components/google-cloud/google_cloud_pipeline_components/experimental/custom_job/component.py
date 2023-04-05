@@ -24,7 +24,7 @@ from kfp.dsl import OutputPath
 def custom_training_job(
     project: str,
     display_name: str,
-    gcp_resources: OutputPath(str), # type: ignore
+    gcp_resources: OutputPath(str),  # type: ignore
     location: str = 'us-central1',
     worker_pool_specs: List[Dict[str, str]] = [],
     timeout: str = '604800s',
@@ -38,6 +38,7 @@ def custom_training_job(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Launch a Custom training job using Vertex CustomJob API.
 
   Args:
@@ -114,6 +115,7 @@ def custom_training_job(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

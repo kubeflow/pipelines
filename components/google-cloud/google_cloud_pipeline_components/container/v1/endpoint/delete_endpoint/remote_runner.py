@@ -20,6 +20,7 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remot
 
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
 
+
 def delete_endpoint(
     type,
     project,
@@ -27,13 +28,14 @@ def delete_endpoint(
     payload,
     gcp_resources,
 ):
+  """Delete endpoint and poll the LongRunningOperator till it reaches a final
+
+  state.
   """
-    Delete endpoint and poll the LongRunningOperator till it reaches a final
-    state.
-    """
   # TODO(IronPan) temporarily remove the empty fields from the spec
   delete_endpoint_request = json_util.recursive_remove_empty(
-      json.loads(payload, strict=False))
+      json.loads(payload, strict=False)
+  )
   endpoint_name = delete_endpoint_request['endpoint']
 
   uri_pattern = re.compile(_ENDPOINT_NAME_TEMPLATE)
@@ -42,16 +44,21 @@ def delete_endpoint(
     location = match.group('location')
   except AttributeError as err:
     # TODO(ruifang) propagate the error.
-    raise ValueError('Invalid endpoint name: {}. Expect: {}.'.format(
-        endpoint_name,
-        'projects/[project_id]/locations/[location]/endpoints/[endpoint_id]'))
-  delete_endpoint_url = (f'https://{location}-aiplatform.googleapis.com/v1/'
-                         f'{endpoint_name}')
+    raise ValueError(
+        'Invalid endpoint name: {}. Expect: {}.'.format(
+            endpoint_name,
+            'projects/[project_id]/locations/[location]/endpoints/[endpoint_id]',
+        )
+    )
+  delete_endpoint_url = (
+      f'https://{location}-aiplatform.googleapis.com/v1/{endpoint_name}'
+  )
 
   try:
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    delete_endpoint_lro = remote_runner.create_lro(delete_endpoint_url, '',
-                                                   gcp_resources, 'delete')
+    delete_endpoint_lro = remote_runner.create_lro(
+        delete_endpoint_url, '', gcp_resources, 'delete'
+    )
     delete_endpoint_lro = remote_runner.poll_lro(lro=delete_endpoint_lro)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

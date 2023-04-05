@@ -82,12 +82,14 @@ def bigquery_evaluate_model_job(
   if query_statement and table_name:
     raise ValueError(
         'One and only one of query_statement and table_name should be '
-        'populated for BigQuery evaluation model job.')
+        'populated for BigQuery evaluation model job.'
+    )
 
   input_data_sql = ''
   if table_name:
     input_data_sql = ', TABLE %s' % bigquery_util.back_quoted_if_needed(
-        table_name)
+        table_name
+    )
   if query_statement:
     input_data_sql = ', (%s)' % query_statement
 
@@ -96,29 +98,46 @@ def bigquery_evaluate_model_job(
     threshold_sql = ', STRUCT(%s AS threshold)' % threshold
 
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.EVALUATE(MODEL %s%s%s)' % (
-          bigquery_util.back_quoted_if_needed(model_name), input_data_sql,
-          threshold_sql)
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.EVALUATE(MODEL %s%s%s)'
+      % (
+          bigquery_util.back_quoted_if_needed(model_name),
+          input_data_sql,
+          threshold_sql,
+      )
+  )
 
   creds, _ = google.auth.default()
   job_uri = bigquery_util.check_if_job_exists(gcp_resources)
   if job_uri is None:
     job_uri = bigquery_util.create_query_job(
-        project, location, payload,
-        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+        project,
+        location,
+        payload,
+        json.dumps(job_configuration_query_override_json),
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
   logging.info('Getting query result for job ' + job['id'])
   _, job_id = job['id'].split('.')
-  query_results = bigquery_util.get_query_results(project, job_id, location,
-                                                  creds)
+  query_results = bigquery_util.get_query_results(
+      project, job_id, location, creds
+  )
   artifact_util.update_output_artifact(
-      executor_input, 'evaluation_metrics', '', {
-          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA],
-          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS]
-      })
+      executor_input,
+      'evaluation_metrics',
+      '',
+      {
+          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA
+          ],
+          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS
+          ],
+      },
+  )

@@ -36,6 +36,7 @@ def feature_extractor_error_analysis(
     feature_extractor_machine_type: str = 'n1-standard-32',
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Extracts feature embeddings of a dataset.
 
   Args:
@@ -72,6 +73,7 @@ def feature_extractor_error_analysis(
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

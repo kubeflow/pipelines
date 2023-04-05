@@ -18,16 +18,18 @@ import os
 from kfp import dsl
 
 
-def update_output_artifact(executor_input: str,
-                           target_artifact_name: str,
-                           uri: str,
-                           metadata: dict = {}):
+def update_output_artifact(
+    executor_input: str,
+    target_artifact_name: str,
+    uri: str,
+    metadata: dict = {},
+):
   """Updates the output artifact with the new uri and metadata."""
   executor_input_json = json.loads(executor_input)
   executor_output = {'artifacts': {}}
-  for name, artifacts in executor_input_json.get('outputs',
-                                                 {}).get('artifacts',
-                                                         {}).items():
+  for name, artifacts in (
+      executor_input_json.get('outputs', {}).get('artifacts', {}).items()
+  ):
     artifacts_list = artifacts.get('artifacts')
     if name == target_artifact_name and artifacts_list:
       updated_runtime_artifact = artifacts_list[0]
@@ -40,7 +42,8 @@ def update_output_artifact(executor_input: str,
   # update the output artifacts.
   os.makedirs(
       os.path.dirname(executor_input_json['outputs']['outputFile']),
-      exist_ok=True)
+      exist_ok=True,
+  )
   with open(executor_input_json['outputs']['outputFile'], 'w') as f:
     f.write(json.dumps(executor_output))
 
@@ -54,19 +57,20 @@ def update_output_artifacts(executor_input: str, artifacts: list):
   # This assumes that no other output artifact exists.
   for artifact in artifacts:
     if artifact.name in output_artifacts.keys():
-        # Converts the artifact into executor output artifact
-        # https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto#L878
-        artifacts_list = output_artifacts[artifact.name].get('artifacts')
-        if artifacts_list:
-          updated_runtime_artifact = artifacts_list[0]
-          updated_runtime_artifact['uri'] = artifact.uri
-          updated_runtime_artifact['metadata'] = artifact.metadata
-          artifacts_list = {'artifacts': [updated_runtime_artifact]}
-        executor_output['artifacts'][artifact.name] = artifacts_list
+      # Converts the artifact into executor output artifact
+      # https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto#L878
+      artifacts_list = output_artifacts[artifact.name].get('artifacts')
+      if artifacts_list:
+        updated_runtime_artifact = artifacts_list[0]
+        updated_runtime_artifact['uri'] = artifact.uri
+        updated_runtime_artifact['metadata'] = artifact.metadata
+        artifacts_list = {'artifacts': [updated_runtime_artifact]}
+      executor_output['artifacts'][artifact.name] = artifacts_list
 
   # update the output artifacts.
   os.makedirs(
       os.path.dirname(executor_input_json['outputs']['outputFile']),
-      exist_ok=True)
+      exist_ok=True,
+  )
   with open(executor_input_json['outputs']['outputFile'], 'w') as f:
     f.write(json.dumps(executor_output))

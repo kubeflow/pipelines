@@ -80,12 +80,14 @@ def bigquery_ml_roc_curve_job(
   if not (not query_statement) ^ (not table_name):
     raise ValueError(
         'One and only one of query_statement and table_name should be '
-        'populated for BigQuery roc curve job.')
+        'populated for BigQuery roc curve job.'
+    )
 
   input_data_sql = ''
   if table_name:
     input_data_sql = ', TABLE %s' % bigquery_util.back_quoted_if_needed(
-        table_name)
+        table_name
+    )
   if query_statement:
     input_data_sql = ', (%s)' % query_statement
 
@@ -94,16 +96,26 @@ def bigquery_ml_roc_curve_job(
     thresholds_sql = ', GENERATE_ARRAY(%s)' % thresholds
 
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.ROC_CURVE(MODEL %s%s%s)' % (
-          bigquery_util.back_quoted_if_needed(model_name), input_data_sql,
-          thresholds_sql)
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.ROC_CURVE(MODEL %s%s%s)'
+      % (
+          bigquery_util.back_quoted_if_needed(model_name),
+          input_data_sql,
+          thresholds_sql,
+      )
+  )
 
   # For ML roc curve job, as the returned results is the same as the
   # number of input, which can be very large. In this case we would like to ask
   # users to insert a destination table into the job config.
   return bigquery_util.bigquery_query_job(
-      type, project, location, payload,
-      json.dumps(job_configuration_query_override_json), gcp_resources,
-      executor_input)
+      type,
+      project,
+      location,
+      payload,
+      json.dumps(job_configuration_query_override_json),
+      gcp_resources,
+      executor_input,
+  )

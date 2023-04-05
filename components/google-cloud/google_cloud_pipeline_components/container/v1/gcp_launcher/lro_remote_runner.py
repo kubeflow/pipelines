@@ -35,7 +35,8 @@ _LRO_USER_ERROR_CODES = (
     409,  # Conflict
 )
 
-class LroRemoteRunner():
+
+class LroRemoteRunner:
   """Common module for creating and poll LRO."""
 
   def __init__(self, location) -> None:
@@ -44,11 +45,13 @@ class LroRemoteRunner():
     self.creds, _ = google.auth.default()
     self.poll_lro_name = ''
 
-  def request(self,
-              request_url: str,
-              request_body: str,
-              http_request: str = 'post',
-              user_agent: str = 'google-cloud-pipeline-components') -> Any:
+  def request(
+      self,
+      request_url: str,
+      request_body: str,
+      http_request: str = 'post',
+      user_agent: str = 'google-cloud-pipeline-components',
+  ) -> Any:
     """Call the HTTP request"""
     if not self.creds.valid:
       self.creds.refresh(google.auth.transport.requests.Request())
@@ -61,23 +64,28 @@ class LroRemoteRunner():
 
     http_request_fn = getattr(requests, http_request)
     response = http_request_fn(
-        url=request_url, data=request_body, headers=headers).json()
+        url=request_url, data=request_body, headers=headers
+    ).json()
 
     if 'error' in response and response['error']['code']:
       if response['error']['code'] in _LRO_USER_ERROR_CODES:
-        raise ValueError('Failed to create the resource. Error: {}'.format(
-            response['error']))
+        raise ValueError(
+            'Failed to create the resource. Error: {}'.format(response['error'])
+        )
       else:
-        raise RuntimeError('Failed to create the resource. Error: {}'.format(
-            response['error']))
+        raise RuntimeError(
+            'Failed to create the resource. Error: {}'.format(response['error'])
+        )
 
     return response
 
-  def create_lro(self,
-                 create_url: str,
-                 request_body: str,
-                 gcp_resources: str,
-                 http_request: str = 'post') -> Any:
+  def create_lro(
+      self,
+      create_url: str,
+      request_body: str,
+      gcp_resources: str,
+      http_request: str = 'post',
+  ) -> Any:
     """call the create API and get a LRO"""
 
     # Currently we don't check if operation already exists and continue from there
@@ -92,7 +100,8 @@ class LroRemoteRunner():
     lro = self.request(
         request_url=create_url,
         request_body=request_body,
-        http_request=http_request)
+        http_request=http_request,
+    )
 
     lro_name = lro['name']
     get_operation_uri = f'{self.vertex_uri_prefix}{lro_name}'
@@ -111,7 +120,8 @@ class LroRemoteRunner():
     """Poll the LRO till it reaches a final state."""
     lro_name = lro['name']
     with execution_context.ExecutionContext(
-        on_cancel=lambda: self.send_cancel_request(lro_name)):
+        on_cancel=lambda: self.send_cancel_request(lro_name)
+    ):
       request_url = f'{self.vertex_uri_prefix}{lro_name}'
       while ('done' not in lro) or (not lro['done']):
         time.sleep(_POLLING_INTERVAL_IN_SECONDS)
@@ -120,7 +130,8 @@ class LroRemoteRunner():
             request_url=request_url,
             request_body='',
             http_request='get',
-            user_agent='')
+            user_agent='',
+        )
 
     logging.info('Create resource complete. %s.', lro)
     return lro

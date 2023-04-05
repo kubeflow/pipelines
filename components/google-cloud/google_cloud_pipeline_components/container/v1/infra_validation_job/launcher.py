@@ -30,7 +30,8 @@ def _parse_args(args):
       dest='executor_input',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

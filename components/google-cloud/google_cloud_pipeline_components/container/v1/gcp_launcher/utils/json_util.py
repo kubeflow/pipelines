@@ -41,8 +41,12 @@ def __remove_empty(j):
     res = []
     for i in j:
       # Don't remove empty primitive types. Only remove other empty types.
-      if isinstance(i, int) or isinstance(i, float) or isinstance(
-          i, str) or isinstance(i, bool):
+      if (
+          isinstance(i, int)
+          or isinstance(i, float)
+          or isinstance(i, str)
+          or isinstance(i, bool)
+      ):
         res.append(i)
       elif __remove_empty(i):
         res.append(__remove_empty(i))
@@ -62,11 +66,13 @@ def recursive_remove_empty(j):
   # Handle special case where an empty "explanation_spec" "metadata" "outputs"
   # should not be removed. Introduced for b/245453693.
   temp_explanation_spec_metadata_outputs = None
-  if ('explanation_spec'
-      in j) and ('metadata' in j['explanation_spec'] and
-                 'outputs' in j['explanation_spec']['metadata']):
+  if ('explanation_spec' in j) and (
+      'metadata' in j['explanation_spec']
+      and 'outputs' in j['explanation_spec']['metadata']
+  ):
     temp_explanation_spec_metadata_outputs = j['explanation_spec']['metadata'][
-        'outputs']
+        'outputs'
+    ]
 
   needs_update = True
   while needs_update:
@@ -80,6 +86,7 @@ def recursive_remove_empty(j):
     if 'metadata' not in j['explanation_spec']:
       j['explanation_spec']['metadata'] = {}
     j['explanation_spec']['metadata'][
-        'outputs'] = temp_explanation_spec_metadata_outputs
+        'outputs'
+    ] = temp_explanation_spec_metadata_outputs
 
   return j
