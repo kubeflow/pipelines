@@ -123,7 +123,7 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
       if (!execution) {
         throw new Error('No execution is found.');
       }
-      return await getLogsDetails(execution, runId);
+      return await getLogsInfo(execution, runId);
     },
     { enabled: !!execution },
   );
@@ -133,6 +133,7 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
   const logsBannerAdditionalInfo = logsInfo?.get('logsBannerAdditionalInfo');
 
   const [selectedTab, setSelectedTab] = useState(0);
+
   return (
     <div className={commonCss.page}>
       <MD2Tabs
@@ -158,15 +159,15 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
         )}
         {/* Logs tab */}
         {selectedTab === 2 && (
-          <div>
+          <div className={commonCss.page}>
             {logsBannerMessage && (
               <React.Fragment>
                 <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
               </React.Fragment>
             )}
             {!logsBannerMessage && (
-              <div>
-                <LogViewer logLines={(logsDetails || 'no logs to show').split('\n')} />
+              <div className={commonCss.pageOverflowHidden}>
+                <LogViewer logLines={(logsDetails || '').split('\n')} />
               </div>
             )}
           </div>
@@ -222,7 +223,7 @@ function getTaskDetailsFields(
   return details;
 }
 
-async function getLogsDetails(execution: Execution, runId?: string): Promise<Map<string, string>> {
+async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<string, string>> {
   const logsInfo = new Map<string, string>();
   let podName = '';
   let podNameSpace = '';
