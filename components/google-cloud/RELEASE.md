@@ -1,5 +1,8 @@
-# Release 1.0.40
-*  Add data-filter-split feature back to the ImageTrainingJob component
+# Release 1.0.42
+* Patch cb7d9a8: Update import_model_evaluation so models with 100+ labels will not import confusion matrices at every threshold
+
+# Release 1.0.41
+* Add data-filter-split feature back to the ImageTrainingJob component
 
 # Release 1.0.40
 * Change base image to ubuntu OS
