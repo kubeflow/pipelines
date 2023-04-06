@@ -802,7 +802,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.archive_run(id=run_id)
+        return self._run_api.archive_run(run_id=run_id)
 
     def unarchive_run(self, run_id: str) -> dict:
         """Restores an archived run.
@@ -813,7 +813,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.unarchive_run(id=run_id)
+        return self._run_api.unarchive_run(run_id=run_id)
 
     def delete_run(self, run_id: str) -> dict:
         """Deletes a run.
@@ -824,7 +824,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.delete_run(id=run_id)
+        return self._run_api.delete_run(run_id=run_id)
 
     def terminate_run(self, run_id: str) -> dict:
         """Terminates a run.
@@ -1164,8 +1164,24 @@ class Client:
         Returns:
             Empty dictionary.
         """
+        warnings.warn(
+            '`delete_job` is deprecated. Please use `delete_recurring_run` instead.'
+            f'\nReroute to calling `delete_recurring_run(recurring_run_id="{job_id}")`',
+            category=DeprecationWarning,
+            stacklevel=2)
+        return self.delete_recurring_run(recurring_run_id=job_id)
+
+    def delete_recurring_run(self, recurring_run_id: str) -> dict:
+        """Deletes a recurring run.
+
+        Args:
+            recurring_run_id: ID of the recurring_run.
+
+        Returns:
+            Empty dictionary.
+        """
         return self._recurring_run_api.delete_recurring_run(
-            recurring_run_id=job_id)
+            recurring_run_id=recurring_run_id)
 
     def disable_job(self, job_id: str) -> dict:
         """Disables a job (recurring run).
@@ -1176,8 +1192,24 @@ class Client:
         Returns:
             Empty dictionary.
         """
+        warnings.warn(
+            '`disable_job` is deprecated. Please use `disable_recurring_run` instead.'
+            f'\nReroute to calling `disable_recurring_run(recurring_run_id="{job_id}")`',
+            category=DeprecationWarning,
+            stacklevel=2)
+        return self.disable_recurring_run(recurring_run_id=job_id)
+
+    def disable_recurring_run(self, recurring_run_id: str) -> dict:
+        """Disables a recurring run.
+
+        Args:
+            recurring_run_id: ID of the recurring_run.
+
+        Returns:
+            Empty dictionary.
+        """
         return self._recurring_run_api.disable_recurring_run(
-            recurring_run_id=job_id)
+            recurring_run_id=recurring_run_id)
 
     def enable_job(self, job_id: str) -> dict:
         """Enables a job (recurring run).
@@ -1188,8 +1220,24 @@ class Client:
         Returns:
             Empty dictionary.
         """
+        warnings.warn(
+            '`enable_job` is deprecated. Please use `enable_recurring_run` instead.'
+            f'\nReroute to calling `enable_recurring_run(recurring_run_id="{job_id}")`',
+            category=DeprecationWarning,
+            stacklevel=2)
+        return self.enable_recurring_run(recurring_run_id=job_id)
+
+    def enable_recurring_run(self, recurring_run_id: str) -> dict:
+        """Enables a recurring run.
+
+        Args:
+            recurring_run_id: ID of the recurring_run.
+
+        Returns:
+            Empty dictionary.
+        """
         return self._recurring_run_api.enable_recurring_run(
-            recurring_run_id=job_id)
+            recurring_run_id=recurring_run_id)
 
     def list_runs(
         self,
@@ -1304,18 +1352,29 @@ class Client:
                 sort_by=sort_by,
                 filter=filter)
 
-    def get_recurring_run(self,
-                          job_id: str) -> kfp_server_api.V2beta1RecurringRun:
-        """Gets recurring run (job) details.
+    def get_recurring_run(
+        self,
+        recurring_run_id: str,
+        job_id: Optional[str] = None,
+    ) -> kfp_server_api.V2beta1RecurringRun:
+        """Gets recurring run details.
 
         Args:
-            job_id: ID of the recurring run (job).
+            recurring_run_id: ID of the recurring run.
+            job_id: Deprecated. Use `recurring_run_id` instead.
 
         Returns:
             ``V2beta1RecurringRun`` object.
         """
+        if job_id is not None:
+            warnings.warn(
+                '`job_id` is deprecated. Please use `recurring_run_id` instead.',
+                category=DeprecationWarning,
+                stacklevel=2)
+            recurring_run_id = recurring_run_id or job_id
+
         return self._recurring_run_api.get_recurring_run(
-            recurring_run_id=job_id)
+            recurring_run_id=recurring_run_id)
 
     def get_run(self, run_id: str) -> kfp_server_api.V2beta1Run:
         """Gets run details.
