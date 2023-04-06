@@ -22,7 +22,7 @@ EKS_NODE_COUNT=${EKS_NODE_COUNT:-"2"} # The initial node count of the EKS cluste
 EKS_PUBLIC_SUBNETS=${EKS_PUBLIC_SUBNETS:-""}
 EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
 SKIP_KFP_OIDC_SETUP=${SKIP_KFP_OIDC_SETUP:-"false"}
-KFP_VERSION=${KFP_VERSION:-"2.0.0-alpha.5"}
+KFP_VERSION=${KFP_VERSION:-"2.0.0-alpha.7"}
 
 ### Testing parameters
 MINIO_LOCAL_PORT=${MINIO_LOCAL_PORT:-9000}
@@ -38,7 +38,7 @@ ROBOMAKER_EXECUTION_ROLE_ARN=${ROBOMAKER_EXECUTION_ROLE_ARN:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
-ACK_RELEASE_VERSION=${ACK_RELEASE_VERSION:-"v0.5.0"}
+ACK_RELEASE_VERSION=${ACK_RELEASE_VERSION:-"v1.2.1"}
 HELM_EXPERIMENTAL_OCI=1
 SERVICE=sagemaker
 CHART_EXPORT_PATH=/tmp/chart
@@ -158,6 +158,7 @@ function install_kfp() {
   echo "[Installing KFP] Applying KFP manifests"
   #Install cert-manager
   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+  kubectl wait --for=condition=ready pod -l 'app in (cert-manager,webhook)' --timeout=180s -n cert-manager
   kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/cluster-scoped-resources?ref=$KFP_VERSION"
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/dev?ref=$KFP_VERSION"
