@@ -36,7 +36,7 @@ RUN pip3 install -U "google-api-core<1.34.0"
 RUN pip3 install -U "fsspec>=0.7.4" "gcsfs>=0.6.0" "pandas<=1.3.5" "scikit-learn<=1.0.2"
 
 # Install main package (switch to using pypi package for official release)
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-1.0.40#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-1.0.42#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
 # Note that components can override the container entry ponint.
 ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.container.aiplatform.remote_runner"]

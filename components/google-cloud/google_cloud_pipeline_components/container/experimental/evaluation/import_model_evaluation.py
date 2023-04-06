@@ -135,10 +135,41 @@ def main(argv):
 
   schema_uri = PROBLEM_TYPE_TO_SCHEMA_URI.get(problem_type)
   with open(metrics_file_path) as metrics_file:
-    sliced_metrics = [{
-        **one_slice, 'metrics':
-            to_value(next(iter(one_slice['metrics'].values())))
-    } for one_slice in json.loads(metrics_file.read())['slicedMetrics']]
+    all_metrics = json.loads(metrics_file.read())['slicedMetrics']
+    all_sliced_metrics = []
+    for slice_idx in range(len(all_metrics)):
+      one_slice = all_metrics[slice_idx]
+      if problem_type == 'classification':
+        if (
+            'metrics' in one_slice
+            and 'classification' in one_slice['metrics']
+            and 'confusionMatrix' in one_slice['metrics']['classification']
+            and 'annotationSpecs'
+            in one_slice['metrics']['classification']['confusionMatrix']
+            and 'confidenceMetrics' in one_slice['metrics']['classification']
+            and len(
+                one_slice['metrics']['classification']['confusionMatrix'][
+                    'annotationSpecs'
+                ]
+            )
+            > 100
+        ):
+          confidence_metrics = one_slice['metrics']['classification'][
+              'confidenceMetrics'
+          ]
+          for idx in range(len(confidence_metrics)):
+            if 'confusionMatrix' in confidence_metrics[idx]:
+              del confidence_metrics[idx]['confusionMatrix']
+          one_slice['metrics']['classification'][
+              'confidenceMetrics'
+          ] = confidence_metrics
+
+      all_sliced_metrics.append({
+          **one_slice,
+          'metrics': to_value(next(iter(one_slice['metrics'].values()))),
+      })
+  overall_slice = all_sliced_metrics[0]
+  sliced_metrics = all_sliced_metrics[1:]
 
   model_evaluation = {
       'metrics': sliced_metrics[0]['metrics'],
