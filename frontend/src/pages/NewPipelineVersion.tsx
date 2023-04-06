@@ -38,10 +38,7 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 import PrivateSharedSelector from '../components/PrivateSharedSelector';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import PipelinesDialogV2, {
-  customV2Pipeline,
-  getCustomV2Pipeline,
-} from 'src/components/PipelinesDialogV2';
+import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -53,7 +50,7 @@ interface NewPipelineVersionState {
   pipelineName?: string;
   pipelineVersionName: string;
   pipelineVersionDescription: string;
-  pipeline?: customV2Pipeline;
+  pipeline?: V2beta1Pipeline;
 
   codeSourceUrl: string;
 
@@ -69,7 +66,7 @@ interface NewPipelineVersionState {
 
   // Select existing pipeline
   pipelineSelectorOpen: boolean;
-  unconfirmedSelectedPipeline?: customV2Pipeline;
+  unconfirmedSelectedPipeline?: V2beta1Pipeline;
 
   isPrivate: boolean;
 }
@@ -297,7 +294,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 {...this.props}
                 open={pipelineSelectorOpen}
                 selectorDialog={css.selectorDialog}
-                onClose={(confirmed, selectedPipeline?: customV2Pipeline) => {
+                onClose={(confirmed, selectedPipeline?: V2beta1Pipeline) => {
                   this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline }, () => {
                     this._pipelineSelectorClosed(confirmed);
                   });
@@ -469,7 +466,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       this.setState({
         pipelineId,
         pipelineName: pipelineResponse.display_name,
-        pipeline: getCustomV2Pipeline(pipelineResponse),
+        pipeline: pipelineResponse,
       });
       // Suggest a version name based on pipeline name
       const currDate = new Date();
@@ -507,12 +504,12 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     this.setStateSafe(
       {
         pipeline,
-        pipelineId: (pipeline && pipeline.id) || '',
-        pipelineName: (pipeline && pipeline.name) || '',
+        pipelineId: (pipeline && pipeline.pipeline_id) || '',
+        pipelineName: (pipeline && pipeline.display_name) || '',
         pipelineSelectorOpen: false,
         // Suggest a version name based on pipeline name
         pipelineVersionName:
-          (pipeline && pipeline.name + '_version_at_' + currDate.toISOString()) || '',
+          (pipeline && pipeline.display_name + '_version_at_' + currDate.toISOString()) || '',
       },
       () => this._validate(),
     );

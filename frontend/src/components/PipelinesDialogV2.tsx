@@ -21,10 +21,10 @@ import DialogActions from '@material-ui/core/DialogActions';
 import { classes } from 'typestyle';
 import { padding, commonCss } from '../Css';
 import DialogContent from '@material-ui/core/DialogContent';
-import ResourceSelector from '../pages/ResourceSelector';
+import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
 import { Apis, PipelineSortKeys } from '../lib/Apis';
 import { Column } from './CustomTable';
-import { V2beta1Pipeline } from 'src/apisv2beta1/pipeline';
+import { GooglerpcStatus, V2beta1Pipeline } from 'src/apisv2beta1/pipeline';
 import Buttons from '../lib/Buttons';
 import { PageProps } from '../pages/Page';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -37,31 +37,32 @@ enum NamespacedAndSharedTab {
   SHARED = 1,
 }
 
-export interface customV2Pipeline {
+interface PipelineResource {
   id?: string;
   name?: string;
   description?: string;
   created_at?: Date;
-  error?: string;
+  error?: GooglerpcStatus;
   nameSpace?: string;
 }
 
-export interface PipelinesDialogV2Props extends PageProps {
+interface PipelinesDialogV2Props extends PageProps {
   open: boolean;
   selectorDialog: string;
-  onClose: (confirmed: boolean, selectedPipeline?: customV2Pipeline) => void;
+  onClose: (confirmed: boolean, selectedPipeline?: V2beta1Pipeline) => void;
   namespace: string | undefined; // use context or make it optional?
   pipelineSelectorColumns: Column[];
   toolbarActionMap?: ToolbarActionMap;
 }
 
-export function getCustomV2Pipeline(p: V2beta1Pipeline): customV2Pipeline {
+// Fit the field in listAPI response to the field in BaseResource (more general)
+export function convertResponseToResource(p: V2beta1Pipeline): PipelineResource {
   return {
     id: p.pipeline_id,
     name: p.display_name,
     description: p.description,
     created_at: p.created_at,
-    error: p.error?.toString(),
+    error: p.error,
     nameSpace: p.namespace,
   };
 }
@@ -70,12 +71,12 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
   const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] = React.useState<
-    customV2Pipeline
+    V2beta1Pipeline
   >();
 
   function getPipelinesList(): JSX.Element {
     return (
-      <ResourceSelector
+      <ResourceSelectorV2
         {...props}
         filterLabel='Filter pipelines'
         listApi={async (
@@ -95,13 +96,13 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
           );
           return {
             nextPageToken: response.next_page_token || '',
-            resources: response.pipelines?.map(p => getCustomV2Pipeline(p)) || [],
+            resources: response.pipelines?.map(p => convertResponseToResource(p)) || [],
           };
         }}
         columns={props.pipelineSelectorColumns}
         emptyMessage='No pipelines found. Upload a pipeline and then try again.'
         initialSortColumn={PipelineSortKeys.CREATED_AT}
-        selectionChanged={(selectedPipeline: customV2Pipeline) => {
+        selectionChanged={(selectedPipeline: V2beta1Pipeline) => {
           setUnconfirmedSelectedPipeline(selectedPipeline);
         }}
       />
