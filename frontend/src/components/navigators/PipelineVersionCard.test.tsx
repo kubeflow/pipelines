@@ -17,55 +17,50 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline/api';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { testBestPractices } from 'src/TestUtils';
 import { PipelineVersionCard } from './PipelineVersionCard';
 
-const DEFAULT_VERSION_NAME = 'default version';
-const REVISION_NAME = 'revision';
+const OLD_VERSION_NAME = 'old version';
+const NEW_VERSION_NAME = 'new version';
+const PIPELINE_ID = 'pipeline-id';
 
-const PIPELINE_ID_V2_PYTHON_TWO_STEPS = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
-const PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT: ApiPipelineVersion = {
+const PIPELINE_ID_V2_PYTHON_TWO_STEPS_OLD = 'old-version-id';
+const PIPELINE_V2_PYTHON_TWO_STEPS_OLD: V2beta1PipelineVersion = {
   created_at: new Date('2021-11-24T20:58:23.000Z'),
-  id: PIPELINE_ID_V2_PYTHON_TWO_STEPS,
-  name: DEFAULT_VERSION_NAME,
-  description: 'This is default version description.',
-  parameters: [
-    {
-      name: 'message',
-    },
-  ],
-};
-const PIPELINE_ID_V2_PYTHON_TWO_STEPS_REV = '9fbe3bd6-a01f-11e8-98d0-529269fb1460';
-const PIPELINE_V2_PYTHON_TWO_STEPS_REV: ApiPipelineVersion = {
-  created_at: new Date('2021-12-24T20:58:23.000Z'),
-  id: PIPELINE_ID_V2_PYTHON_TWO_STEPS_REV,
-  name: REVISION_NAME,
-  description: 'This is version description.',
-  parameters: [
-    {
-      name: 'revision-message',
-    },
-  ],
+  description: 'This is old version description.',
+  display_name: OLD_VERSION_NAME,
+  pipeline_id: PIPELINE_ID,
+  pipeline_version_id: PIPELINE_ID_V2_PYTHON_TWO_STEPS_OLD,
 };
 
-const V2_TWO_STEPS_VERSION_LIST: ApiPipelineVersion[] = [
-  PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
-  PIPELINE_V2_PYTHON_TWO_STEPS_REV,
+const PIPELINE_ID_V2_PYTHON_TWO_STEPS_NEW = 'new-version-id';
+const PIPELINE_V2_PYTHON_TWO_STEPS_NEW: V2beta1PipelineVersion = {
+  created_at: new Date('2021-12-24T20:58:23.000Z'),
+  description: 'This is new version description.',
+  display_name: NEW_VERSION_NAME,
+  pipeline_id: PIPELINE_ID,
+  pipeline_version_id: PIPELINE_ID_V2_PYTHON_TWO_STEPS_NEW,
+};
+
+const V2_TWO_STEPS_VERSION_LIST: V2beta1PipelineVersion[] = [
+  PIPELINE_V2_PYTHON_TWO_STEPS_OLD,
+  PIPELINE_V2_PYTHON_TWO_STEPS_NEW,
 ];
-const PIPELINE_V2_PYTHON_TWO_STEPS: ApiPipeline = {
-  ...PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+
+const PIPELINE_V2_PYTHON_TWO_STEPS: V2beta1Pipeline = {
+  created_at: new Date('2021-11-24T20:58:23.000Z'),
   description: 'This is pipeline level description.',
-  name: 'v2_lightweight_python_functions_pipeline',
-  default_version: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+  display_name: 'v2_lightweight_python_functions_pipeline',
+  pipeline_id: PIPELINE_ID,
 };
 testBestPractices();
 describe('PipelineVersionCard', () => {
   it('makes Show Summary button visible by default', async () => {
     render(
       <PipelineVersionCard
-        apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
+        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
+        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
         versions={V2_TWO_STEPS_VERSION_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
@@ -80,8 +75,8 @@ describe('PipelineVersionCard', () => {
   it('clicks to open and hide Summary', async () => {
     render(
       <PipelineVersionCard
-        apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
+        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
+        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
         versions={V2_TWO_STEPS_VERSION_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
@@ -98,8 +93,8 @@ describe('PipelineVersionCard', () => {
   it('shows Summary and checks detail', async () => {
     render(
       <PipelineVersionCard
-        apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
+        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
+        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
         versions={V2_TWO_STEPS_VERSION_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
@@ -110,22 +105,21 @@ describe('PipelineVersionCard', () => {
     userEvent.click(screen.getByText('Show Summary'));
 
     screen.getByText('Pipeline ID');
-    screen.getByText(PIPELINE_ID_V2_PYTHON_TWO_STEPS);
+    screen.getByText(PIPELINE_ID);
     screen.getByText('Version');
-    screen.getByText(DEFAULT_VERSION_NAME);
+    screen.getByText(OLD_VERSION_NAME);
     screen.getByText('Version source');
     screen.getByText('Uploaded on');
     screen.getByText('Pipeline Description');
     screen.getByText('This is pipeline level description.');
-    screen.getByText('Default Version Description');
-    screen.getByText('This is default version description.');
+    screen.getByText('This is old version description.');
   });
 
   it('shows version list', async () => {
     const { getByRole } = render(
       <PipelineVersionCard
-        apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
+        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
+        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
         versions={V2_TWO_STEPS_VERSION_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
@@ -135,8 +129,8 @@ describe('PipelineVersionCard', () => {
 
     userEvent.click(screen.getByText('Show Summary'));
 
-    fireEvent.click(getByRole('button', { name: DEFAULT_VERSION_NAME }));
+    fireEvent.click(getByRole('button', { name: OLD_VERSION_NAME }));
     fireEvent.click(getByRole('listbox'));
-    getByRole('option', { name: REVISION_NAME });
+    getByRole('option', { name: NEW_VERSION_NAME });
   });
 });

@@ -188,10 +188,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             templateString={templateString}
             pipelineFlowElements={graphV2!}
             setSubDagLayers={setLayers}
-            apiPipeline={v1Pipeline}
-            selectedVersion={v1SelectedVersion}
-            versions={v1Versions}
-            handleVersionSelected={this.handleVersionSelected.bind(this)}
+            pipeline={v2Pipeline}
+            selectedVersion={v2SelectedVersion}
+            versions={v2Versions}
+            handleVersionSelected={this.handleVersionSelectedV2.bind(this)}
           />
         )}
         {!showV2Pipeline && (
@@ -276,11 +276,24 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     } else {
       // Get the latest version if no version id
       let listVersionsResponse: V2beta1ListPipelineVersionsResponse;
+      let latesetVersion: V2beta1PipelineVersion;
       try {
-        listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(pipelineId);
-        return listVersionsResponse.pipeline_versions
-          ? listVersionsResponse.pipeline_versions[0]
-          : undefined;
+        listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
+          pipelineId,
+          undefined,
+          undefined,
+          'created_at desc',
+        );
+
+        if (listVersionsResponse.pipeline_versions) {
+          latesetVersion = listVersionsResponse.pipeline_versions[0];
+          // Append version id to URL for create run (new run switcher call getPipelineVersion)
+          this.props.history.replace({
+            pathname: `/pipelines/details/${pipelineId}/version/${latesetVersion.pipeline_version_id}`,
+          });
+          return latesetVersion;
+        }
+        return undefined;
       } catch (err) {
         await this.showPageError('Cannot retrieve pipeline version list.', err);
         logger.error('Cannot retrieve pipeline version list.', err);
@@ -506,6 +519,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
+    // TBD(jlyaoyuli): If we allow upload v1 version to v2 pipeline or vice versa,
+    // v1 and v2 field should change to "non-exclusive".
     if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
       this.setStateSafe({
         v1Pipeline: undefined,

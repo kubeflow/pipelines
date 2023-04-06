@@ -15,7 +15,7 @@
  */
 import React, { useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
@@ -32,9 +32,9 @@ interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
   setSubDagLayers: (layers: string[]) => void;
-  apiPipeline: ApiPipeline | null;
-  selectedVersion: ApiPipelineVersion | undefined;
-  versions: ApiPipelineVersion[];
+  pipeline: V2beta1Pipeline | null;
+  selectedVersion: V2beta1PipelineVersion | undefined;
+  versions: V2beta1PipelineVersion[];
   handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
@@ -42,7 +42,7 @@ function PipelineDetailsV2({
   templateString,
   pipelineFlowElements,
   setSubDagLayers,
-  apiPipeline,
+  pipeline,
   selectedVersion,
   versions,
   handleVersionSelected,
@@ -88,7 +88,7 @@ function PipelineDetailsV2({
             setFlowElements={() => {}}
           ></DagCanvas>
           <PipelineVersionCard
-            apiPipeline={apiPipeline}
+            pipeline={pipeline}
             selectedVersion={selectedVersion}
             versions={versions}
             handleVersionSelected={handleVersionSelected}

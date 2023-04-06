@@ -21,20 +21,20 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
 import Select from '@material-ui/core/Select';
 import React, { useState } from 'react';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Description } from 'src/components/Description';
 import { commonCss } from 'src/Css';
 import { formatDateString } from 'src/lib/Utils';
 
 interface PipelineVersionCardProps {
-  apiPipeline: ApiPipeline | null;
-  selectedVersion: ApiPipelineVersion | undefined;
-  versions: ApiPipelineVersion[];
+  pipeline: V2beta1Pipeline | null;
+  selectedVersion: V2beta1PipelineVersion | undefined;
+  versions: V2beta1PipelineVersion[];
   handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
 export function PipelineVersionCard({
-  apiPipeline,
+  pipeline,
   selectedVersion,
   versions,
   handleVersionSelected,
@@ -47,7 +47,7 @@ export function PipelineVersionCard({
 
   return (
     <>
-      {!!apiPipeline && summaryShown && (
+      {!!pipeline && summaryShown && (
         <Paper className='absolute bottom-3 left-20 p-5 w-136 z-20'>
           <div className='items-baseline flex justify-between'>
             <div className={commonCss.header}>Static Pipeline Summary</div>
@@ -56,7 +56,7 @@ export function PipelineVersionCard({
             </Button>
           </div>
           <div className='text-gray-900 mt-5'>Pipeline ID</div>
-          <div>{apiPipeline.id || 'Unable to obtain Pipeline ID'}</div>
+          <div>{pipeline.pipeline_id || 'Unable to obtain Pipeline ID'}</div>
           {versions.length > 0 && (
             <>
               <div className='text-gray-900 mt-5'>
@@ -66,15 +66,13 @@ export function PipelineVersionCard({
                     <Select
                       aria-label='version_selector'
                       data-testid='version_selector'
-                      value={
-                        selectedVersion ? selectedVersion.id : apiPipeline.default_version!.id!
-                      }
+                      value={selectedVersion!.pipeline_version_id}
                       onChange={event => handleVersionSelected(event.target.value)}
                       inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
                     >
                       {versions.map((v, _) => (
-                        <MenuItem key={v.id} value={v.id}>
-                          {v.name}
+                        <MenuItem key={v.pipeline_version_id} value={v.pipeline_version_id}>
+                          {v.display_name}
                         </MenuItem>
                       ))}
                     </Select>
@@ -92,19 +90,17 @@ export function PipelineVersionCard({
           <div>
             {selectedVersion
               ? formatDateString(selectedVersion.created_at)
-              : formatDateString(apiPipeline.created_at)}
+              : formatDateString(pipeline.created_at)}
           </div>
 
           <div className='text-gray-900 mt-5'>Pipeline Description</div>
-          <Description description={apiPipeline.description || 'empty pipeline description'} />
+          <Description description={pipeline.description || 'empty pipeline description'} />
 
           {/* selectedVersion is always populated by either selected or pipeline default version if it exists */}
           {selectedVersion && selectedVersion.description ? (
             <>
               <div className='text-gray-900 mt-5'>
-                {selectedVersion.id === apiPipeline.default_version?.id
-                  ? 'Default Version Description'
-                  : 'Version Description'}
+                {selectedVersion.pipeline_version_id === 'Version Description'}
               </div>
               <Description description={selectedVersion.description} />
             </>
