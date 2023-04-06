@@ -10,6 +10,20 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+
+## Documentation Updates
+# 1.8.20
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
 * fix(sdk): bump permitted `kubernetes` Python SDK versions from 'kubernetes>=8.0.0,<20' to 'kubernetes>=8.0.0,<26' to resolve [CVE](https://github.com/advisories/GHSA-38h6-vxp4-qxvm) in `19.15.0` [#9033](https://github.com/kubeflow/pipelines/pull/9033)
 
 ## Documentation Updates
