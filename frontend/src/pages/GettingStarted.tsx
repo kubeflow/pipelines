@@ -17,14 +17,14 @@
 import Markdown from 'markdown-to-jsx';
 import * as React from 'react';
 import { classes, cssRaw } from 'typestyle';
-import { ApiFilter, PredicateOp } from '../apis/filter/api';
-import { AutoLink } from '../atoms/ExternalLink';
-import { RoutePageFactory } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import SAMPLE_CONFIG from '../config/sample_config_from_backend.json';
-import { commonCss, padding } from '../Css';
-import { Apis } from '../lib/Apis';
-import Buttons from '../lib/Buttons';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { AutoLink } from 'src/atoms/ExternalLink';
+import { RoutePageFactory } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
+import SAMPLE_CONFIG from 'src/config/sample_config_from_backend.json';
+import { commonCss, padding } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
+import Buttons from 'src/lib/Buttons';
 import { Page } from './Page';
 
 const DEMO_PIPELINES: string[] = SAMPLE_CONFIG;
@@ -116,18 +116,19 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
     };
   }
 
+  // token size sort filter
   public async componentDidMount() {
     const ids = await Promise.all(
       DEMO_PIPELINES.map(name =>
-        Apis.pipelineServiceApi
-          .listPipelines(undefined, 10, undefined, createAndEncodeFilter(name))
+        Apis.pipelineServiceApiV2
+          .listPipelines(undefined, undefined, 10, undefined, createAndEncodeFilter(name))
           .then(pipelineList => {
             const pipelines = pipelineList.pipelines;
             if (pipelines?.length !== 1) {
               // This should be accurate, do not accept ambiguous results.
               return '';
             }
-            return pipelines[0].id || '';
+            return pipelines[0].pipeline_id || '';
           })
           .catch(() => ''),
       ),
@@ -163,11 +164,11 @@ function getPipelineLink(id: string) {
 }
 
 function createAndEncodeFilter(filterString: string): string {
-  const filter: ApiFilter = {
+  const filter: V2beta1Filter = {
     predicates: [
       {
         key: 'name',
-        op: PredicateOp.EQUALS,
+        operation: V2beta1PredicateOperation.EQUALS,
         string_value: filterString,
       },
     ],
