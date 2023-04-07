@@ -50,42 +50,42 @@ ERROR_ANALYSIS_ANNOTATION_2 = {
 }
 EVALUATED_ANNOTATION_1 = {
     'type': 'FALSE_POSITIVE',
-    'evaluatedDataItemViewId': '000',
+    'evaluated_data_item_view_id': '000',
     'predictions': [{'displayName': 'roses', 'confidence': 0.00047175522}],
-    'groundTruths': [{'displayName': 'sunflowers'}],
-    'annotationResourceNames': [ANN_RESOURCE_NAME_1],
-    'sliceValue': 'roses',
-    'dataItemPayload': {
+    'ground_truths': [{'displayName': 'sunflowers'}],
+    'annotation_resource_names': [ANN_RESOURCE_NAME_1],
+    'slice_value': 'roses',
+    'data_item_payload': {
         'gcsUri': 'gs://test',
         'mimeType': 'image/jpeg',
     },
-    'errorAnalysisAnnotations': [ERROR_ANALYSIS_ANNOTATION_1],
+    'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_1],
 }
 EVALUATED_ANNOTATION_2 = {
     'type': 'FALSE_POSITIVE',
-    'evaluatedDataItemViewId': '000',
+    'evaluated_data_item_view_id': '000',
     'predictions': [{'displayName': 'dandelion', 'confidence': 0.00023385882}],
-    'groundTruths': [{'displayName': 'sunflowers'}],
-    'annotationResourceNames': [ANN_RESOURCE_NAME_1],
-    'sliceValue': 'dandelion',
-    'dataItemPayload': {
+    'ground_truths': [{'displayName': 'sunflowers'}],
+    'annotation_resource_names': [ANN_RESOURCE_NAME_1],
+    'slice_value': 'dandelion',
+    'data_item_payload': {
         'gcsUri': 'gs://test',
         'mimeType': 'image/jpeg',
     },
-    'errorAnalysisAnnotations': [ERROR_ANALYSIS_ANNOTATION_1],
+    'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_1],
 }
 EVALUATED_ANNOTATION_3 = {
     'type': 'FALSE_POSITIVE',
-    'evaluatedDataItemViewId': '000',
+    'evaluated_data_item_view_id': '000',
     'predictions': [{'displayName': 'tulips', 'confidence': 7.548173e-05}],
-    'groundTruths': [{'displayName': 'sunflowers'}],
-    'annotationResourceNames': [ANN_RESOURCE_NAME_2],
-    'sliceValue': 'tulips',
-    'dataItemPayload': {
+    'ground_truths': [{'displayName': 'sunflowers'}],
+    'annotation_resource_names': [ANN_RESOURCE_NAME_2],
+    'slice_value': 'tulips',
+    'data_item_payload': {
         'gcsUri': 'gs://test',
         'mimeType': 'image/jpeg',
     },
-    'errorAnalysisAnnotations': [ERROR_ANALYSIS_ANNOTATION_2],
+    'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_2],
 }
 SLICE_TO_RESOURCE_NAME = {
     'roses': EVAL_SLICE_NAME_1,
@@ -229,11 +229,11 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
     )
     error_analysis_file_contents = '\n'.join([
         json.dumps({
-            'annotationResourceName': 'annotation_resource_name_1',
+            'annotation_resource_name': 'annotation_resource_name_1',
             'annotation': ERROR_ANALYSIS_ANNOTATION_1,
         }),
         json.dumps({
-            'annotationResourceName': 'annotation_resource_name_2',
+            'annotation_resource_name': 'annotation_resource_name_2',
             'annotation': ERROR_ANALYSIS_ANNOTATION_2,
         }),
     ])
