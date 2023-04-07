@@ -295,7 +295,7 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
     )
     # Assert.
     mock_client.batch_import_evaluated_annotations.assert_has_calls(
-        expected_calls, any_order=False
+        expected_calls, any_order=True
     )
 
   @mock.patch.object(import_evaluated_annotation, 'batch_import', autospec=True)

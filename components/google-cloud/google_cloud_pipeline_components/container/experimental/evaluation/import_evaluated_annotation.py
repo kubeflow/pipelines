@@ -233,17 +233,27 @@ def batch_import(
     slice_value_to_resource_name: dict[str, str],
 ) -> None:
   """Calls ModelService.BatchImportEvaluatedAnnotations."""
+  count = 0
+  print('Starting batch import.')
+  total_num = sum([len(v) for k, v in evaluated_annotations_by_slice.items()])
+  print(f'Total number of evaluated_annotations: {total_num}')
   for (
       slice_value,
       evaluated_annotations,
   ) in evaluated_annotations_by_slice.items():
+    print(
+        f'Eval slice label: {slice_value}, Vertex resource name:'
+        f' {slice_value_to_resource_name[slice_value]}'
+    )
     for i in range(0, len(evaluated_annotations), BATCH_IMPORT_LIMIT):
-      client.batch_import_evaluated_annotations(
+      response = client.batch_import_evaluated_annotations(
           parent=slice_value_to_resource_name[slice_value],
           evaluated_annotations=evaluated_annotations[
               i : i + BATCH_IMPORT_LIMIT
           ],
       )
+      count += response.imported_evaluated_annotations_count
+    print(f'{count} evaluated annotations imported.')
 
 
 def main(argv):
