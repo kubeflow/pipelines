@@ -9,6 +9,9 @@ import unittest
 from unittest import mock
 
 
+EvaluatedAnnotation = (
+    aiplatform_v1.types.evaluated_annotation.EvaluatedAnnotation
+)
 PROJECT = 'test_project'
 LOCATION = 'test_location'
 MODEL_NAME = f'projects/{PROJECT}/locations/{LOCATION}/models/1234'
@@ -26,48 +29,63 @@ ANN_RESOURCE_NAME_2 = (
     'projects/*/locations/*/datasets/*/dataItems/000/annotations/222'
 )
 ERROR_ANALYSIS_ANNOTATION_1 = {
-    'attributedItems': [
+    'attributed_items': [
         {
-            'annotationResourceName': ANN_RESOURCE_NAME_1,
+            'annotation_resource_name': ANN_RESOURCE_NAME_1,
             'distance': 1.4385216236114502,
         },
     ],
-    'outlierScore': 1.4385216236114502,
-    'outlierThreshold': 2.2392595775946518,
+    'outlier_score': 1.4385216236114502,
+    'outlier_threshold': 2.2392595775946518,
 }
 ERROR_ANALYSIS_ANNOTATION_2 = {
-    'attributedItems': [
+    'attributed_items': [
         {
-            'annotationResourceName': ANN_RESOURCE_NAME_2,
+            'annotation_resource_name': ANN_RESOURCE_NAME_2,
             'distance': 0.6817775964736938,
         },
     ],
-    'outlierScore': 0.6817775964736938,
-    'outlierThreshold': 2.2392595775946518,
+    'outlier_score': 0.6817775964736938,
+    'outlier_threshold': 2.2392595775946518,
 }
 EVALUATED_ANNOTATION_1 = {
     'type': 'FALSE_POSITIVE',
-    'evaluated_data_item_view_id': '000',
-    'predictions': ['roses', 0.00047175522],
-    'ground_truths': ['sunflowers'],
-    'annotation_resource_names': [ANN_RESOURCE_NAME_1],
-    'slice_value': 'roses',
+    'evaluatedDataItemViewId': '000',
+    'predictions': [{'displayName': 'roses', 'confidence': 0.00047175522}],
+    'groundTruths': [{'displayName': 'sunflowers'}],
+    'annotationResourceNames': [ANN_RESOURCE_NAME_1],
+    'sliceValue': 'roses',
+    'dataItemPayload': {
+        'gcsUri': 'gs://test',
+        'mimeType': 'image/jpeg',
+    },
+    'errorAnalysisAnnotations': [ERROR_ANALYSIS_ANNOTATION_1],
 }
 EVALUATED_ANNOTATION_2 = {
     'type': 'FALSE_POSITIVE',
-    'evaluated_data_item_view_id': '000',
-    'predictions': ['dandelion', 0.00023385882],
-    'ground_truths': ['sunflowers'],
-    'annotation_resource_names': [ANN_RESOURCE_NAME_1],
-    'slice_value': 'dandelion',
+    'evaluatedDataItemViewId': '000',
+    'predictions': [{'displayName': 'dandelion', 'confidence': 0.00023385882}],
+    'groundTruths': [{'displayName': 'sunflowers'}],
+    'annotationResourceNames': [ANN_RESOURCE_NAME_1],
+    'sliceValue': 'dandelion',
+    'dataItemPayload': {
+        'gcsUri': 'gs://test',
+        'mimeType': 'image/jpeg',
+    },
+    'errorAnalysisAnnotations': [ERROR_ANALYSIS_ANNOTATION_1],
 }
 EVALUATED_ANNOTATION_3 = {
     'type': 'FALSE_POSITIVE',
-    'evaluated_data_item_view_id': '000',
-    'predictions': ['tulips', 7.548173e-05],
-    'ground_truths': ['sunflowers'],
-    'annotation_resource_names': [ANN_RESOURCE_NAME_2],
-    'slice_value': 'tulips',
+    'evaluatedDataItemViewId': '000',
+    'predictions': [{'displayName': 'tulips', 'confidence': 7.548173e-05}],
+    'groundTruths': [{'displayName': 'sunflowers'}],
+    'annotationResourceNames': [ANN_RESOURCE_NAME_2],
+    'sliceValue': 'tulips',
+    'dataItemPayload': {
+        'gcsUri': 'gs://test',
+        'mimeType': 'image/jpeg',
+    },
+    'errorAnalysisAnnotations': [ERROR_ANALYSIS_ANNOTATION_2],
 }
 SLICE_TO_RESOURCE_NAME = {
     'roses': EVAL_SLICE_NAME_1,
@@ -75,33 +93,21 @@ SLICE_TO_RESOURCE_NAME = {
     'tulips': EVAL_SLICE_NAME_3,
 }
 EVALUATED_ANNOTATIONS_BY_SLICE = {
-    'roses': [{
-        'type': EVALUATED_ANNOTATION_1['type'],
-        'evaluated_data_item_view_id': EVALUATED_ANNOTATION_1[
-            'evaluated_data_item_view_id'
-        ],
-        'predictions': EVALUATED_ANNOTATION_1['predictions'],
-        'ground_truths': EVALUATED_ANNOTATION_1['ground_truths'],
-        'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_1],
-    }],
-    'dandelion': [{
-        'type': EVALUATED_ANNOTATION_2['type'],
-        'evaluated_data_item_view_id': EVALUATED_ANNOTATION_2[
-            'evaluated_data_item_view_id'
-        ],
-        'predictions': EVALUATED_ANNOTATION_2['predictions'],
-        'ground_truths': EVALUATED_ANNOTATION_2['ground_truths'],
-        'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_1],
-    }],
-    'tulips': [{
-        'type': EVALUATED_ANNOTATION_3['type'],
-        'evaluated_data_item_view_id': EVALUATED_ANNOTATION_3[
-            'evaluated_data_item_view_id'
-        ],
-        'predictions': EVALUATED_ANNOTATION_3['predictions'],
-        'ground_truths': EVALUATED_ANNOTATION_3['ground_truths'],
-        'error_analysis_annotations': [ERROR_ANALYSIS_ANNOTATION_2],
-    }],
+    'roses': [
+        import_evaluated_annotation.build_evaluated_annotation(
+            EVALUATED_ANNOTATION_1
+        )
+    ],
+    'dandelion': [
+        import_evaluated_annotation.build_evaluated_annotation(
+            EVALUATED_ANNOTATION_2
+        )
+    ],
+    'tulips': [
+        import_evaluated_annotation.build_evaluated_annotation(
+            EVALUATED_ANNOTATION_3
+        )
+    ],
 }
 
 
@@ -351,3 +357,7 @@ class ImportEvaluatedAnnotationTest(unittest.TestCase):
     mock_get_error_analysis_map.assert_called_once()
     mock_get_evaluated_annotations_by_slice_map.assert_called_once()
     mock_batch_import.assert_called_once()
+
+
+if __name__ == '__main__':
+  unittest.main()
