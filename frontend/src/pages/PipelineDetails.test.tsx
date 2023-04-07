@@ -53,7 +53,7 @@ describe('PipelineDetails', () => {
   const getV2RunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
   const getV2RecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-  const deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
+  const deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'deletePipelineVersion');
   const getPipelineVersionTemplateSpy = jest.spyOn(
     Apis.pipelineServiceApi,
     'getPipelineVersionTemplate',
@@ -762,7 +762,10 @@ describe('PipelineDetails', () => {
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
-    expect(deletePipelineVersionSpy).toHaveBeenLastCalledWith(testV1Pipeline.default_version!.id!);
+    expect(deletePipelineVersionSpy).toHaveBeenLastCalledWith(
+      testV1Pipeline.id,
+      testV1Pipeline.default_version!.id!,
+    );
   });
 
   it('calls delete API when delete dialog is confirmed and page is half-loaded', async () => {
@@ -776,7 +779,10 @@ describe('PipelineDetails', () => {
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
-    expect(deletePipelineVersionSpy).toHaveBeenLastCalledWith(testV1Pipeline.default_version!.id);
+    expect(deletePipelineVersionSpy).toHaveBeenLastCalledWith(
+      testV1Pipeline.id,
+      testV1Pipeline.default_version!.id!,
+    );
   });
 
   it('shows error dialog if deletion fails', async () => {

@@ -141,9 +141,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             ? pipelineIdFromParams
             : '',
         )
-        .delete(
-          () => (pipelineVersionIdFromParams ? [pipelineVersionIdFromParams] : []),
-          'pipeline version',
+        .deletePipelineVersionV2(
+          () =>
+            pipelineIdFromParams && pipelineVersionIdFromParams
+              ? [
+                  new Map<string, string>([
+                    ['parentId', pipelineIdFromParams],
+                    ['resourceId', pipelineVersionIdFromParams],
+                  ]),
+                ]
+              : [],
           this._deleteCallback.bind(this),
           pipelineVersionIdFromParams ? true : false /* useCurrentResource */,
         );

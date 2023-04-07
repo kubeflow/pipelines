@@ -43,8 +43,8 @@ describe('PipelineList', () => {
     updateToolbarSpy = jest.fn();
     listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
     listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
-    deletePipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipeline');
-    deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
+    deletePipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'deletePipeline');
+    deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'deletePipelineVersion');
   }
 
   function generateProps(): PageProps {
@@ -548,7 +548,10 @@ describe('PipelineList', () => {
     expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
 
     expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
-    expect(deletePipelineVersionSpy).toHaveBeenCalledWith('test-pipeline-version-id1');
+    expect(deletePipelineVersionSpy).toHaveBeenCalledWith(
+      'test-pipeline-id1',
+      'test-pipeline-version-id1',
+    );
 
     expect(tree.state()).toHaveProperty('selectedIds', []);
     expect(tree.state()).toHaveProperty('selectedVersionIds', { 'test-pipeline-id1': [] });

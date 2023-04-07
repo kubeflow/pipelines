@@ -176,6 +176,30 @@ export default class Buttons {
     return this;
   }
 
+  public deletePipelineVersionV2(
+    // getSelectedIds: () => string[],
+    getSelectedPipelineAndVersionIds: () => Map<string, string>[],
+    callback: (selectedIds: string[], success: boolean) => void,
+    useCurrentResource: boolean,
+  ): Buttons {
+    this._map[ButtonKeys.DELETE_RUN] = {
+      action: () =>
+        this._deletePipelineVersionV2(
+          getSelectedPipelineAndVersionIds(),
+          useCurrentResource,
+          callback,
+        ),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource
+        ? undefined
+        : `Select at least one pipeline version to delete`,
+      id: 'deleteBtn',
+      title: 'Delete',
+      tooltip: 'Delete pipeline version',
+    };
+    return this;
+  }
+
   // Delete pipelines and pipeline versions simultaneously.
   public deletePipelinesAndPipelineVersions(
     getSelectedIds: () => string[],
@@ -514,6 +538,30 @@ export default class Buttons {
     );
   }
 
+  private _deletePipelineVersionV2(
+    selectedPipelineAndVersionIds: Map<string, string>[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandlerMultiId(
+      selectedPipelineAndVersionIds,
+      `Do you want to delete ${
+        selectedPipelineAndVersionIds.length === 1
+          ? 'this Pipeline Version'
+          : 'these Pipeline Versions'
+      }? This action cannot be undone.`,
+      useCurrentResource,
+      idMap =>
+        Apis.pipelineServiceApiV2.deletePipelineVersion(
+          idMap.get('parentId')!,
+          idMap.get('resourceId')!,
+        ),
+      callback,
+      'Delete',
+      'pipeline version',
+    );
+  }
+
   private _deleteRecurringRun(
     id: string,
     useCurrentResource: boolean,
@@ -654,6 +702,102 @@ export default class Buttons {
       callback(unsuccessfulIds, !unsuccessfulIds.length);
     }
   }
+
+  private _dialogActionHandlerMultiId(
+    selectedResourceAndParentIds: Map<string, string>[],
+    content: string,
+    useCurrentResource: boolean,
+    api: (id: Map<string, string>) => Promise<void>,
+    callback: (selectedIds: string[], success: boolean) => void,
+    actionName: string,
+    resourceName: string,
+  ): void {
+    const dialogClosedHandler = (confirmed: boolean) =>
+      this._dialogClosedMultiId(
+        confirmed,
+        selectedResourceAndParentIds,
+        actionName,
+        resourceName,
+        useCurrentResource,
+        api,
+        callback,
+      );
+
+    this._props.updateDialog({
+      buttons: [
+        {
+          onClick: async () => await dialogClosedHandler(false),
+          text: 'Cancel',
+        },
+        {
+          onClick: async () => await dialogClosedHandler(true),
+          text: actionName,
+        },
+      ],
+      content,
+      onClose: async () => await dialogClosedHandler(false),
+      title: `${actionName} ${
+        useCurrentResource ? 'this' : selectedResourceAndParentIds.length
+      } ${resourceName}${useCurrentResource ? '' : s(selectedResourceAndParentIds.length)}?`,
+    });
+  }
+
+  private async _dialogClosedMultiId(
+    confirmed: boolean,
+    idMaps: Map<string, string>[],
+    actionName: string,
+    resourceName: string,
+    useCurrentResource: boolean,
+    api: (id: Map<string, string>) => Promise<void>,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Promise<void> {
+    if (confirmed) {
+      const unsuccessfulIds: string[] = [];
+      const errorMessages: string[] = [];
+
+      await Promise.all(
+        idMaps.map(async idMap => {
+          try {
+            await api(idMap);
+          } catch (err) {
+            unsuccessfulIds.push(idMap.get('resourceId')!);
+            const errorMessage = await errorToMessage(err);
+            errorMessages.push(
+              `Failed to ${actionName.toLowerCase()} ${resourceName}: ${idMap.get(
+                'resourceId',
+              )} with error: "${errorMessage}"`,
+            );
+          }
+        }),
+      );
+
+      const successfulOps = idMaps.length - unsuccessfulIds.length;
+      if (successfulOps > 0) {
+        this._props.updateSnackbar({
+          message: `${actionName} succeeded for ${
+            useCurrentResource ? 'this' : successfulOps
+          } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
+          open: true,
+        });
+        if (!useCurrentResource) {
+          this._refresh();
+        }
+      }
+
+      if (unsuccessfulIds.length > 0) {
+        this._props.updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          content: errorMessages.join('\n\n'),
+          title: `Failed to ${actionName.toLowerCase()} ${
+            useCurrentResource ? '' : unsuccessfulIds.length + ' '
+          }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
+        });
+      }
+
+      callback(unsuccessfulIds, !unsuccessfulIds.length);
+    }
+  }
+
   private _compareRuns(selectedIds: string[]): void {
     const indices = selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
@@ -802,7 +946,7 @@ export default class Buttons {
     await Promise.all(
       selectedIds.map(async id => {
         try {
-          await Apis.pipelineServiceApi.deletePipeline(id);
+          await Apis.pipelineServiceApiV2.deletePipeline(id);
         } catch (err) {
           unsuccessfulIds.push(id);
           succeededfulIds.delete(id);
@@ -828,7 +972,7 @@ export default class Buttons {
         toBeDeletedVersionIds[pipelineId].map(async versionId => {
           try {
             unsuccessfulVersionIds[pipelineId] = [];
-            await Apis.pipelineServiceApi.deletePipelineVersion(versionId);
+            await Apis.pipelineServiceApiV2.deletePipelineVersion(pipelineId, versionId);
           } catch (err) {
             unsuccessfulVersionIds[pipelineId].push(versionId);
             const errorMessage = await errorToMessage(err);
