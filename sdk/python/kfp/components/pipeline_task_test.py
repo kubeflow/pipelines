@@ -144,30 +144,33 @@ class PipelineTaskTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
-            'cpu_limit': '123',
+            'cpu': '123',
             'expected_cpu_number': 123,
         },
         {
-            'cpu_limit': '123m',
+            'cpu': '123m',
             'expected_cpu_number': 0.123,
         },
         {
-            'cpu_limit': '123.0',
+            'cpu': '123.0',
             'expected_cpu_number': 123,
         },
         {
-            'cpu_limit': '123.0m',
+            'cpu': '123.0m',
             'expected_cpu_number': 0.123,
         },
     )
-    def test_set_valid_cpu_limit(self, cpu_limit: str,
-                                 expected_cpu_number: float):
+    def test_set_valid_cpu_request_limit(self, cpu: str,
+                                         expected_cpu_number: float):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.set_cpu_limit(cpu_limit)
+        task.set_cpu_request(cpu)
+        self.assertEqual(expected_cpu_number,
+                         task.container_spec.resources.cpu_request)
+        task.set_cpu_limit(cpu)
         self.assertEqual(expected_cpu_number,
                          task.container_spec.resources.cpu_limit)
 
@@ -286,6 +289,9 @@ class PipelineTaskTest(parameterized.TestCase):
                 V2_YAML),
             args={'input1': 'value'},
         )
+        task.set_memory_request(memory)
+        self.assertEqual(expected_memory_number,
+                         task.container_spec.resources.memory_request)
         task.set_memory_limit(memory)
         self.assertEqual(expected_memory_number,
                          task.container_spec.resources.memory_limit)

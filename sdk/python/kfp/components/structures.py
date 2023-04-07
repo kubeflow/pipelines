@@ -228,13 +228,17 @@ class ResourceSpec:
     """The resource requirements of a container execution.
 
     Attributes:
+        cpu_request (optional): the requirement of the number of vCPU cores.
         cpu_limit (optional): the limit of the number of vCPU cores.
+        memory_request (optional): the memory requirement in GB.
         memory_limit (optional): the memory limit in GB.
         accelerator_type (optional): the type of accelerators attached to the
             container.
         accelerator_count (optional): the number of accelerators attached.
     """
+    cpu_request: Optional[float] = None
     cpu_limit: Optional[float] = None
+    memory_request: Optional[float] = None
     memory_limit: Optional[float] = None
     accelerator_type: Optional[str] = None
     accelerator_count: Optional[int] = None
