@@ -159,7 +159,7 @@ def get_error_analysis_map(output_uri: str) -> dict[str, Any]:
   for line in error_analysis_file_contents.splitlines():
     try:
       json_object = json.loads(line.strip())
-      error_analysis_map[json_object['annotationResourceName']] += [
+      error_analysis_map[json_object['annotation_resource_name']] += [
           json_object['annotation']
       ]
     except json.JSONDecodeError as e:
@@ -173,11 +173,13 @@ def build_evaluated_annotation(
   """Parses an EvaluatedAnnotation from a JSON dictionary."""
   ea = EvaluatedAnnotation()
   ea.type_ = json_object['type']
-  ea.evaluated_data_item_view_id = json_object['evaluatedDataItemViewId']
+  ea.evaluated_data_item_view_id = json_object['evaluated_data_item_view_id']
   ea.predictions.extend(json_object['predictions'])
-  ea.ground_truths.extend(json_object['groundTruths'])
-  ea.data_item_payload = json_object['dataItemPayload']
-  ea.error_analysis_annotations.extend(json_object['errorAnalysisAnnotations'])
+  ea.ground_truths.extend(json_object['ground_truths'])
+  ea.data_item_payload = json_object['data_item_payload']
+  ea.error_analysis_annotations.extend(
+      json_object.get('error_analysis_annotations', [])
+  )
   return ea
 
 
@@ -207,14 +209,14 @@ def get_evaluated_annotations_by_slice_map(
     except json.JSONDecodeError as e:
       raise ValueError(f'Invalid JSONL file: {output_uri}') from e
     try:
-      annotation_resource_names = json_object.pop('annotationResourceNames')
+      annotation_resource_names = json_object.pop('annotation_resource_names')
       if error_analysis:
-        json_object['errorAnalysisAnnotations'] = []
+        json_object['error_analysis_annotations'] = []
         for annotation in annotation_resource_names:
-          json_object['errorAnalysisAnnotations'].extend(
+          json_object['error_analysis_annotations'].extend(
               error_analysis[annotation]
           )
-      evaluated_annotations_by_slice[json_object.pop('sliceValue')].append(
+      evaluated_annotations_by_slice[json_object.pop('slice_value')].append(
           build_evaluated_annotation(json_object)
       )
     except KeyError as e:
