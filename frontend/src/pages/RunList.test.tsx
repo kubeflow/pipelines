@@ -39,8 +39,7 @@ describe('RunList', () => {
   const onErrorSpy = jest.fn();
   const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
-  const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
@@ -97,8 +96,7 @@ describe('RunList', () => {
       }),
     );
 
-    getPipelineSpy.mockImplementation(() => ({ name: 'some pipeline' }));
-    getPipelineVersionSpy.mockImplementation(() => ({ name: 'some pipeline version' }));
+    getPipelineVersionSpy.mockImplementation(() => ({ display_name: 'some pipeline version' }));
     getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
   }
 
@@ -119,7 +117,6 @@ describe('RunList', () => {
     onErrorSpy.mockClear();
     listRunsSpy.mockClear();
     getRunSpy.mockClear();
-    getPipelineSpy.mockClear();
     getExperimentSpy.mockClear();
   });
 
