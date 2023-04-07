@@ -29,7 +29,7 @@ import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -50,8 +50,10 @@ import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import ResourceSelector from './ResourceSelector';
-import PipelinesDialog from 'src/components/PipelinesDialog';
+import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
+import { convertPipelineVersionToResource } from 'src/lib/ResourceConverter';
 
 const css = stylesheet({
   nonEditableInput: {
@@ -75,9 +77,9 @@ interface RunV2Props {
   existingRun?: V2beta1Run;
   existingRecurringRunId: string | null;
   existingRecurringRun?: V2beta1RecurringRun;
-  existingPipeline?: ApiPipeline;
+  existingPipeline?: V2beta1Pipeline;
   handlePipelineIdChange: (pipelineId: string) => void;
-  existingPipelineVersion?: ApiPipelineVersion;
+  existingPipelineVersion?: V2beta1PipelineVersion;
   handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   templateString?: string;
   chosenExperiment?: ApiExperiment;
@@ -193,8 +195,8 @@ function NewRunV2(props: NewRunV2Props) {
   const pipelineVersionRefNew: V2beta1PipelineVersionReference | undefined = cloneOrigin.isClone
     ? undefined
     : {
-        pipeline_id: existingPipeline?.id,
-        pipeline_version_id: existingPipelineVersion?.id,
+        pipeline_id: existingPipeline?.pipeline_id,
+        pipeline_version_id: existingPipelineVersion?.pipeline_version_id,
       };
 
   // Pipeline version reference from existing run or recurring run when "cloning" run
@@ -215,11 +217,11 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Pre-fill names for pipeline, pipeline version and experiment.
   useEffect(() => {
-    if (existingPipeline?.name) {
-      setPipelineName(existingPipeline.name);
+    if (existingPipeline?.display_name) {
+      setPipelineName(existingPipeline.display_name);
     }
-    if (existingPipelineVersion?.name) {
-      setPipelineVersionName(existingPipelineVersion.name);
+    if (existingPipelineVersion?.display_name) {
+      setPipelineVersionName(existingPipelineVersion.display_name);
     }
     if (apiExperiment?.name) {
       setExperimentName(apiExperiment.name);
@@ -237,9 +239,9 @@ function NewRunV2(props: NewRunV2Props) {
     } else if (existingRecurringRun?.display_name) {
       const cloneRecurringName = 'Clone of ' + existingRecurringRun.display_name;
       setRunName(cloneRecurringName);
-    } else if (existingPipelineVersion?.name) {
+    } else if (existingPipelineVersion?.display_name) {
       const initRunName =
-        'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
+        'Run of ' + existingPipelineVersion.display_name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
   }, [existingRun, existingRecurringRun, existingPipelineVersion]);
@@ -433,18 +435,18 @@ function NewRunV2(props: NewRunV2Props) {
               {...props}
               pipelineName={pipelineName}
               handlePipelineChange={updatedPipeline => {
-                if (updatedPipeline.name) {
-                  setPipelineName(updatedPipeline.name);
+                if (updatedPipeline.display_name) {
+                  setPipelineName(updatedPipeline.display_name);
                 }
-                if (updatedPipeline.id) {
+                if (updatedPipeline.pipeline_id) {
                   const searchString = urlParser.build({
                     [QUERY_PARAMS.experimentId]: experimentId || '',
-                    [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
+                    [QUERY_PARAMS.pipelineId]: updatedPipeline.pipeline_id || '',
                     [QUERY_PARAMS.pipelineVersionId]: '',
                   });
                   props.history.replace(searchString);
                   handlePipelineVersionIdChange('');
-                  handlePipelineIdChange(updatedPipeline.id);
+                  handlePipelineIdChange(updatedPipeline.pipeline_id);
                 }
               }}
             />
@@ -455,17 +457,18 @@ function NewRunV2(props: NewRunV2Props) {
               pipeline={existingPipeline}
               pipelineVersionName={pipelineVersionName}
               handlePipelineVersionChange={updatedPipelineVersion => {
-                if (updatedPipelineVersion.name) {
-                  setPipelineVersionName(updatedPipelineVersion.name);
+                if (updatedPipelineVersion.display_name) {
+                  setPipelineVersionName(updatedPipelineVersion.display_name);
                 }
-                if (existingPipeline?.id && updatedPipelineVersion.id) {
+                if (existingPipeline?.pipeline_id && updatedPipelineVersion.pipeline_version_id) {
                   const searchString = urlParser.build({
                     [QUERY_PARAMS.experimentId]: experimentId || '',
-                    [QUERY_PARAMS.pipelineId]: existingPipeline.id || '',
-                    [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
+                    [QUERY_PARAMS.pipelineId]: existingPipeline.pipeline_id || '',
+                    [QUERY_PARAMS.pipelineVersionId]:
+                      updatedPipelineVersion.pipeline_version_id || '',
                   });
                   props.history.replace(searchString);
-                  handlePipelineVersionIdChange(updatedPipelineVersion.id);
+                  handlePipelineVersionIdChange(updatedPipelineVersion.pipeline_version_id);
                 }
               }}
             />
@@ -502,11 +505,12 @@ function NewRunV2(props: NewRunV2Props) {
             if (experiment.id) {
               setExperimentId(experiment.id);
               let searchString;
-              if (existingPipeline?.id && existingPipelineVersion?.id) {
+              if (existingPipeline?.pipeline_id && existingPipelineVersion?.pipeline_version_id) {
                 searchString = urlParser.build({
                   [QUERY_PARAMS.experimentId]: experiment.id || '',
-                  [QUERY_PARAMS.pipelineId]: existingPipeline.id || '',
-                  [QUERY_PARAMS.pipelineVersionId]: existingPipelineVersion.id || '',
+                  [QUERY_PARAMS.pipelineId]: existingPipeline.pipeline_id || '',
+                  [QUERY_PARAMS.pipelineVersionId]:
+                    existingPipelineVersion.pipeline_version_id || '',
                 });
               } else if (existingRunId) {
                 searchString = urlParser.build({
@@ -676,7 +680,7 @@ const EXPERIMENT_SELECTOR_COLUMNS = [
 interface PipelineSelectorSpecificProps {
   namespace?: string;
   pipelineName: string | undefined;
-  handlePipelineChange: (pipeline: ApiPipeline) => void;
+  handlePipelineChange: (pipeline: V2beta1Pipeline) => void;
 }
 type PipelineSelectorProps = PageProps & PipelineSelectorSpecificProps;
 
@@ -710,11 +714,11 @@ function PipelineSelector(props: PipelineSelectorProps) {
       />
 
       {/* Pipeline selector dialog */}
-      <PipelinesDialog
+      <PipelinesDialogV2
         {...props}
         open={pipelineSelectorOpen}
         selectorDialog={css.selectorDialog}
-        onClose={(confirmed, selectedPipeline?: ApiPipeline) => {
+        onClose={(confirmed, selectedPipeline?: V2beta1Pipeline) => {
           if (confirmed && selectedPipeline) {
             props.handlePipelineChange(selectedPipeline);
           }
@@ -723,22 +727,22 @@ function PipelineSelector(props: PipelineSelectorProps) {
         namespace={props.namespace}
         pipelineSelectorColumns={PIPELINE_SELECTOR_COLUMNS}
         // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
-      ></PipelinesDialog>
+      ></PipelinesDialogV2>
     </>
   );
 }
 
 interface PipelineVersionSelectorSpecificProps {
   namespace?: string;
-  pipeline: ApiPipeline | undefined;
+  pipeline: V2beta1Pipeline | undefined;
   pipelineVersionName: string | undefined;
-  handlePipelineVersionChange: (pipelineVersion: ApiPipelineVersion) => void;
+  handlePipelineVersionChange: (pipelineVersion: V2beta1PipelineVersion) => void;
 }
 type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
 
 function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
   const [pipelineVersionSelectorOpen, setPipelineVersionSelectorOpen] = useState(false);
-  const [pendingPipelineVersion, setPendingPipelineVersion] = useState<ApiPipeline>();
+  const [pendingPipelineVersion, setPendingPipelineVersion] = useState<V2beta1PipelineVersion>();
 
   return (
     <>
@@ -774,30 +778,39 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
         PaperProps={{ id: 'pipelineVersionSelectorDialog' }}
       >
         <DialogContent>
-          <ResourceSelector
+          <ResourceSelectorV2
             {...props}
             title='Choose a pipeline version'
             filterLabel='Filter pipeline versions'
-            listApi={async (...args) => {
-              const response = await Apis.pipelineServiceApi.listPipelineVersions(
-                'PIPELINE',
-                props.pipeline ? props.pipeline!.id! : '',
-                args[1] /* page size */,
-                args[0] /* page token*/,
-                args[2] /* sort by */,
-                args[3] /* filter */,
+            listApi={async (
+              page_token?: string,
+              page_size?: number,
+              sort_by?: string,
+              filter?: string,
+            ) => {
+              const response = await Apis.pipelineServiceApiV2.listPipelineVersions(
+                props.pipeline ? props.pipeline.pipeline_id! : '',
+                page_token,
+                page_size,
+                sort_by,
+                filter,
               );
               return {
                 nextPageToken: response.next_page_token || '',
-                resources: response.versions || [],
+                resources:
+                  response.pipeline_versions?.map(v => convertPipelineVersionToResource(v)) || [],
               };
             }}
             columns={PIPELINE_VERSION_SELECTOR_COLUMNS}
             emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
             initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
-            selectionChanged={(selectedPipelineVersion: ApiPipelineVersion) =>
-              setPendingPipelineVersion(selectedPipelineVersion)
-            }
+            selectionChanged={async (selectedVersionId: string) => {
+              const selectedPipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
+                props.pipeline?.pipeline_id!,
+                selectedVersionId,
+              );
+              setPendingPipelineVersion(selectedPipelineVersion);
+            }}
             // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
           />
         </DialogContent>
