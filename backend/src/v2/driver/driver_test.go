@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//	https://www.apache.org/licenses/LICENSE-2.0
+//      https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,14 +14,21 @@
 package driver
 
 import (
+	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
-func Test_makePodSpecPatch_acceleratorConfig(t *testing.T) {
+func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
 	type args struct {
@@ -237,14 +244,193 @@ func Test_makePodSpecPatch_acceleratorConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := makePodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, nil, nil, nil, nil)
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
 			if tt.wantErr {
-				assert.Empty(t, got)
+				assert.Nil(t, podSpec)
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.Nil(t, err)
-				assert.Contains(t, got, tt.want)
+				podSpecString, err := json.Marshal(podSpec)
+				assert.Nil(t, err)
+				assert.Contains(t, string(podSpecString), tt.want)
+			}
+		})
+	}
+}
+
+func Test_createPVC(t *testing.T) {
+	type args struct {
+		inputs    *pipelinespec.ExecutorInput_Inputs
+		namespace string
+	}
+	k8sClient := fake.NewSimpleClientset()
+	accessModesList, _ := structpb.NewList([]interface{}{"ReadWriteOnce"})
+	accessModes := structpb.NewListValue(accessModesList)
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"valid",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes":       accessModes,
+						"pvc_name":           structpb.NewStringValue("my-pvc"),
+						"size":               structpb.NewStringValue("5Gi"),
+						"storage_class_name": structpb.NewStringValue("standard"),
+						"volume_name":        structpb.NewStringValue("volume-name"),
+					},
+				},
+				"default",
+			},
+			false,
+			"",
+		},
+		{
+			"missing access_modes",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes":       nil,
+						"pvc_name":           structpb.NewStringValue("my-pvc-2"),
+						"size":               structpb.NewStringValue("5Gi"),
+						"storage_class_name": structpb.NewStringValue("standard"),
+						"volume_name":        structpb.NewStringValue("volume-name"),
+					},
+				},
+				"default",
+			},
+			true,
+			"parameter access_modes not provided",
+		},
+		{
+			"both pvc_name_suffix and pvc_name provided",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes":       accessModes,
+						"pvc_name":           structpb.NewStringValue("my-pvc-3"),
+						"pvc_name_suffix":    structpb.NewStringValue("-my-pvc"),
+						"size":               structpb.NewStringValue("5Gi"),
+						"storage_class_name": structpb.NewStringValue("standard"),
+						"volume_name":        structpb.NewStringValue("volume-name"),
+					},
+				},
+				"default",
+			},
+			true,
+			"at most one of pvc_name and pvc_name_suffix can be non-empty",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pvcName, err := createPVC(k8sClient, tt.args.inputs, tt.args.namespace)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Equal(t, pvcName, "")
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				pvc, err := k8sClient.CoreV1().PersistentVolumeClaims("default").Get(context.TODO(), pvcName, metav1.GetOptions{})
+				assert.Nil(t, err)
+				assert.NotNil(t, pvc)
+			}
+		})
+	}
+}
+
+func Test_deletePVC(t *testing.T) {
+	type args struct {
+		inputs    *pipelinespec.ExecutorInput_Inputs
+		namespace string
+	}
+	k8sClient := fake.NewSimpleClientset()
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"valid",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"pvc_name": structpb.NewStringValue("my-pvc"),
+					},
+				},
+				"default",
+			},
+			true,
+			"not found",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := deletePVC(k8sClient, tt.args.inputs, tt.args.namespace)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+func Test_makeVolumeMountPatch(t *testing.T) {
+	type args struct {
+		pvcMount []*kubernetesplatform.PvcMount
+		dag      *metadata.DAG
+		dagTasks map[string]*metadata.Execution
+	}
+	// TODO(lingqinggan): add more test cases for task output parameter and component input.
+	// Omitted now due to type Execution defined in metadata has unexported fields.
+	tests := []struct {
+		name     string
+		args     args
+		wantPath string
+		wantName string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			"pvc name: constant",
+			args{
+				[]*kubernetesplatform.PvcMount{
+					&kubernetesplatform.PvcMount{
+						MountPath:    "/mnt/path",
+						PvcReference: &kubernetesplatform.PvcMount_Constant{Constant: "pvc-name"},
+					},
+				},
+				nil,
+				nil,
+			},
+			"/mnt/path",
+			"pvc-name",
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			volumeMounts, volumes, err := makeVolumeMountPatch(tt.args.pvcMount, tt.args.dag, tt.args.dagTasks)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, volumeMounts)
+				assert.Nil(t, volumes)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, 1, len(volumeMounts))
+				assert.Equal(t, 1, len(volumes))
+				assert.Equal(t, volumeMounts[0].MountPath, tt.wantPath)
+				assert.Equal(t, volumeMounts[0].Name, tt.wantName)
+				assert.Equal(t, volumes[0].Name, tt.wantName)
 			}
 		})
 	}

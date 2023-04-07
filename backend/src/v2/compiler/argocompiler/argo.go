@@ -327,6 +327,10 @@ const (
 	tmplEntrypoint = "entrypoint"
 )
 
+// Here is the collection of all special dummy images that the backend recognizes.
+// User need to avoid these image names for their self-defined components.
+// These values are in sync with the values in SDK to form a contract between BE and SDK.
+// TODO(lingqinggan): clarify these in documentation for KFP V2.
 var dummyImages = map[string]bool{
 	"argostub/createpvc": true,
 	"argostub/deletepvc": true,

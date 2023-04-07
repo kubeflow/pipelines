@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//	https://www.apache.org/licenses/LICENSE-2.0
+//      https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,12 +33,17 @@ import (
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
-	corev1 "k8s.io/api/core/v1"
+	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+)
+
+const (
+	createPVCImage = "argostub/createpvc"
+	deletePVCImage = "argostub/deletepvc"
 )
 
 // TODO(capri-xiyue): Move driver to component package
@@ -232,10 +237,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
-	if err != nil {
-		return nil, err
-	}
 	expr, err := expression.New()
 	if err != nil {
 		return nil, err
@@ -248,18 +249,24 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	// When the container image is a dummy image, there is no launcher for this task.
 	// This happens when this task is created to implements a Kubernetes-specific configuration, i.e., there is nothing to run.
 
-	// This task creates a PVC.
 	var pvcName string
-	if opts.Container.Image == "argostub/createpvc" {
-		pvcName, err = CreatePVC(inputs, opts.Namespace)
+	if opts.Container.Image == createPVCImage {
+		k8sClient, err := createK8sClient()
+		if err != nil {
+			return nil, fmt.Errorf("failure creating PVC: cannot generate k8s clientset: %w", err)
+		}
+		pvcName, err = createPVC(k8sClient, inputs, opts.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failure creating PVC: %w", err)
 		}
 	}
 
-	// This task deletes a PVC.
-	if opts.Container.Image == "argostub/deletepvc" {
-		err = DeletePVC(inputs, opts.Namespace)
+	if opts.Container.Image == deletePVCImage {
+		k8sClient, err := createK8sClient()
+		if err != nil {
+			return nil, fmt.Errorf("failure deleting PVC: cannot generate k8s clientset: %w", err)
+		}
+		err = deletePVC(k8sClient, inputs, opts.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failure deleting PVC: %w", err)
 		}
@@ -335,7 +342,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 
 	// Write execution details to mlmd. This is usually done in launcher, but we skip launcher when acting Kubernetes specific actions.
 	// Thus we need to write the execution info in the driver.
-	if opts.Container.Image == "argostub/createpvc" {
+	if opts.Container.Image == createPVCImage {
 		executorOutput := &pipelinespec.ExecutorOutput{
 			ParameterValues: map[string]*structpb.Value{},
 			Artifacts:       map[string]*pipelinespec.ArtifactList{},
@@ -346,56 +353,63 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			return execution, fmt.Errorf("failed to publish execution: %w", err)
 		}
 		glog.Infof("Published this execution (createpvc).")
+		return execution, nil
 	}
-	if opts.Container.Image == "argostub/deletepvc" {
+	if opts.Container.Image == deletePVCImage {
 		if err := mlmd.PublishExecution(ctx, createdExecution, nil, nil, pb.Execution_COMPLETE); err != nil {
 			return execution, fmt.Errorf("failed to publish execution: %w", err)
 		}
 		glog.Infof("Published this execution (deletepvc).")
+		return execution, nil
 	}
 
-	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.KubernetesConfig, opts.Task, dag, dagTasks)
+	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
 	if err != nil {
 		return execution, err
 	}
+	if opts.KubernetesConfig != nil {
+		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
+		if err != nil {
+			return execution, err
+		}
+		err = extendPodSpecPatch(podSpec, opts.KubernetesConfig, dag, dagTasks)
+		if err != nil {
+			return execution, err
+		}
+	}
+	podSpecPatchBytes, err := json.Marshal(podSpec)
+	if err != nil {
+		return nil, fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+	}
+	execution.PodSpecPatch = string(podSpecPatchBytes)
 	return execution, nil
 }
 
-// makePodSpecPatch generates a strategic merge patch for pod spec, it is merged
+// initPodSpecPatch generates a strategic merge patch for pod spec, it is merged
 // to container base template generated in compiler/container.go. Therefore, only
 // dynamic values are patched here. The volume mounts / configmap mounts are
 // defined in compiler, because they are static.
-func makePodSpecPatch(
+func initPodSpecPatch(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
 	executorInput *pipelinespec.ExecutorInput,
 	executionID int64,
 	pipelineName string,
 	runID string,
-	kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig,
-	task *pipelinespec.PipelineTaskSpec,
-	dag *metadata.DAG,
-	dagTasks map[string]*metadata.Execution,
-) (string, error) {
+) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
-		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
 	componentJSON, err := protojson.Marshal(componentSpec)
 	if err != nil {
-		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
 
 	// Convert environment variables
-	userEnvVar := make([]corev1.EnvVar, 0)
+	userEnvVar := make([]k8score.EnvVar, 0)
 	for _, envVar := range container.GetEnv() {
-		userEnvVar = append(userEnvVar, corev1.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
-	}
-
-	// Get volume mount information
-	volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesConfig.GetPvcMount(), task, dag, dagTasks)
-	if err != nil {
-		return "", fmt.Errorf("failed to extract volume mount info: %w", err)
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
@@ -422,53 +436,64 @@ func makePodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 		"--", // separater before user command and args
 	}
-	res := corev1.ResourceRequirements{
-		Limits: map[corev1.ResourceName]k8sres.Quantity{},
+	res := k8score.ResourceRequirements{
+		Limits: map[k8score.ResourceName]k8sres.Quantity{},
 	}
 	memoryLimit := container.GetResources().GetMemoryLimit()
 	if memoryLimit != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
 		if err != nil {
-			return "", err
+			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 		}
-		res.Limits[corev1.ResourceMemory] = q
+		res.Limits[k8score.ResourceMemory] = q
 	}
 	cpuLimit := container.GetResources().GetCpuLimit()
 	if cpuLimit != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
 		if err != nil {
-			return "", err
+			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 		}
-		res.Limits[corev1.ResourceCPU] = q
+		res.Limits[k8score.ResourceCPU] = q
 	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
 		if accelerator.GetType() != "" && accelerator.GetCount() > 0 {
 			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
 			if err != nil {
-				return "", err
+				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
-			res.Limits[corev1.ResourceName(accelerator.GetType())] = q
+			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
 		}
 	}
-	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
-	podSpec := &corev1.PodSpec{
-		Containers: []corev1.Container{{
-			Name:         "main", // argo task user container is always called "main"
-			Command:      launcherCmd,
-			Args:         userCmdArgs,
-			Image:        container.Image,
-			Resources:    res,
-			Env:          userEnvVar,
-			VolumeMounts: volumeMounts,
+	podSpec := &k8score.PodSpec{
+		Containers: []k8score.Container{{
+			Name:      "main", // argo task user container is always called "main"
+			Command:   launcherCmd,
+			Args:      userCmdArgs,
+			Image:     container.Image,
+			Resources: res,
+			Env:       userEnvVar,
 		}},
-		Volumes: volumes,
 	}
-	podSpecPatchBytes, err := json.Marshal(podSpec)
+	return podSpec, nil
+}
+
+// Extends the PodSpec to include Kubernetes specific config.
+func extendPodSpecPatch(
+	podSpec *k8score.PodSpec,
+	kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig,
+	dag *metadata.DAG,
+	dagTasks map[string]*metadata.Execution,
+) error {
+	// Get volume mount information
+	volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesConfig.GetPvcMount(), dag, dagTasks)
 	if err != nil {
-		return "", fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+		return fmt.Errorf("failed to extract volume mount info: %w", err)
 	}
-	return string(podSpecPatchBytes), nil
+	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
+	podSpec.Volumes = volumes
+	podSpec.Containers[0].VolumeMounts = volumeMounts
+	return nil
 }
 
 // TODO(Bobgy): merge DAG driver and container driver, because they are very similar.
@@ -1022,23 +1047,23 @@ func generateOutputURI(root, artifactName string, taskName string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName))
 }
 
-var accessModeMap = map[string]corev1.PersistentVolumeAccessMode{
-	"ReadWriteOnce":    corev1.ReadWriteOnce,
-	"ReadOnlyMany":     corev1.ReadOnlyMany,
-	"ReadWriteMany":    corev1.ReadWriteMany,
-	"ReadWriteOncePod": corev1.ReadWriteOncePod,
+var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
+	"ReadWriteOnce":    k8score.ReadWriteOnce,
+	"ReadOnlyMany":     k8score.ReadOnlyMany,
+	"ReadWriteMany":    k8score.ReadWriteMany,
+	"ReadWriteOncePod": k8score.ReadWriteOncePod,
 }
 
-func CreatePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvcName string, err error) {
+func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvcName string, err error) {
 
 	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Requied input: access_modes
 	accessModeInput, ok := inputs.ParameterValues["access_modes"]
-	if !ok {
+	if !ok || accessModeInput == nil {
 		return "", fmt.Errorf("failed to create pvc: parameter access_modes not provided")
 	}
-	var accessModes []corev1.PersistentVolumeAccessMode
+	var accessModes []k8score.PersistentVolumeAccessMode
 	for _, value := range accessModeInput.GetListValue().GetValues() {
 		accessModes = append(accessModes, accessModeMap[value.GetStringValue()])
 	}
@@ -1060,7 +1085,7 @@ func CreatePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvc
 
 	// Required input: size
 	volumeSizeInput, ok := inputs.ParameterValues["size"]
-	if !ok {
+	if !ok || volumeSizeInput == nil {
 		return "", fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
 	}
 
@@ -1086,27 +1111,17 @@ func CreatePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvc
 	volumeNameInput := inputs.ParameterValues["volume_name"]
 	volumeName := volumeNameInput.GetStringValue()
 
-	// Initialize Kubernetes client set
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return "", fmt.Errorf("failed to initialize kubernetes client: cannot get incluster config: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return "", fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-
 	// Create a PersistentVolumeClaim object
-	pvc := &corev1.PersistentVolumeClaim{
+	pvc := &k8score.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        pvcName,
 			Annotations: pvcAnnotations,
 		},
-		Spec: corev1.PersistentVolumeClaimSpec{
+		Spec: k8score.PersistentVolumeClaimSpec{
 			AccessModes: accessModes,
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse(volumeSizeInput.GetStringValue()),
+			Resources: k8score.ResourceRequirements{
+				Requests: k8score.ResourceList{
+					k8score.ResourceStorage: resource.MustParse(volumeSizeInput.GetStringValue()),
 				},
 			},
 			StorageClassName: &storageClassName,
@@ -1123,26 +1138,16 @@ func CreatePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvc
 	return createdPVC.ObjectMeta.Name, nil
 }
 
-func DeletePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) error {
+func deletePVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInput_Inputs, namespace string) error {
 	// Required input: pvc_name
 	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
-	if !ok {
+	if !ok || pvcNameInput == nil {
 		return fmt.Errorf("failed to delete pvc: required parameter pvc_name not provided")
 	}
 	pvcName := pvcNameInput.GetStringValue()
 
-	// Initialize Kubernetes client set
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-	}
-
 	// Get the PVC you want to delete, verify that it exists.
-	_, err = k8sClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	_, err := k8sClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
 	}
@@ -1157,21 +1162,34 @@ func DeletePVC(inputs *pipelinespec.ExecutorInput_Inputs, namespace string) erro
 	return nil
 }
 
-func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, task *pipelinespec.PipelineTaskSpec, dag *metadata.DAG, dagTasks map[string]*metadata.Execution) ([]corev1.VolumeMount, []corev1.Volume, error) {
+func createK8sClient() (*kubernetes.Clientset, error) {
+	// Initialize Kubernetes client set
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+	}
+	return k8sClient, nil
+}
+
+func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, dag *metadata.DAG, dagTasks map[string]*metadata.Execution) ([]k8score.VolumeMount, []k8score.Volume, error) {
 	if pvcMount == nil {
 		return nil, nil, nil
 	}
-	var volumeMounts []corev1.VolumeMount
-	var volumes []corev1.Volume
+	var volumeMounts []k8score.VolumeMount
+	var volumes []k8score.Volume
 	for _, vmc := range pvcMount {
 		// Find mount path
 		if vmc.GetMountPath() == "" {
 			return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume mount path not provided")
 		}
-		volumeMount := corev1.VolumeMount{
+		volumeMount := k8score.VolumeMount{
 			MountPath: vmc.GetMountPath(),
 		}
-		volume := corev1.Volume{}
+		volume := k8score.Volume{}
 
 		// Volume name may come from three different sources:
 		// 1) A constant
