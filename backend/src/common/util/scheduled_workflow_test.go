@@ -145,7 +145,7 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t,
-		"[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"},{\"name\":\"PARAM2\",\"value\":\"NEW_VALUE2\"}]",
+		"{\"PARAM1\":\"NEW_VALUE1\",\"PARAM2\":\"NEW_VALUE2\"}",
 		result)
 
 	// No params
@@ -156,5 +156,5 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 	result, err = workflow.ParametersAsString()
 	assert.Nil(t, err)
 
-	assert.Equal(t, "[]", result)
+	assert.Equal(t, "", result)
 }

@@ -15,6 +15,8 @@
 package util
 
 import (
+	"strings"
+
 	"github.com/golang/glog"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -102,11 +104,18 @@ func (s *ScheduledWorkflow) ConditionSummary() string {
 }
 
 func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
-	var params []swfapi.Parameter
+	var params interface{}
 	if s.ScheduledWorkflow.Spec.Workflow == nil {
-		params = make([]swfapi.Parameter, 0)
-	} else {
+		return "", nil
+	}
+	if s.IsV1() {
 		params = s.ScheduledWorkflow.Spec.Workflow.Parameters
+	} else {
+		paramsMap := make(map[string]string, 0)
+		for _, param := range s.ScheduledWorkflow.Spec.Workflow.Parameters {
+			paramsMap[param.Name] = param.Value
+		}
+		params = paramsMap
 	}
 
 	paramsBytes, err := json.Marshal(params)
@@ -125,4 +134,11 @@ func (s *ScheduledWorkflow) ToStringForStore() string {
 		return ""
 	}
 	return string(swf)
+}
+
+func (s *ScheduledWorkflow) IsV1() bool {
+	if strings.HasPrefix(s.APIVersion, "argoproj.io/") && s.Kind == "Workflow" {
+		return true
+	}
+	return false
 }

@@ -434,8 +434,7 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	if err != nil {
 		return err
 	}
-
-	sql, args, err := sq.
+	updateSql := sq.
 		Update("jobs").
 		SetMap(sq.Eq{
 			"Name": swf.Name,
@@ -445,7 +444,6 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			"Conditions":                     model.StatusState(swf.ConditionSummary()).ToString(),
 			"MaxConcurrency":                 swf.MaxConcurrencyOr0(),
 			"NoCatchup":                      swf.NoCatchupOrFalse(),
-			"Parameters":                     parameters,
 			"UpdatedAtInSec":                 now,
 			"CronScheduleStartTimeInSec":     PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
 			"CronScheduleEndTimeInSec":       PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
@@ -453,9 +451,15 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
 			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
 			"IntervalSecond":                 swf.IntervalSecondOr0(),
-		}).
-		Where(sq.Eq{"UUID": string(swf.UID)}).
-		ToSql()
+		})
+	if len(parameters) > 0 {
+		if swf.IsV1() {
+			updateSql = updateSql.SetMap(sq.Eq{"Parameters": parameters})
+		} else {
+			updateSql = updateSql.SetMap(sq.Eq{"RuntimeParameters": parameters})
+		}
+	}
+	sql, args, err := updateSql.Where(sq.Eq{"UUID": string(swf.UID)}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Error while creating query to update job with scheduled workflow: %v: %+v",

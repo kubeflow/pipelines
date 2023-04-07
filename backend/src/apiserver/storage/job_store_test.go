@@ -738,6 +738,10 @@ func TestUpdateJob_Success(t *testing.T) {
 	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "n1",
@@ -871,7 +875,6 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
-			Parameters:   "[]",
 		},
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
