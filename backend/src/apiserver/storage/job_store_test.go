@@ -474,6 +474,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:   "sample params",
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -491,6 +492,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:   "sample params",
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -501,6 +503,10 @@ func TestCreateJob(t *testing.T) {
 	}
 	jobExpected = jobExpected.ToV1()
 	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
+
+	newJob, err := jobStore.GetJob(job.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, jobExpected, newJob.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
 	resourceReferenceStore := NewResourceReferenceStore(db)

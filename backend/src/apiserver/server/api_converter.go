@@ -1841,11 +1841,11 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		createTime = apiJob.GetCreatedAt().GetSeconds()
 		updateTime = apiJob.GetUpdatedAt().GetSeconds()
 
-		params, err := toModelParameters(apiJob.GetPipelineSpec().GetParameters())
-		if err != nil {
+		if params, err := toModelParameters(apiJob.GetPipelineSpec().GetParameters()); err != nil {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API recurring run to its internal representation due to parameters parsing error")
+		} else {
+			specParams = params
 		}
-		specParams = params
 
 		cfg, err := toModelRuntimeConfig(apiJob.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
