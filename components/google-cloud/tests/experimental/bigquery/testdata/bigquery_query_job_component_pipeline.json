@@ -5,6 +5,7 @@
          "inputDefinitions":{
             "parameters":{
                "encryption_spec_key_name":{
+                  "defaultValue":"",
                   "isOptional":true,
                   "parameterType":"STRING"
                },
