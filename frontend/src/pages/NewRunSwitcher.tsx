@@ -10,7 +10,6 @@ import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
-// import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { ApiExperiment } from 'src/apis/experiment';
 import { V2beta1Run } from 'src/apisv2beta1/run';

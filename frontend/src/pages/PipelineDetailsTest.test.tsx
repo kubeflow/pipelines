@@ -27,11 +27,9 @@ import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import TestUtils, { mockResizeObserver, testBestPractices } from 'src/TestUtils';
-import { CommonTestWrapper } from 'src/TestWrapper';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
-import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import fs from 'fs';
 
 const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';

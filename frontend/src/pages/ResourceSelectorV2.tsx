@@ -18,12 +18,12 @@
 // TODO(jlyaoyuli): consider to merge 2 selectors together (change updatedSelection() in v1)
 
 import * as React from 'react';
-import CustomTable, { Column, Row } from '../components/CustomTable';
-import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
-import { ListRequest } from '../lib/Apis';
+import CustomTable, { Column, Row } from 'src/components/CustomTable';
+import Toolbar, { ToolbarActionMap } from 'src/components/Toolbar';
+import { ListRequest } from 'src/lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
-import { logger, errorToMessage, formatDateString } from '../lib/Utils';
-import { DialogProps } from '../components/Router';
+import { logger, errorToMessage, formatDateString } from 'src/lib/Utils';
+import { DialogProps } from 'src/components/Router';
 
 interface BaseResponse {
   resources: BaseResource[];

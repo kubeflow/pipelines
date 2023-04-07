@@ -25,14 +25,14 @@ import CustomTable, {
   CustomRendererProps,
   ExpandState,
   Row,
-} from '../components/CustomTable';
-import { Description } from '../components/Description';
-import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { commonCss, padding } from '../Css';
-import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
-import { formatDateString } from '../lib/Utils';
+} from 'src/components/CustomTable';
+import { Description } from 'src/components/Description';
+import { RoutePage, RouteParams } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
+import { commonCss, padding } from 'src/Css';
+import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
+import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import { formatDateString } from 'src/lib/Utils';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
 

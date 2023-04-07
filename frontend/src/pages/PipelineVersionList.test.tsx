@@ -16,10 +16,9 @@
 
 import * as React from 'react';
 import PipelineVersionList, { PipelineVersionListProps } from './PipelineVersionList';
-import TestUtils from '../TestUtils';
-import { ApiPipelineVersion } from '../apis/pipeline';
+import TestUtils from 'src/TestUtils';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import { Apis, ListRequest } from '../lib/Apis';
+import { Apis, ListRequest } from 'src/lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
 

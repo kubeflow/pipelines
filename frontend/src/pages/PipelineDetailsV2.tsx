@@ -23,7 +23,7 @@ import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
-import { commonCss, padding } from '../Css';
+import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];

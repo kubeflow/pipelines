@@ -17,10 +17,10 @@
 import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
 import * as React from 'react';
-import { RoutePage, RouteParams } from '../components/Router';
-import { Apis } from '../lib/Apis';
-import { ButtonKeys } from '../lib/Buttons';
-import TestUtils from '../TestUtils';
+import { RoutePage, RouteParams } from 'src/components/Router';
+import { Apis } from 'src/lib/Apis';
+import { ButtonKeys } from 'src/lib/Buttons';
+import TestUtils from 'src/TestUtils';
 import { PageProps } from './Page';
 import PipelineList from './PipelineList';
 

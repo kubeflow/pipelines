@@ -15,19 +15,18 @@
  */
 
 import Tooltip from '@material-ui/core/Tooltip';
-import CustomTable, { Column, CustomRendererProps, Row } from '../components/CustomTable';
+import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
-import { ApiPipelineVersion, ApiListPipelineVersionsResponse } from '../apis/pipeline';
 import {
   V2beta1PipelineVersion,
   V2beta1ListPipelineVersionsResponse,
 } from 'src/apisv2beta1/pipeline';
-import { Description } from '../components/Description';
-import { Apis, ListRequest, PipelineVersionSortKeys } from '../lib/Apis';
-import { errorToMessage, formatDateString } from '../lib/Utils';
-import { RoutePage, RouteParams } from '../components/Router';
-import { commonCss } from '../Css';
+import { Description } from 'src/components/Description';
+import { Apis, ListRequest, PipelineVersionSortKeys } from 'src/lib/Apis';
+import { errorToMessage, formatDateString } from 'src/lib/Utils';
+import { RoutePage, RouteParams } from 'src/components/Router';
+import { commonCss } from 'src/Css';
 
 export interface PipelineVersionListProps extends RouteComponentProps {
   pipelineId?: string;
