@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// Separate the resource selector between v1 and v2 to avoid breaking current v1 behavior
+// TODO(jlyaoyuli): consider to merge 2 selectors together (change updatedSelection() in v1)
+
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
@@ -21,7 +24,6 @@ import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
 import { DialogProps } from '../components/Router';
-import { GooglerpcStatus } from 'src/apisv2beta1/pipeline';
 
 interface BaseResponse {
   resources: BaseResource[];
@@ -33,7 +35,7 @@ export interface BaseResource {
   created_at?: Date;
   description?: string;
   name?: string;
-  error?: GooglerpcStatus;
+  error?: string;
   nameSpace?: string;
 }
 
@@ -43,7 +45,7 @@ export interface ResourceSelectorV2Props extends RouteComponentProps {
   emptyMessage: string;
   filterLabel: string;
   initialSortColumn: any;
-  selectionChanged: (resource: BaseResource) => void;
+  selectionChanged: (selectedId: string) => void;
   title?: string;
   toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
@@ -108,13 +110,7 @@ class ResourceSelectorV2 extends React.Component<ResourceSelectorV2Props, Resour
       logger.error(`${selectedIds.length} resources were selected somehow`, selectedIds);
       return;
     }
-    const selected = this.state.resources.find(r => r.id === selectedIds[0]);
-    if (selected) {
-      this.props.selectionChanged(selected);
-    } else {
-      logger.error(`Somehow no resource was found with ID: ${selectedIds[0]}`);
-      return;
-    }
+    this.props.selectionChanged(selectedIds[0]);
     this.setStateSafe({ selectedIds });
   }
 

@@ -24,26 +24,18 @@ import DialogContent from '@material-ui/core/DialogContent';
 import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
 import { Apis, PipelineSortKeys } from '../lib/Apis';
 import { Column } from './CustomTable';
-import { GooglerpcStatus, V2beta1Pipeline } from 'src/apisv2beta1/pipeline';
+import { V2beta1Pipeline } from 'src/apisv2beta1/pipeline';
 import Buttons from '../lib/Buttons';
 import { PageProps } from '../pages/Page';
 import MD2Tabs from '../atoms/MD2Tabs';
 import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { PipelineTabsHeaders, PipelineTabsTooltips } from '../pages/PrivateAndSharedPipelines';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { convertPipelineToResource } from 'src/lib/ResourceConverter';
 
 enum NamespacedAndSharedTab {
   NAMESPACED = 0,
   SHARED = 1,
-}
-
-interface PipelineResource {
-  id?: string;
-  name?: string;
-  description?: string;
-  created_at?: Date;
-  error?: GooglerpcStatus;
-  nameSpace?: string;
 }
 
 interface PipelinesDialogV2Props extends PageProps {
@@ -53,18 +45,6 @@ interface PipelinesDialogV2Props extends PageProps {
   namespace: string | undefined; // use context or make it optional?
   pipelineSelectorColumns: Column[];
   toolbarActionMap?: ToolbarActionMap;
-}
-
-// Fit the field in listAPI response to the field in BaseResource (more general)
-export function convertResponseToResource(p: V2beta1Pipeline): PipelineResource {
-  return {
-    id: p.pipeline_id,
-    name: p.display_name,
-    description: p.description,
-    created_at: p.created_at,
-    error: p.error,
-    nameSpace: p.namespace,
-  };
 }
 
 const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element | null => {
@@ -96,13 +76,14 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
           );
           return {
             nextPageToken: response.next_page_token || '',
-            resources: response.pipelines?.map(p => convertResponseToResource(p)) || [],
+            resources: response.pipelines?.map(p => convertPipelineToResource(p)) || [],
           };
         }}
         columns={props.pipelineSelectorColumns}
         emptyMessage='No pipelines found. Upload a pipeline and then try again.'
         initialSortColumn={PipelineSortKeys.CREATED_AT}
-        selectionChanged={(selectedPipeline: V2beta1Pipeline) => {
+        selectionChanged={async (selectedId: string) => {
+          const selectedPipeline = await Apis.pipelineServiceApiV2.getPipeline(selectedId);
           setUnconfirmedSelectedPipeline(selectedPipeline);
         }}
       />
