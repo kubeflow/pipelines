@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module for importing model evaluated annotations to an existing Vertex model evaluation slice resource."""
+
 import argparse
 from collections import defaultdict
 import json
@@ -23,13 +24,14 @@ from typing import Any, Optional
 from google.api_core import gapic_v1
 from google.cloud import storage
 from google.cloud import aiplatform_v1
-from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
-import six
 
-from google.protobuf.struct_pb2 import ListValue, NULL_VALUE, Struct, Value
 from google.protobuf import json_format
 
+
 BATCH_IMPORT_LIMIT = 50
+EvaluatedAnnotation = (
+    aiplatform_v1.types.evaluated_annotation.EvaluatedAnnotation
+)
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -165,6 +167,20 @@ def get_error_analysis_map(output_uri: str) -> dict[str, Any]:
   return error_analysis_map
 
 
+def build_evaluated_annotation(
+    json_object: dict[str, Any]
+) -> EvaluatedAnnotation:
+  """Parses an EvaluatedAnnotation from a JSON dictionary."""
+  ea = EvaluatedAnnotation()
+  ea.type_ = json_object['type']
+  ea.evaluated_data_item_view_id = json_object['evaluatedDataItemViewId']
+  ea.predictions.extend(json_object['predictions'])
+  ea.ground_truths.extend(json_object['groundTruths'])
+  ea.data_item_payload = json_object['dataItemPayload']
+  ea.error_analysis_annotations.extend(json_object['errorAnalysisAnnotations'])
+  return ea
+
+
 def get_evaluated_annotations_by_slice_map(
     output_uri: str,
     slice_value_to_resource_name: dict[str, str],
@@ -180,6 +196,7 @@ def get_evaluated_annotations_by_slice_map(
   Returns:
     A dictionary of evaluated annotations indexed by slice values.
   """
+
   evaluated_annotation_file_contents = read_gcs_uri_as_text(output_uri)
   evaluated_annotations_by_slice = {
       target_slice: [] for target_slice in slice_value_to_resource_name.keys()
@@ -190,15 +207,15 @@ def get_evaluated_annotations_by_slice_map(
     except json.JSONDecodeError as e:
       raise ValueError(f'Invalid JSONL file: {output_uri}') from e
     try:
-      annotation_resource_names = json_object.pop('annotation_resource_names')
+      annotation_resource_names = json_object.pop('annotationResourceNames')
       if error_analysis:
-        json_object['error_analysis_annotations'] = []
+        json_object['errorAnalysisAnnotations'] = []
         for annotation in annotation_resource_names:
-          json_object['error_analysis_annotations'].extend(
+          json_object['errorAnalysisAnnotations'].extend(
               error_analysis[annotation]
           )
-      evaluated_annotations_by_slice[json_object.pop('slice_value')].append(
-          json_object
+      evaluated_annotations_by_slice[json_object.pop('sliceValue')].append(
+          build_evaluated_annotation(json_object)
       )
     except KeyError as e:
       raise ValueError(
