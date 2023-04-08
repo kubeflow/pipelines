@@ -288,7 +288,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
           pipelineId,
           undefined,
-          undefined,
+          1, // Only need the latest one
           'created_at desc',
         );
 

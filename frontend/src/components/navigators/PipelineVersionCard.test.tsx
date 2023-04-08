@@ -23,45 +23,45 @@ import { PipelineVersionCard } from './PipelineVersionCard';
 
 const OLD_VERSION_NAME = 'old version';
 const NEW_VERSION_NAME = 'new version';
-const PIPELINE_ID = 'pipeline-id';
+const TEST_PIPELINE_ID = 'pipeline-id';
 
-const PIPELINE_ID_V2_PYTHON_TWO_STEPS_OLD = 'old-version-id';
-const PIPELINE_V2_PYTHON_TWO_STEPS_OLD: V2beta1PipelineVersion = {
+const OLD_TEST_PIPELINE_VERSION_ID = 'old-version-id';
+const OLD_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
   created_at: new Date('2021-11-24T20:58:23.000Z'),
   description: 'This is old version description.',
   display_name: OLD_VERSION_NAME,
-  pipeline_id: PIPELINE_ID,
-  pipeline_version_id: PIPELINE_ID_V2_PYTHON_TWO_STEPS_OLD,
+  pipeline_id: TEST_PIPELINE_ID,
+  pipeline_version_id: OLD_TEST_PIPELINE_VERSION_ID,
 };
 
-const PIPELINE_ID_V2_PYTHON_TWO_STEPS_NEW = 'new-version-id';
-const PIPELINE_V2_PYTHON_TWO_STEPS_NEW: V2beta1PipelineVersion = {
+const NEW_TEST_PIPELINE_VERSION_ID = 'new-version-id';
+const NEW_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
   created_at: new Date('2021-12-24T20:58:23.000Z'),
   description: 'This is new version description.',
   display_name: NEW_VERSION_NAME,
-  pipeline_id: PIPELINE_ID,
-  pipeline_version_id: PIPELINE_ID_V2_PYTHON_TWO_STEPS_NEW,
+  pipeline_id: TEST_PIPELINE_ID,
+  pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
 };
 
-const V2_TWO_STEPS_VERSION_LIST: V2beta1PipelineVersion[] = [
-  PIPELINE_V2_PYTHON_TWO_STEPS_OLD,
-  PIPELINE_V2_PYTHON_TWO_STEPS_NEW,
+const TEST_PIPELINE_VERSIONS_LIST: V2beta1PipelineVersion[] = [
+  OLD_TEST_PIPELINE_VERSION,
+  NEW_TEST_PIPELINE_VERSION,
 ];
 
-const PIPELINE_V2_PYTHON_TWO_STEPS: V2beta1Pipeline = {
+const TEST_PIPELINE: V2beta1Pipeline = {
   created_at: new Date('2021-11-24T20:58:23.000Z'),
   description: 'This is pipeline level description.',
   display_name: 'v2_lightweight_python_functions_pipeline',
-  pipeline_id: PIPELINE_ID,
+  pipeline_id: TEST_PIPELINE_ID,
 };
 testBestPractices();
 describe('PipelineVersionCard', () => {
   it('makes Show Summary button visible by default', async () => {
     render(
       <PipelineVersionCard
-        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
-        versions={V2_TWO_STEPS_VERSION_LIST}
+        pipeline={TEST_PIPELINE}
+        selectedVersion={OLD_TEST_PIPELINE_VERSION}
+        versions={TEST_PIPELINE_VERSIONS_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
         }}
@@ -75,9 +75,9 @@ describe('PipelineVersionCard', () => {
   it('clicks to open and hide Summary', async () => {
     render(
       <PipelineVersionCard
-        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
-        versions={V2_TWO_STEPS_VERSION_LIST}
+        pipeline={TEST_PIPELINE}
+        selectedVersion={OLD_TEST_PIPELINE_VERSION}
+        versions={TEST_PIPELINE_VERSIONS_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
         }}
@@ -93,9 +93,9 @@ describe('PipelineVersionCard', () => {
   it('shows Summary and checks detail', async () => {
     render(
       <PipelineVersionCard
-        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
-        versions={V2_TWO_STEPS_VERSION_LIST}
+        pipeline={TEST_PIPELINE}
+        selectedVersion={OLD_TEST_PIPELINE_VERSION}
+        versions={TEST_PIPELINE_VERSIONS_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
         }}
@@ -105,7 +105,7 @@ describe('PipelineVersionCard', () => {
     userEvent.click(screen.getByText('Show Summary'));
 
     screen.getByText('Pipeline ID');
-    screen.getByText(PIPELINE_ID);
+    screen.getByText(TEST_PIPELINE_ID);
     screen.getByText('Version');
     screen.getByText(OLD_VERSION_NAME);
     screen.getByText('Version source');
@@ -118,9 +118,9 @@ describe('PipelineVersionCard', () => {
   it('shows version list', async () => {
     const { getByRole } = render(
       <PipelineVersionCard
-        pipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
-        selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_OLD}
-        versions={V2_TWO_STEPS_VERSION_LIST}
+        pipeline={TEST_PIPELINE}
+        selectedVersion={OLD_TEST_PIPELINE_VERSION}
+        versions={TEST_PIPELINE_VERSIONS_LIST}
         handleVersionSelected={versionId => {
           return Promise.resolve();
         }}

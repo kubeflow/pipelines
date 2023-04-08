@@ -747,6 +747,8 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId={null}
             existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
@@ -774,6 +776,8 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId={null}
             existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}

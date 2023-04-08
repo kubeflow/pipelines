@@ -99,9 +99,7 @@ export function PipelineVersionCard({
           {/* selectedVersion is always populated by either selected or pipeline default version if it exists */}
           {selectedVersion && selectedVersion.description ? (
             <>
-              <div className='text-gray-900 mt-5'>
-                {selectedVersion.pipeline_version_id === 'Version Description'}
-              </div>
+              <div className='text-gray-900 mt-5'>Version Description</div>
               <Description description={selectedVersion.description} />
             </>
           ) : null}
