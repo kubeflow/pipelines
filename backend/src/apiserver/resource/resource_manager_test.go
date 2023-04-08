@@ -3148,18 +3148,17 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 	defer store.Close()
 	// report scheduled workflow
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		TypeMeta: v1.TypeMeta{},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
+			Name:      "updated_name",
+			Namespace: "ns1",
 			UID:       types.UID(job.UUID),
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Workflow: &swfapi.WorkflowResource{
 				Parameters: []swfapi.Parameter{
 					{
-						Name:  "param_v1",
-						Value: "value_v1",
+						Name:  "param1",
+						Value: "\"world-updated\"",
 					},
 				},
 			},
@@ -3172,10 +3171,10 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 	assert.Nil(t, err)
 
 	expectedJob := &model.Job{
-		K8SName:        "MY_NAME",
+		K8SName:        "updated_name",
 		DisplayName:    "j1",
-		Namespace:      actualJob.Namespace,
-		ExperimentId:   actualJob.ExperimentId,
+		Namespace:      "ns1",
+		ExperimentId:   job.ExperimentId,
 		ServiceAccount: "pipeline-runner",
 		Enabled:        false,
 		UUID:           actualJob.UUID,
@@ -3192,7 +3191,7 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 			PipelineSpecManifest: v2SpecHelloWorld,
 			PipelineName:         actualJob.PipelineSpec.PipelineName,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   `{"param_v1":"value_v1"}`,
+				Parameters:   `{"param1":"world-updated"}`,
 				PipelineRoot: "job-1-root",
 			},
 		},
