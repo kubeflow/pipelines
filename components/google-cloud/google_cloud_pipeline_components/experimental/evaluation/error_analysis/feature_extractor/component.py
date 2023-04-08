@@ -14,6 +14,7 @@
 
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp.dsl import ConcatPlaceholder
+from kfp.dsl import IfPresentPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Input
@@ -28,10 +29,10 @@ def feature_extractor_error_analysis(
     embeddings_dir: OutputPath(str),
     project: str,
     root_dir: str,
-    test_dataset: Input[VertexDataset],
-    training_dataset: Input[VertexDataset],
     preprocessed_test_dataset_storage_source: str,
     preprocessed_training_dataset_storage_source: str,
+    test_dataset: Input[VertexDataset] = None,
+    training_dataset: Input[VertexDataset] = None,
     location: str = 'us-central1',
     feature_extractor_machine_type: str = 'n1-standard-32',
     encryption_spec_key_name: str = '',
@@ -46,15 +47,15 @@ def feature_extractor_error_analysis(
       root_dir (str): Required. The GCS directory for keeping staging files. A
         random subdirectory will be created under the directory to keep job info
         for resuming the job in case of failure.
-      test_dataset (google.VertexDataset): Required. A google.VertexDataset
-        artifact of the test dataset.
-      training_dataset (google.VertexDataset): Required. A google.VertexDataset
-        artifact of the training dataset.
       preprocessed_test_dataset_storage_source (str): Required. Google Cloud
         Storage URI to preprocessed test dataset for Vision Analysis pipelines.
       preprocessed_training_dataset_storage_source (str): Required. Google Cloud
         Storage URI to preprocessed training dataset for Vision Error Analysis
         pipelines.
+      test_dataset (Optional[google.VertexDataset]): A google.VertexDataset
+        artifact of the test dataset.
+      training_dataset (Optional[google.VertexDataset]): A google.VertexDataset
+        artifact of the training dataset.
       feature_extractor_machine_type (Optional[str]): The machine type executing
         the Apache Beam pipeline using DirectRunner. If not set, defaulted to
         `n1-standard-32`. More details:
@@ -102,7 +103,7 @@ def feature_extractor_error_analysis(
               feature_extractor_machine_type,
               '"},',
               ' "container_spec": {"image_uri":"',
-              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230329_0621_RC00',
+              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230414_1605_RC00',
               '", "args": ["--project_id=',
               project,
               '", "--location=',
@@ -113,10 +114,18 @@ def feature_extractor_error_analysis(
               preprocessed_test_dataset_storage_source,
               '", "--training_dataset_storage_source=',
               preprocessed_training_dataset_storage_source,
-              '", "--test_dataset_resource_name=',
-              "{{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}",
-              '", "--training_dataset_resource_name=',
-              "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}",
+              IfPresentPlaceholder(
+                  input_name='test_dataset',
+                  then=(
+                      "\", \"--test_dataset_resource_name={{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}"
+                  ),
+              ),
+              IfPresentPlaceholder(
+                  input_name='training_dataset',
+                  then=(
+                      "\", \"--training_dataset_resource_name={{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
+                  ),
+              ),
               '", "--embeddings_dir=',
               embeddings_dir,
               '", "--executor_input={{$.json_escape[1]}}"]}}]}',
