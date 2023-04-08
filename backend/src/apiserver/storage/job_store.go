@@ -347,7 +347,6 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	jobSql, jobArgs, err := sq.
 		Insert("jobs").
 		SetMap(sq.Eq{
-			"Parameters":                     j.PipelineSpec.Parameters,
 			"UUID":                           j.UUID,
 			"DisplayName":                    j.DisplayName,
 			"Name":                           j.K8SName,
@@ -370,6 +369,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"PipelineName":                   j.PipelineSpec.PipelineName,
 			"PipelineSpecManifest":           j.PipelineSpec.PipelineSpecManifest,
 			"WorkflowSpecManifest":           j.PipelineSpec.WorkflowSpecManifest,
+			"Parameters":                     j.PipelineSpec.Parameters,
 			"RuntimeParameters":              j.PipelineSpec.RuntimeConfig.Parameters,
 			"PipelineRoot":                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
 			"ExperimentUUID":                 j.ExperimentId,
