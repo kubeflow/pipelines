@@ -38,7 +38,7 @@ enum NamespacedAndSharedTab {
   SHARED = 1,
 }
 
-interface PipelinesDialogV2Props extends PageProps {
+export interface PipelinesDialogV2Props extends PageProps {
   open: boolean;
   selectorDialog: string;
   onClose: (confirmed: boolean, selectedPipeline?: V2beta1Pipeline) => void;
