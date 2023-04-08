@@ -129,31 +129,67 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+	// v2 runtime config's string parameter
+	workflowV2 := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Workflow: &swfapi.WorkflowResource{
 				Parameters: []swfapi.Parameter{
-					{Name: "PARAM1", Value: "NEW_VALUE1"},
-					{Name: "PARAM2", Value: "NEW_VALUE2"},
+					{Name: "STRING_PARAM1", Value: "\"ONE\""},
 				},
 				Spec: string(spec),
 			},
 		},
 	})
-
-	result, err := workflow.ParametersAsString()
+	resultV2, err := workflowV2.ParametersAsString()
 	assert.Nil(t, err)
-
 	assert.Equal(t,
-		"{\"PARAM1\":\"NEW_VALUE1\",\"PARAM2\":\"NEW_VALUE2\"}",
-		result)
+		"{\"STRING_PARAM1\":\"ONE\"}",
+		resultV2)
 
+	// v2 runtime config's numeric parameter
+	workflowV2 = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "NUMERIC_PARAM2", Value: "2"},
+				},
+				Spec: string(spec),
+			},
+		},
+	})
+	resultV2, err = workflowV2.ParametersAsString()
+	assert.Nil(t, err)
+	assert.Equal(t,
+		"{\"NUMERIC_PARAM2\":2}",
+		resultV2)
+
+	// v1 parameters
+	workflowV1 := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "PARAM1", Value: "one"},
+					{Name: "PARAM2", Value: "2"},
+				},
+				Spec: string(spec),
+			},
+		},
+	})
+	resultV1, err := workflowV1.ParametersAsString()
+	assert.Nil(t, err)
+	assert.Equal(t,
+		`[{"name":"PARAM1","value":"one"},{"name":"PARAM2","value":"2"}]`,
+		resultV1)
 	// No params
-	workflow = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{},
 	})
 
-	result, err = workflow.ParametersAsString()
+	result, err := workflow.ParametersAsString()
 	assert.Nil(t, err)
 
 	assert.Equal(t, "", result)

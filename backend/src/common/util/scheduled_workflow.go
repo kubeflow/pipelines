@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/glog"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
@@ -111,9 +112,14 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 	if s.IsV1() {
 		params = s.ScheduledWorkflow.Spec.Workflow.Parameters
 	} else {
-		paramsMap := make(map[string]string, 0)
+		paramsMap := make(map[string]*structpb.Value, 0)
 		for _, param := range s.ScheduledWorkflow.Spec.Workflow.Parameters {
-			paramsMap[param.Name] = param.Value
+			var protoValue structpb.Value
+			err := json.Unmarshal([]byte(param.Value), &protoValue)
+			if err != nil {
+				return "", err
+			}
+			paramsMap[param.Name] = &protoValue
 		}
 		params = paramsMap
 	}
