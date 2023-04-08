@@ -152,7 +152,7 @@ export default class Buttons {
   // or recurring run config.
   public delete(
     getSelectedIds: () => string[],
-    resourceName: 'pipeline' | 'recurring run config' | 'pipeline version' | 'run',
+    resourceName: 'pipeline' | 'recurring run config' | 'run',
     callback: (selectedIds: string[], success: boolean) => void,
     useCurrentResource: boolean,
   ): Buttons {
@@ -160,8 +160,6 @@ export default class Buttons {
       action: () =>
         resourceName === 'pipeline'
           ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
-          : resourceName === 'pipeline version'
-          ? this._deletePipelineVersion(getSelectedIds(), useCurrentResource, callback)
           : resourceName === 'run'
           ? this._deleteRun(getSelectedIds(), useCurrentResource, callback)
           : this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
@@ -176,15 +174,14 @@ export default class Buttons {
     return this;
   }
 
-  public deletePipelineVersionV2(
-    // getSelectedIds: () => string[],
-    getSelectedPipelineAndVersionIds: () => Map<string, string>[],
+  public deletePipelineVersion(
+    getSelectedPipelineAndVersionIds: () => Map<string, string>,
     callback: (selectedIds: string[], success: boolean) => void,
     useCurrentResource: boolean,
   ): Buttons {
     this._map[ButtonKeys.DELETE_RUN] = {
       action: () =>
-        this._deletePipelineVersionV2(
+        this._deletePipelineVersion(
           getSelectedPipelineAndVersionIds(),
           useCurrentResource,
           callback,
@@ -521,40 +518,22 @@ export default class Buttons {
   }
 
   private _deletePipelineVersion(
-    selectedIds: string[],
+    selectedPipelineAndVersionIds: Map<string, string>,
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): void {
+    // only need versionIds (key in map) in dialogActionHandler
+    const selectedIds = Array.from(selectedPipelineAndVersionIds.keys());
     this._dialogActionHandler(
       selectedIds,
       `Do you want to delete ${
         selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
       }? This action cannot be undone.`,
       useCurrentResource,
-      id => Apis.pipelineServiceApi.deletePipelineVersion(id),
-      callback,
-      'Delete',
-      'pipeline version',
-    );
-  }
-
-  private _deletePipelineVersionV2(
-    selectedPipelineAndVersionIds: Map<string, string>[],
-    useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void,
-  ): void {
-    this._dialogActionHandlerMultiId(
-      selectedPipelineAndVersionIds,
-      `Do you want to delete ${
-        selectedPipelineAndVersionIds.length === 1
-          ? 'this Pipeline Version'
-          : 'these Pipeline Versions'
-      }? This action cannot be undone.`,
-      useCurrentResource,
-      idMap =>
+      vid =>
         Apis.pipelineServiceApiV2.deletePipelineVersion(
-          idMap.get('parentId')!,
-          idMap.get('resourceId')!,
+          selectedPipelineAndVersionIds.get(vid)!,
+          vid,
         ),
       callback,
       'Delete',
@@ -702,102 +681,6 @@ export default class Buttons {
       callback(unsuccessfulIds, !unsuccessfulIds.length);
     }
   }
-
-  private _dialogActionHandlerMultiId(
-    selectedResourceAndParentIds: Map<string, string>[],
-    content: string,
-    useCurrentResource: boolean,
-    api: (id: Map<string, string>) => Promise<void>,
-    callback: (selectedIds: string[], success: boolean) => void,
-    actionName: string,
-    resourceName: string,
-  ): void {
-    const dialogClosedHandler = (confirmed: boolean) =>
-      this._dialogClosedMultiId(
-        confirmed,
-        selectedResourceAndParentIds,
-        actionName,
-        resourceName,
-        useCurrentResource,
-        api,
-        callback,
-      );
-
-    this._props.updateDialog({
-      buttons: [
-        {
-          onClick: async () => await dialogClosedHandler(false),
-          text: 'Cancel',
-        },
-        {
-          onClick: async () => await dialogClosedHandler(true),
-          text: actionName,
-        },
-      ],
-      content,
-      onClose: async () => await dialogClosedHandler(false),
-      title: `${actionName} ${
-        useCurrentResource ? 'this' : selectedResourceAndParentIds.length
-      } ${resourceName}${useCurrentResource ? '' : s(selectedResourceAndParentIds.length)}?`,
-    });
-  }
-
-  private async _dialogClosedMultiId(
-    confirmed: boolean,
-    idMaps: Map<string, string>[],
-    actionName: string,
-    resourceName: string,
-    useCurrentResource: boolean,
-    api: (id: Map<string, string>) => Promise<void>,
-    callback: (selectedIds: string[], success: boolean) => void,
-  ): Promise<void> {
-    if (confirmed) {
-      const unsuccessfulIds: string[] = [];
-      const errorMessages: string[] = [];
-
-      await Promise.all(
-        idMaps.map(async idMap => {
-          try {
-            await api(idMap);
-          } catch (err) {
-            unsuccessfulIds.push(idMap.get('resourceId')!);
-            const errorMessage = await errorToMessage(err);
-            errorMessages.push(
-              `Failed to ${actionName.toLowerCase()} ${resourceName}: ${idMap.get(
-                'resourceId',
-              )} with error: "${errorMessage}"`,
-            );
-          }
-        }),
-      );
-
-      const successfulOps = idMaps.length - unsuccessfulIds.length;
-      if (successfulOps > 0) {
-        this._props.updateSnackbar({
-          message: `${actionName} succeeded for ${
-            useCurrentResource ? 'this' : successfulOps
-          } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
-          open: true,
-        });
-        if (!useCurrentResource) {
-          this._refresh();
-        }
-      }
-
-      if (unsuccessfulIds.length > 0) {
-        this._props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          content: errorMessages.join('\n\n'),
-          title: `Failed to ${actionName.toLowerCase()} ${
-            useCurrentResource ? '' : unsuccessfulIds.length + ' '
-          }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
-        });
-      }
-
-      callback(unsuccessfulIds, !unsuccessfulIds.length);
-    }
-  }
-
   private _compareRuns(selectedIds: string[]): void {
     const indices = selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
