@@ -29,7 +29,6 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import RunUtils from 'src/lib/RunUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
@@ -320,7 +319,7 @@ function updateToolBarActions(
 }
 
 function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
-  // check if the run has finished or not. The default value for apiRun.finished_at is
+  // check if the run has finished or not. The default value for run.finished_at is
   // Date(0), when it is not specified.
   let finishedAt = new Date(0);
   if (run?.finished_at) {

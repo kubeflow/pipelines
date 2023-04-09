@@ -21,16 +21,10 @@ import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
-  ApiExperiment,
-  ApiExperimentStorageState,
-  ApiListExperimentsResponse,
-} from 'src/apis/experiment';
-import {
   V2beta1Experiment,
   V2beta1ExperimentStorageState,
   V2beta1ListExperimentsResponse,
 } from 'src/apisv2beta1/experiment';
-import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import {
   V2beta1Pipeline,
