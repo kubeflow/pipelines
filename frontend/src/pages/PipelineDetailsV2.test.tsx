@@ -18,7 +18,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { mockResizeObserver, testBestPractices } from '../TestUtils';
+import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 import fs from 'fs';
 
@@ -39,7 +39,7 @@ describe('PipelineDetailsV2', () => {
           setSubDagLayers={function(layers: string[]): void {
             return;
           }}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {
@@ -59,7 +59,7 @@ describe('PipelineDetailsV2', () => {
           setSubDagLayers={function(layers: string[]): void {
             return;
           }}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {
@@ -85,7 +85,7 @@ describe('PipelineDetailsV2', () => {
             },
           ]}
           setSubDagLayers={layers => {}}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {
@@ -114,7 +114,7 @@ describe('PipelineDetailsV2', () => {
             },
           ]}
           setSubDagLayers={layers => {}}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {

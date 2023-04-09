@@ -40,7 +40,7 @@ describe('RunList', () => {
   const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -97,7 +97,7 @@ describe('RunList', () => {
     );
 
     getPipelineVersionSpy.mockImplementation(() => ({ display_name: 'some pipeline version' }));
-    getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
+    getExperimentSpy.mockImplementation(() => ({ display_name: 'some experiment' }));
   }
 
   function getMountedInstance(): RunList {
@@ -488,7 +488,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     render(
       <CommonTestWrapper>
@@ -507,7 +507,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     props.hideExperimentColumn = true;
     render(

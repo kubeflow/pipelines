@@ -32,7 +32,6 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
-import { ApiExperiment } from 'src/apis/experiment';
 import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import {
   V2beta1ListPipelineVersionsResponse,
@@ -55,6 +54,7 @@ import { ApiRunDetail } from 'src/apis/run';
 import { ApiJob } from 'src/apis/job';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
@@ -399,9 +399,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         const relatedExperimentId = origin.isRecurring
           ? origin.v2RecurringRun?.experiment_id
           : origin.v2Run?.experiment_id;
-        let experiment: ApiExperiment | undefined;
+        let experiment: V2beta1Experiment | undefined;
         if (relatedExperimentId) {
-          experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+          experiment = await Apis.experimentServiceApiV2.getExperiment(relatedExperimentId);
         }
 
         // Build the breadcrumbs, by adding experiment and run names
@@ -409,10 +409,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           breadcrumbs.push(
             { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
             {
-              displayName: experiment.name!,
+              displayName: experiment.display_name!,
               href: RoutePage.EXPERIMENT_DETAILS.replace(
                 ':' + RouteParams.experimentId,
-                experiment.id!,
+                experiment.experiment_id!,
               ),
             },
           );

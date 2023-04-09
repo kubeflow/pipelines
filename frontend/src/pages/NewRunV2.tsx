@@ -27,10 +27,10 @@ import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
-import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
-import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
@@ -49,11 +49,13 @@ import { errorToMessage, generateRandomString } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
-import ResourceSelector from './ResourceSelector';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
-import { convertPipelineVersionToResource } from 'src/lib/ResourceConverter';
+import {
+  convertExperimentToResource,
+  convertPipelineVersionToResource,
+} from 'src/lib/ResourceConverter';
 
 const css = stylesheet({
   nonEditableInput: {
@@ -82,7 +84,7 @@ interface RunV2Props {
   existingPipelineVersion?: V2beta1PipelineVersion;
   handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   templateString?: string;
-  chosenExperiment?: ApiExperiment;
+  chosenExperiment?: V2beta1Experiment;
 }
 
 type NewRunV2Props = RunV2Props & PageProps;
@@ -152,7 +154,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [pipelineName, setPipelineName] = useState('');
   const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [experimentId, setExperimentId] = useState('');
-  const [apiExperiment, setApiExperiment] = useState(chosenExperiment);
+  const [experiment, setExperiment] = useState(chosenExperiment);
   const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
   const [specParameters, setSpecParameters] = useState<SpecParameters>({});
@@ -223,13 +225,13 @@ function NewRunV2(props: NewRunV2Props) {
     if (existingPipelineVersion?.display_name) {
       setPipelineVersionName(existingPipelineVersion.display_name);
     }
-    if (apiExperiment?.name) {
-      setExperimentName(apiExperiment.name);
+    if (experiment?.display_name) {
+      setExperimentName(experiment.display_name);
     }
-    if (apiExperiment?.id) {
-      setExperimentId(apiExperiment.id);
+    if (experiment?.experiment_id) {
+      setExperimentId(experiment.experiment_id);
     }
-  }, [existingPipeline, existingPipelineVersion, apiExperiment]);
+  }, [existingPipeline, existingPipelineVersion, experiment]);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
@@ -302,7 +304,7 @@ function NewRunV2(props: NewRunV2Props) {
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
-      experiment_id: apiExperiment?.id,
+      experiment_id: experiment?.experiment_id,
       // pipeline_spec and pipeline_version_reference is exclusive.
       pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
         ? JsYaml.safeLoad(templateString || '')
@@ -498,28 +500,28 @@ function NewRunV2(props: NewRunV2Props) {
           {...props}
           experimentName={experimentName}
           handleExperimentChange={experiment => {
-            setApiExperiment(experiment);
-            if (experiment.name) {
-              setExperimentName(experiment.name);
+            setExperiment(experiment);
+            if (experiment.display_name) {
+              setExperimentName(experiment.display_name);
             }
-            if (experiment.id) {
-              setExperimentId(experiment.id);
+            if (experiment.experiment_id) {
+              setExperimentId(experiment.experiment_id);
               let searchString;
               if (existingPipeline?.pipeline_id && existingPipelineVersion?.pipeline_version_id) {
                 searchString = urlParser.build({
-                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
                   [QUERY_PARAMS.pipelineId]: existingPipeline.pipeline_id || '',
                   [QUERY_PARAMS.pipelineVersionId]:
                     existingPipelineVersion.pipeline_version_id || '',
                 });
               } else if (existingRunId) {
                 searchString = urlParser.build({
-                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
                   [QUERY_PARAMS.cloneFromRun]: existingRunId || '',
                 });
               } else {
                 searchString = urlParser.build({
-                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
                 });
               }
               props.history.replace(searchString);
@@ -844,13 +846,13 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
 interface ExperimentSelectorSpecificProps {
   namespace?: string;
   experimentName: string | undefined;
-  handleExperimentChange: (experiment: ApiExperiment) => void;
+  handleExperimentChange: (experiment: V2beta1Experiment) => void;
 }
 type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
 
 function ExperimentSelector(props: ExperimentSelectorProps) {
   const [experimentSelectorOpen, setExperimentSelectorOpen] = useState(false);
-  const [pendingExperiment, setPendingExperiment] = useState<ApiExperiment>();
+  const [pendingExperiment, setPendingExperiment] = useState<V2beta1Experiment>();
 
   return (
     <>
@@ -886,7 +888,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         PaperProps={{ id: 'experimentSelectorDialog' }}
       >
         <DialogContent>
-          <ResourceSelector
+          <ResourceSelectorV2
             {...props}
             title='Choose an experiment'
             filterLabel='Filter experiments'
@@ -901,33 +903,35 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
               // only list unarchived experiments.
               const new_filter = JSON.parse(
                 decodeURIComponent(filter || '{"predicates": []}'),
-              ) as ApiFilter;
+              ) as V2beta1Filter;
               new_filter.predicates = (new_filter.predicates || []).concat([
                 {
                   key: 'storage_state',
-                  op: PredicateOp.NOTEQUALS,
-                  string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                  operation: V2beta1PredicateOperation.NOTEQUALS,
+                  string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                 },
               ]);
-              const response = await Apis.experimentServiceApi.listExperiment(
+              const response = await Apis.experimentServiceApiV2.listExperiments(
                 page_token,
                 page_size,
                 sort_by,
                 encodeURIComponent(JSON.stringify(new_filter)),
-                props.namespace ? 'NAMESPACE' : undefined,
                 props.namespace,
               );
               return {
                 nextPageToken: response.next_page_token || '',
-                resources: response.experiments || [],
+                resources: response.experiments?.map(e => convertExperimentToResource(e)) || [],
               };
             }}
             columns={EXPERIMENT_SELECTOR_COLUMNS}
             emptyMessage='No experiments found. Create an experiment and then try again.'
             initialSortColumn={ExperimentSortKeys.CREATED_AT}
-            selectionChanged={(selectedExperiment: ApiExperiment) =>
-              setPendingExperiment(selectedExperiment)
-            }
+            selectionChanged={async (selectedExperimentId: string) => {
+              const selectedExperiment = await Apis.experimentServiceApiV2.getExperiment(
+                selectedExperimentId,
+              );
+              setPendingExperiment(selectedExperiment);
+            }}
           />
         </DialogContent>
         <DialogActions>

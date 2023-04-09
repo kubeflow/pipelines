@@ -11,9 +11,9 @@ import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import { ApiExperiment } from 'src/apis/experiment';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -136,13 +136,13 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!pipelineVersion, staleTime: Infinity, cacheTime: 0 },
   );
 
-  const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
+  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['experiment', experimentId],
     async () => {
       if (!experimentId) {
         throw new Error('Experiment ID is missing');
       }
-      return Apis.experimentServiceApi.getExperiment(experimentId);
+      return Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: Infinity },
   );
@@ -170,7 +170,7 @@ function NewRunSwitcher(props: PageProps) {
           existingPipelineVersion={pipelineVersion}
           handlePipelineVersionIdChange={setPipelineVersionIdParam}
           templateString={templateString}
-          chosenExperiment={apiExperiment}
+          chosenExperiment={experiment}
         />
       );
     }

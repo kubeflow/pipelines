@@ -21,11 +21,11 @@ import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
-  ApiExperiment,
-  ApiExperimentStorageState,
-  ApiListExperimentsResponse,
-} from 'src/apis/experiment';
-import { ApiFilter, PredicateOp } from 'src/apis/filter';
+  V2beta1Experiment,
+  V2beta1ExperimentStorageState,
+  V2beta1ListExperimentsResponse,
+} from 'src/apisv2beta1/experiment';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import {
   V2beta1Pipeline,
   V2beta1PipelineVersion,
@@ -206,18 +206,18 @@ describe('NewRunV2', () => {
     max_concurrency: '10',
   };
 
-  const DEFAULT_EXPERIMENT: ApiExperiment = {
+  const DEFAULT_EXPERIMENT: V2beta1Experiment = {
     created_at: new Date('2022-07-14T21:26:58Z'),
-    id: '796eb126-dd76-44de-a21f-d70010c6a029',
-    name: 'Default',
-    storage_state: ApiExperimentStorageState.AVAILABLE,
+    experiment_id: 'default-experiment-id',
+    display_name: 'Default',
+    storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
 
-  const NEW_EXPERIMENT: ApiExperiment = {
+  const NEW_EXPERIMENT: V2beta1Experiment = {
     created_at: new Date('2022-07-26T17:44:28Z'),
-    id: 'f66a1cee-b7cb-43f0-a3c2-6ec169c9a9b1',
-    name: 'new-experiment',
-    storage_state: ApiExperimentStorageState.AVAILABLE,
+    experiment_id: 'new-experiment-id',
+    display_name: 'new-experiment',
+    storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
 
   const historyPushSpy = jest.fn();
@@ -530,9 +530,9 @@ describe('NewRunV2', () => {
 
   describe('choose an experiment', () => {
     it('lists available experiments by namespace if available', async () => {
-      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
+      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
       listExperimentSpy.mockImplementation(() => {
-        const response: ApiListExperimentsResponse = {
+        const response: V2beta1ListPipelinesResponse = {
           experiments: [DEFAULT_EXPERIMENT, NEW_EXPERIMENT],
           total_size: 2,
         };
@@ -571,27 +571,28 @@ describe('NewRunV2', () => {
               predicates: [
                 {
                   key: 'storage_state',
-                  op: PredicateOp.NOTEQUALS,
-                  string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                  operation: V2beta1PredicateOperation.NOTEQUALS,
+                  string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                 },
               ],
-            } as ApiFilter),
+            } as V2beta1Filter),
           ),
-          'NAMESPACE',
           'test-ns',
         );
       });
     });
 
     it('sets the experiment from the selector modal when confirmed', async () => {
-      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
+      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
       listExperimentSpy.mockImplementation(() => {
-        const response: ApiListExperimentsResponse = {
+        const response: V2beta1ListExperimentsResponse = {
           experiments: [DEFAULT_EXPERIMENT, NEW_EXPERIMENT],
           total_size: 2,
         };
         return response;
       });
+      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+      getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
 
       render(
         <CommonTestWrapper>
@@ -614,11 +615,12 @@ describe('NewRunV2', () => {
       const chooseExperimentButton = screen.getAllByText('Choose')[2];
       fireEvent.click(chooseExperimentButton);
 
-      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-      getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
-
       const expectedExperiment = await screen.findByText('new-experiment');
       fireEvent.click(expectedExperiment);
+
+      await waitFor(() => {
+        expect(getExperimentSpy).toHaveBeenCalled();
+      });
 
       const useExperimentButton = screen.getByText('Use this experiment');
       fireEvent.click(useExperimentButton);

@@ -42,7 +42,7 @@ describe('RecurringRunDetailsV2', () => {
   const deleteRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
   const enableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
   const disableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
 
   let fullTestV2RecurringRun: V2beta1RecurringRun = {};
@@ -216,7 +216,10 @@ describe('RecurringRunDetailsV2', () => {
 
   it('shows Experiments -> Experiment name -> run name when there is an experiment', async () => {
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
-    getExperimentSpy.mockImplementation(id => ({ id, name: 'test experiment name' }));
+    getExperimentSpy.mockImplementation(id => ({
+      experiment_id: id,
+      display_name: 'test experiment name',
+    }));
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />
