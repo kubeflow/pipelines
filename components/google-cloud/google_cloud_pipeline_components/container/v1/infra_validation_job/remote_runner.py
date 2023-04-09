@@ -25,13 +25,21 @@ API_KEY_CONTAINER_SPEC = 'containerSpec'
 def construct_infra_validation_job_payload(executor_input, payload):
   """Construct infra validation payload for CustomJob."""
   # Extract artifact uri and prediction server uri
-  artifact = json.loads(executor_input).get('inputs', {}).get(
-      'artifacts', {}).get(ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL,
-                           {}).get('artifacts')
+  artifact = (
+      json.loads(executor_input)
+      .get('inputs', {})
+      .get('artifacts', {})
+      .get(ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL, {})
+      .get('artifacts')
+  )
   if artifact:
     model_artifact_path = artifact[0].get('uri')
-    prediction_server_image_uri = artifact[0].get('metadata', {}).get(
-        API_KEY_CONTAINER_SPEC, {}).get('imageUri', '')
+    prediction_server_image_uri = (
+        artifact[0]
+        .get('metadata', {})
+        .get(API_KEY_CONTAINER_SPEC, {})
+        .get('imageUri', '')
+    )
   else:
     raise ValueError('unmanaged_container_model not found in executor_input.')
 
@@ -41,10 +49,12 @@ def construct_infra_validation_job_payload(executor_input, payload):
 
   # extract infra validation example path
   infra_validation_example_path = payload_json.get(
-      'infra_validation_example_path')
+      'infra_validation_example_path'
+  )
   if infra_validation_example_path:
     args.extend(
-        ['--infra_validation_example_path', infra_validation_example_path])
+        ['--infra_validation_example_path', infra_validation_example_path]
+    )
 
   env_variables = [{'name': 'INFRA_VALIDATION_MODE', 'value': '1'}]
 
@@ -60,7 +70,7 @@ def construct_infra_validation_job_payload(executor_input, payload):
               'container_spec': {
                   'image_uri': prediction_server_image_uri,
                   'args': args,
-                  'env': env_variables
+                  'env': env_variables,
               },
           }]
       },
@@ -70,12 +80,7 @@ def construct_infra_validation_job_payload(executor_input, payload):
 
 
 def create_infra_validation_job(
-    type,
-    project,
-    location,
-    gcp_resources,
-    executor_input,
-    payload
+    type, project, location, gcp_resources, executor_input, payload
 ):
   """Create and poll infra validation job status till it reaches a final state.
 
@@ -96,9 +101,10 @@ def create_infra_validation_job(
   """
   try:
     infra_validation_job_payload = construct_infra_validation_job_payload(
-        executor_input, payload)
-    create_custom_job(type, project, location, infra_validation_job_payload,
-                      gcp_resources)
+        executor_input, payload
+    )
+    create_custom_job(
+        type, project, location, infra_validation_job_payload, gcp_resources
+    )
   except (ConnectionError, RuntimeError, ValueError) as err:
     error_util.exit_with_internal_error(err.args[0])
-

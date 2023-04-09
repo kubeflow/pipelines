@@ -27,7 +27,13 @@ __all__ = [
     'DataprocSparkSqlBatchOp',
 ]
 
-DataprocPySparkBatchOp = create_pyspark_batch_component.dataproc_create_pyspark_batch
+DataprocPySparkBatchOp = (
+    create_pyspark_batch_component.dataproc_create_pyspark_batch
+)
 DataprocSparkBatchOp = create_spark_batch_component.dataproc_create_spark_batch
-DataprocSparkRBatchOp = create_spark_r_batch_component.dataproc_create_spark_r_batch
-DataprocSparkSqlBatchOp = create_spark_sql_batch_component.dataproc_create_spark_sql_batch
+DataprocSparkRBatchOp = (
+    create_spark_r_batch_component.dataproc_create_spark_r_batch
+)
+DataprocSparkSqlBatchOp = (
+    create_spark_sql_batch_component.dataproc_create_spark_sql_batch
+)

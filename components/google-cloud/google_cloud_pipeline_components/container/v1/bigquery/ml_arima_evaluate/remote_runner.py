@@ -71,32 +71,50 @@ def bigquery_ml_arima_evaluate_job(
       executor_input:A json serialized pipeline executor input.
   """
   if show_all_candidate_models:
-    show_all_candidate_models_sql = ', STRUCT(%s AS show_all_candidate_models)' % show_all_candidate_models
+    show_all_candidate_models_sql = (
+        ', STRUCT(%s AS show_all_candidate_models)' % show_all_candidate_models
+    )
 
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.ARIMA_EVALUATE(MODEL %s%s)' % (
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.ARIMA_EVALUATE(MODEL %s%s)'
+      % (
           bigquery_util.back_quoted_if_needed(model_name),
-          show_all_candidate_models_sql)
+          show_all_candidate_models_sql,
+      )
+  )
 
   creds, _ = google.auth.default()
   job_uri = bigquery_util.check_if_job_exists(gcp_resources)
   if job_uri is None:
     job_uri = bigquery_util.create_query_job(
-        project, location, payload,
-        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+        project,
+        location,
+        payload,
+        json.dumps(job_configuration_query_override_json),
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
   logging.info('Getting query result for job ' + job['id'])
   _, job_id = job['id'].split('.')
-  query_results = bigquery_util.get_query_results(project, job_id, location,
-                                                  creds)
+  query_results = bigquery_util.get_query_results(
+      project, job_id, location, creds
+  )
   artifact_util.update_output_artifact(
-      executor_input, 'arima_evaluation_metrics', '', {
-          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA],
-          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS]
-      })
+      executor_input,
+      'arima_evaluation_metrics',
+      '',
+      {
+          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA
+          ],
+          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS
+          ],
+      },
+  )

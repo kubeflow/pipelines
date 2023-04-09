@@ -30,44 +30,51 @@ def _parse_args(args):
       dest='model_name',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--table_name',
       dest='table_name',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--query_statement',
       dest='query_statement',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--contamination',
       dest='contamination',
       type=float,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--anomaly_prob_threshold',
       dest='anomaly_prob_threshold',
       type=float,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--job_configuration_query_override',
       dest='job_configuration_query_override',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--executor_input',
       dest='executor_input',
       type=str,
       # executor_input is only needed for components that emit output artifacts.
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

@@ -28,6 +28,7 @@ def time_series_dataset_export(
     exported_dataset: Output[Artifact],
     location: str = 'us-central1',
 ):
+  # fmt: off
   """Exports data to output dir to GCS.
 
   Args:
@@ -56,6 +57,7 @@ def time_series_dataset_export(
       exported_dataset (Sequence[str]):
           All of the files that are exported in this export operation.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

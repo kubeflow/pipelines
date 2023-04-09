@@ -62,6 +62,12 @@ def bigquery_query_job(
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input: A json serialized pipeline executor input.
   """
-  return bigquery_util.bigquery_query_job(type, project, location, payload,
-                                          job_configuration_query_override,
-                                          gcp_resources, executor_input)
+  return bigquery_util.bigquery_query_job(
+      type,
+      project,
+      location,
+      payload,
+      job_configuration_query_override,
+      gcp_resources,
+      executor_input,
+  )

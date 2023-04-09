@@ -66,28 +66,42 @@ def bigquery_ml_training_info_job(
       executor_input: A json serialized pipeline executor input.
   """
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.TRAINING_INFO(MODEL %s)' % (
-          bigquery_util.back_quoted_if_needed(model_name))
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.TRAINING_INFO(MODEL %s)'
+      % (bigquery_util.back_quoted_if_needed(model_name))
+  )
 
   creds, _ = google.auth.default()
   job_uri = bigquery_util.check_if_job_exists(gcp_resources)
   if job_uri is None:
     job_uri = bigquery_util.create_query_job(
-        project, location, payload,
-        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+        project,
+        location,
+        payload,
+        json.dumps(job_configuration_query_override_json),
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
   logging.info('Getting query result for job %s', job['id'])
   _, job_id = job['id'].split('.')
-  query_results = bigquery_util.get_query_results(project, job_id, location,
-                                                  creds)
+  query_results = bigquery_util.get_query_results(
+      project, job_id, location, creds
+  )
   artifact_util.update_output_artifact(
-      executor_input, 'ml_training_info', '', {
-          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA],
-          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS]
-      })
+      executor_input,
+      'ml_training_info',
+      '',
+      {
+          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA
+          ],
+          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS
+          ],
+      },
+  )

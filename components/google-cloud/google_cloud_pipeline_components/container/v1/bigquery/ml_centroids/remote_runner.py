@@ -72,18 +72,24 @@ def bigquery_ml_centroids_job(
       executor_input: A json serialized pipeline executor input.
   """
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
+      job_configuration_query_override, strict=False
+  )
   job_configuration_query_override_json['query'] = (
-      'SELECT * FROM ML.CENTROIDS(MODEL %s, STRUCT(%s AS '
-      'standardize))') % (bigquery_util.back_quoted_if_needed(model_name),
-                          standardize)
+      'SELECT * FROM ML.CENTROIDS(MODEL %s, STRUCT(%s AS standardize))'
+      % (bigquery_util.back_quoted_if_needed(model_name), standardize)
+  )
 
   creds, _ = google.auth.default()
   job_uri = bigquery_util.check_if_job_exists(gcp_resources)
   if job_uri is None:
     job_uri = bigquery_util.create_query_job(
-        project, location, payload,
-        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+        project,
+        location,
+        payload,
+        json.dumps(job_configuration_query_override_json),
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
@@ -93,12 +99,19 @@ def bigquery_ml_centroids_job(
   # For ML.CENTROIDS job, the output only contains one row per feature per
   # centroid, which should be very small. Thus, we allow users to directly get
   # the result without writing into a BQ table.
-  query_results = bigquery_util.get_query_results(project, job_id, location,
-                                                  creds)
+  query_results = bigquery_util.get_query_results(
+      project, job_id, location, creds
+  )
   artifact_util.update_output_artifact(
-      executor_input, 'centroids', '', {
-          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA],
-          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS]
-      })
+      executor_input,
+      'centroids',
+      '',
+      {
+          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA
+          ],
+          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS
+          ],
+      },
+  )

@@ -1,6 +1,6 @@
 PipelineDefinition: resources/definition/trainingv2_pipeline.py
 TestName: ack-training-job
-Timeout: 1000
+Timeout: 1500
 ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
 Arguments:
   region: ((REGION))

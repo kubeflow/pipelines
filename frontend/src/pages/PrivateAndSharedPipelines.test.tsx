@@ -18,16 +18,16 @@ import * as React from 'react';
 import { render } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 import { PageProps } from './Page';
-import { Apis } from '../lib/Apis';
-import { ApiListPipelinesResponse, ApiPipeline } from '../apis/pipeline';
-import TestUtils from '../TestUtils';
-import { BuildInfoContext } from '../lib/BuildInfo';
+import { Apis } from 'src/lib/Apis';
+import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
+import TestUtils from 'src/TestUtils';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 import PrivateAndSharedPipelines, {
   PrivateAndSharedProps,
   PrivateAndSharedTab,
 } from './PrivateAndSharedPipelines';
 import { Router } from 'react-router-dom';
-import { NamespaceContext } from '../lib/KubeflowClient';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 function generateProps(): PrivateAndSharedProps {
   return {
@@ -52,29 +52,26 @@ function generatePageProps(): PageProps {
 const oldPipeline = newMockPipeline();
 const newPipeline = newMockPipeline();
 
-function newMockPipeline(): ApiPipeline {
+function newMockPipeline(): V2beta1Pipeline {
   return {
-    id: 'run-pipeline-id',
-    name: 'mock pipeline name',
-    parameters: [],
-    default_version: {
-      id: 'run-pipeline-version-id',
-      name: 'mock pipeline version name',
-    },
+    pipeline_id: 'run-pipeline-id',
+    display_name: 'mock pipeline name',
     created_at: new Date('2022-09-21T13:53:59Z'),
     description: 'mock pipeline description',
   };
 }
 
+// This test is related to pipeline list where we intergrate with v2 API
+// Thus, change to mock v2 API behavior and return values.
 describe('PrivateAndSharedPipelines', () => {
   const history = createMemoryHistory({
     initialEntries: ['/does-not-matter'],
   });
   beforeEach(() => {
     jest.clearAllMocks();
-    let listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+    let listPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
     listPipelineSpy.mockImplementation((...args) => {
-      const response: ApiListPipelinesResponse = {
+      const response: V2beta1ListPipelinesResponse = {
         pipelines: [oldPipeline, newPipeline],
         total_size: 2,
       };

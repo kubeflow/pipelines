@@ -16,14 +16,14 @@
 
 import React from 'react';
 import { GettingStarted } from './GettingStarted';
-import TestUtils, { diffHTML } from '../TestUtils';
+import TestUtils, { diffHTML } from 'src/TestUtils';
 import { render } from '@testing-library/react';
 import { PageProps } from './Page';
-import { Apis } from '../lib/Apis';
-import { ApiListPipelinesResponse } from '../apis/pipeline/api';
+import { Apis } from 'src/lib/Apis';
+import { V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 
 const PATH_BACKEND_CONFIG = '../../../backend/src/apiserver/config/sample_config.json';
-const PATH_FRONTEND_CONFIG = '../config/sample_config_from_backend.json';
+const PATH_FRONTEND_CONFIG = 'src/config/sample_config_from_backend.json';
 describe(`${PATH_FRONTEND_CONFIG}`, () => {
   it(`should be in sync with ${PATH_BACKEND_CONFIG}, if not please run "npm run sync-backend-sample-config" to update.`, () => {
     const configBackend = require(PATH_BACKEND_CONFIG);
@@ -36,7 +36,7 @@ describe('GettingStarted page', () => {
   const updateBannerSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
-  const pipelineListSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+  const pipelineListSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
@@ -53,7 +53,7 @@ describe('GettingStarted page', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    const empty: ApiListPipelinesResponse = {
+    const empty: V2beta1ListPipelinesResponse = {
       pipelines: [],
       total_size: 0,
     };
@@ -69,8 +69,8 @@ describe('GettingStarted page', () => {
     let count = 0;
     pipelineListSpy.mockImplementation(() => {
       ++count;
-      const response: ApiListPipelinesResponse = {
-        pipelines: [{ id: `pipeline-id-${count}` }],
+      const response: V2beta1ListPipelinesResponse = {
+        pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
       };
       return Promise.resolve(response);
     });
@@ -149,7 +149,7 @@ describe('GettingStarted page', () => {
   it('fallbacks to show pipeline list page if request failed', async () => {
     let count = 0;
     pipelineListSpy.mockImplementation(
-      (): Promise<ApiListPipelinesResponse> => {
+      (): Promise<V2beta1ListPipelinesResponse> => {
         ++count;
         if (count === 1) {
           return Promise.reject(new Error('Mocked error'));
@@ -161,7 +161,7 @@ describe('GettingStarted page', () => {
           return Promise.resolve({ pipelines: [], total_size: 0 });
         }
         return Promise.resolve({
-          pipelines: [{ id: `pipeline-id-${count}` }],
+          pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
           total_size: 1,
         });
       },

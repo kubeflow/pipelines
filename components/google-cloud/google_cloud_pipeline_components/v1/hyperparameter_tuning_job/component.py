@@ -39,6 +39,7 @@ def hyperparameter_tuning_job(
     service_account: str = '',
     network: str = '',
 ):
+  # fmt: off
   """Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for it to complete.
 
   For example usage, see
@@ -162,6 +163,7 @@ def hyperparameter_tuning_job(
       For more details, see
       https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

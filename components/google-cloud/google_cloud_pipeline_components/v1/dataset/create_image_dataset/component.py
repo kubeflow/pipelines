@@ -34,6 +34,7 @@ def image_dataset_create(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Creates a new image dataset and optionally imports data into dataset when source and import_schema_uri are passed.
 
   Args:
@@ -96,6 +97,7 @@ def image_dataset_create(
           Instantiated representation of the managed image dataset
           resource.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

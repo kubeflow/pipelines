@@ -35,17 +35,14 @@ def prepare_data_for_train(
   AutoMLForecastingTrainingJobRunOp.
 
   Args:
-    input_tables (JsonArray):
-      Required. Serialized Json array that specifies input BigQuery tables and
-      specs.
-    preprocess_metadata (JsonObject):
-      Required. The output of ForecastingPreprocessingOp that is a serialized
-      dictionary with 2 fields: processed_bigquery_table_uri and
-      column_metadata.
-    model_feature_columns (JsonArray):
-      Optional. Serialized list of column names that will be used as input
-      feature in the training step. If None, all columns will be used in
-      training.
+    input_tables (JsonArray): Required. Serialized Json array that specifies
+      input BigQuery tables and specs.
+    preprocess_metadata (JsonObject): Required. The output of
+      ForecastingPreprocessingOp that is a serialized dictionary with 2 fields:
+      processed_bigquery_table_uri and column_metadata.
+    model_feature_columns (JsonArray): Optional. Serialized list of column names
+      that will be used as input feature in the training step. If None, all
+      columns will be used in training.
 
   Returns:
     NamedTuple:
@@ -84,7 +81,8 @@ def prepare_data_for_train(
   bigquery_table_uri = preprocess_metadata['processed_bigquery_table_uri']
 
   primary_table_specs = next(
-      table for table in input_tables
+      table
+      for table in input_tables
       if table['table_type'] == 'FORECASTING_PRIMARY'
   )
   primary_metadata = primary_table_specs['forecasting_primary_table_metadata']
@@ -99,11 +97,15 @@ def prepare_data_for_train(
   unavailable_at_forecast_columns = []
   column_transformations = []
   predefined_split_column = (
-      '' if 'predefined_splits_column' not in primary_metadata
-      else primary_metadata['predefined_splits_column'])
+      ''
+      if 'predefined_splits_column' not in primary_metadata
+      else primary_metadata['predefined_splits_column']
+  )
   weight_column = (
-      '' if 'weight_column' not in primary_metadata
-      else primary_metadata['weight_column'])
+      ''
+      if 'weight_column' not in primary_metadata
+      else primary_metadata['weight_column']
+  )
 
   for name, details in column_metadata.items():
     if name == predefined_split_column or name == weight_column:
@@ -113,9 +115,7 @@ def prepare_data_for_train(
       time_series_identifier_column = name
       continue
     elif details['tag'] == 'primary_table':
-      if name in (
-          primary_metadata['time_series_identifier_columns']
-      ):
+      if name in (primary_metadata['time_series_identifier_columns']):
         time_series_attribute_columns.append(name)
       elif name == primary_metadata['target_column']:
         unavailable_at_forecast_columns.append(name)
@@ -146,20 +146,23 @@ def prepare_data_for_train(
       trans = {'timestamp': {'column_name': name}}
       column_transformations.append(trans)
 
-  return NamedTuple('Outputs', [
-      ('time_series_identifier_column', str),
-      ('time_series_attribute_columns', list),
-      ('available_at_forecast_columns', list),
-      ('unavailable_at_forecast_columns', list),
-      ('column_transformations', list),
-      ('preprocess_bq_uri', str),
-      ('target_column', str),
-      ('time_column', str),
-      ('predefined_split_column', str),
-      ('weight_column', str),
-      ('data_granularity_unit', str),
-      ('data_granularity_count', int),
-  ])(
+  return NamedTuple(
+      'Outputs',
+      [
+          ('time_series_identifier_column', str),
+          ('time_series_attribute_columns', list),
+          ('available_at_forecast_columns', list),
+          ('unavailable_at_forecast_columns', list),
+          ('column_transformations', list),
+          ('preprocess_bq_uri', str),
+          ('target_column', str),
+          ('time_column', str),
+          ('predefined_split_column', str),
+          ('weight_column', str),
+          ('data_granularity_unit', str),
+          ('data_granularity_count', int),
+      ],
+  )(
       time_series_identifier_column,
       time_series_attribute_columns,
       available_at_forecast_columns,

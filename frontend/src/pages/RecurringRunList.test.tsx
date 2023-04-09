@@ -36,7 +36,7 @@ describe('RecurringRunList', () => {
   const onErrorSpy = jest.fn();
   const listRecurringRunsSpy = jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
   const getRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test environments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -78,7 +78,7 @@ describe('RecurringRunList', () => {
       }),
     );
 
-    getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
+    getExperimentSpy.mockImplementation(() => ({ display_name: 'some experiment' }));
   }
 
   function getMountedInstance(): RecurringRunList {
@@ -613,7 +613,7 @@ describe('RecurringRunList', () => {
     mockNRecurringRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     tree = shallow(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
@@ -682,7 +682,7 @@ describe('RecurringRunList', () => {
     mockNRecurringRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     props.hideExperimentColumn = true;
     tree = shallow(<RecurringRunList {...props} />);

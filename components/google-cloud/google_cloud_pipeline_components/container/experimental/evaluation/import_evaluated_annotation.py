@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module for importing model evaluated annotations to an existing Vertex model evaluation slice resource."""
+
 import argparse
 from collections import defaultdict
 import json
@@ -23,13 +24,14 @@ from typing import Any, Optional
 from google.api_core import gapic_v1
 from google.cloud import storage
 from google.cloud import aiplatform_v1
-from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
-import six
 
-from google.protobuf.struct_pb2 import ListValue, NULL_VALUE, Struct, Value
 from google.protobuf import json_format
 
+
 BATCH_IMPORT_LIMIT = 50
+EvaluatedAnnotation = (
+    aiplatform_v1.types.evaluated_annotation.EvaluatedAnnotation
+)
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -157,12 +159,28 @@ def get_error_analysis_map(output_uri: str) -> dict[str, Any]:
   for line in error_analysis_file_contents.splitlines():
     try:
       json_object = json.loads(line.strip())
-      error_analysis_map[json_object['annotationResourceName']] += [
+      error_analysis_map[json_object['annotation_resource_name']] += [
           json_object['annotation']
       ]
     except json.JSONDecodeError as e:
       raise ValueError(f'Invalid JSONL file: {output_uri}') from e
   return error_analysis_map
+
+
+def build_evaluated_annotation(
+    json_object: dict[str, Any]
+) -> EvaluatedAnnotation:
+  """Parses an EvaluatedAnnotation from a JSON dictionary."""
+  ea = EvaluatedAnnotation()
+  ea.type_ = json_object['type']
+  ea.evaluated_data_item_view_id = json_object['evaluated_data_item_view_id']
+  ea.predictions.extend(json_object['predictions'])
+  ea.ground_truths.extend(json_object['ground_truths'])
+  ea.data_item_payload = json_object['data_item_payload']
+  ea.error_analysis_annotations.extend(
+      json_object.get('error_analysis_annotations', [])
+  )
+  return ea
 
 
 def get_evaluated_annotations_by_slice_map(
@@ -180,6 +198,7 @@ def get_evaluated_annotations_by_slice_map(
   Returns:
     A dictionary of evaluated annotations indexed by slice values.
   """
+
   evaluated_annotation_file_contents = read_gcs_uri_as_text(output_uri)
   evaluated_annotations_by_slice = {
       target_slice: [] for target_slice in slice_value_to_resource_name.keys()
@@ -198,7 +217,7 @@ def get_evaluated_annotations_by_slice_map(
               error_analysis[annotation]
           )
       evaluated_annotations_by_slice[json_object.pop('slice_value')].append(
-          json_object
+          build_evaluated_annotation(json_object)
       )
     except KeyError as e:
       raise ValueError(
@@ -214,17 +233,27 @@ def batch_import(
     slice_value_to_resource_name: dict[str, str],
 ) -> None:
   """Calls ModelService.BatchImportEvaluatedAnnotations."""
+  count = 0
+  print('Starting batch import.')
+  total_num = sum([len(v) for k, v in evaluated_annotations_by_slice.items()])
+  print(f'Total number of evaluated_annotations: {total_num}')
   for (
       slice_value,
       evaluated_annotations,
   ) in evaluated_annotations_by_slice.items():
+    print(
+        f'Eval slice label: {slice_value}, Vertex resource name:'
+        f' {slice_value_to_resource_name[slice_value]}'
+    )
     for i in range(0, len(evaluated_annotations), BATCH_IMPORT_LIMIT):
-      client.batch_import_evaluated_annotations(
+      response = client.batch_import_evaluated_annotations(
           parent=slice_value_to_resource_name[slice_value],
           evaluated_annotations=evaluated_annotations[
               i : i + BATCH_IMPORT_LIMIT
           ],
       )
+      count += response.imported_evaluated_annotations_count
+    print(f'{count} evaluated annotations imported.')
 
 
 def main(argv):

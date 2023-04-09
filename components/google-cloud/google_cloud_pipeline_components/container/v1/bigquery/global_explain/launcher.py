@@ -31,25 +31,29 @@ def _parse_args(args):
       type=str,
       # executor_input is only needed for components that emit output artifacts.
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--job_configuration_query_override',
       dest='job_configuration_query_override',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--model_name',
       dest='model_name',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--class_level_explain',
       dest='class_level_explain',
       type=bool,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

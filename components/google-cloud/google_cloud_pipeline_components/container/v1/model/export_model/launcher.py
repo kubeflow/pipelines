@@ -30,7 +30,8 @@ def _parse_args(args):
       type=str,
       # output_info is only needed for ExportModel component.
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

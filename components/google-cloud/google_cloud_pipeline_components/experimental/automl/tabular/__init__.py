@@ -35,47 +35,66 @@ __all__ = [
     'TrainingConfiguratorAndValidatorOp',
     'TrainingConfiguratorAndValidatorOp',
     'XGBoostHyperparameterTuningJobOp',
-    'XGBoostTrainerOp'
+    'XGBoostTrainerOp',
 ]
 
 CvTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'cv_trainer.yaml'))
+    os.path.join(os.path.dirname(__file__), 'cv_trainer.yaml')
+)
 InfraValidatorOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'infra_validator.yaml'))
+    os.path.join(os.path.dirname(__file__), 'infra_validator.yaml')
+)
 Stage1TunerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'stage_1_tuner.yaml'))
+    os.path.join(os.path.dirname(__file__), 'stage_1_tuner.yaml')
+)
 EnsembleOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ensemble.yaml'))
+    os.path.join(os.path.dirname(__file__), 'ensemble.yaml')
+)
 StatsAndExampleGenOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'stats_and_example_gen.yaml'))
+    os.path.join(os.path.dirname(__file__), 'stats_and_example_gen.yaml')
+)
 FeatureSelectionOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'feature_selection.yaml'))
+    os.path.join(os.path.dirname(__file__), 'feature_selection.yaml')
+)
 TransformOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'transform.yaml'))
+    os.path.join(os.path.dirname(__file__), 'transform.yaml')
+)
 FeatureTransformEngineOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'feature_transform_engine.yaml'))
+    os.path.join(os.path.dirname(__file__), 'feature_transform_engine.yaml')
+)
 SplitMaterializedDataOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'split_materialized_data.yaml'))
+    os.path.join(os.path.dirname(__file__), 'split_materialized_data.yaml')
+)
 FinalizerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'finalizer.yaml'))
+    os.path.join(os.path.dirname(__file__), 'finalizer.yaml')
+)
 WideAndDeepTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'wide_and_deep_trainer.yaml'))
+    os.path.join(os.path.dirname(__file__), 'wide_and_deep_trainer.yaml')
+)
 WideAndDeepHyperparameterTuningJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__),
-        'wide_and_deep_hyperparameter_tuning_job.yaml'))
+        'wide_and_deep_hyperparameter_tuning_job.yaml',
+    )
+)
 TabNetHyperparameterTuningJobOp = load_component_from_file(
     os.path.join(
-        os.path.dirname(__file__),
-        'tabnet_hyperparameter_tuning_job.yaml'))
+        os.path.dirname(__file__), 'tabnet_hyperparameter_tuning_job.yaml'
+    )
+)
 TabNetTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'tabnet_trainer.yaml'))
+    os.path.join(os.path.dirname(__file__), 'tabnet_trainer.yaml')
+)
 TrainingConfiguratorAndValidatorOp = load_component_from_file(
     os.path.join(
-        os.path.dirname(__file__), 'training_configurator_and_validator.yaml'))
+        os.path.dirname(__file__), 'training_configurator_and_validator.yaml'
+    )
+)
 XGBoostTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'xgboost_trainer.yaml'))
+    os.path.join(os.path.dirname(__file__), 'xgboost_trainer.yaml')
+)
 XGBoostHyperparameterTuningJobOp = load_component_from_file(
     os.path.join(
-        os.path.dirname(__file__),
-        'xgboost_hyperparameter_tuning_job.yaml'))
+        os.path.dirname(__file__), 'xgboost_hyperparameter_tuning_job.yaml'
+    )
+)

@@ -68,9 +68,14 @@ def bigquery_create_model_job(
   creds, _ = google.auth.default()
   job_uri = bigquery_util.check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = bigquery_util.create_query_job(project, location, payload,
-                                             job_configuration_query_override,
-                                             creds, gcp_resources)
+    job_uri = bigquery_util.create_query_job(
+        project,
+        location,
+        payload,
+        job_configuration_query_override,
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
@@ -80,10 +85,14 @@ def bigquery_create_model_job(
 
   query_result = job['statistics']['query']
 
-  if 'statementType' not in query_result or query_result[
-      'statementType'] != 'CREATE_MODEL' or 'ddlTargetTable' not in query_result:
+  if (
+      'statementType' not in query_result
+      or query_result['statementType'] != 'CREATE_MODEL'
+      or 'ddlTargetTable' not in query_result
+  ):
     raise RuntimeError(
-        'Unexpected create model result: {}'.format(query_result))
+        'Unexpected create model result: {}'.format(query_result)
+    )
 
   projectId = query_result['ddlTargetTable']['projectId']
   datasetId = query_result['ddlTargetTable']['datasetId']

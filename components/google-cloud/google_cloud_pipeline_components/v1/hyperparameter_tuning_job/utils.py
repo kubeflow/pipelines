@@ -20,8 +20,7 @@ def serialize_parameters(parameters: dict) -> list:
   """Serializes the hyperparameter tuning parameter spec to dictionary format.
 
   Args:
-      parameters (Dict[str, hyperparameter_tuning._ParameterSpec]):
-        Dictionary
+      parameters (Dict[str, hyperparameter_tuning._ParameterSpec]): Dictionary
         representing parameters to optimize. The dictionary key is the
         parameter_id, which is passed into your training job as a command line
         key word argument, and the dictionary value is the parameter
@@ -52,8 +51,7 @@ def serialize_metrics(metric_spec: dict) -> list:
   """Serializes a metric spec to dictionary format.
 
   Args:
-      metric_spec (Dict[str, str]):
-        Required. Dictionary representing metrics to
+      metric_spec (Dict[str, str]): Required. Dictionary representing metrics to
         optimize. The dictionary key is the metric_id, which is reported by your
         training job, and the dictionary value is the optimization goal of the
         metric ('minimize' or 'maximize'). Example: metrics = {'loss':

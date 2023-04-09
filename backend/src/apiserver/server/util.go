@@ -29,17 +29,25 @@ import (
 )
 
 func loadFile(fileReader io.Reader, MaxFileLength int) ([]byte, error) {
-	reader := bufio.NewReader(fileReader)
-	pipelineFile := make([]byte, MaxFileLength+1)
-	size, err := reader.Read(pipelineFile)
-	if err != nil && err != io.EOF {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Error read pipeline file")
+	// TODO(lingqinggan): investigate ways to increase the buffer size, so we don't have to use a loop.
+	reader := bufio.NewReaderSize(fileReader, MaxFileLength)
+	var pipelineFile []byte
+	for {
+		currentRead := make([]byte, bufio.MaxScanTokenSize)
+		size, err := reader.Read(currentRead)
+		pipelineFile = append(pipelineFile, currentRead[:size]...)
+		if err == io.EOF {
+			// there is no more data to read
+			break
+		}
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(err, "Error read pipeline file")
+		}
 	}
-	if size == MaxFileLength+1 {
+	if len(pipelineFile) > MaxFileLength {
 		return nil, util.NewInvalidInputError("File size too large. Maximum supported size: %v", MaxFileLength)
 	}
-
-	return pipelineFile[:size], nil
+	return pipelineFile, nil
 }
 
 func isYamlFile(fileName string) bool {

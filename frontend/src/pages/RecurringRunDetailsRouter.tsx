@@ -49,25 +49,29 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     pipelineManifest = JsYaml.safeDump(v2RecurringRun.pipeline_spec);
   }
 
-  const pipelineVersionId = v2RecurringRun?.pipeline_version_id;
+  const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;
+  const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: pipelineTemplateStrIsFetching, data: templateStrFromVersionId } = useQuery<
+  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } = useQuery<
     string,
     Error
   >(
-    ['PipelineVersionTemplate', pipelineVersionId],
+    ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
     async () => {
-      if (!pipelineVersionId) {
+      if (!pipelineId || !pipelineVersionId) {
         return '';
       }
-      // TODO(jlyaoyuli): temporarily use v1 API here, need to change in pipeline API integration.
-      const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
-      return template?.template || '';
+      const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
+        pipelineId,
+        pipelineVersionId,
+      );
+      const pipelineSpec = pipelineVersion.pipeline_spec;
+      return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
     },
-    { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!pipelineId && !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
   );
 
-  const templateString = pipelineManifest ?? templateStrFromVersionId;
+  const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
   if (getRecurringRunSuccess && v2RecurringRun && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
@@ -76,7 +80,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     }
   }
 
-  if (recurringRunIsFetching || pipelineTemplateStrIsFetching) {
+  if (recurringRunIsFetching || templateStrIsFetching) {
     return <div>Currently loading recurring run information</div>;
   }
 

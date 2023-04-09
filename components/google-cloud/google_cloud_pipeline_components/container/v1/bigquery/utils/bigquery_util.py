@@ -44,11 +44,15 @@ _BQ_JOB_NAME_TEMPLATE = r'(https://www.googleapis.com/bigquery/v2/projects/(?P<p
 def insert_system_labels_into_payload(job_request_json):
   if JOB_CONFIGURATION_KEY not in job_request_json:
     job_request_json[JOB_CONFIGURATION_KEY] = {}
-  job_request_json[JOB_CONFIGURATION_KEY][
-      LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+  job_request_json[JOB_CONFIGURATION_KEY][LABELS_PAYLOAD_KEY] = (
+      gcp_labels_util.attach_system_labels(
           job_request_json[JOB_CONFIGURATION_KEY][LABELS_PAYLOAD_KEY]
-          if LABELS_PAYLOAD_KEY in job_request_json else {})
+          if LABELS_PAYLOAD_KEY in job_request_json
+          else {}
+      )
+  )
   return job_request_json
+
 
 def back_quoted_if_needed(resource_name) -> str:
   """Enclose resource name with ` if it's not yet."""
@@ -69,12 +73,14 @@ def check_if_job_exists(gcp_resources: str) -> Optional[str]:
   if path.exists(gcp_resources) and os.stat(gcp_resources).st_size != 0:
     with open(gcp_resources) as f:
       serialized_gcp_resources = f.read()
-      job_resources = json_format.Parse(serialized_gcp_resources,
-                                        gcp_resources_pb2.GcpResources())
+      job_resources = json_format.Parse(
+          serialized_gcp_resources, gcp_resources_pb2.GcpResources()
+      )
       # Resources should only contain one item.
       if len(job_resources.resources) != 1:
         raise ValueError(
-            f'gcp_resources should contain one resource, found {len(job_resources.resources)}'
+            'gcp_resources should contain one resource, found'
+            f' {len(job_resources.resources)}'
         )
       # Validate the format of the resource uri.
       job_name_pattern = re.compile(_BQ_JOB_NAME_TEMPLATE)
@@ -83,18 +89,21 @@ def check_if_job_exists(gcp_resources: str) -> Optional[str]:
         project = match.group('project')
         job = match.group('job')
       except AttributeError as err:
-        raise ValueError('Invalid bigquery job uri: {}. Expect: {}.'.format(
-            job_resources.resources[0].resource_uri,
-            'https://www.googleapis.com/bigquery/v2/projects/[projectId]/jobs/[jobId]?location=[location]'
-        ))
+        raise ValueError(
+            'Invalid bigquery job uri: {}. Expect: {}.'.format(
+                job_resources.resources[0].resource_uri,
+                'https://www.googleapis.com/bigquery/v2/projects/[projectId]/jobs/[jobId]?location=[location]',
+            )
+        )
 
     return job_resources.resources[0].resource_uri
   else:
     return None
 
 
-def create_job(project, location, job_request_json, creds,
-               gcp_resources) -> str:
+def create_job(
+    project, location, job_request_json, creds, gcp_resources
+) -> str:
   """Create a new BigQuery job.
 
 
@@ -122,15 +131,18 @@ def create_job(project, location, job_request_json, creds,
   headers = {
       'Content-type': 'application/json',
       'Authorization': 'Bearer ' + creds.token,
-      'User-Agent': 'google-cloud-pipeline-components'
+      'User-Agent': 'google-cloud-pipeline-components',
   }
-  insert_job_url = f'https://www.googleapis.com/bigquery/v2/projects/{project}/jobs'
+  insert_job_url = (
+      f'https://www.googleapis.com/bigquery/v2/projects/{project}/jobs'
+  )
   job = requests.post(
-      url=insert_job_url, data=json.dumps(job_request_json),
-      headers=headers).json()
+      url=insert_job_url, data=json.dumps(job_request_json), headers=headers
+  ).json()
   if 'selfLink' not in job:
     raise RuntimeError(
-        f'BigQquery Job failed. Cannot retrieve the job name. Request:{job_request_json}; Response: {job}.'
+        'BigQquery Job failed. Cannot retrieve the job name.'
+        f' Request:{job_request_json}; Response: {job}.'
     )
 
   # Write the bigquey job uri to gcp resource.
@@ -145,9 +157,14 @@ def create_job(project, location, job_request_json, creds,
   return job_uri
 
 
-def create_query_job(project, location, payload,
-                     job_configuration_query_override, creds,
-                     gcp_resources) -> str:
+def create_query_job(
+    project,
+    location,
+    payload,
+    job_configuration_query_override,
+    creds,
+    gcp_resources,
+) -> str:
   """Create a new BigQuery query job.
 
 
@@ -167,9 +184,11 @@ def create_query_job(project, location, payload,
       The URI of the BigQuery Job.
   """
   job_request_json = insert_system_labels_into_payload(
-      json.loads(payload, strict=False))
+      json.loads(payload, strict=False)
+  )
   job_configuration_query_override_json = json_util.recursive_remove_empty(
-      json.loads(job_configuration_query_override, strict=False))
+      json.loads(job_configuration_query_override, strict=False)
+  )
 
   # Overrides json request with the value in job_configuration_query_override
   for key, value in job_configuration_query_override_json.items():
@@ -179,9 +198,10 @@ def create_query_job(project, location, payload,
   job_request_json = json_util.recursive_remove_empty(job_request_json)
 
   # Always uses standard SQL instead of legacy SQL.
-  if 'useLegacySql' in job_request_json['configuration'][
-      'query'] and job_request_json['configuration']['query'][
-          'useLegacySql'] == True:
+  if (
+      'useLegacySql' in job_request_json['configuration']['query']
+      and job_request_json['configuration']['query']['useLegacySql'] == True
+  ):
     raise ValueError('Legacy SQL is not supported. Use standard SQL instead.')
   job_request_json['configuration']['query']['useLegacySql'] = False
 
@@ -198,29 +218,35 @@ def _send_cancel_request(job_uri, creds):
   # Bigquery cancel API:
   # https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/cancel
   response = requests.post(
-      url=f'{job_uri.split("?")[0]}/cancel', data='', headers=headers)
+      url=f'{job_uri.split("?")[0]}/cancel', data='', headers=headers
+  )
   logging.info('Cancel response: %s', response)
 
 
 def poll_job(job_uri, creds) -> dict:
   """Poll the bigquery job till it reaches a final state."""
   with execution_context.ExecutionContext(
-      on_cancel=lambda: _send_cancel_request(job_uri, creds)):
+      on_cancel=lambda: _send_cancel_request(job_uri, creds)
+  ):
     job = {}
-    while ('status' not in job) or ('state' not in job['status']) or (
-        job['status']['state'].lower() != 'done'):
+    while (
+        ('status' not in job)
+        or ('state' not in job['status'])
+        or (job['status']['state'].lower() != 'done')
+    ):
       time.sleep(_POLLING_INTERVAL_IN_SECONDS)
       logging.info('The job is running...')
       if not creds.valid:
         creds.refresh(google.auth.transport.requests.Request())
       headers = {
           'Content-type': 'application/json',
-          'Authorization': 'Bearer ' + creds.token
+          'Authorization': 'Bearer ' + creds.token,
       }
       job = requests.get(job_uri, headers=headers).json()
       if 'status' in job and 'errorResult' in job['status']:
         raise RuntimeError(
-            f'The BigQuery job {job_uri} failed. Error: {job["status"]}')
+            f'The BigQuery job {job_uri} failed. Error: {job["status"]}'
+        )
 
   logging.info('BigQuery Job completed successfully. Job: %s.', job)
   return job
@@ -231,7 +257,7 @@ def get_query_results(project_id, job_id, location, creds):
     creds.refresh(google.auth.transport.requests.Request())
   headers = {
       'Content-type': 'application/json',
-      'Authorization': 'Bearer ' + creds.token
+      'Authorization': 'Bearer ' + creds.token,
   }
   query_results_uri = 'https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/queries/{jobId}'.format(
       projectId=project_id,
@@ -286,9 +312,14 @@ def bigquery_query_job(
   creds, _ = google.auth.default()
   job_uri = check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = create_query_job(project, location, payload,
-                               job_configuration_query_override, creds,
-                               gcp_resources)
+    job_uri = create_query_job(
+        project,
+        location,
+        payload,
+        job_configuration_query_override,
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = poll_job(job_uri, creds)
@@ -298,6 +329,7 @@ def bigquery_query_job(
     projectId = job['configuration']['query']['destinationTable']['projectId']
     datasetId = job['configuration']['query']['destinationTable']['datasetId']
     tableId = job['configuration']['query']['destinationTable']['tableId']
-    bq_table_artifact = BQTable('destination_table', projectId, datasetId,
-                                tableId)
+    bq_table_artifact = BQTable(
+        'destination_table', projectId, datasetId, tableId
+    )
     artifact_util.update_output_artifacts(executor_input, [bq_table_artifact])

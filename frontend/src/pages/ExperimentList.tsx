@@ -30,23 +30,21 @@ import {
   V2beta1ExperimentStorageState,
 } from 'src/apisv2beta1/experiment';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { ApiRun, ApiRunStorageState } from 'src/apis/run';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from 'src/lib/Apis';
 import { Link } from 'react-router-dom';
-import { NodePhase } from 'src/lib/StatusUtils';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from 'src/Css';
 import { logger } from 'src/lib/Utils';
-import { statusToIcon } from './Status';
+import { statusToIcon } from './StatusV2';
 import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface DisplayExperiment extends V2beta1Experiment {
-  last5Runs?: ApiRun[];
+  last5Runs?: V2beta1Run[];
   error?: string;
   expandState?: ExpandState;
 }
@@ -163,14 +161,14 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     );
   };
 
-  public _last5RunsCustomRenderer: React.FC<CustomRendererProps<ApiRun[]>> = (
-    props: CustomRendererProps<ApiRun[]>,
+  public _last5RunsCustomRenderer: React.FC<CustomRendererProps<V2beta1Run[]>> = (
+    props: CustomRendererProps<V2beta1Run[]>,
   ) => {
     return (
       <div className={commonCss.flex}>
         {(props.value || []).map((run, i) => (
           <span key={i} style={{ margin: '0 1px' }}>
-            {statusToIcon((run.status as NodePhase) || NodePhase.UNKNOWN, run.created_at)}
+            {statusToIcon(run.state, run.created_at)}
           </span>
         ))}
       </div>
@@ -201,7 +199,6 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         request.pageSize,
         request.sortBy,
         request.filter,
-        this.props.namespace ? 'NAMESPACE' : undefined,
         this.props.namespace || undefined,
       );
       displayExperiments = response.experiments || [];
@@ -217,19 +214,19 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       displayExperiments.map(async experiment => {
         // TODO: should we aggregate errors here? What if they fail for different reasons?
         try {
-          const listRunsResponse = await Apis.runServiceApi.listRuns(
+          const listRunsResponse = await Apis.runServiceApiV2.listRuns(
+            undefined,
+            experiment.experiment_id,
             undefined /* pageToken */,
             5 /* pageSize */,
             RunSortKeys.CREATED_AT + ' desc',
-            'EXPERIMENT',
-            experiment.experiment_id,
             encodeURIComponent(
               JSON.stringify({
                 predicates: [
                   {
                     key: 'storage_state',
                     operation: V2beta1PredicateOperation.NOTEQUALS,
-                    string_value: ApiRunStorageState.ARCHIVED.toString(),
+                    string_value: V2beta1RunStorageState.ARCHIVED.toString(),
                   },
                 ],
               } as V2beta1Filter),

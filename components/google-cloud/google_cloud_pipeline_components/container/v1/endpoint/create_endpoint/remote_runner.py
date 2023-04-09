@@ -33,20 +33,27 @@ def create_endpoint(
   """Create endpoint and poll the LongRunningOperator till it reaches a final state."""
   api_endpoint = location + '-aiplatform.googleapis.com'
   vertex_uri_prefix = f'https://{api_endpoint}/v1/'
-  create_endpoint_url = f'{vertex_uri_prefix}projects/{project}/locations/{location}/endpoints'
+  create_endpoint_url = (
+      f'{vertex_uri_prefix}projects/{project}/locations/{location}/endpoints'
+  )
   endpoint_spec = json.loads(payload, strict=False)
   endpoint_spec[_LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
-      endpoint_spec[_LABELS_PAYLOAD_KEY] if _LABELS_PAYLOAD_KEY in
-      endpoint_spec else {})
+      endpoint_spec[_LABELS_PAYLOAD_KEY]
+      if _LABELS_PAYLOAD_KEY in endpoint_spec
+      else {}
+  )
   create_endpoint_request = json_util.recursive_remove_empty(endpoint_spec)
 
   remote_runner = lro_remote_runner.LroRemoteRunner(location)
   create_endpoint_lro = remote_runner.create_lro(
-      create_endpoint_url, json.dumps(create_endpoint_request), gcp_resources)
+      create_endpoint_url, json.dumps(create_endpoint_request), gcp_resources
+  )
   create_endpoint_lro = remote_runner.poll_lro(lro=create_endpoint_lro)
   endpoint_resource_name = create_endpoint_lro['response']['name']
 
-  vertex_endpoint = VertexEndpoint('endpoint',
-                                   vertex_uri_prefix + endpoint_resource_name,
-                                   endpoint_resource_name)
+  vertex_endpoint = VertexEndpoint(
+      'endpoint',
+      vertex_uri_prefix + endpoint_resource_name,
+      endpoint_resource_name,
+  )
   artifact_util.update_output_artifacts(executor_input, [vertex_endpoint])

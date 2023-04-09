@@ -26,13 +26,17 @@ __all__ = [
 ]
 
 ProphetTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'prophet_trainer.yaml'))
+    os.path.join(os.path.dirname(__file__), 'prophet_trainer.yaml')
+)
 ForecastingStage1TunerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting_stage_1_tuner.yaml'))
+    os.path.join(os.path.dirname(__file__), 'forecasting_stage_1_tuner.yaml')
+)
 ForecastingEnsembleOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting_ensemble.yaml'))
+    os.path.join(os.path.dirname(__file__), 'forecasting_ensemble.yaml')
+)
 ForecastingStage2TunerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting_stage_2_tuner.yaml'))
+    os.path.join(os.path.dirname(__file__), 'forecasting_stage_2_tuner.yaml')
+)
 ModelEvaluationForecastingOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'model_evaluation_forecasting.yaml')
 )

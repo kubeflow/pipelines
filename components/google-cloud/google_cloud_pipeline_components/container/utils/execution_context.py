@@ -20,10 +20,10 @@ import signal
 class ExecutionContext:
   """Execution context for running inside Google Cloud Pipeline Components.
 
-    The base class is aware of the GCPC environment and can cascade
-    a pipeline cancel event to the operation through ``on_cancel`` handler.
-    Args:
-        on_cancel: optional, function to handle KFP cancel event.
+  The base class is aware of the GCPC environment and can cascade
+  a pipeline cancel event to the operation through ``on_cancel`` handler.
+  Args:
+      on_cancel: optional, function to handle KFP cancel event.
   """
 
   def __init__(self, on_cancel=None):
@@ -33,8 +33,9 @@ class ExecutionContext:
 
   def __enter__(self):
     logging.info('Adding signal handler')
-    self._original_sigterm_handler = signal.signal(signal.SIGTERM,
-                                                   self._exit_gracefully)
+    self._original_sigterm_handler = signal.signal(
+        signal.SIGTERM, self._exit_gracefully
+    )
     return self
 
   def __exit__(self, *_):

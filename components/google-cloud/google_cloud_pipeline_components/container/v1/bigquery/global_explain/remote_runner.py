@@ -60,12 +60,19 @@ def bigquery_ml_global_explain_job(
       https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
   """
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
+      job_configuration_query_override, strict=False
+  )
   job_configuration_query_override_json['query'] = (
       'SELECT * FROM ML.GLOBAL_EXPLAIN(MODEL %s, STRUCT(TRUE AS '
-      'class_level_explain))') % (
-          bigquery_util.back_quoted_if_needed(model_name))
+      'class_level_explain))'
+      % (bigquery_util.back_quoted_if_needed(model_name))
+  )
   return bigquery_util.bigquery_query_job(
-      type, project, location, payload,
-      json.dumps(job_configuration_query_override_json), gcp_resources,
-      executor_input)
+      type,
+      project,
+      location,
+      payload,
+      json.dumps(job_configuration_query_override_json),
+      gcp_resources,
+      executor_input,
+  )

@@ -28,8 +28,11 @@ _LABELS_PAYLOAD_KEY = 'labels'
 def create_hyperparameter_tuning_job_with_client(job_client, parent, job_spec):
   create_hyperparameter_tuning_job_fn = None
   try:
-    create_hyperparameter_tuning_job_fn = job_client.create_hyperparameter_tuning_job(
-        parent=parent, hyperparameter_tuning_job=job_spec)
+    create_hyperparameter_tuning_job_fn = (
+        job_client.create_hyperparameter_tuning_job(
+            parent=parent, hyperparameter_tuning_job=job_spec
+        )
+    )
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
   return create_hyperparameter_tuning_job_fn
@@ -41,7 +44,9 @@ def get_hyperparameter_tuning_job_with_client(job_client, job_name):
     get_hyperparameter_tuning_job_fn = job_client.get_hyperparameter_tuning_job(
         name=job_name,
         retry=retry.Retry(
-            deadline=_HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS))
+            deadline=_HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS
+        ),
+    )
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
   return get_hyperparameter_tuning_job_fn
@@ -71,29 +76,34 @@ def create_hyperparameter_tuning_job(
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-  remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
-                                                    gcp_resources)
+  remote_runner = job_remote_runner.JobRemoteRunner(
+      type, project, location, gcp_resources
+  )
   job_spec = json.loads(payload)
   job_spec[_LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
-      job_spec[_LABELS_PAYLOAD_KEY] if _LABELS_PAYLOAD_KEY in job_spec else {})
+      job_spec[_LABELS_PAYLOAD_KEY] if _LABELS_PAYLOAD_KEY in job_spec else {}
+  )
   try:
     # Create HP Tuning job if it does not exist
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
       job_name = remote_runner.create_job(
-          create_hyperparameter_tuning_job_with_client, json.dumps(job_spec))
+          create_hyperparameter_tuning_job_with_client, json.dumps(job_spec)
+      )
 
     # Poll HP Tuning job status until "JobState.JOB_STATE_SUCCEEDED"
     get_job_response = remote_runner.poll_job(
-        get_hyperparameter_tuning_job_with_client, job_name)
+        get_hyperparameter_tuning_job_with_client, job_name
+    )
     if type == 'HyperparameterTuningJobWithMetrics':
       completed_trials = [
-          t for t in get_job_response.trials
+          t
+          for t in get_job_response.trials
           if t.state == gca_study.Trial.State.SUCCEEDED
       ]
       execution_metrics_dict = {
           'success_trials_count': len(completed_trials),
-          'total_trials_count': len(get_job_response.trials)
+          'total_trials_count': len(get_job_response.trials),
       }
       with open(execution_metrics, 'w') as f:
         f.write(json.dumps(execution_metrics_dict, sort_keys=True))

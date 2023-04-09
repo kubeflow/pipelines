@@ -37,6 +37,7 @@ def bigquery_ml_centroids_job(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Launch a BigQuery ML.CENTROIDS job and waits for it to finish.
 
     Args:
@@ -91,11 +92,14 @@ def bigquery_ml_centroids_job(
             For more details, see
             https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[
-          'python3', '-u', '-m',
-          'google_cloud_pipeline_components.container.v1.bigquery.ml_centroids.launcher'
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.bigquery.ml_centroids.launcher',
       ],
       args=[
           '--type',
@@ -106,25 +110,39 @@ def bigquery_ml_centroids_job(
           location,
           '--model_name',
           ConcatPlaceholder([
-              "{{$.inputs.artifacts['model'].metadata['projectId']}}", '.',
-              "{{$.inputs.artifacts['model'].metadata['datasetId']}}", '.',
-              "{{$.inputs.artifacts['model'].metadata['modelId']}}"
+              "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+              '.',
+              "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+              '.',
+              "{{$.inputs.artifacts['model'].metadata['modelId']}}",
           ]),
           '--standardize',
           standardize,
           '--payload',
           ConcatPlaceholder([
-              '{', '"configuration": {', '"query": ', job_configuration_query,
-              ', "labels": ', labels, '}', '}'
+              '{',
+              '"configuration": {',
+              '"query": ',
+              job_configuration_query,
+              ', "labels": ',
+              labels,
+              '}',
+              '}',
           ]),
           '--job_configuration_query_override',
           ConcatPlaceholder([
-              '{', '"query_parameters": ', query_parameters,
-              ', "destination_encryption_configuration": {', '"kmsKeyName": "',
-              encryption_spec_key_name, '"}', '}'
+              '{',
+              '"query_parameters": ',
+              query_parameters,
+              ', "destination_encryption_configuration": {',
+              '"kmsKeyName": "',
+              encryption_spec_key_name,
+              '"}',
+              '}',
           ]),
           '--gcp_resources',
           gcp_resources,
           '--executor_input',
           '{{$}}',
-      ])
+      ],
+  )
