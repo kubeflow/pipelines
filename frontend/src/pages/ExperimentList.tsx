@@ -201,7 +201,6 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         request.pageSize,
         request.sortBy,
         request.filter,
-        this.props.namespace ? 'NAMESPACE' : undefined,
         this.props.namespace || undefined,
       );
       displayExperiments = response.experiments || [];

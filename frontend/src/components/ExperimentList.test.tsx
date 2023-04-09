@@ -18,7 +18,6 @@ import * as React from 'react';
 import * as Utils from 'src/lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
 import TestUtils from 'src/TestUtils';
-import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ExpandState } from './CustomTable';
@@ -107,7 +106,7 @@ describe('ExperimentList', () => {
     props.storageState = V2beta1ExperimentStorageState.AVAILABLE;
     tree = shallow(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    expect(Apis.experimentServiceApiV2.listExperiments).toHaveBeenLastCalledWith(
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -116,13 +115,12 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOTEQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
-      undefined,
       undefined,
     );
   });
@@ -133,7 +131,7 @@ describe('ExperimentList', () => {
     props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
     tree = shallow(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    expect(Apis.experimentServiceApiV2.listExperiments).toHaveBeenLastCalledWith(
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -142,13 +140,12 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
+              operation: V2beta1PredicateOperation.EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
-      undefined,
       undefined,
     );
   });
@@ -165,7 +162,7 @@ describe('ExperimentList', () => {
         }),
       ),
     });
-    expect(Apis.experimentServiceApiV2.listExperiments).toHaveBeenLastCalledWith(
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -179,13 +176,12 @@ describe('ExperimentList', () => {
             },
             {
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
+              operation: V2beta1PredicateOperation.EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as ApiFilter),
+        } as V2beta1Filter),
       ),
-      undefined,
       undefined,
     );
   });
@@ -195,8 +191,7 @@ describe('ExperimentList', () => {
     const props = generateProps();
     tree = shallow(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    expect(Apis.experimentServiceApiV2.listExperiments).toHaveBeenLastCalledWith(
-      undefined,
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -213,13 +208,12 @@ describe('ExperimentList', () => {
     tree = TestUtils.mountWithRouter(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentList).refresh();
     tree.update();
-    expect(Apis.experimentServiceApiV2.listExperiments).toHaveBeenCalledTimes(2);
-    expect(Apis.experimentServiceApiV2.listExperiments).toHaveBeenLastCalledWith(
+    expect(listExperimentsSpy).toHaveBeenCalledTimes(2);
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       '',
       10,
       ExperimentSortKeys.CREATED_AT + ' desc',
       '',
-      undefined,
       undefined,
     );
     expect(props.onError).not.toHaveBeenCalled();

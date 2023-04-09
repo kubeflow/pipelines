@@ -49,8 +49,7 @@ const LIST_EXPERIMENT_DEFAULTS = [
       ],
     } as V2beta1Filter),
   ), // filter
-  undefined, // resource_reference_key_type
-  undefined, // resource_reference_key_id
+  undefined, // namespace
 ];
 const LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE = LIST_EXPERIMENT_DEFAULTS.slice(0, 4);
 
@@ -205,7 +204,6 @@ describe('ExperimentList', () => {
     await mountWithNExperiments(1, 1, { namespace: 'test-ns' });
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-      'NAMESPACE',
       'test-ns',
     );
   });
@@ -463,7 +461,6 @@ describe('ExperimentList', () => {
       );
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-        'NAMESPACE',
         'test-ns',
       );
     });
@@ -477,7 +474,6 @@ describe('ExperimentList', () => {
       expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-        'NAMESPACE',
         'test-ns-1',
       );
       rerender(
@@ -488,7 +484,6 @@ describe('ExperimentList', () => {
       expect(listExperimentsSpy).toHaveBeenCalledTimes(2);
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-        'NAMESPACE',
         'test-ns-2',
       );
     });
