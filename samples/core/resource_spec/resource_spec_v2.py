@@ -37,9 +37,10 @@ def my_pipeline(n: int = 11234567):
     #
     # Note, with v2 python components, there's a larger memory overhead caused
     # by installing KFP SDK in the component, so we had to increase memory limit to 650M.
-    training_task = training_op(n=n).set_cpu_request('1').set_cpu_limit(
-        '1'
-    ).set_memory_request('650M').set_memory_limit('650M')
+    training_task = training_op(n=n).set_cpu_limit('1').set_memory_limit('650M')
+    
+    # TODO(gkcalat): enable requests once SDK implements the feature
+    # training_task = training_task.set_cpu_request('1').set_memory_request('650M')
 
     # TODO(Bobgy): other resource specs like cpu requests, memory requests and
     # GPU limits are not available yet: https://github.com/kubeflow/pipelines/issues/6354.
