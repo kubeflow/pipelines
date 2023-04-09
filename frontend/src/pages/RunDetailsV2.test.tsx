@@ -19,6 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import * as React from 'react';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/Api';
@@ -90,12 +91,12 @@ describe('RunDetailsV2', () => {
     runtime_config: { parameters: [{ name: 'param1', value: 'value1' }] },
     state: V2beta1RuntimeState.SUCCEEDED,
   };
-  const TEST_EXPERIMENT = {
+  const TEST_EXPERIMENT: V2beta1Experiment = {
     created_at: '2021-01-24T18:03:08Z',
     description: 'All runs will be grouped here.',
-    id: 'some-experiment-id',
-    name: 'Default',
-    storage_state: 'STORAGESTATE_AVAILABLE',
+    experiment_id: 'some-experiment-id',
+    display_name: 'Default',
+    storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
   beforeEach(() => {
     mockResizeObserver();
@@ -183,7 +184,7 @@ describe('RunDetailsV2', () => {
   it("shows run title and experiments' links", async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
-    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
     jest
@@ -238,7 +239,7 @@ describe('RunDetailsV2', () => {
   it('shows top bar buttons', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
-    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
     jest
@@ -397,7 +398,7 @@ describe('RunDetailsV2', () => {
     it('shows Execution Sidepanel', async () => {
       const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
       getRunSpy.mockResolvedValue(TEST_RUN);
-      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
       getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
       render(
@@ -428,7 +429,7 @@ describe('RunDetailsV2', () => {
     it('shows Artifact Sidepanel', async () => {
       const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
       getRunSpy.mockResolvedValue(TEST_RUN);
-      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
       getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
       render(

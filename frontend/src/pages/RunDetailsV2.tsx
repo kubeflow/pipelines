@@ -16,7 +16,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
-import { ApiExperiment } from 'src/apis/experiment';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
@@ -158,17 +158,17 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
-  const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
+  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
     () => getExperiment(experimentId),
     {},
   );
-  const namespace = RunUtils.getNamespaceReferenceName(apiExperiment);
+  const namespace = experiment?.namespace;
 
   // Update page title and experiment information.
   useEffect(() => {
-    updateToolBar(run, apiExperiment, props.updateToolbar);
-  }, [run, apiExperiment, props.updateToolbar]);
+    updateToolBar(run, experiment, props.updateToolbar);
+  }, [run, experiment, props.updateToolbar]);
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
@@ -243,16 +243,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
 }
 
-async function getExperiment(experimentId: string | null): Promise<ApiExperiment> {
+async function getExperiment(experimentId: string | null): Promise<V2beta1Experiment> {
   if (experimentId) {
-    return Apis.experimentServiceApi.getExperiment(experimentId);
+    return Apis.experimentServiceApiV2.getExperiment(experimentId);
   }
   return Promise.resolve({});
 }
 
 function updateToolBar(
   run: V2beta1Run | undefined,
-  apiExperiment: ApiExperiment | undefined,
+  experiment: V2beta1Experiment | undefined,
   updateToolBarCallback: (toolbarProps: Partial<ToolbarProps>) => void,
 ) {
   const runMetadata = run;
@@ -268,14 +268,14 @@ function updateToolBar(
   }
 
   const breadcrumbs: Array<{ displayName: string; href: string }> = [];
-  if (apiExperiment && apiExperiment.id && apiExperiment.name) {
+  if (experiment && experiment.experiment_id && experiment.display_name) {
     breadcrumbs.push(
       { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
       {
-        displayName: apiExperiment.name,
+        displayName: experiment.display_name,
         href: RoutePage.EXPERIMENT_DETAILS.replace(
           ':' + RouteParams.experimentId,
-          apiExperiment.id,
+          experiment.experiment_id,
         ),
       },
     );
