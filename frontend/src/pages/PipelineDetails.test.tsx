@@ -19,7 +19,6 @@ import { graphlib } from 'dagre';
 import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
-import { ApiExperiment } from 'src/apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { ApiRunDetail } from 'src/apis/run';
@@ -34,6 +33,7 @@ import PipelineDetails from './PipelineDetails';
 import { ApiJob } from 'src/apis/job';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -51,7 +51,7 @@ describe('PipelineDetails', () => {
   const listV2PipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
   const getV2RunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
   const getV2RecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'deletePipelineVersion');
   const getPipelineVersionTemplateSpy = jest.spyOn(
     Apis.pipelineServiceApi,
@@ -193,7 +193,10 @@ describe('PipelineDetails', () => {
     getV2RecurringRunSpy.mockImplementation(() => Promise.resolve(testV2RecurringRun));
 
     getExperimentSpy.mockImplementation(() =>
-      Promise.resolve({ id: 'test-experiment-id', name: 'test experiment' } as ApiExperiment),
+      Promise.resolve({
+        experiment_id: 'test-experiment-id',
+        display_name: 'test experiment',
+      } as V2beta1Experiment),
     );
     // getTemplateSpy.mockImplementation(() => Promise.resolve({ template: 'test template' }));
     getPipelineVersionTemplateSpy.mockImplementation(() =>

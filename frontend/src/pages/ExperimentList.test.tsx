@@ -15,22 +15,21 @@
  */
 
 import * as React from 'react';
-import * as Utils from '../lib/Utils';
+import * as Utils from 'src/lib/Utils';
 import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
-import TestUtils from '../TestUtils';
-import { ApiRunStorageState } from '../apis/run';
-import { Apis } from '../lib/Apis';
-import { ExpandState } from '../components/CustomTable';
-import { NodePhase } from '../lib/StatusUtils';
+import TestUtils from 'src/TestUtils';
+import { V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { Apis } from 'src/lib/Apis';
+import { ExpandState } from 'src/components/CustomTable';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
-import { RoutePage, QUERY_PARAMS } from '../components/Router';
+import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
 import { range } from 'lodash';
-import { ButtonKeys } from '../lib/Buttons';
+import { ButtonKeys } from 'src/lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
+import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 
 // Default arguments for Apis.experimentServiceApi.listExperiment.
@@ -49,8 +48,7 @@ const LIST_EXPERIMENT_DEFAULTS = [
       ],
     } as V2beta1Filter),
   ), // filter
-  undefined, // resource_reference_key_type
-  undefined, // resource_reference_key_id
+  undefined, // namespace
 ];
 const LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE = LIST_EXPERIMENT_DEFAULTS.slice(0, 4);
 
@@ -65,7 +63,7 @@ describe('ExperimentList', () => {
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
   const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
-  const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
+  const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   jest.spyOn(Utils, 'formatDateString').mockImplementation(() => '1/2/2019, 12:34:56 PM');
@@ -100,7 +98,10 @@ describe('ExperimentList', () => {
   ): Promise<void> {
     listExperimentsSpy.mockImplementation(mockListNExpperiments(n));
     listRunsSpy.mockImplementation(() => ({
-      runs: range(nRuns).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
+      runs: range(nRuns).map(i => ({
+        run_id: 'test-run-id' + i,
+        display_name: 'test run name' + i,
+      })),
     }));
     tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} namespace={namespace} />);
     await listExperimentsSpy;
@@ -144,7 +145,7 @@ describe('ExperimentList', () => {
       experiments: [
         {
           expandState: ExpandState.COLLAPSED,
-          name: 'test experiment name',
+          display_name: 'test experiment name',
         },
       ],
     });
@@ -161,7 +162,7 @@ describe('ExperimentList', () => {
           description: 'test experiment description',
           error: 'oops! could not load experiment',
           expandState: ExpandState.COLLAPSED,
-          name: 'test experiment name',
+          display_name: 'test experiment name',
         },
       ],
     });
@@ -175,17 +176,17 @@ describe('ExperimentList', () => {
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
+      'test-experiment-id0',
+      undefined,
       5,
       'created_at desc',
-      'EXPERIMENT',
-      'test-experiment-id0',
       encodeURIComponent(
         JSON.stringify({
           predicates: [
             {
               key: 'storage_state',
               operation: V2beta1PredicateOperation.NOTEQUALS,
-              string_value: ApiRunStorageState.ARCHIVED.toString(),
+              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
         } as V2beta1Filter),
@@ -195,7 +196,7 @@ describe('ExperimentList', () => {
       {
         expandState: ExpandState.COLLAPSED,
         experiment_id: 'test-experiment-id0',
-        last5Runs: [{ id: 'test-run-id0', name: 'test run name0' }],
+        last5Runs: [{ run_id: 'test-run-id0', display_name: 'test run name0' }],
         display_name: 'test experiment name0',
       },
     ]);
@@ -205,7 +206,6 @@ describe('ExperimentList', () => {
     await mountWithNExperiments(1, 1, { namespace: 'test-ns' });
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-      'NAMESPACE',
       'test-ns',
     );
   });
@@ -241,7 +241,7 @@ describe('ExperimentList', () => {
     // tslint:disable-next-line:no-console
     console.error = jest.spyOn(console, 'error').mockImplementation();
 
-    listExperimentsSpy.mockImplementationOnce(() => ({ experiments: [{ name: 'exp1' }] }));
+    listExperimentsSpy.mockImplementationOnce(() => ({ experiments: [{ display_name: 'exp1' }] }));
     TestUtils.makeErrorResponseOnce(listRunsSpy, 'bad stuff happened');
     tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     await listExperimentsSpy;
@@ -250,7 +250,7 @@ describe('ExperimentList', () => {
       {
         error: 'Failed to load the last 5 runs of this experiment',
         expandState: 0,
-        name: 'exp1',
+        display_name: 'exp1',
       },
     ]);
   });
@@ -291,8 +291,10 @@ describe('ExperimentList', () => {
     updateBannerSpy.mockReset();
 
     const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
-    listExperimentsSpy.mockImplementationOnce(() => ({ experiments: [{ name: 'experiment1' }] }));
-    listRunsSpy.mockImplementationOnce(() => ({ runs: [{ name: 'run1' }] }));
+    listExperimentsSpy.mockImplementationOnce(() => ({
+      experiments: [{ display_name: 'experiment1' }],
+    }));
+    listRunsSpy.mockImplementationOnce(() => ({ runs: [{ display_name: 'run1' }] }));
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
@@ -308,7 +310,7 @@ describe('ExperimentList', () => {
       {
         expandState: ExpandState.EXPANDED,
         experiment_id: 'test-experiment-id0',
-        last5Runs: [{ id: 'test-run-id0', name: 'test run name0' }],
+        last5Runs: [{ run_id: 'test-run-id0', display_name: 'test run name0' }],
         display_name: 'test experiment name0',
       },
     ]);
@@ -437,13 +439,13 @@ describe('ExperimentList', () => {
     tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     expect(
       (tree.instance() as ExperimentList)._last5RunsCustomRenderer({
-        id: 'experiment-id',
+        experiment_id: 'experiment-id',
         value: [
-          { status: NodePhase.SUCCEEDED },
-          { status: NodePhase.PENDING },
-          { status: NodePhase.FAILED },
-          { status: NodePhase.UNKNOWN },
-          { status: NodePhase.SUCCEEDED },
+          { state: V2beta1RuntimeState.SUCCEEDED },
+          { state: V2beta1RuntimeState.PENDING },
+          { state: V2beta1RuntimeState.FAILED },
+          { state: V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED },
+          { state: V2beta1RuntimeState.SUCCEEDED },
         ],
       }),
     ).toMatchSnapshot();
@@ -463,7 +465,6 @@ describe('ExperimentList', () => {
       );
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-        'NAMESPACE',
         'test-ns',
       );
     });
@@ -477,7 +478,6 @@ describe('ExperimentList', () => {
       expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-        'NAMESPACE',
         'test-ns-1',
       );
       rerender(
@@ -488,7 +488,6 @@ describe('ExperimentList', () => {
       expect(listExperimentsSpy).toHaveBeenCalledTimes(2);
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
-        'NAMESPACE',
         'test-ns-2',
       );
     });
