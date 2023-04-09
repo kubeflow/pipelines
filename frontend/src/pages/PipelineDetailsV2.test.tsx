@@ -39,7 +39,7 @@ describe('PipelineDetailsV2', () => {
           setSubDagLayers={function(layers: string[]): void {
             return;
           }}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {
@@ -59,7 +59,7 @@ describe('PipelineDetailsV2', () => {
           setSubDagLayers={function(layers: string[]): void {
             return;
           }}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {
@@ -85,7 +85,7 @@ describe('PipelineDetailsV2', () => {
             },
           ]}
           setSubDagLayers={layers => {}}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {
@@ -114,7 +114,7 @@ describe('PipelineDetailsV2', () => {
             },
           ]}
           setSubDagLayers={layers => {}}
-          apiPipeline={null}
+          pipeline={null}
           selectedVersion={undefined}
           versions={[]}
           handleVersionSelected={function(versionId: string): Promise<void> {
