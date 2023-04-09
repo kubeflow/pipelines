@@ -18,6 +18,10 @@ import { ExperimentServiceApi as ExperimentServiceApiV2 } from 'src/apisv2beta1/
 import { JobServiceApi } from 'src/apis/job';
 import { RecurringRunServiceApi } from 'src/apisv2beta1/recurringrun';
 import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from 'src/apis/pipeline';
+import {
+  V2beta1PipelineVersion,
+  PipelineServiceApi as PipelineServiceApiV2,
+} from 'src/apisv2beta1/pipeline';
 import { RunServiceApi as RunServiceApiV1 } from 'src/apis/run';
 import { RunServiceApi as RunServiceApiV2 } from 'src/apisv2beta1/run';
 import { ApiVisualization, VisualizationServiceApi } from 'src/apis/visualization';
@@ -28,6 +32,7 @@ import { buildQuery } from './Utils';
 import { StoragePath, StorageService } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
+const v2beta1Prefix = 'apis/v2beta1';
 
 export interface ListRequest {
   filter?: string;
@@ -195,6 +200,17 @@ export class Apis {
       );
     }
     return this._pipelineServiceApi;
+  }
+
+  public static get pipelineServiceApiV2(): PipelineServiceApiV2 {
+    if (!this._pipelineServiceApiV2) {
+      this._pipelineServiceApiV2 = new PipelineServiceApiV2(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
+    }
+    return this._pipelineServiceApiV2;
   }
 
   public static get runServiceApi(): RunServiceApiV1 {
@@ -403,6 +419,27 @@ export class Apis {
     );
   }
 
+  public static async uploadPipelineVersionV2(
+    versionName: string,
+    pipelineId: string,
+    versionData: File,
+    description?: string,
+  ): Promise<V2beta1PipelineVersion> {
+    const fd = new FormData();
+    fd.append('uploadfile', versionData, versionData.name);
+    return await this._fetchAndParse<V2beta1PipelineVersion>(
+      '/pipelines/upload_version',
+      v2beta1Prefix,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+        (description ? `&description=${encodeURIComponent(description)}` : ''),
+      {
+        body: fd,
+        cache: 'no-cache',
+        method: 'POST',
+      },
+    );
+  }
+
   /*
    * Retrieves the name of the Kubernetes cluster if it is running in GKE, otherwise returns an error.
    */
@@ -422,6 +459,7 @@ export class Apis {
   private static _jobServiceApi?: JobServiceApi;
   private static _recurringRunServiceApi?: RecurringRunServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;
+  private static _pipelineServiceApiV2?: PipelineServiceApiV2;
   private static _runServiceApiV1?: RunServiceApiV1;
   private static _runServiceApiV2?: RunServiceApiV2;
   private static _visualizationServiceApi?: VisualizationServiceApi;
