@@ -17,7 +17,7 @@
 import * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
-import { ApiExperiment } from 'src/apis/experiment';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { Apis } from 'src/lib/Apis';
 import { Page } from './Page';
@@ -151,10 +151,10 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
     }
 
     const relatedExperimentId = run.experiment_id;
-    let experiment: ApiExperiment | undefined;
+    let experiment: V2beta1Experiment | undefined;
     if (relatedExperimentId) {
       try {
-        experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+        experiment = await Apis.experimentServiceApiV2.getExperiment(relatedExperimentId);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         await this.showPageError(
@@ -169,10 +169,10 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
       breadcrumbs.push(
         { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
         {
-          displayName: experiment.name!,
+          displayName: experiment.display_name!,
           href: RoutePage.EXPERIMENT_DETAILS.replace(
             ':' + RouteParams.experimentId,
-            experiment.id!,
+            experiment.experiment_id!,
           ),
         },
       );
