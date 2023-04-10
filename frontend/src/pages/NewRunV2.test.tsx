@@ -33,7 +33,7 @@ import {
   V2beta1ListPipelineVersionsResponse,
 } from 'src/apisv2beta1/pipeline';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2beta1RecurringRun, RecurringRunMode } from 'src/apisv2beta1/recurringrun';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -667,7 +667,7 @@ describe('NewRunV2', () => {
         expect(createRecurringRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             max_concurrency: '10',
-            status: V2beta1RecurringRunStatus.ENABLED,
+            mode: RecurringRunMode.ENABLE,
             trigger: {
               periodic_schedule: {
                 interval_second: '3600',
@@ -731,7 +731,7 @@ describe('NewRunV2', () => {
         expect(createRecurringRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             max_concurrency: '5',
-            status: V2beta1RecurringRunStatus.ENABLED,
+            mode: RecurringRunMode.ENABLE,
             trigger: {
               periodic_schedule: {
                 interval_second: '300',

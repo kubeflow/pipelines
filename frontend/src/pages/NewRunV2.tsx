@@ -50,7 +50,7 @@ import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2beta1RecurringRun, RecurringRunMode } from 'src/apisv2beta1/recurringrun';
 import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
 import {
   convertExperimentToResource,
@@ -329,13 +329,13 @@ function NewRunV2(props: NewRunV2Props) {
         ? {
             max_concurrency: maxConcurrentRuns || '1',
             no_catchup: !needCatchup,
-            status: V2beta1RecurringRunStatus.ENABLED,
+            mode: RecurringRunMode.ENABLE,
             trigger: trigger,
           }
         : {
             max_concurrency: undefined,
             no_catchup: undefined,
-            status: undefined,
+            mode: undefined,
             trigger: undefined,
           },
     );
