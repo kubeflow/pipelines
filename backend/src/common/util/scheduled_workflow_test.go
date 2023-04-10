@@ -131,6 +131,10 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 
 	// v2 runtime config's string parameter
 	workflowV2 := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Workflow: &swfapi.WorkflowResource{
 				Parameters: []swfapi.Parameter{
@@ -148,6 +152,10 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 
 	// v2 runtime config's numeric parameter
 	workflowV2 = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Workflow: &swfapi.WorkflowResource{
 				Parameters: []swfapi.Parameter{
@@ -166,8 +174,8 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 	// v1 parameters
 	workflowV1 := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Workflow: &swfapi.WorkflowResource{

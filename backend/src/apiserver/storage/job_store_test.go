@@ -474,7 +474,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			Parameters:   "sample params",
+			Parameters:   `[{"name":"string1","value":"one"},{"name":"number2","value":"2"}]`,
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -492,7 +492,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			Parameters:   "sample params",
+			Parameters:   `[{"name":"string1","value":"one"},{"name":"number2","value":"2"}]`,
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -739,8 +739,8 @@ func TestUpdateJob_Success(t *testing.T) {
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",

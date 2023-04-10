@@ -453,10 +453,12 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			"IntervalSecond":                 swf.IntervalSecondOr0(),
 		})
 	if len(parameters) > 0 {
-		if swf.IsV1() {
+		if swf.GetVersion() == util.SWFv1 {
 			updateSql = updateSql.SetMap(sq.Eq{"Parameters": parameters})
-		} else {
+		} else if swf.GetVersion() == util.SWFv2 {
 			updateSql = updateSql.SetMap(sq.Eq{"RuntimeParameters": parameters})
+		} else {
+			return util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow has an invalid version: %v", swf.GetVersion()), "Failed to update job %v", swf.UID)
 		}
 	}
 	sql, args, err := updateSql.Where(sq.Eq{"UUID": string(swf.UID)}).ToSql()

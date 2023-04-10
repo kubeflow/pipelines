@@ -23,6 +23,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+type ScheduledWorkflowType string
+
+const (
+	SWFv1      ScheduledWorkflowType = "v1beta1"
+	SWFv2      ScheduledWorkflowType = "v2beta1"
+	SWFlegacy  ScheduledWorkflowType = "legacy"
+	SWFunknown ScheduledWorkflowType = "Unknown"
+
+	apiVersionV1 = "kubeflow.org/v1beta1"
+	apiVersionV2 = "kubeflow.org/v2beta1"
+	swfKind      = "ScheduledWorkflow"
+)
+
 // ScheduledWorkflow is a type to help manipulate ScheduledWorkflow objects.
 type ScheduledWorkflow struct {
 	*swfapi.ScheduledWorkflow
@@ -109,9 +122,10 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 	if s.ScheduledWorkflow.Spec.Workflow == nil {
 		return "", nil
 	}
-	if s.IsV1() {
+	switch s.GetVersion() {
+	case SWFv1:
 		params = s.ScheduledWorkflow.Spec.Workflow.Parameters
-	} else {
+	case SWFv2:
 		paramsMap := make(map[string]*structpb.Value, 0)
 		for _, param := range s.ScheduledWorkflow.Spec.Workflow.Parameters {
 			var protoValue structpb.Value
@@ -122,8 +136,11 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 			paramsMap[param.Name] = &protoValue
 		}
 		params = paramsMap
+	case SWFlegacy:
+		return "", NewInvalidInputError("Found a ScheduledWorkflow with empty type metadata. ScheduledWorkflow must have valid APIVersion and Kind. ObjectMeta: %v", s.ObjectMeta)
+	default:
+		return "", NewInternalServerError(NewInvalidInputError("ScheduledWorkflow has invalid type metadata: %v", s.TypeMeta), "Failed to serialize parameters as string for ScheduledWorkflow %v", s.ObjectMeta)
 	}
-
 	paramsBytes, err := json.Marshal(params)
 	if err != nil {
 		return "", NewInvalidInputError(
@@ -142,9 +159,13 @@ func (s *ScheduledWorkflow) ToStringForStore() string {
 	return string(swf)
 }
 
-func (s *ScheduledWorkflow) IsV1() bool {
-	if strings.HasPrefix(s.APIVersion, "argoproj.io/") && s.Kind == "Workflow" {
-		return true
+func (s *ScheduledWorkflow) GetVersion() ScheduledWorkflowType {
+	if strings.HasPrefix(s.APIVersion, apiVersionV1) && s.Kind == swfKind {
+		return SWFv1
+	} else if strings.HasPrefix(s.APIVersion, apiVersionV2) && s.Kind == swfKind {
+		return SWFv2
+	} else if s.APIVersion == "" && s.Kind == "" {
+		return SWFlegacy
 	}
-	return false
+	return SWFunknown
 }

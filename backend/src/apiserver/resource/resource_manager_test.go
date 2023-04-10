@@ -3088,8 +3088,8 @@ func TestReportScheduledWorkflowResource_Success_withParamsV1(t *testing.T) {
 	// report scheduled workflow
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
@@ -3148,6 +3148,10 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 	defer store.Close()
 	// report scheduled workflow
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "updated_name",
 			Namespace: "ns1",
