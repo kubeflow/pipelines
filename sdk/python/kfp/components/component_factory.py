@@ -527,7 +527,10 @@ def make_input_for_parameterized_container_component_function(
         return placeholders.OutputParameterPlaceholder(name)
 
     else:
-        return placeholders.InputValuePlaceholder(name)
+        placeholder = placeholders.InputValuePlaceholder(name)
+        # small hack to encode the runtime value's type for a custom json.dumps function
+        placeholder._ir_type = type_utils.get_parameter_type_name(annotation)
+        return placeholder
 
 
 def create_container_component_from_func(
