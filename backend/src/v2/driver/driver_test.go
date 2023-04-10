@@ -436,7 +436,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 	}
 }
 
-func Test_makePodSpecPatch_resourceRequests(t *testing.T) {
+func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
 	type args struct {
@@ -528,14 +528,16 @@ func Test_makePodSpecPatch_resourceRequests(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := makePodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
 			assert.Nil(t, err)
-			assert.NotEmpty(t, got)
+			assert.NotEmpty(t, podSpec)
+			podSpecString, err := json.Marshal(podSpec)
+			assert.Nil(t, err)
 			if tt.want != "" {
-				assert.Contains(t, got, tt.want)
+				assert.Contains(t, string(podSpecString), tt.want)
 			}
 			if tt.notWant != "" {
-				assert.NotContains(t, got, tt.notWant)
+				assert.NotContains(t, string(podSpecString), tt.notWant)
 			}
 		})
 	}

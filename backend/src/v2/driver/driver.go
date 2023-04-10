@@ -452,7 +452,7 @@ func initPodSpecPatch(
 	if memoryRequest != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryRequest))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		res.Requests[k8score.ResourceMemory] = q
 	}
@@ -468,7 +468,7 @@ func initPodSpecPatch(
 	if cpuRequest != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuRequest))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		res.Requests[k8score.ResourceCPU] = q
 	}
