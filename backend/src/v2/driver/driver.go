@@ -344,7 +344,8 @@ func makePodSpecPatch(
 		"--", // separater before user command and args
 	}
 	res := k8score.ResourceRequirements{
-		Limits: map[k8score.ResourceName]k8sres.Quantity{},
+		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
+		Requests: map[k8score.ResourceName]k8sres.Quantity{},
 	}
 	memoryLimit := container.GetResources().GetMemoryLimit()
 	if memoryLimit != 0 {
@@ -354,6 +355,14 @@ func makePodSpecPatch(
 		}
 		res.Limits[k8score.ResourceMemory] = q
 	}
+	memoryRequest := container.GetResources().GetMemoryRequest()
+	if memoryRequest != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryRequest))
+		if err != nil {
+			return "", err
+		}
+		res.Requests[k8score.ResourceMemory] = q
+	}
 	cpuLimit := container.GetResources().GetCpuLimit()
 	if cpuLimit != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
@@ -361,6 +370,14 @@ func makePodSpecPatch(
 			return "", err
 		}
 		res.Limits[k8score.ResourceCPU] = q
+	}
+	cpuRequest := container.GetResources().GetCpuRequest()
+	if cpuRequest != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuRequest))
+		if err != nil {
+			return "", err
+		}
+		res.Requests[k8score.ResourceCPU] = q
 	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
