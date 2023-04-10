@@ -15,7 +15,7 @@
 import setuptools
 
 NAME = 'kfp-pipeline-spec'
-VERSION = '0.2.1'
+VERSION = '0.2.2'
 
 setuptools.setup(
     name=NAME,

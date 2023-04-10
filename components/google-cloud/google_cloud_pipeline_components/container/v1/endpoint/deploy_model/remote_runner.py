@@ -20,6 +20,7 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import jso
 
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
 
+
 def deploy_model(
     type,
     project,
@@ -30,7 +31,8 @@ def deploy_model(
   """Deploy model and poll the LongRunningOperator till it reaches a final state."""
   # TODO(IronPan) temporarily remove the empty fields from the spec
   deploy_model_request = json_util.recursive_remove_empty(
-      json.loads(payload, strict=False))
+      json.loads(payload, strict=False)
+  )
   endpoint_name = deploy_model_request['endpoint']
 
   uri_pattern = re.compile(_ENDPOINT_NAME_TEMPLATE)
@@ -39,9 +41,12 @@ def deploy_model(
     location = match.group('location')
   except AttributeError as err:
     # TODO(ruifang) propagate the error.
-    raise ValueError('Invalid endpoint name: {}. Expect: {}.'.format(
-        endpoint_name,
-        'projects/[project_id]/locations/[location]/endpoints/[endpoint_id]'))
+    raise ValueError(
+        'Invalid endpoint name: {}. Expect: {}.'.format(
+            endpoint_name,
+            'projects/[project_id]/locations/[location]/endpoints/[endpoint_id]',
+        )
+    )
   api_endpoint = location + '-aiplatform.googleapis.com'
   vertex_uri_prefix = f'https://{api_endpoint}/v1/'
   deploy_model_url = f'{vertex_uri_prefix}{endpoint_name}:deployModel'
@@ -49,7 +54,8 @@ def deploy_model(
   try:
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
     deploy_model_lro = remote_runner.create_lro(
-        deploy_model_url, json.dumps(deploy_model_request), gcp_resources)
+        deploy_model_url, json.dumps(deploy_model_request), gcp_resources
+    )
     deploy_model_lro = remote_runner.poll_lro(lro=deploy_model_lro)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

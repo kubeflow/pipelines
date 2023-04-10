@@ -35,7 +35,7 @@ from google.protobuf import json_format
 
 
 _CONNECTION_ERROR_RETRY_LIMIT = 5
-_CONNECTION_RETRY_BACKOFF_FACTOR = 2.
+_CONNECTION_RETRY_BACKOFF_FACTOR = 2.0
 
 _DATAFLOW_URI_PREFIX = 'https://dataflow.googleapis.com/v1b3'
 _DATAFLOW_JOB_URI_TEMPLATE = rf'({_DATAFLOW_URI_PREFIX}/projects/(?P<project>.*)/locations/(?P<location>.*)/jobs/(?P<job>.*))'
@@ -44,7 +44,9 @@ _DATAFLOW_JOB_URI_TEMPLATE = rf'({_DATAFLOW_URI_PREFIX}/projects/(?P<project>.*)
 def insert_system_labels_into_payload(payload):
   job_spec = json.loads(payload)
   try:
-    labels = job_spec['launch_parameter']['environment']['additional_user_labels']
+    labels = job_spec['launch_parameter']['environment'][
+        'additional_user_labels'
+    ]
   except KeyError:
     labels = {}
 
@@ -52,7 +54,10 @@ def insert_system_labels_into_payload(payload):
     job_spec['launch_parameter'] = {}
   if 'environment' not in job_spec['launch_parameter'].keys():
     job_spec['launch_parameter']['environment'] = {}
-  if 'additional_user_labels' not in job_spec['launch_parameter']['environment'].keys():
+  if (
+      'additional_user_labels'
+      not in job_spec['launch_parameter']['environment'].keys()
+  ):
     job_spec['launch_parameter']['environment']['additional_user_labels'] = {}
 
   labels = gcp_labels_util.attach_system_labels(labels)
@@ -60,7 +65,7 @@ def insert_system_labels_into_payload(payload):
   return json.dumps(job_spec)
 
 
-class DataflowFlexTemplateRemoteRunner():
+class DataflowFlexTemplateRemoteRunner:
   """Common module for creating Dataproc Flex Template jobs."""
 
   def __init__(
@@ -84,13 +89,13 @@ class DataflowFlexTemplateRemoteRunner():
         total=_CONNECTION_ERROR_RETRY_LIMIT,
         status_forcelist=[429, 503],
         backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
-        allowed_methods=['GET', 'POST']
+        allowed_methods=['GET', 'POST'],
     )
     adapter = HTTPAdapter(max_retries=retry)
     session = requests.Session()
     session.headers.update({
         'Content-Type': 'application/json',
-        'User-Agent': 'google-cloud-pipeline-components'
+        'User-Agent': 'google-cloud-pipeline-components',
     })
     session.mount('https://', adapter)
     return session
@@ -110,7 +115,7 @@ class DataflowFlexTemplateRemoteRunner():
     """
     if not self._creds.valid:
       self._creds.refresh(google.auth.transport.requests.Request())
-    headers = {'Authorization': 'Bearer '+ self._creds.token}
+    headers = {'Authorization': 'Bearer ' + self._creds.token}
 
     result = self._session.post(url=url, data=post_data, headers=headers)
     json_data = {}
@@ -120,19 +125,24 @@ class DataflowFlexTemplateRemoteRunner():
       return json_data
     except requests.exceptions.HTTPError as err:
       try:
-        err_msg = ('Dataflow service returned HTTP status {} from POST: {}. Status: {}, Message: {}'
-                   .format(err.response.status_code,
-                           err.request.url,
-                           json_data['error']['status'],
-                           json_data['error']['message']))
+        err_msg = (
+            'Dataflow service returned HTTP status {} from POST: {}. Status:'
+            ' {}, Message: {}'.format(
+                err.response.status_code,
+                err.request.url,
+                json_data['error']['status'],
+                json_data['error']['message'],
+            )
+        )
       except (KeyError, TypeError):
         err_msg = err.response.text
       # Raise RuntimeError with the error returned from the Dataflow service.
       # Suppress HTTPError as it provides no actionable feedback.
       raise RuntimeError(err_msg) from None
     except json.decoder.JSONDecodeError as err:
-      raise RuntimeError('Failed to decode JSON from response:\n{}'
-                         .format(err.doc)) from err
+      raise RuntimeError(
+          'Failed to decode JSON from response:\n{}'.format(err.doc)
+      ) from err
 
   def check_if_job_exists(self) -> Union[Dict[str, Any], None]:
     """Check if a Dataflow job already exists.
@@ -145,16 +155,21 @@ class DataflowFlexTemplateRemoteRunner():
     Raises:
       ValueError: Job resource uri format is invalid.
     """
-    if path.exists(self._gcp_resources) and os.stat(self._gcp_resources).st_size != 0:
+    if (
+        path.exists(self._gcp_resources)
+        and os.stat(self._gcp_resources).st_size != 0
+    ):
       with open(self._gcp_resources) as f:
         serialized_gcp_resources = f.read()
 
-      job_resources = json_format.Parse(serialized_gcp_resources,
-                                        gcp_resources_pb2.GcpResources())
+      job_resources = json_format.Parse(
+          serialized_gcp_resources, gcp_resources_pb2.GcpResources()
+      )
       # Resources should only contain one item.
       if len(job_resources.resources) != 1:
         raise ValueError(
-            f'gcp_resources should contain one resource, found {len(job_resources.resources)}'
+            'gcp_resources should contain one resource, found'
+            f' {len(job_resources.resources)}'
         )
 
       # Validate the format of the Job resource uri.
@@ -165,10 +180,12 @@ class DataflowFlexTemplateRemoteRunner():
         matched_location = match.group('location')
         matched_job_id = match.group('job')
       except AttributeError as err:
-        raise ValueError('Invalid Resource uri: {}. Expect: {}.'.format(
-            job_resources.resources[0].resource_uri,
-            'https://dataflow.googleapis.com/v1b3/projects/[projectId]/locations/[location]/jobs/[jobId]'
-        )) from err
+        raise ValueError(
+            'Invalid Resource uri: {}. Expect: {}.'.format(
+                job_resources.resources[0].resource_uri,
+                'https://dataflow.googleapis.com/v1b3/projects/[projectId]/locations/[location]/jobs/[jobId]',
+            )
+        ) from err
 
       # Return the Job resource uri.
       return job_resources.resources[0].resource_uri
@@ -203,8 +220,8 @@ class DataflowFlexTemplateRemoteRunner():
         job_uri = f"{_DATAFLOW_URI_PREFIX}/projects/{job['projectId']}/locations/{job['location']}/jobs/{job['id']}"
       except KeyError as err:
         raise RuntimeError(
-            f'Dataflow Flex Template launch failed. '
-            f'Cannot determine the job resource uri from the response:\n'
+            'Dataflow Flex Template launch failed. '
+            'Cannot determine the job resource uri from the response:\n'
             f'{response}'
         ) from err
 
@@ -242,18 +259,22 @@ def launch_flex_template(
   """
   try:
     job_spec = json_util.recursive_remove_empty(
-        json.loads(insert_system_labels_into_payload(payload), strict=False))
+        json.loads(insert_system_labels_into_payload(payload), strict=False)
+    )
   except json.decoder.JSONDecodeError as err:
-    raise RuntimeError('Failed to decode JSON from payload: {}'
-                       .format(err.doc)) from err
+    raise RuntimeError(
+        'Failed to decode JSON from payload: {}'.format(err.doc)
+    ) from err
 
-  remote_runner = DataflowFlexTemplateRemoteRunner(type, project, location,
-                                                   gcp_resources)
+  remote_runner = DataflowFlexTemplateRemoteRunner(
+      type, project, location, gcp_resources
+  )
   if not remote_runner.check_if_job_exists():
     if 'launch_parameter' not in job_spec.keys():
       job_spec['launch_parameter'] = {}
     if 'job_name' not in job_spec['launch_parameter'].keys():
       now = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-      job_spec['launch_parameter']['job_name'] = '-'.join([type.lower(), now,
-                                                           uuid.uuid4().hex[:8]])
+      job_spec['launch_parameter']['job_name'] = '-'.join(
+          [type.lower(), now, uuid.uuid4().hex[:8]]
+      )
     remote_runner.create_job(type, job_spec)

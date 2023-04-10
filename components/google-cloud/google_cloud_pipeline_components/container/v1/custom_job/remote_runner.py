@@ -27,7 +27,8 @@ LABELS_PAYLOAD_KEY = 'labels'
 def insert_system_labels_into_payload(payload):
   job_spec = json.loads(payload)
   job_spec[LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
-      job_spec[LABELS_PAYLOAD_KEY] if LABELS_PAYLOAD_KEY in job_spec else {})
+      job_spec[LABELS_PAYLOAD_KEY] if LABELS_PAYLOAD_KEY in job_spec else {}
+  )
   return json.dumps(job_spec)
 
 
@@ -35,7 +36,8 @@ def create_custom_job_with_client(job_client, parent, job_spec):
   create_custom_job_fn = None
   try:
     create_custom_job_fn = job_client.create_custom_job(
-        parent=parent, custom_job=job_spec)
+        parent=parent, custom_job=job_spec
+    )
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
   return create_custom_job_fn
@@ -46,7 +48,8 @@ def get_custom_job_with_client(job_client, job_name):
   try:
     get_custom_job_fn = job_client.get_custom_job(
         name=job_name,
-        retry=retry.Retry(deadline=_CUSTOM_JOB_RETRY_DEADLINE_SECONDS))
+        retry=retry.Retry(deadline=_CUSTOM_JOB_RETRY_DEADLINE_SECONDS),
+    )
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
   return get_custom_job_fn
@@ -75,8 +78,9 @@ def create_custom_job(
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-  remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
-                                                    gcp_resources)
+  remote_runner = job_remote_runner.JobRemoteRunner(
+      type, project, location, gcp_resources
+  )
 
   try:
     # Create custom job if it does not exist
@@ -84,7 +88,8 @@ def create_custom_job(
     if job_name is None:
       job_name = remote_runner.create_job(
           create_custom_job_with_client,
-          insert_system_labels_into_payload(payload))
+          insert_system_labels_into_payload(payload),
+      )
 
     # Poll custom job status until "JobState.JOB_STATE_SUCCEEDED"
     remote_runner.poll_job(get_custom_job_with_client, job_name)

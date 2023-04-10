@@ -72,27 +72,59 @@ __all__ = [
 ]
 
 BigqueryCreateModelJobOp = create_model_component.bigquery_create_model_job
-BigqueryDetectAnomaliesModelJobOp = detect_anomalies_model_component.bigquery_detect_anomalies_job
+BigqueryDetectAnomaliesModelJobOp = (
+    detect_anomalies_model_component.bigquery_detect_anomalies_job
+)
 BigqueryDropModelJobOp = drop_model_component.bigquery_drop_model_job
-BigqueryEvaluateModelJobOp = evaluate_model_component.bigquery_evaluate_model_job
-BigqueryExplainForecastModelJobOp = explain_forecast_model_component.bigquery_explain_forecast_model_job
-BigqueryExplainPredictModelJobOp = explain_predict_model.bigquery_explain_predict_model_job
+BigqueryEvaluateModelJobOp = (
+    evaluate_model_component.bigquery_evaluate_model_job
+)
+BigqueryExplainForecastModelJobOp = (
+    explain_forecast_model_component.bigquery_explain_forecast_model_job
+)
+BigqueryExplainPredictModelJobOp = (
+    explain_predict_model.bigquery_explain_predict_model_job
+)
 BigqueryExportModelJobOp = export_model_component.bigquery_export_model_job
-BigqueryForecastModelJobOp = forecast_model_component.bigquery_forecast_model_job
-BigqueryMLAdvancedWeightsJobOp = ml_advanced_weights_component.bigquery_ml_advanced_weights_job
-BigqueryMLArimaCoefficientsJobOp = ml_arima_coefficients_component.bigquery_ml_arima_coefficients
-BigqueryMLArimaEvaluateJobOp = ml_arima_evaluate_component.bigquery_ml_arima_evaluate_job
+BigqueryForecastModelJobOp = (
+    forecast_model_component.bigquery_forecast_model_job
+)
+BigqueryMLAdvancedWeightsJobOp = (
+    ml_advanced_weights_component.bigquery_ml_advanced_weights_job
+)
+BigqueryMLArimaCoefficientsJobOp = (
+    ml_arima_coefficients_component.bigquery_ml_arima_coefficients
+)
+BigqueryMLArimaEvaluateJobOp = (
+    ml_arima_evaluate_component.bigquery_ml_arima_evaluate_job
+)
 BigqueryMLCentroidsJobOp = ml_centroids_component.bigquery_ml_centroids_job
-BigqueryMLConfusionMatrixJobOp = ml_confusion_matrix_component.bigquery_ml_confusion_matrix_job
-BigqueryMLFeatureImportanceJobOp = feature_importance_component.bigquery_ml_feature_importance_job
-BigqueryMLFeatureInfoJobOp = ml_feature_info_component.bigquery_ml_feature_info_job
-BigqueryMLGlobalExplainJobOp = global_explain_component.bigquery_ml_global_explain_job
-BigqueryMLPrincipalComponentInfoJobOp = ml_principal_component_info_component.bigquery_ml_principal_component_info_job
-BigqueryMLPrincipalComponentsJobOp = ml_principal_components_component.bigquery_ml_principal_components_job
+BigqueryMLConfusionMatrixJobOp = (
+    ml_confusion_matrix_component.bigquery_ml_confusion_matrix_job
+)
+BigqueryMLFeatureImportanceJobOp = (
+    feature_importance_component.bigquery_ml_feature_importance_job
+)
+BigqueryMLFeatureInfoJobOp = (
+    ml_feature_info_component.bigquery_ml_feature_info_job
+)
+BigqueryMLGlobalExplainJobOp = (
+    global_explain_component.bigquery_ml_global_explain_job
+)
+BigqueryMLPrincipalComponentInfoJobOp = (
+    ml_principal_component_info_component.bigquery_ml_principal_component_info_job
+)
+BigqueryMLPrincipalComponentsJobOp = (
+    ml_principal_components_component.bigquery_ml_principal_components_job
+)
 BigqueryMLRecommendJobOp = ml_recommend_component.bigquery_ml_recommend_job
-BigqueryMLReconstructionLossJobOp = ml_reconstruction_loss_component.bigquery_ml_reconstruction_loss_job
+BigqueryMLReconstructionLossJobOp = (
+    ml_reconstruction_loss_component.bigquery_ml_reconstruction_loss_job
+)
 BigqueryMLRocCurveJobOp = ml_roc_curve_component.bigquery_ml_roc_curve_job
-BigqueryMLTrainingInfoJobOp = ml_training_info_component.bigquery_ml_training_info_job
+BigqueryMLTrainingInfoJobOp = (
+    ml_training_info_component.bigquery_ml_training_info_job
+)
 BigqueryMLTrialInfoJobOp = ml_trial_info_component.bigquery_ml_trial_info_job
 BigqueryMLWeightsJobOp = ml_weights_component.bigquery_ml_weights_job
 BigqueryPredictModelJobOp = predict_model_component.bigquery_predict_model_job

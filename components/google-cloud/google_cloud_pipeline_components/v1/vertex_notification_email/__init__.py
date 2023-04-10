@@ -21,4 +21,6 @@ __all__ = [
     'VertexNotificationEmailOp',
 ]
 
-VertexNotificationEmailOp = vertex_notification_email_component.vertex_pipelines_notification_email
+VertexNotificationEmailOp = (
+    vertex_notification_email_component.vertex_pipelines_notification_email
+)

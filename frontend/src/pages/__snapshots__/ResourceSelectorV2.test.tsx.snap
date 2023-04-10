@@ -1,0 +1,60 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ResourceSelector displays resource selector 1`] = `
+<Fragment>
+  <Toolbar
+    actions={Object {}}
+    breadcrumbs={Array []}
+    pageTitle="A test selector"
+  />
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "flex": 1,
+          "label": "Resource name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 1.5,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="Test - Sorry, no resources."
+    filterLabel="test filter label"
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": "some-id-1",
+          "otherFields": Array [
+            "test-1 name",
+            "test-1 description",
+            "2/2/2018, 3:04:05 AM",
+          ],
+        },
+        Object {
+          "error": undefined,
+          "id": "some-2-id",
+          "otherFields": Array [
+            "test-2 name",
+            "test-2 description",
+            "11/9/2018, 8:07:06 AM",
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+    useRadioButtons={true}
+  />
+</Fragment>
+`;

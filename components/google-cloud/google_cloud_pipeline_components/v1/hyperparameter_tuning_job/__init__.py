@@ -25,4 +25,6 @@ __all__ = [
     'serialize_parameters',
 ]
 
-HyperparameterTuningJobRunOp = hyperparameter_tuning_job_component.hyperparameter_tuning_job
+HyperparameterTuningJobRunOp = (
+    hyperparameter_tuning_job_component.hyperparameter_tuning_job
+)

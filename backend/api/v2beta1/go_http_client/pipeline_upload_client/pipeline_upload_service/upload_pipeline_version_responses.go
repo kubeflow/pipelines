@@ -54,7 +54,7 @@ func NewUploadPipelineVersionOK() *UploadPipelineVersionOK {
 UploadPipelineVersionOK upload pipeline version o k
 */
 type UploadPipelineVersionOK struct {
-	Payload *pipeline_upload_model.APIPipelineVersion
+	Payload *pipeline_upload_model.V2beta1PipelineVersion
 }
 
 func (o *UploadPipelineVersionOK) Error() string {
@@ -63,7 +63,7 @@ func (o *UploadPipelineVersionOK) Error() string {
 
 func (o *UploadPipelineVersionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_upload_model.APIPipelineVersion)
+	o.Payload = new(pipeline_upload_model.V2beta1PipelineVersion)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ UploadPipelineVersionDefault upload pipeline version default
 type UploadPipelineVersionDefault struct {
 	_statusCode int
 
-	Payload *pipeline_upload_model.APIStatus
+	Payload *pipeline_upload_model.GooglerpcStatus
 }
 
 // Code gets the status code for the upload pipeline version default response
@@ -101,7 +101,7 @@ func (o *UploadPipelineVersionDefault) Error() string {
 
 func (o *UploadPipelineVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_upload_model.APIStatus)
+	o.Payload = new(pipeline_upload_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

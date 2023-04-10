@@ -56,12 +56,14 @@ def build_execution_template(args):
 
   # Does not provide defaults to match with the API's design.
   # Default values are set in component.yaml.
-  if (not getattr(args, 'master_type', None) or
-      not getattr(args, 'input_notebook_file', None) or
-      not getattr(args, 'container_image_uri', None) or
-      not getattr(args, 'output_notebook_folder', None) or
-      not getattr(args, 'job_type', None) or
-      not getattr(args, 'kernel_spec', None)):
+  if (
+      not getattr(args, 'master_type', None)
+      or not getattr(args, 'input_notebook_file', None)
+      or not getattr(args, 'container_image_uri', None)
+      or not getattr(args, 'output_notebook_folder', None)
+      or not getattr(args, 'job_type', None)
+      or not getattr(args, 'kernel_spec', None)
+  ):
     raise AttributeError('Missing a required argument for the API.')
 
   betpl = {}
@@ -91,10 +93,9 @@ def build_execution_template(args):
   return body
 
 
-def build_response(state='',
-                   output_notebook_file='',
-                   gcp_resources='',
-                   error=''):
+def build_response(
+    state='', output_notebook_file='', gcp_resources='', error=''
+):
   return (state, output_notebook_file, gcp_resources, error)
 
 
@@ -125,14 +126,16 @@ def execute_notebook(args):
   """Executes a notebook."""
 
   client_info = gapic_v1.client_info.ClientInfo(
-      user_agent='google-cloud-pipeline-components',)
+      user_agent='google-cloud-pipeline-components',
+  )
 
   client_notebooks = notebooks.NotebookServiceClient(client_info=client_info)
   client_vertexai_jobs = vertex_ai_beta.JobServiceClient(
       client_options={
           'api_endpoint': f'{args.location}-aiplatform.googleapis.com'
       },
-      client_info=client_info)
+      client_info=client_info,
+  )
 
   execution_parent = f'projects/{args.project}/locations/{args.location}'
   execution_fullname = f'{execution_parent}/executions/{args.execution_id}'
@@ -144,15 +147,18 @@ def execute_notebook(args):
     _ = client_notebooks.create_execution(
         parent=execution_parent,
         execution_id=args.execution_id,
-        execution=execution_template)
-    gcp_resources = json.dumps({
-        'resources': [{
-            'resourceType':
-                'type.googleapis.com/google.cloud.notebooks.v1.Execution',
-            'resourceUri':
-                execution_fullname
-        },]
-    })
+        execution=execution_template,
+    )
+    gcp_resources = json.dumps(
+        {
+            'resources': [
+                {
+                    'resourceType': 'type.googleapis.com/google.cloud.notebooks.v1.Execution',
+                    'resourceUri': execution_fullname,
+                },
+            ]
+        }
+    )
   # pylint: disable=broad-except
   except Exception as e:
     response = build_response(error=f'create_execution() failed: {e}')
@@ -174,7 +180,8 @@ def execute_notebook(args):
     return build_response(
         state=Execution.State(execution.state).name,
         output_notebook_file=execution.output_notebook_file,
-        gcp_resources=gcp_resources)
+        gcp_resources=gcp_resources,
+    )
 
   # Waits for execution to finish.
   print('Blocking pipeline...')
@@ -188,7 +195,8 @@ def execute_notebook(args):
     # pylint: disable=broad-except
     except Exception as e:
       response = build_response(
-          error=f'get_execution() for blocking pipeline failed: {e}')
+          error=f'get_execution() for blocking pipeline failed: {e}'
+      )
       handle_error(args.fail_pipeline, response)
       return response
 
@@ -209,7 +217,8 @@ def execute_notebook(args):
       while True:
         try:
           custom_job = client_vertexai_jobs.get_custom_job(
-              name=execution_job_uri)
+              name=execution_job_uri
+          )
         # pylint: disable=broad-except
         except Exception as e:
           response = build_response(error=f'get_custom_job() failed: {e}')
@@ -225,7 +234,8 @@ def execute_notebook(args):
       custom_job_error = getattr(custom_job, 'error', None)
       if custom_job_error:
         response = build_response(
-            error=f'Error {custom_job_error.code}: {custom_job_error.message}')
+            error=f'Error {custom_job_error.code}: {custom_job_error.message}'
+        )
         handle_error(args.fail_pipeline, (None, response))
         return response
 
@@ -233,137 +243,161 @@ def execute_notebook(args):
     # had a problem. The previous loop was in hope to find the error message,
     # we didn't have any so we return the execution state as the message.
     response = build_response(
-        error=f'Execution finished: {Execution.State(execution_state).name}')
+        error=f'Execution finished: {Execution.State(execution_state).name}'
+    )
     handle_error(args.fail_pipeline, (None, response))
     return response
 
   return build_response(
       state=Execution.State(execution_state).name,
       output_notebook_file=execution.output_notebook_file,
-      gcp_resources=gcp_resources)
+      gcp_resources=gcp_resources,
+  )
 
 
 def main():
   def _deserialize_bool(s) -> bool:
     # pylint: disable=g-import-not-at-top
     from distutils import util
+
     return util.strtobool(s) == 1
 
   def _serialize_str(str_value: str) -> str:
     if not isinstance(str_value, str):
       raise TypeError(
-          f'Value "{str_value}" has type "{type(str_value)}" instead of str.')
+          f'Value "{str_value}" has type "{type(str_value)}" instead of str.'
+      )
     return str_value
 
   # pylint: disable=g-import-not-at-top
   import argparse
+
   parser = argparse.ArgumentParser(
       prog='Notebooks Executor',
-      description='Executes a notebook using the Notebooks Executor API.')
+      description='Executes a notebook using the Notebooks Executor API.',
+  )
   parser.add_argument(
       '--project',
       dest='project',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--input_notebook_file',
       dest='input_notebook_file',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--output_notebook_folder',
       dest='output_notebook_folder',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--execution_id',
       dest='execution_id',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--location',
       dest='location',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--master_type',
       dest='master_type',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--container_image_uri',
       dest='container_image_uri',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--accelerator_type',
       dest='accelerator_type',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--accelerator_core_count',
       dest='accelerator_core_count',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--labels',
       dest='labels',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--params_yaml_file',
       dest='params_yaml_file',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--parameters',
       dest='parameters',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--service_account',
       dest='service_account',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--job_type',
       dest='job_type',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--kernel_spec',
       dest='kernel_spec',
       type=str,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--block_pipeline',
       dest='block_pipeline',
       type=_deserialize_bool,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--fail_pipeline',
       dest='fail_pipeline',
       type=_deserialize_bool,
       required=False,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
-      '----output-paths', dest='_output_paths', type=str, nargs=4)
+      '----output-paths', dest='_output_paths', type=str, nargs=4
+  )
 
   args, _ = parser.parse_known_args()
   parsed_args = vars(parser.parse_args())
@@ -379,6 +413,7 @@ def main():
   ]
 
   import os
+
   for idx, output_file in enumerate(output_files):
     try:
       os.makedirs(os.path.dirname(output_file))

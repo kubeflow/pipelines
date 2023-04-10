@@ -11,21 +11,21 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// APIURL api Url
-// swagger:model apiUrl
-type APIURL struct {
+// V2beta1URL v2beta1 Url
+// swagger:model v2beta1Url
+type V2beta1URL struct {
 
-	// pipeline url
+	// URL of the pipeline version definition.
 	PipelineURL string `json:"pipeline_url,omitempty"`
 }
 
-// Validate validates this api Url
-func (m *APIURL) Validate(formats strfmt.Registry) error {
+// Validate validates this v2beta1 Url
+func (m *V2beta1URL) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *APIURL) MarshalBinary() ([]byte, error) {
+func (m *V2beta1URL) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -33,8 +33,8 @@ func (m *APIURL) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *APIURL) UnmarshalBinary(b []byte) error {
-	var res APIURL
+func (m *V2beta1URL) UnmarshalBinary(b []byte) error {
+	var res V2beta1URL
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

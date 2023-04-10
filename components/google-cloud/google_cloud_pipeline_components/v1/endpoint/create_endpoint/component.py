@@ -34,6 +34,7 @@ def endpoint_create(
     encryption_spec_key_name: str = '',
     network: str = '',
 ):
+  # fmt: off
   """Creates a Google Cloud Vertex Endpoint and waits for it to be ready.
 
   For more details, see
@@ -85,6 +86,7 @@ def endpoint_create(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

@@ -32,4 +32,5 @@ __all__ = [
 
 
 HyperparameterTuningJobRunOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'component.yaml')
+)

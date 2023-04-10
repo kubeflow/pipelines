@@ -27,7 +27,7 @@ def split_dataset_into_train_and_validation(
     validation_data_path: str,
     input_data_path: str,
     validation_split: float = 0.2,
-    random_seed: int = 0
+    random_seed: int = 0,
 ) -> None:
   """Split JSON(L) Data into training and validation data.
 
@@ -42,13 +42,11 @@ def split_dataset_into_train_and_validation(
 
   data = pd.read_json(input_data_path, lines=True, orient='records')
 
-  train, test = train_test_split(data, test_size=validation_split,
-                                 random_state=random_seed,
-                                 shuffle=True)
-  train.to_json(path_or_buf=training_data_path,
-                lines=True, orient='records')
-  test.to_json(path_or_buf=validation_data_path,
-               lines=True, orient='records')
+  train, test = train_test_split(
+      data, test_size=validation_split, random_state=random_seed, shuffle=True
+  )
+  train.to_json(path_or_buf=training_data_path, lines=True, orient='records')
+  test.to_json(path_or_buf=validation_data_path, lines=True, orient='records')
 
 
 def _parse_args(args) -> Dict[str, Any]:
@@ -56,42 +54,42 @@ def _parse_args(args) -> Dict[str, Any]:
 
   Args:
     args: A list of arguments.
+
   Returns:
     A tuple containing an argparse.Namespace class instance holding parsed args,
     and a list containing all unknown args.
   """
 
   parser = argparse.ArgumentParser(
-      prog='Text classification data processing', description='')
-  parser.add_argument('--training-data-path',
-                      type=str,
-                      required=True,
-                      default=argparse.SUPPRESS)
-  parser.add_argument('--validation-data-path',
-                      type=str,
-                      required=True,
-                      default=argparse.SUPPRESS)
-  parser.add_argument('--input-data-path',
-                      type=str,
-                      required=True,
-                      default=argparse.SUPPRESS)
-  parser.add_argument('--validation-split',
-                      type=float,
-                      required=False,
-                      default=0.2)
-  parser.add_argument('--random-seed',
-                      type=int,
-                      required=False,
-                      default=0)
+      prog='Text classification data processing', description=''
+  )
+  parser.add_argument(
+      '--training-data-path', type=str, required=True, default=argparse.SUPPRESS
+  )
+  parser.add_argument(
+      '--validation-data-path',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS,
+  )
+  parser.add_argument(
+      '--input-data-path', type=str, required=True, default=argparse.SUPPRESS
+  )
+  parser.add_argument(
+      '--validation-split', type=float, required=False, default=0.2
+  )
+  parser.add_argument('--random-seed', type=int, required=False, default=0)
 
   parsed_args, _ = parser.parse_known_args(args)
 
   # Creating the directory where the output file is created. The parent
   # directory does not exist when building container components.
   pathlib.Path(parsed_args.training_data_path).parent.mkdir(
-      parents=True, exist_ok=True)
+      parents=True, exist_ok=True
+  )
   pathlib.Path(parsed_args.validation_data_path).parent.mkdir(
-      parents=True, exist_ok=True)
+      parents=True, exist_ok=True
+  )
 
   return vars(parsed_args)
 

@@ -17,9 +17,10 @@ import os
 
 from kfp.components import load_component_from_file
 
-__all__ = [
-    'SklearnTrainTestSplitJsonlOp'
-]
+__all__ = ['SklearnTrainTestSplitJsonlOp']
 
 SklearnTrainTestSplitJsonlOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'train_test_split_jsonl/component.yaml'))
+    os.path.join(
+        os.path.dirname(__file__), 'train_test_split_jsonl/component.yaml'
+    )
+)

@@ -30,39 +30,48 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   let pipelineManifest: string | undefined;
 
   // Retrieves v2 run detail.
-  const { isSuccess: getV2RunSuccess, data: v2Run } = useQuery<V2beta1Run, Error>(
-    ['v2_run_detail', { id: runId }],
-    () => Apis.runServiceApiV2.getRun(runId),
-    {},
-  );
+  const { isSuccess: getV2RunSuccess, isFetching: runIsFetching, data: v2Run } = useQuery<
+    V2beta1Run,
+    Error
+  >(['v2_run_detail', { id: runId }], () => Apis.runServiceApiV2.getRun(runId), {});
 
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
     pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
   }
 
-  const pipelineVersionId = v2Run?.pipeline_version_id;
+  const pipelineId = v2Run?.pipeline_version_reference?.pipeline_id;
+  const pipelineVersionId = v2Run?.pipeline_version_reference?.pipeline_version_id;
 
-  const { data: templateStrFromVersionId } = useQuery<string, Error>(
-    ['PipelineVersionTemplate', pipelineVersionId],
+  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } = useQuery<
+    string,
+    Error
+  >(
+    ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
     async () => {
-      if (!pipelineVersionId) {
+      if (!pipelineId || !pipelineVersionId) {
         return '';
       }
-      // TODO(jlyaoyuli): temporarily use v1 API here, need to change in pipeline API integration.
-      const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
-      return template?.template || '';
+      const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
+        pipelineId,
+        pipelineVersionId,
+      );
+      const pipelineSpec = pipelineVersion.pipeline_spec;
+      return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
     },
     { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
   );
 
-  const templateString = pipelineManifest ?? templateStrFromVersionId;
+  const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
   if (getV2RunSuccess && v2Run && templateString) {
-    // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
       return <RunDetailsV2 pipeline_job={templateString} run={v2Run} {...props} />;
     }
+  }
+
+  if (runIsFetching || templateStrIsFetching) {
+    return <div>Currently loading recurring run information</div>;
   }
 
   return <EnhancedRunDetails {...props} />;

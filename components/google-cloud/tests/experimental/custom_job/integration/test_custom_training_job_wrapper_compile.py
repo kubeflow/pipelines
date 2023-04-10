@@ -56,7 +56,7 @@ class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
     if os.path.exists(self._package_path):
       os.remove(self._package_path)
 
-  def _create_a_pytnon_based_component(self) -> callable:
+  def _create_a_pytnon_based_component(self):
     """Creates a test python based component factory."""
 
     @kfp.dsl.component

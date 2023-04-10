@@ -21,17 +21,27 @@ __all__ = [
     'DataprocPySparkBatchOp',
     'DataprocSparkBatchOp',
     'DataprocSparkRBatchOp',
-    'DataprocSparkSqlBatchOp'
+    'DataprocSparkSqlBatchOp',
 ]
 
 DataprocPySparkBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_pyspark_batch/component.yaml'))
+    os.path.join(
+        os.path.dirname(__file__), 'create_pyspark_batch/component.yaml'
+    )
+)
 
 DataprocSparkBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_spark_batch/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'create_spark_batch/component.yaml')
+)
 
 DataprocSparkRBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_spark_r_batch/component.yaml'))
+    os.path.join(
+        os.path.dirname(__file__), 'create_spark_r_batch/component.yaml'
+    )
+)
 
 DataprocSparkSqlBatchOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_spark_sql_batch/component.yaml'))
+    os.path.join(
+        os.path.dirname(__file__), 'create_spark_sql_batch/component.yaml'
+    )
+)
