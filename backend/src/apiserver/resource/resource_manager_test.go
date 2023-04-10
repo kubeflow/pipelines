@@ -3072,9 +3072,132 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		},
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[]",
 			PipelineSpecManifest: actualJob.PipelineSpec.PipelineSpecManifest,
 			PipelineName:         actualJob.PipelineSpec.PipelineName,
+		},
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
+	}
+	expectedJob.Conditions = "STATUS_UNSPECIFIED"
+	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+}
+
+func TestReportScheduledWorkflowResource_Success_withParamsV1(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	// report scheduled workflow
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       types.UID(job.UUID),
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{
+						Name:  "param_v1",
+						Value: "value_v1",
+					},
+				},
+			},
+		},
+	})
+	err := manager.ReportScheduledWorkflowResource(swf)
+	assert.Nil(t, err)
+
+	actualJob, err := manager.GetJob(job.UUID)
+	assert.Nil(t, err)
+
+	expectedJob := &model.Job{
+		K8SName:        "MY_NAME",
+		DisplayName:    "j1",
+		Namespace:      actualJob.Namespace,
+		ExperimentId:   actualJob.ExperimentId,
+		ServiceAccount: "pipeline-runner",
+		Enabled:        false,
+		UUID:           actualJob.UUID,
+		Conditions:     "STATUS_UNSPECIFIED",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				Cron: util.StringPointer(""),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				IntervalSecond: util.Int64Pointer(0),
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			Parameters:           `[{"name":"param_v1","value":"value_v1"}]`,
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			PipelineSpecManifest: actualJob.PipelineSpec.PipelineSpecManifest,
+			PipelineName:         actualJob.PipelineSpec.PipelineName,
+		},
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
+	}
+	expectedJob.Conditions = "STATUS_UNSPECIFIED"
+	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+}
+
+func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.T) {
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+	// report scheduled workflow
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "updated_name",
+			Namespace: "ns1",
+			UID:       types.UID(job.UUID),
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{
+						Name:  "param1",
+						Value: "\"world-updated\"",
+					},
+				},
+			},
+		},
+	})
+	err := manager.ReportScheduledWorkflowResource(swf)
+	assert.Nil(t, err)
+
+	actualJob, err := manager.GetJob(job.UUID)
+	assert.Nil(t, err)
+
+	expectedJob := &model.Job{
+		K8SName:        "updated_name",
+		DisplayName:    "j1",
+		Namespace:      "ns1",
+		ExperimentId:   job.ExperimentId,
+		ServiceAccount: "pipeline-runner",
+		Enabled:        false,
+		UUID:           actualJob.UUID,
+		Conditions:     "STATUS_UNSPECIFIED",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				Cron: util.StringPointer(""),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				IntervalSecond: util.Int64Pointer(0),
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: v2SpecHelloWorld,
+			PipelineName:         actualJob.PipelineSpec.PipelineName,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `{"param1":"world-updated"}`,
+				PipelineRoot: "job-1-root",
+			},
 		},
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 3,

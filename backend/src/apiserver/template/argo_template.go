@@ -122,9 +122,10 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
 	workflow.PatchTemplateOutputArtifacts()
 
-	swfParameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	// We assume that v1 Argo template use v1 parameters ignoring runtime config
+	swfParameters, err := stringArrayToCRDParameters(modelJob.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert model parameters to CRD parameters")
+		return nil, util.Wrap(err, "Failed to convert v1 parameters to CRD parameters")
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
@@ -132,6 +133,10 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,

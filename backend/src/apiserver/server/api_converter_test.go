@@ -1628,7 +1628,7 @@ func TestToApiJob_ErrorParsingField(t *testing.T) {
 
 	apiJob := toApiJobV1(modelJob)
 	assert.Equal(t, "job1", apiJob.Id)
-	assert.Contains(t, apiJob.Error, "Pipeline spec parameters were not parsed correctly")
+	assert.Contains(t, apiJob.Error, "Pipeline v1 parameters were not parsed correctly")
 
 	apiJob2 := toApiJobV1(modelJob2)
 	assert.Equal(t, "job2", apiJob2.Id)
@@ -2073,6 +2073,39 @@ func TestToApiParameters(t *testing.T) {
 	modelParameters := `[{"name":"param2","value":"world"}]`
 	actualApiParameters := toApiParametersV1(modelParameters)
 	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
+	expectedApiParameters = []*apiv1beta1.Parameter{
+		{
+			Name:  "pipeline-root",
+			Value: "gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}",
+		},
+		{
+			Name:  "version",
+			Value: "2",
+		},
+	}
+	modelParameters = `[{"name":"pipeline-root","value":"gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"},{"name":"version","value":"2"}]`
+	actualApiParameters = toApiParametersV1(modelParameters)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
+}
+
+func TestToMapProtoStructParameters(t *testing.T) {
+	expectedApiParameters := map[string]*structpb.Value{
+		"param2": structpb.NewStringValue("world"),
+	}
+	modelParameters := `[{"name":"param2","value":"world"}]`
+	actualApiParameters := toMapProtoStructParameters(modelParameters)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
+	expectedApiParameters = map[string]*structpb.Value{
+		"pipeline-root": structpb.NewStringValue("gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"),
+		"version":       structpb.NewStringValue("2"),
+	}
+	modelParameters = `[{"name":"pipeline-root","value":"gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"},{"name":"version","value":"2"}]`
+	actualApiParameters = toMapProtoStructParameters(modelParameters)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
 }
 
 func TestToApiRuntimeConfigV1(t *testing.T) {

@@ -201,6 +201,10 @@ func TestScheduledWorkflow(t *testing.T) {
 	}
 
 	expectedScheduledWorkflow := scheduledworkflow.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{GenerateName: "name1"},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        true,
