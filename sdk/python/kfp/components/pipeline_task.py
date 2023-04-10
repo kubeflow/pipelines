@@ -246,6 +246,13 @@ class PipelineTask:
         self._task_spec.enable_caching = enable_caching
         return self
 
+    def _ensure_container_spec_exists(self) -> None:
+        """Ensures that the task has a container spec."""
+        if self.container_spec is None:
+            raise ValueError(
+                'This setting can only be set on single-step components, not pipelines used as components, or special components like importers.'
+            )
+
     def _validate_cpu_request_limit(self, cpu: str) -> float:
         """Validates cpu request/limit string and converts to its numeric
         value.
@@ -281,11 +288,9 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        cpu = self._validate_cpu_request_limit(cpu)
+        self._ensure_container_spec_exists()
 
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        cpu = self._validate_cpu_request_limit(cpu)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.cpu_request = cpu
@@ -307,11 +312,9 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        cpu = self._validate_cpu_request_limit(cpu)
+        self._ensure_container_spec_exists()
 
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        cpu = self._validate_cpu_request_limit(cpu)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.cpu_limit = cpu
@@ -331,14 +334,12 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
+        self._ensure_container_spec_exists()
+
         if isinstance(limit, str):
             if re.match(r'[1-9]\d*$', limit) is None:
                 raise ValueError(f'{"limit"!r} must be positive integer.')
             limit = int(limit)
-
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
@@ -428,11 +429,9 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        memory = self._validate_memory_request_limit(memory)
+        self._ensure_container_spec_exists()
 
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        memory = self._validate_memory_request_limit(memory)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.memory_request = memory
@@ -453,11 +452,9 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        memory = self._validate_memory_request_limit(memory)
+        self._ensure_container_spec_exists()
 
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        memory = self._validate_memory_request_limit(memory)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.memory_limit = memory
@@ -514,9 +511,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        self._ensure_container_spec_exists()
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_type = accelerator
@@ -550,6 +545,8 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
+        self._ensure_container_spec_exists()
+
         if self.container_spec.env is not None:
             self.container_spec.env[name] = value
         else:
