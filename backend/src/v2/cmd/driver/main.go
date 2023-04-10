@@ -156,7 +156,6 @@ func drive() (err error) {
 		Task:             taskSpec,
 		DAGExecutionID:   *dagExecutionID,
 		IterationIndex:   *iterationIndex,
-		KubernetesConfig: kubernetesConfig,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -168,6 +167,7 @@ func drive() (err error) {
 		execution, driverErr = driver.DAG(ctx, options, client)
 	case "CONTAINER":
 		options.Container = containerSpec
+		options.KubernetesConfig = kubernetesConfig
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
