@@ -1924,6 +1924,12 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	} else if pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
+	status := model.StatusStateUnspecified
+	if isEnabled {
+		status = model.StatusStateEnabled
+	} else {
+		status = model.StatusStateDisabled
+	}
 	return &model.Job{
 		UUID:               jobId,
 		DisplayName:        jobName,
@@ -1936,6 +1942,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		CreatedAtInSec:     createTime,
 		UpdatedAtInSec:     updateTime,
 		Enabled:            isEnabled,
+		Conditions:         status.ToString(),
 		ExperimentId:       experimentId,
 		ResourceReferences: resRefs,
 		Trigger:            *trigger,

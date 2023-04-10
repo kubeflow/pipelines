@@ -498,6 +498,7 @@ func TestToModelJob(t *testing.T) {
 				DisplayName:  "name1",
 				K8SName:      "name1",
 				Enabled:      true,
+				Conditions:   "ENABLED",
 				ExperimentId: "exp1",
 				Trigger: model.Trigger{
 					CronSchedule: model.CronSchedule{
@@ -513,7 +514,8 @@ func TestToModelJob(t *testing.T) {
 				},
 				ResourceReferences: make([]*model.ResourceReference, 0),
 			},
-		}, {
+		},
+		{
 			name: "v1api v2template",
 			job: &apiv1beta1.Job{
 				Name:           "name1",
@@ -542,6 +544,7 @@ func TestToModelJob(t *testing.T) {
 				K8SName:      "name1",
 				DisplayName:  "name1",
 				Enabled:      true,
+				Conditions:   "ENABLED",
 				ExperimentId: "exp1",
 				Trigger: model.Trigger{
 					CronSchedule: model.CronSchedule{
