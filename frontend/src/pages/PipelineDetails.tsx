@@ -32,8 +32,12 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
-import { ApiExperiment } from 'src/apis/experiment';
 import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import {
+  V2beta1ListPipelineVersionsResponse,
+  V2beta1Pipeline,
+  V2beta1PipelineVersion,
+} from 'src/apisv2beta1/pipeline';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
@@ -50,17 +54,21 @@ import { ApiRunDetail } from 'src/apis/run';
 import { ApiJob } from 'src/apis/job';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
   reducedGraph: dagre.graphlib.Graph | null;
   graphV2: PipelineFlowElement[] | null;
-  pipeline: ApiPipeline | null;
+  v1Pipeline: ApiPipeline | null;
+  v2Pipeline: V2beta1Pipeline | null;
   selectedNodeInfo: JSX.Element | null;
-  selectedVersion?: ApiPipelineVersion;
+  v1SelectedVersion?: ApiPipelineVersion;
+  v2SelectedVersion?: V2beta1PipelineVersion;
   template?: Workflow;
   templateString?: string;
-  versions: ApiPipelineVersion[];
+  v1Versions: ApiPipelineVersion[];
+  v2Versions: V2beta1PipelineVersion[];
 }
 
 type Origin = {
@@ -81,9 +89,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       graph: null,
       reducedGraph: null,
       graphV2: null,
-      pipeline: null,
+      v1Pipeline: null,
+      v2Pipeline: null,
       selectedNodeInfo: null,
-      versions: [],
+      v1Versions: [],
+      v2Versions: [],
     };
   }
 
@@ -125,15 +135,17 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       // Add buttons for creating experiment and deleting pipeline version
       buttons
         .newExperiment(() =>
-          this.state.pipeline
-            ? this.state.pipeline.id!
+          this.state.v1Pipeline
+            ? this.state.v1Pipeline.id!
             : pipelineIdFromParams
             ? pipelineIdFromParams
             : '',
         )
-        .delete(
-          () => (pipelineVersionIdFromParams ? [pipelineVersionIdFromParams] : []),
-          'pipeline version',
+        .deletePipelineVersion(
+          () =>
+            pipelineIdFromParams && pipelineVersionIdFromParams
+              ? new Map<string, string>([[pipelineVersionIdFromParams, pipelineIdFromParams]])
+              : new Map<string, string>(),
           this._deleteCallback.bind(this),
           pipelineVersionIdFromParams ? true : false /* useCurrentResource */,
         );
@@ -147,13 +159,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public render(): JSX.Element {
     const {
-      pipeline,
-      selectedVersion,
-      templateString,
-      versions,
+      v1Pipeline,
+      v2Pipeline,
+      v1SelectedVersion,
+      v2SelectedVersion,
+      v1Versions,
+      v2Versions,
       graph,
       graphV2,
       reducedGraph,
+      templateString,
     } = this.state;
 
     const setLayers = (layers: string[]) => {
@@ -175,21 +190,21 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             templateString={templateString}
             pipelineFlowElements={graphV2!}
             setSubDagLayers={setLayers}
-            apiPipeline={pipeline}
-            selectedVersion={selectedVersion}
-            versions={versions}
-            handleVersionSelected={this.handleVersionSelected.bind(this)}
+            pipeline={v2Pipeline}
+            selectedVersion={v2SelectedVersion}
+            versions={v2Versions}
+            handleVersionSelected={this.handleVersionSelectedV2.bind(this)}
           />
         )}
         {!showV2Pipeline && (
           <PipelineDetailsV1
-            pipeline={pipeline}
+            pipeline={v1Pipeline}
             templateString={templateString}
             graph={graph}
             reducedGraph={reducedGraph}
             updateBanner={this.props.updateBanner}
-            selectedVersion={selectedVersion}
-            versions={versions}
+            selectedVersion={v1SelectedVersion}
+            versions={v1Versions}
             handleVersionSelected={this.handleVersionSelected.bind(this)}
           />
         )}
@@ -225,12 +240,19 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   private async getTempStrFromRunOrRecurringRun(existingObj: V2beta1Run | V2beta1RecurringRun) {
     // existing run or recurring run have two kinds of resources that can provide template string
 
-    // 1. Pipeline version id
+    // 1. Pipeline and pipeline version id
+    const pipelineId = existingObj.pipeline_version_reference?.pipeline_id;
     const pipelineVersionId = existingObj.pipeline_version_reference?.pipeline_version_id;
     let templateStrFromOrigin: string | undefined;
-    if (pipelineVersionId) {
-      const response = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
-      templateStrFromOrigin = response.template || '';
+    if (pipelineId && pipelineVersionId) {
+      const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
+        pipelineId,
+        pipelineVersionId,
+      );
+      const pipelineSpecFromVersion = pipelineVersion.pipeline_spec;
+      templateStrFromOrigin = pipelineSpecFromVersion
+        ? JsYaml.safeDump(pipelineSpecFromVersion)
+        : '';
     }
 
     // 2. Pipeline_spec
@@ -242,20 +264,66 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return pipelineManifest ?? templateStrFromOrigin;
   }
 
+  // We don't have default version in v2 pipeline proto, choose the latest version instead.
+  private async getSelectedVersion(pipelineId: string, versionId?: string) {
+    // Get specific version if version id is provided
+    if (versionId) {
+      try {
+        return await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
+      } catch (err) {
+        await this.showPageError('Cannot retrieve pipeline version.', err);
+        logger.error('Cannot retrieve pipeline version.', err);
+        return;
+      }
+    } else {
+      // Get the latest version if no version id
+      let listVersionsResponse: V2beta1ListPipelineVersionsResponse;
+      let latesetVersion: V2beta1PipelineVersion;
+      try {
+        listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
+          pipelineId,
+          undefined,
+          1, // Only need the latest one
+          'created_at desc',
+        );
+
+        if (listVersionsResponse.pipeline_versions) {
+          latesetVersion = listVersionsResponse.pipeline_versions[0];
+          // Append version id to URL for create run (new run switcher call getPipelineVersion)
+          this.props.history.replace({
+            pathname: `/pipelines/details/${pipelineId}/version/${latesetVersion.pipeline_version_id}`,
+          });
+          return latesetVersion;
+        }
+        return undefined;
+      } catch (err) {
+        await this.showPageError('Cannot retrieve pipeline version list.', err);
+        logger.error('Cannot retrieve pipeline version list.', err);
+        return;
+      }
+    }
+  }
+
   public async load(): Promise<void> {
     this.clearBanner();
     const origin = this.getOrigin();
 
-    let pipeline: ApiPipeline | null = null;
-    let version: ApiPipelineVersion | null = null;
+    let v1Pipeline: ApiPipeline | null = null;
+    let v1Version: ApiPipelineVersion | null = null;
+    let v1SelectedVersion: ApiPipelineVersion | undefined;
+    let v1Versions: ApiPipelineVersion[] = [];
+
+    let v2Pipeline: V2beta1Pipeline | null = null;
+    let v2SelectedVersion: V2beta1PipelineVersion | undefined;
+    let v2Versions: V2beta1PipelineVersion[] = [];
+
     let templateString = '';
     let breadcrumbs: Array<{ displayName: string; href: string }> = [];
     const toolbarActions = this.props.toolbarProps.actions;
     let pageTitle = '';
-    let selectedVersion: ApiPipelineVersion | undefined;
-    let versions: ApiPipelineVersion[] = [];
 
-    // If fromRunId or fromRecurringRunId is specified, load the run and get the pipeline template from it
+    // If fromRunId or fromRecurringRunId is specified,
+    // then load the run and get the pipeline template from it
     if (origin) {
       const msgRunOrRecurringRun = origin.isRecurring ? 'recurring run' : 'run';
       try {
@@ -325,14 +393,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         }
 
         // We have 2 options to get experiment id (resource_ref in v1, experiment_id in v2)
-        // and use it to getExperiment().
-        // We choose v2 to make the API integration more comprehensively.
+        // which is used in getExperiment(). Getting the experiment id from v2 API works well
+        // for any runs created via v1 api v2 APIs. Therefore, choosing v2 API is feasible and also
+        // makes the API integration more comprehensively.
         const relatedExperimentId = origin.isRecurring
           ? origin.v2RecurringRun?.experiment_id
           : origin.v2Run?.experiment_id;
-        let experiment: ApiExperiment | undefined;
+        let experiment: V2beta1Experiment | undefined;
         if (relatedExperimentId) {
-          experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+          experiment = await Apis.experimentServiceApiV2.getExperiment(relatedExperimentId);
         }
 
         // Build the breadcrumbs, by adding experiment and run names
@@ -340,10 +409,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           breadcrumbs.push(
             { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
             {
-              displayName: experiment.name!,
+              displayName: experiment.display_name!,
               href: RoutePage.EXPERIMENT_DETAILS.replace(
                 ':' + RouteParams.experimentId,
-                experiment.id!,
+                experiment.experiment_id!,
               ),
             },
           );
@@ -373,21 +442,21 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     } else {
       // if fromRunId or fromRecurringRunId is not specified, then we have a full pipeline
       const pipelineId = this.props.match.params[RouteParams.pipelineId];
+      const versionId = this.props.match.params[RouteParams.pipelineVersionId];
 
       try {
-        pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+        v1Pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+        v2Pipeline = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
       } catch (err) {
         await this.showPageError('Cannot retrieve pipeline details.', err);
         logger.error('Cannot retrieve pipeline details.', err);
         return;
       }
 
-      const versionId = this.props.match.params[RouteParams.pipelineVersionId];
-
       try {
         // TODO(rjbauer): it's possible we might not have a version, even default
         if (versionId) {
-          version = await Apis.pipelineServiceApi.getPipelineVersion(versionId);
+          v1Version = await Apis.pipelineServiceApi.getPipelineVersion(versionId);
         }
       } catch (err) {
         await this.showPageError('Cannot retrieve pipeline version.', err);
@@ -395,21 +464,26 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         return;
       }
 
-      selectedVersion = versionId ? version! : pipeline.default_version;
+      v1SelectedVersion = versionId ? v1Version! : v1Pipeline.default_version;
+      v2SelectedVersion = await this.getSelectedVersion(pipelineId, versionId);
 
-      if (!selectedVersion) {
+      if (!v1SelectedVersion && !v2SelectedVersion) {
         // An empty pipeline, which doesn't have any version.
-        pageTitle = pipeline.name!;
+        pageTitle = v2Pipeline.display_name!;
         const actions = this.props.toolbarProps.actions;
         actions[ButtonKeys.DELETE_RUN].disabled = true;
         this.props.updateToolbar({ actions });
       } else {
         // Fetch manifest for the selected version under this pipeline.
-        pageTitle = pipeline.name!.concat(' (', selectedVersion!.name!, ')');
+        // Basically, v1 and v2 selectedVersion are existing simultanesouly
+        // Set v2 has higher priority is only for full migration after v1 is deprecated
+        pageTitle = v2SelectedVersion
+          ? v2Pipeline.display_name!.concat(' (', v2SelectedVersion!.display_name!, ')')
+          : v1Pipeline.name!.concat(' (', v1SelectedVersion!.name!, ')');
         try {
           // TODO(jingzhang36): pagination not proper here. so if many versions,
           // the page size value should be?
-          versions =
+          v1Versions =
             (
               await Apis.pipelineServiceApi.listPipelineVersions(
                 'PIPELINE',
@@ -419,12 +493,25 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                 'created_at desc',
               )
             ).versions || [];
+
+          v2Versions =
+            (
+              await Apis.pipelineServiceApiV2.listPipelineVersions(
+                pipelineId,
+                undefined,
+                50,
+                'created_at desc',
+              )
+            ).pipeline_versions || [];
         } catch (err) {
           await this.showPageError('Cannot retrieve pipeline versions.', err);
           logger.error('Cannot retrieve pipeline versions.', err);
           return;
         }
-        templateString = await this._getTemplateString(pipelineId, versionId);
+        templateString = await this._getTemplateString(
+          pipelineId,
+          v2SelectedVersion ? v2SelectedVersion.pipeline_version_id! : v1SelectedVersion?.id!,
+        );
       }
 
       breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
@@ -434,38 +521,46 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
+    // TBD(jlyaoyuli): If we allow upload v1 version to v2 pipeline or vice versa,
+    // v1 and v2 field should change to "non-exclusive".
     if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
       this.setStateSafe({
+        v1Pipeline: undefined,
+        v2Pipeline,
+        v1SelectedVersion: undefined,
+        v2SelectedVersion,
+        v1Versions: undefined,
+        v2Versions,
         graph: undefined,
-        reducedGraph: undefined,
         graphV2,
-        pipeline,
-        selectedVersion,
+        reducedGraph: undefined,
         templateString,
-        versions,
       });
     } else {
       this.setStateSafe({
+        v1Pipeline,
+        v2Pipeline: undefined,
+        v1SelectedVersion,
+        v2SelectedVersion: undefined,
+        v1Versions,
+        v2Versions: undefined,
         graph,
-        reducedGraph,
         graphV2: undefined,
-        pipeline,
-        selectedVersion,
+        reducedGraph,
         templateString,
-        versions,
       });
     }
   }
 
   public async handleVersionSelected(versionId: string): Promise<void> {
-    if (this.state.pipeline) {
-      const selectedVersion = (this.state.versions || []).find(v => v.id === versionId);
+    if (this.state.v1Pipeline) {
+      const selectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
       const selectedVersionPipelineTemplate = await this._getTemplateString(
-        this.state.pipeline.id!,
+        this.state.v1Pipeline.id!,
         versionId,
       );
       this.props.history.replace({
-        pathname: `/pipelines/details/${this.state.pipeline.id}/version/${versionId}`,
+        pathname: `/pipelines/details/${this.state.v1Pipeline.id}/version/${versionId}`,
       });
 
       const [graph, reducedGraph, graphV2] = await this._createGraph(
@@ -476,7 +571,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graph: undefined,
           reducedGraph: undefined,
           graphV2,
-          selectedVersion,
+          v1SelectedVersion: selectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       } else {
@@ -484,7 +579,43 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graph,
           reducedGraph,
           graphV2: undefined,
-          selectedVersion,
+          v1SelectedVersion: selectedVersion,
+          templateString: selectedVersionPipelineTemplate,
+        });
+      }
+    }
+  }
+
+  public async handleVersionSelectedV2(versionId: string): Promise<void> {
+    if (this.state.v2Pipeline) {
+      const selectedVersion = (this.state.v2Versions || []).find(
+        v => v.pipeline_version_id === versionId,
+      );
+      const selectedVersionPipelineTemplate = await this._getTemplateString(
+        this.state.v2Pipeline.pipeline_id!,
+        versionId,
+      );
+      this.props.history.replace({
+        pathname: `/pipelines/details/${this.state.v2Pipeline.pipeline_id}/version/${versionId}`,
+      });
+
+      const [graph, reducedGraph, graphV2] = await this._createGraph(
+        selectedVersionPipelineTemplate,
+      );
+      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
+        this.setStateSafe({
+          graph: undefined,
+          reducedGraph: undefined,
+          graphV2,
+          v2SelectedVersion: selectedVersion,
+          templateString: selectedVersionPipelineTemplate,
+        });
+      } else {
+        this.setStateSafe({
+          graph,
+          reducedGraph,
+          graphV2: undefined,
+          v2SelectedVersion: selectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       }
@@ -493,13 +624,28 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   private async _getTemplateString(pipelineId: string, versionId: string): Promise<string> {
     try {
+      // Get template string from pipeline_spec in pipeline version (v2 API)
+      let pipelineVersion;
+      let pipelineSpecInVersion;
+      if (pipelineId && versionId) {
+        pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
+        pipelineSpecInVersion = pipelineVersion.pipeline_spec;
+      }
+      const templateStrFromSpec = pipelineSpecInVersion
+        ? JsYaml.safeDump(pipelineSpecInVersion)
+        : '';
+
+      // Get template string from template or pipeline version template (v1 API)
       let templateResponse: ApiGetTemplateResponse;
       if (versionId) {
         templateResponse = await Apis.pipelineServiceApi.getPipelineVersionTemplate(versionId);
       } else {
         templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
       }
-      return templateResponse.template || '';
+
+      return WorkflowUtils.isTemplateV2(templateStrFromSpec)
+        ? templateStrFromSpec
+        : templateResponse.template || '';
     } catch (err) {
       await this.showPageError('Cannot retrieve pipeline template.', err);
       logger.error('Cannot retrieve pipeline details.', err);
