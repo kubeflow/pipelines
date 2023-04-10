@@ -338,6 +338,25 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_display_name('test_name')
         self.assertEqual('test_name', task._task_spec.display_name)
 
+    def test_set_cpu_limit_on_pipeline_should_raise(self):
+
+        @dsl.component
+        def comp():
+            print('hello')
+
+        @dsl.pipeline
+        def graph():
+            comp()
+            comp()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'set_cpu_limit can only be used on single-step components'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                graph().set_cpu_limit('1')
+
 
 class TestPlatformSpecificFunctionality(unittest.TestCase):
 

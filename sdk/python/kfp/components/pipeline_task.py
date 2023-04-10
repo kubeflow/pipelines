@@ -14,6 +14,7 @@
 """Pipeline task class and operations."""
 
 import copy
+import inspect
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Union
@@ -248,9 +249,11 @@ class PipelineTask:
 
     def _ensure_container_spec_exists(self) -> None:
         """Ensures that the task has a container spec."""
+        caller_method_name = inspect.stack()[1][3]
+
         if self.container_spec is None:
             raise ValueError(
-                'This setting can only be set on single-step components, not pipelines used as components, or special components like importers.'
+                f'{caller_method_name} can only be used on single-step components, not pipelines used as components, or special components like importers.'
             )
 
     def _validate_cpu_request_limit(self, cpu: str) -> float:
