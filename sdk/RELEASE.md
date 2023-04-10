@@ -2,6 +2,7 @@
 
 ## Features
 * `pip_index_urls` is now considered also for containerized python component - the urls will be used for Dockerfile generation [\#8871](https://github.com/kubeflow/pipelines/pull/8871)
+* Support direct indexing into top-level of artifact metadata struct in Container Components [\#9131](https://github.com/kubeflow/pipelines/pull/9131)
 
 ## Breaking changes
 
