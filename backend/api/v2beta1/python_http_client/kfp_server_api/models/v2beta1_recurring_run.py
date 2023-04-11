@@ -37,7 +37,7 @@ class V2beta1RecurringRun(object):
         'display_name': 'str',
         'description': 'str',
         'pipeline_version_id': 'str',
-        'pipeline_spec': 'object',
+        'pipeline_spec': 'ProtobufStruct',
         'pipeline_version_reference': 'V2beta1PipelineVersionReference',
         'runtime_config': 'V2beta1RuntimeConfig',
         'service_account': 'str',
@@ -233,10 +233,9 @@ class V2beta1RecurringRun(object):
     def pipeline_spec(self):
         """Gets the pipeline_spec of this V2beta1RecurringRun.  # noqa: E501
 
-        The pipeline spec.  # noqa: E501
 
         :return: The pipeline_spec of this V2beta1RecurringRun.  # noqa: E501
-        :rtype: object
+        :rtype: ProtobufStruct
         """
         return self._pipeline_spec
 
@@ -244,10 +243,9 @@ class V2beta1RecurringRun(object):
     def pipeline_spec(self, pipeline_spec):
         """Sets the pipeline_spec of this V2beta1RecurringRun.
 
-        The pipeline spec.  # noqa: E501
 
         :param pipeline_spec: The pipeline_spec of this V2beta1RecurringRun.  # noqa: E501
-        :type pipeline_spec: object
+        :type pipeline_spec: ProtobufStruct
         """
 
         self._pipeline_spec = pipeline_spec

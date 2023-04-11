@@ -37,14 +37,14 @@ resources:
   - kfp-launcher-configmap.yaml
 images:
   - name: gcr.io/ml-pipeline/api-server
-    newTag: 2.0.0-beta.0
+    newTag: 2.0.0-beta.1
   - name: gcr.io/ml-pipeline/persistenceagent
-    newTag: 2.0.0-beta.0
+    newTag: 2.0.0-beta.1
   - name: gcr.io/ml-pipeline/scheduledworkflow
-    newTag: 2.0.0-beta.0
+    newTag: 2.0.0-beta.1
   - name: gcr.io/ml-pipeline/frontend
-    newTag: 2.0.0-beta.0
+    newTag: 2.0.0-beta.1
   - name: gcr.io/ml-pipeline/viewer-crd-controller
-    newTag: 2.0.0-beta.0
+    newTag: 2.0.0-beta.1
   - name: gcr.io/ml-pipeline/visualization-server
-    newTag: 2.0.0-beta.0
+    newTag: 2.0.0-beta.1
