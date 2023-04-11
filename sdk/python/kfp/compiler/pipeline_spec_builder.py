@@ -507,9 +507,15 @@ def build_container_spec_for_task(
             ]))
 
     if task.container_spec.resources is not None:
+        if task.container_spec.resources.cpu_request is not None:
+            container_spec.resources.cpu_request = (
+                task.container_spec.resources.cpu_request)
         if task.container_spec.resources.cpu_limit is not None:
             container_spec.resources.cpu_limit = (
                 task.container_spec.resources.cpu_limit)
+        if task.container_spec.resources.memory_request is not None:
+            container_spec.resources.memory_request = (
+                task.container_spec.resources.memory_request)
         if task.container_spec.resources.memory_limit is not None:
             container_spec.resources.memory_limit = (
                 task.container_spec.resources.memory_limit)

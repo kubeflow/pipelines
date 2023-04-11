@@ -87,9 +87,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-	parameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	parameters, err := stringMapToCRDParameters(modelJob.RuntimeConfig.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed")
+		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
@@ -97,6 +97,10 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,

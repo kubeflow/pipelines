@@ -1143,11 +1143,9 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			namespace = execSpec.ExecutionNamespace()
 		}
 		// Scheduled time equals created time if it is not specified
-		var scheduledTimeInSec int64
-		if execSpec.ScheduledAtInSecOr0() == 0 {
+		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
+		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
-		} else {
-			scheduledTimeInSec = execSpec.ScheduledAtInSecOr0()
 		}
 		run = &model.Run{
 			UUID:           runId,

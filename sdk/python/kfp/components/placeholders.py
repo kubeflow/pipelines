@@ -127,6 +127,9 @@ class InputMetadataPlaceholder(Placeholder):
     def _to_string(self) -> str:
         return f"{{{{$.inputs.artifacts['{self.input_name}'].metadata}}}}"
 
+    def __getitem__(self, key: str) -> str:
+        return f"{{{{$.inputs.artifacts['{self.input_name}'].metadata['{key}']}}}}"
+
 
 class OutputParameterPlaceholder(Placeholder):
 
@@ -162,6 +165,9 @@ class OutputMetadataPlaceholder(Placeholder):
 
     def _to_string(self) -> str:
         return f"{{{{$.outputs.artifacts['{self.output_name}'].metadata}}}}"
+
+    def __getitem__(self, key: str) -> str:
+        return f"{{{{$.outputs.artifacts['{self.output_name}'].metadata['{key}']}}}}"
 
 
 class ConcatPlaceholder(Placeholder):
