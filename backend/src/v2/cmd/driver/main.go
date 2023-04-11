@@ -52,7 +52,7 @@ var (
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
 	containerSpecJson = flag.String("container", "{}", "container spec")
-	k8sExecConfigJson = flag.String("kubernetes_exec_config", "{}", "kubernetes executor config")
+	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
