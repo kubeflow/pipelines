@@ -198,9 +198,10 @@ def list_versions(ctx: click.Context, pipeline_id: str, page_token: str,
 
 
 @pipeline.command()
+@click.argument('pipeline-id')
 @click.argument('version-id')
 @click.pass_context
-def delete_version(ctx: click.Context, version_id: str):
+def delete_version(ctx: click.Context, pipeline_id: str, version_id: str):
     """Delete a version of a pipeline."""
     confirmation = f'Are you sure you want to delete pipeline version {version_id}?'
     if not click.confirm(confirmation):
@@ -209,7 +210,8 @@ def delete_version(ctx: click.Context, version_id: str):
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    client_obj.delete_pipeline_version(version_id)
+    client_obj.delete_pipeline_version(
+        pipeline_id=pipeline_id, pipeline_version_id=version_id)
     output.print_deleted_text('pipeline version', version_id, output_format)
 
 
@@ -230,14 +232,16 @@ def get(ctx: click.Context, pipeline_id: str):
 
 
 @pipeline.command()
+@click.argument('pipeline-id')
 @click.argument('version-id')
 @click.pass_context
-def get_version(ctx: click.Context, version_id: str):
+def get_version(ctx: click.Context, pipeline_id: str, version_id: str):
     """Get information about a version of a pipeline."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    version = client_obj.get_pipeline_version(version_id=version_id)
+    version = client_obj.get_pipeline_version(
+        pipeline_id=pipeline_id, pipeline_version_id=version_id)
     output.print_output(
         version,
         output.ModelType.PIPELINE,

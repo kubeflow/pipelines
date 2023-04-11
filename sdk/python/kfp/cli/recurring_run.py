@@ -159,7 +159,7 @@ def create(ctx: click.Context,
         version_id=version_id)
     output.print_output(
         recurring_run,
-        output.ModelType.JOB,
+        output.ModelType.RECURRING_RUN,
         output_format,
     )
 
@@ -202,73 +202,75 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
         sort_by=sort_by,
         filter=filter)
     output.print_output(
-        response.jobs or [],
-        output.ModelType.JOB,
+        response.recurring_runs or [],
+        output.ModelType.RECURRING_RUN,
         output_format,
     )
 
 
 @recurring_run.command()
-@click.argument('job-id')
+@click.argument('recurring-run-id')
 @click.pass_context
-def get(ctx: click.Context, job_id: str):
+def get(ctx: click.Context, recurring_run_id: str):
     """Get information about a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    recurring_run = client_obj.get_recurring_run(job_id)
+    recurring_run = client_obj.get_recurring_run(recurring_run_id)
     output.print_output(
         recurring_run,
-        output.ModelType.JOB,
+        output.ModelType.RECURRING_RUN,
         output_format,
     )
 
 
 @recurring_run.command()
-@click.argument('job-id')
+@click.argument('recurring-run-id')
 @click.pass_context
-def delete(ctx: click.Context, job_id: str):
+def delete(ctx: click.Context, recurring_run_id: str):
     """Delete a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
-    confirmation = f'Are you sure you want to delete job {job_id}?'
+    confirmation = f'Are you sure you want to delete job {recurring_run_id}?'
     if not click.confirm(confirmation):
         return
-    client_obj.delete_job(job_id)
-    output.print_deleted_text('job', job_id, output_format)
+    client_obj.delete_recurring_run(recurring_run_id)
+    output.print_deleted_text('recurring_run', recurring_run_id, output_format)
 
 
 @recurring_run.command()
-@click.argument('job-id')
+@click.argument('recurring-run-id')
 @click.pass_context
-def enable(ctx: click.Context, job_id: str):
+def enable(ctx: click.Context, recurring_run_id: str):
     """Enable a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    client_obj.enable_job(job_id=job_id)
+    client_obj.enable_recurring_run(recurring_run_id=recurring_run_id)
     # TODO: add wait option, since enable takes time to complete
-    recurring_run = client_obj.get_recurring_run(job_id=job_id)
+    recurring_run = client_obj.get_recurring_run(
+        recurring_run_id=recurring_run_id)
     output.print_output(
         recurring_run,
-        output.ModelType.JOB,
+        output.ModelType.RECURRING_RUN,
         output_format,
     )
 
 
 @recurring_run.command()
-@click.argument('job-id')
+@click.argument('recurring-run-id')
 @click.pass_context
-def disable(ctx: click.Context, job_id: str):
+def disable(ctx: click.Context, recurring_run_id: str):
     """Disable a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    client_obj.disable_job(job_id=job_id)
+    client_obj.disable_recurring_run(recurring_run_id=recurring_run_id)
     # TODO: add wait option, since disable takes time to complete
-    recurring_run = client_obj.get_recurring_run(job_id=job_id)
+    recurring_run = client_obj.get_recurring_run(
+        recurring_run_id=recurring_run_id)
     output.print_output(
         recurring_run,
-        output.ModelType.JOB,
+        output.ModelType.RECURRING_RUN,
         output_format,
     )

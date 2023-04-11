@@ -133,21 +133,21 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
 
     experiment = client_obj.create_experiment(experiment_name)
     run = client_obj.run_pipeline(
-        experiment_id=experiment.id,
+        experiment_id=experiment.experiment_id,
         job_name=run_name,
         pipeline_package_path=package_file,
         params=arg_dict,
         pipeline_id=pipeline_id,
         version_id=version)
     if timeout > 0:
-        run_detail = client_obj.wait_for_run_completion(run.id, timeout)
+        run_detail = client_obj.wait_for_run_completion(run.run_id, timeout)
         output.print_output(
             run_detail.run,
             output.ModelType.RUN,
             output_format,
         )
     else:
-        display_run(client_obj, namespace, run.id, watch, output_format)
+        display_run(client_obj, namespace, run.run_id, watch, output_format)
 
 
 @run.command()
