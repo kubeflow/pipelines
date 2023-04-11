@@ -36,6 +36,7 @@ __all__ = [
     'PIPELINE_JOB_ID_PLACEHOLDER',
     'PIPELINE_TASK_NAME_PLACEHOLDER',
     'PIPELINE_TASK_ID_PLACEHOLDER',
+    'PIPELINE_ROOT_PLACEHOLDER',
     'Artifact',
     'ClassificationMetrics',
     'Dataset',
