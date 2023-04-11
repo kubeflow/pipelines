@@ -36,6 +36,7 @@ __all__ = [
     'PIPELINE_JOB_ID_PLACEHOLDER',
     'PIPELINE_TASK_NAME_PLACEHOLDER',
     'PIPELINE_TASK_ID_PLACEHOLDER',
+    'PIPELINE_ROOT_PLACEHOLDER',
     'Artifact',
     'ClassificationMetrics',
     'Dataset',
@@ -151,6 +152,20 @@ PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
                 value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
             )
 """
+
+PIPELINE_ROOT_PLACEHOLDER = '{{$.pipeline_root}}'
+"""A placeholder used to obtain the pipeline root.
+
+    Example:
+      ::
+
+        @dsl.pipeline
+        def my_pipeline():
+            store_model(
+                tmp_dir=dsl.PIPELINE_ROOT_PLACEHOLDER+'/tmp',
+            )
+"""
+
 PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER = '{{$.pipeline_job_create_time_utc}}'
 """A placeholder used to obtain the time that a pipeline job was created.
 
