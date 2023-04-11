@@ -67,7 +67,7 @@ spec:
       - '{{inputs.parameters.kubernetes-config}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:fd53656e109ff9269d9041a49aade07fd9fa5b0a00e6e0c76440b7ce0cf449fc
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:e5140c17627920db911b2d7adbad53ff08d2a80ed4c3e2093b62c4304324035d
       name: ""
       resources:
         limits:
@@ -230,18 +230,8 @@ spec:
             value: '{{workflow.annotations.pipelines.kubeflow.org/implementations-comp-createpvc}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: createpvc-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.createpvc-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.createpvc-driver.outputs.parameters.cached-decision}}'
-        depends: createpvc-driver.Succeeded
         name: createpvc
-        template: system-container-executor
+        template: system-container-driver
       - arguments:
           parameters:
           - name: component
@@ -253,18 +243,8 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: comp-2.Succeeded && createpvc.Succeeded
-        name: deletepvc-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.deletepvc-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.deletepvc-driver.outputs.parameters.cached-decision}}'
-        depends: deletepvc-driver.Succeeded
         name: deletepvc
-        template: system-container-executor
+        template: system-container-driver
     inputs:
       parameters:
       - name: parent-dag-id
@@ -297,7 +277,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:fd53656e109ff9269d9041a49aade07fd9fa5b0a00e6e0c76440b7ce0cf449fc
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:e5140c17627920db911b2d7adbad53ff08d2a80ed4c3e2093b62c4304324035d
       name: ""
       resources:
         limits:

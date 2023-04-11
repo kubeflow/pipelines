@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
@@ -40,14 +41,14 @@ const (
 
 var (
 	// inputs
-	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
-	runID             = flag.String("run_id", "", "pipeline run uid")
-	componentSpecJson = flag.String("component", "{}", "component spec")
-	taskSpecJson      = flag.String("task", "", "task spec")
-	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	kubernetesConfig  = flag.String("kubernetes_config", "", "Kuberntes specific configurations")
+	driverType           = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
+	pipelineName         = flag.String("pipeline_name", "", "pipeline context name")
+	runID                = flag.String("run_id", "", "pipeline run uid")
+	componentSpecJson    = flag.String("component", "{}", "component spec")
+	taskSpecJson         = flag.String("task", "", "task spec")
+	runtimeConfigJson    = flag.String("runtime_config", "", "jobruntime config")
+	iterationIndex       = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	kubernetesConfigJson = flag.String("kubernetes_config", "", "Kuberntes specific configurations")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -127,6 +128,14 @@ func drive() (err error) {
 			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 		}
 	}
+	var kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig
+	if *kubernetesConfigJson != "" {
+		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*kubernetesConfigJson))
+		kubernetesConfig = &kubernetesplatform.KubernetesExecutorConfig{}
+		if err := jsonpb.UnmarshalString(*kubernetesConfigJson, kubernetesConfig); err != nil {
+			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, kubernetesConfigJson)
+		}
+	}
 	namespace, err := config.InPodNamespace()
 	if err != nil {
 		return err
@@ -140,13 +149,13 @@ func drive() (err error) {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:   *pipelineName,
-		RunID:          *runID,
-		Namespace:      namespace,
-		Component:      componentSpec,
-		Task:           taskSpec,
-		DAGExecutionID: *dagExecutionID,
-		IterationIndex: *iterationIndex,
+		PipelineName:     *pipelineName,
+		RunID:            *runID,
+		Namespace:        namespace,
+		Component:        componentSpec,
+		Task:             taskSpec,
+		DAGExecutionID:   *dagExecutionID,
+		IterationIndex:   *iterationIndex,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -158,6 +167,7 @@ func drive() (err error) {
 		execution, driverErr = driver.DAG(ctx, options, client)
 	case "CONTAINER":
 		options.Container = containerSpec
+		options.KubernetesConfig = kubernetesConfig
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
