@@ -508,6 +508,7 @@ func extendPodSpecPatch(
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
 		podSpec.Volumes = volumes
+		// We assume that the target container always gets executed first within a pod.
 		podSpec.Containers[0].VolumeMounts = volumeMounts
 	}
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
