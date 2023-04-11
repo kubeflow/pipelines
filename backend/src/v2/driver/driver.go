@@ -501,14 +501,18 @@ func extendPodSpecPatch(
 	dag *metadata.DAG,
 	dagTasks map[string]*metadata.Execution,
 ) error {
+	// Return an error if the podSpec has no user container.
+	if len(podSpec.Containers) == 0 {
+		return fmt.Errorf("Failed to extend pod spec patch due to missing user container: %v", podSpec)
+	}
 	// Get volume mount information
-	if len(podSpec.Containers) > 0 && kubernetesExecutorConfig.GetPvcMount() != nil {
+	if kubernetesExecutorConfig.GetPvcMount() != nil {
 		volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesExecutorConfig.GetPvcMount(), dag, dagTasks)
 		if err != nil {
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
 		podSpec.Volumes = volumes
-		// We assume that the target container always gets executed first within a pod.
+		// We assume that the user container always gets executed first within a pod.
 		podSpec.Containers[0].VolumeMounts = volumeMounts
 	}
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {

@@ -24,11 +24,9 @@ import (
 
 func TestStablyMarshalJSON(t *testing.T) {
 	tests := []struct {
-		name    string
-		m       proto.Message
-		want    string
-		wantErr bool
-		errMsg  string
+		name string
+		m    proto.Message
+		want string
 	}{
 		{
 			"valid - timestamp",
@@ -37,8 +35,6 @@ func TestStablyMarshalJSON(t *testing.T) {
 				Nanos:   1,
 			},
 			`"2022-04-05T16:13:20.000000001Z"`,
-			false,
-			"",
 		},
 		{
 			"valid - timestamp with omitted values",
@@ -47,22 +43,14 @@ func TestStablyMarshalJSON(t *testing.T) {
 				Nanos:   0,
 			},
 			`"2022-04-05T16:13:20Z"`,
-			false,
-			"",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := stablyMarshalJSON(tt.m)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Empty(t, got)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.Nil(t, err)
-				assert.NotEmpty(t, got)
-				assert.Equal(t, tt.want, got)
-			}
+			assert.Nil(t, err)
+			assert.NotEmpty(t, got)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
