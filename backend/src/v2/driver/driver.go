@@ -68,8 +68,8 @@ type Options struct {
 	// optional, required only by container driver
 	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 
-	// optional, required only by container driver when there is Kubernetes config
-	KubernetesConfig *kubernetesplatform.KubernetesExecutorConfig
+	// optional, allows to specify kubernetes-specific executor config
+	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 }
 
 // Identifying information used for error messages
@@ -93,8 +93,8 @@ func (o Options) info() string {
 	if o.Component.GetImplementation() != nil {
 		msg = msg + ", componentSpec" // this only means componentSpec is not empty
 	}
-	if o.KubernetesConfig != nil {
-		msg = msg + ", KubernetesConfig" // this only means KubernetesConfig is not empty
+	if o.KubernetesExecutorConfig != nil {
+		msg = msg + ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
 	}
 	return msg
 }
@@ -366,12 +366,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return execution, err
 	}
-	if opts.KubernetesConfig != nil {
+	if opts.KubernetesExecutorConfig != nil {
 		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
 		if err != nil {
 			return execution, err
 		}
-		err = extendPodSpecPatch(podSpec, opts.KubernetesConfig, dag, dagTasks)
+		err = extendPodSpecPatch(podSpec, opts.KubernetesExecutorConfig, dag, dagTasks)
 		if err != nil {
 			return execution, err
 		}
@@ -494,21 +494,25 @@ func initPodSpecPatch(
 	return podSpec, nil
 }
 
-// Extends the PodSpec to include Kubernetes specific config.
+// Extends the PodSpec to include Kubernetes-specific executor config.
 func extendPodSpecPatch(
 	podSpec *k8score.PodSpec,
-	kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig,
+	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
 	dag *metadata.DAG,
 	dagTasks map[string]*metadata.Execution,
 ) error {
 	// Get volume mount information
-	volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesConfig.GetPvcMount(), dag, dagTasks)
-	if err != nil {
-		return fmt.Errorf("failed to extract volume mount info: %w", err)
+	if len(podSpec.Containers) > 0 && kubernetesExecutorConfig.GetPvcMount() != nil {
+		volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesExecutorConfig.GetPvcMount(), dag, dagTasks)
+		if err != nil {
+			return fmt.Errorf("failed to extract volume mount info: %w", err)
+		}
+		podSpec.Volumes = volumes
+		podSpec.Containers[0].VolumeMounts = volumeMounts
 	}
-	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
-	podSpec.Volumes = volumes
-	podSpec.Containers[0].VolumeMounts = volumeMounts
+	if kubernetesExecutorConfig.GetNodeSelector() != nil {
+		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
+	}
 	return nil
 }
 

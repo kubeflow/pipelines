@@ -201,10 +201,8 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				return nil, err
 			}
 			driverTaskName := name + "-driver"
-			kubernetesConfigPlaceholder, err := c.useKubernetesImpl(componentName)
-			if err != nil {
-				return nil, err
-			}
+			// The following call will return an empty string for tasks without kubernetes-specific annotation.
+			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
 				component:        componentSpecPlaceholder,
 				task:             taskSpecJson,

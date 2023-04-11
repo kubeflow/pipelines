@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/structpb"
+	k8score "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -539,6 +540,58 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			if tt.notWant != "" {
 				assert.NotContains(t, string(podSpecString), tt.notWant)
 			}
+		})
+	}
+}
+
+func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
+	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
+	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - NVIDIA GPU on GKE",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeSelector: &kubernetesplatform.NodeSelector{
+					Labels: map[string]string{
+						"cloud.google.com/gke-accelerator": "nvidia-tesla-k80",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				NodeSelector: map[string]string{"cloud.google.com/gke-accelerator": "nvidia-tesla-k80"},
+			},
+		},
+		{
+			"Valid - operating system and arch",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeSelector: &kubernetesplatform.NodeSelector{
+					Labels: map[string]string{
+						"beta.kubernetes.io/os":   "linux",
+						"beta.kubernetes.io/arch": "amd64",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				NodeSelector: map[string]string{"beta.kubernetes.io/arch": "amd64", "beta.kubernetes.io/os": "linux"},
+			},
+		},
+		{
+			"Valid - empty",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
 		})
 	}
 }

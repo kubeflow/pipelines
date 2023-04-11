@@ -120,13 +120,6 @@ func drive() (err error) {
 	if err := jsonpb.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
 	}
-	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
-	if *k8sExecConfigJson != "" {
-		glog.Infof("input KubernetesExecutorConfig:%s\n", prettyPrint(*k8sExecConfigJson))
-		if err := jsonpb.UnmarshalString(*runtimeConfigJson, k8sExecCfg); err != nil {
-			return fmt.Errorf("failed to unmarshal kubernetes executor config, error: %w\nk8sExecConfigJson: %v", err, k8sExecConfigJson)
-		}
-	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if *runtimeConfigJson != "" {
 		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
@@ -135,11 +128,11 @@ func drive() (err error) {
 			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 		}
 	}
-	var kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig
+	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
 	if *k8sExecConfigJson != "" {
 		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJson))
-		kubernetesConfig = &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(*k8sExecConfigJson, kubernetesConfig); err != nil {
+		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
+		if err := jsonpb.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
 			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJson)
 		}
 	}
@@ -174,7 +167,7 @@ func drive() (err error) {
 		execution, driverErr = driver.DAG(ctx, options, client)
 	case "CONTAINER":
 		options.Container = containerSpec
-		options.KubernetesConfig = kubernetesConfig
+		options.KubernetesExecutorConfig = k8sExecCfg
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
