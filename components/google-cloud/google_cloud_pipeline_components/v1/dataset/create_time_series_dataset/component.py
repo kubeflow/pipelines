@@ -33,6 +33,7 @@ def time_series_dataset_create(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Creates a new time series dataset.
 
   Args:
@@ -80,6 +81,7 @@ def time_series_dataset_create(
           Instantiated representation of the managed time series dataset
           resource.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

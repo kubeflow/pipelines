@@ -22,4 +22,7 @@ __all__ = [
 ]
 
 TensorboardExperimentCreatorOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'tensorboard_experiment_creator.yaml'))
+    os.path.join(
+        os.path.dirname(__file__), 'tensorboard_experiment_creator.yaml'
+    )
+)

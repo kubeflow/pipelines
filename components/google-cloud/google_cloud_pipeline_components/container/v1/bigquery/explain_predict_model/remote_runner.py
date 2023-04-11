@@ -94,9 +94,13 @@ def bigquery_explain_predict_model_job(
   if not (not query_statement) ^ (not table_name):
     raise ValueError(
         'One and only one of query_statement and table_name should be '
-        'populated for BigQuery explain predict model job.')
-  input_data_sql = ('TABLE %s' % bigquery_util.back_quoted_if_needed(table_name)
-                    if table_name else '(%s)' % query_statement)
+        'populated for BigQuery explain predict model job.'
+    )
+  input_data_sql = (
+      'TABLE %s' % bigquery_util.back_quoted_if_needed(table_name)
+      if table_name
+      else '(%s)' % query_statement
+  )
 
   settings_field_sql_list = []
   if top_k_features is not None and top_k_features > 0:
@@ -106,20 +110,28 @@ def bigquery_explain_predict_model_job(
     settings_field_sql_list.append('%s AS threshold' % threshold)
 
   if num_integral_steps is not None and num_integral_steps > 0:
-    settings_field_sql_list.append('%s AS num_integral_steps' %
-                                   num_integral_steps)
+    settings_field_sql_list.append(
+        '%s AS num_integral_steps' % num_integral_steps
+    )
 
   settings_field_sql = ','.join(settings_field_sql_list)
   settings_sql = ', STRUCT(%s)' % settings_field_sql
 
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.EXPLAIN_PREDICT(MODEL `%s`, %s%s)' % (
-          model_name, input_data_sql, settings_sql)
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.EXPLAIN_PREDICT(MODEL `%s`, %s%s)'
+      % (model_name, input_data_sql, settings_sql)
+  )
 
   # TODO(mingge): check if model is a valid BigQuery model resource.
   return bigquery_util.bigquery_query_job(
-      type, project, location, payload,
-      json.dumps(job_configuration_query_override_json), gcp_resources,
-      executor_input)
+      type,
+      project,
+      location,
+      payload,
+      json.dumps(job_configuration_query_override_json),
+      gcp_resources,
+      executor_input,
+  )

@@ -313,8 +313,8 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     if (experimentId) {
       let experimentName;
       try {
-        const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-        experimentName = experiment.name || '';
+        const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
+        experimentName = experiment.display_name || '';
       } catch (err) {
         displayRecurringRun.error =
           'Failed to get associated experiment: ' + (await errorToMessage(err));

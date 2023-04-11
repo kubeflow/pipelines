@@ -119,7 +119,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		driverImage:   "gcr.io/ml-pipeline-test/kfp-driver@sha256:690e078d675f9cc91b25465aaabd6bf8d7fa2b745741ad36ac2fce0ce217c11c",
+		driverImage:   "gcr.io/ml-pipeline-test/kfp-driver@sha256:e5140c17627920db911b2d7adbad53ff08d2a80ed4c3e2093b62c4304324035d",
 		launcherImage: "gcr.io/ml-pipeline-test/kfp-launcher-v2@sha256:2b29da85580823f524a349d2e94db3822be00bd49afa82c9f4a718d51a3b7c06",
 		job:           job,
 		spec:          spec,
@@ -327,3 +327,12 @@ var launcherResources = k8score.ResourceRequirements{
 const (
 	tmplEntrypoint = "entrypoint"
 )
+
+// Here is the collection of all special dummy images that the backend recognizes.
+// User need to avoid these image names for their self-defined components.
+// These values are in sync with the values in SDK to form a contract between BE and SDK.
+// TODO(lingqinggan): clarify these in documentation for KFP V2.
+var dummyImages = map[string]bool{
+	"argostub/createpvc": true,
+	"argostub/deletepvc": true,
+}

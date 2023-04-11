@@ -32,26 +32,31 @@ METHOD_KEY = 'method'
 
 # Container image that is used for component containers
 # TODO tie the container version to sdk release version instead of latest
-DEFAULT_CONTAINER_IMAGE = 'gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1'
+DEFAULT_CONTAINER_IMAGE = (
+    'gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1'
+)
 
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {
     aiplatform.datasets.dataset._Dataset: 'google.VertexDataset',  # pylint: disable=protected-access
     aiplatform.Model: 'google.VertexModel',
     aiplatform.Endpoint: 'google.VertexEndpoint',
-    aiplatform.BatchPredictionJob: 'google.VertexBatchPredictionJob'
+    aiplatform.BatchPredictionJob: 'google.VertexBatchPredictionJob',
 }
 
 PROTO_PLUS_CLASS_TYPES = {
-    aiplatform_v1beta1.types.explanation_metadata.ExplanationMetadata:
-        'ExplanationMetadata',
-    aiplatform_v1beta1.types.explanation.ExplanationParameters:
-        'ExplanationParameters',
+    aiplatform_v1beta1.types.explanation_metadata.ExplanationMetadata: (
+        'ExplanationMetadata'
+    ),
+    aiplatform_v1beta1.types.explanation.ExplanationParameters: (
+        'ExplanationParameters'
+    ),
 }
 
 
 def get_forward_reference(
-    annotation: Any) -> Optional[aiplatform.base.VertexAiResourceNoun]:
+    annotation: Any,
+) -> Optional[aiplatform.base.VertexAiResourceNoun]:
   """Resolves forward references to AiPlatform Class."""
 
   def get_aiplatform_class_by_name(_annotation):
@@ -66,6 +71,7 @@ def get_forward_reference(
   try:
     # Python 3.7+
     from typing import ForwardRef
+
     if isinstance(annotation, ForwardRef):
       annotation = annotation.__forward_arg__
       ai_platform_class = get_aiplatform_class_by_name(annotation)
@@ -79,21 +85,24 @@ def get_forward_reference(
 # This is the Union of all typed datasets.
 # Relying on the annotation defined in the SDK
 # as additional typed Datasets may be added in the future.
-dataset_annotation = inspect.signature(
-    aiplatform.CustomTrainingJob.run).parameters['dataset'].annotation
+dataset_annotation = (
+    inspect.signature(aiplatform.CustomTrainingJob.run)
+    .parameters['dataset']
+    .annotation
+)
 
 
 def resolve_annotation(annotation: Any) -> Any:
   """Resolves annotation type against a MB SDK type.
 
-    Use this for Optional, Union, Forward References
+  Use this for Optional, Union, Forward References
 
-    Args:
-        annotation: Annotation to resolve
+  Args:
+      annotation: Annotation to resolve
 
-    Returns:
-        Direct annotation
-    """
+  Returns:
+      Direct annotation
+  """
 
   # handle forward reference string
 
@@ -131,12 +140,12 @@ def resolve_annotation(annotation: Any) -> Any:
 def is_serializable_to_json(annotation: Any) -> bool:
   """Checks if the type is serializable.
 
-    Args:
-        annotation: parameter annotation
+  Args:
+      annotation: parameter annotation
 
-    Returns:
-        True if serializable to json.
-    """
+  Returns:
+      True if serializable to json.
+  """
   serializable_types = (dict, list, collections.abc.Sequence, Dict, Sequence)
   return getattr(annotation, '__origin__', None) in serializable_types
 
@@ -144,12 +153,12 @@ def is_serializable_to_json(annotation: Any) -> bool:
 def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
   """Determines if type passed in should be a metadata type.
 
-    Args:
-        mb_sdk_type: Type to check
+  Args:
+      mb_sdk_type: Type to check
 
-    Returns:
-        True if this is a resource noun
-    """
+  Returns:
+      True if this is a resource noun
+  """
   if inspect.isclass(mb_sdk_type):
     return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
   return False
@@ -158,12 +167,12 @@ def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
 def get_proto_plus_class(annotation: Any) -> Optional[Callable]:
   """Get Proto Plus Class for this annotation.
 
-    Args:
-        annotation: parameter annotation
+  Args:
+      annotation: parameter annotation
 
-    Returns:
-        Proto Plus Class for annotation type
-    """
+  Returns:
+      Proto Plus Class for annotation type
+  """
   if annotation in PROTO_PLUS_CLASS_TYPES:
     return annotation
 
@@ -171,12 +180,12 @@ def get_proto_plus_class(annotation: Any) -> Optional[Callable]:
 def get_proto_plus_serializer(annotation: Any) -> Optional[Callable]:
   """Get a serializer for objects to pass them as strings.
 
-    Args:
-        annotation: Parameter annotation
+  Args:
+      annotation: Parameter annotation
 
-    Returns:
-        serializer for that annotation type if it's a Proto Plus class
-    """
+  Returns:
+      serializer for that annotation type if it's a Proto Plus class
+  """
   proto_plus_class = get_proto_plus_class(annotation)
   if proto_plus_class:
     return proto_plus_class.to_json
@@ -185,12 +194,12 @@ def get_proto_plus_serializer(annotation: Any) -> Optional[Callable]:
 def get_serializer(annotation: Any) -> Optional[Callable]:
   """Get a serializer for objects to pass them as strings.
 
-    Args:
-        annotation: Parameter annotation
+  Args:
+      annotation: Parameter annotation
 
-    Returns:
-        serializer for that annotation type
-    """
+  Returns:
+      serializer for that annotation type
+  """
   proto_plus_serializer = get_proto_plus_serializer(annotation)
   if proto_plus_serializer:
     return proto_plus_serializer
@@ -199,17 +208,19 @@ def get_serializer(annotation: Any) -> Optional[Callable]:
     return json.dumps
 
 
-def get_proto_plus_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
+def get_proto_plus_deserializer(
+    annotation: Any,
+) -> Optional[Callable[..., str]]:
   """Get deserializer for objects to pass them as strings.
 
-    Remote runner will deserialize.
+  Remote runner will deserialize.
 
-    Args:
-        annotation: parameter annotation
+  Args:
+      annotation: parameter annotation
 
-    Returns:
-        deserializer for annotation type if it's a Proto Plus class
-    """
+  Returns:
+      deserializer for annotation type if it's a Proto Plus class
+  """
   proto_plus_class = get_proto_plus_class(annotation)
   if proto_plus_class:
     return proto_plus_class.from_json
@@ -218,16 +229,15 @@ def get_proto_plus_deserializer(annotation: Any) -> Optional[Callable[..., str]]
 def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
   """Get deserializer for objects to pass them as strings.
 
-    Remote runner will deserialize.
+  Remote runner will deserialize.
 
-    Args:
-        annotation: parameter annotation
+  Args:
+      annotation: parameter annotation
 
-    Returns:
-        deserializer for annotation type
+  Returns:
+      deserializer for annotation type
   """
-  proto_plus_deserializer = get_proto_plus_deserializer(
-      annotation)
+  proto_plus_deserializer = get_proto_plus_deserializer(annotation)
   if proto_plus_deserializer:
     return proto_plus_deserializer
 
@@ -236,13 +246,14 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
 
 
 def map_resource_to_metadata_type(
-    mb_sdk_type: aiplatform.base.VertexAiResourceNoun) -> Tuple[str, str]:
+    mb_sdk_type: aiplatform.base.VertexAiResourceNoun,
+) -> Tuple[str, str]:
   """Maps an MB SDK type to Metadata type.
 
-    Returns:
-        Tuple of component parameter name and metadata type.
-        ie aiplatform.Model -> "model", "google.VertexModel"
-    """
+  Returns:
+      Tuple of component parameter name and metadata type.
+      ie aiplatform.Model -> "model", "google.VertexModel"
+  """
 
   # type should always be in this map
   if is_mb_sdk_resource_noun_type(mb_sdk_type):
@@ -279,9 +290,11 @@ NOT_RESOURCE_NAME_PARAMETER_NAMES = ['display_name', 'python_module_name']
 
 def is_resource_name_parameter_name(param_name: str) -> bool:
   """Determines if the mb_sdk parameter is a resource name."""
-  return param_name not in NOT_RESOURCE_NAME_PARAMETER_NAMES and \
-          not param_name.endswith('encryption_spec_key_name') and \
-          param_name.endswith('_name')
+  return (
+      param_name not in NOT_RESOURCE_NAME_PARAMETER_NAMES
+      and not param_name.endswith('encryption_spec_key_name')
+      and param_name.endswith('_name')
+  )
 
 
 # These parameters are filtered from MB SDK methods
@@ -292,22 +305,22 @@ def filter_signature(
     signature: inspect.Signature,
     is_init_signature: bool = False,
     self_type: Optional[aiplatform.base.VertexAiResourceNoun] = None,
-    component_param_name_to_mb_sdk_param_name: Dict[str, str] = None
+    component_param_name_to_mb_sdk_param_name: Dict[str, str] = None,
 ) -> inspect.Signature:
   """Removes unused params from signature.
 
-    Args:
-        signature (inspect.Signature): Model Builder SDK Method Signature.
-        is_init_signature (bool): is this constructor signature
-        self_type (aiplatform.base.VertexAiResourceNoun): This is used to
-          replace *_name str fields with resource name type.
-          component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to
-          keep track of param names changed to make them component friendly( ie:
-          model_name -> model)
+  Args:
+      signature (inspect.Signature): Model Builder SDK Method Signature.
+      is_init_signature (bool): is this constructor signature
+      self_type (aiplatform.base.VertexAiResourceNoun): This is used to replace
+        *_name str fields with resource name type.
+        component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to
+        keep track of param names changed to make them component friendly( ie:
+        model_name -> model)
 
-    Returns:
-        Signature appropriate for component creation.
-    """
+  Returns:
+      Signature appropriate for component creation.
+  """
   new_params = []
   for param in signature.parameters.values():
     if param.name not in PARAMS_TO_REMOVE:
@@ -315,32 +328,36 @@ def filter_signature(
       # to enforce metadata entry
       # ie: model_name -> model
       if is_init_signature and is_resource_name_parameter_name(param.name):
-        new_name = param.name[:-len('_name')]
+        new_name = param.name[: -len('_name')]
         new_params.append(
             inspect.Parameter(
                 name=new_name,
                 kind=param.kind,
                 default=param.default,
-                annotation=self_type))
+                annotation=self_type,
+            )
+        )
         component_param_name_to_mb_sdk_param_name[new_name] = param.name
       else:
         new_params.append(param)
 
   return inspect.Signature(
-      parameters=new_params, return_annotation=signature.return_annotation)
+      parameters=new_params, return_annotation=signature.return_annotation
+  )
 
 
-def signatures_union(init_sig: inspect.Signature,
-                     method_sig: inspect.Signature) -> inspect.Signature:
+def signatures_union(
+    init_sig: inspect.Signature, method_sig: inspect.Signature
+) -> inspect.Signature:
   """Returns a Union of the constructor and method signature.
 
-    Args:
-        init_sig (inspect.Signature): Constructor signature
-        method_sig (inspect.Signature): Method signature
+  Args:
+      init_sig (inspect.Signature): Constructor signature
+      method_sig (inspect.Signature): Method signature
 
-    Returns:
-        A Union of the the two Signatures as a single Signature
-    """
+  Returns:
+      A Union of the the two Signatures as a single Signature
+  """
 
   def key(param):
     # all params are keyword or positional
@@ -350,10 +367,12 @@ def signatures_union(init_sig: inspect.Signature,
     return 1
 
   params = list(init_sig.parameters.values()) + list(
-      method_sig.parameters.values())
+      method_sig.parameters.values()
+  )
   params.sort(key=key)
   return inspect.Signature(
-      parameters=params, return_annotation=method_sig.return_annotation)
+      parameters=params, return_annotation=method_sig.return_annotation
+  )
 
 
 def filter_docstring_args(
@@ -363,14 +382,14 @@ def filter_docstring_args(
 ) -> Dict[str, str]:
   """Removes unused params from docstring Args section.
 
-    Args:
-        signature (inspect.Signature): Model Builder SDK Method Signature.
-        docstring (str): Model Builder SDK Method docstring from method.__doc__
-        is_init_signature (bool): is this constructor signature
+  Args:
+      signature (inspect.Signature): Model Builder SDK Method Signature.
+      docstring (str): Model Builder SDK Method docstring from method.__doc__
+      is_init_signature (bool): is this constructor signature
 
-    Returns:
-        Dictionary of Arg names as keys and descriptions as values.
-    """
+  Returns:
+      Dictionary of Arg names as keys and descriptions as values.
+  """
   try:
     parsed_docstring = docstring_parser.parse(docstring)
   except ValueError:
@@ -384,7 +403,7 @@ def filter_docstring_args(
       # change resource name signatures to resource types
       # to match new param.names ie: model_name -> model
       if is_init_signature and is_resource_name_parameter_name(param.name):
-        new_arg_name = param.name[:-len('_name')]
+        new_arg_name = param.name[: -len('_name')]
 
       # check if there was an arg description for this parameter.
       if args_dict.get(param.name):
@@ -392,20 +411,23 @@ def filter_docstring_args(
   return new_args_dict
 
 
-def generate_docstring(args_dict: Dict[str, str], signature: inspect.Signature,
-                       method_docstring: str) -> str:
+def generate_docstring(
+    args_dict: Dict[str, str],
+    signature: inspect.Signature,
+    method_docstring: str,
+) -> str:
   """Generates a new doc string using args_dict provided.
 
-    Args:
-        args_dict (Dict[str, str]): A dictionary of Arg names as keys and
-          descriptions as values.
-        signature (inspect.Signature): Method Signature of the converted method.
-        method_docstring (str): Model Builder SDK Method docstring from
-          method.__doc__
+  Args:
+      args_dict (Dict[str, str]): A dictionary of Arg names as keys and
+        descriptions as values.
+      signature (inspect.Signature): Method Signature of the converted method.
+      method_docstring (str): Model Builder SDK Method docstring from
+        method.__doc__
 
-    Returns:
-        A doc string for converted method.
-    """
+  Returns:
+      A doc string for converted method.
+  """
   try:
     parsed_docstring = docstring_parser.parse(method_docstring)
   except ValueError:
@@ -424,7 +446,8 @@ def generate_docstring(args_dict: Dict[str, str], signature: inspect.Signature,
 
   if parsed_docstring.returns:
     formated_return = parsed_docstring.returns.description.replace(
-        '\n', '\n        ')
+        '\n', '\n        '
+    )
     doc += 'Returns:\n'
     doc += f'        {formated_return}\n'
 
@@ -437,64 +460,65 @@ def generate_docstring(args_dict: Dict[str, str], signature: inspect.Signature,
   return doc
 
 
-def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
-                                method: Callable) -> Callable:
+def convert_method_to_component(
+    cls: aiplatform.base.VertexAiResourceNoun, method: Callable
+) -> Callable:
   """Converts a MB SDK Method to a Component wrapper.
 
-    The wrapper enforces the correct signature w.r.t the MB SDK. The signature
-    is also available to inspect.
+  The wrapper enforces the correct signature w.r.t the MB SDK. The signature
+  is also available to inspect.
 
-    For example:
+  For example:
 
-    aiplatform.Model.deploy is converted to ModelDeployOp
+  aiplatform.Model.deploy is converted to ModelDeployOp
 
-    Which can be called:
-        model_deploy_step = ModelDeployOp(
-            project=project,  # Pipeline parameter
-            endpoint=endpoint_create_step.outputs['endpoint'],
-            model=model_upload_step.outputs['model'],
-            deployed_model_display_name='my-deployed-model',
-            machine_type='n1-standard-4',
-        )
+  Which can be called:
+      model_deploy_step = ModelDeployOp(
+          project=project,  # Pipeline parameter
+          endpoint=endpoint_create_step.outputs['endpoint'],
+          model=model_upload_step.outputs['model'],
+          deployed_model_display_name='my-deployed-model',
+          machine_type='n1-standard-4',
+      )
 
-    Generates and invokes the following Component:
+  Generates and invokes the following Component:
 
-    name: Model-deploy
-    inputs:
-    - {name: project, type: String}
-    - {name: endpoint, type: Artifact}
-    - {name: model, type: Model}
-    outputs:
-    - {name: endpoint, type: Artifact}
-    implementation:
-      container:
-        image: gcr.io/sashaproject-1/mb_sdk_component:latest
-        command:
-        - python3
-        - remote_runner.py
-        - --cls_name=Model
-        - --method_name=deploy
-        - --method.deployed_model_display_name=my-deployed-model
-        - --method.machine_type=n1-standard-4
-        args:
-        - --resource_name_output_artifact_path
-        - {outputPath: endpoint}
-        - --init.project
-        - {inputValue: project}
-        - --method.endpoint
-        - {inputPath: endpoint}
-        - --init.model_name
-        - {inputPath: model}
+  name: Model-deploy
+  inputs:
+  - {name: project, type: String}
+  - {name: endpoint, type: Artifact}
+  - {name: model, type: Model}
+  outputs:
+  - {name: endpoint, type: Artifact}
+  implementation:
+    container:
+      image: gcr.io/sashaproject-1/mb_sdk_component:latest
+      command:
+      - python3
+      - remote_runner.py
+      - --cls_name=Model
+      - --method_name=deploy
+      - --method.deployed_model_display_name=my-deployed-model
+      - --method.machine_type=n1-standard-4
+      args:
+      - --resource_name_output_artifact_path
+      - {outputPath: endpoint}
+      - --init.project
+      - {inputValue: project}
+      - --method.endpoint
+      - {inputPath: endpoint}
+      - --init.model_name
+      - {inputPath: model}
 
 
-    Args:
-        method (Callable): A MB SDK Method
-        should_serialize_init (bool): Whether to also include the constructor
-          params in the component
+  Args:
+      method (Callable): A MB SDK Method
+      should_serialize_init (bool): Whether to also include the constructor
+        params in the component
 
-    Returns:
-        A Component wrapper that accepts the MB SDK params and returns a Task.
-    """
+  Returns:
+      A Component wrapper that accepts the MB SDK params and returns a Task.
+  """
   method_name = method.__name__
   method_signature = inspect.signature(method)
 
@@ -515,12 +539,15 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
       init_signature,
       is_init_signature=True,
       self_type=cls,
-      component_param_name_to_mb_sdk_param_name=component_param_name_to_mb_sdk_param_name
+      component_param_name_to_mb_sdk_param_name=component_param_name_to_mb_sdk_param_name,
   )
 
   # use this to partition args to method or constructor
-  init_arg_names = set(
-      init_signature.parameters.keys()) if should_serialize_init else set([])
+  init_arg_names = (
+      set(init_signature.parameters.keys())
+      if should_serialize_init
+      else set([])
+  )
 
   # determines outputs for this component
   output_type = resolve_annotation(method_signature.return_annotation)
@@ -528,20 +555,25 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
   output_args = []
   if output_type:
     output_metadata_name, output_metadata_type = map_resource_to_metadata_type(
-        output_type)
+        output_type
+    )
     try:
       output_spec = structures.OutputSpec(
           name=output_metadata_name,
           type=output_metadata_type,
       )
       output_uri_placeholder = structures.OutputUriPlaceholder(
-          output_name=output_metadata_name)
+          output_name=output_metadata_name
+      )
     except TypeError:
       from kfp.components import placeholders
+
       output_spec = structures.OutputSpec(
-          type=(output_metadata_type + '@0.0.1'))
+          type=(output_metadata_type + '@0.0.1')
+      )
       output_uri_placeholder = placeholders.OutputUriPlaceholder(
-          output_name=output_metadata_name)
+          output_name=output_metadata_name
+      )
 
     output_specs.append(output_spec)
 
@@ -555,13 +587,13 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
   def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> List[str]:
     """Takes the args dictionary and returns command-line args.
 
-        Args:
-            args_to_serialize: Dictionary of format {'init': {'param_name_1':
-              param_1}, {'method'}: {'param_name_2': param_name_2}}
+    Args:
+        args_to_serialize: Dictionary of format {'init': {'param_name_1':
+          param_1}, {'method'}: {'param_name_2': param_name_2}}
 
-        Returns:
-            Serialized args compatible with Component YAML
-        """
+    Returns:
+        Serialized args compatible with Component YAML
+    """
     additional_args = []
     for key, args in args_to_serialize.items():
       for arg_key, value in args.items():
@@ -607,7 +639,8 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
       # if we serialize we need to include the argument as input
       # perhaps, another option is to embed in yaml as json serialized list
       component_param_name = component_param_name_to_mb_sdk_param_name.get(
-          key, key)
+          key, key
+      )
       component_param_type = None
       if isinstance(value, kfp.dsl._pipeline_param.PipelineParam) or serializer:
         if is_mb_sdk_resource_noun_type(param_type):
@@ -633,11 +666,12 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
             structures.InputSpec(
                 name=key,
                 type=component_param_type,
-            ))
+            )
+        )
         input_args.append(f'--{prefix_key}.{component_param_name}')
         if is_mb_sdk_resource_noun_type(param_type):
           input_args.append(
-              f'{{{{$.inputs.artifacts[\'{key}\'].metadata[\'resourceName\']}}}}'
+              f"{{{{$.inputs.artifacts['{key}'].metadata['resourceName']}}}}"
           )
         else:
           input_args.append(structures.InputValuePlaceholder(input_name=key))
@@ -670,15 +704,19 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
                     method_name,
                 ],
                 args=make_args(serialized_args) + output_args + input_args,
-            )))
+            )
+        ),
+    )
     component_path = tempfile.mktemp()
     component_spec.save(component_path)
 
     return components.load_component_from_file(component_path)(**input_kwargs)
 
-  component_yaml_generator.__signature__ = signatures_union(
-      init_signature,
-      method_signature) if should_serialize_init else method_signature
+  component_yaml_generator.__signature__ = (
+      signatures_union(init_signature, method_signature)
+      if should_serialize_init
+      else method_signature
+  )
 
   # Create a docstring based on the new signature.
   new_args_dict = {}
@@ -686,17 +724,22 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
       filter_docstring_args(
           signature=method_signature,
           docstring=inspect.getdoc(method),
-          is_init_signature=False))
+          is_init_signature=False,
+      )
+  )
   if should_serialize_init:
     new_args_dict.update(
         filter_docstring_args(
             signature=init_signature,
             docstring=inspect.getdoc(init_method),
-            is_init_signature=True))
+            is_init_signature=True,
+        )
+    )
   component_yaml_generator.__doc__ = generate_docstring(
       args_dict=new_args_dict,
       signature=component_yaml_generator.__signature__,
-      method_docstring=inspect.getdoc(method))
+      method_docstring=inspect.getdoc(method),
+  )
 
   # TODO Possibly rename method
 

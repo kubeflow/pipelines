@@ -10,10 +10,10 @@ import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiExperiment } from 'src/apis/experiment';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -26,12 +26,16 @@ function NewRunSwitcher(props: PageProps) {
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
   const originalRecurringRunId = urlParser.get(QUERY_PARAMS.cloneFromRecurringRun);
-  const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
+  const [pipelineIdFromPipeline, setPipelineIdFromPipeline] = useState(
+    urlParser.get(QUERY_PARAMS.pipelineId),
+  );
   const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
   const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
     urlParser.get(QUERY_PARAMS.pipelineVersionId),
   );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
+  let pipelineIdFromRunOrRecurringRun;
+  let pipelineVersionIdFromRunOrRecurringRun;
 
   // Retrieve v2 run details
   const { isSuccess: getV2RunSuccess, isFetching: v2RunIsFetching, data: v2Run } = useQuery<
@@ -68,7 +72,14 @@ function NewRunSwitcher(props: PageProps) {
     throw new Error('The existence of run and recurring run should be exclusive.');
   }
 
-  // template string from cloned object
+  pipelineIdFromRunOrRecurringRun =
+    v2Run?.pipeline_version_reference?.pipeline_id ||
+    recurringRun?.pipeline_version_reference?.pipeline_id;
+  pipelineVersionIdFromRunOrRecurringRun =
+    v2Run?.pipeline_version_reference?.pipeline_version_id ||
+    recurringRun?.pipeline_version_reference?.pipeline_version_id;
+
+  // template string from cloned run / recurring run created by pipeline_spec
   let pipelineManifest: string | undefined;
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
     pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
@@ -78,43 +89,43 @@ function NewRunSwitcher(props: PageProps) {
     pipelineManifest = JsYaml.safeDump(recurringRun.pipeline_spec);
   }
 
-  const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
-    ['ApiPipeline', pipelineId],
+  const { isFetching: pipelineIsFetching, data: pipeline } = useQuery<V2beta1Pipeline, Error>(
+    ['pipeline', pipelineIdFromPipeline],
     () => {
-      if (!pipelineId) {
+      if (!pipelineIdFromPipeline) {
         throw new Error('Pipeline ID is missing');
       }
-      return Apis.pipelineServiceApi.getPipeline(pipelineId);
+      return Apis.pipelineServiceApiV2.getPipeline(pipelineIdFromPipeline);
     },
-    { enabled: !!pipelineId, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!pipelineIdFromPipeline, staleTime: Infinity, cacheTime: 0 },
   );
 
-  const pipelineVersionId =
-    pipelineVersionIdParam ||
-    apiPipeline?.default_version?.id ||
-    v2Run?.pipeline_version_id ||
-    recurringRun?.pipeline_version_id;
+  const pipelineId = pipelineIdFromPipeline || pipelineIdFromRunOrRecurringRun;
+  const pipelineVersionId = pipelineVersionIdParam || pipelineVersionIdFromRunOrRecurringRun;
 
-  const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
-    ApiPipelineVersion,
+  const { isFetching: pipelineVersionIsFetching, data: pipelineVersion } = useQuery<
+    V2beta1PipelineVersion,
     Error
   >(
-    ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
+    ['pipelineVersion', pipelineVersionIdParam],
     () => {
-      if (!pipelineVersionId) {
-        throw new Error('Pipeline Version ID is missing');
+      if (!(pipelineId && pipelineVersionId)) {
+        throw new Error('Pipeline id or pipeline Version ID is missing');
       }
-      return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
+      return Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, pipelineVersionId);
     },
-    { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!pipelineId && !!pipelineVersionId, staleTime: Infinity, cacheTime: 0 },
   );
+
+  const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
+  const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
 
   const {
     isSuccess: isTemplatePullSuccessFromPipeline,
     isFetching: pipelineTemplateStrIsFetching,
-    data: templateStrFromPipelineId,
+    data: templateStrFromTemplate,
   } = useQuery<string, Error>(
-    ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
+    ['ApiPipelineVersionTemplate', pipelineVersionIdParam],
     async () => {
       if (!pipelineVersionId) {
         return '';
@@ -122,21 +133,24 @@ function NewRunSwitcher(props: PageProps) {
       const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
       return template?.template || '';
     },
-    { enabled: !!apiPipelineVersion, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!pipelineVersion, staleTime: Infinity, cacheTime: 0 },
   );
 
-  const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
+  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['experiment', experimentId],
     async () => {
       if (!experimentId) {
         throw new Error('Experiment ID is missing');
       }
-      return Apis.experimentServiceApi.getExperiment(experimentId);
+      return Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  const templateString = pipelineManifest ?? templateStrFromPipelineId;
+  const templateString =
+    pipelineManifest ?? isTemplateV2(templateStrFromSpec)
+      ? templateStrFromSpec
+      : templateStrFromTemplate;
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     if (
@@ -151,12 +165,12 @@ function NewRunSwitcher(props: PageProps) {
           existingRun={v2Run}
           existingRecurringRunId={originalRecurringRunId}
           existingRecurringRun={recurringRun}
-          existingPipeline={apiPipeline}
-          handlePipelineIdChange={setPipelineId}
-          existingPipelineVersion={apiPipelineVersion}
+          existingPipeline={pipeline}
+          handlePipelineIdChange={setPipelineIdFromPipeline}
+          existingPipelineVersion={pipelineVersion}
           handlePipelineVersionIdChange={setPipelineVersionIdParam}
           templateString={templateString}
-          chosenExperiment={apiExperiment}
+          chosenExperiment={experiment}
         />
       );
     }
@@ -178,8 +192,8 @@ function NewRunSwitcher(props: PageProps) {
     <NewRun
       {...props}
       namespace={namespace}
-      existingPipelineId={pipelineId}
-      handlePipelineIdChange={setPipelineId}
+      existingPipelineId={pipelineIdFromPipeline}
+      handlePipelineIdChange={setPipelineIdFromPipeline}
       existingPipelineVersionId={pipelineVersionIdParam}
       handlePipelineVersionIdChange={setPipelineVersionIdParam}
     />

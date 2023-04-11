@@ -31,6 +31,7 @@ def model_export(
     artifact_destination: str = '',
     image_destination: str = '',
 ):
+  # fmt: off
   """Exports a trained, exportable, Model to a location specified by the user.
 
   A Model is considered to be exportable if it has at least one supported
@@ -78,6 +79,7 @@ def model_export(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

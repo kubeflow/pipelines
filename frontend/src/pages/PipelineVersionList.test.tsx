@@ -16,9 +16,9 @@
 
 import * as React from 'react';
 import PipelineVersionList, { PipelineVersionListProps } from './PipelineVersionList';
-import TestUtils from '../TestUtils';
-import { ApiPipelineVersion } from '../apis/pipeline';
-import { Apis, ListRequest } from '../lib/Apis';
+import TestUtils from 'src/TestUtils';
+import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { Apis, ListRequest } from 'src/lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
 
@@ -31,7 +31,7 @@ class PipelineVersionListTest extends PipelineVersionList {
 describe('PipelineVersionList', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
-  const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
+  const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
   const onErrorSpy = jest.fn();
 
   function generateProps(): PipelineVersionListProps {
@@ -46,9 +46,9 @@ describe('PipelineVersionList', () => {
 
   async function mountWithNPipelineVersions(n: number): Promise<ReactWrapper> {
     listPipelineVersionsSpy.mockImplementation((pipelineId: string) => ({
-      versions: range(n).map(i => ({
-        id: 'test-pipeline-version-id' + i,
-        name: 'test pipeline version name' + i,
+      pipeline_versions: range(n).map(i => ({
+        pipeline_version_id: 'test-pipeline-version-id' + i,
+        display_name: 'test pipeline version name' + i,
       })),
     }));
     tree = TestUtils.mountWithRouter(<PipelineVersionList {...generateProps()} />);
@@ -80,8 +80,8 @@ describe('PipelineVersionList', () => {
       pipelineVersions: [
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
-          name: 'pipelineversion1',
-        } as ApiPipelineVersion,
+          display_name: 'pipelineversion1',
+        } as V2beta1PipelineVersion,
       ],
     });
     await listPipelineVersionsSpy;
@@ -94,9 +94,9 @@ describe('PipelineVersionList', () => {
       pipelineVersions: [
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
-          name: 'pipelineversion1',
+          display_name: 'pipelineversion1',
           description: 'pipelineversion1 description',
-        } as ApiPipelineVersion,
+        } as V2beta1PipelineVersion,
       ],
     });
     await listPipelineVersionsSpy;
@@ -108,8 +108,8 @@ describe('PipelineVersionList', () => {
     tree.setState({
       pipelines: [
         {
-          name: 'pipelineversion1',
-        } as ApiPipelineVersion,
+          display_name: 'pipelineversion1',
+        } as V2beta1PipelineVersion,
       ],
     });
     await listPipelineVersionsSpy;
@@ -123,9 +123,9 @@ describe('PipelineVersionList', () => {
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           error: 'oops! could not load pipeline',
-          name: 'pipeline1',
+          display_name: 'pipeline1',
           parameters: [],
-        } as ApiPipelineVersion,
+        } as V2beta1PipelineVersion,
       ],
     });
     await listPipelineVersionsSpy;
@@ -140,11 +140,11 @@ describe('PipelineVersionList', () => {
       sortBy: 'created_at',
     } as ListRequest);
     expect(listPipelineVersionsSpy).toHaveBeenLastCalledWith(
-      'PIPELINE',
       'pipeline',
-      10,
       '',
+      10,
       'created_at',
+      undefined,
     );
     expect(tree).toMatchSnapshot();
   });
@@ -156,13 +156,7 @@ describe('PipelineVersionList', () => {
       pageToken: '',
       sortBy: 'name',
     } as ListRequest);
-    expect(listPipelineVersionsSpy).toHaveBeenLastCalledWith(
-      'PIPELINE',
-      'pipeline',
-      10,
-      '',
-      'name',
-    );
+    expect(listPipelineVersionsSpy).toHaveBeenLastCalledWith('pipeline', '', 10, 'name', undefined);
     expect(tree).toMatchSnapshot();
   });
 });

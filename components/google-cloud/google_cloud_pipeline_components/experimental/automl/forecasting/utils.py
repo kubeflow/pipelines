@@ -272,7 +272,8 @@ def get_prophet_train_pipeline_and_parameters(
       'dataflow_use_public_ips': dataflow_use_public_ips,
   }
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'prophet_trainer_pipeline.yaml')
+      pathlib.Path(__file__).parent.resolve(), 'prophet_trainer_pipeline.yaml'
+  )
   return pipeline_definition_path, parameter_values
 
 
@@ -332,7 +333,8 @@ def get_prophet_prediction_pipeline_and_parameters(
       'max_num_workers': max_num_workers,
   }
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'prophet_predict_pipeline.yaml')
+      pathlib.Path(__file__).parent.resolve(), 'prophet_predict_pipeline.yaml'
+  )
   return pipeline_definition_path, parameter_values
 
 

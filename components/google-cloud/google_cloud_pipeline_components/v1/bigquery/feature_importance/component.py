@@ -36,6 +36,7 @@ def bigquery_ml_feature_importance_job(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Launch a BigQuery feature importance fetching job and waits for it to finish.
 
     Args:
@@ -84,6 +85,7 @@ def bigquery_ml_feature_importance_job(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
       command=[

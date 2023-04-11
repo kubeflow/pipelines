@@ -39,9 +39,8 @@ describe('RunList', () => {
   const onErrorSpy = jest.fn();
   const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
-  const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -56,39 +55,49 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
-    getRunSpy.mockImplementation(id =>
-      Promise.resolve(
+    getRunSpy.mockImplementation(id => {
+      let pipelineVersionRef = {
+        pipeline_id: 'testpipeline' + id,
+        pipeline_version_id: 'testversion' + id,
+      };
+      return Promise.resolve(
         produce(runTemplate, draft => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
-          draft.pipeline_version_id = 'testversion' + id;
+          draft.pipeline_version_reference = pipelineVersionRef;
         }),
-      ),
-    );
+      );
+    });
 
     listRunsSpy.mockImplementation(() =>
       Promise.resolve({
         runs: range(1, n + 1).map(i => {
           if (runTemplate) {
+            let pipelineVersionRef = {
+              pipeline_id: 'testpipeline' + i,
+              pipeline_version_id: 'testversion' + i,
+            };
             return produce(runTemplate as Partial<V2beta1Run>, draft => {
               draft.run_id = 'testrun' + i;
               draft.display_name = 'run with id: testrun' + i;
-              draft.pipeline_version_id = 'testversion' + i;
+              draft.pipeline_version_reference = pipelineVersionRef;
             });
           }
           return {
             run_id: 'testrun' + i,
             display_name: 'run with id: testrun' + i,
-            pipeline_version_id: 'testversion' + i,
+            pipeline_version_reference: {
+              pipeline_id: 'testpipeline' + i,
+              pipeline_version_id: 'testversion' + i,
+            },
           } as V2beta1Run;
         }),
       }),
     );
 
-    getPipelineSpy.mockImplementation(() => ({ name: 'some pipeline' }));
-    getPipelineVersionSpy.mockImplementation(() => ({ name: 'some pipeline version' }));
-    getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
+    getPipelineVersionSpy.mockImplementation(() => ({ display_name: 'some pipeline version' }));
+    getExperimentSpy.mockImplementation(() => ({ display_name: 'some experiment' }));
   }
 
   function getMountedInstance(): RunList {
@@ -108,7 +117,6 @@ describe('RunList', () => {
     onErrorSpy.mockClear();
     listRunsSpy.mockClear();
     getRunSpy.mockClear();
-    getPipelineSpy.mockClear();
     getExperimentSpy.mockClear();
   });
 
@@ -453,7 +461,10 @@ describe('RunList', () => {
 
   it('shows pipeline version name', async () => {
     mockNRuns(1, {
-      pipeline_version_id: 'testversion1',
+      pipeline_version_reference: {
+        pipeline_id: 'testpipeline1',
+        pipeline_version_id: 'testversion1',
+      },
     });
     const props = generateProps();
     render(
@@ -477,7 +488,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     render(
       <CommonTestWrapper>
@@ -496,7 +507,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     props.hideExperimentColumn = true;
     render(

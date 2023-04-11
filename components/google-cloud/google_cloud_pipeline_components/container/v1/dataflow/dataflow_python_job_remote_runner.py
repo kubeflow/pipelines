@@ -30,11 +30,15 @@ from google.protobuf import json_format
 logging.basicConfig(level=logging.INFO)
 
 # Job ID pattern for Dataflow jobs
-_DATAFLOW_JOB_ID_PATTERN = br'.*console.cloud.google.com/dataflow/jobs/(?P<location>[a-z|0-9|A-Z|\-|\_]+)/(?P<job_id>[a-z|0-9|A-Z|\-|\_]+).*'
+_DATAFLOW_JOB_ID_PATTERN = rb'.*console.cloud.google.com/dataflow/jobs/(?P<location>[a-z|0-9|A-Z|\-|\_]+)/(?P<job_id>[a-z|0-9|A-Z|\-|\_]+).*'
 
 # Args, if provided, that should be staged locally.
-_ARGS_FILES_TO_STAGE = ('--requirements_file', '--setup_file', '--sdk_location',
-                        '--extra_package')
+_ARGS_FILES_TO_STAGE = (
+    '--requirements_file',
+    '--setup_file',
+    '--sdk_location',
+    '--extra_package',
+)
 
 LABELS_ARG_KEY = '--labels'
 
@@ -47,13 +51,16 @@ def get_system_label_args_list():
     system_labels_args_list.append('{}={}'.format(k, v))
   return system_labels_args_list
 
-def create_python_job(python_module_path: str,
-                      project: str,
-                      gcp_resources: str,
-                      location: str,
-                      temp_location: str,
-                      requirements_file_path: str = '',
-                      args: Optional[str] = '[]'):
+
+def create_python_job(
+    python_module_path: str,
+    project: str,
+    gcp_resources: str,
+    location: str,
+    temp_location: str,
+    requirements_file_path: str = '',
+    args: Optional[str] = '[]',
+):
   """Creates a Dataflow python job.
 
   Args:
@@ -67,7 +74,6 @@ def create_python_job(python_module_path: str,
     args: The JsonArray list of args to pass to the python file. It can include
       '--requirements_file' or '--setup_file' to configure the workers however
       the path provided needs to be a GCS path.
-
 
   Returns:
     And instance of GCPResouces proto with the dataflow Job ID which is stored
@@ -91,8 +97,9 @@ def create_python_job(python_module_path: str,
       args_list[idx + 1] = stage_file(args_list[idx + 1])
       logging.info('Staging %s at %s locally.', param, args_list[idx + 1])
 
-  cmd = prepare_cmd(project, location, python_file_path, args_list,
-                    temp_location)
+  cmd = prepare_cmd(
+      project, location, python_file_path, args_list, temp_location
+  )
   sub_process = Process(cmd)
   for line in sub_process.read_lines():
     logging.info('DataflowRunner output: %s', line)
@@ -110,16 +117,23 @@ def create_python_job(python_module_path: str,
       break
   if not job_id:
     raise RuntimeError(
-        'No dataflow job was found when running the python file.')
+        'No dataflow job was found when running the python file.'
+    )
 
 
 def prepare_cmd(project_id, region, python_file_path, args, temp_location):
   dataflow_args = [
-      '--runner', 'DataflowRunner', '--project', project_id, '--region', region,
-      '--temp_location', temp_location
+      '--runner',
+      'DataflowRunner',
+      '--project',
+      project_id,
+      '--region',
+      region,
+      '--temp_location',
+      temp_location,
   ]
 
-  return (['python3', '-u', python_file_path] + dataflow_args + args)
+  return ['python3', '-u', python_file_path] + dataflow_args + args
 
 
 def extract_job_id_and_location(line):
@@ -127,8 +141,10 @@ def extract_job_id_and_location(line):
   job_id_pattern = re.compile(_DATAFLOW_JOB_ID_PATTERN)
   matched_job_id = job_id_pattern.search(line or '')
   if matched_job_id:
-    return (matched_job_id.group('job_id').decode(),
-            matched_job_id.group('location').decode())
+    return (
+        matched_job_id.group('job_id').decode(),
+        matched_job_id.group('location').decode(),
+    )
   return (None, None)
 
 
@@ -185,8 +201,9 @@ def download_blob(source_blob_path, destination_file_path):
   with open(destination_file_path, 'wb+') as f:
     blob.download_to_file(f)
 
-  logging.info('Blob %s downloaded to %s.', source_blob_path,
-               destination_file_path)
+  logging.info(
+      'Blob %s downloaded to %s.', source_blob_path, destination_file_path
+  )
 
 
 class Process:
@@ -199,7 +216,8 @@ class Process:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         close_fds=True,
-        shell=False)
+        shell=False,
+    )
 
   def read_lines(self):
     # stdout will end with empty bytes when process exits.
