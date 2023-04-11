@@ -562,6 +562,11 @@ func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 				},
 			},
 			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
 				NodeSelector: map[string]string{"cloud.google.com/gke-accelerator": "nvidia-tesla-k80"},
 			},
 		},
@@ -576,18 +581,33 @@ func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 				},
 			},
 			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
 				NodeSelector: map[string]string{"beta.kubernetes.io/arch": "amd64", "beta.kubernetes.io/os": "linux"},
 			},
 		},
 		{
 			"Valid - empty",
 			&kubernetesplatform.KubernetesExecutorConfig{},
-			&k8score.PodSpec{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := &k8score.PodSpec{}
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
 			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, got)
