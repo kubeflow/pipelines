@@ -503,7 +503,7 @@ func extendPodSpecPatch(
 ) error {
 	// Return an error if the podSpec has no user container.
 	if len(podSpec.Containers) == 0 {
-		return fmt.Errorf("failed to extend pod spec patch due to missing user container: %v", podSpec)
+		return fmt.Errorf("failed to patch the pod with kubernetes-specific config due to missing user container: %v", podSpec)
 	}
 	// Get volume mount information
 	if kubernetesExecutorConfig.GetPvcMount() != nil {
