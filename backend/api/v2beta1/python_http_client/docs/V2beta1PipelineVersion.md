@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 **created_at** | **datetime** | Output. Creation time of the pipeline version. | [optional] 
 **package_url** | [**V2beta1Url**](V2beta1Url.md) |  | [optional] 
 **code_source_url** | **str** | Input. Optional. The URL to the code source of the pipeline version. The code is usually the Python definition of the pipeline and potentially related the component definitions. This allows users to trace back to how the pipeline YAML was created. | [optional] 
-**pipeline_spec** | [**object**](.md) | Output. The pipeline spec for the pipeline version. | [optional] 
+**pipeline_spec** | [**ProtobufStruct**](ProtobufStruct.md) |  | [optional] 
 **error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

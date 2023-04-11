@@ -40,7 +40,7 @@ class V2beta1PipelineVersion(object):
         'created_at': 'datetime',
         'package_url': 'V2beta1Url',
         'code_source_url': 'str',
-        'pipeline_spec': 'object',
+        'pipeline_spec': 'ProtobufStruct',
         'error': 'GooglerpcStatus'
     }
 
@@ -255,10 +255,9 @@ class V2beta1PipelineVersion(object):
     def pipeline_spec(self):
         """Gets the pipeline_spec of this V2beta1PipelineVersion.  # noqa: E501
 
-        Output. The pipeline spec for the pipeline version.  # noqa: E501
 
         :return: The pipeline_spec of this V2beta1PipelineVersion.  # noqa: E501
-        :rtype: object
+        :rtype: ProtobufStruct
         """
         return self._pipeline_spec
 
@@ -266,10 +265,9 @@ class V2beta1PipelineVersion(object):
     def pipeline_spec(self, pipeline_spec):
         """Sets the pipeline_spec of this V2beta1PipelineVersion.
 
-        Output. The pipeline spec for the pipeline version.  # noqa: E501
 
         :param pipeline_spec: The pipeline_spec of this V2beta1PipelineVersion.  # noqa: E501
-        :type pipeline_spec: object
+        :type pipeline_spec: ProtobufStruct
         """
 
         self._pipeline_spec = pipeline_spec

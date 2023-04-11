@@ -974,11 +974,8 @@ type Pipeline struct {
 	// inside PipelineVersion when all usage of the former has been changed to use
 	// the latter.
 	Parameters []*Parameter `protobuf:"bytes,5,rep,name=parameters,proto3" json:"parameters,omitempty"`
-	// The URL to the source of the pipeline. This is required when creating the
-	// pipeine through CreatePipeline API.
-	// TODO(jingzhang36): replace this url field with the code_source_urls field
-	// inside PipelineVersion when all usage of the former has been changed to use
-	// the latter.
+	// Input. Required. The URL to the source of the pipeline.
+	// This is required when creating the pipeine through CreatePipeline API.
 	Url *Url `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
 	// In case any error happens retrieving a pipeline field, only pipeline ID
 	// and the error message is returned. Client has the flexibility of choosing
@@ -1101,11 +1098,14 @@ type PipelineVersion struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Output. The input parameters for this pipeline.
 	Parameters []*Parameter `protobuf:"bytes,4,rep,name=parameters,proto3" json:"parameters,omitempty"`
-	// Input. Optional. Pipeline version code source.
+	// Input. Optional. The URL to the code source of the pipeline version.
+	// The code is usually the Python definition of the pipeline and potentially
+	// the related component definitions. This allows users to trace back to how
+	// the pipeline YAML was created.
 	CodeSourceUrl string `protobuf:"bytes,5,opt,name=code_source_url,json=codeSourceUrl,proto3" json:"code_source_url,omitempty"`
-	// Input. Required. Pipeline version package url.
-	// Whe calling CreatePipelineVersion API method, need to provide one package
-	// file location.
+	// Input. Required. The URL to the source of the pipeline version.
+	// This is required when creating the pipeine version through
+	// CreatePipelineVersion API.
 	PackageUrl *Url `protobuf:"bytes,6,opt,name=package_url,json=packageUrl,proto3" json:"package_url,omitempty"`
 	// Input field. Specify which resource this pipeline version belongs to.
 	// For Experiment, the only valid resource reference is a single Namespace.
