@@ -41,14 +41,13 @@ const (
 
 var (
 	// inputs
-	driverType           = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName         = flag.String("pipeline_name", "", "pipeline context name")
-	runID                = flag.String("run_id", "", "pipeline run uid")
-	componentSpecJson    = flag.String("component", "{}", "component spec")
-	taskSpecJson         = flag.String("task", "", "task spec")
-	runtimeConfigJson    = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex       = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	kubernetesConfigJson = flag.String("kubernetes_config", "", "Kuberntes specific configurations")
+	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
+	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
+	runID             = flag.String("run_id", "", "pipeline run uid")
+	componentSpecJson = flag.String("component", "{}", "component spec")
+	taskSpecJson      = flag.String("task", "", "task spec")
+	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
+	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -137,11 +136,11 @@ func drive() (err error) {
 		}
 	}
 	var kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig
-	if *kubernetesConfigJson != "" {
-		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*kubernetesConfigJson))
+	if *k8sExecConfigJson != "" {
+		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJson))
 		kubernetesConfig = &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(*kubernetesConfigJson, kubernetesConfig); err != nil {
-			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, kubernetesConfigJson)
+		if err := jsonpb.UnmarshalString(*k8sExecConfigJson, kubernetesConfig); err != nil {
+			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJson)
 		}
 	}
 	namespace, err := config.InPodNamespace()
@@ -240,7 +239,7 @@ func prettyPrint(jsonStr string) string {
 	if err != nil {
 		return jsonStr
 	}
-	return string(prettyJSON.Bytes())
+	return prettyJSON.String()
 }
 
 func writeFile(path string, data []byte) (err error) {

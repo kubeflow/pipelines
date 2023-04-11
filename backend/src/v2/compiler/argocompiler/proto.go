@@ -1,4 +1,4 @@
-// Copyright 2021-2023 The Kubeflow Authors
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package argocompiler
 
 import (
 	"encoding/json"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"sigs.k8s.io/yaml"
 )
 
 // stablyMarshalJSON makes sure result is stable, so we can use it for snapshot
 // testing.
-func StablyMarshalJSON(msg proto.Message) (string, error) {
-	unstableJSON, err := yaml.Marshal(msg)
+func stablyMarshalJSON(msg proto.Message) (string, error) {
+	unstableJSON, err := protojson.Marshal(msg)
 	if err != nil {
 		return "", err
 	}
@@ -40,31 +39,4 @@ func StablyMarshalJSON(msg proto.Message) (string, error) {
 		return "", err
 	}
 	return string(stableJSON), err
-}
-
-// Converts a protobuf struct into a given protobuf message.
-// Note, incompatible fields will be missing in the output protobuf message.
-func ProtoStructToProtoMessage(s *structpb.Struct, m *proto.Message) error {
-	structYaml, err := yaml.Marshal(s)
-	if err != nil {
-		return err
-	}
-	if err := yaml.Unmarshal(structYaml, *m); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Converts a protobuf message into a protobuf struct.
-// Note, empty fields will be missing in the output struct.
-func ProtoMessageToProtoStruct(m proto.Message) (*structpb.Struct, error) {
-	messageYaml, err := yaml.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	s := &structpb.Struct{}
-	if err := yaml.Unmarshal(messageYaml, s); err != nil {
-		return nil, err
-	}
-	return s, nil
 }

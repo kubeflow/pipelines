@@ -34,7 +34,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -391,7 +390,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 // defined in compiler, because they are static.
 func initPodSpecPatch(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
-	k8sExecutorCfg *kubernetesplatform.KubernetesExecutorConfig,
 	componentSpec *pipelinespec.ComponentSpec,
 	executorInput *pipelinespec.ExecutorInput,
 	executionID int64,
@@ -811,10 +809,10 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			value, hasValue := inputs.GetParameterValues()[name]
 
 			// Handle when parameter does not have input value
-			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
+			if !hasValue && !inputsSpec.GetParameters()[name].IsOptional {
 				// When parameter is not optional and there is no input value, report error
 				return fmt.Errorf("no value provided for non-optional parameter %q", name)
-			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
+			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional {
 				// When parameter is optional and there is no input value, value comes from default value.
 				// But we don't pass the default value here. They are resolved internally within the component.
 				// Note: in the past the backend passed the default values into the component. This is a behavior change.
@@ -900,7 +898,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				// input comes from static input
 				itemsInput = task.GetParameterIterator().GetItemInput()
 			} else {
-				return nil, fmt.Errorf("cannot retrieve parameter iterator.")
+				return nil, fmt.Errorf("cannot retrieve parameter iterator")
 			}
 			items, err := getItems(inputs.ParameterValues[itemsInput])
 			if err != nil {
@@ -1139,7 +1137,7 @@ func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInpu
 			AccessModes: accessModes,
 			Resources: k8score.ResourceRequirements{
 				Requests: k8score.ResourceList{
-					k8score.ResourceStorage: resource.MustParse(volumeSizeInput.GetStringValue()),
+					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
 				},
 			},
 			StorageClassName: &storageClassName,

@@ -20,7 +20,6 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -155,7 +154,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	if err != nil {
 		return nil, err
 	}
-	taskSpecJson, err := util.StablyMarshalJSON(task)
+	taskSpecJson, err := stablyMarshalJSON(task)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +202,9 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			}
 			driverTaskName := name + "-driver"
 			kubernetesConfigPlaceholder, err := c.useKubernetesImpl(componentName)
+			if err != nil {
+				return nil, err
+			}
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
 				component:        componentSpecPlaceholder,
 				task:             taskSpecJson,
@@ -368,7 +370,7 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 		})
 	}
 	if inputs.runtimeConfig != nil {
-		runtimeConfigJson, err := util.StablyMarshalJSON(inputs.runtimeConfig)
+		runtimeConfigJson, err := stablyMarshalJSON(inputs.runtimeConfig)
 		if err != nil {
 			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
 		}

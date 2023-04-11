@@ -402,7 +402,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			"pvc name: constant",
 			args{
 				[]*kubernetesplatform.PvcMount{
-					&kubernetesplatform.PvcMount{
+					{
 						MountPath:    "/mnt/path",
 						PvcReference: &kubernetesplatform.PvcMount_Constant{Constant: "pvc-name"},
 					},

@@ -20,7 +20,6 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -66,12 +65,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	}
 	// fill root component default paramters to PipelineJob
 	specParams := spec.GetRoot().GetInputDefinitions().GetParameters()
-	if specParams != nil {
-		for name, param := range specParams {
-			_, ok := job.RuntimeConfig.ParameterValues[name]
-			if !ok && param.GetDefaultValue() != nil {
-				job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
-			}
+	for name, param := range specParams {
+		_, ok := job.RuntimeConfig.ParameterValues[name]
+		if !ok && param.GetDefaultValue() != nil {
+			job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
 		}
 	}
 
@@ -228,7 +225,7 @@ func (c *workflowCompiler) saveProtoToAnnotation(name string, msg proto.Message)
 	if _, alreadyExists := c.wf.Annotations[name]; alreadyExists {
 		return fmt.Errorf("annotation %q already exists", name)
 	}
-	json, err := util.StablyMarshalJSON(msg)
+	json, err := stablyMarshalJSON(msg)
 	if err != nil {
 		return fmt.Errorf("saving component spec of %q to annotations: %w", name, err)
 	}
