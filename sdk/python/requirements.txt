@@ -43,7 +43,7 @@ idna==3.3
     # via requests
 kfp-pipeline-spec==0.2.2
     # via -r requirements.in
-kfp-server-api==2.0.0a6
+kfp-server-api==2.0.0b1
     # via -r requirements.in
 kubernetes==23.6.0
     # via -r requirements.in

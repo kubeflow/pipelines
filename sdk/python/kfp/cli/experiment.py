@@ -126,7 +126,7 @@ def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
 
     if not experiment_id:
         experiment = client_obj.get_experiment(experiment_name=experiment_name)
-        experiment_id = experiment.id
+        experiment_id = experiment.experiment_id
 
     client_obj.archive_experiment(experiment_id=experiment_id)
     if experiment_id:
@@ -162,7 +162,7 @@ def unarchive(ctx: click.Context, experiment_id: str, experiment_name: str):
 
     if not experiment_id:
         experiment = client_obj.get_experiment(experiment_name=experiment_name)
-        experiment_id = experiment.id
+        experiment_id = experiment.experiment_id
 
     client_obj.unarchive_experiment(experiment_id=experiment_id)
     if experiment_id:
