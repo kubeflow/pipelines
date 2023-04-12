@@ -15,16 +15,19 @@
 import json
 import os
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
 from absl.testing import parameterized
+from google.protobuf import json_format
 from kfp.client import client
 from kfp.compiler import Compiler
 from kfp.dsl import component
 from kfp.dsl import pipeline
+from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
 import yaml
 
@@ -54,31 +57,6 @@ class TestValidatePipelineName(parameterized.TestCase):
 
 class TestOverrideCachingOptions(parameterized.TestCase):
 
-    def test_override_caching_from_pipeline(self):
-
-        @component
-        def hello_world(text: str) -> str:
-            """Hello world component."""
-            return text
-
-        @pipeline(name='hello-world', description='A simple intro pipeline')
-        def pipeline_hello_world(text: str = 'hi there'):
-            """Hello world pipeline."""
-
-            hello_world(text=text).set_caching_options(True)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
-            Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
-
-            with open(temp_filepath, 'r') as f:
-                pipeline_obj = yaml.safe_load(f)
-                test_client = client.Client(namespace='ns1')
-                test_client._override_caching_options(pipeline_obj, False)
-                for _, task in pipeline_obj['root']['dag']['tasks'].items():
-                    self.assertFalse(task['cachingOptions']['enableCache'])
-
     def test_override_caching_of_multiple_components(self):
 
         @component
@@ -96,7 +74,7 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
             component_1 = hello_word(text=text).set_caching_options(True)
             component_2 = to_lower(
-                text=component_1.output).set_caching_options(True)
+                text=component_1.output).set_caching_options(False)
 
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
@@ -106,13 +84,107 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
             with open(temp_filepath, 'r') as f:
                 pipeline_obj = yaml.safe_load(f)
-                test_client = client.Client(namespace='ns1')
-                test_client._override_caching_options(pipeline_obj, False)
-                self.assertFalse(
-                    pipeline_obj['root']['dag']['tasks']['hello-word']
-                    ['cachingOptions']['enableCache'])
-                self.assertFalse(pipeline_obj['root']['dag']['tasks']
-                                 ['to-lower']['cachingOptions']['enableCache'])
+                pipeline_spec = json_format.ParseDict(
+                    pipeline_obj, pipeline_spec_pb2.PipelineSpec())
+                client._override_caching_options(pipeline_spec, True)
+                pipeline_obj = json_format.MessageToDict(pipeline_spec)
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']
+                                ['hello-word']['cachingOptions']['enableCache'])
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
+                                ['cachingOptions']['enableCache'])
+
+
+class TestExtractPipelineYAML(parameterized.TestCase):
+
+    def test_extract_pipeline_yaml_single_doc(self):
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'single_doc_pipeline.yaml')
+            with open(temp_filepath, 'w') as f:
+                f.write(
+                    textwrap.dedent('''
+                        components:
+                          comp-foo:
+                            executorLabel: exec-foo
+                        deploymentSpec:
+                          executors:
+                            exec-foo:
+                              container:
+                                command:
+                                - sh
+                                - -c
+                                - cat /data/file.txt
+                                image: alpine
+                        pipelineInfo:
+                          name: my-pipeline
+                        root:
+                          dag:
+                            tasks:
+                              foo:
+                                componentRef:
+                                  name: comp-foo
+                                taskInfo:
+                                  name: foo
+                        schemaVersion: 2.1.0
+                        sdkVersion: kfp-2.0.0-beta.13
+                        '''))
+
+            pipeline_dict = client._extract_pipeline_yaml(
+                temp_filepath).to_dict()
+            self.assertEqual('my-pipeline',
+                             pipeline_dict['pipelineInfo']['name'])
+
+    def test_extract_pipeline_yaml_multiple_docs(self):
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'multi_docs_pipeline.yaml')
+            with open(temp_filepath, 'w') as f:
+                f.write(
+                    textwrap.dedent('''
+                        components:
+                          comp-foo:
+                            executorLabel: exec-foo
+                        deploymentSpec:
+                          executors:
+                            exec-foo:
+                              container:
+                                command:
+                                - sh
+                                - -c
+                                - cat /data/file.txt
+                                image: alpine
+                        pipelineInfo:
+                          name: my-pipeline
+                        root:
+                          dag:
+                            tasks:
+                              foo:
+                                componentRef:
+                                  name: comp-foo
+                                taskInfo:
+                                  name: foo
+                        schemaVersion: 2.1.0
+                        sdkVersion: kfp-2.0.0-beta.13
+                        ---
+                        platforms:
+                          kubernetes:
+                            deploymentSpec:
+                              executors:
+                                exec-foo:
+                                  pvcMount:
+                                  - mountPath: /data
+                                    constant: my-pvc
+                        '''))
+
+            pipeline_dict = client._extract_pipeline_yaml(
+                temp_filepath).to_dict()
+            self.assertEqual(
+                'my-pipeline',
+                pipeline_dict['pipeline_spec']['pipelineInfo']['name'])
+            self.assertEqual(
+                'my-pvc', pipeline_dict['platform_spec']['platforms']
+                ['kubernetes']['deploymentSpec']['executors']['exec-foo']
+                ['pvcMount'][0]['constant'])
 
 
 class TestClient(unittest.TestCase):
