@@ -17,8 +17,21 @@ from kfp import kubernetes
 
 
 @dsl.component
-def comp():
-    pass
+def producer() -> str:
+    with open('/data/file.txt', 'w') as file:
+        file.write('Hello world')
+    with open('/data/file.txt', 'r') as file:
+        content = file.read()
+    print(content)
+    return content
+
+
+@dsl.component
+def consumer() -> str:
+    with open('/data/file.txt', 'r') as file:
+        content = file.read()
+    print(content)
+    return content
 
 
 @dsl.pipeline
@@ -26,12 +39,12 @@ def my_pipeline():
     pvc1 = kubernetes.CreatePVC(
         pvc_name_suffix='-my-pvc',
         access_modes=['ReadWriteMany'],
-        size='5Gi',
+        size='5Mi',
         storage_class_name='standard',
     )
 
-    task1 = comp()
-    task2 = comp().after(task1)
+    task1 = producer()
+    task2 = consumer().after(task1)
 
     kubernetes.mount_pvc(
         task1,
@@ -41,7 +54,7 @@ def my_pipeline():
     kubernetes.mount_pvc(
         task2,
         pvc_name=pvc1.outputs['name'],
-        mount_path='/reused_data',
+        mount_path='/data',
     )
 
     delete_pvc1 = kubernetes.DeletePVC(

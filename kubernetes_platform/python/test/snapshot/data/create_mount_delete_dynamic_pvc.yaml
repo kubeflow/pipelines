@@ -1,10 +1,12 @@
 # PIPELINE DEFINITION
 # Name: my-pipeline
 components:
-  comp-comp:
-    executorLabel: exec-comp
-  comp-comp-2:
-    executorLabel: exec-comp-2
+  comp-consumer:
+    executorLabel: exec-consumer
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
   comp-createpvc:
     executorLabel: exec-createpvc
     inputDefinitions:
@@ -39,15 +41,21 @@ components:
       parameters:
         pvc_name:
           parameterType: STRING
+  comp-producer:
+    executorLabel: exec-producer
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
 deploymentSpec:
   executors:
-    exec-comp:
+    exec-consumer:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - comp
+        - consumer
         command:
         - sh
         - -c
@@ -65,33 +73,9 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef comp():\n    pass\n\n"
-        image: python:3.7
-    exec-comp-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - comp
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef comp():\n    pass\n\n"
+          \ *\n\ndef consumer() -> str:\n    with open('/data/file.txt', 'r') as file:\n\
+          \        content = file.read()\n    print(content)\n    return content\n\
+          \n"
         image: python:3.7
     exec-createpvc:
       container:
@@ -99,30 +83,50 @@ deploymentSpec:
     exec-deletepvc:
       container:
         image: argostub/deletepvc
+    exec-producer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - producer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef producer() -> str:\n    with open('/data/file.txt', 'w') as file:\n\
+          \        file.write('Hello world')\n    with open('/data/file.txt', 'r')\
+          \ as file:\n        content = file.read()\n    print(content)\n    return\
+          \ content\n\n"
+        image: python:3.7
 pipelineInfo:
   name: my-pipeline
 root:
   dag:
     tasks:
-      comp:
+      consumer:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-comp
+          name: comp-consumer
         dependentTasks:
         - createpvc
+        - producer
         taskInfo:
-          name: comp
-      comp-2:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-comp-2
-        dependentTasks:
-        - comp
-        - createpvc
-        taskInfo:
-          name: comp-2
+          name: consumer
       createpvc:
         cachingOptions:
           enableCache: true
@@ -139,7 +143,7 @@ root:
                 constant: -my-pvc
             size:
               runtimeValue:
-                constant: 5Gi
+                constant: 5Mi
             storage_class_name:
               runtimeValue:
                 constant: standard
@@ -151,7 +155,7 @@ root:
         componentRef:
           name: comp-deletepvc
         dependentTasks:
-        - comp-2
+        - consumer
         - createpvc
         inputs:
           parameters:
@@ -161,6 +165,15 @@ root:
                 producerTask: createpvc
         taskInfo:
           name: deletepvc
+      producer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-producer
+        dependentTasks:
+        - createpvc
+        taskInfo:
+          name: producer
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.13
 ---
@@ -168,15 +181,15 @@ platforms:
   kubernetes:
     deploymentSpec:
       executors:
-        exec-comp:
+        exec-consumer:
           pvcMount:
           - mountPath: /data
             taskOutputParameter:
               outputParameterKey: name
               producerTask: createpvc
-        exec-comp-2:
+        exec-producer:
           pvcMount:
-          - mountPath: /reused_data
+          - mountPath: /data
             taskOutputParameter:
               outputParameterKey: name
               producerTask: createpvc
