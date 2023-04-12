@@ -21,10 +21,12 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 from absl.testing import parameterized
+from google.protobuf import json_format
 from kfp.client import client
 from kfp.compiler import Compiler
 from kfp.dsl import component
 from kfp.dsl import pipeline
+from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
 import yaml
 
@@ -54,31 +56,6 @@ class TestValidatePipelineName(parameterized.TestCase):
 
 class TestOverrideCachingOptions(parameterized.TestCase):
 
-    def test_override_caching_from_pipeline(self):
-
-        @component
-        def hello_world(text: str) -> str:
-            """Hello world component."""
-            return text
-
-        @pipeline(name='hello-world', description='A simple intro pipeline')
-        def pipeline_hello_world(text: str = 'hi there'):
-            """Hello world pipeline."""
-
-            hello_world(text=text).set_caching_options(True)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
-            Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
-
-            with open(temp_filepath, 'r') as f:
-                pipeline_obj = yaml.safe_load(f)
-                test_client = client.Client(namespace='ns1')
-                test_client._override_caching_options(pipeline_obj, False)
-                for _, task in pipeline_obj['root']['dag']['tasks'].items():
-                    self.assertFalse(task['cachingOptions']['enableCache'])
-
     def test_override_caching_of_multiple_components(self):
 
         @component
@@ -96,7 +73,7 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
             component_1 = hello_word(text=text).set_caching_options(True)
             component_2 = to_lower(
-                text=component_1.output).set_caching_options(True)
+                text=component_1.output).set_caching_options(False)
 
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
@@ -107,12 +84,14 @@ class TestOverrideCachingOptions(parameterized.TestCase):
             with open(temp_filepath, 'r') as f:
                 pipeline_obj = yaml.safe_load(f)
                 test_client = client.Client(namespace='ns1')
-                test_client._override_caching_options(pipeline_obj, False)
-                self.assertFalse(
-                    pipeline_obj['root']['dag']['tasks']['hello-word']
-                    ['cachingOptions']['enableCache'])
-                self.assertFalse(pipeline_obj['root']['dag']['tasks']
-                                 ['to-lower']['cachingOptions']['enableCache'])
+                pipeline_spec = json_format.ParseDict(
+                    pipeline_obj, pipeline_spec_pb2.PipelineSpec())
+                test_client._override_caching_options(pipeline_spec, True)
+                pipeline_obj = json_format.MessageToDict(pipeline_spec)
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']
+                                ['hello-word']['cachingOptions']['enableCache'])
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
+                                ['cachingOptions']['enableCache'])
 
 
 class TestClient(unittest.TestCase):

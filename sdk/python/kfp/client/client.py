@@ -24,14 +24,16 @@ import tarfile
 import tempfile
 import time
 from types import ModuleType
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TextIO
 import warnings
 import zipfile
 
+from google.protobuf import json_format
 from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
 from kfp.components import base_component
+from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
 import yaml
 
@@ -55,6 +57,21 @@ KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 KF_PIPELINES_IAP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_IAP_OAUTH2_CLIENT_ID'
 KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_ID'
 KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET'
+
+
+@dataclasses.dataclass
+class _PipelineDoc:
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec
+    platform_spec: pipeline_spec_pb2.PlatformSpec
+
+    def to_dict(self) -> dict:
+        pipeline_dict = {
+            'pipeline_spec': json_format.MessageToDict(self.pipeline_spec)
+        }
+        if self.platform_spec:
+            pipeline_dict['platform_spec'] = json_format.MessageToDict(
+                self.platform_spec)
+        return pipeline_dict
 
 
 @dataclasses.dataclass
@@ -630,7 +647,7 @@ class Client:
         return self._experiment_api.delete_experiment(
             experiment_id=experiment_id)
 
-    def _extract_pipeline_yaml(self, package_file: str) -> dict:
+    def _extract_pipeline_yaml(self, package_file: str) -> _PipelineDoc:
 
         def _choose_pipeline_file(file_list: List[str]) -> str:
             pipeline_files = [
@@ -650,21 +667,37 @@ class Client:
                     'Invalid package. There is no pipeline.json file or there '
                     'are multiple yaml files.')
 
+        def _safe_load_yaml(stream: TextIO) -> _PipelineDoc:
+            docs = yaml.safe_load_all(stream)
+            pipeline_spec_dict = None
+            platform_spec_dict = {}
+            for doc in docs:
+                if pipeline_spec_dict is None:
+                    pipeline_spec_dict = doc
+                else:
+                    platform_spec_dict.update(doc)
+
+            return _PipelineDoc(
+                pipeline_spec=json_format.ParseDict(
+                    pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec()),
+                platform_spec=json_format.ParseDict(
+                    platform_spec_dict, pipeline_spec_pb2.PlatformSpec()))
+
         if package_file.endswith('.tar.gz') or package_file.endswith('.tgz'):
             with tarfile.open(package_file, 'r:gz') as tar:
                 file_names = [member.name for member in tar if member.isfile()]
                 pipeline_file = _choose_pipeline_file(file_names)
                 with tar.extractfile(
                         tar.getmember(pipeline_file)) as f:  # type: ignore
-                    return yaml.safe_load(f)
+                    return _safe_load_yaml(f)
         elif package_file.endswith('.zip'):
             with zipfile.ZipFile(package_file, 'r') as zip:
                 pipeline_file = _choose_pipeline_file(zip.namelist())
                 with zip.open(pipeline_file) as f:
-                    return yaml.safe_load(f)
+                    return _safe_load_yaml(f)
         elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
             with open(package_file, 'r') as f:
-                return yaml.safe_load(f)
+                return _safe_load_yaml(f)
         else:
             raise ValueError(
                 f'The package_file {package_file} should end with one of the '
@@ -672,20 +705,17 @@ class Client:
 
     def _override_caching_options(
         self,
-        pipeline_obj: dict,
+        pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         enable_caching: bool,
     ) -> None:
         """Overrides caching options.
 
         Args:
-            pipeline_obj: Dict object parsed from the yaml file.
-            enable_caching: Overrides options, one of 'True', 'False'.
+            pipeline_spec: The PipelineSpec object to update in-place.
+            enable_caching: Overrides options, one of True, False.
         """
-        for _, task in pipeline_obj['root']['dag']['tasks'].items():
-            if 'cachingOptions' in task:
-                task['cachingOptions']['enableCache'] = enable_caching
-            else:
-                task['cachingOptions'] = {'enableCache': enable_caching}
+        for _, task_spec in pipeline_spec.root.dag.tasks.items():
+            task_spec.caching_options.enable_cache = enable_caching
 
     def list_pipelines(
         self,
@@ -996,14 +1026,15 @@ class Client:
         if params is None:
             params = {}
 
-        pipeline_obj = None
+        pipeline_doc = None
         if pipeline_package_path:
-            pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+            pipeline_doc = self._extract_pipeline_yaml(pipeline_package_path)
 
             # Caching option set at submission time overrides the compile time
             # settings.
             if enable_caching is not None:
-                self._override_caching_options(pipeline_obj, enable_caching)
+                self._override_caching_options(pipeline_doc.pipeline_spec,
+                                               enable_caching)
 
         pipeline_version_reference = None
         if pipeline_id is not None and version_id is not None:
@@ -1015,7 +1046,7 @@ class Client:
             parameters=params,
         )
         return _JobConfig(
-            pipeline_spec=pipeline_obj,
+            pipeline_spec=pipeline_doc.to_dict(),
             pipeline_version_reference=pipeline_version_reference,
             runtime_config=runtime_config,
         )
@@ -1452,8 +1483,8 @@ class Client:
             ``V2beta1Pipeline`` object.
         """
         if pipeline_name is None:
-            pipeline_yaml = self._extract_pipeline_yaml(pipeline_package_path)
-            pipeline_name = pipeline_yaml['pipelineInfo']['name']
+            pipeline_doc = self._extract_pipeline_yaml(pipeline_package_path)
+            pipeline_name = pipeline_doc.pipeline_spec.pipeline_info.name
         validate_pipeline_resource_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path,
