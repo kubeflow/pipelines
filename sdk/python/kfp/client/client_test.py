@@ -84,10 +84,9 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
             with open(temp_filepath, 'r') as f:
                 pipeline_obj = yaml.safe_load(f)
-                test_client = client.Client(namespace='ns1')
                 pipeline_spec = json_format.ParseDict(
                     pipeline_obj, pipeline_spec_pb2.PipelineSpec())
-                test_client._override_caching_options(pipeline_spec, True)
+                client._override_caching_options(pipeline_spec, True)
                 pipeline_obj = json_format.MessageToDict(pipeline_spec)
                 self.assertTrue(pipeline_obj['root']['dag']['tasks']
                                 ['hello-word']['cachingOptions']['enableCache'])
@@ -130,8 +129,7 @@ class TestExtractPipelineYAML(parameterized.TestCase):
                         sdkVersion: kfp-2.0.0-beta.13
                         '''))
 
-            test_client = client.Client()
-            pipeline_dict = test_client._extract_pipeline_yaml(
+            pipeline_dict = client._extract_pipeline_yaml(
                 temp_filepath).to_dict()
             self.assertEqual('my-pipeline',
                              pipeline_dict['pipelineInfo']['name'])
@@ -178,8 +176,7 @@ class TestExtractPipelineYAML(parameterized.TestCase):
                                     constant: my-pvc
                         '''))
 
-            test_client = client.Client()
-            pipeline_dict = test_client._extract_pipeline_yaml(
+            pipeline_dict = client._extract_pipeline_yaml(
                 temp_filepath).to_dict()
             self.assertEqual(
                 'my-pipeline',
