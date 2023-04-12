@@ -346,4 +346,4 @@ root:
         taskInfo:
           name: flip-coin
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.8
+sdkVersion: kfp-2.0.0-beta.14
