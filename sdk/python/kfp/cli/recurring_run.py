@@ -135,7 +135,7 @@ def create(ctx: click.Context,
         raise ValueError(either_option_required)
     if not experiment_id:
         experiment = client_obj.create_experiment(experiment_name)
-        experiment_id = experiment.id
+        experiment_id = experiment.experiment_id
 
     # Ensure we only split on the first equals char so the value can contain
     # equals signs too.
