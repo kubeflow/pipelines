@@ -654,13 +654,19 @@ func toApiParametersV1(p string) []*apiv1beta1.Parameter {
 // Supports v1beta1 and v2beta1 API.
 // Note: returns nil if a parsing error occurs.
 func toMapProtoStructParameters(p string) map[string]*structpb.Value {
-	protoParams := make(map[string]*structpb.Value)
+	protoParams := make(map[string]*structpb.Value, 0)
 	if p == "" || p == "null" || p == "[]" {
 		return protoParams
 	}
 	err := json.Unmarshal([]byte(p), &protoParams)
 	if err != nil {
-		return nil
+		if paramsV1 := toApiParametersV1(p); paramsV1 == nil {
+			return nil
+		} else {
+			for _, paramV1 := range paramsV1 {
+				protoParams[paramV1.Name] = structpb.NewStringValue(paramV1.Value)
+			}
+		}
 	}
 	return protoParams
 }
@@ -1317,22 +1323,20 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 			Error: util.Wrap(errors.New("Failed to parse pipeline spec parameters"), "Failed to convert internal run representation to its v1beta1 API counterpart").Error(),
 		}
 	}
+	var runtimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig
 	if len(specParams) == 0 {
 		specParams = nil
-	}
-
-	// v2 RuntimeConfig
-	runtimeConfig := toApiRuntimeConfigV1(r.PipelineSpec.RuntimeConfig)
-	if runtimeConfig == nil {
-		return &apiv1beta1.Run{
-			Id:    r.UUID,
-			Error: util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its v1beta1 API counterpart").Error(),
+		runtimeConfig = toApiRuntimeConfigV1(r.PipelineSpec.RuntimeConfig)
+		if runtimeConfig == nil {
+			return &apiv1beta1.Run{
+				Id:    r.UUID,
+				Error: util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its v1beta1 API counterpart").Error(),
+			}
+		}
+		if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
+			runtimeConfig = nil
 		}
 	}
-	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
-		runtimeConfig = nil
-	}
-
 	var metrics []*apiv1beta1.RunMetric
 	if r.Metrics != nil {
 		metrics = toApiRunMetricsV1(r.Metrics)
@@ -1448,7 +1452,11 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		}
 	}
 	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
-		runtimeConfig = nil
+		if params := toMapProtoStructParameters(r.PipelineSpec.Parameters); len(params) > 0 {
+			runtimeConfig.Parameters = params
+		} else {
+			runtimeConfig = nil
+		}
 	}
 	apiRd := &apiv2beta1.RunDetails{
 		PipelineContextId:    r.RunDetails.PipelineContextId,
@@ -1841,11 +1849,11 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		createTime = apiJob.GetCreatedAt().GetSeconds()
 		updateTime = apiJob.GetUpdatedAt().GetSeconds()
 
-		params, err := toModelParameters(apiJob.GetPipelineSpec().GetParameters())
-		if err != nil {
+		if params, err := toModelParameters(apiJob.GetPipelineSpec().GetParameters()); err != nil {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API recurring run to its internal representation due to parameters parsing error")
+		} else {
+			specParams = params
 		}
-		specParams = params
 
 		cfg, err := toModelRuntimeConfig(apiJob.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
@@ -1924,6 +1932,12 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	} else if pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
+	status := model.StatusStateUnspecified
+	if isEnabled {
+		status = model.StatusStateEnabled
+	} else {
+		status = model.StatusStateDisabled
+	}
 	return &model.Job{
 		UUID:               jobId,
 		DisplayName:        jobName,
@@ -1936,6 +1950,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		CreatedAtInSec:     createTime,
 		UpdatedAtInSec:     updateTime,
 		Enabled:            isEnabled,
+		Conditions:         status.ToString(),
 		ExperimentId:       experimentId,
 		ResourceReferences: resRefs,
 		Trigger:            *trigger,
@@ -2034,21 +2049,22 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 	if specParams == nil {
 		return &apiv1beta1.Job{
 			Id:    j.UUID,
-			Error: util.NewInternalServerError(util.NewInvalidInputError("Pipeline spec parameters were not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
+			Error: util.NewInternalServerError(util.NewInvalidInputError("Pipeline v1 parameters were not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
 		}
 	}
+	var runtimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig
 	if len(specParams) == 0 {
 		specParams = nil
-	}
-	runtimeConfig := toApiRuntimeConfigV1(j.PipelineSpec.RuntimeConfig)
-	if runtimeConfig == nil {
-		return &apiv1beta1.Job{
-			Id:    j.UUID,
-			Error: util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
+		runtimeConfig = toApiRuntimeConfigV1(j.PipelineSpec.RuntimeConfig)
+		if runtimeConfig == nil {
+			return &apiv1beta1.Job{
+				Id:    j.UUID,
+				Error: util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its v1beta1 API counterpart").Error(),
+			}
 		}
-	}
-	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
-		runtimeConfig = nil
+		if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
+			runtimeConfig = nil
+		}
 	}
 	resRefs := toApiResourceReferencesV1(j.ResourceReferences)
 	if resRefs == nil {
@@ -2142,22 +2158,6 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 // Supports v2beta1 API.
 func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 	j = j.ToV2()
-	params := toMapProtoStructParameters(j.PipelineSpec.RuntimeConfig.Parameters)
-	if params == nil {
-		return &apiv2beta1.RecurringRun{
-			RecurringRunId: j.UUID,
-			Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime parameters were not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
-		}
-	}
-	if len(params) == 0 {
-		params = toMapProtoStructParameters(j.PipelineSpec.Parameters)
-		if params == nil {
-			return &apiv2beta1.RecurringRun{
-				RecurringRunId: j.UUID,
-				Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime parameters were not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
-			}
-		}
-	}
 	runtimeConfig := toApiRuntimeConfig(j.PipelineSpec.RuntimeConfig)
 	if runtimeConfig == nil {
 		return &apiv2beta1.RecurringRun{
@@ -2165,8 +2165,12 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 			Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
 		}
 	}
-	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
-		runtimeConfig = nil
+	if runtimeConfig == nil || (len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0) {
+		if params := toMapProtoStructParameters(j.PipelineSpec.Parameters); len(params) > 0 {
+			runtimeConfig.Parameters = params
+		} else {
+			runtimeConfig = nil
+		}
 	}
 
 	apiRecurringRunV2 := &apiv2beta1.RecurringRun{

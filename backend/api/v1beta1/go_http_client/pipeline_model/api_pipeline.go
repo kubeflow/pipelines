@@ -54,11 +54,8 @@ type APIPipeline struct {
 	// For Pipeline, the only valid resource reference is a single Namespace.
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
 
-	// The URL to the source of the pipeline. This is required when creating the
-	// pipeine through CreatePipeline API.
-	// TODO(jingzhang36): replace this url field with the code_source_urls field
-	// inside PipelineVersion when all usage of the former has been changed to use
-	// the latter.
+	// Input. Required. The URL to the source of the pipeline.
+	// This is required when creating the pipeine through CreatePipeline API.
 	URL *APIURL `json:"url,omitempty"`
 }
 

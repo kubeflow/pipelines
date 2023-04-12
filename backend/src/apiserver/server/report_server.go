@@ -74,7 +74,7 @@ func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	return s.reportWorkflow(ctx, request.GetWorkflow())
 }
 
-// Reports a schduled workflow.
+// Reports a scheduled workflow.
 func (s *ReportServer) reportScheduledWorkflow(ctx context.Context, swf string) (*empty.Empty, error) {
 	scheduledWorkflow, err := validateReportScheduledWorkflowRequest(swf)
 	if err != nil {

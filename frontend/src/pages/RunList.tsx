@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import Metric from 'src/components/Metric';
-import RunUtils, { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
+import { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
@@ -452,16 +452,19 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * '-'.
    */
   private async _getAndSetPipelineVersionNames(displayRun: DisplayRun): Promise<void> {
+    const pipelineId = displayRun.run.pipeline_version_reference?.pipeline_id;
     const pipelineVersionId = displayRun.run.pipeline_version_reference?.pipeline_version_id;
-    if (pipelineVersionId) {
+    if (pipelineId && pipelineVersionId) {
       try {
-        const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
-        const pipelineVersionName = pipelineVersion.name || '';
+        const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
+          pipelineId,
+          pipelineVersionId,
+        );
         displayRun.pipelineVersion = {
-          displayName: pipelineVersionName,
-          pipelineId: RunUtils.getPipelineIdFromApiPipelineVersion(pipelineVersion),
+          displayName: pipelineVersion.display_name,
+          pipelineId: pipelineVersion.pipeline_id,
           usePlaceholder: false,
-          versionId: pipelineVersionId,
+          versionId: pipelineVersion.pipeline_version_id,
         };
       } catch (err) {
         displayRun.error =
@@ -487,8 +490,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (experimentId) {
       let experimentName;
       try {
-        const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-        experimentName = experiment.name || '';
+        const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
+        experimentName = experiment.display_name || '';
       } catch (err) {
         displayRun.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
         return;
