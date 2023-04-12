@@ -191,8 +191,8 @@ def list_versions(ctx: click.Context, pipeline_id: str, page_token: str,
         sort_by=sort_by,
         filter=filter)
     output.print_output(
-        response.versions or [],
-        output.ModelType.PIPELINE,
+        response.pipeline_versions or [],
+        output.ModelType.PIPELINE_VERSION,
         output_format,
     )
 
