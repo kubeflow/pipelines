@@ -65,13 +65,13 @@ class _PipelineDoc:
     platform_spec: pipeline_spec_pb2.PlatformSpec
 
     def to_dict(self) -> dict:
-        pipeline_dict = {
-            'pipeline_spec': json_format.MessageToDict(self.pipeline_spec)
-        }
-        if self.platform_spec:
-            pipeline_dict['platform_spec'] = json_format.MessageToDict(
-                self.platform_spec)
-        return pipeline_dict
+        if self.platform_spec == pipeline_spec_pb2.PlatformSpec():
+            return json_format.MessageToDict(self.pipeline_spec)
+        else:
+            return {
+                'pipeline_spec': json_format.MessageToDict(self.pipeline_spec),
+                'platform_spec': json_format.MessageToDict(self.platform_spec),
+            }
 
 
 @dataclasses.dataclass

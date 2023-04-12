@@ -15,6 +15,7 @@
 import json
 import os
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import MagicMock
 from unittest.mock import Mock
@@ -92,6 +93,101 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                                 ['hello-word']['cachingOptions']['enableCache'])
                 self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
                                 ['cachingOptions']['enableCache'])
+
+
+class TestExtractPipelineYAML(parameterized.TestCase):
+
+    def test_extract_pipeline_yaml_single_doc(self):
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'single_doc_pipeline.yaml')
+            with open(temp_filepath, 'w') as f:
+                f.write(
+                    textwrap.dedent('''
+                        components:
+                          comp-foo:
+                            executorLabel: exec-foo
+                        deploymentSpec:
+                          executors:
+                            exec-foo:
+                              container:
+                                command:
+                                - sh
+                                - -c
+                                - cat /data/file.txt
+                                image: alpine
+                        pipelineInfo:
+                          name: my-pipeline
+                        root:
+                          dag:
+                            tasks:
+                              foo:
+                                componentRef:
+                                  name: comp-foo
+                                taskInfo:
+                                  name: foo
+                        schemaVersion: 2.1.0
+                        sdkVersion: kfp-2.0.0-beta.13
+                        '''))
+
+            test_client = client.Client()
+            pipeline_dict = test_client._extract_pipeline_yaml(
+                temp_filepath).to_dict()
+            self.assertEqual('my-pipeline',
+                             pipeline_dict['pipelineInfo']['name'])
+
+    def test_extract_pipeline_yaml_multiple_docs(self):
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'multi_docs_pipeline.yaml')
+            with open(temp_filepath, 'w') as f:
+                f.write(
+                    textwrap.dedent('''
+                        components:
+                          comp-foo:
+                            executorLabel: exec-foo
+                        deploymentSpec:
+                          executors:
+                            exec-foo:
+                              container:
+                                command:
+                                - sh
+                                - -c
+                                - cat /data/file.txt
+                                image: alpine
+                        pipelineInfo:
+                          name: my-pipeline
+                        root:
+                          dag:
+                            tasks:
+                              foo:
+                                componentRef:
+                                  name: comp-foo
+                                taskInfo:
+                                  name: foo
+                        schemaVersion: 2.1.0
+                        sdkVersion: kfp-2.0.0-beta.13
+                        ---
+                        platforms:
+                          kubernetes:
+                            deploymentSpec:
+                              executors:
+                                exec-foo:
+                                  pvcMount:
+                                  - mountPath: /data
+                                    constant: my-pvc
+                        '''))
+
+            test_client = client.Client()
+            pipeline_dict = test_client._extract_pipeline_yaml(
+                temp_filepath).to_dict()
+            self.assertEqual(
+                'my-pipeline',
+                pipeline_dict['pipeline_spec']['pipelineInfo']['name'])
+            self.assertEqual(
+                'my-pvc', pipeline_dict['platform_spec']['platforms']
+                ['kubernetes']['deploymentSpec']['executors']['exec-foo']
+                ['pvcMount'][0]['constant'])
 
 
 class TestClient(unittest.TestCase):
