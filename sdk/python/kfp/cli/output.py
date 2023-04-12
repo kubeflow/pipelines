@@ -16,7 +16,7 @@ import dataclasses
 import datetime
 import enum
 import json
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 import click
 import kfp_server_api
@@ -45,17 +45,6 @@ class OutputFormat(enum.Enum):
     json = 'json'
 
 
-RUN_STORAGE_STATE_MAP = {
-    kfp_server_api.ApiRunStorageState.AVAILABLE: 'Available',
-    kfp_server_api.ApiRunStorageState.ARCHIVED: 'Archived',
-}
-EXPERIMENT_STORAGE_STATE_MAP = {
-    kfp_server_api.ApiExperimentStorageState.AVAILABLE: 'Available',
-    kfp_server_api.ApiExperimentStorageState.ARCHIVED: 'Archived',
-    kfp_server_api.ApiExperimentStorageState.UNSPECIFIED: 'Unspecified',
-}
-
-
 def snake_to_header(string: str) -> str:
     """Converts a snake case string to a table header by replacing underscores
     with spaces and making uppercase.
@@ -74,18 +63,17 @@ class ExperimentData:
     id: str
     name: str
     created_at: str
-    state: str
+    storage_state: str
 
 
-def transform_experiment(exp: kfp_server_api.ApiExperiment) -> Dict[str, Any]:
+def transform_experiment(
+        exp: kfp_server_api.V2beta1Experiment) -> Dict[str, Any]:
     return dataclasses.asdict(
         ExperimentData(
-            id=exp.id,
-            name=exp.name,
+            id=exp.experiment_id,
+            name=exp.display_name,
             created_at=exp.created_at.isoformat(),
-            state=EXPERIMENT_STORAGE_STATE_MAP.get(
-                exp.storage_state, EXPERIMENT_STORAGE_STATE_MAP[
-                    kfp_server_api.ApiExperimentStorageState.AVAILABLE])))
+            storage_state=exp.storage_state))
 
 
 @dataclasses.dataclass
@@ -93,20 +81,16 @@ class PipelineData:
     id: str
     name: str
     created_at: str
-    default_version: str
 
 
-def transform_pipeline(pipeline: kfp_server_api.ApiPipeline) -> Dict[str, Any]:
-    default_version_id = pipeline.default_version.id if hasattr(
-        pipeline,
-        'default_version') and pipeline.default_version is not None and hasattr(
-            pipeline.default_version, 'id') else None
+def transform_pipeline(
+        pipeline: kfp_server_api.V2beta1Pipeline) -> Dict[str, Any]:
     return dataclasses.asdict(
         PipelineData(
-            id=pipeline.id,
-            name=pipeline.name,
+            id=pipeline.pipeline_id,
+            name=pipeline.display_name,
             created_at=pipeline.created_at.isoformat(),
-            default_version=default_version_id))
+        ))
 
 
 @dataclasses.dataclass
@@ -118,16 +102,14 @@ class PipelineVersionData:
 
 
 def transform_pipeline_version(
-        pipeline_version: kfp_server_api.ApiPipelineVersion) -> Dict[str, Any]:
-    parent_id = next(
-        rr for rr in pipeline_version.resource_references
-        if rr.relationship == kfp_server_api.ApiRelationship.OWNER).key.id
+        pipeline_version: kfp_server_api.V2beta1PipelineVersion
+) -> Dict[str, Any]:
     return dataclasses.asdict(
         PipelineVersionData(
-            id=pipeline_version.id,
-            name=pipeline_version.name,
+            id=pipeline_version.pipeline_version_id,
+            name=pipeline_version.display_name,
             created_at=pipeline_version.created_at.isoformat(),
-            parent_id=parent_id,
+            parent_id=pipeline_version.pipeline_id,
         ))
 
 
@@ -136,26 +118,22 @@ class RunData:
     id: str
     name: str
     created_at: str
-    status: str
     state: str
+    storage_state: str
 
 
-def transform_run(
-    run: Union[kfp_server_api.ApiRun, kfp_server_api.ApiRunDetail]
-) -> Dict[str, Any]:
+def transform_run(run: kfp_server_api.V2beta1Run) -> Dict[str, Any]:
     return dataclasses.asdict((RunData(
-        id=run.id,
-        name=run.name,
+        id=run.run_id,
+        name=run.display_name,
         created_at=run.created_at.isoformat(),
-        status=run.status,
-        state=RUN_STORAGE_STATE_MAP.get(
-            run.storage_state,
-            RUN_STORAGE_STATE_MAP[kfp_server_api.ApiRunStorageState.AVAILABLE]))
-                              ))
+        state=run.state,
+        storage_state=run.storage_state,
+    )))
 
 
 @dataclasses.dataclass
-class JobData:
+class RecurringRunData:
     id: str
     name: str
     created_at: str
@@ -163,16 +141,14 @@ class JobData:
     status: str
 
 
-def transform_job(recurring_run: kfp_server_api.ApiJob) -> Dict[str, Any]:
-    experiment_id = next(
-        rr for rr in recurring_run.resource_references
-        if rr.key.type == kfp_server_api.ApiResourceType.EXPERIMENT).key.id
+def transform_recurring_run(
+        recurring_run: kfp_server_api.V2beta1RecurringRun) -> Dict[str, Any]:
     return dataclasses.asdict(
-        JobData(
-            id=recurring_run.id,
-            name=recurring_run.name,
+        RecurringRunData(
+            id=recurring_run.recurring_run_id,
+            name=recurring_run.display_name,
             created_at=recurring_run.created_at.isoformat(),
-            experiment_id=experiment_id,
+            experiment_id=recurring_run.experiment_id,
             status=recurring_run.status))
 
 
@@ -183,7 +159,7 @@ class ModelType(enum.Enum):
     PIPELINE = 'PIPELINE'
     PIPELINE_VERSION = 'PIPELINE_VERSION'
     RUN = 'RUN'
-    JOB = 'JOB'
+    RECURRING_RUN = 'RECURRING_RUN'
 
 
 transformer_map = {
@@ -191,7 +167,7 @@ transformer_map = {
     ModelType.PIPELINE: transform_pipeline,
     ModelType.PIPELINE_VERSION: transform_pipeline_version,
     ModelType.RUN: transform_run,
-    ModelType.JOB: transform_job,
+    ModelType.RECURRING_RUN: transform_recurring_run,
 }
 
 dataclass_map = {
@@ -199,7 +175,7 @@ dataclass_map = {
     ModelType.PIPELINE: PipelineData,
     ModelType.PIPELINE_VERSION: PipelineVersionData,
     ModelType.RUN: RunData,
-    ModelType.JOB: JobData,
+    ModelType.RECURRING_RUN: RecurringRunData,
 }
 
 

@@ -74,7 +74,7 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
             with open(temp_filepath, 'r') as f:
                 pipeline_obj = yaml.safe_load(f)
-                test_client = client.Client(namespace='foo')
+                test_client = client.Client(namespace='ns1')
                 test_client._override_caching_options(pipeline_obj, False)
                 for _, task in pipeline_obj['root']['dag']['tasks'].items():
                     self.assertFalse(task['cachingOptions']['enableCache'])
@@ -106,7 +106,7 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
             with open(temp_filepath, 'r') as f:
                 pipeline_obj = yaml.safe_load(f)
-                test_client = client.Client(namespace='foo')
+                test_client = client.Client(namespace='ns1')
                 test_client._override_caching_options(pipeline_obj, False)
                 self.assertFalse(
                     pipeline_obj['root']['dag']['tasks']['hello-word']
@@ -118,7 +118,7 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 class TestClient(unittest.TestCase):
 
     def setUp(self):
-        self.client = client.Client(namespace='foo')
+        self.client = client.Client(namespace='ns1')
 
     def test__is_ipython_return_false(self):
         mock = MagicMock()
@@ -152,9 +152,9 @@ class TestClient(unittest.TestCase):
         with patch.object(self.client._run_api, 'get_run') as mock_get_run:
             # We need to iterate through multiple side effects in order to test this logic.
             mock_get_run.side_effect = [
-                Mock(run=Mock(status='foo')),
+                Mock(state='unknown state'),
                 kfp_server_api.ApiException(status=401),
-                Mock(run=Mock(status='succeeded')),
+                Mock(state='succeeded'),
             ]
 
             with patch.object(self.client, '_refresh_api_client_token'
@@ -166,7 +166,7 @@ class TestClient(unittest.TestCase):
 
     def test_wait_for_run_completion_valid_token(self):
         with patch.object(self.client._run_api, 'get_run') as mock_get_run:
-            mock_get_run.return_value = Mock(run=Mock(status='succeeded'))
+            mock_get_run.return_value = Mock(state='succeeded')
             response = self.client.wait_for_run_completion(
                 run_id='foo', timeout=1, sleep_duration=0)
             mock_get_run.assert_called_once_with(run_id='foo')
@@ -184,9 +184,9 @@ class TestClient(unittest.TestCase):
     def test_create_experiment_no_experiment_should_raise_error(
             self, mock_get_experiment):
         with self.assertRaises(ValueError):
-            self.client.create_experiment(name='foo', namespace='foo')
+            self.client.create_experiment(name='foo', namespace='ns1')
             mock_get_experiment.assert_called_once_with(
-                name='foo', namespace='foo')
+                name='foo', namespace='ns1')
 
     @patch('kfp.Client.get_experiment', return_value=Mock(id='foo'))
     @patch('kfp.Client._get_url_prefix', return_value='/pipeline')
@@ -194,10 +194,10 @@ class TestClient(unittest.TestCase):
                                                    mock_get_experiment):
         self.client.create_experiment(name='foo')
         mock_get_experiment.assert_called_once_with(
-            experiment_name='foo', namespace='foo')
+            experiment_name='foo', namespace='ns1')
         mock_get_url_prefix.assert_called_once()
 
-    @patch('kfp_server_api.ApiExperiment')
+    @patch('kfp_server_api.V2beta1Experiment')
     @patch(
         'kfp.Client.get_experiment',
         side_effect=ValueError('No experiment is found with name'))
@@ -210,10 +210,11 @@ class TestClient(unittest.TestCase):
         with patch.object(
                 self.client._experiment_api,
                 'create_experiment',
-                return_value=Mock(id='foo')) as mock_create_experiment:
+                return_value=Mock(
+                    experiment_id='foo')) as mock_create_experiment:
             self.client.create_experiment(name='foo')
             mock_get_experiment.assert_called_once_with(
-                experiment_name='foo', namespace='foo')
+                experiment_name='foo', namespace='ns1')
             mock_api_experiment.assert_called_once()
             mock_create_experiment.assert_called_once()
             mock_get_url_prefix.assert_called_once()
@@ -228,11 +229,11 @@ class TestClient(unittest.TestCase):
         with self.assertRaises(ValueError):
             with patch.object(
                     self.client._experiment_api,
-                    'list_experiment',
+                    'list_experiments',
                     return_value=Mock(
-                        experiments=None)) as mock_list_experiment:
+                        experiments=None)) as mock_list_experiments:
                 self.client.get_experiment(experiment_name='foo')
-                mock_list_experiment.assert_called_once()
+                mock_list_experiments.assert_called_once()
                 mock_get_user_namespace.assert_called_once()
 
     @patch('kfp.Client.get_user_namespace', return_value=None)
@@ -241,32 +242,32 @@ class TestClient(unittest.TestCase):
         with self.assertRaises(ValueError):
             with patch.object(
                     self.client._experiment_api,
-                    'list_experiment',
+                    'list_experiments',
                     return_value=Mock(
-                        experiments=['foo', 'foo'])) as mock_list_experiment:
+                        experiments=['foo', 'foo'])) as mock_list_experiments:
                 self.client.get_experiment(experiment_name='foo')
-                mock_list_experiment.assert_called_once()
+                mock_list_experiments.assert_called_once()
                 mock_get_user_namespace.assert_called_once()
 
     def test_get_experiment_with_experiment_id(self):
         with patch.object(self.client._experiment_api,
                           'get_experiment') as mock_get_experiment:
             self.client.get_experiment(experiment_id='foo')
-            mock_get_experiment.assert_called_once_with(id='foo')
+            mock_get_experiment.assert_called_once_with(experiment_id='foo')
 
     def test_get_experiment_with_experiment_name_and_namespace(self):
         with patch.object(self.client._experiment_api,
-                          'list_experiment') as mock_list_experiment:
-            self.client.get_experiment(experiment_name='foo', namespace='foo')
-            mock_list_experiment.assert_called_once()
+                          'list_experiments') as mock_list_experiments:
+            self.client.get_experiment(experiment_name='foo', namespace='ns1')
+            mock_list_experiments.assert_called_once()
 
     @patch('kfp.Client.get_user_namespace', return_value=None)
     def test_get_experiment_with_experiment_name_and_no_namespace(
             self, mock_get_user_namespace):
         with patch.object(self.client._experiment_api,
-                          'list_experiment') as mock_list_experiment:
+                          'list_experiments') as mock_list_experiments:
             self.client.get_experiment(experiment_name='foo')
-            mock_list_experiment.assert_called_once()
+            mock_list_experiments.assert_called_once()
             mock_get_user_namespace.assert_called_once()
 
     @patch('kfp_server_api.HealthzServiceApi.get_healthz')
@@ -304,11 +305,13 @@ class TestClient(unittest.TestCase):
                         package_path=pipeline_test_path)
                     self.client.upload_pipeline(
                         pipeline_package_path=pipeline_test_path,
-                        description='description')
+                        description='description',
+                        namespace='ns1')
                     mock_upload_pipeline.assert_called_once_with(
                         pipeline_test_path,
                         name='test-upload-without-name',
-                        description='description')
+                        description='description',
+                        namespace='ns1')
 
     def test_upload_pipeline_with_name(self):
         with patch.object(self.client._upload_api,
@@ -317,11 +320,13 @@ class TestClient(unittest.TestCase):
                 self.client.upload_pipeline(
                     pipeline_package_path='fake.yaml',
                     pipeline_name='overwritten-name',
-                    description='description')
+                    description='description',
+                    namespace='ns1')
                 mock_upload_pipeline.assert_called_once_with(
                     'fake.yaml',
                     name='overwritten-name',
-                    description='description')
+                    description='description',
+                    namespace='ns1')
 
 
 if __name__ == '__main__':
