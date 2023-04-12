@@ -78,7 +78,7 @@ class GraphComponent(base_component.BaseComponent):
         if pipeline_root is not None:
             pipeline_spec.default_pipeline_root = pipeline_root
 
-        pipeline_spec = self._dedupe_pipeline_spec(pipeline_spec)
+        pipeline_spec = self._dedupe_pipeline_spec(pipeline_spec, platform_spec)
 
         self.component_spec.implementation.graph = pipeline_spec
         self.component_spec.platform_spec = platform_spec
@@ -92,7 +92,8 @@ class GraphComponent(base_component.BaseComponent):
         raise RuntimeError('Graph component has no local execution mode.')
 
     def _dedupe_pipeline_spec(
-        self, pipeline_spec: pipeline_spec_pb2.PipelineSpec
+        self, pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+        platform_spec: pipeline_spec_pb2.PlatformSpec
     ) -> pipeline_spec_pb2.PipelineSpec:
         """removes duplicated component spec and executor specs caused by tasks
         calling on the same components.
@@ -119,9 +120,19 @@ class GraphComponent(base_component.BaseComponent):
         def _get_label_index(reference: str, last_delimiter: int) -> str:
             return reference[last_delimiter + 1:]
 
+        def _platform_specific(exec_spec_1: dict, exec_spec_2: dict) -> bool:
+            for platform in platform_spec.platforms.values():
+                for executor_spec in platform.deployment_spec.executors.values(
+                ):
+                    if exec_spec_1 == executor_spec or exec_spec_2 == executor_spec:
+                        return True
+
+            return False
+
         def _collect_and_process_duplicates() -> dict:
             components_with_clones = {}
             clone_mapping = defaultdict(list)
+
             # Collect the collection of dedupable components
             for component_name, component_spec in sorted(
                     pipeline_spec.components.items()):
@@ -135,7 +146,9 @@ class GraphComponent(base_component.BaseComponent):
                         corresponding_component_name = utils._COMPONENT_NAME_PREFIX + executor_name[
                             len(utils._EXECUTOR_LABEL_PREFIX):]
                         if executor_name != component_spec.executor_label and executor_spec == original_components_executor_spec and pipeline_spec.components[
-                                corresponding_component_name].executor_label:
+                                corresponding_component_name].executor_label and not _platform_specific(
+                                    executor_spec,
+                                    original_components_executor_spec):
                             clone_mapping[component_name].append(
                                 corresponding_component_name)
                             components_with_clones[
