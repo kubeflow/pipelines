@@ -227,6 +227,7 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
   const logsInfo = new Map<string, string>();
   let podName = '';
   let podNameSpace = '';
+  let cachedExecutionId = '';
   let logsDetails = '';
   let logsBannerMessage = '';
   let logsBannerAdditionalInfo = '';
@@ -242,14 +243,22 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
         .getCustomPropertiesMap()
         .get('namespace')
         ?.getStringValue() || '';
+    cachedExecutionId =
+      execution
+        .getCustomPropertiesMap()
+        .get('cached_execution_id')
+        ?.getStringValue() || '';
   }
 
-  if (!runId || !podName || !podNameSpace) {
-    return new Map<string, string>();
+  // Early return if it is from cache.
+  // TODO(jlyaoyuli): Consider to link to the cached execution.
+  if (cachedExecutionId) {
+    logsInfo.set('logsDetails', 'This step output is taken from cache.');
+    return logsInfo;
   }
 
   try {
-    logsDetails = await Apis.getPodLogs(runId, podName, podNameSpace);
+    logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace);
     logsInfo.set('logsDetails', logsDetails);
   } catch (err) {
     let errMsg = await errorToMessage(err);
