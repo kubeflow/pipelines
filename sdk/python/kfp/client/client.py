@@ -1138,7 +1138,7 @@ class Client:
             experiment_name = overridden_experiment_name or 'Default'
             experiment = self.create_experiment(
                 name=experiment_name, namespace=namespace)
-            experiment_id = experiment.id
+            experiment_id = experiment.experiment_id
 
         run_name = run_name or (
             pipeline_name + ' ' +
