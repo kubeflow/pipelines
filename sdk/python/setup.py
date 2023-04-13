@@ -61,7 +61,7 @@ setuptools.setup(
     long_description=read_readme(),
     long_description_content_type='text/markdown',
     author='The Kubeflow Authors',
-    url='https://github.com/kubeflow/pipelines',
+    url='https://kubeflow-pipelines.readthedocs.io',
     project_urls={
         'Documentation':
             'https://kubeflow-pipelines.readthedocs.io/en/stable/',
