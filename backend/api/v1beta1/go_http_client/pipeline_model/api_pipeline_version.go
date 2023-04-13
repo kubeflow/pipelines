@@ -19,7 +19,10 @@ import (
 // swagger:model apiPipelineVersion
 type APIPipelineVersion struct {
 
-	// Input. Optional. Pipeline version code source.
+	// Input. Optional. The URL to the code source of the pipeline version.
+	// The code is usually the Python definition of the pipeline and potentially
+	// the related component definitions. This allows users to trace back to how
+	// the pipeline YAML was created.
 	CodeSourceURL string `json:"code_source_url,omitempty"`
 
 	// Output. The time this pipeline version is created.
@@ -35,9 +38,9 @@ type APIPipelineVersion struct {
 	// Optional input field. Version name provided by user.
 	Name string `json:"name,omitempty"`
 
-	// Input. Required. Pipeline version package url.
-	// Whe calling CreatePipelineVersion API method, need to provide one package
-	// file location.
+	// Input. Required. The URL to the source of the pipeline version.
+	// This is required when creating the pipeine version through
+	// CreatePipelineVersion API.
 	PackageURL *APIURL `json:"package_url,omitempty"`
 
 	// Output. The input parameters for this pipeline.

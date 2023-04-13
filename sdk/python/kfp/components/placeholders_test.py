@@ -64,6 +64,18 @@ class TestInputMetadataPlaceholder(parameterized.TestCase):
             placeholders.InputMetadataPlaceholder('input1')._to_string(),
             "{{$.inputs.artifacts['input1'].metadata}}")
 
+    def test_access_top_level_metadata_key(self):
+
+        @dsl.container_component
+        def echo(d: Input[Dataset]):
+            return dsl.ContainerSpec(
+                image='alpine', command=['echo', d.metadata['key']])
+
+        self.assertEqual(
+            echo.pipeline_spec.deployment_spec['executors']['exec-echo']
+            ['container']['command'][1],
+            "{{$.inputs.artifacts['d'].metadata['key']}}")
+
 
 class TestOutputPathPlaceholder(parameterized.TestCase):
 
@@ -95,6 +107,18 @@ class TestOutputMetadataPlaceholder(parameterized.TestCase):
         self.assertEqual(
             placeholders.OutputMetadataPlaceholder('output1')._to_string(),
             "{{$.outputs.artifacts['output1'].metadata}}")
+
+    def test_access_top_level_metadata_key(self):
+
+        @dsl.container_component
+        def echo(d: Output[Dataset]):
+            return dsl.ContainerSpec(
+                image='alpine', command=['echo', d.metadata['key']])
+
+        self.assertEqual(
+            echo.pipeline_spec.deployment_spec['executors']['exec-echo']
+            ['container']['command'][1],
+            "{{$.outputs.artifacts['d'].metadata['key']}}")
 
 
 class TestIfPresentPlaceholder(parameterized.TestCase):

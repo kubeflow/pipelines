@@ -88,6 +88,10 @@ fi
 function cleanup() {
   set +e
 
+  #push to metrics to cloudwatch
+  echo "Pushing Codebuild stats to Cloudwatch."
+  python ../../codebuild/scripts/push_stats_to_cloudwatch.py
+
   cleanup_kfp
   # If installation fails before ack installation resources should be freed.
   if [[ -v ACK_K8S_NAMESPACE ]]; then
@@ -328,4 +332,4 @@ fi
 
 DIR_THIS_FILE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n 9
+cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.xml -n 9

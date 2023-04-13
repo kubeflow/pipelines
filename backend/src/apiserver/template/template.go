@@ -143,7 +143,11 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	return runtimeConfig, nil
 }
 
-func modelToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
+// Converts serialized runtime config's parameters to []scheduledworkflow.Parameter.
+// Assumes that the serialized parameters will take a form of
+// map[string]*structpb.Value, which works for runtimeConfig.Parameters  such as
+// {"param1":"value1","param2":"value2"}.
+func stringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
 	var swParams []scheduledworkflow.Parameter
 	var parameters map[string]*structpb.Value
 	if modelParams == "" {
@@ -165,6 +169,26 @@ func modelToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, er
 		swParams = append(swParams, swParam)
 	}
 	return swParams, nil
+}
+
+// Converts serialized v1 parameters to []scheduledworkflow.Parameter.
+// Assumes that the serialized parameters will take a form of
+// []map[string]string, which works for legacy v1 parameters such as
+// [{"name":"param1","value":"value1"},{"name":"param2","value":"value2"}].
+func stringArrayToCRDParameters(modelParameters string) ([]scheduledworkflow.Parameter, error) {
+	var paramsMapList []*map[string]string
+	var desiredParams []scheduledworkflow.Parameter
+	if modelParameters == "" {
+		return desiredParams, nil
+	}
+	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
+	if err != nil {
+		return nil, err
+	}
+	for _, param := range paramsMapList {
+		desiredParams = append(desiredParams, scheduledworkflow.Parameter{Name: (*param)["name"], Value: (*param)["value"]})
+	}
+	return desiredParams, nil
 }
 
 func modelToParametersMap(modelParameters string) (map[string]string, error) {

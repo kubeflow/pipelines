@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 **display_name** | **str** | Required input field. Recurring run name provided by user. Not unique. | [optional] 
 **description** | **str** | Optional input field. Describes the purpose of the recurring run. | [optional] 
 **pipeline_version_id** | **str** | The ID of the pipeline version used for creating runs. | [optional] 
-**pipeline_spec** | [**object**](.md) | The pipeline spec. | [optional] 
+**pipeline_spec** | [**ProtobufStruct**](ProtobufStruct.md) |  | [optional] 
 **pipeline_version_reference** | [**V2beta1PipelineVersionReference**](V2beta1PipelineVersionReference.md) |  | [optional] 
 **runtime_config** | [**V2beta1RuntimeConfig**](V2beta1RuntimeConfig.md) |  | [optional] 
 **service_account** | **str** | Optional input field. Specifies which Kubernetes service account this recurring run uses. | [optional] 

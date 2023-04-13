@@ -14,6 +14,7 @@
 """Pipeline task class and operations."""
 
 import copy
+import inspect
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Union
@@ -246,24 +247,77 @@ class PipelineTask:
         self._task_spec.enable_caching = enable_caching
         return self
 
-    def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
-        """Sets CPU limit (maximum) for the task.
+    def _ensure_container_spec_exists(self) -> None:
+        """Ensures that the task has a container spec."""
+        caller_method_name = inspect.stack()[1][3]
+
+        if self.container_spec is None:
+            raise ValueError(
+                f'{caller_method_name} can only be used on single-step components, not pipelines used as components, or special components like importers.'
+            )
+
+    def _validate_cpu_request_limit(self, cpu: str) -> float:
+        """Validates cpu request/limit string and converts to its numeric
+        value.
 
         Args:
-            cpu: Maximum CPU requests allowed. This string should be a number or a number followed by an "m" to indicate millicores (1/1000). For more information, see `Specify a CPU Request and a CPU Limit <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+            cpu: CPU requests or limits. This string should be a number or a
+                number followed by an "m" to indicate millicores (1/1000). For
+                more information, see `Specify a CPU Request and a CPU Limit
+                <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+
+        Raises:
+            ValueError if the cpu request/limit string value is invalid.
 
         Returns:
-            Self return to allow chained setting calls.
+            The numeric value (float) of the cpu request/limit.
         """
         if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
             raise ValueError(
                 'Invalid cpu string. Should be float or integer, or integer'
                 ' followed by "m".')
 
-        cpu = float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        return float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
+
+    def set_cpu_request(self, cpu: str) -> 'PipelineTask':
+        """Sets CPU request (minimum) for the task.
+
+        Args:
+            cpu: Minimum CPU requests required. This string should be a number
+                or a number followed by an "m" to indicate millicores (1/1000).
+                For more information, see `Specify a CPU Request and a CPU Limit
+                <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        cpu = self._validate_cpu_request_limit(cpu)
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.cpu_request = cpu
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                cpu_request=cpu)
+
+        return self
+
+    def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
+        """Sets CPU limit (maximum) for the task.
+
+        Args:
+            cpu: Maximum CPU requests allowed. This string should be a number
+                or a number followed by an "m" to indicate millicores (1/1000).
+                For more information, see `Specify a CPU Request and a CPU Limit
+                <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        cpu = self._validate_cpu_request_limit(cpu)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.cpu_limit = cpu
@@ -283,14 +337,12 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
+        self._ensure_container_spec_exists()
+
         if isinstance(limit, str):
             if re.match(r'[1-9]\d*$', limit) is None:
                 raise ValueError(f'{"limit"!r} must be positive integer.')
             limit = int(limit)
-
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
@@ -317,14 +369,20 @@ class PipelineTask:
             category=DeprecationWarning)
         return self.set_accelerator_limit(gpu)
 
-    def set_memory_limit(self, memory: str) -> 'PipelineTask':
-        """Sets memory limit (maximum) for the task.
+    def _validate_memory_request_limit(self, memory: str) -> float:
+        """Validates memory request/limit string and converts to its numeric
+        value.
 
         Args:
-            memory: The maximum memory requests allowed. This string should be a number or a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: Memory requests or limits. This string should be a number or
+               a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
+               "Gi", "M", "Mi", "K", or "Ki".
+
+        Raises:
+            ValueError if the memory request/limit string value is invalid.
 
         Returns:
-            Self return to allow chained setting calls.
+            The numeric value (float) of the memory request/limit.
         """
         if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
                     memory) is None:
@@ -361,9 +419,45 @@ class PipelineTask:
             # By default interpret as a plain integer, in the unit of Bytes.
             memory = float(memory) / constants._G
 
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        return memory
+
+    def set_memory_request(self, memory: str) -> 'PipelineTask':
+        """Sets memory request (minimum) for the task.
+
+        Args:
+            memory: The minimum memory requests required. This string should be
+                a number or a number followed by one of "E", "Ei", "P", "Pi",
+                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        memory = self._validate_memory_request_limit(memory)
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.memory_request = memory
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                memory_request=memory)
+
+        return self
+
+    def set_memory_limit(self, memory: str) -> 'PipelineTask':
+        """Sets memory limit (maximum) for the task.
+
+        Args:
+            memory: The maximum memory requests allowed. This string should be
+                a number or a number followed by one of "E", "Ei", "P", "Pi",
+                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        memory = self._validate_memory_request_limit(memory)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.memory_limit = memory
@@ -420,9 +514,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        self._ensure_container_spec_exists()
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_type = accelerator
@@ -456,6 +548,8 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
+        self._ensure_container_spec_exists()
+
         if self.container_spec.env is not None:
             self.container_spec.env[name] = value
         else:

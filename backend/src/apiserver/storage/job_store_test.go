@@ -474,6 +474,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:   `[{"name":"string1","value":"one"},{"name":"number2","value":"2"}]`,
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -491,6 +492,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:   `[{"name":"string1","value":"one"},{"name":"number2","value":"2"}]`,
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -501,6 +503,10 @@ func TestCreateJob(t *testing.T) {
 	}
 	jobExpected = jobExpected.ToV1()
 	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
+
+	newJob, err := jobStore.GetJob(job.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, jobExpected, newJob.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
 	resourceReferenceStore := NewResourceReferenceStore(db)
@@ -732,6 +738,10 @@ func TestUpdateJob_Success(t *testing.T) {
 	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "n1",
@@ -865,7 +875,6 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
-			Parameters:   "[]",
 		},
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{

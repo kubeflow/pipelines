@@ -3262,7 +3262,8 @@ class TestResourceConfig(unittest.TestCase):
             predict_op()
             predict_op().set_cpu_limit('5')
             predict_op().set_memory_limit('50G')
-            predict_op().set_cpu_limit('5').set_memory_limit('50G')
+            predict_op().set_cpu_request('2').set_cpu_limit(
+                '5').set_memory_request('4G').set_memory_limit('50G')
 
         dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
 
@@ -3285,8 +3286,14 @@ class TestResourceConfig(unittest.TestCase):
             ['exec-predict-op-3']['container']['resources'])
 
         self.assertEqual(
+            2, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['cpuRequest'])
+        self.assertEqual(
             5, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
             ['container']['resources']['cpuLimit'])
+        self.assertEqual(
+            4, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['memoryRequest'])
         self.assertEqual(
             50, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
             ['container']['resources']['memoryLimit'])
