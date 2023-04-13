@@ -17,7 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -163,14 +163,17 @@ def _maybe_make_unique(name: str, names: List[str]):
 
 
 def extract_component_interface(
-        func: Callable,
-        containerized: bool = False) -> structures.ComponentSpec:
+    func: Callable,
+    containerized: bool = False,
+    description: Optional[str] = None,
+) -> structures.ComponentSpec:
     single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
 
-    parsed_docstring = docstring_parser.parse(inspect.getdoc(func))
+    original_docstring = inspect.getdoc(func)
+    parsed_docstring = docstring_parser.parse(original_docstring)
 
     inputs = {}
     outputs = {}
@@ -343,31 +346,50 @@ def extract_component_interface(
 
     # Component name and description are derived from the function's name and
     # docstring.  The name can be overridden by setting setting func.__name__
-    # attribute (of the legacy func._component_human_name attribute).  The
-    # description can be overridden by setting the func.__doc__ attribute (or
-    # the legacy func._component_description attribute).
+    # attribute (of the legacy func._component_human_name attribute).
     component_name = getattr(
         func, '_component_human_name',
         _python_function_name_to_component_name(func.__name__))
 
-    short_description = parsed_docstring.short_description
-    long_description = parsed_docstring.long_description
-    docstring_description = short_description + '\n' + long_description if long_description else short_description
+    description = get_pipeline_description(
+        decorator_description=description,
+        docstring=parsed_docstring,
+    )
 
-    description = getattr(func, '_component_description', docstring_description)
+    r = parsed_docstring.returns
 
-    if description:
-        description = description.strip()
+    # strip upper section, replace "Returns:" with "Args:", rerun it
+    # extract all into helper function
 
-    component_spec = structures.ComponentSpec(
+    def assign_descriptions(
+            inputs_or_outputs: Dict[str, Union[structures.InputSpec,
+                                               structures.OutputSpec]],
+            docstring_params: List[docstring_parser.DocstringParam]) -> None:
+        docstring_inputs = {param.arg_name: param for param in docstring_params}
+        for name, spec in (inputs_or_outputs.items() or {}):
+            if name in docstring_params:
+                spec.description = docstring_inputs[name].description
+
+    # TODO: is none possible
+    def convert_returns_to_args(original_docstring: Union[str, None]) -> str:
+        if original_docstring is None:
+            return ''
+        return_docstring = original_docstring.split('Returns:', 1)[-1].strip()
+        return 'Args:' + return_docstring
+
+    assign_descriptions(inputs, parsed_docstring.params)
+    assign_descriptions(
+        outputs,
+        docstring_parser.parse(
+            convert_returns_to_args(original_docstring)).params)
+
+    return structures.ComponentSpec(
         name=component_name,
         description=description,
-        inputs=inputs if inputs else None,
-        outputs=outputs if outputs else None,
-        # Dummy implementation to bypass model validation.
+        inputs=inputs or None,
+        outputs=outputs or None,
         implementation=structures.Implementation(),
     )
-    return component_spec
 
 
 def _get_command_and_args_for_lightweight_component(
@@ -559,14 +581,17 @@ def create_container_component_from_func(
 
 
 def create_graph_component_from_func(
-        func: Callable) -> graph_component.GraphComponent:
+    func: Callable,
+    display_name: Optional[str] = None,
+    description: Optional[str] = None,
+) -> graph_component.GraphComponent:
     """Implementation for the @pipeline decorator.
 
     The decorator is defined under pipeline_context.py. See the
     decorator for the canonical documentation for this function.
     """
 
-    component_spec = extract_component_interface(func)
+    component_spec = extract_component_interface(func, description=description)
     component_name = getattr(
         func, '_component_human_name',
         _python_function_name_to_component_name(func.__name__))
@@ -575,4 +600,20 @@ def create_graph_component_from_func(
         component_spec=component_spec,
         pipeline_func=func,
         name=component_name,
+        display_name=display_name,
     )
+
+
+def get_pipeline_description(
+    decorator_description: Union[str, None],
+    docstring: docstring_parser.Docstring,
+) -> Union[str, None]:
+
+    if decorator_description:
+        return decorator_description
+
+    short_description = docstring.short_description
+    long_description = docstring.long_description
+    docstring_description = short_description + '\n' + long_description if (
+        short_description and long_description) else short_description
+    return docstring_description.strip() if docstring_description else None

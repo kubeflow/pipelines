@@ -282,20 +282,56 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
+        def my_pipeline():
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
-            def my_pipeline():
-                VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+        self.assertEqual(my_pipeline.pipeline_spec.default_pipeline_root,
+                         'gs://path')
 
-            target_json_file = os.path.join(tmpdir, 'result.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_json_file)
+    def test_set_display_name_through_pipeline_decorator(self):
 
-            self.assertTrue(os.path.exists(target_json_file))
-            with open(target_json_file) as f:
-                pipeline_spec = yaml.safe_load(f)
-            self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
+        @dsl.pipeline(display_name='my display name')
+        def my_pipeline():
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        print(my_pipeline.pipeline_spec.pipeline_info)
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.display_name,
+                         'my display name')
+
+    def test_set_description_through_pipeline_decorator(self):
+
+        @dsl.pipeline(description='Prefer me.')
+        def my_pipeline():
+            """Don't prefer me"""
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
+                         'Prefer me.')
+
+    def test_set_description_through_pipeline_docstring_short(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            """Docstring-specified description."""
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
+                         'Docstring-specified description.')
+
+    def test_set_description_through_pipeline_docstring_long(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            """Docstring-specified description.
+
+            More information about this pipeline."""
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.pipeline_info.description,
+            'Docstring-specified description.\nMore information about this pipeline.'
+        )
 
     def test_passing_string_parameter_to_artifact_should_error(self):
 
@@ -1916,13 +1952,14 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
 
+@dsl.component
+def identity(string: str, model: bool) -> str:
+    return string
+
+
 class TestYamlComments(unittest.TestCase):
 
     def test_comments_include_inputs_and_outputs_and_pipeline_name(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
@@ -1957,15 +1994,11 @@ class TestYamlComments(unittest.TestCase):
 
         self.assertIn(outputs_string, yaml_content)
 
-    def test_comments_include_definition(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
+    def test_no_description(self):
 
         @dsl.pipeline()
-        def pipeline_with_no_definition(sample_input1: bool = True,
-                                        sample_input2: str = 'string') -> str:
+        def pipeline_with_no_description(sample_input1: bool = True,
+                                         sample_input2: str = 'string') -> str:
             op1 = identity(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
@@ -1973,18 +2006,37 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_with_no_definition,
+                pipeline_func=pipeline_with_no_description,
                 package_path=pipeline_spec_path)
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-            description_string = '# Description:'
+            # load and recompile to ensure idempotent description
+            loaded_pipeline = components.load_component_from_file(
+                pipeline_spec_path)
 
-        self.assertNotIn(description_string, yaml_content)
+            compiler.Compiler().compile(
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        comment_description = '# Description:'
+        self.assertNotIn(comment_description, yaml_content)
+        self.assertNotIn(comment_description, reloaded_yaml_content)
+        proto_description = ''
+        self.assertEqual(
+            pipeline_with_no_description.pipeline_spec.pipeline_info
+            .description, proto_description)
+        self.assertEqual(
+            loaded_pipeline.pipeline_spec.pipeline_info.description,
+            proto_description)
+
+    def test_description_from_docstring(self):
 
         @dsl.pipeline()
-        def pipeline_with_definition(sample_input1: bool = True,
-                                     sample_input2: str = 'string') -> str:
+        def pipeline_with_description(sample_input1: bool = True,
+                                      sample_input2: str = 'string') -> str:
             """This is a definition of this pipeline."""
             op1 = identity(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -1993,21 +2045,73 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_with_definition,
+                pipeline_func=pipeline_with_description,
                 package_path=pipeline_spec_path)
-
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-            description_string = '# Description:'
+            # load and recompile to ensure idempotent description
+            loaded_pipeline = components.load_component_from_file(
+                pipeline_spec_path)
 
-        self.assertIn(description_string, yaml_content)
+            compiler.Compiler().compile(
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        comment_description = '# Description: This is a definition of this pipeline.'
+        self.assertIn(comment_description, yaml_content)
+        self.assertIn(comment_description, reloaded_yaml_content)
+        proto_description = 'This is a definition of this pipeline.'
+        self.assertEqual(
+            pipeline_with_description.pipeline_spec.pipeline_info.description,
+            proto_description)
+        self.assertEqual(
+            loaded_pipeline.pipeline_spec.pipeline_info.description,
+            proto_description)
+
+    def test_description_from_decorator(self):
+
+        @dsl.pipeline(description='Prefer this description.')
+        def pipeline_with_description(sample_input1: bool = True,
+                                      sample_input2: str = 'string') -> str:
+            """Don't prefer this description."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_description,
+                package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+            # load and recompile to ensure idempotent description
+            loaded_pipeline = components.load_component_from_file(
+                pipeline_spec_path)
+
+            compiler.Compiler().compile(
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        comment_description = '# Description: Prefer this description.'
+        self.assertIn(comment_description, yaml_content)
+        self.assertIn(loaded_pipeline.pipeline_spec.pipeline_info.description,
+                      reloaded_yaml_content)
+        proto_description = 'Prefer this description.'
+        self.assertEqual(
+            pipeline_with_description.pipeline_spec.pipeline_info.description,
+            proto_description)
+        self.assertEqual(
+            loaded_pipeline.pipeline_spec.pipeline_info.description,
+            proto_description)
 
     def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def pipeline_with_no_inputs() -> str:
@@ -2047,10 +2151,6 @@ class TestYamlComments(unittest.TestCase):
         self.assertNotIn(outputs_string, yaml_content)
 
     def test_comments_follow_pattern(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
@@ -2184,10 +2284,6 @@ class TestYamlComments(unittest.TestCase):
 
     def test_comments_idempotency(self):
 
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
@@ -2226,10 +2322,6 @@ class TestYamlComments(unittest.TestCase):
         self.assertIn(predicted_comment, reloaded_yaml_content)
 
     def test_comment_with_multiline_docstring(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def pipeline_with_multiline_definition(
@@ -2289,10 +2381,6 @@ class TestYamlComments(unittest.TestCase):
         self.assertIn(description_string, yaml_content)
 
     def test_idempotency_on_comment_with_multiline_docstring(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,

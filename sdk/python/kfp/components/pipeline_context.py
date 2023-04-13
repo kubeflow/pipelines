@@ -17,7 +17,6 @@ import functools
 from typing import Callable, Optional
 
 from kfp.components import component_factory
-from kfp.components import graph_component
 from kfp.components import pipeline_task
 from kfp.components import tasks_group
 from kfp.components import utils
@@ -27,7 +26,8 @@ def pipeline(func: Optional[Callable] = None,
              *,
              name: Optional[str] = None,
              description: Optional[str] = None,
-             pipeline_root: Optional[str] = None) -> Callable:
+             pipeline_root: Optional[str] = None,
+             display_name: Optional[str] = None) -> Callable:
     """Decorator used to construct a pipeline.
 
     Example
@@ -55,16 +55,18 @@ def pipeline(func: Optional[Callable] = None,
             name=name,
             description=description,
             pipeline_root=pipeline_root,
-        )
+            display_name=display_name)
 
     if name:
         func._component_human_name = name
-    if description:
-        func._component_description = description
     if pipeline_root:
         func.pipeline_root = pipeline_root
 
-    return component_factory.create_graph_component_from_func(func)
+    return component_factory.create_graph_component_from_func(
+        func,
+        display_name,
+        description=description,
+    )
 
 
 class Pipeline:

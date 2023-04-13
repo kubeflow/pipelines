@@ -23,6 +23,7 @@ from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
+from typing import Optional
 
 
 class GraphComponent(base_component.BaseComponent):
@@ -37,6 +38,7 @@ class GraphComponent(base_component.BaseComponent):
         component_spec: structures.ComponentSpec,
         pipeline_func: Callable,
         name: str,
+        display_name: Optional[str] = None,
     ):
         super().__init__(component_spec=component_spec)
         self.pipeline_func = pipeline_func
@@ -75,6 +77,12 @@ class GraphComponent(base_component.BaseComponent):
         pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
         if pipeline_root is not None:
             pipeline_spec.default_pipeline_root = pipeline_root
+
+        if display_name is not None:
+            pipeline_spec.pipeline_info.display_name = display_name
+
+        if component_spec.description is not None:
+            pipeline_spec.pipeline_info.description = component_spec.description
 
         self.component_spec.implementation.graph = pipeline_spec
         self.component_spec.platform_spec = platform_spec
