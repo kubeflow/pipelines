@@ -119,35 +119,6 @@ deploymentSpec:
           \       print(artifact.uri)\n        print(artifact.metadata)\n    else:\n\
           \        print('No artifact provided!')\n\n"
         image: python:3.7
-    exec-python-artifact-printer-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - python_artifact_printer
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef python_artifact_printer(artifact: Optional[Input[Artifact]] =\
-          \ None):\n    if artifact is not None:\n        print(artifact.name)\n \
-          \       print(artifact.uri)\n        print(artifact.metadata)\n    else:\n\
-          \        print('No artifact provided!')\n\n"
-        image: python:3.7
 pipelineInfo:
   name: optional-artifact-pipeline
 root:
