@@ -5,7 +5,7 @@ The `kfp-kubernetes` Python library enables authoring [Kubeflow pipelines](https
 * [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
 * [PersistentVolumeClaims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims)
 
-<!-- TODO: add reference to kubeflow user docs on support for platform-specific features once they exist -->
+See the [`kfp-kubernetes` reference documentation](https://kfp-kubernetes.readthedocs.io/).
 
 ## Installation
 The `kfp-kubernetes` package can be installed as a `kfp` SDK extra dependency with `kfp==2.x.x`:
