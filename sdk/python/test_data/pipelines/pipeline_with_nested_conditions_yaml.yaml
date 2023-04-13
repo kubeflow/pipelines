@@ -302,6 +302,7 @@ deploymentSpec:
         - '{{$.inputs.parameters[''msg'']}}'
         image: python:alpine3.6
 pipelineInfo:
+  description: Shows how to use dsl.Condition().
   name: conditional-execution-pipeline
 root:
   dag:

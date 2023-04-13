@@ -69,6 +69,7 @@ deploymentSpec:
           memoryLimit: 15.032385536
           memoryRequest: 4.294967296
 pipelineInfo:
+  description: A linear two-step pipeline with resource specification.
   name: two-step-pipeline-with-resource-spec
 root:
   dag:
