@@ -130,7 +130,7 @@
   path: samples.v2.component_with_optional_inputs_test
 - name: pipeline_with_env
   path: samples.v2.pipeline_with_env_test
-  - name: pipeline_with_volume
+- name: pipeline_with_volume
   path: samples.v2.pipeline_with_volume_test
 # TODO(capri-xiyue): Re-enable after figuring out V2 Engine
 # and protobuf.Value support.
