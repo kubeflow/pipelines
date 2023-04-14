@@ -2,6 +2,7 @@
 
 ## Features
 * Support `display_name` and `description` in `@dsl.pipeline` decorator [\#9153](https://github.com/kubeflow/pipelines/pull/9153)
+* Extract component input and output descriptions from docstring [\#9156](https://github.com/kubeflow/pipelines/pull/9156)
 
 ## Breaking changes
 

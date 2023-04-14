@@ -45,12 +45,14 @@ class InputSpec:
         default (optional): the default value for the input.
         optional: Wether the input is optional. An input is optional when it has an explicit default value.
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
+        description: Input description.
     """
     type: Union[str, dict]
     default: Optional[Any] = None
     optional: bool = False
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
+    description: Optional[str] = None
 
     def __post_init__(self) -> None:
         self._validate_type()
@@ -146,10 +148,12 @@ class OutputSpec:
     Attributes:
         type: The type of the output.
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
+        description: Output description.
     """
     type: Union[str, dict]
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
+    description: Optional[str] = None
 
     def __post_init__(self) -> None:
         self._validate_type()
