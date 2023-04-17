@@ -16,6 +16,8 @@ RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/sdk/python/require
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python
 RUN pip3 install /sdk/python
+# TODO: remove kfp-server-api override when we remove the deprecated client reference across our code base.
+RUN pip3 install kfp-server-api==2.0.0-alpha.6
 
 # Copy sample test and samples source code.
 COPY ./test/sample-test /python/src/github.com/kubeflow/pipelines/test/sample-test
