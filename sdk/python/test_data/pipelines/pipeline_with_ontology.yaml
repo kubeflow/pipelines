@@ -61,6 +61,7 @@ deploymentSpec:
         - '{{$.outputs.artifacts[''model''].uri}}'
         image: gcr.io/my-project/my-fancy-trainer
 pipelineInfo:
+  description: A linear two-step pipeline with artifact ontology types.
   name: two-step-pipeline-with-ontology
 root:
   dag:
