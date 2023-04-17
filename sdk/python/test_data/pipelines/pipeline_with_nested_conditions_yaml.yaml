@@ -303,6 +303,7 @@ deploymentSpec:
         image: python:alpine3.6
 pipelineInfo:
   description: Shows how to use dsl.Condition().
+  displayName: Conditional execution pipeline.
   name: conditional-execution-pipeline
 root:
   dag:

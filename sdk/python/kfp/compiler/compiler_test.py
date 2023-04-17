@@ -298,6 +298,20 @@ class TestCompilePipeline(parameterized.TestCase):
         self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.display_name,
                          'my display name')
 
+    def test_set_name_and_display_name_through_pipeline_decorator(self):
+
+        @dsl.pipeline(
+            name='my-pipeline-name',
+            display_name='my display name',
+        )
+        def my_pipeline():
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.name,
+                         'my-pipeline-name')
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.display_name,
+                         'my display name')
+
     def test_set_description_through_pipeline_decorator(self):
 
         @dsl.pipeline(description='Prefer me.')
