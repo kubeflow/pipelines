@@ -7,6 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Fix module not found error for containerized python components [\#9157](https://github.com/kubeflow/pipelines/pull/9157)
 
 ## Documentation updates
 
