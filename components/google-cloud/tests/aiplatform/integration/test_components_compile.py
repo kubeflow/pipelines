@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure the compile without error."""
-
+print("test")
 import json
 import os
 import unittest

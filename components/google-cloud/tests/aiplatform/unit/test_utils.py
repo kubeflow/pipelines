@@ -21,6 +21,8 @@ from google.cloud import aiplatform
 from google.cloud import aiplatform_v1beta1
 from google_cloud_pipeline_components.aiplatform import utils
 
+print('test')
+
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
 
