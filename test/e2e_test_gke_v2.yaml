@@ -289,7 +289,6 @@ spec:
       - name: sample-tests-image
       - name: namespace
       - name: test-name
-      - name: is-v2-sample
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       command:
@@ -300,7 +299,6 @@ spec:
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
-        "--is-v2-sample", "{{inputs.parameters.is-v2-sample}}",
       ]
 
   - name: run-upgrade-tests-preparation
