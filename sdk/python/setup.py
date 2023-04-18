@@ -54,6 +54,9 @@ def read_readme() -> str:
         return f.read()
 
 
+docker = ['docker']
+kubernetes = ['kfp-kubernetes<2']
+
 setuptools.setup(
     name='kfp',
     version=find_version('kfp', '__init__.py'),
@@ -74,7 +77,8 @@ setuptools.setup(
     },
     install_requires=get_requirements('requirements.in'),
     extras_require={
-        'all': ['docker'],
+        'all': docker + kubernetes,
+        'kubernetes': kubernetes,
     },
     packages=setuptools.find_packages(exclude=['*test*']),
     classifiers=[

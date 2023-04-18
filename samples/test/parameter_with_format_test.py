@@ -32,6 +32,7 @@ run_pipeline_func([
     # ),
     TestCase(
         pipeline_func=my_pipeline,
+        verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
 ])

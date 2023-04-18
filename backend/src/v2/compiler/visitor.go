@@ -110,9 +110,9 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 
 		// Add kubernetes spec to annotation
 		if state.kubernetesSpec != nil {
-			kubernetesSpec, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
+			kubernetesExecSpec, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
 			if ok {
-				state.visitor.AddKubernetesSpec(name, kubernetesSpec)
+				state.visitor.AddKubernetesSpec(name, kubernetesExecSpec)
 			}
 		}
 
@@ -184,11 +184,11 @@ func GetPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec,
 	marshaler := jsonpb.Marshaler{}
 	json, err := marshaler.MarshalToString(job.GetPipelineSpec())
 	if err != nil {
-		return nil, fmt.Errorf("Failed marshal pipeline spec to json: %w", err)
+		return nil, fmt.Errorf("failed marshal pipeline spec to json: %w", err)
 	}
 	spec := &pipelinespec.PipelineSpec{}
 	if err := jsonpb.UnmarshalString(json, spec); err != nil {
-		return nil, fmt.Errorf("Failed to parse pipeline spec: %v", err)
+		return nil, fmt.Errorf("failed to parse pipeline spec: %v", err)
 	}
 	return spec, nil
 }

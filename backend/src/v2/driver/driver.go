@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      https://www.apache.org/licenses/LICENSE-2.0
+//	https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,7 +34,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -69,8 +68,8 @@ type Options struct {
 	// optional, required only by container driver
 	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 
-	// optional, required only by container driver when there is Kubernetes config
-	KubernetesConfig *kubernetesplatform.KubernetesExecutorConfig
+	// optional, allows to specify kubernetes-specific executor config
+	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 }
 
 // Identifying information used for error messages
@@ -94,8 +93,8 @@ func (o Options) info() string {
 	if o.Component.GetImplementation() != nil {
 		msg = msg + ", componentSpec" // this only means componentSpec is not empty
 	}
-	if o.KubernetesConfig != nil {
-		msg = msg + ", KubernetesConfig" // this only means KubernetesConfig is not empty
+	if o.KubernetesExecutorConfig != nil {
+		msg = msg + ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
 	}
 	return msg
 }
@@ -367,12 +366,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return execution, err
 	}
-	if opts.KubernetesConfig != nil {
+	if opts.KubernetesExecutorConfig != nil {
 		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
 		if err != nil {
 			return execution, err
 		}
-		err = extendPodSpecPatch(podSpec, opts.KubernetesConfig, dag, dagTasks)
+		err = extendPodSpecPatch(podSpec, opts.KubernetesExecutorConfig, dag, dagTasks)
 		if err != nil {
 			return execution, err
 		}
@@ -495,21 +494,30 @@ func initPodSpecPatch(
 	return podSpec, nil
 }
 
-// Extends the PodSpec to include Kubernetes specific config.
+// Extends the PodSpec to include Kubernetes-specific executor config.
 func extendPodSpecPatch(
 	podSpec *k8score.PodSpec,
-	kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig,
+	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
 	dag *metadata.DAG,
 	dagTasks map[string]*metadata.Execution,
 ) error {
-	// Get volume mount information
-	volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesConfig.GetPvcMount(), dag, dagTasks)
-	if err != nil {
-		return fmt.Errorf("failed to extract volume mount info: %w", err)
+	// Return an error if the podSpec has no user container.
+	if len(podSpec.Containers) == 0 {
+		return fmt.Errorf("failed to patch the pod with kubernetes-specific config due to missing user container: %v", podSpec)
 	}
-	// TODO(gkcalat): add nodeSelector once it is added to platform-specific features in PipelineSpec
-	podSpec.Volumes = volumes
-	podSpec.Containers[0].VolumeMounts = volumeMounts
+	// Get volume mount information
+	if kubernetesExecutorConfig.GetPvcMount() != nil {
+		volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesExecutorConfig.GetPvcMount(), dag, dagTasks)
+		if err != nil {
+			return fmt.Errorf("failed to extract volume mount info: %w", err)
+		}
+		podSpec.Volumes = volumes
+		// We assume that the user container always gets executed first within a pod.
+		podSpec.Containers[0].VolumeMounts = volumeMounts
+	}
+	if kubernetesExecutorConfig.GetNodeSelector() != nil {
+		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
+	}
 	return nil
 }
 
@@ -810,10 +818,10 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			value, hasValue := inputs.GetParameterValues()[name]
 
 			// Handle when parameter does not have input value
-			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
+			if !hasValue && !inputsSpec.GetParameters()[name].IsOptional {
 				// When parameter is not optional and there is no input value, report error
 				return fmt.Errorf("no value provided for non-optional parameter %q", name)
-			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
+			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional {
 				// When parameter is optional and there is no input value, value comes from default value.
 				// But we don't pass the default value here. They are resolved internally within the component.
 				// Note: in the past the backend passed the default values into the component. This is a behavior change.
@@ -899,7 +907,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				// input comes from static input
 				itemsInput = task.GetParameterIterator().GetItemInput()
 			} else {
-				return nil, fmt.Errorf("cannot retrieve parameter iterator.")
+				return nil, fmt.Errorf("cannot retrieve parameter iterator")
 			}
 			items, err := getItems(inputs.ParameterValues[itemsInput])
 			if err != nil {
@@ -1138,7 +1146,7 @@ func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInpu
 			AccessModes: accessModes,
 			Resources: k8score.ResourceRequirements{
 				Requests: k8score.ResourceList{
-					k8score.ResourceStorage: resource.MustParse(volumeSizeInput.GetStringValue()),
+					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
 				},
 			},
 			StorageClassName: &storageClassName,
