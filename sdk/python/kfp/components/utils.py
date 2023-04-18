@@ -44,6 +44,7 @@ def load_module(module_name: str, module_directory: str) -> types.ModuleType:
         location=os.path.join(module_directory, f'{module_name}.py'))
     module = importlib.util.module_from_spec(module_spec)
     sys.modules[module_spec.name] = module
+    sys.path.insert(0, str(module_directory))
     module_spec.loader.exec_module(module)
     return module
 

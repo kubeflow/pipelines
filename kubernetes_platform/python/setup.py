@@ -53,13 +53,29 @@ def find_version(*file_path_parts: str) -> str:
         raise ValueError('Could not find version.')
 
 
+def read_readme() -> str:
+    readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
+    with open(readme_path) as f:
+        return f.read()
+
+
 setuptools.setup(
     name=NAME,
     version=find_version('kfp', 'kubernetes', '__init__.py'),
     description='Kubernetes platform configuration library and generated protos.',
+    long_description=read_readme(),
+    long_description_content_type='text/markdown',
     author='google',
     author_email='kubeflow-pipelines@google.com',
     url='https://github.com/kubeflow/pipelines',
+    project_urls={
+        'Documentation':
+            'https://kfp-kubernetes.readthedocs.io/',
+        'Bug Tracker':
+            'https://github.com/kubeflow/pipelines/issues',
+        'Source':
+            'https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform/python',
+    },
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
     python_requires='>=3.7.0',
     install_requires=REQUIREMENTS,

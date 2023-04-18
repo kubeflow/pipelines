@@ -1,18 +1,43 @@
 # Current Version (in development)
 
 ## Features
-* `pip_index_urls` is now considered also for containerized python component - the urls will be used for Dockerfile generation [\#8871](https://github.com/kubeflow/pipelines/pull/8871)
-* Support direct indexing into top-level of artifact metadata struct in Container Components [\#9131](https://github.com/kubeflow/pipelines/pull/9131)
+* Support `display_name` and `description` in `@dsl.pipeline` decorator [\#9153](https://github.com/kubeflow/pipelines/pull/9153)
 
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
-* Support python 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
-* Fix loading non-canonical generic type strings from v1 component YAML (e.g., `List[str]`, `typing.List[str]`, `Dict[str]`, `typing.Dict[str, str]` [\#9041](https://github.com/kubeflow/pipelines/pull/9041)
+* Fix module not found error for containerized python components [\#9157](https://github.com/kubeflow/pipelines/pull/9157)
 
 ## Documentation updates
+
+# 2.0.0-beta.14
+
+## Features
+* `pip_index_urls` is now considered also for containerized python component - the urls will be used for Dockerfile generation [\#8871](https://github.com/kubeflow/pipelines/pull/8871)
+* Support direct indexing into top-level of artifact metadata struct in Container Components [\#9131](https://github.com/kubeflow/pipelines/pull/9131)
+* Support compiling platform specific features [\#8940](https://github.com/kubeflow/pipelines/pull/8940)
+* Support setting cpu/memory requests. [\#9121](https://github.com/kubeflow/pipelines/pull/9121)
+* Support PIPELINE_ROOT_PLACEHOLDER [\#9134](https://github.com/kubeflow/pipelines/pull/9134)
+* SDK client v2beta1 API integration [\#9112](https://github.com/kubeflow/pipelines/pull/9112)
+* Support submitting pipeline with platform config. [\#9140](https://github.com/kubeflow/pipelines/pull/9140)
+
+## Breaking changes
+* New SDK client only works with Kubeflow Pipeline v2.0.0-beta.1 and later version [\#9112](https://github.com/kubeflow/pipelines/pull/9112)
+
+## Deprecations
+* Deprecate .add_node_selector_constraint in favor of .set_accelerator_type [\#8980](https://github.com/kubeflow/pipelines/pull/8980)
+
+## Bug fixes and other changes
+* Support python 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
+* Fix loading non-canonical generic type strings from v1 component YAML (e.g., `List[str]`, `typing.List[str]`, `Dict[str]`, `typing.Dict[str, str]` [\#9041](https://github.com/kubeflow/pipelines/pull/9041)
+* Add experiment_id parameter to create run methods [\#9004](https://github.com/kubeflow/pipelines/pull/9004)
+* Support setting task dependencies via kfp.kubernetes.mount_pvc [\#8999](https://github.com/kubeflow/pipelines/pull/8999)
+* cpu_limit and memory_limit can be optional [\#8992](https://github.com/kubeflow/pipelines/pull/8992)
+
+## Documentation updates
+
 # 2.0.0-beta.13
 
 ## Features

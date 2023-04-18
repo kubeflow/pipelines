@@ -65,12 +65,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	}
 	// fill root component default paramters to PipelineJob
 	specParams := spec.GetRoot().GetInputDefinitions().GetParameters()
-	if specParams != nil {
-		for name, param := range specParams {
-			_, ok := job.RuntimeConfig.ParameterValues[name]
-			if !ok && param.GetDefaultValue() != nil {
-				job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
-			}
+	for name, param := range specParams {
+		_, ok := job.RuntimeConfig.ParameterValues[name]
+		if !ok && param.GetDefaultValue() != nil {
+			job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
 		}
 	}
 
@@ -262,7 +260,7 @@ const (
 	paramCachedDecision   = "cached-decision"   // indicate hit cache or not
 	paramPodSpecPatch     = "pod-spec-patch"    // a strategic patch merged with the pod spec
 	paramCondition        = "condition"         // condition = false -> skip the task
-	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes cofig
+	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes config
 )
 
 func runID() string {

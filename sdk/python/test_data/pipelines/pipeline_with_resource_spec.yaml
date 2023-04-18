@@ -69,6 +69,7 @@ deploymentSpec:
           memoryLimit: 15.032385536
           memoryRequest: 4.294967296
 pipelineInfo:
+  description: A linear two-step pipeline with resource specification.
   name: two-step-pipeline-with-resource-spec
 root:
   dag:
@@ -119,4 +120,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.0.0-beta.14
