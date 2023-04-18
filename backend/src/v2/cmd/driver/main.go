@@ -41,18 +41,18 @@ const (
 
 var (
 	// inputs
-	driverType           = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName         = flag.String("pipeline_name", "", "pipeline context name")
-	runID                = flag.String("run_id", "", "pipeline run uid")
-	componentSpecJson    = flag.String("component", "{}", "component spec")
-	taskSpecJson         = flag.String("task", "", "task spec")
-	runtimeConfigJson    = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex       = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	kubernetesConfigJson = flag.String("kubernetes_config", "", "Kuberntes specific configurations")
+	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
+	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
+	runID             = flag.String("run_id", "", "pipeline run uid")
+	componentSpecJson = flag.String("component", "{}", "component spec")
+	taskSpecJson      = flag.String("task", "", "task spec")
+	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
+	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
 	containerSpecJson = flag.String("container", "{}", "container spec")
+	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
@@ -128,12 +128,12 @@ func drive() (err error) {
 			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 		}
 	}
-	var kubernetesConfig *kubernetesplatform.KubernetesExecutorConfig
-	if *kubernetesConfigJson != "" {
-		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*kubernetesConfigJson))
-		kubernetesConfig = &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(*kubernetesConfigJson, kubernetesConfig); err != nil {
-			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, kubernetesConfigJson)
+	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+	if *k8sExecConfigJson != "" {
+		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJson))
+		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
+		if err := jsonpb.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
+			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJson)
 		}
 	}
 	namespace, err := config.InPodNamespace()
@@ -149,13 +149,13 @@ func drive() (err error) {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:     *pipelineName,
-		RunID:            *runID,
-		Namespace:        namespace,
-		Component:        componentSpec,
-		Task:             taskSpec,
-		DAGExecutionID:   *dagExecutionID,
-		IterationIndex:   *iterationIndex,
+		PipelineName:   *pipelineName,
+		RunID:          *runID,
+		Namespace:      namespace,
+		Component:      componentSpec,
+		Task:           taskSpec,
+		DAGExecutionID: *dagExecutionID,
+		IterationIndex: *iterationIndex,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -167,7 +167,7 @@ func drive() (err error) {
 		execution, driverErr = driver.DAG(ctx, options, client)
 	case "CONTAINER":
 		options.Container = containerSpec
-		options.KubernetesConfig = kubernetesConfig
+		options.KubernetesExecutorConfig = k8sExecCfg
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
@@ -232,7 +232,7 @@ func prettyPrint(jsonStr string) string {
 	if err != nil {
 		return jsonStr
 	}
-	return string(prettyJSON.Bytes())
+	return prettyJSON.String()
 }
 
 func writeFile(path string, data []byte) (err error) {
