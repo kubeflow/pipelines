@@ -143,11 +143,7 @@ class PySampleChecker(object):
         if self._testname == 'parameterized_tfx_oss':
             self._test_args['pipeline-root'] = os.path.join(
                 self._test_args['output'],
-<<<<<<< HEAD
                 'tfx_taxi_simple_' + kfp.dsl.RUN_ID_PLACEHOLDER
-=======
-                'tfx_taxi_simple_{{workflow.uid}}'
->>>>>>> 0beed5918 (Replace pipeline job id with workflow.uid)
             )
             del self._test_args['output']
 
