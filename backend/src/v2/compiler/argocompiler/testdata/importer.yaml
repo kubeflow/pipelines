@@ -56,7 +56,7 @@ spec:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: gcr.io/ml-pipeline-test/kfp-launcher-v2@sha256:2b29da85580823f524a349d2e94db3822be00bd49afa82c9f4a718d51a3b7c06
+      image: gcr.io/ml-pipeline-test/kfp-launcher-v2@sha256:6803ccef392f4b31c2574ad59fa72cdc65fc48aa8684c37306ce89ecd2f35468
       name: ""
       resources:
         limits:
@@ -120,7 +120,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:e5140c17627920db911b2d7adbad53ff08d2a80ed4c3e2093b62c4304324035d
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:61c85e45b5241dbf898755d9c2c8a493fc311076211eb66e62b40914fd43617e
       name: ""
       resources:
         limits:
