@@ -17,7 +17,6 @@ import os
 from typing import Optional
 
 from google.cloud import aiplatform as aiplatform_sdk
-from google_cloud_pipeline_components.aiplatform import utils
 
 from kfp.components import load_component_from_file
 
