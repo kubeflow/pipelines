@@ -2,35 +2,34 @@
 # Name: prophet-train
 # Description: Trains one Prophet model per time series.
 # Inputs:
-#    bigquery_destination_uri: str [Default: '-']
 #    data_granularity_unit: str
-#    data_source_bigquery_table_path: str [Default: '-']
-#    data_source_csv_filenames: str [Default: '-']
-#    dataflow_service_account: str [Default: '-']
-#    dataflow_subnetwork: str [Default: '-']
+#    data_source_bigquery_table_path: str [Default: '']
+#    data_source_csv_filenames: str [Default: '']
+#    dataflow_service_account: str [Default: '']
+#    dataflow_subnetwork: str [Default: '']
 #    dataflow_use_public_ips: bool [Default: True]
-#    encryption_spec_key_name: str [Default: '-']
+#    encryption_spec_key_name: str [Default: '']
 #    evaluation_dataflow_disk_size_gb: int [Default: 40.0]
 #    evaluation_dataflow_machine_type: str [Default: 'n1-standard-1']
-#    evaluation_dataflow_max_num_workers: int [Default: 200.0]
+#    evaluation_dataflow_max_num_workers: int [Default: 10.0]
 #    forecast_horizon: int
 #    location: str
-#    max_num_trials: int [Default: 35.0]
+#    max_num_trials: int [Default: 6.0]
 #    optimization_objective: str
-#    predefined_split_key: str [Default: '-']
+#    predefined_split_key: str [Default: '']
 #    project: str
 #    root_dir: str
 #    target_column: str
 #    test_fraction: float [Default: -1.0]
 #    time_column: str
 #    time_series_identifier_column: str
-#    timestamp_split_key: str [Default: '-']
+#    timestamp_split_key: str [Default: '']
 #    trainer_dataflow_disk_size_gb: int [Default: 40.0]
 #    trainer_dataflow_machine_type: str [Default: 'n1-standard-1']
-#    trainer_dataflow_max_num_workers: int [Default: 200.0]
+#    trainer_dataflow_max_num_workers: int [Default: 10.0]
 #    training_fraction: float [Default: -1.0]
 #    validation_fraction: float [Default: -1.0]
-#    window_column: str [Default: '-']
+#    window_column: str [Default: '']
 #    window_max_count: int [Default: -1.0]
 #    window_stride_length: int [Default: -1.0]
 components:
@@ -166,6 +165,8 @@ components:
           - get-table-location
           inputs:
             parameters:
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
               job_configuration_query:
                 taskOutputParameter:
                   outputParameterKey: Output
@@ -197,7 +198,7 @@ components:
               query:
                 runtimeValue:
                   constant: "\n      WITH\n        base_data AS (\n          SELECT\
-                    \ * FROM {{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}\n\
+                    \ * FROM `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}`\n\
                     \        )\n      SELECT\n        CAST({{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\
                     \ AS STRING) AS {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
                     \        ARRAY_AGG(TIMESTAMP({{$.inputs.parameters['pipelinechannel--time_column']}})\
@@ -254,9 +255,6 @@ components:
             name: comp-feature-transform-engine
           dependentTasks:
           - bigquery-create-dataset
-          - parse-data-source
-          - parse-split-spec
-          - parse-window-config
           inputs:
             parameters:
               autodetect_csv_schema:
@@ -266,13 +264,9 @@ components:
                 runtimeValue:
                   constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
               data_source_bigquery_table_path:
-                taskOutputParameter:
-                  outputParameterKey: data_source_bigquery_table_path_with_scheme
-                  producerTask: parse-data-source
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
               data_source_csv_filenames:
-                taskOutputParameter:
-                  outputParameterKey: data_source_csv_filenames
-                  producerTask: parse-data-source
+                componentInputParameter: pipelinechannel--data_source_csv_filenames
               forecasting_apply_windowing:
                 runtimeValue:
                   constant: 0.0
@@ -282,21 +276,15 @@ components:
               forecasting_forecast_horizon:
                 componentInputParameter: pipelinechannel--forecast_horizon
               forecasting_predefined_window_column:
-                taskOutputParameter:
-                  outputParameterKey: window_column
-                  producerTask: parse-window-config
+                componentInputParameter: pipelinechannel--window_column
               forecasting_time_column:
                 componentInputParameter: pipelinechannel--time_column
               forecasting_time_series_identifier_column:
                 componentInputParameter: pipelinechannel--time_series_identifier_column
               forecasting_window_max_count:
-                taskOutputParameter:
-                  outputParameterKey: window_max_count
-                  producerTask: parse-window-config
+                componentInputParameter: pipelinechannel--window_max_count
               forecasting_window_stride_length:
-                taskOutputParameter:
-                  outputParameterKey: window_stride_length
-                  producerTask: parse-window-config
+                componentInputParameter: pipelinechannel--window_stride_length
               location:
                 componentInputParameter: pipelinechannel--location
               pipelinechannel--bigquery-create-dataset-dataset_id:
@@ -308,9 +296,7 @@ components:
                   outputParameterKey: project_id
                   producerTask: bigquery-create-dataset
               predefined_split_key:
-                taskOutputParameter:
-                  outputParameterKey: predefined_split_key
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--predefined_split_key
               prediction_type:
                 runtimeValue:
                   constant: time_series
@@ -321,21 +307,13 @@ components:
               target_column:
                 componentInputParameter: pipelinechannel--target_column
               test_fraction:
-                taskOutputParameter:
-                  outputParameterKey: test_fraction
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--test_fraction
               timestamp_split_key:
-                taskOutputParameter:
-                  outputParameterKey: timestamp_split_key
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--timestamp_split_key
               training_fraction:
-                taskOutputParameter:
-                  outputParameterKey: training_fraction
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--training_fraction
               validation_fraction:
-                taskOutputParameter:
-                  outputParameterKey: validation_fraction
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--validation_fraction
           taskInfo:
             name: feature-transform-engine
         get-fte-suffix:
@@ -373,8 +351,6 @@ components:
             enableCache: true
           componentRef:
             name: comp-get-table-location
-          dependentTasks:
-          - parse-data-source
           inputs:
             parameters:
               default_location:
@@ -382,53 +358,15 @@ components:
               project:
                 componentInputParameter: pipelinechannel--project
               table:
-                taskOutputParameter:
-                  outputParameterKey: data_source_bigquery_table_path
-                  producerTask: parse-data-source
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
           taskInfo:
             name: get-table-location
-        maybe-replace-with-default:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-maybe-replace-with-default
-          inputs:
-            parameters:
-              value:
-                componentInputParameter: pipelinechannel--dataflow_service_account
-          taskInfo:
-            name: maybe-replace-with-default
-        maybe-replace-with-default-2:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-maybe-replace-with-default-2
-          inputs:
-            parameters:
-              value:
-                componentInputParameter: pipelinechannel--dataflow_subnetwork
-          taskInfo:
-            name: maybe-replace-with-default-2
-        maybe-replace-with-default-3:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-maybe-replace-with-default-3
-          inputs:
-            parameters:
-              value:
-                componentInputParameter: pipelinechannel--encryption_spec_key_name
-          taskInfo:
-            name: maybe-replace-with-default-3
         model-evaluation-regression:
           cachingOptions:
             enableCache: true
           componentRef:
             name: comp-model-evaluation-regression
           dependentTasks:
-          - maybe-replace-with-default
-          - maybe-replace-with-default-2
-          - maybe-replace-with-default-3
           - prophet-trainer
           inputs:
             artifacts:
@@ -444,19 +382,13 @@ components:
               dataflow_max_workers_num:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_max_num_workers
               dataflow_service_account:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: maybe-replace-with-default
+                componentInputParameter: pipelinechannel--dataflow_service_account
               dataflow_subnetwork:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: maybe-replace-with-default-2
+                componentInputParameter: pipelinechannel--dataflow_subnetwork
               dataflow_use_public_ips:
                 componentInputParameter: pipelinechannel--dataflow_use_public_ips
               encryption_spec_key_name:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: maybe-replace-with-default-3
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
               ground_truth_gcs_source:
                 runtimeValue:
                   constant: []
@@ -504,53 +436,6 @@ components:
                 componentInputParameter: pipelinechannel--project
           taskInfo:
             name: model-upload
-        parse-data-source:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-parse-data-source
-          inputs:
-            parameters:
-              data_source_bigquery_table_path:
-                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
-              data_source_csv_filenames:
-                componentInputParameter: pipelinechannel--data_source_csv_filenames
-          taskInfo:
-            name: parse-data-source
-        parse-split-spec:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-parse-split-spec
-          inputs:
-            parameters:
-              predefined_split_key:
-                componentInputParameter: pipelinechannel--predefined_split_key
-              test_fraction:
-                componentInputParameter: pipelinechannel--test_fraction
-              timestamp_split_key:
-                componentInputParameter: pipelinechannel--timestamp_split_key
-              training_fraction:
-                componentInputParameter: pipelinechannel--training_fraction
-              validation_fraction:
-                componentInputParameter: pipelinechannel--validation_fraction
-          taskInfo:
-            name: parse-split-spec
-        parse-window-config:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-parse-window-config
-          inputs:
-            parameters:
-              window_column:
-                componentInputParameter: pipelinechannel--window_column
-              window_max_count:
-                componentInputParameter: pipelinechannel--window_max_count
-              window_stride_length:
-                componentInputParameter: pipelinechannel--window_stride_length
-          taskInfo:
-            name: parse-window-config
         prophet-trainer:
           cachingOptions:
             enableCache: true
@@ -558,9 +443,6 @@ components:
             name: comp-prophet-trainer
           dependentTasks:
           - get-fte-suffix
-          - maybe-replace-with-default
-          - maybe-replace-with-default-2
-          - maybe-replace-with-default-3
           - table-to-uri
           inputs:
             parameters:
@@ -573,19 +455,13 @@ components:
               dataflow_max_num_workers:
                 componentInputParameter: pipelinechannel--trainer_dataflow_max_num_workers
               dataflow_service_account:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: maybe-replace-with-default
+                componentInputParameter: pipelinechannel--dataflow_service_account
               dataflow_subnetwork:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: maybe-replace-with-default-2
+                componentInputParameter: pipelinechannel--dataflow_subnetwork
               dataflow_use_public_ips:
                 componentInputParameter: pipelinechannel--dataflow_use_public_ips
               encryption_spec_key_name:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: maybe-replace-with-default-3
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
               forecast_horizon:
                 componentInputParameter: pipelinechannel--forecast_horizon
               location:
@@ -643,70 +519,42 @@ components:
             enableCache: true
           componentRef:
             name: comp-validate-inputs
-          dependentTasks:
-          - parse-data-source
-          - parse-split-spec
-          - parse-window-config
           inputs:
             parameters:
-              bigquery_destination_uri:
-                componentInputParameter: pipelinechannel--bigquery_destination_uri
               data_granularity_unit:
                 componentInputParameter: pipelinechannel--data_granularity_unit
               data_source_bigquery_table_path:
-                taskOutputParameter:
-                  outputParameterKey: data_source_bigquery_table_path
-                  producerTask: parse-data-source
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
               data_source_csv_filenames:
-                taskOutputParameter:
-                  outputParameterKey: data_source_csv_filenames
-                  producerTask: parse-data-source
+                componentInputParameter: pipelinechannel--data_source_csv_filenames
               optimization_objective:
                 componentInputParameter: pipelinechannel--optimization_objective
               predefined_split_key:
-                taskOutputParameter:
-                  outputParameterKey: predefined_split_key
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--predefined_split_key
               target_column:
                 componentInputParameter: pipelinechannel--target_column
               test_fraction:
-                taskOutputParameter:
-                  outputParameterKey: test_fraction
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--test_fraction
               time_column:
                 componentInputParameter: pipelinechannel--time_column
               time_series_identifier_column:
                 componentInputParameter: pipelinechannel--time_series_identifier_column
               timestamp_split_key:
-                taskOutputParameter:
-                  outputParameterKey: timestamp_split_key
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--timestamp_split_key
               training_fraction:
-                taskOutputParameter:
-                  outputParameterKey: training_fraction
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--training_fraction
               validation_fraction:
-                taskOutputParameter:
-                  outputParameterKey: validation_fraction
-                  producerTask: parse-split-spec
+                componentInputParameter: pipelinechannel--validation_fraction
               window_column:
-                taskOutputParameter:
-                  outputParameterKey: window_column
-                  producerTask: parse-window-config
+                componentInputParameter: pipelinechannel--window_column
               window_max_count:
-                taskOutputParameter:
-                  outputParameterKey: window_max_count
-                  producerTask: parse-window-config
+                componentInputParameter: pipelinechannel--window_max_count
               window_stride_length:
-                taskOutputParameter:
-                  outputParameterKey: window_stride_length
-                  producerTask: parse-window-config
+                componentInputParameter: pipelinechannel--window_stride_length
           taskInfo:
             name: validate-inputs
     inputDefinitions:
       parameters:
-        pipelinechannel--bigquery_destination_uri:
-          parameterType: STRING
         pipelinechannel--data_granularity_unit:
           parameterType: STRING
         pipelinechannel--data_source_bigquery_table_path:
@@ -924,6 +772,10 @@ components:
           defaultValue: []
           isOptional: true
           parameterType: LIST
+        tf_transform_execution_engine:
+          defaultValue: dataflow
+          isOptional: true
+          parameterType: STRING
         tf_transformations_path:
           defaultValue: ''
           isOptional: true
@@ -1006,48 +858,6 @@ components:
         project:
           parameterType: STRING
         table:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
-  comp-maybe-replace-with-default:
-    executorLabel: exec-maybe-replace-with-default
-    inputDefinitions:
-      parameters:
-        default:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        value:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
-  comp-maybe-replace-with-default-2:
-    executorLabel: exec-maybe-replace-with-default-2
-    inputDefinitions:
-      parameters:
-        default:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        value:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
-  comp-maybe-replace-with-default-3:
-    executorLabel: exec-maybe-replace-with-default-3
-    inputDefinitions:
-      parameters:
-        default:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        value:
           parameterType: STRING
     outputDefinitions:
       parameters:
@@ -1239,76 +1049,6 @@ components:
       parameters:
         gcp_resources:
           parameterType: STRING
-  comp-parse-data-source:
-    executorLabel: exec-parse-data-source
-    inputDefinitions:
-      parameters:
-        data_source_bigquery_table_path:
-          isOptional: true
-          parameterType: STRING
-        data_source_csv_filenames:
-          isOptional: true
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        data_source_bigquery_table_path:
-          parameterType: STRING
-        data_source_bigquery_table_path_with_scheme:
-          parameterType: STRING
-        data_source_csv_filenames:
-          parameterType: STRING
-  comp-parse-split-spec:
-    executorLabel: exec-parse-split-spec
-    inputDefinitions:
-      parameters:
-        predefined_split_key:
-          isOptional: true
-          parameterType: STRING
-        test_fraction:
-          isOptional: true
-          parameterType: NUMBER_DOUBLE
-        timestamp_split_key:
-          isOptional: true
-          parameterType: STRING
-        training_fraction:
-          isOptional: true
-          parameterType: NUMBER_DOUBLE
-        validation_fraction:
-          isOptional: true
-          parameterType: NUMBER_DOUBLE
-    outputDefinitions:
-      parameters:
-        predefined_split_key:
-          parameterType: STRING
-        test_fraction:
-          parameterType: NUMBER_DOUBLE
-        timestamp_split_key:
-          parameterType: STRING
-        training_fraction:
-          parameterType: NUMBER_DOUBLE
-        validation_fraction:
-          parameterType: NUMBER_DOUBLE
-  comp-parse-window-config:
-    executorLabel: exec-parse-window-config
-    inputDefinitions:
-      parameters:
-        window_column:
-          isOptional: true
-          parameterType: STRING
-        window_max_count:
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        window_stride_length:
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      parameters:
-        window_column:
-          parameterType: STRING
-        window_max_count:
-          parameterType: NUMBER_INTEGER
-        window_stride_length:
-          parameterType: NUMBER_INTEGER
   comp-prophet-trainer:
     executorLabel: exec-prophet-trainer
     inputDefinitions:
@@ -1392,6 +1132,11 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+      parameters:
+        use_bq_prefix:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
     outputDefinitions:
       parameters:
         dataset_id:
@@ -1493,7 +1238,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
@@ -1527,7 +1272,7 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-bigquery-query-job:
       container:
         args:
@@ -1582,7 +1327,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-feature-transform-engine:
       container:
         args:
@@ -1608,6 +1353,7 @@ deploymentSpec:
         - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
         - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
         - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
         - '{"Concat": ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}'
         - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
@@ -1653,8 +1399,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -1662,7 +1408,7 @@ deploymentSpec:
         - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
         - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
     exec-get-fte-suffix:
       container:
         args:
@@ -1696,7 +1442,7 @@ deploymentSpec:
           \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
           \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-get-table-location:
       container:
         args:
@@ -1728,78 +1474,11 @@ deploymentSpec:
           \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
           \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
           \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  if not table or table == '-':\n    return default_location\n\n  client\
-          \ = bigquery.Client(project=project)\n  if table.startswith('bq://'):\n\
-          \    table = table[len('bq://'):]\n  elif table.startswith('bigquery://'):\n\
-          \    table = table[len('bigquery://'):]\n  return client.get_table(table).location\n\
-          \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
-    exec-maybe-replace-with-default:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - maybe_replace_with_default
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
-          \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
-          \n  return default if not value or value == '-' else value\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
-    exec-maybe-replace-with-default-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - maybe_replace_with_default
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
-          \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
-          \n  return default if not value or value == '-' else value\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
-    exec-maybe-replace-with-default-3:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - maybe_replace_with_default
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
-          \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
-          \n  return default if not value or value == '-' else value\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+          \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
+          \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
+          \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
+          \  return client.get_table(table).location\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-model-evaluation-regression:
       container:
         args:
@@ -1897,123 +1576,6 @@ deploymentSpec:
         - -m
         - google_cloud_pipeline_components.container.v1.model.upload_model.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
-    exec-parse-data-source:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - parse_data_source
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef parse_data_source(\n    data_source_csv_filenames: Optional[str]\
-          \ = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n\
-          ) -> NamedTuple('Outputs', [\n    ('data_source_bigquery_table_path', str),\n\
-          \    ('data_source_bigquery_table_path_with_scheme', str),\n    ('data_source_csv_filenames',\
-          \ str),\n]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\
-          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import collections\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  result = {\n      'data_source_csv_filenames': data_source_csv_filenames,\n\
-          \      'data_source_bigquery_table_path': data_source_bigquery_table_path,\n\
-          \  }\n  for k, v in list(result.items()):\n    is_optional = any([\n   \
-          \     v is None,\n        isinstance(v, str) and v in {'', '-'},\n    ])\n\
-          \    if is_optional:\n      result.pop(k)\n  if 'data_source_bigquery_table_path'\
-          \ in result:\n    result['data_source_bigquery_table_path'] = re.sub(\n\
-          \        '^bq://', '', result['data_source_bigquery_table_path'])\n    result['data_source_bigquery_table_path_with_scheme']\
-          \ = (\n        'bq://' + result['data_source_bigquery_table_path'])\n  if\
-          \ 'data_source_csv_filenames' in result:\n    result['data_source_csv_filenames']\
-          \ = data_source_csv_filenames\n  return collections.namedtuple('Outputs',\
-          \ [\n      'data_source_bigquery_table_path',\n      'data_source_bigquery_table_path_with_scheme',\n\
-          \      'data_source_csv_filenames',\n  ])(\n      result.get('data_source_bigquery_table_path',\
-          \ ''),\n      result.get('data_source_bigquery_table_path_with_scheme',\
-          \ ''),\n      result.get('data_source_csv_filenames', ''),\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
-    exec-parse-split-spec:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - parse_split_spec
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef parse_split_spec(\n    predefined_split_key: Optional[str] =\
-          \ None,\n    timestamp_split_key: Optional[str] = None,\n    training_fraction:\
-          \ Optional[float] = None,\n    validation_fraction: Optional[float] = None,\n\
-          \    test_fraction: Optional[float] = None,\n) -> NamedTuple('Outputs',\
-          \ [\n    ('training_fraction', float),\n    ('validation_fraction', float),\n\
-          \    ('test_fraction', float),\n    ('predefined_split_key', str),\n   \
-          \ ('timestamp_split_key', str),\n]):\n  \"\"\"Extracts the split column\
-          \ from a split spec JSON.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  result = {\n      'predefined_split_key': predefined_split_key,\n  \
-          \    'timestamp_split_key': timestamp_split_key,\n      'training_fraction':\
-          \ training_fraction,\n      'validation_fraction': validation_fraction,\n\
-          \      'test_fraction': test_fraction,\n  }\n  for k, v in list(result.items()):\n\
-          \    is_optional = any([\n        v is None,\n        isinstance(v, str)\
-          \ and v in {'', '-'},\n        isinstance(v, float) and v in {0.0, -1.0},\n\
-          \    ])\n    if is_optional:\n      result.pop(k)\n\n  return collections.namedtuple(\n\
-          \      'Outputs',\n      [\n          'training_fraction',\n          'validation_fraction',\n\
-          \          'test_fraction',\n          'predefined_split_key',\n       \
-          \   'timestamp_split_key',\n      ],\n  )(\n      result.get('training_fraction',\
-          \ 0.0),\n      result.get('validation_fraction', 0.0),\n      result.get('test_fraction',\
-          \ 0.0),\n      result.get('predefined_split_key', ''),\n      result.get('timestamp_split_key',\
-          \ ''),\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
-    exec-parse-window-config:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - parse_window_config
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef parse_window_config(\n    window_column: Optional[str] = None,\n\
-          \    window_stride_length: Optional[int] = None,\n    window_max_count:\
-          \ Optional[int] = None,\n) -> NamedTuple('Outputs', [\n    ('window_column',\
-          \ str),\n    ('window_stride_length', int),\n    ('window_max_count', int),\n\
-          ]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\"\"\n\
-          \  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import\
-          \ collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  result = {\n      'window_column': window_column,\n      'window_stride_length':\
-          \ window_stride_length,\n      'window_max_count': window_max_count,\n \
-          \ }\n  for k, v in list(result.items()):\n    is_optional = any([\n    \
-          \    v is None,\n        isinstance(v, str) and v in {'', '-'},\n      \
-          \  isinstance(v, int) and v in {0, -1},\n    ])\n    if is_optional:\n \
-          \     result.pop(k)\n  if not result:\n    result['window_max_count'] =\
-          \ int(1e8)\n\n  return collections.namedtuple('Outputs', [\n      'window_column',\n\
-          \      'window_stride_length',\n      'window_max_count',\n  ])(\n     \
-          \ result.get('window_column', ''),\n      int(result.get('window_stride_length',\
-          \ 0)),\n      int(result.get('window_max_count', 0)),\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
     exec-prophet-trainer:
       container:
         args:
@@ -2030,10 +1592,10 @@ deploymentSpec:
           ", "\"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, ", "\"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"1\",
           ", "\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, ", "\"container_spec\":
-          {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325\",
+          {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230416_0125\",
           ", "\"args\": [\"prophet_trainer\", \"", "--job_name={{$.pipeline_job_name}}\",
-          \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325\",
-          \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230322_0325\",
+          \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125\",
+          \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230416_0125\",
           \"", "--artifacts_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/model/\",
           \"", "--evaluated_examples_dir=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/eval/\", \"", "--region=", "{{$.inputs.parameters[''location'']}}",
@@ -2080,16 +1642,18 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n) -> NamedTuple('Outputs',\
-          \ [\n    ('project_id', str),\n    ('dataset_id', str),\n    ('table_id',\
-          \ str),\n    ('uri', str),\n]):\n  \"\"\"Converts a google.BQTable to a\
-          \ URI.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
+          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
+          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
+          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
+          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
           \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
           \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
-          \      table.metadata['tableId'],\n  ]\n  outputs.append('.'.join(outputs))\n\
+          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
+          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-validate-inputs:
       container:
         args:
@@ -2130,7 +1694,7 @@ deploymentSpec:
           \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
           \      raise ValueError(f'Invalid column name: {column}.')\n  dataset_uri_pattern\
           \ = re.compile(project_pattern + dataset_pattern)\n  if (bigquery_destination_uri\
-          \ and\n      bigquery_destination_uri != '-' and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
+          \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
           \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
           \  table_uri_pattern = re.compile(project_pattern + dataset_pattern +\n\
           \                                 table_pattern)\n  if (source_model_uri\
@@ -2159,10 +1723,12 @@ deploymentSpec:
           \ and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise\
           \ ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key\
           \ and not all(fraction_splits):\n    raise ValueError('All fractions must\
-          \ be non-zero for timestamp split.')\n\n  # Validate window config.\n  window_configs\
-          \ = [window_column, window_stride_length, window_max_count]\n  window_config_count\
-          \ = sum([bool(config) for config in window_configs])\n  if window_config_count\
-          \ > 1:\n    raise ValueError(f'Expected 1 window config, found {window_config_count}.')\n\
+          \ be non-zero for timestamp split.')\n\n  # Validate window config.\n  if\
+          \ window_stride_length == -1:\n    window_stride_length = None\n  if window_max_count\
+          \ == -1:\n    window_max_count = None\n  window_configs = [window_column,\
+          \ window_stride_length, window_max_count]\n  window_config_count = sum([bool(config)\
+          \ for config in window_configs])\n  if window_config_count > 1:\n    raise\
+          \ ValueError(f'Expected 1 window config, found {window_config_count}.')\n\
           \  if window_column and not column_pattern.fullmatch(window_column):\n \
           \   raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length\
           \ and (window_stride_length < 1 or\n                               window_stride_length\
@@ -2182,7 +1748,7 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
 pipelineInfo:
   name: prophet-train
 root:
@@ -2214,8 +1780,6 @@ root:
           name: comp-exit-handler-1
         inputs:
           parameters:
-            pipelinechannel--bigquery_destination_uri:
-              componentInputParameter: bigquery_destination_uri
             pipelinechannel--data_granularity_unit:
               componentInputParameter: data_granularity_unit
             pipelinechannel--data_source_bigquery_table_path:
@@ -2280,26 +1844,22 @@ root:
           name: exit-handler-1
   inputDefinitions:
     parameters:
-      bigquery_destination_uri:
-        defaultValue: '-'
-        isOptional: true
-        parameterType: STRING
       data_granularity_unit:
         parameterType: STRING
       data_source_bigquery_table_path:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       data_source_csv_filenames:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       dataflow_service_account:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       dataflow_subnetwork:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       dataflow_use_public_ips:
@@ -2307,7 +1867,7 @@ root:
         isOptional: true
         parameterType: BOOLEAN
       encryption_spec_key_name:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       evaluation_dataflow_disk_size_gb:
@@ -2319,7 +1879,7 @@ root:
         isOptional: true
         parameterType: STRING
       evaluation_dataflow_max_num_workers:
-        defaultValue: 200.0
+        defaultValue: 10.0
         isOptional: true
         parameterType: NUMBER_INTEGER
       forecast_horizon:
@@ -2327,13 +1887,13 @@ root:
       location:
         parameterType: STRING
       max_num_trials:
-        defaultValue: 35.0
+        defaultValue: 6.0
         isOptional: true
         parameterType: NUMBER_INTEGER
       optimization_objective:
         parameterType: STRING
       predefined_split_key:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       project:
@@ -2351,7 +1911,7 @@ root:
       time_series_identifier_column:
         parameterType: STRING
       timestamp_split_key:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       trainer_dataflow_disk_size_gb:
@@ -2363,7 +1923,7 @@ root:
         isOptional: true
         parameterType: STRING
       trainer_dataflow_max_num_workers:
-        defaultValue: 200.0
+        defaultValue: 10.0
         isOptional: true
         parameterType: NUMBER_INTEGER
       training_fraction:
@@ -2375,7 +1935,7 @@ root:
         isOptional: true
         parameterType: NUMBER_DOUBLE
       window_column:
-        defaultValue: '-'
+        defaultValue: ''
         isOptional: true
         parameterType: STRING
       window_max_count:

@@ -893,6 +893,10 @@ components:
           defaultValue: []
           isOptional: true
           parameterType: LIST
+        tf_transform_execution_engine:
+          defaultValue: dataflow
+          isOptional: true
+          parameterType: STRING
         tf_transformations_path:
           defaultValue: ''
           isOptional: true
@@ -1521,7 +1525,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230416_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -1552,7 +1556,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-feature-transform-engine:
       container:
         args:
@@ -1578,6 +1582,7 @@ deploymentSpec:
         - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
         - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
         - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
         - '{"Concat": ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}'
         - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
@@ -1623,8 +1628,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -1632,7 +1637,7 @@ deploymentSpec:
         - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
         - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -1676,27 +1681,27 @@ deploymentSpec:
           \ the first one\n  for master and the second one for the remaining workers.\n\
           \n  Args:\n    total_replica_count: Number of workers.\n    target_column:\
           \ Required. Target column name.\n    objective: Required. Specifies the\
-          \ learning task and the learning\n      objective.\n    materialized_train_split:\
-          \ Required. The path to the\n      materialized train split.\n    materialized_eval_split:\
-          \ Required. The path to the\n      materialized validation split.\n    transform_output:\
+          \ learning task and the learning objective.\n    materialized_train_split:\
+          \ Required. The path to the materialized train\n      split.\n    materialized_eval_split:\
+          \ Required. The path to the materialized validation\n      split.\n    transform_output:\
           \ Required. The path to transform output.\n    training_schema_uri: Required.\
-          \ The path to the training\n      schema.\n    instance_baseline: Path to\
-          \ JSON file for baseline values.\n    job_dir: Job dir path.\n    instance_schema_uri:\
+          \ The path to the training schema.\n    instance_baseline: Path to JSON\
+          \ file for baseline values.\n    job_dir: Job dir path.\n    instance_schema_uri:\
           \ The instance schema uri.\n    prediction_schema_uri: The prediction schema_uri.\n\
           \    trials: The trials uri.\n    prediction_docker_uri_output: The prediction\
           \ docker container uri.\n    machine_type: Machine type.\n    accelerator_type:\
           \ Accelerator type.\n    accelerator_count: Accelerator count.\n    weight_column:\
           \ Weight column name.\n    eval_metric: Evaluation metrics for validation\
           \ data represented as a\n      comma-separated string.\n    disable_default_eval_metric:\
-          \ Flag to disable default metric. Set to >0\n      to disable. Default to\
+          \ Flag to disable default metric. Set to >0 to\n      disable. Default to\
           \ 0.\n    seed: Random seed.\n    seed_per_iteration: Seed PRNG determnisticly\
           \ via iterator number.\n\n  Raises:\n    ValueError: If accelerator_count\
           \ <= 0 and accelerator_type is specified.\n\n  Returns:\n    Output parameters.\n\
           \  \"\"\"\n  import copy\n  import collections\n  import re\n\n  def get_gcs_path(path):\n\
           \    return re.sub(r'^/gcs/', r'gs://', path)\n\n  master_worker_pool_spec\
           \ = {\n      'replica_count': 1,\n      'machine_spec': {\n          'machine_type':\
-          \ machine_type,\n      },\n      'container_spec': {\n          'image_uri':\n\
-          \              'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:dev',\n\
+          \ machine_type,\n      },\n      'container_spec': {\n          'image_uri':\
+          \ 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:20230416_0125',\n\
           \          'args': [\n              f'--job_dir={get_gcs_path(job_dir)}',\n\
           \              f'--instance_schema_path={get_gcs_path(instance_schema_uri)}',\n\
           \              f'--prediction_schema_path={get_gcs_path(prediction_schema_uri)}',\n\
@@ -1709,26 +1714,26 @@ deploymentSpec:
           \              f'--baseline_path={get_gcs_path(instance_baseline)}',\n \
           \             f'--eval_metric={eval_metric}',\n              f'--disable_default_eval_metric={disable_default_eval_metric}',\n\
           \              f'--seed={seed}',\n              f'--seed_per_iteration={seed_per_iteration}',\n\
-          \              '--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:dev'\n\
-          \          ]\n      }\n  }\n\n  # Add optional arguments if set\n  if weight_column:\n\
-          \    master_worker_pool_spec['container_spec']['args'].append(\n       \
-          \ f'--weight_column={weight_column}')\n\n  # Add accelerator_type and accelerator_count\
-          \ if set.\n  if accelerator_type:\n    if accelerator_count <= 0:\n    \
-          \  raise ValueError(\n          'Accelerator count must be greator than\
-          \ 0 when type is specified.')\n    master_worker_pool_spec['machine_spec'][\n\
-          \        'accelerator_type'] = accelerator_type\n    master_worker_pool_spec['machine_spec'][\n\
-          \        'accelerator_count'] = accelerator_count\n\n  worker_pool_specs_lst\
+          \              '--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:20230416_0125',\n\
+          \          ],\n      },\n  }\n\n  # Add optional arguments if set\n  if\
+          \ weight_column:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
+          \        f'--weight_column={weight_column}'\n    )\n\n  # Add accelerator_type\
+          \ and accelerator_count if set.\n  if accelerator_type:\n    if accelerator_count\
+          \ <= 0:\n      raise ValueError(\n          'Accelerator count must be greator\
+          \ than 0 when type is specified.'\n      )\n    master_worker_pool_spec['machine_spec'][\n\
+          \        'accelerator_type'\n    ] = accelerator_type\n    master_worker_pool_spec['machine_spec'][\n\
+          \        'accelerator_count'\n    ] = accelerator_count\n\n  worker_pool_specs_lst\
           \ = [master_worker_pool_spec]\n\n  # Add an additional worker pool spec\
           \ for distributed training.\n  if total_replica_count > 1:\n    additional_replica\
           \ = total_replica_count - 1\n    additional_worker_spec = copy.deepcopy(master_worker_pool_spec)\n\
           \    additional_worker_spec['replica_count'] = additional_replica\n    worker_pool_specs_lst.append(additional_worker_spec)\n\
-          \n  return collections.namedtuple('Outputs', [\n      'worker_pool_specs',\n\
-          \      'instance_schema_path',\n      'prediction_schema_path',\n      'trials_path',\n\
-          \      'prediction_docker_uri_artifact_path',\n  ])(worker_pool_specs_lst,\n\
-          \     get_gcs_path(instance_schema_uri),\n     get_gcs_path(prediction_schema_uri),\n\
-          \     get_gcs_path(trials),\n     get_gcs_path(prediction_docker_uri_output),\n\
-          \    )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+          \n  return collections.namedtuple(\n      'Outputs',\n      [\n        \
+          \  'worker_pool_specs',\n          'instance_schema_path',\n          'prediction_schema_path',\n\
+          \          'trials_path',\n          'prediction_docker_uri_artifact_path',\n\
+          \      ],\n  )(\n      worker_pool_specs_lst,\n      get_gcs_path(instance_schema_uri),\n\
+          \      get_gcs_path(prediction_schema_uri),\n      get_gcs_path(trials),\n\
+          \      get_gcs_path(prediction_docker_uri_output),\n  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-get-best-hyperparameter-tuning-job-trial:
       container:
         args:
@@ -1751,7 +1756,7 @@ deploymentSpec:
           \ str,\n    study_spec_metric_goal: str,\n    unmanaged_container_model:\
           \ dsl.Output[dsl.Artifact],\n    trials_dir: str = '',\n    instance_schema_uri:\
           \ str = '',\n    prediction_schema_uri: str = '',\n    prediction_docker_uri:\
-          \ str = '',\n    read_value_from_file: bool = False):\n  \"\"\"Gets best\
+          \ str = '',\n    read_value_from_file: bool = False,\n):\n  \"\"\"Gets best\
           \ HyperparameterTuningJob trial.\n\n  Args:\n    gcp_resources: Proto tracking\
           \ the hyperparameter tuning job.\n    study_spec_metric_goal: Optimization\
           \ goal of the metric, possible values:\n      \"MAXIMIZE\", \"MINIMIZE\"\
@@ -1774,26 +1779,27 @@ deploymentSpec:
           \  if uri_key not in resource:\n    uri_key = 'resourceUri'\n\n  gcp_resources_split\
           \ = resource[uri_key].partition('projects')\n  resource_name = gcp_resources_split[1]\
           \ + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str\
-          \ = prefix_str[:prefix_str.find(api_endpoint_suffix)]\n  api_endpoint =\
-          \ prefix_str[(prefix_str.rfind('//') + 2):] + api_endpoint_suffix\n\n  job_client\
-          \ = aip.JobServiceClient(\n      client_options={'api_endpoint': api_endpoint})\n\
-          \  response = job_client.get_hyperparameter_tuning_job(\n      name=resource_name,\n\
-          \      retry=Retry(initial=10.0, maximum=60.0, deadline=10.0 * 60.0))\n\n\
-          \  # Get best trial\n  trials_list = []\n  for trial in response.trials:\n\
-          \    if trial.final_measurement:\n      trials_list.append({\n         \
-          \ 'id': trial.id,\n          'objective_value': trial.final_measurement.metrics[0].value\n\
-          \      })\n\n  best_trial = None\n  best_fn = None\n  if study_spec_metric_goal\
-          \ == 'MAXIMIZE':\n    best_fn = max\n  elif study_spec_metric_goal == 'MINIMIZE':\n\
-          \    best_fn = min\n  else:\n    raise ValueError(\n        f'Unexpected\
-          \ study spec metric goal: {study_spec_metric_goal}')\n\n  best_trial = best_fn(trials_list,\
+          \ = prefix_str[: prefix_str.find(api_endpoint_suffix)]\n  api_endpoint =\
+          \ (\n      prefix_str[(prefix_str.rfind('//') + 2) :] + api_endpoint_suffix\n\
+          \  )\n\n  job_client = aip.JobServiceClient(\n      client_options={'api_endpoint':\
+          \ api_endpoint}\n  )\n  response = job_client.get_hyperparameter_tuning_job(\n\
+          \      name=resource_name,\n      retry=Retry(initial=10.0, maximum=60.0,\
+          \ deadline=10.0 * 60.0),\n  )\n\n  # Get best trial\n  trials_list = []\n\
+          \  for trial in response.trials:\n    if trial.final_measurement:\n    \
+          \  trials_list.append({\n          'id': trial.id,\n          'objective_value':\
+          \ trial.final_measurement.metrics[0].value,\n      })\n\n  best_trial =\
+          \ None\n  best_fn = None\n  if study_spec_metric_goal == 'MAXIMIZE':\n \
+          \   best_fn = max\n  elif study_spec_metric_goal == 'MINIMIZE':\n    best_fn\
+          \ = min\n  else:\n    raise ValueError(\n        f'Unexpected study spec\
+          \ metric goal: {study_spec_metric_goal}'\n    )\n\n  best_trial = best_fn(trials_list,\
           \ key=lambda trial: trial['objective_value'])\n\n  # Build unmanaged_container_model\n\
           \  unmanaged_container_model.metadata['containerSpec'] = {\n      'imageUri':\
           \ prediction_docker_uri,\n      'healthRoute': '/health',\n      'predictRoute':\
           \ '/predict',\n  }\n  unmanaged_container_model.metadata['predictSchemata']\
           \ = {\n      'instanceSchemaUri': instance_schema_uri,\n      'predictionSchemaUri':\
-          \ prediction_schema_uri\n  }\n  unmanaged_container_model.uri = os.path.join(\n\
-          \      trials_dir, 'trial_{}'.format(best_trial['id']), 'model')\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+          \ prediction_schema_uri,\n  }\n  unmanaged_container_model.uri = os.path.join(\n\
+          \      trials_dir, 'trial_{}'.format(best_trial['id']), 'model'\n  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-get-prediction-type-for-xgboost:
       container:
         args:
@@ -1818,11 +1824,11 @@ deploymentSpec:
           \ One of 'regression' or 'classification'\n  \"\"\"\n  if objective.startswith('binary')\
           \ or objective.startswith('multi'):\n    return 'classification'\n  elif\
           \ objective.startswith('reg'):\n    return 'regression'\n  else:\n    raise\
-          \ ValueError(\n        (f'Unsupported XGBoost training objective: {objective}.\
-          \ Must be one of'\n         ' [reg:squarederror, reg:squaredlogerror, reg:logistic,\
-          \ reg:gamma,'\n         ' reg:tweedie, reg:pseudohubererror, binary:logistic,'\n\
-          \         ' multi:softprob].')\n    )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+          \ ValueError(\n        f'Unsupported XGBoost training objective: {objective}.\
+          \ Must be one of'\n        ' [reg:squarederror, reg:squaredlogerror, reg:logistic,\
+          \ reg:gamma,'\n        ' reg:tweedie, reg:pseudohubererror, binary:logistic,'\n\
+          \        ' multi:softprob].'\n    )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-get-xgboost-study-spec-parameters:
       container:
         args:
@@ -2025,7 +2031,7 @@ deploymentSpec:
           \                 },\n                  'parent_categorical_values': {'values':\
           \ ['gbtree', 'dart']},\n              },\n              {\n            \
           \      'parameter_spec': {\n                      'parameter_id': 'max_depth',\n\
-          \                      'integer_value_spec': {'min_value': 0, 'max_value':\
+          \                      'integer_value_spec': {'min_value': 6, 'max_value':\
           \ 10},\n                      'scale_type': 'UNIT_LINEAR_SCALE',\n     \
           \             },\n                  'parent_categorical_values': {'values':\
           \ ['gbtree', 'dart']},\n              },\n              {\n            \
@@ -2159,20 +2165,24 @@ deploymentSpec:
           \  tree_method = override_booster_params.get('tree_method', None)\n  if\
           \ tree_method is not None:\n    for booster, tree_method_spec in tree_method.items():\n\
           \      if tree_method_spec['categorical_value_spec']['values'] != ['exact']:\n\
-          \        continue\n      # exact requires non-zero max_depth value\n   \
-          \   max_depth_spec = {\n          'parameter_id': 'max_depth',\n       \
-          \   'integer_value_spec': {'min_value': 1, 'max_value': 10},\n         \
-          \ 'scale_type': 'UNIT_LINEAR_SCALE',\n      }\n      override_booster_params['max_depth']\
+          \        continue\n      # TODO(b/277777886): exact requires non-zero max_depth\
+          \ value.\n      # The below code is no longer necessary after raising min_value\
+          \ to 6 in\n      # the default spec. In the long run, we need to decide\
+          \ the best\n      # approach for max_depth. Keeping the code for now in\
+          \ case the approach\n      # involves overriding max_depth for 'exact' tree_method.\n\
+          \      max_depth_spec = {\n          'parameter_id': 'max_depth',\n    \
+          \      'integer_value_spec': {'min_value': 6, 'max_value': 10},\n      \
+          \    'scale_type': 'UNIT_LINEAR_SCALE',\n      }\n      override_booster_params['max_depth']\
           \ = override_booster_params.get(\n          'max_depth', {booster: max_depth_spec}\n\
           \      )\n      override_booster_params['max_depth'][booster] = override_booster_params[\n\
           \          'max_depth'\n      ].get(booster, max_depth_spec)\n      try:\n\
           \        _validate_int_spec(\n            override_booster_params['max_depth'][booster],\n\
-          \            lower_bound=1,\n            upper_bound=10,\n        )\n  \
-          \    except ValueError as e:\n        raise ValueError(\n            'max_depth\
-          \ cannot be 0 when tree method is fixed to be \"exact\".'\n        ) from\
-          \ e\n\n  # Construct the modified study specs study_spec_parameters.\n \
-          \ study_spec_parameters = []\n  for default_param in default_params:\n \
-          \   override_param = override_params.get(\n        default_param['parameter_id'],\
+          \            lower_bound=1,\n            upper_bound=None,\n        )\n\
+          \      except ValueError as e:\n        raise ValueError(\n            'max_depth\
+          \ cannot be 0 (or < 0) when tree method is fixed to be '\n            '\"\
+          exact\".'\n        ) from e\n\n  # Construct the modified study specs study_spec_parameters.\n\
+          \  study_spec_parameters = []\n  for default_param in default_params:\n\
+          \    override_param = override_params.get(\n        default_param['parameter_id'],\
           \ default_param\n    )\n    study_spec_parameters.append(override_param)\n\
           \    # Override conditional parameters for booster.\n    if default_param['parameter_id']\
           \ == 'booster':\n      booster_param_specs = []\n      override_booster_vals\
@@ -2195,7 +2205,7 @@ deploymentSpec:
           \      # specs from user input and the default booster parameter specs.\n\
           \      override_param['conditional_parameter_specs'] = booster_param_specs\n\
           \n  return study_spec_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-model-batch-predict:
       container:
         args:
@@ -2367,7 +2377,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
     exec-training-configurator-and-validator:
       container:
         args:
@@ -2401,7 +2411,7 @@ deploymentSpec:
           ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
         - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
           ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
     exec-xgboost-hyperparameter-tuning-job:
       container:
         args:

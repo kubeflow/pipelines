@@ -39,6 +39,7 @@
 #    learning_rate: float
 #    location: str
 #    loss_function_type: str [Default: 'default']
+#    materialized_examples_format: str [Default: 'tfrecords_gzip']
 #    max_selected_features: int [Default: -1.0]
 #    max_steps: int [Default: -1.0]
 #    max_train_secs: int [Default: -1.0]
@@ -424,6 +425,8 @@ components:
                 componentInputParameter: pipelinechannel--feature_selection_algorithm
               location:
                 componentInputParameter: pipelinechannel--location
+              materialized_examples_format:
+                componentInputParameter: pipelinechannel--materialized_examples_format
               max_selected_features:
                 componentInputParameter: pipelinechannel--max_selected_features
               model_type:
@@ -744,6 +747,8 @@ components:
           parameterType: STRING
         pipelinechannel--loss_function_type:
           parameterType: STRING
+        pipelinechannel--materialized_examples_format:
+          parameterType: STRING
         pipelinechannel--max_selected_features:
           parameterType: NUMBER_INTEGER
         pipelinechannel--max_steps:
@@ -969,6 +974,10 @@ components:
           defaultValue: []
           isOptional: true
           parameterType: LIST
+        tf_transform_execution_engine:
+          defaultValue: dataflow
+          isOptional: true
+          parameterType: STRING
         tf_transformations_path:
           defaultValue: ''
           isOptional: true
@@ -1678,7 +1687,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230416_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -1693,7 +1702,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230416_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -1718,7 +1727,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-feature-transform-engine:
       container:
         args:
@@ -1744,6 +1753,7 @@ deploymentSpec:
         - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
         - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
         - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
         - '{"Concat": ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}'
         - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
@@ -1789,8 +1799,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -1798,7 +1808,7 @@ deploymentSpec:
         - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
         - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -1911,20 +1921,25 @@ deploymentSpec:
     exec-model-evaluation-import:
       container:
         args:
-        - --metrics
-        - '{{$.inputs.artifacts[''metrics''].uri}}'
-        - --metrics_explanation
-        - '{{$.inputs.artifacts[''metrics''].metadata[''explanation_gcs_path'']}}'
-        - '{"IfPresent": {"InputName": "feature_attributions", "Then": {"Concat":
-          ["--feature_attributions", "{{$.inputs.artifacts[''feature_attributions''].uri}}"]}}}'
-        - --problem_type
-        - '{{$.inputs.parameters[''problem_type'']}}'
+        - '{"IfPresent": {"InputName": "metrics", "Then": ["--metrics", "{{$.inputs.artifacts[''metrics''].uri}}",
+          "--metrics_explanation", "{{$.inputs.artifacts[''metrics''].metadata[''explanation_gcs_path'']}}"]}}'
+        - '{"IfPresent": {"InputName": "explanation", "Then": ["--explanation", "{{$.inputs.artifacts[''explanation''].metadata[''explanation_gcs_path'']}}"]}}'
+        - '{"IfPresent": {"InputName": "classification_metrics", "Then": ["--classification_metrics",
+          "{{$.inputs.artifacts[''classification_metrics''].uri}}"]}}'
+        - '{"IfPresent": {"InputName": "forecasting_metrics", "Then": ["--forecasting_metrics",
+          "{{$.inputs.artifacts[''forecasting_metrics''].uri}}"]}}'
+        - '{"IfPresent": {"InputName": "regression_metrics", "Then": ["--regression_metrics",
+          "{{$.inputs.artifacts[''regression_metrics''].uri}}"]}}'
+        - '{"IfPresent": {"InputName": "feature_attributions", "Then": ["--feature_attributions",
+          "{{$.inputs.artifacts[''feature_attributions''].uri}}"]}}'
+        - '{"IfPresent": {"InputName": "problem_type", "Then": ["--problem_type",
+          "{{$.inputs.parameters[''problem_type'']}}"]}}'
         - --display_name
         - '{{$.inputs.parameters[''display_name'']}}'
-        - '{"IfPresent": {"InputName": "dataset_path", "Then": {"Concat": ["--dataset_path",
-          "{{$.inputs.parameters[''dataset_path'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "dataset_paths", "Then": {"Concat": ["--dataset_paths",
-          "{{$.inputs.parameters[''dataset_paths'']}}"]}}}'
+        - --dataset_path
+        - '{{$.inputs.parameters[''dataset_path'']}}'
+        - --dataset_paths
+        - '{{$.inputs.parameters[''dataset_paths'']}}'
         - --dataset_type
         - '{{$.inputs.parameters[''dataset_type'']}}'
         - --pipeline_job_id
@@ -1986,11 +2001,11 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef _parse_worker_pool_specs_override(\n    worker_pool_specs_override:\
-          \ list  # pylint:disable=g-bare-generic\n) -> NamedTuple(\n    'Outputs',\n\
+          \ list,  # pylint:disable=g-bare-generic\n) -> NamedTuple(\n    'Outputs',\n\
           \    [\n        ('training_machine_spec', dict),  # pylint:disable=g-bare-generic\n\
           \        ('training_disk_spec', dict),\n        ('eval_machine_spec', dict),\
           \  # pylint:disable=g-bare-generic\n        ('eval_replica_count', int),\n\
-          \    ]):\n  \"\"\"Parses worker_pool_specs_override and returns training\
+          \    ],\n):\n  \"\"\"Parses worker_pool_specs_override and returns training\
           \ and evaluation machine specifications.\n\n  Args:\n    worker_pool_specs_override:\
           \ The list of dictionaries for overriding training\n      and evaluation\
           \ worker pool specs.\n\n  Returns:\n      training_machine_spec: The training\
@@ -2002,18 +2017,20 @@ deploymentSpec:
           \ = {'boot_disk_type': 'pd-ssd', 'boot_disk_size_gb': 100}\n  eval_machine_spec\
           \ = {'machine_type': 'c2-standard-8'}\n  eval_replica_count = 1\n\n  if\
           \ worker_pool_specs_override:\n    if len(worker_pool_specs_override) >=\
-          \ 1 and isinstance(\n        worker_pool_specs_override[0], dict):\n   \
-          \   training_machine_spec = worker_pool_specs_override[0].get(\n       \
-          \   'machine_spec', training_machine_spec)\n      training_disk_spec = worker_pool_specs_override[0].get(\n\
-          \          'disk_spec', training_disk_spec)\n    if len(worker_pool_specs_override)\
-          \ == 4 and isinstance(\n        worker_pool_specs_override[3], dict):\n\
-          \      eval_machine_spec = worker_pool_specs_override[3].get(\n        \
-          \  'machine_spec', eval_machine_spec)\n      eval_replica_count = worker_pool_specs_override[3].get(\n\
-          \          'replica_count', eval_replica_count)\n\n  return collections.namedtuple('Outputs',\
-          \ [\n      'training_machine_spec', 'training_disk_spec', 'eval_machine_spec',\n\
-          \      'eval_replica_count'\n  ])(training_machine_spec, training_disk_spec,\
-          \ eval_machine_spec,\n     eval_replica_count)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+          \ 1 and isinstance(\n        worker_pool_specs_override[0], dict\n    ):\n\
+          \      training_machine_spec = worker_pool_specs_override[0].get(\n    \
+          \      'machine_spec', training_machine_spec\n      )\n      training_disk_spec\
+          \ = worker_pool_specs_override[0].get(\n          'disk_spec', training_disk_spec\n\
+          \      )\n    if len(worker_pool_specs_override) == 4 and isinstance(\n\
+          \        worker_pool_specs_override[3], dict\n    ):\n      eval_machine_spec\
+          \ = worker_pool_specs_override[3].get(\n          'machine_spec', eval_machine_spec\n\
+          \      )\n      eval_replica_count = worker_pool_specs_override[3].get(\n\
+          \          'replica_count', eval_replica_count\n      )\n\n  return collections.namedtuple(\n\
+          \      'Outputs',\n      [\n          'training_machine_spec',\n       \
+          \   'training_disk_spec',\n          'eval_machine_spec',\n          'eval_replica_count',\n\
+          \      ],\n  )(\n      training_machine_spec,\n      training_disk_spec,\n\
+          \      eval_machine_spec,\n      eval_replica_count,\n  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-split-materialized-data:
       container:
         args:
@@ -2053,7 +2070,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
     exec-tabnet-trainer:
       container:
         args:
@@ -2071,11 +2088,11 @@ deploymentSpec:
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"", "1",
           "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
           ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
-          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230322_0325",
+          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230416_0125",
           "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
           "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
           "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230322_0325",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230416_0125",
           "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
           \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
@@ -2151,7 +2168,7 @@ deploymentSpec:
           ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
         - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
           ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
 pipelineInfo:
   name: automl-tabular-tabnet-trainer
 root:
@@ -2261,6 +2278,8 @@ root:
               componentInputParameter: location
             pipelinechannel--loss_function_type:
               componentInputParameter: loss_function_type
+            pipelinechannel--materialized_examples_format:
+              componentInputParameter: materialized_examples_format
             pipelinechannel--max_selected_features:
               componentInputParameter: max_selected_features
             pipelinechannel--max_steps:
@@ -2467,6 +2486,10 @@ root:
         parameterType: STRING
       loss_function_type:
         defaultValue: default
+        isOptional: true
+        parameterType: STRING
+      materialized_examples_format:
+        defaultValue: tfrecords_gzip
         isOptional: true
         parameterType: STRING
       max_selected_features:
