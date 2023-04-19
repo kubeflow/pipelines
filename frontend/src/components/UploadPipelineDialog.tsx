@@ -297,7 +297,7 @@ export default UploadPipelineDialog;
 export const DocumentationCompilePipeline: React.FC = () => (
   <div className={padding(10, 'b')}>
     For expected file format, refer to{' '}
-    <ExternalLink href='https://www.kubeflow.org/docs/components/pipelines/sdk/v2/build-pipeline/#compile-and-run-your-pipeline'>
+    <ExternalLink href='https://www.kubeflow.org/docs/components/pipelines/v2/compile-a-pipeline/'>
       Compile Pipeline Documentation
     </ExternalLink>
     .
