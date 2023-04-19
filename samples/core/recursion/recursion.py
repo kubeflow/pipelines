@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2019-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 # Notice: caching is tricky when recursion is involved. Please be careful and
 # set proper max_cache_staleness in case of infinite loop.
 
-from kfp.deprecated import dsl, compiler
+from kfp import dsl, compiler
 
 
 def flip_coin_op():

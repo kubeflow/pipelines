@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
 import subprocess
 import utils
 import yaml
 
 from constants import RUN_LIST_PAGE_SIZE, DEFAULT_CONFIG
-from kfp.deprecated import Client
+from kfp import Client
 
 
 class NoteBookChecker(object):
