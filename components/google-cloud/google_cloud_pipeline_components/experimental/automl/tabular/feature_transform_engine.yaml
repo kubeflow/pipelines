@@ -741,13 +741,13 @@ description: |
            Arrays are not yet supported in this algorithm.
 
           CMIM(Conditional Mutual Information Maximization):
-            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, “Feature
-            selection using Joint Mutual Information Maximisation,” Expert Systems with
+            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, "Feature
+            selection using Joint Mutual Information Maximisation," Expert Systems with
             Applications, vol. 42, issue 22, 1 December 2015, Pages 8520-8532.
 
           JMIM(Joint Mutual Information Maximization):
-            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, “Feature
-            selection using Joint Mutual Information Maximisation,” Expert Systems with
+            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, "Feature
+            selection using Joint Mutual Information Maximisation," Expert Systems with
             Applications, vol. 42, issue 22, 1 December 2015, Pages 8520-8532.
 
           MRMR(MIQ Minimum-redundancy Maximum-relevance):
