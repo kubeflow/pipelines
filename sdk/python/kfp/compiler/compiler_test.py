@@ -3961,7 +3961,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
         def my_pipeline():
             task1 = print_op()
             task2 = print_op()
-            use_secret_as_env(task1, 'jaja', {'haha': 'haha'})
+            use_secret_as_env(task1, 'test', {'test-key': 'test-feature'})
             task3 = print_op()
 
         pipeline_spec = my_pipeline.pipeline_spec
