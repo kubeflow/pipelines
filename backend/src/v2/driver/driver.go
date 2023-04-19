@@ -1223,6 +1223,7 @@ func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, dag *metadata
 		if vmc.GetConstant() != "" {
 			volumeMount.Name = vmc.GetConstant()
 			volume.Name = vmc.GetConstant()
+			volume.PersistentVolumeClaim = &k8score.PersistentVolumeClaimVolumeSource{ClaimName: vmc.GetConstant()}
 		} else if vmc.GetTaskOutputParameter() != nil {
 			if vmc.GetTaskOutputParameter().GetProducerTask() == "" {
 				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: producer task empty")
@@ -1244,6 +1245,7 @@ func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, dag *metadata
 			}
 			volumeMount.Name = pvcName.GetStringValue()
 			volume.Name = pvcName.GetStringValue()
+			volume.PersistentVolumeClaim = &k8score.PersistentVolumeClaimVolumeSource{ClaimName: pvcName.GetStringValue()}
 		} else if vmc.GetComponentInputParameter() != "" {
 			inputParams, _, err := dag.Execution.GetParameters()
 			if err != nil {
@@ -1256,6 +1258,7 @@ func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, dag *metadata
 			}
 			volumeMount.Name = pvcName.GetStringValue()
 			volume.Name = pvcName.GetStringValue()
+			volume.PersistentVolumeClaim = &k8score.PersistentVolumeClaimVolumeSource{ClaimName: pvcName.GetStringValue()}
 		} else {
 			return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume name not provided")
 		}

@@ -432,6 +432,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 				assert.Equal(t, volumeMounts[0].MountPath, tt.wantPath)
 				assert.Equal(t, volumeMounts[0].Name, tt.wantName)
 				assert.Equal(t, volumes[0].Name, tt.wantName)
+				assert.Equal(t, volumes[0].PersistentVolumeClaim.ClaimName, tt.wantName)
 			}
 		})
 	}
