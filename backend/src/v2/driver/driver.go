@@ -818,10 +818,14 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			value, hasValue := inputs.GetParameterValues()[name]
 
 			// Handle when parameter does not have input value
-			if !hasValue && !inputsSpec.GetParameters()[name].IsOptional {
-				// When parameter is not optional and there is no input value, report error
-				return fmt.Errorf("no value provided for non-optional parameter %q", name)
-			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional {
+			if !hasValue && !inputsSpec.GetParameters()[name].GetIsOptional() {
+				// When parameter is not optional and there is no input value, first check if there is a default value,
+				// if there is a default value, use it as the value of the parameter.
+				// if there is no default value, report error.
+				if inputsSpec.GetParameters()[name].GetDefaultValue() == nil {
+					return fmt.Errorf("neither value nor default value provided for non-optional parameter %q", name)
+				}
+			} else if !hasValue && inputsSpec.GetParameters()[name].GetIsOptional() {
 				// When parameter is optional and there is no input value, value comes from default value.
 				// But we don't pass the default value here. They are resolved internally within the component.
 				// Note: in the past the backend passed the default values into the component. This is a behavior change.
