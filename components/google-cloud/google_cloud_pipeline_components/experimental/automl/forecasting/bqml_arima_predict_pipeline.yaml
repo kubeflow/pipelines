@@ -1,22 +1,38 @@
 # PIPELINE DEFINITION
-# Name: prophet-predict
-# Description: Creates a batch prediction using a Prophet model.
+# Name: automl-tabular-bqml-arima-prediction
+# Description: Forecasts using a BQML ARIMA_PLUS model.
 # Inputs:
 #    bigquery_destination_uri: str [Default: '']
 #    data_source_bigquery_table_path: str [Default: '']
 #    data_source_csv_filenames: str [Default: '']
 #    encryption_spec_key_name: str [Default: '']
+#    generate_explanation: bool [Default: False]
 #    location: str
-#    machine_type: str [Default: 'n1-standard-2']
-#    max_num_workers: int [Default: 10.0]
 #    model_name: str
 #    project: str
-#    target_column: str
-#    time_column: str
-#    time_series_identifier_column: str
 components:
   comp-bigquery-create-dataset:
     executorLabel: exec-bigquery-create-dataset
+    inputDefinitions:
+      parameters:
+        dataset:
+          parameterType: STRING
+        exists_ok:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        dataset_id:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+  comp-bigquery-create-dataset-2:
+    executorLabel: exec-bigquery-create-dataset-2
     inputDefinitions:
       parameters:
         dataset:
@@ -83,72 +99,8 @@ components:
       parameters:
         gcp_resources:
           parameterType: STRING
-  comp-bigquery-query-job-2:
-    executorLabel: exec-bigquery-query-job-2
-    inputDefinitions:
-      parameters:
-        encryption_spec_key_name:
-          isOptional: true
-          parameterType: STRING
-        job_configuration_query:
-          defaultValue: {}
-          isOptional: true
-          parameterType: STRUCT
-        labels:
-          defaultValue: {}
-          isOptional: true
-          parameterType: STRUCT
-        location:
-          defaultValue: us-central1
-          isOptional: true
-          parameterType: STRING
-        project:
-          parameterType: STRING
-        query:
-          parameterType: STRING
-        query_parameters:
-          defaultValue: []
-          isOptional: true
-          parameterType: LIST
-    outputDefinitions:
-      artifacts:
-        destination_table:
-          artifactType:
-            schemaTitle: google.BQTable
-            schemaVersion: 0.0.1
-      parameters:
-        gcp_resources:
-          parameterType: STRING
   comp-build-job-configuration-query:
     executorLabel: exec-build-job-configuration-query
-    inputDefinitions:
-      parameters:
-        dataset_id:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        priority:
-          defaultValue: INTERACTIVE
-          isOptional: true
-          parameterType: STRING
-        project_id:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        table_id:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        write_disposition:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRUCT
-  comp-build-job-configuration-query-2:
-    executorLabel: exec-build-job-configuration-query-2
     inputDefinitions:
       parameters:
         dataset_id:
@@ -199,6 +151,32 @@ components:
                 componentInputParameter: pipelinechannel--project
           taskInfo:
             name: create-tmp-dataset
+        bigquery-create-dataset-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-create-dataset-2
+          dependentTasks:
+          - get-table-location
+          - maybe-replace-with-default
+          - validate-inputs
+          inputs:
+            parameters:
+              dataset:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: maybe-replace-with-default
+              exists_ok:
+                runtimeValue:
+                  constant: 1.0
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: create-prediction-dataset
         bigquery-query-job:
           cachingOptions:
             enableCache: true
@@ -207,6 +185,7 @@ components:
           dependentTasks:
           - build-job-configuration-query
           - get-first-valid
+          - get-model-metadata
           - get-table-location
           inputs:
             parameters:
@@ -224,152 +203,71 @@ components:
                 taskOutputParameter:
                   outputParameterKey: Output
                   producerTask: get-first-valid
-              pipelinechannel--time_column:
-                componentInputParameter: pipelinechannel--time_column
-              pipelinechannel--time_series_identifier_column:
-                componentInputParameter: pipelinechannel--time_series_identifier_column
+              pipelinechannel--get-model-metadata-forecast_horizon:
+                taskOutputParameter:
+                  outputParameterKey: forecast_horizon
+                  producerTask: get-model-metadata
+              pipelinechannel--get-model-metadata-target_column:
+                taskOutputParameter:
+                  outputParameterKey: target_column
+                  producerTask: get-model-metadata
+              pipelinechannel--get-model-metadata-time_column:
+                taskOutputParameter:
+                  outputParameterKey: time_column
+                  producerTask: get-model-metadata
+              pipelinechannel--get-model-metadata-time_series_identifier_column:
+                taskOutputParameter:
+                  outputParameterKey: time_series_identifier_column
+                  producerTask: get-model-metadata
+              pipelinechannel--model_name:
+                componentInputParameter: pipelinechannel--model_name
               project:
                 componentInputParameter: pipelinechannel--project
               query:
                 runtimeValue:
-                  constant: "\n      WITH\n        base_data AS (\n          SELECT\
-                    \ * FROM `{{$.inputs.parameters['pipelinechannel--get-first-valid-Output']}}`\n\
-                    \        )\n      SELECT\n        CAST({{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\
-                    \ AS STRING) AS {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
-                    \        ARRAY_AGG(TIMESTAMP({{$.inputs.parameters['pipelinechannel--time_column']}})\
-                    \ ORDER BY {{$.inputs.parameters['pipelinechannel--time_column']}})\
-                    \ AS {{$.inputs.parameters['pipelinechannel--time_column']}},\n\
-                    \        \n        \n        \n      FROM base_data\n      GROUP\
-                    \ BY {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\n\
-                    \  "
+                  constant: "\n      SELECT\n        target.*,\n        STRUCT(prediction.time_series_adjusted_data\
+                    \ AS value)\n          AS predicted_{{$.inputs.parameters['pipelinechannel--get-model-metadata-target_column']}},\n\
+                    \        prediction.* EXCEPT (\n          {{$.inputs.parameters['pipelinechannel--get-model-metadata-time_series_identifier_column']}},\n\
+                    \          time_series_timestamp,\n          time_series_adjusted_data\n\
+                    \        ),\n      FROM\n        ML.EXPLAIN_FORECAST(\n      \
+                    \    MODEL `{{$.inputs.parameters['pipelinechannel--model_name']}}`,\n\
+                    \          STRUCT({{$.inputs.parameters['pipelinechannel--get-model-metadata-forecast_horizon']}}\
+                    \ AS horizon)) AS prediction\n      RIGHT JOIN `{{$.inputs.parameters['pipelinechannel--get-first-valid-Output']}}`\
+                    \ AS target\n        ON\n          CAST(target.{{$.inputs.parameters['pipelinechannel--get-model-metadata-time_series_identifier_column']}}\
+                    \ AS STRING)\n            = CAST(prediction.{{$.inputs.parameters['pipelinechannel--get-model-metadata-time_series_identifier_column']}}\
+                    \ AS STRING)\n          AND TIMESTAMP(target.{{$.inputs.parameters['pipelinechannel--get-model-metadata-time_column']}})\
+                    \ = prediction.time_series_timestamp\n      WHERE target.{{$.inputs.parameters['pipelinechannel--get-model-metadata-target_column']}}\
+                    \ IS NULL\n  "
           taskInfo:
-            name: remove-feature-columns
-        bigquery-query-job-2:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-bigquery-query-job-2
-          dependentTasks:
-          - build-job-configuration-query-2
-          - get-table-location-2
-          - table-to-uri-2
-          inputs:
-            parameters:
-              encryption_spec_key_name:
-                componentInputParameter: pipelinechannel--encryption_spec_key_name
-              job_configuration_query:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: build-job-configuration-query-2
-              location:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: get-table-location-2
-              pipelinechannel--table-to-uri-2-uri:
-                taskOutputParameter:
-                  outputParameterKey: uri
-                  producerTask: table-to-uri-2
-              pipelinechannel--target_column:
-                componentInputParameter: pipelinechannel--target_column
-              pipelinechannel--time_column:
-                componentInputParameter: pipelinechannel--time_column
-              pipelinechannel--time_series_identifier_column:
-                componentInputParameter: pipelinechannel--time_series_identifier_column
-              project:
-                componentInputParameter: pipelinechannel--project
-              query:
-                runtimeValue:
-                  constant: "\n      WITH\n        predictions AS (\n          SELECT\n\
-                    \            {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
-                    \            JSON_QUERY_ARRAY(prediction, '$.{{$.inputs.parameters['pipelinechannel--time_column']}}')\
-                    \ AS {{$.inputs.parameters['pipelinechannel--time_column']}},\n\
-                    \            JSON_EXTRACT(\n              prediction,\n      \
-                    \        '$.predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}}'\n\
-                    \            ) AS predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}},\n\
-                    \            JSON_QUERY_ARRAY(\n              prediction,\n  \
-                    \            '$.predicted_{{$.inputs.parameters['pipelinechannel--target_column']}}'\n\
-                    \            ) AS predicted_{{$.inputs.parameters['pipelinechannel--target_column']}},\n\
-                    \          FROM `{{$.inputs.parameters['pipelinechannel--table-to-uri-2-uri']}}`\n\
-                    \        )\n        SELECT\n          {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
-                    \          PARSE_TIMESTAMP(\n            '\\\"%Y-%m-%dT%H:%M:%SZ\\\
-                    \"',\n            predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}}\n\
-                    \          ) AS predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}},\n\
-                    \          PARSE_TIMESTAMP(\n            '\\\"%Y-%m-%dT%H:%M:%SZ\\\
-                    \"',\n            {{$.inputs.parameters['pipelinechannel--time_column']}}[SAFE_OFFSET(index)]\n\
-                    \          ) AS {{$.inputs.parameters['pipelinechannel--time_column']}},\n\
-                    \          STRUCT(\n            CAST(predicted_{{$.inputs.parameters['pipelinechannel--target_column']}}[SAFE_OFFSET(index)]\
-                    \ AS FLOAT64)\n              AS value\n          ) AS predicted_{{$.inputs.parameters['pipelinechannel--target_column']}}\n\
-                    \        FROM predictions\n        CROSS JOIN\n          UNNEST(GENERATE_ARRAY(0,\
-                    \ ARRAY_LENGTH({{$.inputs.parameters['pipelinechannel--time_column']}})\
-                    \ - 1)) AS index\n  "
-          taskInfo:
-            name: create-predictions-table
+            name: predictions-table
         build-job-configuration-query:
           cachingOptions:
             enableCache: true
           componentRef:
             name: comp-build-job-configuration-query
           dependentTasks:
-          - bigquery-create-dataset
+          - bigquery-create-dataset-2
           inputs:
             parameters:
               dataset_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
-              pipelinechannel--bigquery-create-dataset-dataset_id:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-dataset_id'']}}'
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
                 taskOutputParameter:
                   outputParameterKey: dataset_id
-                  producerTask: bigquery-create-dataset
-              pipelinechannel--bigquery-create-dataset-project_id:
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-2-project_id:
                 taskOutputParameter:
                   outputParameterKey: project_id
-                  producerTask: bigquery-create-dataset
+                  producerTask: bigquery-create-dataset-2
               project_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}'
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-project_id'']}}'
               table_id:
                 runtimeValue:
-                  constant: data
-              write_disposition:
-                runtimeValue:
-                  constant: WRITE_EMPTY
+                  constant: predictions_{{$.pipeline_job_uuid}}
           taskInfo:
             name: build-job-configuration-query
-        build-job-configuration-query-2:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-build-job-configuration-query-2
-          dependentTasks:
-          - table-to-uri-2
-          inputs:
-            parameters:
-              dataset_id:
-                runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-dataset_id'']}}'
-              pipelinechannel--table-to-uri-2-dataset_id:
-                taskOutputParameter:
-                  outputParameterKey: dataset_id
-                  producerTask: table-to-uri-2
-              pipelinechannel--table-to-uri-2-project_id:
-                taskOutputParameter:
-                  outputParameterKey: project_id
-                  producerTask: table-to-uri-2
-              pipelinechannel--table-to-uri-2-table_id:
-                taskOutputParameter:
-                  outputParameterKey: table_id
-                  producerTask: table-to-uri-2
-              project_id:
-                runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-project_id'']}}'
-              table_id:
-                runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-table_id'']}}'
-              write_disposition:
-                runtimeValue:
-                  constant: WRITE_TRUNCATE
-          taskInfo:
-            name: build-job-configuration-query-2
         get-first-valid:
           cachingOptions:
             enableCache: true
@@ -391,6 +289,26 @@ components:
                     "{{$.inputs.parameters[''pipelinechannel--load-table-from-uri-Output'']}}"]'
           taskInfo:
             name: get-first-valid
+        get-model-metadata:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-get-model-metadata
+          dependentTasks:
+          - get-table-location
+          - validate-inputs
+          inputs:
+            parameters:
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              model:
+                componentInputParameter: pipelinechannel--model_name
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: get-model-metadata
         get-table-location:
           cachingOptions:
             enableCache: true
@@ -406,23 +324,6 @@ components:
                 componentInputParameter: pipelinechannel--data_source_bigquery_table_path
           taskInfo:
             name: get-table-location
-        get-table-location-2:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-get-table-location-2
-          dependentTasks:
-          - table-to-uri-2
-          inputs:
-            parameters:
-              project:
-                componentInputParameter: pipelinechannel--project
-              table:
-                taskOutputParameter:
-                  outputParameterKey: uri
-                  producerTask: table-to-uri-2
-          taskInfo:
-            name: get-table-location-2
         load-table-from-uri:
           cachingOptions:
             enableCache: true
@@ -457,19 +358,6 @@ components:
                 componentInputParameter: pipelinechannel--data_source_csv_filenames
           taskInfo:
             name: load-table-from-uri
-        make-vertex-model-artifact:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-make-vertex-model-artifact
-          inputs:
-            parameters:
-              location:
-                componentInputParameter: pipelinechannel--location
-              model_resource_name:
-                componentInputParameter: pipelinechannel--model_name
-          taskInfo:
-            name: make-vertex-model-artifact
         maybe-replace-with-default:
           cachingOptions:
             enableCache: true
@@ -478,90 +366,12 @@ components:
           inputs:
             parameters:
               default:
-                componentInputParameter: pipelinechannel--project
+                runtimeValue:
+                  constant: prediction_{{$.pipeline_job_uuid}}
               value:
                 componentInputParameter: pipelinechannel--bigquery_destination_uri
           taskInfo:
             name: maybe-replace-with-default
-        model-batch-predict:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-model-batch-predict
-          dependentTasks:
-          - make-vertex-model-artifact
-          - maybe-replace-with-default
-          - table-to-uri
-          inputs:
-            artifacts:
-              model:
-                taskOutputArtifact:
-                  outputArtifactKey: vertex_model
-                  producerTask: make-vertex-model-artifact
-            parameters:
-              bigquery_destination_output_uri:
-                runtimeValue:
-                  constant: bq://{{$.inputs.parameters['pipelinechannel--maybe-replace-with-default-Output']}}
-              bigquery_source_input_uri:
-                runtimeValue:
-                  constant: bq://{{$.inputs.parameters['pipelinechannel--table-to-uri-uri']}}
-              instances_format:
-                runtimeValue:
-                  constant: bigquery
-              job_display_name:
-                runtimeValue:
-                  constant: batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
-              location:
-                componentInputParameter: pipelinechannel--location
-              machine_type:
-                componentInputParameter: pipelinechannel--machine_type
-              max_replica_count:
-                componentInputParameter: pipelinechannel--max_num_workers
-              pipelinechannel--maybe-replace-with-default-Output:
-                taskOutputParameter:
-                  outputParameterKey: Output
-                  producerTask: maybe-replace-with-default
-              pipelinechannel--table-to-uri-uri:
-                taskOutputParameter:
-                  outputParameterKey: uri
-                  producerTask: table-to-uri
-              predictions_format:
-                runtimeValue:
-                  constant: bigquery
-              project:
-                componentInputParameter: pipelinechannel--project
-          taskInfo:
-            name: model-batch-predict
-        table-to-uri:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-table-to-uri
-          dependentTasks:
-          - bigquery-query-job
-          inputs:
-            artifacts:
-              table:
-                taskOutputArtifact:
-                  outputArtifactKey: destination_table
-                  producerTask: bigquery-query-job
-          taskInfo:
-            name: table-to-uri
-        table-to-uri-2:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-table-to-uri-2
-          dependentTasks:
-          - model-batch-predict
-          inputs:
-            artifacts:
-              table:
-                taskOutputArtifact:
-                  outputArtifactKey: bigquery_output_table
-                  producerTask: model-batch-predict
-          taskInfo:
-            name: table-to-uri-2
         validate-inputs:
           cachingOptions:
             enableCache: true
@@ -575,6 +385,8 @@ components:
                 componentInputParameter: pipelinechannel--data_source_bigquery_table_path
               data_source_csv_filenames:
                 componentInputParameter: pipelinechannel--data_source_csv_filenames
+              source_model_uri:
+                componentInputParameter: pipelinechannel--model_name
           taskInfo:
             name: validate-inputs
     inputDefinitions:
@@ -589,19 +401,9 @@ components:
           parameterType: STRING
         pipelinechannel--location:
           parameterType: STRING
-        pipelinechannel--machine_type:
-          parameterType: STRING
-        pipelinechannel--max_num_workers:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--model_name:
           parameterType: STRING
         pipelinechannel--project:
-          parameterType: STRING
-        pipelinechannel--target_column:
-          parameterType: STRING
-        pipelinechannel--time_column:
-          parameterType: STRING
-        pipelinechannel--time_series_identifier_column:
           parameterType: STRING
   comp-get-first-valid:
     executorLabel: exec-get-first-valid
@@ -613,24 +415,28 @@ components:
       parameters:
         Output:
           parameterType: STRING
-  comp-get-table-location:
-    executorLabel: exec-get-table-location
+  comp-get-model-metadata:
+    executorLabel: exec-get-model-metadata
     inputDefinitions:
       parameters:
-        default_location:
-          defaultValue: ''
-          isOptional: true
+        location:
+          parameterType: STRING
+        model:
           parameterType: STRING
         project:
           parameterType: STRING
-        table:
-          parameterType: STRING
     outputDefinitions:
       parameters:
-        Output:
+        forecast_horizon:
+          parameterType: NUMBER_INTEGER
+        target_column:
           parameterType: STRING
-  comp-get-table-location-2:
-    executorLabel: exec-get-table-location-2
+        time_column:
+          parameterType: STRING
+        time_series_identifier_column:
+          parameterType: STRING
+  comp-get-table-location:
+    executorLabel: exec-get-table-location
     inputDefinitions:
       parameters:
         default_location:
@@ -665,20 +471,6 @@ components:
       parameters:
         Output:
           parameterType: STRING
-  comp-make-vertex-model-artifact:
-    executorLabel: exec-make-vertex-model-artifact
-    inputDefinitions:
-      parameters:
-        location:
-          parameterType: STRING
-        model_resource_name:
-          parameterType: STRING
-    outputDefinitions:
-      artifacts:
-        vertex_model:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
   comp-maybe-replace-with-default:
     executorLabel: exec-maybe-replace-with-default
     inputDefinitions:
@@ -692,164 +484,6 @@ components:
     outputDefinitions:
       parameters:
         Output:
-          parameterType: STRING
-  comp-model-batch-predict:
-    executorLabel: exec-model-batch-predict
-    inputDefinitions:
-      artifacts:
-        model:
-          artifactType:
-            schemaTitle: google.VertexModel
-            schemaVersion: 0.0.1
-          isOptional: true
-        unmanaged_container_model:
-          artifactType:
-            schemaTitle: google.UnmanagedContainerModel
-            schemaVersion: 0.0.1
-          isOptional: true
-      parameters:
-        accelerator_count:
-          defaultValue: 0.0
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        accelerator_type:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        bigquery_destination_output_uri:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        bigquery_source_input_uri:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        encryption_spec_key_name:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        explanation_metadata:
-          defaultValue: {}
-          isOptional: true
-          parameterType: STRUCT
-        explanation_parameters:
-          defaultValue: {}
-          isOptional: true
-          parameterType: STRUCT
-        gcs_destination_output_uri_prefix:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        gcs_source_uris:
-          defaultValue: []
-          isOptional: true
-          parameterType: LIST
-        generate_explanation:
-          defaultValue: false
-          isOptional: true
-          parameterType: BOOLEAN
-        instances_format:
-          defaultValue: jsonl
-          isOptional: true
-          parameterType: STRING
-        job_display_name:
-          parameterType: STRING
-        labels:
-          defaultValue: {}
-          isOptional: true
-          parameterType: STRUCT
-        location:
-          defaultValue: us-central1
-          isOptional: true
-          parameterType: STRING
-        machine_type:
-          defaultValue: ''
-          isOptional: true
-          parameterType: STRING
-        manual_batch_tuning_parameters_batch_size:
-          defaultValue: 0.0
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        max_replica_count:
-          defaultValue: 0.0
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        model_parameters:
-          defaultValue: {}
-          isOptional: true
-          parameterType: STRUCT
-        predictions_format:
-          defaultValue: jsonl
-          isOptional: true
-          parameterType: STRING
-        project:
-          parameterType: STRING
-        starting_replica_count:
-          defaultValue: 0.0
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      artifacts:
-        batchpredictionjob:
-          artifactType:
-            schemaTitle: google.VertexBatchPredictionJob
-            schemaVersion: 0.0.1
-        bigquery_output_table:
-          artifactType:
-            schemaTitle: google.BQTable
-            schemaVersion: 0.0.1
-        gcs_output_directory:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-      parameters:
-        gcp_resources:
-          parameterType: STRING
-  comp-table-to-uri:
-    executorLabel: exec-table-to-uri
-    inputDefinitions:
-      artifacts:
-        table:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-      parameters:
-        use_bq_prefix:
-          defaultValue: false
-          isOptional: true
-          parameterType: BOOLEAN
-    outputDefinitions:
-      parameters:
-        dataset_id:
-          parameterType: STRING
-        project_id:
-          parameterType: STRING
-        table_id:
-          parameterType: STRING
-        uri:
-          parameterType: STRING
-  comp-table-to-uri-2:
-    executorLabel: exec-table-to-uri-2
-    inputDefinitions:
-      artifacts:
-        table:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-      parameters:
-        use_bq_prefix:
-          defaultValue: false
-          isOptional: true
-          parameterType: BOOLEAN
-    outputDefinitions:
-      parameters:
-        dataset_id:
-          parameterType: STRING
-        project_id:
-          parameterType: STRING
-        table_id:
-          parameterType: STRING
-        uri:
           parameterType: STRING
   comp-validate-inputs:
     executorLabel: exec-validate-inputs
@@ -921,7 +555,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -942,7 +576,42 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
+    exec-bigquery-create-dataset-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
+          \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
+          \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
+          \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
+          \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  ref\
+          \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
+          \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
+          \   ref.project, ref.dataset_id)\n\n"
+        image: python:3.7-slim
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
@@ -956,7 +625,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -976,35 +645,8 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
     exec-bigquery-query-job:
-      container:
-        args:
-        - --type
-        - BigqueryQueryJob
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --payload
-        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
-          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
-        - --job_configuration_query_override
-        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
-          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
-          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", "}"]}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
-        command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
-    exec-bigquery-query-job-2:
       container:
         args:
         - --type
@@ -1040,33 +682,11 @@ deploymentSpec:
         - build_job_configuration_query
         command:
         - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
-          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
-          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
-          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
-          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
-          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
-          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
-          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
-          \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
-    exec-build-job-configuration-query-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - build_job_configuration_query
-        command:
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -1086,7 +706,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
     exec-get-first-valid:
       container:
         args:
@@ -1095,6 +715,12 @@ deploymentSpec:
         - --function_to_execute
         - get_first_valid
         command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -1110,7 +736,46 @@ deploymentSpec:
           \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
           \n  for value in json.loads(values):\n    if value:\n      return value\n\
           \  raise ValueError('No valid values.')\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
+    exec-get-model-metadata:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_model_metadata
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_model_metadata(\n    project: str,\n    location: str,\n\
+          \    model: str,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('time_column',\
+          \ str),\n        ('time_series_identifier_column', str),\n        ('target_column',\
+          \ str),\n        ('forecast_horizon', int),\n    ],\n):\n  \"\"\"Retrieves\
+          \ training options for a BQML model.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
+          \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  options\
+          \ = client.get_model(model).training_runs[0].training_options\n  return\
+          \ collections.namedtuple(\n      'Outputs', [\n          'time_column',\n\
+          \          'time_series_identifier_column',\n          'target_column',\n\
+          \          'forecast_horizon',\n      ],\n  )(\n      options.time_series_timestamp_column,\n\
+          \      options.time_series_id_column,\n      options.time_series_data_column,\n\
+          \      options.horizon,\n  )\n\n"
+        image: python:3.7-slim
     exec-get-table-location:
       container:
         args:
@@ -1124,7 +789,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -1146,43 +811,7 @@ deploymentSpec:
           \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
           \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
           \  return client.get_table(table).location\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
-    exec-get-table-location-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - get_table_location
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
-          \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
-          \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
-          \    table: The BigQuery table to get a location for.\n    default_location:\
-          \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
-          \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
-          \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
-          \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
-          \  return client.get_table(table).location\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
     exec-load-table-from-uri:
       container:
         args:
@@ -1196,7 +825,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -1223,31 +852,7 @@ deploymentSpec:
           \ source_format=source_format)\n  client.load_table_from_uri(\n      source_uris=csv_list,\n\
           \      destination=destination,\n      project=project,\n      location=location,\n\
           \      job_config=job_config).result()\n  return destination\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
-    exec-make-vertex-model-artifact:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - make_vertex_model_artifact
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef make_vertex_model_artifact(\n    location: str,\n    model_resource_name:\
-          \ str,\n    vertex_model: dsl.Output[dsl.Artifact],\n) -> None:\n  \"\"\"\
-          Creates a google.VertexModel artifact.\"\"\"\n  vertex_model.metadata =\
-          \ {'resourceName': model_resource_name}\n  vertex_model.uri = (f'https://{location}-aiplatform.googleapis.com'\n\
-          \                      f'/v1/{model_resource_name}')\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
     exec-maybe-replace-with-default:
       container:
         args:
@@ -1256,6 +861,12 @@ deploymentSpec:
         - --function_to_execute
         - maybe_replace_with_default
         command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -1269,111 +880,7 @@ deploymentSpec:
           \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
           \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
           \n  return default if not value else value\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
-    exec-model-batch-predict:
-      container:
-        args:
-        - --type
-        - BatchPredictionJob
-        - --payload
-        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", {"IfPresent": {"InputName": "model", "Then": "\"model\": \""}},
-          {"IfPresent": {"InputName": "model", "Then": "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}"}},
-          {"IfPresent": {"InputName": "model", "Then": "\","}}, " \"input_config\":
-          {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
-          "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
-          "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
-          "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
-          ", \"output_config\": {", "\"predictions_format\": \"", "{{$.inputs.parameters[''predictions_format'']}}",
-          "\"", ", \"gcs_destination\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''gcs_destination_output_uri_prefix'']}}",
-          "\"", "}", ", \"bigquery_destination\": {", "\"output_uri\": \"", "{{$.inputs.parameters[''bigquery_destination_output_uri'']}}",
-          "\"", "}", "}", ", \"dedicated_resources\": {", "\"machine_spec\": {", "\"machine_type\":
-          \"", "{{$.inputs.parameters[''machine_type'']}}", "\"", ", \"accelerator_type\":
-          \"", "{{$.inputs.parameters[''accelerator_type'']}}", "\"", ", \"accelerator_count\":
-          ", "{{$.inputs.parameters[''accelerator_count'']}}", "}", ", \"starting_replica_count\":
-          ", "{{$.inputs.parameters[''starting_replica_count'']}}", ", \"max_replica_count\":
-          ", "{{$.inputs.parameters[''max_replica_count'']}}", "}", ", \"manual_batch_tuning_parameters\":
-          {", "\"batch_size\": ", "{{$.inputs.parameters[''manual_batch_tuning_parameters_batch_size'']}}",
-          "}", ", \"generate_explanation\": ", "{{$.inputs.parameters[''generate_explanation'']}}",
-          ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
-          ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
-          "}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"encryption_spec\":
-          {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", "}"]}'
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
-        command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
-    exec-table-to-uri:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - table_to_uri
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
-          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
-          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
-          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
-          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
-          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
-          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
-          \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
-          \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
-    exec-table-to-uri-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - table_to_uri
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
-          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
-          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
-          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
-          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
-          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
-          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
-          \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
-          \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
     exec-validate-inputs:
       container:
         args:
@@ -1382,6 +889,12 @@ deploymentSpec:
         - --function_to_execute
         - validate_inputs
         command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -1468,9 +981,9 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: python:3.7-slim
 pipelineInfo:
-  name: prophet-predict
+  name: automl-tabular-bqml-arima-prediction
 root:
   dag:
     tasks:
@@ -1510,20 +1023,10 @@ root:
               componentInputParameter: encryption_spec_key_name
             pipelinechannel--location:
               componentInputParameter: location
-            pipelinechannel--machine_type:
-              componentInputParameter: machine_type
-            pipelinechannel--max_num_workers:
-              componentInputParameter: max_num_workers
             pipelinechannel--model_name:
               componentInputParameter: model_name
             pipelinechannel--project:
               componentInputParameter: project
-            pipelinechannel--target_column:
-              componentInputParameter: target_column
-            pipelinechannel--time_column:
-              componentInputParameter: time_column
-            pipelinechannel--time_series_identifier_column:
-              componentInputParameter: time_series_identifier_column
         taskInfo:
           name: exit-handler-1
   inputDefinitions:
@@ -1544,25 +1047,15 @@ root:
         defaultValue: ''
         isOptional: true
         parameterType: STRING
+      generate_explanation:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
       location:
         parameterType: STRING
-      machine_type:
-        defaultValue: n1-standard-2
-        isOptional: true
-        parameterType: STRING
-      max_num_workers:
-        defaultValue: 10.0
-        isOptional: true
-        parameterType: NUMBER_INTEGER
       model_name:
         parameterType: STRING
       project:
-        parameterType: STRING
-      target_column:
-        parameterType: STRING
-      time_column:
-        parameterType: STRING
-      time_series_identifier_column:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.13

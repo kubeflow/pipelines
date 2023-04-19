@@ -1670,6 +1670,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
     run_feature_selection: bool = False,
     feature_selection_algorithm: Optional[str] = None,
+    materialized_examples_format: Optional[str] = None,
     max_selected_features: Optional[int] = None,
     predefined_split_key: Optional[str] = None,
     stratified_split_key: Optional[str] = None,
@@ -1745,6 +1746,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
+    materialized_examples_format: The format for the materialized examples.
     max_selected_features: Maximum number of features to select.
     predefined_split_key: Predefined split key.
     stratified_split_key: Stratified split key.
@@ -1940,6 +1942,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
+      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -2252,6 +2255,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
     run_feature_selection: bool = False,
     feature_selection_algorithm: Optional[str] = None,
+    materialized_examples_format: Optional[str] = None,
     max_selected_features: Optional[int] = None,
     predefined_split_key: Optional[str] = None,
     stratified_split_key: Optional[str] = None,
@@ -2317,6 +2321,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
+    materialized_examples_format: The format for the materialized examples.
     max_selected_features: Maximum number of features to select.
     predefined_split_key: Predefined split key.
     stratified_split_key: Stratified split key.
@@ -2463,6 +2468,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
+      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -2514,6 +2520,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
     run_feature_selection: bool = False,
     feature_selection_algorithm: Optional[str] = None,
+    materialized_examples_format: Optional[str] = None,
     max_selected_features: Optional[int] = None,
     predefined_split_key: Optional[str] = None,
     stratified_split_key: Optional[str] = None,
@@ -2579,6 +2586,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
       string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
+    materialized_examples_format: The format for the materialized examples.
     max_selected_features: Maximum number of features to select.
     predefined_split_key: Predefined split key.
     stratified_split_key: Stratified split key.
@@ -2725,6 +2733,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
+      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -2772,6 +2781,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
     run_feature_selection: bool = False,
     feature_selection_algorithm: Optional[str] = None,
+    materialized_examples_format: Optional[str] = None,
     max_selected_features: Optional[int] = None,
     predefined_split_key: Optional[str] = None,
     stratified_split_key: Optional[str] = None,
@@ -2848,6 +2858,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
+    materialized_examples_format: The format for the materialized examples.
     max_selected_features: Maximum number of features to select.
     predefined_split_key: Predefined split key.
     stratified_split_key: Stratified split key.
@@ -3051,6 +3062,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
+      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -3212,13 +3224,13 @@ def get_model_comparison_pipeline_and_parameters(
     root_dir: str,
     prediction_type: str,
     training_jobs: Dict[str, Dict[str, Any]],
-    data_source_csv_filenames: str = '-',
-    data_source_bigquery_table_path: str = '-',
-    evaluation_data_source_csv_filenames: str = '-',
-    evaluation_data_source_bigquery_table_path: str = '-',
-    experiment: str = '-',
-    service_account: str = '-',
-    network: str = '-',
+    data_source_csv_filenames: str = '',
+    data_source_bigquery_table_path: str = '',
+    evaluation_data_source_csv_filenames: str = '',
+    evaluation_data_source_bigquery_table_path: str = '',
+    experiment: str = '',
+    service_account: str = '',
+    network: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
   """Returns a compiled model comparison pipeline and formatted parameters.
 
@@ -3276,7 +3288,7 @@ def get_model_comparison_pipeline_and_parameters(
       'network': network,
   }
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'model_comparison_pipeline.json'
+      pathlib.Path(__file__).parent.resolve(), 'model_comparison_pipeline.yaml'
   )
   return pipeline_definition_path, parameter_values
 
