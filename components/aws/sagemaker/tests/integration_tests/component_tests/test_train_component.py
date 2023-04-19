@@ -11,7 +11,8 @@ from utils import argo_utils
     "test_file_dir",
     [
         pytest.param(
-            "resources/config/simple-mnist-training", marks=pytest.mark.canary_test
+            "resources/config/simple-mnist-training",
+            marks=[pytest.mark.canary_test, pytest.mark.shallow_canary],
         ),
         pytest.param("resources/config/fsx-mnist-training", marks=pytest.mark.fsx_test),
         "resources/config/spot-sample-pipeline-training",

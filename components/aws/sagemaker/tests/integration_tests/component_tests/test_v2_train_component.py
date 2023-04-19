@@ -9,7 +9,12 @@ import ast
 
 @pytest.mark.parametrize(
     "test_file_dir",
-    [pytest.param("resources/config/ack-training-job", marks=pytest.mark.canary_test)],
+    [
+        pytest.param(
+            "resources/config/ack-training-job",
+            marks=[pytest.mark.canary_test, pytest.mark.shallow_canary],
+        )
+    ],
 )
 def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
     k8s_client = ack_utils.k8s_client()
