@@ -120,13 +120,12 @@ class GraphComponent(base_component.BaseComponent):
         def _get_label_index(reference: str, last_delimiter: int) -> str:
             return reference[last_delimiter + 1:]
 
-        def _platform_specific(exec_spec_1: dict, exec_spec_2: dict) -> bool:
+        def _different_platforms(exec_label_1: dict,
+                                 exec_label_2: dict) -> bool:
             for platform in platform_spec.platforms.values():
-                for executor_spec in platform.deployment_spec.executors.values(
-                ):
-                    if exec_spec_1 == executor_spec or exec_spec_2 == executor_spec:
+                for executor_label in platform.deployment_spec.executors.keys():
+                    if exec_label_1 == executor_label or exec_label_2 == executor_label:
                         return True
-
             return False
 
         def _collect_and_process_duplicates() -> dict:
@@ -146,9 +145,9 @@ class GraphComponent(base_component.BaseComponent):
                         corresponding_component_name = utils._COMPONENT_NAME_PREFIX + executor_name[
                             len(utils._EXECUTOR_LABEL_PREFIX):]
                         if executor_name != component_spec.executor_label and executor_spec == original_components_executor_spec and pipeline_spec.components[
-                                corresponding_component_name].executor_label and not _platform_specific(
-                                    executor_spec,
-                                    original_components_executor_spec):
+                                corresponding_component_name].executor_label and not _different_platforms(
+                                    executor_name,
+                                    component_spec.executor_label):
                             clone_mapping[component_name].append(
                                 corresponding_component_name)
                             components_with_clones[
