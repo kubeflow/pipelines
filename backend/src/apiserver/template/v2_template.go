@@ -147,6 +147,9 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 			if err != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
 			}
+			if spec.GetSchemaVersion != SCHEMA_VERSION_2_1_0 {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "KFP only supports schema version 2.1.0, but the pipeline spec has version %s", spec.GetSchemaVersion())
+			}
 			if spec.GetPipelineInfo().GetName() == "" {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name is empty")
 			}
