@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Pipeline with secret as volume."""
+"""A pipeline that passes a secret as an env variable to a container."""
 
 from __future__ import annotations
 
