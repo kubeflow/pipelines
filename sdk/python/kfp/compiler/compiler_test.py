@@ -3684,32 +3684,11 @@ class TestPlatformConfig(unittest.TestCase):
                 foo_platform_set_bar_feature(task, 12)
 
 
-def use_secret_as_env(
+def add_platform_config(
     task: pipeline_task.PipelineTask,
-    secret_name: str,
-    secret_key_to_env: Dict[str, str],
+    test_dictionary: Dict[str, str],
 ) -> pipeline_task.PipelineTask:
-
-    from kfp.kubernetes import common
-    from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
-
-    msg = common.get_existing_kubernetes_config_as_message(task)
-
-    key_to_env = [
-        pb.SecretAsEnv.SecretKeyToEnvMap(
-            secret_key=secret_key,
-            env_var=env_var,
-        ) for secret_key, env_var in secret_key_to_env.items()
-    ]
-    secret_as_env = pb.SecretAsEnv(
-        secret_name=secret_name,
-        key_to_env=key_to_env,
-    )
-
-    msg.secret_as_env.append(secret_as_env)
-
-    task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
-
+    task.platform_config['kubernetes'] = test_dictionary
     return task
 
 
@@ -3961,7 +3940,7 @@ class TestDedupePipelineSpec(unittest.TestCase):
         def my_pipeline():
             task1 = print_op()
             task2 = print_op()
-            use_secret_as_env(task1, 'test', {'test-key': 'test-feature'})
+            add_platform_config(task1, {'test-key': 'test-feature'})
             task3 = print_op()
 
         pipeline_spec = my_pipeline.pipeline_spec
