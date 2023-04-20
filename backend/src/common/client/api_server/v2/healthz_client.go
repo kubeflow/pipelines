@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api_server
+package api_server_v2
 
 import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client"
-	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client/healthz_service"
-	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_client/healthz_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -34,7 +35,7 @@ type HealthzClient struct {
 }
 
 func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*HealthzClient, error) {
-	runtime, err := NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -47,14 +48,14 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*Healthz
 	}, nil
 }
 
-func (c *HealthzClient) GetHealthz() (*model.APIGetHealthzResponse, error) {
+func (c *HealthzClient) GetHealthz() (*model.V2beta1GetHealthzResponse, error) {
 	parameters := params.NewGetHealthzParamsWithTimeout(apiServerDefaultTimeout)
-	response, err := c.apiClient.HealthzService.GetHealthz(parameters, PassThroughAuth)
+	response, err := c.apiClient.HealthzService.GetHealthz(parameters, api_server.PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetHealthzDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,

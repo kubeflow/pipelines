@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api_server
+package api_server_v2
 
 import (
 	"context"
@@ -21,9 +21,10 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client"
-	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
@@ -32,13 +33,13 @@ import (
 const (
 	pipelineUploadFieldName      = "uploadfile"
 	pipelineUploadPath           = "pipelines/upload"
-	pipelineUploadServerBasePath = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1beta1/%s"
+	pipelineUploadServerBasePath = "/api/v2/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v2beta1/%s"
 	pipelineUploadContentTypeKey = "Content-Type"
 	pipelineVersionUploadPath    = "pipelines/upload_version"
 )
 
 type PipelineUploadInterface interface {
-	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.APIPipeline, error)
+	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline, error)
 }
 
 type PipelineUploadClient struct {
@@ -49,7 +50,7 @@ type PipelineUploadClient struct {
 func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*PipelineUploadClient, error) {
 
-	runtime, err := NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline upload client: %w", err)
 	}
@@ -65,19 +66,19 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool) (
 	*PipelineUploadClient, error) {
 
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating upload client
 	return &PipelineUploadClient{
 		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 
 func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.UploadPipelineParams) (
-	*model.APIPipeline, error) {
+	*model.V2beta1Pipeline, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, util.NewUserErrorWithSingleMessage(err,
@@ -89,7 +90,7 @@ func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.Up
 	return c.Upload(parameters)
 }
 
-func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.APIPipeline,
+func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -101,9 +102,9 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -115,7 +116,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 }
 
 // UploadPipelineVersion uploads pipeline version from local file.
-func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.APIPipelineVersion,
+func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion,
 	error) {
 	// Get file
 	file, err := os.Open(filePath)
@@ -136,9 +137,9 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineVersionDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,

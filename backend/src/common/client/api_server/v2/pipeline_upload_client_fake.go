@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api_server
+package api_server_v2
 
 import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_model"
+	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 )
 
 const (
@@ -30,16 +30,12 @@ const (
 	InvalidFakeRequest = "Invalid fake request, don't know how to handle '%s' in the fake client."
 )
 
-func getDefaultUploadedPipeline() *model.APIPipeline {
-	return &model.APIPipeline{
-		ID:          "500",
+func getDefaultUploadedPipeline() *model.V2beta1Pipeline {
+	return &model.V2beta1Pipeline{
+		PipelineID:  "500",
 		CreatedAt:   strfmt.NewDateTime(),
-		Name:        "PIPELINE_NAME",
+		DisplayName: "PIPELINE_NAME",
 		Description: "PIPELINE_DESCRIPTION",
-		Parameters: []*model.APIParameter{&model.APIParameter{
-			Name:  "PARAM_NAME",
-			Value: "PARAM_VALUE",
-		}},
 	}
 }
 
@@ -50,7 +46,7 @@ func NewPipelineUploadClientFake() *PipelineUploadClientFake {
 }
 
 func (c *PipelineUploadClientFake) UploadFile(filePath string,
-	parameters *params.UploadPipelineParams) (*model.APIPipeline, error) {
+	parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline, error) {
 	switch filePath {
 	case FileForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
@@ -58,6 +54,3 @@ func (c *PipelineUploadClientFake) UploadFile(filePath string,
 		return getDefaultUploadedPipeline(), nil
 	}
 }
-
-// TODO(jingzhang36): add UploadPipelineVersion fake to be used in integration test
-// after go_http_client and go_client are auto-generated from UploadPipelineVersion in PipelineUploadServer
