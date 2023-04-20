@@ -17,8 +17,8 @@ import os
 
 from google_cloud_pipeline_components import aiplatform
 from google_cloud_pipeline_components.experimental import forecasting
-from kfp import compiler
-from kfp import dsl
+from google_cloud_pipeline_components.v1.automl.training_job import AutoMLForecastingTrainingJobRunOp
+from kfp import compiler, dsl
 
 import unittest
 
@@ -67,7 +67,7 @@ class ForecastingComponentsCompileTest(unittest.TestCase):
           project=self._project,
           location=self._location,
       )
-      aiplatform.AutoMLForecastingTrainingJobRunOp(
+      AutoMLForecastingTrainingJobRunOp(
           display_name=self._display_name,
           time_series_identifier_column=(
               prepare_data_for_train_op.outputs['time_series_identifier_column']
