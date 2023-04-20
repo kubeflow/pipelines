@@ -4,6 +4,7 @@
 * Support `display_name` and `description` in `@dsl.pipeline` decorator [\#9153](https://github.com/kubeflow/pipelines/pull/9153)
 
 ## Breaking changes
+* Use protobuf 4 [\#9188](https://github.com/kubeflow/pipelines/pull/9188)
 
 ## Deprecations
 
