@@ -89,6 +89,7 @@ class TestInputValuePlaceholderIrTypeHack(unittest.TestCase):
         def comp(
             in_artifact: Input[Artifact],
             out_artifact: Output[Artifact],
+            status: dsl.PipelineTaskFinalStatus,
             string: str = 'hello',
             integer: int = 1,
             floating_pt: float = 0.1,
@@ -104,6 +105,7 @@ class TestInputValuePlaceholderIrTypeHack(unittest.TestCase):
                 'a',
             ],
         ):
+            self.assertEqual(status._ir_type, 'STRUCT')
             self.assertEqual(string._ir_type, 'STRING')
             self.assertEqual(integer._ir_type, 'NUMBER_INTEGER')
             self.assertEqual(floating_pt._ir_type, 'NUMBER_DOUBLE')
