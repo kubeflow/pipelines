@@ -147,7 +147,7 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  // Three possible resource for template string (priority from high to low)
+  // Three possible source for template string (priority from high to low)
   // 1. pipelineManifest: pipeline_spec stored in run or recurring run
   // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
   // 3. templateStrFromTemplate(v1): template in the response of getPipelineVersionTemplate()
