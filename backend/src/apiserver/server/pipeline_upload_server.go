@@ -155,6 +155,11 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	}
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(pipelineVersion)
 	if err != nil {
+		cleanupErr := s.resourceManager.DeletePipeline(newPipeline.UUID)
+		if cleanupErr != nil {
+			s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrapf(err, "Failed to create a pipeline due to failed pipeline version creation. Remove the pipeline %v manually.", newPipeline.UUID))
+			return
+		}
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Pipeline version creation failed"))
 		return
 	} else if s.options.CollectMetrics {

@@ -191,11 +191,14 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	}
 
 	// A new pipeline has been created, but pipeline version creation failed after validation
+	// This block should not be executed when an existing pipeline is found
 	if perr == nil {
-		return toApiPipelineV1(createdPipeline, &model.PipelineVersion{}), nil
+		if cleanupErr := s.deletePipeline(ctx, createdPipeline.UUID); cleanupErr != nil {
+			return nil, util.Wrap(pverr, cleanupErr.Error())
+		}
+		return nil, util.Wrap(pverr, "Failed to create a pipeline and a pipeline version (v1beta1)")
 	}
-
-	return nil, util.Wrap(perr, util.Wrap(pverr, "Failed to create a pipeline and a pipeline version (v1beta1)").Error())
+	return nil, util.Wrapf(pverr, "Failed to create a new pipeline version in existing pipeline %v (v1beta1)", createdPipeline.UUID)
 }
 
 // Creates a pipeline, but does not create a pipeline version.
@@ -610,6 +613,9 @@ func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.Pi
 
 	resp, err := s.httpClient.Get(pipelineUrl.String())
 	if err != nil || resp.StatusCode != http.StatusOK {
+		if err == nil {
+			return nil, util.NewInvalidInputError("Failed to fetch pipeline spec with url: %v. Request returned %v", pipelineUrl.String(), resp.Status)
+		}
 		return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
 	}
 	defer resp.Body.Close()
