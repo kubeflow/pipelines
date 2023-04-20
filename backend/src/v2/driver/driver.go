@@ -511,13 +511,48 @@ func extendPodSpecPatch(
 		if err != nil {
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
-		podSpec.Volumes = volumes
+		podSpec.Volumes = append(podSpec.Volumes, volumes...)
 		// We assume that the user container always gets executed first within a pod.
-		podSpec.Containers[0].VolumeMounts = volumeMounts
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
 	}
+
+	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
 		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
 	}
+
+	// Get secret mount information
+	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
+		secretVolume := k8score.Volume{
+			Name: secretAsVolume.GetSecretName(),
+			VolumeSource: k8score.VolumeSource{
+				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName()},
+			},
+		}
+		secretVolumeMount := k8score.VolumeMount{
+			Name:      secretAsVolume.GetSecretName(),
+			MountPath: secretAsVolume.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, secretVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, secretVolumeMount)
+	}
+
+	// Get secret env information
+	for _, secretAsEnv := range kubernetesExecutorConfig.GetSecretAsEnv() {
+		for _, keyToEnv := range secretAsEnv.GetKeyToEnv() {
+			secretEnvVar := k8score.EnvVar{
+				Name: keyToEnv.GetEnvVar(),
+				ValueFrom: &k8score.EnvVarSource{
+					SecretKeyRef: &k8score.SecretKeySelector{
+						Key: keyToEnv.GetSecretKey(),
+					},
+				},
+			}
+			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretAsEnv.GetSecretName()
+			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+		}
+	}
+
 	return nil
 }
 
@@ -818,10 +853,14 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			value, hasValue := inputs.GetParameterValues()[name]
 
 			// Handle when parameter does not have input value
-			if !hasValue && !inputsSpec.GetParameters()[name].IsOptional {
-				// When parameter is not optional and there is no input value, report error
-				return fmt.Errorf("no value provided for non-optional parameter %q", name)
-			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional {
+			if !hasValue && !inputsSpec.GetParameters()[name].GetIsOptional() {
+				// When parameter is not optional and there is no input value, first check if there is a default value,
+				// if there is a default value, use it as the value of the parameter.
+				// if there is no default value, report error.
+				if inputsSpec.GetParameters()[name].GetDefaultValue() == nil {
+					return fmt.Errorf("neither value nor default value provided for non-optional parameter %q", name)
+				}
+			} else if !hasValue && inputsSpec.GetParameters()[name].GetIsOptional() {
 				// When parameter is optional and there is no input value, value comes from default value.
 				// But we don't pass the default value here. They are resolved internally within the component.
 				// Note: in the past the backend passed the default values into the component. This is a behavior change.

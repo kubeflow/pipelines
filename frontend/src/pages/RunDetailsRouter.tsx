@@ -71,7 +71,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   }
 
   if (runIsFetching || templateStrIsFetching) {
-    return <div>Currently loading recurring run information</div>;
+    return <div>Currently loading run information</div>;
   }
 
   return <EnhancedRunDetails {...props} />;

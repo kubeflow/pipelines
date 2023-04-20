@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019-2021 The Kubeflow Authors
+# Copyright 2019-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.deprecated import dsl, components, compiler
-from kfp.deprecated.components import InputPath, load_component_from_url
+from kfp import dsl, components, compiler
+from kfp.components import InputPath, load_component_from_url
 
 gcs_download_op = load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/961b17fa6844e1d79e5d3686bb557d830d7b5a95/components/google-cloud/storage/download_blob/component.yaml'

@@ -993,6 +993,10 @@ components:
           defaultValue: []
           isOptional: true
           parameterType: LIST
+        tf_transform_execution_engine:
+          defaultValue: dataflow
+          isOptional: true
+          parameterType: STRING
         tf_transformations_path:
           defaultValue: ''
           isOptional: true
@@ -1691,7 +1695,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230322_0325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230416_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -1722,7 +1726,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-feature-transform-engine:
       container:
         args:
@@ -1748,6 +1752,7 @@ deploymentSpec:
         - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
         - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
         - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
         - '{"Concat": ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}'
         - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
@@ -1793,8 +1798,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -1802,7 +1807,7 @@ deploymentSpec:
         - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
         - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -1857,76 +1862,75 @@ deploymentSpec:
           \ the first one\n  for master and the second one for the remaining workers.\n\
           \n  Args:\n    total_replica_count: Number of workers.\n    target_column:\
           \ Required. Target column name.\n    objective: Required. Specifies the\
-          \ learning task and the learning\n      objective.\n    materialized_train_split:\
-          \ Required. The path to the\n      materialized train split.\n    materialized_eval_split:\
-          \ Required. The path to the\n      materialized validation split.\n    transform_output:\
+          \ learning task and the learning objective.\n    materialized_train_split:\
+          \ Required. The path to the materialized train\n      split.\n    materialized_eval_split:\
+          \ Required. The path to the materialized validation\n      split.\n    transform_output:\
           \ Required. The path to transform output.\n    training_schema_uri: Required.\
-          \ The path to the training\n      schema.\n    instance_baseline: Path to\
-          \ JSON file for baseline values.\n    job_dir: Job dir path.\n    unmanaged_container_model:\
+          \ The path to the training schema.\n    instance_baseline: Path to JSON\
+          \ file for baseline values.\n    job_dir: Job dir path.\n    unmanaged_container_model:\
           \ The unmanaged model.\n    machine_type: Machine type.\n    accelerator_type:\
           \ Accelerator type.\n    accelerator_count: Accelerator count.\n    weight_column:\
           \ Weight column name.\n    eval_metric: Evaluation metrics for validation\
           \ data represented as a\n      comma-separated string.\n    num_boost_round:\
           \ Number of boosting iterations.\n    early_stopping_rounds: Activates early\
-          \ stopping. Validation\n      error needs to decrease at least every early_stopping_rounds\
-          \ round(s) to\n      continue training.\n    base_score: The initial prediction\
-          \ score of all instances, global\n      bias.\n    disable_default_eval_metric:\
-          \ Flag to disable default metric. Set to >0\n      to disable. Default to\
+          \ stopping. Validation error needs to\n      decrease at least every early_stopping_rounds\
+          \ round(s) to continue\n      training.\n    base_score: The initial prediction\
+          \ score of all instances, global bias.\n    disable_default_eval_metric:\
+          \ Flag to disable default metric. Set to >0 to\n      disable. Default to\
           \ 0.\n    seed: Random seed.\n    seed_per_iteration: Seed PRNG determnisticly\
           \ via iterator number.\n    booster: Which booster to use, can be gbtree,\
-          \ gblinear or dart.\n      gbtree and dart use tree based model while gblinear\
+          \ gblinear or dart. gbtree and\n      dart use tree based model while gblinear\
           \ uses linear function.\n    eta: Learning rate.\n    gamma: Minimum loss\
-          \ reduction required to make a further partition\n      on a leaf node of\
+          \ reduction required to make a further partition on a leaf\n      node of\
           \ the tree.\n    max_depth: Maximum depth of a tree.\n    min_child_weight:\
-          \ Minimum sum of instance weight(hessian) needed in\n      a child.\n  \
-          \  max_delta_step: Maximum delta step we allow each tree's weight\n    \
-          \  estimation to be.\n    subsample: Subsample ratio of the training instance.\n\
-          \    colsample_bytree: Subsample ratio of columns when constructing each\n\
-          \      tree.\n    colsample_bylevel: Subsample ratio of columns for each\
-          \ split, in\n      each level.\n    colsample_bynode: Subsample ratio of\
-          \ columns for each node (split).\n    reg_lambda: L2 regularization term\
-          \ on weights.\n    reg_alpha: L1 regularization term on weights.\n    tree_method:\
-          \ The tree construction algorithm used in XGBoost. Choices:\n      [\"auto\"\
-          , \"exact\", \"approx\", \"hist\", \"gpu_exact\", \"gpu_hist\"].\n    scale_pos_weight:\
-          \ Control the balance of positive and negative\n      weights.\n    updater:\
-          \ A comma separated string defining the sequence of tree\n      updaters\
-          \ to run.\n    refresh_leaf: Refresh updater plugin. Update tree leaf and\
-          \ nodes's\n      stats if True. When it is False, only node stats are updated.\n\
-          \    process_type: A type of boosting process to run. Choices:[\"default\"\
-          ,\n      \"update\"]\n    grow_policy: Controls a way new nodes are added\
-          \ to the tree. Only\n      supported if tree_method is hist. Choices:[\"\
-          depthwise\", \"lossguide\"]\n    sampling_method: The method to use to sample\
-          \ the training instances.\n    monotone_constraints: Constraint of variable\n\
-          \      monotonicity.\n    interaction_constraints: Constraints for\n   \
-          \   interaction representing permitted interactions.\n    sample_type: [dart\
-          \ booster only] Type of sampling algorithm.\n      Choices:[\"uniform\"\
-          , \"weighted\"]\n    normalize_type: [dart booster only] Type of normalization\
-          \ algorithm,\n      Choices:[\"tree\", \"forest\"]\n    rate_drop: [dart\
-          \ booster only] Dropout rate.'\n    one_drop: [dart booster only] When this\
-          \ flag is enabled, at least one\n      tree is always dropped during the\
-          \ dropout (allows Binomial-plus-one or\n      epsilon-dropout from the original\
-          \ DART paper).\n    skip_drop: [dart booster only] Probability of skipping\
-          \ the dropout\n      procedure during a boosting iteration.\n    num_parallel_tree:\
-          \ Number of parallel trees constructed during each\n      iteration. This\
-          \ option is used to support boosted random forest.\n    feature_selector:\
-          \ [linear booster only] Feature selection and\n      ordering method.\n\
-          \    top_k: The number of top features to select in greedy and thrifty\n\
-          \      feature selector. The value of 0 means using all the features.\n\
-          \    max_cat_to_onehot: A threshold for deciding whether XGBoost should\n\
-          \      use one-hot encoding based split for categorical data.\n    max_leaves:\
-          \ Maximum number of nodes to be added.\n    max_bin: Maximum number of discrete\
-          \ bins to bucket continuous features.\n    tweedie_variance_power: Parameter\
-          \ that controls the variance of the Tweedie\n      distribution.\n    huber_slope:\
-          \ A parameter used for Pseudo-Huber loss to define the delta\n      term.\n\
-          \n  Raises:\n    ValueError: If accelerator_count <= 0 and accelerator_type\
-          \ is specified.\n\n  Returns:\n    Outputs containing the worker pool specs.\n\
-          \  \"\"\"\n  import copy\n  import collections\n  import os\n  import re\n\
-          \n  def get_gcs_path(path):\n    return re.sub(r'/gcs/', 'gs://', path)\n\
-          \n  formatted_job_dir = get_gcs_path(job_dir)\n  prediction_docker_uri =\
-          \ (\n      'us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:dev'\n\
+          \ Minimum sum of instance weight(hessian) needed in a child.\n    max_delta_step:\
+          \ Maximum delta step we allow each tree's weight estimation to\n      be.\n\
+          \    subsample: Subsample ratio of the training instance.\n    colsample_bytree:\
+          \ Subsample ratio of columns when constructing each tree.\n    colsample_bylevel:\
+          \ Subsample ratio of columns for each split, in each level.\n    colsample_bynode:\
+          \ Subsample ratio of columns for each node (split).\n    reg_lambda: L2\
+          \ regularization term on weights.\n    reg_alpha: L1 regularization term\
+          \ on weights.\n    tree_method: The tree construction algorithm used in\
+          \ XGBoost. Choices:\n      [\"auto\", \"exact\", \"approx\", \"hist\", \"\
+          gpu_exact\", \"gpu_hist\"].\n    scale_pos_weight: Control the balance of\
+          \ positive and negative weights.\n    updater: A comma separated string\
+          \ defining the sequence of tree updaters to\n      run.\n    refresh_leaf:\
+          \ Refresh updater plugin. Update tree leaf and nodes's stats if\n      True.\
+          \ When it is False, only node stats are updated.\n    process_type: A type\
+          \ of boosting process to run. Choices:[\"default\",\n      \"update\"]\n\
+          \    grow_policy: Controls a way new nodes are added to the tree. Only supported\n\
+          \      if tree_method is hist. Choices:[\"depthwise\", \"lossguide\"]\n\
+          \    sampling_method: The method to use to sample the training instances.\n\
+          \    monotone_constraints: Constraint of variable monotonicity.\n    interaction_constraints:\
+          \ Constraints for interaction representing permitted\n      interactions.\n\
+          \    sample_type: [dart booster only] Type of sampling algorithm.\n    \
+          \  Choices:[\"uniform\", \"weighted\"]\n    normalize_type: [dart booster\
+          \ only] Type of normalization algorithm,\n      Choices:[\"tree\", \"forest\"\
+          ]\n    rate_drop: [dart booster only] Dropout rate.'\n    one_drop: [dart\
+          \ booster only] When this flag is enabled, at least one tree\n      is always\
+          \ dropped during the dropout (allows Binomial-plus-one or\n      epsilon-dropout\
+          \ from the original DART paper).\n    skip_drop: [dart booster only] Probability\
+          \ of skipping the dropout procedure\n      during a boosting iteration.\n\
+          \    num_parallel_tree: Number of parallel trees constructed during each\n\
+          \      iteration. This option is used to support boosted random forest.\n\
+          \    feature_selector: [linear booster only] Feature selection and ordering\n\
+          \      method.\n    top_k: The number of top features to select in greedy\
+          \ and thrifty feature\n      selector. The value of 0 means using all the\
+          \ features.\n    max_cat_to_onehot: A threshold for deciding whether XGBoost\
+          \ should use\n      one-hot encoding based split for categorical data.\n\
+          \    max_leaves: Maximum number of nodes to be added.\n    max_bin: Maximum\
+          \ number of discrete bins to bucket continuous features.\n    tweedie_variance_power:\
+          \ Parameter that controls the variance of the Tweedie\n      distribution.\n\
+          \    huber_slope: A parameter used for Pseudo-Huber loss to define the delta\n\
+          \      term.\n\n  Raises:\n    ValueError: If accelerator_count <= 0 and\
+          \ accelerator_type is specified.\n\n  Returns:\n    Outputs containing the\
+          \ worker pool specs.\n  \"\"\"\n  import copy\n  import collections\n  import\
+          \ os\n  import re\n\n  def get_gcs_path(path):\n    return re.sub(r'/gcs/',\
+          \ 'gs://', path)\n\n  formatted_job_dir = get_gcs_path(job_dir)\n  prediction_docker_uri\
+          \ = (\n      'us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:20230416_0125'\n\
           \  )\n  master_worker_pool_spec = {\n      'replica_count': 1,\n      'machine_spec':\
           \ {\n          'machine_type': machine_type,\n      },\n      'container_spec':\
-          \ {\n          'image_uri':\n              'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:dev',\n\
+          \ {\n          'image_uri': 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:20230416_0125',\n\
           \          'args': [\n              f'--job_dir={formatted_job_dir}',\n\
           \              f'--target_column={target_column}',\n              f'--objective={objective}',\n\
           \              f'--training_data_path={get_gcs_path(materialized_train_split)}',\n\
@@ -1954,24 +1958,24 @@ deploymentSpec:
           \ f'--top_k={top_k}',\n              f'--max_leaves={max_leaves}',\n   \
           \           f'--max_bin={max_bin}',\n              f'--tweedie_variance_power={tweedie_variance_power}',\n\
           \              f'--huber_slope={huber_slope}',\n              f'--prediction_docker_uri={prediction_docker_uri}',\n\
-          \              '--executor_input={{$.json_escape[1]}}',\n          ]\n \
-          \     }\n  }\n\n  # Add optional arguments if set\n  if weight_column:\n\
+          \              '--executor_input={{$.json_escape[1]}}',\n          ],\n\
+          \      },\n  }\n\n  # Add optional arguments if set\n  if weight_column:\n\
           \    master_worker_pool_spec['container_spec']['args'].append(\n       \
-          \ f'--weight_column={weight_column}')\n  if early_stopping_rounds >= 0:\n\
-          \    master_worker_pool_spec['container_spec']['args'].append(\n       \
-          \ f'--early_stopping_rounds={early_stopping_rounds}')\n  if updater:\n \
-          \   master_worker_pool_spec['container_spec']['args'].append(\n        f'--updater={updater}')\n\
-          \  if monotone_constraints:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
-          \        f'--monotone_constraints={monotone_constraints}')\n  if interaction_constraints:\n\
-          \    master_worker_pool_spec['container_spec']['args'].append(\n       \
-          \ f'--interaction_constraints={interaction_constraints}')\n  if max_cat_to_onehot\
+          \ f'--weight_column={weight_column}'\n    )\n  if early_stopping_rounds\
           \ >= 0:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
-          \        f'--max_cat_to_onehot={max_cat_to_onehot}')\n\n  # Add accelerator_type\
+          \        f'--early_stopping_rounds={early_stopping_rounds}'\n    )\n  if\
+          \ updater:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
+          \        f'--updater={updater}'\n    )\n  if monotone_constraints:\n   \
+          \ master_worker_pool_spec['container_spec']['args'].append(\n        f'--monotone_constraints={monotone_constraints}'\n\
+          \    )\n  if interaction_constraints:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
+          \        f'--interaction_constraints={interaction_constraints}'\n    )\n\
+          \  if max_cat_to_onehot >= 0:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
+          \        f'--max_cat_to_onehot={max_cat_to_onehot}'\n    )\n\n  # Add accelerator_type\
           \ and accelerator_count if set.\n  if accelerator_type:\n    if accelerator_count\
           \ <= 0:\n      raise ValueError(\n          'Accelerator count must be greator\
-          \ than 0 when type is specified.')\n    master_worker_pool_spec['machine_spec'][\n\
-          \        'accelerator_type'] = accelerator_type\n    master_worker_pool_spec['machine_spec'][\n\
-          \        'accelerator_count'] = accelerator_count\n\n  worker_pool_specs_lst\
+          \ than 0 when type is specified.'\n      )\n    master_worker_pool_spec['machine_spec'][\n\
+          \        'accelerator_type'\n    ] = accelerator_type\n    master_worker_pool_spec['machine_spec'][\n\
+          \        'accelerator_count'\n    ] = accelerator_count\n\n  worker_pool_specs_lst\
           \ = [master_worker_pool_spec]\n\n  # Add an additional worker pool spec\
           \ for distributed training.\n  if total_replica_count > 1:\n    additional_replica\
           \ = total_replica_count - 1\n    additional_worker_spec = copy.deepcopy(master_worker_pool_spec)\n\
@@ -1983,8 +1987,8 @@ deploymentSpec:
           \ = {\n      'instanceSchemaUri': os.path.join(model_dir, 'instance.yaml'),\n\
           \      'predictionSchemaUri': os.path.join(model_dir, 'prediction_schema.yaml'),\n\
           \  }\n  unmanaged_container_model.uri = model_dir\n\n  return collections.namedtuple('Outputs',\
-          \ [\n      'worker_pool_specs'\n  ])(worker_pool_specs_lst)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+          \ ['worker_pool_specs'])(\n      worker_pool_specs_lst\n  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-get-prediction-type-for-xgboost:
       container:
         args:
@@ -2009,11 +2013,11 @@ deploymentSpec:
           \ One of 'regression' or 'classification'\n  \"\"\"\n  if objective.startswith('binary')\
           \ or objective.startswith('multi'):\n    return 'classification'\n  elif\
           \ objective.startswith('reg'):\n    return 'regression'\n  else:\n    raise\
-          \ ValueError(\n        (f'Unsupported XGBoost training objective: {objective}.\
-          \ Must be one of'\n         ' [reg:squarederror, reg:squaredlogerror, reg:logistic,\
-          \ reg:gamma,'\n         ' reg:tweedie, reg:pseudohubererror, binary:logistic,'\n\
-          \         ' multi:softprob].')\n    )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230322_0325
+          \ ValueError(\n        f'Unsupported XGBoost training objective: {objective}.\
+          \ Must be one of'\n        ' [reg:squarederror, reg:squaredlogerror, reg:logistic,\
+          \ reg:gamma,'\n        ' reg:tweedie, reg:pseudohubererror, binary:logistic,'\n\
+          \        ' multi:softprob].'\n    )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
     exec-model-batch-predict:
       container:
         args:
@@ -2185,7 +2189,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
     exec-training-configurator-and-validator:
       container:
         args:
@@ -2219,7 +2223,7 @@ deploymentSpec:
           ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
         - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
           ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230322_0325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
     exec-xgboost-trainer:
       container:
         args:

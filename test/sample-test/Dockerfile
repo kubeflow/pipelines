@@ -11,11 +11,12 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY ./test/sample-test/requirements.txt /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 # TODO: remove deprecated dependency
-COPY ./sdk/python/requirements-deprecated.txt /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
-RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
+# COPY ./sdk/python/requirements-deprecated.txt /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
+# RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/sdk/python/requirements-deprecated.txt
 # Install python client, including DSL compiler.
-COPY ./sdk/python /sdk/python
-RUN pip3 install /sdk/python
+# COPY ./sdk/python /sdk/python
+# RUN pip3 install /sdk/python
+RUN pip3 install kfp~=1.8
 
 # Copy sample test and samples source code.
 COPY ./test/sample-test /python/src/github.com/kubeflow/pipelines/test/sample-test

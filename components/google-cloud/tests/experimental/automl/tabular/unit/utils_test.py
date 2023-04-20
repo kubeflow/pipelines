@@ -1301,7 +1301,7 @@ class UtilsTest(unittest.TestCase):
                         'parameter_spec': {
                             'parameter_id': 'max_depth',
                             'integer_value_spec': {
-                                'min_value': 0,
+                                'min_value': 6,
                                 'max_value': 10,
                             },
                         },
