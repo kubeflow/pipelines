@@ -32,7 +32,8 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 
 export function isTemplateV2(templateString: string): boolean {
   try {
-    const template = jsyaml.safeLoad(templateString);
+    const template =
+      jsyaml.safeLoad(templateString)['pipeline_spec'] ?? jsyaml.safeLoad(templateString);
     if (isArgoWorkflowTemplate(template)) {
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
@@ -48,7 +49,9 @@ export function isTemplateV2(templateString: string): boolean {
 
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
-  const pipelineSpecYAML = jsyaml.safeLoad(template);
+  // If pipeline_spec exists in the return value of safeload, which means the original yaml contains
+  // platform_spec, then the pipeline spec is stored in pipeline_spec field.
+  const pipelineSpecYAML = jsyaml.safeLoad(template)['pipeline_spec'] ?? jsyaml.safeLoad(template);
   const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);
   if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
@@ -69,7 +72,8 @@ export function isPipelineSpec(templateString: string) {
     return false;
   }
   try {
-    const template = jsyaml.safeLoad(templateString);
+    const template =
+      jsyaml.safeLoad(templateString)['pipeline_spec'] ?? jsyaml.safeLoad(templateString);
     if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
       StaticGraphParser.createGraph(template!);
       return false;
@@ -90,7 +94,8 @@ export function isPipelineSpec(templateString: string) {
 export function getContainer(componentSpec: ComponentSpec, templateString: string) {
   const executionLabel = componentSpec?.executorLabel;
 
-  const jsonTemplate = jsyaml.safeLoad(templateString);
+  const jsonTemplate =
+    jsyaml.safeLoad(templateString)['pipeline_spec'] ?? jsyaml.safeLoad(templateString);
   const deploymentSpec = jsonTemplate['deploymentSpec'];
 
   const executorsMap = deploymentSpec['executors'];
