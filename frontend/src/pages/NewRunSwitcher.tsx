@@ -147,10 +147,13 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
+  // Three possible resource for template string (priority from high to low)
+  // 1. pipelineManifest: pipeline_spec stored in run or recurring run
+  // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
+  // 3. templateStrFromTemplate(v1): template in the response of getPipelineVersionTemplate()
   const templateString =
-    pipelineManifest ?? isTemplateV2(templateStrFromSpec)
-      ? templateStrFromSpec
-      : templateStrFromTemplate;
+    pipelineManifest ??
+    (isTemplateV2(templateStrFromSpec) ? templateStrFromSpec : templateStrFromTemplate);
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     if (
