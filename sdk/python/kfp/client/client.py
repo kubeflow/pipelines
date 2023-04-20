@@ -956,7 +956,7 @@ class Client:
         if params is None:
             params = {}
 
-        pipeline_doc = None
+        pipeline_spec = None
         if pipeline_package_path:
             pipeline_doc = _extract_pipeline_yaml(pipeline_package_path)
 
@@ -965,6 +965,7 @@ class Client:
             if enable_caching is not None:
                 _override_caching_options(pipeline_doc.pipeline_spec,
                                           enable_caching)
+            pipeline_spec = pipeline_doc.to_dict()
 
         pipeline_version_reference = None
         if pipeline_id is not None and version_id is not None:
@@ -976,7 +977,7 @@ class Client:
             parameters=params,
         )
         return _JobConfig(
-            pipeline_spec=pipeline_doc.to_dict(),
+            pipeline_spec=pipeline_spec,
             pipeline_version_reference=pipeline_version_reference,
             runtime_config=runtime_config,
         )
