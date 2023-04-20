@@ -27,6 +27,7 @@ from kfp.components import graph_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
+from kfp.components import task_final_status
 from kfp.components.types import artifact_types
 from kfp.components.types import custom_artifact_types
 from kfp.components.types import type_annotations
@@ -521,7 +522,12 @@ def make_input_for_parameterized_container_component_function(
     else:
         placeholder = placeholders.InputValuePlaceholder(name)
         # small hack to encode the runtime value's type for a custom json.dumps function
-        placeholder._ir_type = type_utils.get_parameter_type_name(annotation)
+        if (annotation == task_final_status.PipelineTaskFinalStatus or
+                type_utils.is_task_final_status_type(annotation)):
+            placeholder._ir_type = 'STRUCT'
+        else:
+            placeholder._ir_type = type_utils.get_parameter_type_name(
+                annotation)
         return placeholder
 
 
