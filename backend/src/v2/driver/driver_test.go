@@ -616,3 +616,119 @@ func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 		})
 	}
 }
+
+func Test_extendPodSpecPatch_Secret(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		podSpec    *k8score.PodSpec
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - secret as volume",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretName: "secret1",
+						MountPath:  "/data/path",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "secret1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "secret1",
+						VolumeSource: k8score.VolumeSource{
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1"},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - secret not specified",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			"Valid - secret as env",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsEnv: []*kubernetesplatform.SecretAsEnv{
+					{
+						SecretName: "my-secret",
+						KeyToEnv: []*kubernetesplatform.SecretAsEnv_SecretKeyToEnvMap{
+							{
+								SecretKey: "password",
+								EnvVar:    "SECRET_VAR",
+							},
+						},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "SECRET_VAR",
+								ValueFrom: &k8score.EnvVarSource{
+									SecretKeyRef: &k8score.SecretKeySelector{
+										k8score.LocalObjectReference{Name: "my-secret"},
+										"password",
+										nil,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, tt.podSpec)
+		})
+	}
+}
