@@ -511,13 +511,48 @@ func extendPodSpecPatch(
 		if err != nil {
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
-		podSpec.Volumes = volumes
+		podSpec.Volumes = append(podSpec.Volumes, volumes...)
 		// We assume that the user container always gets executed first within a pod.
-		podSpec.Containers[0].VolumeMounts = volumeMounts
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
 	}
+
+	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
 		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
 	}
+
+	// Get secret mount information
+	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
+		secretVolume := k8score.Volume{
+			Name: secretAsVolume.GetSecretName(),
+			VolumeSource: k8score.VolumeSource{
+				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName()},
+			},
+		}
+		secretVolumeMount := k8score.VolumeMount{
+			Name:      secretAsVolume.GetSecretName(),
+			MountPath: secretAsVolume.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, secretVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, secretVolumeMount)
+	}
+
+	// Get secret env information
+	for _, secretAsEnv := range kubernetesExecutorConfig.GetSecretAsEnv() {
+		for _, keyToEnv := range secretAsEnv.GetKeyToEnv() {
+			secretEnvVar := k8score.EnvVar{
+				Name: keyToEnv.GetEnvVar(),
+				ValueFrom: &k8score.EnvVarSource{
+					SecretKeyRef: &k8score.SecretKeySelector{
+						Key: keyToEnv.GetSecretKey(),
+					},
+				},
+			}
+			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretAsEnv.GetSecretName()
+			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+		}
+	}
+
 	return nil
 }
 
