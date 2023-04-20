@@ -38,7 +38,9 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     payload = np2csv(train_set[0][30:31])
 
     response = runtime.invoke_endpoint(
-        EndpointName=endpoint_name, ContentType="text/csv", Body=payload,
+        EndpointName=endpoint_name,
+        ContentType="text/csv",
+        Body=payload,
     )
     return json.loads(response["Body"].read().decode())
 
@@ -48,7 +50,8 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     [
         pytest.param("resources/config/kmeans-mnist-update-endpoint"),
         pytest.param(
-            "resources/config/kmeans-mnist-endpoint", marks=pytest.mark.canary_test
+            "resources/config/kmeans-mnist-endpoint",
+            marks=[pytest.mark.canary_test, pytest.mark.shallow_canary],
         ),
     ],
 )
