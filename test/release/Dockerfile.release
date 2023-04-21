@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# based on KFP backend api client generator dockerfile
+# Based on KFP backend api client generator dockerfile
+# Keep in sync with the version used in backend/api/Makefile
 FROM gcr.io/ml-pipeline-test/api-generator@sha256:431635b564a8716e0814df4b8803594d64a517e02d72c6950e936e4b5cce60e3
 
 # install nvm & node 12
