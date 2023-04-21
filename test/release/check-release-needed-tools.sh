@@ -25,7 +25,7 @@ which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
 echo "yq>=3.3 <4.0"
 which yq >/dev/null || (echo "yq not found in PATH" && exit 1)
 yq -V | grep 3. || (echo "yq version 3.x should be used" && exit 1)
-echo "java>=8"
+echo "java>=11"
 which java >/dev/null || (echo "java not found in PATH" && exit 1)
 echo "python>3"
 which python3 >/dev/null || (echo "python not found in PATH" && exit 1)
