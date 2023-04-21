@@ -9,7 +9,7 @@ Name | Type | Description | Notes
 **storage_state** | [**V2beta1RunStorageState**](V2beta1RunStorageState.md) |  | [optional] 
 **description** | **str** | Optional input. Short description of the run. | [optional] 
 **pipeline_version_id** | **str** | ID of an existing pipeline version. | [optional] 
-**pipeline_spec** | [**ProtobufStruct**](ProtobufStruct.md) |  | [optional] 
+**pipeline_spec** | [**object**](.md) | Pipeline spec. | [optional] 
 **pipeline_version_reference** | [**V2beta1PipelineVersionReference**](V2beta1PipelineVersionReference.md) |  | [optional] 
 **runtime_config** | [**V2beta1RuntimeConfig**](V2beta1RuntimeConfig.md) |  | [optional] 
 **service_account** | **str** | Optional input. Specifies which kubernetes service account is used. | [optional] 
