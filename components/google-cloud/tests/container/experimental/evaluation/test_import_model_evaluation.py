@@ -25,6 +25,14 @@ METRICS = (
     '{"singleOutputSlicingSpec": {"bytesValue": "MA=="}, "metrics": '
     '{"regression": {"rootMeanSquaredError": 123}}}]}'
 )
+METRICS_2 = (
+    '{"slicedMetrics": [{"singleOutputSlicingSpec": {},"metrics":'
+    ' {"classification": {"rootMeanSquaredError": 49.40016}}},'
+    ' {"singleOutputSlicingSpec": {"int64Value": "1"}, "metrics":'
+    ' {"classification": {"rootMeanSquaredError": 5.87}}},'
+    ' {"singleOutputSlicingSpec": {"int64Value": "0"},'
+    ' "metrics":{"classification": {"rootMeanSquaredError": 13.226}}}]}'
+)
 EXPLANATION_1 = (
     '{"explanation": {"attributions": [{"featureAttributions": '
     '{"BMI": 0.11054060991488765, "BPMeds": 0.0005584407939958813, '
@@ -51,7 +59,16 @@ EXPLANATION_2 = (
     '1.0034614999319733e-09, "sysBP": 0.06975447340775223, '
     '"totChol": 0.039095268419742674}}]}}'
 )
-
+EXPLANATION_3 = (
+    '{"explanation": {"attributions": [{"featureAttributions": {"BMI":'
+    ' 0.02266513112755049, "BPMeds": 1.419158208937872e-09, "TenYearCHD":'
+    ' 0.013602024742535182}}, {"dimension": "annotationSpec",'
+    ' "value": "1", "featureAttributions": {"BMI": 0.024043104300896324,'
+    ' "BPMeds": 9.934107462565104e-10, "TenYearCHD": 0.019042834639549255'
+    ' }}, {"dimension": "annotationSpec", "value": "0",'
+    ' "featureAttributions": {"BMI": 0.01922019819418589, "BPMeds":'
+    ' 2.483526865641276e-09, "TenYearCHD": 0.0}}]}}'
+)
 
 PROJECT = 'test_project'
 LOCATION = 'test_location'
@@ -89,10 +106,14 @@ class ImportModelEvaluationTest(unittest.TestCase):
   def setUp(self):
     super(ImportModelEvaluationTest, self).setUp()
     metrics_path = self.create_tempfile().full_path
+    metrics_path_2 = self.create_tempfile().full_path
     with open(metrics_path, 'w') as f:
       f.write(METRICS)
+    with open(metrics_path_2, 'w') as f:
+      f.write(METRICS_2)
 
     self.metrics_path = metrics_path
+    self.metrics_path_2 = metrics_path_2
     self._gcp_resources = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources'
     )
@@ -212,6 +233,77 @@ class ImportModelEvaluationTest(unittest.TestCase):
                 ]
             },
         },
+    )
+
+  @mock_api_call
+  def test_import_model_evaluation_with_sliced_explanation(self, _, mock_api):
+    explanation_path = self.create_tempfile().full_path
+    with open(explanation_path, 'w') as f:
+      f.write(EXPLANATION_3)
+
+    main([
+        '--metrics',
+        self.metrics_path_2,
+        '--explanation',
+        explanation_path,
+        '--problem_type',
+        'classification',
+        '--model_name',
+        self._model_name,
+        '--gcp_resources',
+        self._gcp_resources,
+    ])
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=MODEL_EVAL_NAME,
+        model_evaluation_slices=[
+            {
+                'metrics_schema_uri': SCHEMA_URI,
+                'metrics': to_value(
+                    json.loads(METRICS_2)['slicedMetrics'][1]['metrics'][
+                        'classification'
+                    ]
+                ),
+                'slice_': {
+                    'dimension': 'annotationSpec',
+                    'value': '1',
+                },
+                'model_explanation': {
+                    'mean_attributions': [
+                        {
+                            'feature_attributions': to_value(
+                                json.loads(EXPLANATION_3)['explanation'][
+                                    'attributions'
+                                ][1]['featureAttributions']
+                            )
+                        }
+                    ]
+                },
+            },
+            {
+                'metrics_schema_uri': SCHEMA_URI,
+                'metrics': to_value(
+                    json.loads(METRICS_2)['slicedMetrics'][2]['metrics'][
+                        'classification'
+                    ]
+                ),
+                'slice_': {
+                    'dimension': 'annotationSpec',
+                    'value': '0',
+                },
+                'model_explanation': {
+                    'mean_attributions': [
+                        {
+                            'feature_attributions': to_value(
+                                json.loads(EXPLANATION_3)['explanation'][
+                                    'attributions'
+                                ][2]['featureAttributions']
+                            )
+                        }
+                    ]
+                },
+            },
+        ],
     )
 
   @mock_api_call
@@ -662,6 +754,28 @@ class ImportModelEvaluationTest(unittest.TestCase):
     with open(self.metrics_path, 'w') as f:
       f.write(json.dumps(metrics))
 
+    model_evaluation_slices_50 = [{
+        'metrics_schema_uri': SCHEMA_URI,
+        'metrics': to_value(
+            metrics['slicedMetrics'][1]['metrics']['regression']
+        ),
+        'slice_': {
+            'dimension': 'annotationSpec',
+            'value': '0',
+        },
+    }]
+    for i in range(2, 51):
+      model_evaluation_slices_50.append({
+          'metrics_schema_uri': SCHEMA_URI,
+          'metrics': to_value(
+              metrics['slicedMetrics'][i]['metrics']['regression']
+          ),
+          'slice_': {
+              'dimension': 'annotationSpec',
+              'value': str(i),
+          },
+      })
+
     # Act.
     main([
         '--metrics',
@@ -677,7 +791,14 @@ class ImportModelEvaluationTest(unittest.TestCase):
     ])
 
     # Assert.
-    mock_api.assert_called_with(
+    # Assert the first call with the batch of 50 slices.
+    mock_api.assert_any_call(
+        mock.ANY,
+        parent=MODEL_EVAL_NAME,
+        model_evaluation_slices=model_evaluation_slices_50,
+    )
+    # Assert the second call with the batch of 1 slice.
+    mock_api.assert_any_call(
         mock.ANY,
         parent=MODEL_EVAL_NAME,
         model_evaluation_slices=[{
@@ -692,7 +813,6 @@ class ImportModelEvaluationTest(unittest.TestCase):
         }],
     )
     self.assertEqual(mock_api.call_count, 2)
-
 
 if __name__ == '__main__':
   unittest.main()

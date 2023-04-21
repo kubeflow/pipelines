@@ -279,21 +279,36 @@ def main(argv):
   # Import model evaluation slices if present.
   if sliced_metrics:
     slice_resource_names = []
+    sliced_feature_attributions = {}
+    if explanation_file_name:
+      sliced_feature_attributions = sliced_explanation_to_dict(
+          explanation_file_name, sliced_feature_attributions
+      )
     # BatchImportModelEvaluationSlices has a size limit of 50 slices.
     for i in range(0, len(sliced_metrics), SLICE_BATCH_IMPORT_LIMIT):
+      model_evaluation_slices = []
+      for one_slice in sliced_metrics[i : i + SLICE_BATCH_IMPORT_LIMIT]:
+        slice_spec = to_slice(one_slice['singleOutputSlicingSpec'])
+        slice_config = {
+            'metrics': one_slice['metrics'],
+            'metrics_schema_uri': schema_uri,
+            'slice_': slice_spec,
+        }
+        if sliced_feature_attributions:
+          slice_config['model_explanation'] = {
+              'mean_attributions': [
+                  {
+                      'feature_attributions': sliced_feature_attributions[
+                          slice_spec['value']
+                      ]
+                  }
+              ]
+          }
+        model_evaluation_slices.append(slice_config)
       slice_resource_names.extend(
           client.batch_import_model_evaluation_slices(
               parent=model_evaluation_name,
-              model_evaluation_slices=[
-                  {
-                      'metrics': one_slice['metrics'],
-                      'metrics_schema_uri': schema_uri,
-                      'slice_': to_slice(one_slice['singleOutputSlicingSpec']),
-                  }
-                  for one_slice in sliced_metrics[
-                      i : i + SLICE_BATCH_IMPORT_LIMIT
-                  ]
-              ],
+              model_evaluation_slices=model_evaluation_slices,
           ).imported_model_evaluation_slices
       )
 
@@ -306,6 +321,18 @@ def main(argv):
 
   with open(parsed_args.gcp_resources, 'w') as f:
     f.write(json_format.MessageToJson(resources))
+
+
+def sliced_explanation_to_dict(
+    explanation_file_name: str, sliced_feature_attributions: Dict[str, Any]
+):
+  with open(explanation_file_name) as explanation_file:
+    explanations = json.loads(explanation_file.read())
+    for sliced_explanation in explanations['explanation']['attributions'][1:]:
+      sliced_feature_attributions[sliced_explanation['value']] = to_value(
+          sliced_explanation['featureAttributions']
+      )
+  return sliced_feature_attributions
 
 
 def to_slice(slicing_spec: Dict[str, Any]):
