@@ -21,21 +21,6 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
-  comp-add-2:
-    executorLabel: exec-add-2
-    inputDefinitions:
-      artifacts:
-        in_datasets:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-          isArtifactList: true
-    outputDefinitions:
-      artifacts:
-        out_dataset:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
   comp-add-two-ints:
     executorLabel: exec-add-two-ints
     inputDefinitions:
@@ -78,7 +63,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-add-2
+            name: comp-add
           inputs:
             artifacts:
               in_datasets:
@@ -136,7 +121,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-double-2
+            name: comp-double
           inputs:
             parameters:
               num:
@@ -158,18 +143,6 @@ components:
           isArtifactList: true
   comp-double:
     executorLabel: exec-double
-    inputDefinitions:
-      parameters:
-        num:
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      artifacts:
-        out_dataset:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-  comp-double-2:
-    executorLabel: exec-double-2
     inputDefinitions:
       parameters:
         num:
@@ -303,36 +276,6 @@ deploymentSpec:
           \    with open(out_dataset.path, 'w') as f:\n        f.write(str(sum(nums)))\n\
           \n"
         image: python:3.7
-    exec-add-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - add
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef add(\n    in_datasets: Input[List[Dataset]],\n    out_dataset:\
-          \ Output[Dataset],\n):\n    nums = []\n    for dataset in in_datasets:\n\
-          \        with open(dataset.path) as f:\n            nums.append(int(f.read()))\n\
-          \    with open(out_dataset.path, 'w') as f:\n        f.write(str(sum(nums)))\n\
-          \n"
-        image: python:3.7
     exec-add-two-ints:
       container:
         args:
@@ -364,34 +307,6 @@ deploymentSpec:
           \ 'w') as f:\n        f.write(str(in_dataset1 + in_dataset2))\n\n"
         image: python:3.7
     exec-double:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - double
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef double(\n    num: int,\n    out_dataset: Output[Dataset],\n):\n\
-          \    with open(out_dataset.path, 'w') as f:\n        f.write(str(2 * num))\n\
-          \n"
-        image: python:3.7
-    exec-double-2:
       container:
         args:
         - --executor_input

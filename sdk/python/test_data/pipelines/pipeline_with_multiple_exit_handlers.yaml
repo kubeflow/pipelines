@@ -22,7 +22,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-op-2
+            name: comp-print-op
           inputs:
             parameters:
               message:
@@ -40,7 +40,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-op-4
+            name: comp-print-op
           inputs:
             parameters:
               message:
@@ -58,7 +58,7 @@ components:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-op-6
+            name: comp-print-op
           inputs:
             parameters:
               message:
@@ -77,36 +77,6 @@ components:
           parameterType: STRING
   comp-print-op:
     executorLabel: exec-print-op
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-print-op-2:
-    executorLabel: exec-print-op-2
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-print-op-3:
-    executorLabel: exec-print-op-3
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-print-op-4:
-    executorLabel: exec-print-op-4
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-print-op-5:
-    executorLabel: exec-print-op-5
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-print-op-6:
-    executorLabel: exec-print-op-6
     inputDefinitions:
       parameters:
         message:
@@ -141,141 +111,6 @@ deploymentSpec:
           \    print(message)\n    sys.exit(1)\n\n"
         image: python:3.7
     exec-print-op:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
-          \    print(message)\n\n"
-        image: python:3.7
-    exec-print-op-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
-          \    print(message)\n\n"
-        image: python:3.7
-    exec-print-op-3:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
-          \    print(message)\n\n"
-        image: python:3.7
-    exec-print-op-4:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
-          \    print(message)\n\n"
-        image: python:3.7
-    exec-print-op-5:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
-          \    print(message)\n\n"
-        image: python:3.7
-    exec-print-op-6:
       container:
         args:
         - --executor_input
@@ -354,7 +189,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-op-3
+          name: comp-print-op
         dependentTasks:
         - exit-handler-2
         inputs:
@@ -370,7 +205,7 @@ root:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-op-5
+          name: comp-print-op
         dependentTasks:
         - exit-handler-3
         inputs:
