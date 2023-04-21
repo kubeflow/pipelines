@@ -33,7 +33,7 @@ class V2beta1RuntimeConfig(object):
                             and the value is json key in definition.
     """
     openapi_types = {
-        'parameters': 'dict(str, ProtobufValue)',
+        'parameters': 'dict(str, object)',
         'pipeline_root': 'str'
     }
 
@@ -64,7 +64,7 @@ class V2beta1RuntimeConfig(object):
         The runtime parameters of the Pipeline. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
 
         :return: The parameters of this V2beta1RuntimeConfig.  # noqa: E501
-        :rtype: dict(str, ProtobufValue)
+        :rtype: dict(str, object)
         """
         return self._parameters
 
@@ -75,7 +75,7 @@ class V2beta1RuntimeConfig(object):
         The runtime parameters of the Pipeline. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
 
         :param parameters: The parameters of this V2beta1RuntimeConfig.  # noqa: E501
-        :type parameters: dict(str, ProtobufValue)
+        :type parameters: dict(str, object)
         """
 
         self._parameters = parameters
