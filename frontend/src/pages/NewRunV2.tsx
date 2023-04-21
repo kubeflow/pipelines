@@ -28,7 +28,11 @@ import * as JsYaml from 'js-yaml';
 import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import {
+  V2beta1ListPipelineVersionsResponse,
+  V2beta1Pipeline,
+  V2beta1PipelineVersion,
+} from 'src/apisv2beta1/pipeline';
 import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import BusyButton from 'src/atoms/BusyButton';
@@ -132,6 +136,22 @@ function getPipelineDetailsUrl(
     : '';
 
   return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
+}
+
+async function getLatestVersion(pipelineId: string) {
+  try {
+    const listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
+      pipelineId,
+      undefined,
+      1, // Only need the latest one
+      'created_at desc',
+    );
+    return listVersionsResponse.pipeline_versions
+      ? listVersionsResponse.pipeline_versions[0]
+      : undefined;
+  } catch (err) {
+    return;
+  }
 }
 
 function NewRunV2(props: NewRunV2Props) {
@@ -436,18 +456,19 @@ function NewRunV2(props: NewRunV2Props) {
             <PipelineSelector
               {...props}
               pipelineName={pipelineName}
-              handlePipelineChange={updatedPipeline => {
+              handlePipelineChange={async updatedPipeline => {
                 if (updatedPipeline.display_name) {
                   setPipelineName(updatedPipeline.display_name);
                 }
                 if (updatedPipeline.pipeline_id) {
+                  const latestVersion = await getLatestVersion(updatedPipeline.pipeline_id);
                   const searchString = urlParser.build({
                     [QUERY_PARAMS.experimentId]: experimentId || '',
                     [QUERY_PARAMS.pipelineId]: updatedPipeline.pipeline_id || '',
-                    [QUERY_PARAMS.pipelineVersionId]: '',
+                    [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
                   });
                   props.history.replace(searchString);
-                  handlePipelineVersionIdChange('');
+                  handlePipelineVersionIdChange(latestVersion?.pipeline_version_id!);
                   handlePipelineIdChange(updatedPipeline.pipeline_id);
                 }
               }}
