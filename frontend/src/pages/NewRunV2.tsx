@@ -28,11 +28,7 @@ import * as JsYaml from 'js-yaml';
 import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import {
-  V2beta1ListPipelineVersionsResponse,
-  V2beta1Pipeline,
-  V2beta1PipelineVersion,
-} from 'src/apisv2beta1/pipeline';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import BusyButton from 'src/atoms/BusyButton';
