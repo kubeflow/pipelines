@@ -14,18 +14,8 @@
 """Google Cloud Pipeline Dataset components."""
 
 import os
-from kfp.components import load_component_from_file
+from kfp import components
 
-from .create_image_dataset import component as create_image_dataset_component
-from .create_tabular_dataset import component as create_tabular_dataset_component
-from .create_text_dataset import component as create_text_dataset_component
-from .create_time_series_dataset import component as create_time_series_dataset_component
-from .create_video_dataset import component as create_video_dataset_component
-from .export_image_dataset import component as export_image_dataset_component
-from .export_tabular_dataset import component as export_tabular_dataset_component
-from .export_text_dataset import component as export_text_dataset_component
-from .export_time_series_dataset import component as export_time_series_dataset_component
-from .export_video_dataset import component as export_video_dataset_component
 
 __all__ = [
     'ImageDatasetCreateOp',
@@ -43,36 +33,69 @@ __all__ = [
     'VideoDatasetImportDataOp',
 ]
 
-ImageDatasetCreateOp = create_image_dataset_component.image_dataset_create
-TabularDatasetCreateOp = create_tabular_dataset_component.tabular_dataset_create
-TextDatasetCreateOp = create_text_dataset_component.text_dataset_create
-TimeSeriesDatasetCreateOp = (
-    create_time_series_dataset_component.time_series_dataset_create
+ImageDatasetCreateOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'create_image_dataset/component.yaml'
+    )
 )
-VideoDatasetCreateOp = create_video_dataset_component.video_dataset_create
-ImageDatasetExportDataOp = export_image_dataset_component.image_dataset_export
-TabularDatasetExportDataOp = (
-    export_tabular_dataset_component.tabular_dataset_export
+ImageDatasetExportDataOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'export_image_dataset/component.yaml'
+    )
 )
-TextDatasetExportDataOp = export_text_dataset_component.text_dataset_export
-TimeSeriesDatasetExportDataOp = (
-    export_time_series_dataset_component.time_series_dataset_export
+TabularDatasetCreateOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'create_tabular_dataset/component.yaml'
+    )
 )
-VideoDatasetExportDataOp = export_video_dataset_component.video_dataset_export
-
-ImageDatasetImportDataOp = load_component_from_file(
+TextDatasetCreateOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'create_text_dataset/component.yaml'
+    )
+)
+TimeSeriesDatasetCreateOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'create_time_series_dataset/component.yaml'
+    )
+)
+VideoDatasetCreateOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'create_video_dataset/component.yaml'
+    )
+)
+TabularDatasetExportDataOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'export_tabular_dataset/component.yaml'
+    )
+)
+TextDatasetExportDataOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'export_text_dataset/component.yaml'
+    )
+)
+TimeSeriesDatasetExportDataOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'export_time_series_dataset/component.yaml'
+    )
+)
+VideoDatasetExportDataOp = components.load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'export_video_dataset/component.yaml'
+    )
+)
+ImageDatasetImportDataOp = components.load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'import_image_dataset/component.yaml'
     )
 )
 
-TextDatasetImportDataOp = load_component_from_file(
+TextDatasetImportDataOp = components.load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'import_text_dataset/component.yaml'
     )
 )
 
-VideoDatasetImportDataOp = load_component_from_file(
+VideoDatasetImportDataOp = components.load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'import_video_dataset/component.yaml'
     )
