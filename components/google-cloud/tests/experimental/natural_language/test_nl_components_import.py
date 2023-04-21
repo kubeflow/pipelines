@@ -45,10 +45,12 @@ class NaturalLanguageComponentsImportTest(unittest.TestCase):
     @dsl.pipeline(name='test-convert-dataset-export-for-batch-predict')
     def pipeline():
       _ = natural_language.ConvertDatasetExportForBatchPredictOp(
-          file_paths=self._input_paths, classification_type='multiclass')
+          file_paths=self._input_paths, classification_type='multiclass'
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
   def test_train_text_classification_compile(self):
     """Checks that trainer component compiles."""
@@ -64,7 +66,8 @@ class NaturalLanguageComponentsImportTest(unittest.TestCase):
       )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
 
 if __name__ == '__main__':

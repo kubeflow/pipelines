@@ -40,7 +40,9 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'test_region'
     self._type = 'UndeployModel'
-    self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
+    self._lro_name = (
+        f'projects/{self._project}/locations/{self._location}/operations/123'
+    )
     self._model_id = 'm12'
     self._model_name = 'projects/test_project/locations/test_region/models/m12'
     self._payload = (
@@ -48,9 +50,11 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
         '"projects/test_project/locations/test_region/endpoints/e12","model": '
         '"projects/test_project/locations/test_region/models/m12",'
         '"traffic_split": {}'
-        '}')
+        '}'
+    )
     self._gcp_resources_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources'
+    )
     self._uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
 
   def tearDown(self):
@@ -62,9 +66,9 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
-  def test_undeploy_model_remote_runner_succeeded(self, mock_post_requests,
-                                                  mock_get_requests, _,
-                                                  mock_auth):
+  def test_undeploy_model_remote_runner_succeeded(
+      self, mock_post_requests, mock_get_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -84,17 +88,18 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     }
     mock_post_requests.return_value = undeploy_model_request
 
-    undeploy_model_remote_runner.undeploy_model(self._type, '', '',
-                                                self._payload,
-                                                self._gcp_resources_path)
+    undeploy_model_remote_runner.undeploy_model(
+        self._type, '', '', self._payload, self._gcp_resources_path
+    )
     mock_get_requests.assert_called_once_with(
         url=f'{self._uri_prefix}projects/test_project/locations/test_region/endpoints/e12',
         data='',
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
-            'User-Agent': 'google-cloud-pipeline-components'
-        })
+            'User-Agent': 'google-cloud-pipeline-components',
+        },
+    )
 
     mock_post_requests.assert_called_once_with(
         url=f'{self._uri_prefix}projects/test_project/locations/test_region/endpoints/e12:undeployModel',
@@ -104,25 +109,30 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
-            'User-Agent': 'google-cloud-pipeline-components'
-        })
+            'User-Agent': 'google-cloud-pipeline-components',
+        },
+    )
 
     with open(self._gcp_resources_path) as f:
       serialized_gcp_resources = f.read()
       # Instantiate GCPResources Proto
-      lro_resources = json_format.Parse(serialized_gcp_resources,
-                                        GcpResources())
+      lro_resources = json_format.Parse(
+          serialized_gcp_resources, GcpResources()
+      )
 
       self.assertEqual(len(lro_resources.resources), 1)
-      self.assertEqual(lro_resources.resources[0].resource_uri,
-                       self._uri_prefix + self._lro_name)
+      self.assertEqual(
+          lro_resources.resources[0].resource_uri,
+          self._uri_prefix + self._lro_name,
+      )
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
   def test_undeploy_model_remote_runner_raises_exception_on_internal_error(
-      self, mock_post_requests, mock_get_requests, _, mock_auth):
+      self, mock_post_requests, mock_get_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -139,23 +149,22 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     undeploy_model_request.json.return_value = {
         'name': self._lro_name,
         'done': True,
-        'error': {
-            'code': 1
-        }
+        'error': {'code': 1},
     }
     mock_post_requests.return_value = undeploy_model_request
 
     with self.assertRaises(SystemExit):
-      undeploy_model_remote_runner.undeploy_model(self._type, '', '',
-                                                  self._payload,
-                                                  self._gcp_resources_path)
+      undeploy_model_remote_runner.undeploy_model(
+          self._type, '', '', self._payload, self._gcp_resources_path
+      )
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
   def test_undeploy_model_remote_runner_raises_exception_on_user_error(
-      self, mock_post_requests, mock_get_requests, _, mock_auth):
+      self, mock_post_requests, mock_get_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -172,16 +181,14 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     undeploy_model_request.json.return_value = {
         'name': self._lro_name,
         'done': True,
-        'error': {
-            'code': 400
-        }
+        'error': {'code': 400},
     }
     mock_post_requests.return_value = undeploy_model_request
 
     with self.assertRaises(ValueError):
-      undeploy_model_remote_runner.undeploy_model(self._type, '', '',
-                                                  self._payload,
-                                                  self._gcp_resources_path)
+      undeploy_model_remote_runner.undeploy_model(
+          self._type, '', '', self._payload, self._gcp_resources_path
+      )
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -189,15 +196,15 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
   def test_undeploy_model_remote_runner_poll_till_succeeded(
-      self, mock_time_sleep, mock_get_requests, mock_post_requests, _,
-      mock_auth):
+      self, mock_time_sleep, mock_get_requests, mock_post_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
     undeploy_model_lro = mock.Mock()
     undeploy_model_lro.json.return_value = {
         'name': self._lro_name,
-        'done': False
+        'done': False,
     }
     mock_post_requests.return_value = undeploy_model_lro
 
@@ -206,23 +213,23 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     # 2. The LRO is not yet done.
     # 3. The LRO is done.
     get_requests = mock.Mock()
-    get_requests.json.side_effect = [{
-        'deployedModels': [{
-            'id': self._model_id,
-            'model': 'projects/test_project/locations/test_region/models/m12',
-        }]
-    }, {
-        'name': self._lro_name,
-        'done': False
-    }, {
-        'name': self._lro_name,
-        'done': True
-    }]
+    get_requests.json.side_effect = [
+        {
+            'deployedModels': [{
+                'id': self._model_id,
+                'model': (
+                    'projects/test_project/locations/test_region/models/m12'
+                ),
+            }]
+        },
+        {'name': self._lro_name, 'done': False},
+        {'name': self._lro_name, 'done': True},
+    ]
     mock_get_requests.return_value = get_requests
 
-    undeploy_model_remote_runner.undeploy_model(self._type, '', '',
-                                                self._payload,
-                                                self._gcp_resources_path)
+    undeploy_model_remote_runner.undeploy_model(
+        self._type, '', '', self._payload, self._gcp_resources_path
+    )
     self.assertEqual(mock_post_requests.call_count, 1)
     self.assertEqual(mock_time_sleep.call_count, 2)
     self.assertEqual(mock_get_requests.call_count, 3)
@@ -232,13 +239,17 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
   @mock.patch.object(ExecutionContext, '__init__', autospec=True)
-  def test_undeploy_model_remote_runner_cancel(self, mock_execution_context,
-                                               mock_post_requests,
-                                               mock_get_requests, _,
-                                               mock_auth):
+  def test_undeploy_model_remote_runner_cancel(
+      self,
+      mock_execution_context,
+      mock_post_requests,
+      mock_get_requests,
+      _,
+      mock_auth,
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
-    mock_auth.return_value = [creds, "project"]
+    mock_auth.return_value = [creds, 'project']
     get_endpoint_request = mock.Mock()
     get_endpoint_request.json.return_value = {
         'deployedModels': [{
@@ -256,9 +267,9 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     mock_post_requests.return_value = undeploy_model_request
     mock_execution_context.return_value = None
 
-    undeploy_model_remote_runner.undeploy_model(self._type, '', '',
-                                                self._payload,
-                                                self._gcp_resources_path)
+    undeploy_model_remote_runner.undeploy_model(
+        self._type, '', '', self._payload, self._gcp_resources_path
+    )
 
     # Call cancellation handler
     mock_execution_context.call_args[1]['on_cancel']()
@@ -269,4 +280,5 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
-        })
+        },
+    )

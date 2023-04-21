@@ -22,21 +22,27 @@ import unittest
 from unittest import mock
 
 
-
 class LauncherDeleteEndpointUtilsTests(unittest.TestCase):
 
   def setUp(self):
     super(LauncherDeleteEndpointUtilsTests, self).setUp()
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
     self._input_args = [
-        '--type', 'DeleteEndpoint', '--project', '', '--location', '',
-        '--payload', 'test_payload', '--gcp_resources', self._gcp_resources
+        '--type',
+        'DeleteEndpoint',
+        '--project',
+        '',
+        '--location',
+        '',
+        '--payload',
+        'test_payload',
+        '--gcp_resources',
+        self._gcp_resources,
     ]
 
-  @mock.patch.object(
-      remote_runner, 'delete_endpoint', autospec=True)
+  @mock.patch.object(remote_runner, 'delete_endpoint', autospec=True)
   def test_launcher_on_delete_endpoint_type(self, mock_delete_endpoint):
     launcher.main(self._input_args)
     mock_delete_endpoint.assert_called_once_with(
@@ -44,4 +50,5 @@ class LauncherDeleteEndpointUtilsTests(unittest.TestCase):
         project='',
         location='',
         payload='test_payload',
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+    )

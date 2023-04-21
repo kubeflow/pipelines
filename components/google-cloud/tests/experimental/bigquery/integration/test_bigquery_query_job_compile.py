@@ -28,12 +28,13 @@ class ComponentsCompileTest(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'us-central1'
     self._query = 'SELECT * FROM foo_bar;'
-    self._query_parameters = [{'name':'foo'},{'name':'bar'}]
-    self._job_configuration_query = {'priority':'high'}
-    self._labels = {'key1':'val1'}
+    self._query_parameters = [{'name': 'foo'}, {'name': 'bar'}]
+    self._job_configuration_query = {'priority': 'high'}
+    self._labels = {'key1': 'val1'}
     self._encryption_spec_key_name = 'fake_encryption_key'
     self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json'
+    )
 
   def tearDown(self):
     super(ComponentsCompileTest, self).tearDown()
@@ -41,7 +42,6 @@ class ComponentsCompileTest(unittest.TestCase):
       os.remove(self._package_path)
 
   def test_bigquery_query_job_op_compile(self):
-
     @kfp.dsl.pipeline(name='bigquery-test')
     def pipeline():
       BigqueryQueryJobOp(
@@ -51,10 +51,12 @@ class ComponentsCompileTest(unittest.TestCase):
           query_parameters=self._query_parameters,
           job_configuration_query=self._job_configuration_query,
           labels=self._labels,
-          encryption_spec_key_name=self._encryption_spec_key_name)
+          encryption_spec_key_name=self._encryption_spec_key_name,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 

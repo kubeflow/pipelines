@@ -27,16 +27,22 @@ class LauncherDeleteModelUtilsTests(unittest.TestCase):
   def setUp(self):
     super(LauncherDeleteModelUtilsTests, self).setUp()
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
     self._input_args = [
-        '--type', 'DeleteModel', '--project', '', '--location',
-        '', '--payload', 'test_payload', '--gcp_resources',
-        self._gcp_resources
+        '--type',
+        'DeleteModel',
+        '--project',
+        '',
+        '--location',
+        '',
+        '--payload',
+        'test_payload',
+        '--gcp_resources',
+        self._gcp_resources,
     ]
 
-  @mock.patch.object(
-      remote_runner, 'delete_model', autospec=True)
+  @mock.patch.object(remote_runner, 'delete_model', autospec=True)
   def test_launcher_on_delete_model_type(self, mock_delete_model):
     launcher.main(self._input_args)
     mock_delete_model.assert_called_once_with(
@@ -44,4 +50,5 @@ class LauncherDeleteModelUtilsTests(unittest.TestCase):
         project='',
         location='',
         payload='test_payload',
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+    )

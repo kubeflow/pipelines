@@ -45,14 +45,18 @@ class ComponentsCompileTest(unittest.TestCase):
     self._main_jar_file_uri = 'test-jar-file-uri'
     self._main_r_file_uri = 'test-r-file-uri'
     self._query_file_uri = 'test-query-file-uri'
-    self._python_file_uris = ['test-python-file-uri-1', 'test-python-file-uri-2']
+    self._python_file_uris = [
+        'test-python-file-uri-1',
+        'test-python-file-uri-2',
+    ]
     self._jar_file_uris = ['test-jar-file-uri-1', 'test-jar-file-uri-2']
     self._file_uris = ['test-file-uri-1', 'test-file-uri-2']
     self._archive_uris = ['test-archive-file-uri-1', 'test-archive-file-uri-2']
     self._query_variables = {'foo': 'bar', 'fizz': 'buzz'}
     self._batch_specific_args = ['test-arg-1', 'test-arg-2']
     self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json'
+    )
 
   def tearDown(self):
     super(ComponentsCompileTest, self).tearDown()
@@ -61,6 +65,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
   def test_dataproc_create_pyspark_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc PySparkBatch component."""
+
     @kfp.dsl.pipeline(name='create-pyspark-batch-test')
     def pipeline():
       dataproc.DataprocPySparkBatchOp(
@@ -83,14 +88,18 @@ class ComponentsCompileTest(unittest.TestCase):
           jar_file_uris=self._jar_file_uris,
           file_uris=self._file_uris,
           archive_uris=self._archive_uris,
-          args=self._batch_specific_args)
+          args=self._batch_specific_args,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 
-    with open('testdata/dataproc_create_pyspark_batch_component_pipeline.json') as ef:
+    with open(
+        'testdata/dataproc_create_pyspark_batch_component_pipeline.json'
+    ) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparison
@@ -100,6 +109,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
   def test_dataproc_create_spark_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc SparkBatch component."""
+
     @kfp.dsl.pipeline(name='create-spark-batch-test')
     def pipeline():
       dataproc.DataprocSparkBatchOp(
@@ -122,14 +132,18 @@ class ComponentsCompileTest(unittest.TestCase):
           jar_file_uris=self._jar_file_uris,
           file_uris=self._file_uris,
           archive_uris=self._archive_uris,
-          args=self._batch_specific_args)
+          args=self._batch_specific_args,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 
-    with open('testdata/dataproc_create_spark_batch_component_pipeline.json') as ef:
+    with open(
+        'testdata/dataproc_create_spark_batch_component_pipeline.json'
+    ) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparison
@@ -139,6 +153,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
   def test_dataproc_create_spark_r_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc SparkRBatch component."""
+
     @kfp.dsl.pipeline(name='create-spark-r-batch-test')
     def pipeline():
       dataproc.DataprocSparkRBatchOp(
@@ -159,14 +174,18 @@ class ComponentsCompileTest(unittest.TestCase):
           main_r_file_uri=self._main_r_file_uri,
           file_uris=self._file_uris,
           archive_uris=self._archive_uris,
-          args=self._batch_specific_args)
+          args=self._batch_specific_args,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 
-    with open('testdata/dataproc_create_spark_r_batch_component_pipeline.json') as ef:
+    with open(
+        'testdata/dataproc_create_spark_r_batch_component_pipeline.json'
+    ) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparison
@@ -176,6 +195,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
   def test_dataproc_create_spark_sql_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc SparkSqlBatch component."""
+
     @kfp.dsl.pipeline(name='create-spark-sql-batch-test')
     def pipeline():
       dataproc.DataprocSparkSqlBatchOp(
@@ -195,14 +215,18 @@ class ComponentsCompileTest(unittest.TestCase):
           spark_history_dataproc_cluster=self._spark_history_dataproc_cluster,
           query_file_uri=self._query_file_uri,
           jar_file_uris=self._jar_file_uris,
-          query_variables=self._query_variables)
+          query_variables=self._query_variables,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 
-    with open('testdata/dataproc_create_spark_sql_batch_component_pipeline.json') as ef:
+    with open(
+        'testdata/dataproc_create_spark_sql_batch_component_pipeline.json'
+    ) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparison

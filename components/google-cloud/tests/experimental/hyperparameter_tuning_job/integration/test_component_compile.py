@@ -32,17 +32,16 @@ class HPTuningJobCompileTest(unittest.TestCase):
     self._project = "test_project"
     self._location = "us-central1"
     self._package_path = os.path.join(
-        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json")
+        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json"
+    )
     self._worker_pool_specs = [{
         "machine_spec": {
             "machine_type": "n1-standard-4",
             "accelerator_type": "NVIDIA_TESLA_T4",
-            "accelerator_count": 1
+            "accelerator_count": 1,
         },
         "replica_count": 1,
-        "container_spec": {
-            "image_uri": "gcr.io/project_id/test"
-        }
+        "container_spec": {"image_uri": "gcr.io/project_id/test"},
     }]
     self._metrics_spec = serialize_metrics({"accuracy": "maximize"})
     self._parameter_spec = serialize_parameters({
@@ -56,7 +55,6 @@ class HPTuningJobCompileTest(unittest.TestCase):
       os.remove(self._package_path)
 
   def test_hyperparameter_tuning_job_op_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       _ = HyperparameterTuningJobRunOp(
@@ -68,10 +66,12 @@ class HPTuningJobCompileTest(unittest.TestCase):
           study_spec_parameters=self._parameter_spec,
           max_trial_count=10,
           parallel_trial_count=3,
-          base_output_directory=self._base_output_directory)
+          base_output_directory=self._base_output_directory,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
@@ -79,7 +79,9 @@ class HPTuningJobCompileTest(unittest.TestCase):
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "../testdata/hyperparameter_tuning_job_pipeline.json")) as ef:
+            "../testdata/hyperparameter_tuning_job_pipeline.json",
+        )
+    ) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparison
