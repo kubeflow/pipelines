@@ -37,26 +37,7 @@ class TestV2beta1RuntimeConfig(unittest.TestCase):
         if include_optional :
             return V2beta1RuntimeConfig(
                 parameters = {
-                    'key' : kfp_server_api.models.protobuf_value.protobufValue(
-                        null_value = 'NULL_VALUE', 
-                        number_value = 1.337, 
-                        string_value = '0', 
-                        bool_value = True, 
-                        struct_value = kfp_server_api.models.protobuf_struct.protobufStruct(
-                            fields = {
-                                'key' : kfp_server_api.models.protobuf_value.protobufValue(
-                                    number_value = 1.337, 
-                                    string_value = '0', 
-                                    bool_value = True, 
-                                    list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
-                                        values = [
-                                            kfp_server_api.models.protobuf_value.protobufValue(
-                                                number_value = 1.337, 
-                                                string_value = '0', 
-                                                bool_value = True, )
-                                            ], ), )
-                                }, ), 
-                        list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
+                    'key' : None
                     }, 
                 pipeline_root = '0'
             )
