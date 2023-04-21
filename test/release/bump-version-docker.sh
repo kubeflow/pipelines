@@ -31,8 +31,7 @@ if [[ -z "$TAG_NAME" ]]; then
 fi
 
 pushd "${REPO_ROOT}"
-# RELEASE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:2bca5a3e4c1a6c8f4677ef8433ec373894599e35febdc84c4563c2c9bb3f8de7
-RELEASE_IMAGE=${RELEASE_IMAGE:-gcr.io/ml-pipeline-test/release:latest}
+RELEASE_IMAGE=${RELEASE_IMAGE:-gcr.io/ml-pipeline-test/release@sha256:b96a0d2af1b10ab19883ecbd4df4aadb37ea5afd71e55e946d3eacb719a940dc}
 docker run -it --rm \
   --user $(id -u):$(id -g) \
   --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
