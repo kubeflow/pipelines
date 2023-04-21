@@ -24,6 +24,7 @@ def make_required_install_packages():
         "kfp>=2.0.0b10",
         "google-cloud-aiplatform>=1.14.0,<2",
         "google-cloud-notebooks>=0.4.0",
+        "immutabledict>=2.0.0",
     ]
 
 
