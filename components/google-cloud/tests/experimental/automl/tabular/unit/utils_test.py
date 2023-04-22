@@ -1590,7 +1590,8 @@ class UtilsTest(unittest.TestCase):
     )
 
     self.assertEqual(
-        parameter_values, {
+        parameter_values,
+        {
             'data_source_csv_filenames': 'gs://foo/bar.csv',
             'dataflow_service_account': 'service-account',
             'dataset_level_custom_transformation_definitions': [],
@@ -1607,7 +1608,8 @@ class UtilsTest(unittest.TestCase):
             'target_column': 'target',
             'tf_auto_transform_features': [],
             'tf_custom_transformation_definitions': [],
-        })
+        },
+    )
 
 
 if __name__ == '__main__':

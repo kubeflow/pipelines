@@ -29,65 +29,38 @@ TESTDATA_ROOT = os.path.abspath(os.path.join(TESTS_ROOT, 'testdata'))
 SINGLE_LABEL_DATA_FILES = ['single_label.jsonl']
 SINGLE_LABEL_SHARDED_DATA_FILES = [
     'single_label_sharded-00001-of-00002.jsonl',
-    'single_label_sharded-00002-of-00002.jsonl'
+    'single_label_sharded-00002-of-00002.jsonl',
 ]
 MULTI_LABEL_DATA_FILES = ['multi_label.jsonl']
 MULTI_LABEL_SHARDED_DATA_FILES = [
     'multi_label_sharded-00001-of-00002.jsonl',
-    'multi_label_sharded-00002-of-00002.jsonl'
+    'multi_label_sharded-00002-of-00002.jsonl',
 ]
 NON_EXISTENT_DATA_FILES = ['DOES_NOT_EXIST.jsonl']
 INVALID_DATA_FILES = ['/asdf/']
 EXPECTED_SINGLE_LABEL_DATA = [
-    {
-        'text': ['Test first sentence.'],
-        'labels': 'FirstClass'
-    },
-    {
-        'text': ['Test second sentence.'],
-        'labels': 'SecondClass'
-    },
-    {
-        'text': ['Sentence, the third one.'],
-        'labels': 'FirstClass'
-    },
-    {
-        'text': ['Here is a fourth sentence.'],
-        'labels': 'SecondClass'
-    },
-    {
-        'text': ['Five sentences and counting.'],
-        'labels': 'FirstClass'
-    },
-    {
-        'text': ['Number six example sentence.'],
-        'labels': 'SecondClass'
-    },
+    {'text': ['Test first sentence.'], 'labels': 'FirstClass'},
+    {'text': ['Test second sentence.'], 'labels': 'SecondClass'},
+    {'text': ['Sentence, the third one.'], 'labels': 'FirstClass'},
+    {'text': ['Here is a fourth sentence.'], 'labels': 'SecondClass'},
+    {'text': ['Five sentences and counting.'], 'labels': 'FirstClass'},
+    {'text': ['Number six example sentence.'], 'labels': 'SecondClass'},
 ]
 EXPECTED_MULTI_LABEL_DATA = [
-    {
-        'text': ['Test first sentence.'],
-        'labels': ['FirstClass']
-    },
+    {'text': ['Test first sentence.'], 'labels': ['FirstClass']},
     {
         'text': ['Test second sentence.'],
-        'labels': ['FirstClass', 'SecondClass']
+        'labels': ['FirstClass', 'SecondClass'],
     },
     {
         'text': ['Sentence, the third one.'],
-        'labels': ['FirstClass', 'SecondClass']
+        'labels': ['FirstClass', 'SecondClass'],
     },
-    {
-        'text': ['Here is a fourth sentence.'],
-        'labels': ['SecondClass']
-    },
-    {
-        'text': ['Five sentences and counting.'],
-        'labels': ['FirstClass']
-    },
+    {'text': ['Here is a fourth sentence.'], 'labels': ['SecondClass']},
+    {'text': ['Five sentences and counting.'], 'labels': ['FirstClass']},
     {
         'text': ['Number six example sentence.'],
-        'labels': ['FirstClass', 'SecondClass']
+        'labels': ['FirstClass', 'SecondClass'],
     },
 ]
 
@@ -108,23 +81,27 @@ class ConvertClassificationExportForBatchPredictTest(parameterized.TestCase):
           'testcase_name': 'single_label',
           'files': SINGLE_LABEL_DATA_FILES,
           'classification_type': 'multiclass',
-          'expected': EXPECTED_SINGLE_LABEL_DATA
-      }, {
+          'expected': EXPECTED_SINGLE_LABEL_DATA,
+      },
+      {
           'testcase_name': 'single_label_sharded',
           'files': SINGLE_LABEL_SHARDED_DATA_FILES,
           'classification_type': 'multiclass',
-          'expected': EXPECTED_SINGLE_LABEL_DATA
-      }, {
+          'expected': EXPECTED_SINGLE_LABEL_DATA,
+      },
+      {
           'testcase_name': 'multi_label',
           'files': MULTI_LABEL_DATA_FILES,
           'classification_type': 'multilabel',
-          'expected': EXPECTED_MULTI_LABEL_DATA
-      }, {
+          'expected': EXPECTED_MULTI_LABEL_DATA,
+      },
+      {
           'testcase_name': 'multi_label_sharded',
           'files': MULTI_LABEL_SHARDED_DATA_FILES,
           'classification_type': 'multilabel',
-          'expected': EXPECTED_MULTI_LABEL_DATA
-      })
+          'expected': EXPECTED_MULTI_LABEL_DATA,
+      },
+  )
   def test_datagen(self, files, classification_type, expected):
     output_dir = epath.Path(self.create_tempdir().full_path)
     file_paths = [os.path.join(TESTDATA_ROOT, f) for f in files]

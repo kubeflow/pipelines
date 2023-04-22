@@ -20,7 +20,7 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp
 
 import unittest
 
-_INVALID__SYSTEM_LABELS = "{key1: \"value1\"}"
+_INVALID__SYSTEM_LABELS = '{key1: "value1"}'
 _SYSTEM_LABELS = {"key1": "value1", "key2": "value2"}
 _EXISTING_LABELS = {"key3": "value3", "key2": "value4"}
 _COMBINED_LABELS = {"key1": "value1", "key3": "value3", "key2": "value4"}
@@ -31,27 +31,30 @@ class SystemLabelsTests(unittest.TestCase):
 
   def test_attach_system_labels_combine_existing_and_system(self):
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
+        _SYSTEM_LABELS
+    )
     self.assertEqual(
-        gcp_labels_util.attach_system_labels(_EXISTING_LABELS),
-        _COMBINED_LABELS)
+        gcp_labels_util.attach_system_labels(_EXISTING_LABELS), _COMBINED_LABELS
+    )
 
   def test_attach_system_labels_no_existing_returns_system_labels(self):
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
+        _SYSTEM_LABELS
+    )
     self.assertEqual(gcp_labels_util.attach_system_labels(), _SYSTEM_LABELS)
 
   def test_attach_system_labels_empty_existing_returns_system_labels(self):
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
+        _SYSTEM_LABELS
+    )
     self.assertEqual(gcp_labels_util.attach_system_labels({}), _SYSTEM_LABELS)
 
   def test_attach_system_labels_no_system_labels_returns_existing(self):
     if gcp_labels_util.SYSTEM_LABEL_ENV_VAR in os.environ:
       os.environ.pop(gcp_labels_util.SYSTEM_LABEL_ENV_VAR)
     self.assertEqual(
-        gcp_labels_util.attach_system_labels(_EXISTING_LABELS),
-        _EXISTING_LABELS)
+        gcp_labels_util.attach_system_labels(_EXISTING_LABELS), _EXISTING_LABELS
+    )
 
   def test_attach_system_labels_no_system_labels_returns_none(self):
     if gcp_labels_util.SYSTEM_LABEL_ENV_VAR in os.environ:
@@ -66,8 +69,8 @@ class SystemLabelsTests(unittest.TestCase):
   def test_attach_system_labels_invalid_system_labels_returns_existing(self):
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = _INVALID__SYSTEM_LABELS
     self.assertEqual(
-        gcp_labels_util.attach_system_labels(_EXISTING_LABELS),
-        _EXISTING_LABELS)
+        gcp_labels_util.attach_system_labels(_EXISTING_LABELS), _EXISTING_LABELS
+    )
 
   def test_attach_system_labels_invalid_system_labels_returns_none(self):
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = _INVALID__SYSTEM_LABELS

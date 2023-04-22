@@ -29,25 +29,38 @@ class BatchPredictionJobLauncherJobUtilsTests(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'test_region'
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
 
   @mock.patch.object(
-      remote_runner, 'create_batch_prediction_job', autospec=True)
+      remote_runner, 'create_batch_prediction_job', autospec=True
+  )
   def test_launcher_on_batch_prediction_job_type(
-      self, mock_create_batch_prediction_job):
+      self, mock_create_batch_prediction_job
+  ):
     job_type = 'BatchPredictionJob'
-    payload = ('{"batchPredictionJob": {"displayName": '
-               '"BatchPredictionComponentName", "model": '
-               '"projects/test/locations/test/models/test-model","inputConfig":'
-               ' {"instancesFormat": "CSV","gcsSource": {"uris": '
-               '["test_gcs_source"]}}, "outputConfig": {"predictionsFormat": '
-               '"CSV", "gcsDestination": {"outputUriPrefix": '
-               '"test_gcs_destination"}}}}')
+    payload = (
+        '{"batchPredictionJob": {"displayName": '
+        '"BatchPredictionComponentName", "model": '
+        '"projects/test/locations/test/models/test-model","inputConfig":'
+        ' {"instancesFormat": "CSV","gcsSource": {"uris": '
+        '["test_gcs_source"]}}, "outputConfig": {"predictionsFormat": '
+        '"CSV", "gcsDestination": {"outputUriPrefix": '
+        '"test_gcs_destination"}}}}'
+    )
     input_args = [
-        '--type', job_type, '--project', self._project, '--location',
-        self._location, '--payload', payload, '--gcp_resources',
-        self._gcp_resources, '--executor_input', 'executor_input'
+        '--type',
+        job_type,
+        '--project',
+        self._project,
+        '--location',
+        self._location,
+        '--payload',
+        payload,
+        '--gcp_resources',
+        self._gcp_resources,
+        '--executor_input',
+        'executor_input',
     ]
 
     launcher.main(input_args)
@@ -57,4 +70,5 @@ class BatchPredictionJobLauncherJobUtilsTests(unittest.TestCase):
         location=self._location,
         payload=payload,
         gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+        executor_input='executor_input',
+    )
