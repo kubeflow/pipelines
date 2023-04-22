@@ -22,13 +22,14 @@ import unittest
 class ExecutionContextTests(unittest.TestCase):
   "Tests for Execution Context"
 
-  @mock.patch.object(signal, 'signal', autospec=True)
+  @mock.patch.object(signal, "signal", autospec=True)
   def test_signal_handler_added(self, mock_signal):
     cancel_handler = mock.Mock()
     context = ExecutionContext(on_cancel=cancel_handler)
 
-    mock_signal.assert_called_once_with(signal.SIGTERM,
-                                        context._exit_gracefully)
+    mock_signal.assert_called_once_with(
+        signal.SIGTERM, context._exit_gracefully
+    )
 
   def test_exit_gracefully_cancel(self):
     cancel_handler = mock.Mock()

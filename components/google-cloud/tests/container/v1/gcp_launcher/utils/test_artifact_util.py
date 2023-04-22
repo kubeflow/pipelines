@@ -31,16 +31,22 @@ class ArtifactUtilTests(unittest.TestCase):
   def setUp(self):
     super(ArtifactUtilTests, self).setUp()
     self._output_file_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo'
+    )
 
   def tearDown(self):
     if os.path.exists(self._output_file_path):
       os.remove(self._output_file_path)
 
   def test_update_output_artifacts(self):
-    executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"' + self._output_file_path + '"}}'
-    vertex_model = VertexModel('model', 'https://new/uri',
-                               'fake_model_resource_name')
+    executor_input = (
+        '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"'
+        + self._output_file_path
+        + '"}}'
+    )
+    vertex_model = VertexModel(
+        'model', 'https://new/uri', 'fake_model_resource_name'
+    )
     artifact_util.update_output_artifacts(executor_input, [vertex_model])
 
     with open(self._output_file_path) as f:
@@ -48,5 +54,9 @@ class ArtifactUtilTests(unittest.TestCase):
       self.assertEqual(
           executor_output,
           json.loads(
-              '{"artifacts": {"model": {"artifacts": [{"metadata": {"resourceName": "fake_model_resource_name"}, "name": "foobar", "type": {"schemaTitle": "google.VertexModel"}, "uri": "https://new/uri"}]}}}'
-          ))
+              '{"artifacts": {"model": {"artifacts": [{"metadata":'
+              ' {"resourceName": "fake_model_resource_name"}, "name": "foobar",'
+              ' "type": {"schemaTitle": "google.VertexModel"}, "uri":'
+              ' "https://new/uri"}]}}}'
+          ),
+      )

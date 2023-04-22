@@ -42,19 +42,26 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
     self._test_bucket_name = 'test_bucket_name'
     self._temp_blob_path = 'temp_blob_path'
     self._staging_blob_path = 'staging_blob_path'
-    self._gcs_temp_path = f'gs://{self._test_bucket_name}/{self._temp_blob_path}'
-    self._gcs_staging_path = f'gs://{self._test_bucket_name}/{self._staging_blob_path}'
+    self._gcs_temp_path = (
+        f'gs://{self._test_bucket_name}/{self._temp_blob_path}'
+    )
+    self._gcs_staging_path = (
+        f'gs://{self._test_bucket_name}/{self._staging_blob_path}'
+    )
     self._job_id = '2023-01-03_16_06_07-12446786984340643222'
     self._job_name = 'test_job_name'
     self._container_spec_gcs_path = 'test_container_spec_gcs_path'
     self._job_uri = f'{self._dataflow_uri_prefix}/projects/{self._project}/locations/{self._location}/jobs/{self._job_id}'
     self._args = ['test_arg']
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources'
+    )
     self._local_file_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'local_file')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'local_file'
+    )
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
+        _SYSTEM_LABELS
+    )
 
     self._test_payload = {
         'launch_parameter': {
@@ -84,14 +91,18 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
                 'worker_region': self._location,
                 'worker_zone': 'us-central1-b',
                 'staging_location': self._gcs_staging_path,
-            }
+            },
         }
     }
 
     self._expected_payload = self._test_payload.copy()
-    self._expected_payload['launch_parameter']['environment']['additional_user_labels'] = {
+    self._expected_payload['launch_parameter']['environment'][
+        'additional_user_labels'
+    ] = {
         **_SYSTEM_LABELS,
-        **self._expected_payload['launch_parameter']['environment']['additional_user_labels'],
+        **self._expected_payload['launch_parameter']['environment'][
+            'additional_user_labels'
+        ],
     }
 
   def tearDown(self):
@@ -102,8 +113,9 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
   def _validate_gcp_resources_succeeded(self):
     with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
-      job_resources = json_format.Parse(serialized_gcp_resources,
-                                        gcp_resources_pb2.GcpResources())
+      job_resources = json_format.Parse(
+          serialized_gcp_resources, gcp_resources_pb2.GcpResources()
+      )
 
       # Validate number of resources.
       self.assertLen(job_resources.resources, 1)
@@ -118,10 +130,9 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
-  def test_dataflow_flex_template_remote_runner_launch_succeeded(self,
-                                                                 mock_post_requests,
-                                                                 _,
-                                                                 mock_auth_default):
+  def test_dataflow_flex_template_remote_runner_launch_succeeded(
+      self, mock_post_requests, _, mock_auth_default
+  ):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -140,9 +151,13 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
     test_payload['launch_parameter']['job_name'] = self._job_name
 
     expected_payload = test_payload.copy()
-    expected_payload['launch_parameter']['environment']['additional_user_labels'] = {
+    expected_payload['launch_parameter']['environment'][
+        'additional_user_labels'
+    ] = {
         **_SYSTEM_LABELS,
-        **expected_payload['launch_parameter']['environment']['additional_user_labels'],
+        **expected_payload['launch_parameter']['environment'][
+            'additional_user_labels'
+        ],
     }
 
     dataflow_flex_template_remote_runner.launch_flex_template(
@@ -157,17 +172,16 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
         self=mock.ANY,
         url=f'{self._dataflow_uri_prefix}/projects/{self._project}/locations/{self._location}/flexTemplates:launch',
         data=json.dumps(expected_payload),
-        headers={'Authorization': f'Bearer {self._creds_token}'}
+        headers={'Authorization': f'Bearer {self._creds_token}'},
     )
     self._validate_gcp_resources_succeeded()
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
-  def test_dataflow_flex_template_remote_runner_launch_bad_request(self,
-                                                                   mock_post_requests,
-                                                                   _,
-                                                                   mock_auth_default):
+  def test_dataflow_flex_template_remote_runner_launch_bad_request(
+      self, mock_post_requests, _, mock_auth_default
+  ):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -180,12 +194,17 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
     mock_response.json.return_value = {
         'error': {
             'code': 400,
-            'message': 'JobName invalid; the name must consist of only the characters [-a-z0-9], starting with a letter and ending with a letter or number',
+            'message': (
+                'JobName invalid; the name must consist of only the characters'
+                ' [-a-z0-9], starting with a letter and ending with a letter or'
+                ' number'
+            ),
             'status': 'INVALID_ARGUMENT',
         }
     }
     mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-        request=mock_request, response=mock_response,
+        request=mock_request,
+        response=mock_response,
     )
     mock_post_requests.return_value = mock_response
 
@@ -193,9 +212,13 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
     test_payload['launch_parameter']['job_name'] = self._job_name
 
     expected_payload = test_payload.copy()
-    expected_payload['launch_parameter']['environment']['additional_user_labels'] = {
+    expected_payload['launch_parameter']['environment'][
+        'additional_user_labels'
+    ] = {
         **_SYSTEM_LABELS,
-        **expected_payload['launch_parameter']['environment']['additional_user_labels'],
+        **expected_payload['launch_parameter']['environment'][
+            'additional_user_labels'
+        ],
     }
 
     with self.assertRaises(RuntimeError) as err:
@@ -211,23 +234,23 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
         self=mock.ANY,
         url=f'{self._dataflow_uri_prefix}/projects/{self._project}/locations/{self._location}/flexTemplates:launch',
         data=json.dumps(expected_payload),
-        headers={'Authorization': f'Bearer {self._creds_token}'}
+        headers={'Authorization': f'Bearer {self._creds_token}'},
     )
 
     exception_msg = (
-        f'Dataflow service returned HTTP status 400 from POST: {mock_request.url}'
-        '. Status: INVALID_ARGUMENT'
-        ', Message: JobName invalid; the name must consist of only the characters [-a-z0-9], starting with a letter and ending with a letter or number'
+        'Dataflow service returned HTTP status 400 from POST:'
+        f' {mock_request.url}. Status: INVALID_ARGUMENT, Message: JobName'
+        ' invalid; the name must consist of only the characters [-a-z0-9],'
+        ' starting with a letter and ending with a letter or number'
     )
     self.assertEqual(exception_msg, str(err.exception))
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
-  def test_dataflow_flex_template_remote_runner_generate_job_name(self,
-                                                                  mock_post_requests,
-                                                                  _,
-                                                                  mock_auth_default):
+  def test_dataflow_flex_template_remote_runner_generate_job_name(
+      self, mock_post_requests, _, mock_auth_default
+  ):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -253,20 +276,26 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
     post_data = json.loads(mock_post_requests.call_args[1]['data'])
     job_name = post_data['launch_parameter']['job_name']
 
-    self.assertEqual(len(re.findall('dataflowjob-[0-9]{14}-[a-f0-9]{8}', job_name)), 1)
+    self.assertEqual(
+        len(re.findall('dataflowjob-[0-9]{14}-[a-f0-9]{8}', job_name)), 1
+    )
 
     expected_payload = self._test_payload.copy()
     expected_payload['launch_parameter']['job_name'] = job_name
-    expected_payload['launch_parameter']['environment']['additional_user_labels'] = {
+    expected_payload['launch_parameter']['environment'][
+        'additional_user_labels'
+    ] = {
         **_SYSTEM_LABELS,
-        **expected_payload['launch_parameter']['environment']['additional_user_labels'],
+        **expected_payload['launch_parameter']['environment'][
+            'additional_user_labels'
+        ],
     }
 
     mock_post_requests.assert_called_once_with(
         self=mock.ANY,
         url=f'{self._dataflow_uri_prefix}/projects/{self._project}/locations/{self._location}/flexTemplates:launch',
         data=json.dumps(expected_payload),
-        headers={'Authorization': f'Bearer {self._creds_token}'}
+        headers={'Authorization': f'Bearer {self._creds_token}'},
     )
 
     self._validate_gcp_resources_succeeded()
@@ -274,20 +303,21 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
-  def test_dataflow_flex_template_remote_runner_existing_job_found(self,
-                                                                   mock_post_requests,
-                                                                   _,
-                                                                   mock_auth_default):
+  def test_dataflow_flex_template_remote_runner_existing_job_found(
+      self, mock_post_requests, _, mock_auth_default
+  ):
     with open(self._gcp_resources, 'w') as f:
       f.write(
-          json.dumps({
-              'resources': [
-                  {
-                      'resource_type': 'DataflowJob',
-                      'resource_uri': self._job_uri,
-                  },
-              ]
-          })
+          json.dumps(
+              {
+                  'resources': [
+                      {
+                          'resource_type': 'DataflowJob',
+                          'resource_uri': self._job_uri,
+                      },
+                  ]
+              }
+          )
       )
 
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
@@ -304,18 +334,21 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
     mock_post_requests.assert_not_called()
 
   @mock.patch.object(google.auth, 'default', autospec=True)
-  def test_dataflow_flex_template_remote_runner_job_exists_wrong_format(self,
-                                                                        mock_auth_default):
+  def test_dataflow_flex_template_remote_runner_job_exists_wrong_format(
+      self, mock_auth_default
+  ):
     with open(self._gcp_resources, 'w') as f:
       f.write(
-          json.dumps({
-              'resources': [
-                  {
-                      'resourceType': 'DataflowJob',
-                      'resourceUri': 'invalid_resource_uri',
-                  },
-              ]
-          })
+          json.dumps(
+              {
+                  'resources': [
+                      {
+                          'resourceType': 'DataflowJob',
+                          'resourceUri': 'invalid_resource_uri',
+                      },
+                  ]
+              }
+          )
       )
 
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
@@ -332,15 +365,14 @@ class DataflowFlexTemplateRemoteRunnerTests(unittest.TestCase):
       )
 
   @mock.patch.object(google.auth, 'default', autospec=True)
-  def test_dataflow_flex_template_remote_runner_exception_with_multiple_job_resources_in_gcp_resources(self, mock_auth_default):
+  def test_dataflow_flex_template_remote_runner_exception_with_multiple_job_resources_in_gcp_resources(
+      self, mock_auth_default
+  ):
     with open(self._gcp_resources, 'w') as f:
       f.write(
-          (
-              f'{{"resources": ['
-              f'{{"resourceType": "DataflowJob", "resourceUri": "{self._job_uri}"}},'
-              f'{{"resourceType": "DataflowJob", "resourceUri": "{self._job_uri}"}}'
-              f']}}'
-          )
+          '{"resources": [{"resourceType": "DataflowJob", "resourceUri":'
+          f' "{self._job_uri}"}},{{"resourceType": "DataflowJob",'
+          f' "resourceUri": "{self._job_uri}"}}]}}'
       )
 
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)

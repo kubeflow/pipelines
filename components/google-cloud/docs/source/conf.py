@@ -19,17 +19,23 @@
 from kfp import dsl, components, deprecated
 from typing import Callable
 
+
 def container_component_decorator(func):
-    return func
+  return func
+
 
 def component_decorator(*args, **kwargs):
-    def decorator(func):
-        return func
-    return decorator
+  def decorator(func):
+    return func
+
+  return decorator
+
 
 dsl.component = component_decorator
 dsl.container_component = container_component_decorator
-components.load_component_from_file = deprecated.components.load_component_from_file
+components.load_component_from_file = (
+    deprecated.components.load_component_from_file
+)
 
 
 # -- Project information -----------------------------------------------------

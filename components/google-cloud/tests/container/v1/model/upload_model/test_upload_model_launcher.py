@@ -21,21 +21,30 @@ from google_cloud_pipeline_components.container.v1.model.upload_model import rem
 import unittest
 from unittest import mock
 
+
 class LauncherUploadModelUtilsTests(unittest.TestCase):
 
   def setUp(self):
     super(LauncherUploadModelUtilsTests, self).setUp()
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
     self._input_args = [
-        '--type', 'UploadModel', '--project', 'test_project', '--location',
-        'us_central1', '--payload', 'test_payload', '--gcp_resources',
-        self._gcp_resources, '--executor_input', 'executor_input'
+        '--type',
+        'UploadModel',
+        '--project',
+        'test_project',
+        '--location',
+        'us_central1',
+        '--payload',
+        'test_payload',
+        '--gcp_resources',
+        self._gcp_resources,
+        '--executor_input',
+        'executor_input',
     ]
 
-  @mock.patch.object(
-      remote_runner, 'upload_model', autospec=True)
+  @mock.patch.object(remote_runner, 'upload_model', autospec=True)
   def test_launcher_on_upload_model_type(self, mock_upload_model):
     launcher.main(self._input_args)
     mock_upload_model.assert_called_once_with(
@@ -45,10 +54,10 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
         payload='test_payload',
         gcp_resources=self._gcp_resources,
         executor_input='executor_input',
-        parent_model_name=None)
+        parent_model_name=None,
+    )
 
-  @mock.patch.object(
-      remote_runner, 'upload_model', autospec=True)
+  @mock.patch.object(remote_runner, 'upload_model', autospec=True)
   def test_launcher_on_upload_model_parent_model(self, mock_upload_model):
     self._input_args.extend(('--parent_model_name', 'test_parent_model_name'))
     launcher.main(self._input_args)
@@ -59,4 +68,5 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
         payload='test_payload',
         gcp_resources=self._gcp_resources,
         executor_input='executor_input',
-        parent_model_name='test_parent_model_name')
+        parent_model_name='test_parent_model_name',
+    )

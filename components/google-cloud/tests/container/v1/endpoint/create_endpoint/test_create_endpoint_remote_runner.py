@@ -41,21 +41,35 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
     super(CreateEndpointRemoteRunnerUtilsTests, self).setUp()
     self._payload = '{"display_name": "ContainerComponent"}'
     self._create_endpoint_request = json.loads(self._payload, strict=False)
-    self._expected_create_endpoint_request = self._create_endpoint_request.copy()
+    self._expected_create_endpoint_request = (
+        self._create_endpoint_request.copy()
+    )
     self._expected_create_endpoint_request['labels'] = _SYSTEM_LABELS
     self._project = 'test_project'
     self._location = 'test_region'
     self._type = 'CreateEndpoint'
-    self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
-    self._endpoint_name = f'projects/{self._project}/locations/{self._location}/endpoints/123'
+    self._lro_name = (
+        f'projects/{self._project}/locations/{self._location}/operations/123'
+    )
+    self._endpoint_name = (
+        f'projects/{self._project}/locations/{self._location}/endpoints/123'
+    )
     self._executor_input = '{"outputs":{"artifacts":{"endpoint":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Endpoint"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
-    self._output_file_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo')
-    self._executor_input = '{"outputs":{"artifacts":{"endpoint":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Endpoint"},"uri":"gs://abc"}]}},"outputFile":"'+self._output_file_path+'"}}'
-    self._gcp_resources_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
+    self._output_file_path = os.path.join(
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo'
+    )
+    self._executor_input = (
+        '{"outputs":{"artifacts":{"endpoint":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Endpoint"},"uri":"gs://abc"}]}},"outputFile":"'
+        + self._output_file_path
+        + '"}}'
+    )
+    self._gcp_resources_path = os.path.join(
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources'
+    )
     self._uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
-
+        _SYSTEM_LABELS
+    )
 
   def tearDown(self):
     if os.path.exists(self._gcp_resources_path):
@@ -64,8 +78,9 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
-  def test_create_endpoint_remote_runner_succeeded(self, mock_post_requests,
-                                                   _, mock_auth):
+  def test_create_endpoint_remote_runner_succeeded(
+      self, mock_post_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -73,49 +88,61 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
     create_endpoint_lro.json.return_value = {
         'name': self._lro_name,
         'done': True,
-        'response': {
-            'name': self._endpoint_name
-        }
+        'response': {'name': self._endpoint_name},
     }
     mock_post_requests.return_value = create_endpoint_lro
 
-    create_endpoint_remote_runner.create_endpoint(self._type, self._project,
-                                                  self._location,
-                                                  self._payload,
-                                                  self._gcp_resources_path,
-                                                  self._executor_input)
+    create_endpoint_remote_runner.create_endpoint(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources_path,
+        self._executor_input,
+    )
     mock_post_requests.assert_called_once_with(
         url=f'{self._uri_prefix}projects/{self._project}/locations/{self._location}/endpoints',
         data=json.dumps(self._expected_create_endpoint_request),
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
-            'User-Agent': 'google-cloud-pipeline-components'
-        })
+            'User-Agent': 'google-cloud-pipeline-components',
+        },
+    )
 
     with open(self._output_file_path) as f:
       executor_output = json.load(f, strict=False)
       self.assertEqual(
           executor_output,
           json.loads(
-              '{"artifacts": {"endpoint": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/endpoints/123"}, "name": "foobar", "type": {"schemaTitle": "system.Endpoint"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/endpoints/123"}]}}}'
-          ))
+              '{"artifacts": {"endpoint": {"artifacts": [{"metadata":'
+              ' {"resourceName":'
+              ' "projects/test_project/locations/test_region/endpoints/123"},'
+              ' "name": "foobar", "type": {"schemaTitle": "system.Endpoint"},'
+              ' "uri":'
+              ' "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/endpoints/123"}]}}}'
+          ),
+      )
 
     with open(self._gcp_resources_path) as f:
       serialized_gcp_resources = f.read()
       # Instantiate GCPResources Proto
-      lro_resources = json_format.Parse(serialized_gcp_resources,
-                                        GcpResources())
+      lro_resources = json_format.Parse(
+          serialized_gcp_resources, GcpResources()
+      )
 
       self.assertEqual(len(lro_resources.resources), 1)
-      self.assertEqual(lro_resources.resources[0].resource_uri,
-                       self._uri_prefix + self._lro_name)
+      self.assertEqual(
+          lro_resources.resources[0].resource_uri,
+          self._uri_prefix + self._lro_name,
+      )
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
   def test_create_endpoint_remote_runner_raises_exception_on_error(
-          self, mock_post_requests, _, mock_auth):
+      self, mock_post_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -123,16 +150,19 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
     create_endpoint_lro.json.return_value = {
         'name': self._lro_name,
         'done': True,
-        'error': {
-            'code': 1
-        }
+        'error': {'code': 1},
     }
     mock_post_requests.return_value = create_endpoint_lro
 
     with self.assertRaises(RuntimeError):
       create_endpoint_remote_runner.create_endpoint(
-          self._type, self._project, self._location, self._payload,
-          self._gcp_resources_path, self._executor_input)
+          self._type,
+          self._project,
+          self._location,
+          self._payload,
+          self._gcp_resources_path,
+          self._executor_input,
+      )
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -140,36 +170,37 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
   def test_create_endpoint_remote_runner_poll_till_succeeded(
-          self, mock_time_sleep, mock_get_requests, mock_post_requests, _,
-          mock_auth):
+      self, mock_time_sleep, mock_get_requests, mock_post_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
     create_endpoint_lro = mock.Mock()
     create_endpoint_lro.json.return_value = {
         'name': self._lro_name,
-        'done': False
+        'done': False,
     }
     mock_post_requests.return_value = create_endpoint_lro
 
     poll_lro = mock.Mock()
-    poll_lro.json.side_effect = [{
-        'name': self._lro_name,
-        'done': False
-    }, {
-        'name': self._lro_name,
-        'done': True,
-        'response': {
-            'name': self._endpoint_name
-        }
-    }]
+    poll_lro.json.side_effect = [
+        {'name': self._lro_name, 'done': False},
+        {
+            'name': self._lro_name,
+            'done': True,
+            'response': {'name': self._endpoint_name},
+        },
+    ]
     mock_get_requests.return_value = poll_lro
 
-    create_endpoint_remote_runner.create_endpoint(self._type, self._project,
-                                                  self._location,
-                                                  self._payload,
-                                                  self._gcp_resources_path,
-                                                  self._executor_input)
+    create_endpoint_remote_runner.create_endpoint(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources_path,
+        self._executor_input,
+    )
     self.assertEqual(mock_post_requests.call_count, 1)
     self.assertEqual(mock_time_sleep.call_count, 2)
     self.assertEqual(mock_get_requests.call_count, 2)
@@ -178,9 +209,9 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
   @mock.patch.object(ExecutionContext, '__init__', autospec=True)
-  def test_create_endpoint_remote_runner_cancel(self, mock_execution_context,
-                                                mock_post_requests,
-                                                _, mock_auth):
+  def test_create_endpoint_remote_runner_cancel(
+      self, mock_execution_context, mock_post_requests, _, mock_auth
+  ):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -188,18 +219,19 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
     create_endpoint_lro.json.return_value = {
         'name': self._lro_name,
         'done': True,
-        'response': {
-            'name': self._endpoint_name
-        }
+        'response': {'name': self._endpoint_name},
     }
     mock_post_requests.return_value = create_endpoint_lro
     mock_execution_context.return_value = None
 
-    create_endpoint_remote_runner.create_endpoint(self._type, self._project,
-                                                  self._location,
-                                                  self._payload,
-                                                  self._gcp_resources_path,
-                                                  self._executor_input)
+    create_endpoint_remote_runner.create_endpoint(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources_path,
+        self._executor_input,
+    )
     # Call cancellation handler
     mock_execution_context.call_args[1]['on_cancel']()
     self.assertEqual(mock_post_requests.call_count, 2)
@@ -209,4 +241,5 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
-        })
+        },
+    )

@@ -33,22 +33,15 @@ class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
     self._test_input_string = "test_input_string"
     self._package_path = "pipeline.json"
     self._container_component = components.load_component_from_text(
-        "name: Producer\n"
-        "inputs:\n"
-        "- {name: input_text, type: String, description: 'Represents an input parameter.'}\n"
-        "outputs:\n"
-        "- {name: output_value, type: String, description: 'Represents an output paramter.'}\n"
-        "implementation:\n"
-        "  container:\n"
-        "    image: google/cloud-sdk:latest\n"
-        "    command:\n"
-        "    - sh\n"
-        "    - -c\n"
-        "    - |\n"
-        "      set -e -x\n"
-        "      echo '$0, this is an output parameter' | gsutil cp - '$1'\n"
-        "    - {inputValue: input_text}\n"
-        "    - {outputPath: output_value}\n")
+        "name: Producer\ninputs:\n- {name: input_text, type: String,"
+        " description: 'Represents an input parameter.'}\noutputs:\n- {name:"
+        " output_value, type: String, description: 'Represents an output"
+        " paramter.'}\nimplementation:\n  container:\n    image:"
+        " google/cloud-sdk:latest\n    command:\n    - sh\n    - -c\n    - |\n "
+        "     set -e -x\n      echo '$0, this is an output parameter' | gsutil"
+        " cp - '$1'\n    - {inputValue: input_text}\n    - {outputPath:"
+        " output_value}\n"
+    )
     self._python_componeont = self._create_a_pytnon_based_component()
 
   def tearDown(self):
@@ -66,19 +59,21 @@ class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
     return sum_numbers
 
   def test_container_based_custom_job_op_compile(self):
-
     custom_job_op = utils.create_custom_training_job_op_from_component(
-        self._container_component)
+        self._container_component
+    )
 
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       custom_job_task = custom_job_op(  # pylint: disable=unused-variable
           self._test_input_string,
           project=self._project,
-          location=self._location)
+          location=self._location,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
@@ -86,7 +81,9 @@ class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "../testdata/custom_training_job_wrapper_pipeline.json")) as ef:
+            "../testdata/custom_training_job_wrapper_pipeline.json",
+        )
+    ) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparision

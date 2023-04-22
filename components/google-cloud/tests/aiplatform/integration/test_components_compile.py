@@ -61,25 +61,26 @@ class ComponentsCompileTest(unittest.TestCase):
     self._gcs_output_dir = "gs://test_gcs_output_dir"
     self._pipeline_root = "gs://test_pipeline_root"
     self._gcs_destination_prefix = "gs://test_gcs_output_dir/batch_prediction"
-    self._serving_container_image_uri = "gcr.io/test_project/test_image:test_tag"
+    self._serving_container_image_uri = (
+        "gcr.io/test_project/test_image:test_tag"
+    )
     self._artifact_uri = "project/test_artifact_uri"
     self._package_path = os.path.join(
-        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json")
+        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json"
+    )
 
   def tearDown(self):
     if os.path.exists(self._package_path):
       os.remove(self._package_path)
 
   def test_automl_image_component_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       dataset_create_op = ImageDatasetCreateOp(
           project=self._project,
           display_name=self._display_name,
           gcs_source=self._gcs_source,
-          import_schema_uri=aiplatform.schema.dataset.ioformat.image
-          .single_label_classification,
+          import_schema_uri=aiplatform.schema.dataset.ioformat.image.single_label_classification,
       )
 
       training_job_run_op = AutoMLImageTrainingJobRunOp(
@@ -105,11 +106,12 @@ class ComponentsCompileTest(unittest.TestCase):
           project=self._project,
           gcs_source=self._gcs_source,
           dataset=dataset_create_op.outputs["dataset"],
-          import_schema_uri=aiplatform.schema.dataset.ioformat.image
-          .single_label_classification)
+          import_schema_uri=aiplatform.schema.dataset.ioformat.image.single_label_classification,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
     with open("testdata/automl_image_pipeline.json") as ef:
@@ -119,7 +121,6 @@ class ComponentsCompileTest(unittest.TestCase):
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_automl_tabular_component_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       dataset_create_op = TabularDatasetCreateOp(
@@ -134,11 +135,7 @@ class ComponentsCompileTest(unittest.TestCase):
           optimization_prediction_type="regression",
           optimization_objective="minimize-rmse",
           column_transformations=[
-              {
-                  "numeric": {
-                      "column_name": "longitude"
-                  }
-              },
+              {"numeric": {"column_name": "longitude"}},
           ],
           target_column="longitude",
           dataset=dataset_create_op.outputs["dataset"],
@@ -153,19 +150,18 @@ class ComponentsCompileTest(unittest.TestCase):
 
     self.assertFalse(os.path.exists(self._package_path))
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     self.assertTrue(os.path.exists(self._package_path))
 
   def test_automl_text_component_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       dataset_create_op = TextDatasetCreateOp(
           project=self._project,
           display_name=self._display_name,
           gcs_source=self._gcs_source,
-          import_schema_uri=aiplatform.schema.dataset.ioformat.text
-          .multi_label_classification,
+          import_schema_uri=aiplatform.schema.dataset.ioformat.text.multi_label_classification,
       )
 
       training_job_run_op = AutoMLTextTrainingJobRunOp(
@@ -190,11 +186,12 @@ class ComponentsCompileTest(unittest.TestCase):
           project=self._project,
           gcs_source=self._gcs_source,
           dataset=dataset_create_op.outputs["dataset"],
-          import_schema_uri=aiplatform.schema.dataset.ioformat.text
-          .multi_label_classification)
+          import_schema_uri=aiplatform.schema.dataset.ioformat.text.multi_label_classification,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
     with open("testdata/automl_text_pipeline.json") as ef:
@@ -204,15 +201,13 @@ class ComponentsCompileTest(unittest.TestCase):
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_automl_video_component_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       dataset_create_op = VideoDatasetCreateOp(
           project=self._project,
           display_name=self._display_name,
           gcs_source=self._gcs_source,
-          import_schema_uri=aiplatform.schema.dataset.ioformat.video
-          .classification,
+          import_schema_uri=aiplatform.schema.dataset.ioformat.video.classification,
       )
 
       training_job_run_op = AutoMLVideoTrainingJobRunOp(
@@ -236,11 +231,12 @@ class ComponentsCompileTest(unittest.TestCase):
           project=self._project,
           gcs_source=self._gcs_source,
           dataset=dataset_create_op.outputs["dataset"],
-          import_schema_uri=aiplatform.schema.dataset.ioformat.video
-          .classification)
+          import_schema_uri=aiplatform.schema.dataset.ioformat.video.classification,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
     with open("testdata/automl_video_pipeline.json") as ef:
@@ -250,7 +246,6 @@ class ComponentsCompileTest(unittest.TestCase):
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_automl_forecasting_component_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       dataset_create_op = TimeSeriesDatasetCreateOp(
@@ -289,19 +284,19 @@ class ComponentsCompileTest(unittest.TestCase):
 
     self.assertFalse(os.path.exists(self._package_path))
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     self.assertTrue(os.path.exists(self._package_path))
 
   def test_batch_prediction_op_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
-
       model_upload_op = ModelUploadOp(
           project=self._project,
           display_name=self._display_name,
           serving_container_image_uri=self._serving_container_image_uri,
-          artifact_uri=self._artifact_uri)
+          artifact_uri=self._artifact_uri,
+      )
 
       batch_predict_op = ModelBatchPredictOp(
           project=self._project,
@@ -325,10 +320,12 @@ class ComponentsCompileTest(unittest.TestCase):
           explanation_metadata={"xai_m": "bar"},
           explanation_parameters={"xai_p": "foo"},
           encryption_spec_key_name="some encryption_spec_key_name",
-          labels={"foo": "bar"})
+          labels={"foo": "bar"},
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
@@ -339,7 +336,6 @@ class ComponentsCompileTest(unittest.TestCase):
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_model_upload_and_model_delete_op_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       model_upload_op = ModelUploadOp(
@@ -352,7 +348,9 @@ class ComponentsCompileTest(unittest.TestCase):
           serving_container_args=["arg1", "arg2"],
           serving_container_environment_variables=["env1", "env2"],
           serving_container_ports=["123", "456"],
-          serving_container_predict_route="some serving_container_predict_route",
+          serving_container_predict_route=(
+              "some serving_container_predict_route"
+          ),
           serving_container_health_route="some serving_container_health_route",
           instance_schema_uri="some instance_schema_uri",
           parameters_schema_uri="some parameters_schema_uri",
@@ -361,14 +359,16 @@ class ComponentsCompileTest(unittest.TestCase):
           explanation_metadata={"xai_m": "bar"},
           explanation_parameters={"xai_p": "foo"},
           encryption_spec_key_name="some encryption_spec_key_name",
-          labels={"foo": "bar"})
+          labels={"foo": "bar"},
+      )
 
       _ = ModelDeleteOp(
           model=model_upload_op.outputs["model"],
       )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
@@ -380,7 +380,6 @@ class ComponentsCompileTest(unittest.TestCase):
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_create_endpoint_op_and_delete_endpoint_op_compile(self):
-
     @kfp.dsl.pipeline(name="delete-endpoint-test")
     def pipeline():
       create_endpoint_op = EndpointCreateOp(
@@ -390,13 +389,16 @@ class ComponentsCompileTest(unittest.TestCase):
           description="some description",
           labels={"foo": "bar"},
           network="abc",
-          encryption_spec_key_name="some encryption_spec_key_name")
+          encryption_spec_key_name="some encryption_spec_key_name",
+      )
 
       delete_endpoint_op = EndpointDeleteOp(
-          endpoint=create_endpoint_op.outputs["endpoint"])
+          endpoint=create_endpoint_op.outputs["endpoint"]
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
@@ -408,23 +410,25 @@ class ComponentsCompileTest(unittest.TestCase):
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_model_export_op_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       model_upload_op = ModelUploadOp(
           project=self._project,
           display_name=self._display_name,
           serving_container_image_uri=self._serving_container_image_uri,
-          artifact_uri=self._artifact_uri)
+          artifact_uri=self._artifact_uri,
+      )
 
       model_export_op = ModelExportOp(
           model=model_upload_op.outputs["model"],
           export_format_id="export_format",
           artifact_destination="artifact_destination",
-          image_destination="image_destination")
+          image_destination="image_destination",
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
@@ -436,19 +440,20 @@ class ComponentsCompileTest(unittest.TestCase):
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_model_deploy_op_and_model_undeploy_op_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       model_upload_op = ModelUploadOp(
           project=self._project,
           display_name=self._display_name,
           serving_container_image_uri=self._serving_container_image_uri,
-          artifact_uri=self._artifact_uri)
+          artifact_uri=self._artifact_uri,
+      )
 
       create_endpoint_op = EndpointCreateOp(
           project=self._project,
           location=self._location,
-          display_name=self._display_name)
+          display_name=self._display_name,
+      )
 
       model_deploy_op = ModelDeployOp(
           model=model_upload_op.outputs["model"],
@@ -473,7 +478,8 @@ class ComponentsCompileTest(unittest.TestCase):
       ).after(model_deploy_op)
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)

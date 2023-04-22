@@ -34,7 +34,8 @@ class ComponentsCompileTest(unittest.TestCase):
     self._temp_location = 'gs://temp_location'
     self._pipeline_root = 'gs://test_pipeline_root'
     self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json'
+    )
 
   def tearDown(self):
     super(ComponentsCompileTest, self).tearDown()
@@ -42,7 +43,6 @@ class ComponentsCompileTest(unittest.TestCase):
       os.remove(self._package_path)
 
   def test_dataflow_python_op_compile(self):
-
     @kfp.dsl.pipeline(name='dataflow-python-test')
     def pipeline():
       DataflowPythonJobOp(
@@ -51,10 +51,12 @@ class ComponentsCompileTest(unittest.TestCase):
           python_module_path=self._python_module_path,
           temp_location=self._temp_location,
           requirements_file_path=self._requirements_file_path,
-          args=self._args)
+          args=self._args,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 

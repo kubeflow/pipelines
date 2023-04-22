@@ -34,7 +34,8 @@ class ComponentsCompileTest(unittest.TestCase):
     self._master_type = 'n1-standard-4'
     self._container_image_uri = 'gcr.io/deeplearning-platform-release/base-cpu'
     self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json'
+    )
 
   def tearDown(self):
     super(ComponentsCompileTest, self).tearDown()
@@ -42,7 +43,6 @@ class ComponentsCompileTest(unittest.TestCase):
       os.remove(self._package_path)
 
   def test_notebooks_executor_op_compile(self):
-
     @kfp.dsl.pipeline(name='notebooks-executor-test')
     def pipeline():
       NotebooksExecutorOp(
@@ -54,10 +54,13 @@ class ComponentsCompileTest(unittest.TestCase):
           master_type=self._master_type,
           container_image_uri=self._container_image_uri,
           parameters=(
-              f'PROJECT_ID={self._project},EXECUTION_ID={self._execution_id}'))
+              f'PROJECT_ID={self._project},EXECUTION_ID={self._execution_id}'
+          ),
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 
