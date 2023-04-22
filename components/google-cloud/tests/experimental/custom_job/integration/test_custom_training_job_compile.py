@@ -31,21 +31,20 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
     self._location = "us-central1"
     self._test_input_string = "test_input_string"
     self._package_path = os.path.join(
-        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json")
+        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json"
+    )
     self._worker_pool_specs = [{
         "machine_spec": {
             "machine_type": "n1-standard-4",
             "accelerator_type": "NVIDIA_TESLA_T4",
-            "accelerator_count": 1
+            "accelerator_count": 1,
         },
         "replica_count": 1,
-        "container_spec": {
-            "image_uri": "gcr.io/project_id/test"
-        }
+        "container_spec": {"image_uri": "gcr.io/project_id/test"},
     }]
     self._service_account = "fake_sa"
     self._display_name = "fake_job"
-    self._labels = {'key1':'val1'}
+    self._labels = {"key1": "val1"}
 
   def tearDown(self):
     super(CustomTrainingJobCompileTest, self).tearDown()
@@ -53,7 +52,6 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
       os.remove(self._package_path)
 
   def test_custom_training_job_op_compile(self):
-
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
       _ = CustomTrainingJobOp(
@@ -61,12 +59,14 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
           location=self._location,
           display_name=self._display_name,
           worker_pool_specs=self._worker_pool_specs,
-          reserved_ip_ranges=['1.0.0.0'],
+          reserved_ip_ranges=["1.0.0.0"],
           labels=self._labels,
-          service_account=self._service_account)
+          service_account=self._service_account,
+      )
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
+        pipeline_func=pipeline, package_path=self._package_path
+    )
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
@@ -74,7 +74,9 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "../testdata/custom_training_job_pipeline.json")) as ef:
+            "../testdata/custom_training_job_pipeline.json",
+        )
+    ) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparision

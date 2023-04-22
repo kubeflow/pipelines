@@ -30,22 +30,33 @@ class LauncherInfraValidationJobUtilsTests(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'test_region'
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
 
   @mock.patch.object(
-      remote_runner, 'create_infra_validation_job', autospec=True)
+      remote_runner, 'create_infra_validation_job', autospec=True
+  )
   def test_launcher_on_infra_validation_job_type(
-      self, mock_create_infra_validation_job):
+      self, mock_create_infra_validation_job
+  ):
     job_type = 'InfraValidationJob'
     payload = {
         'infra_validation_example_path': 'test_infra_validator_path',
-        'machine_type': 'n1-standard-8'
+        'machine_type': 'n1-standard-8',
     }
     input_args = [
-        '--type', job_type, '--project', self._project, '--location',
-        self._location, '--gcp_resources', self._gcp_resources,
-        '--executor_input', 'executor_input', '--payload', json.dumps(payload)
+        '--type',
+        job_type,
+        '--project',
+        self._project,
+        '--location',
+        self._location,
+        '--gcp_resources',
+        self._gcp_resources,
+        '--executor_input',
+        'executor_input',
+        '--payload',
+        json.dumps(payload),
     ]
     launcher.main(input_args)
     mock_create_infra_validation_job.assert_called_once_with(
@@ -54,4 +65,5 @@ class LauncherInfraValidationJobUtilsTests(unittest.TestCase):
         location=self._location,
         payload=json.dumps(payload),
         executor_input='executor_input',
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+    )

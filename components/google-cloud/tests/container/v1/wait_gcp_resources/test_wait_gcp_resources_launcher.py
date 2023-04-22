@@ -29,18 +29,24 @@ class LauncherWaitGCPResourcesUtilsTests(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'test_region'
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
 
-  @mock.patch.object(
-      remote_runner, 'wait_gcp_resources', autospec=True)
+  @mock.patch.object(remote_runner, 'wait_gcp_resources', autospec=True)
   def test_launcher_on_wait_type(self, mock_wait_gcp_resources):
     job_type = 'Wait'
     payload = 'test_payload'
     input_args = [
-        '--type', job_type, '--project', self._project, '--location',
-        self._location, '--payload', payload, '--gcp_resources',
-        self._gcp_resources
+        '--type',
+        job_type,
+        '--project',
+        self._project,
+        '--location',
+        self._location,
+        '--payload',
+        payload,
+        '--gcp_resources',
+        self._gcp_resources,
     ]
     launcher.main(input_args)
     mock_wait_gcp_resources.assert_called_once_with(
@@ -48,4 +54,5 @@ class LauncherWaitGCPResourcesUtilsTests(unittest.TestCase):
         project=self._project,
         location=self._location,
         payload=payload,
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+    )

@@ -29,24 +29,34 @@ class LauncherCustomJobUtilsTests(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'test_region'
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
 
-  @mock.patch.object(
-      remote_runner, 'create_custom_job', autospec=True)
+  @mock.patch.object(remote_runner, 'create_custom_job', autospec=True)
   def test_launcher_on_custom_job_type(self, mock_create_custom_job):
     job_type = 'CustomJob'
-    payload = ('{"display_name": "ContainerComponent", "job_spec": '
-               '{"worker_pool_specs": [{"machine_spec": {"machine_type": '
-               '"n1-standard-4"}, "replica_count": 1, "container_spec": '
-               '{"image_uri": "google/cloud-sdk:latest", "command": ["sh", '
-               '"-c", "set -e -x\\necho \\"$0, this is an output '
-               'parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", '
-               '"{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}')
+    payload = (
+        '{"display_name": "ContainerComponent", "job_spec": '
+        '{"worker_pool_specs": [{"machine_spec": {"machine_type": '
+        '"n1-standard-4"}, "replica_count": 1, "container_spec": '
+        '{"image_uri": "google/cloud-sdk:latest", "command": ["sh", '
+        '"-c", "set -e -x\\necho \\"$0, this is an output '
+        'parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", '
+        '"{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
+    )
     input_args = [
-        '--type', job_type, '--project', self._project, '--location',
-        self._location, '--payload', payload, '--gcp_resources',
-        self._gcp_resources, '--extra_arg', 'extra_arg_value'
+        '--type',
+        job_type,
+        '--project',
+        self._project,
+        '--location',
+        self._location,
+        '--payload',
+        payload,
+        '--gcp_resources',
+        self._gcp_resources,
+        '--extra_arg',
+        'extra_arg_value',
     ]
     launcher.main(input_args)
     mock_create_custom_job.assert_called_once_with(
@@ -54,4 +64,5 @@ class LauncherCustomJobUtilsTests(unittest.TestCase):
         project=self._project,
         location=self._location,
         payload=payload,
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+    )

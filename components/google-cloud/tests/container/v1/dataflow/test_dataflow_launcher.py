@@ -28,12 +28,16 @@ class DataflowLauncherUtilsTests(unittest.TestCase):
     self._location = 'test_region'
     self._python_module_path = 'test_python_module_path'
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
     self._test_bucket_name = 'test_bucket_name'
     self._test_blob_path = 'test_blob_path'
-    self._gcs_temp_path = f'gs://{self._test_bucket_name}/{self._test_blob_path}'
-    self._requirement_file_path = f'gs://{self._test_bucket_name}/requirements.txt'
+    self._gcs_temp_path = (
+        f'gs://{self._test_bucket_name}/{self._test_blob_path}'
+    )
+    self._requirement_file_path = (
+        f'gs://{self._test_bucket_name}/requirements.txt'
+    )
     self._args = 'test_arg'
     self._test_file_path = '/tmp/test_filepath/test_file.txt'
 
@@ -45,14 +49,26 @@ class DataflowLauncherUtilsTests(unittest.TestCase):
       os.rmdir(os.path.dirname(self._test_file_path))
 
   @mock.patch.object(
-      dataflow_python_job_remote_runner, 'create_python_job', autospec=True)
+      dataflow_python_job_remote_runner, 'create_python_job', autospec=True
+  )
   def test_launcher_on_python_job_calls_custom_job_remote_runner(
-      self, mock_dataflow_remote_runner):
+      self, mock_dataflow_remote_runner
+  ):
     input_args = [
-        '--python_module_path', self._python_module_path, '--project',
-        self._project, '--location', self._location, '--gcp_resources',
-        self._gcp_resources, '--args', self._args, '--requirements_file_path',
-        self._requirement_file_path, '--temp_location', self._gcs_temp_path
+        '--python_module_path',
+        self._python_module_path,
+        '--project',
+        self._project,
+        '--location',
+        self._location,
+        '--gcp_resources',
+        self._gcp_resources,
+        '--args',
+        self._args,
+        '--requirements_file_path',
+        self._requirement_file_path,
+        '--temp_location',
+        self._gcs_temp_path,
     ]
     dataflow_launcher.main(input_args)
 
@@ -63,7 +79,8 @@ class DataflowLauncherUtilsTests(unittest.TestCase):
         location=self._location,
         temp_location=self._gcs_temp_path,
         requirements_file_path=self._requirement_file_path,
-        args=self._args)
+        args=self._args,
+    )
 
   def test_make_parent_dirs_and_return_path_creates_the_path(self):
     if os.path.exists(os.path.dirname(self._test_file_path)):
