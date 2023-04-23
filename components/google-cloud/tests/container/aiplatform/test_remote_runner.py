@@ -21,7 +21,7 @@ from google.cloud import aiplatform
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.aiplatform import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
-from google_cloud_pipeline_components.aiplatform import utils
+from google_cloud_pipeline_components.container.aiplatform import utils
 
 INIT_KEY = "init"
 METHOD_KEY = "method"

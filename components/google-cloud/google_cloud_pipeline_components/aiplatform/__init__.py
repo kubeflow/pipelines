@@ -14,8 +14,6 @@
 """Core modules for AI Platform Pipeline Components."""
 
 import os
-from google.cloud import aiplatform as aiplatform_sdk
-from google_cloud_pipeline_components.aiplatform import utils
 from kfp.components import load_component_from_file
 
 __all__ = [
@@ -30,8 +28,6 @@ __all__ = [
     'ImageDatasetImportDataOp',
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
-    'CustomContainerTrainingJobRunOp',
-    'CustomPythonPackageTrainingJobRunOp',
     'AutoMLImageTrainingJobRunOp',
     'AutoMLTextTrainingJobRunOp',
     'AutoMLTabularTrainingJobRunOp',
@@ -131,15 +127,6 @@ VideoDatasetImportDataOp = load_component_from_file(
     )
 )
 
-CustomContainerTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.CustomContainerTrainingJob,
-    aiplatform_sdk.CustomContainerTrainingJob.run,
-)
-
-CustomPythonPackageTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.CustomPythonPackageTrainingJob,
-    aiplatform_sdk.CustomPythonPackageTrainingJob.run,
-)
 
 AutoMLImageTrainingJobRunOp = load_component_from_file(
     os.path.join(

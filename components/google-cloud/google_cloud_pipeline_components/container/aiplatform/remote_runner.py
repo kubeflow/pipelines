@@ -23,9 +23,9 @@ import re
 from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
-from google_cloud_pipeline_components.aiplatform import utils
+from google_cloud_pipeline_components.container.aiplatform import utils
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
-from ..utils import execution_context
+from google_cloud_pipeline_components.container.utils import execution_context
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
