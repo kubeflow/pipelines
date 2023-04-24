@@ -15,9 +15,9 @@
 
 import os
 
-from google_cloud_pipeline_components import aiplatform
 from google_cloud_pipeline_components.experimental import forecasting
 from google_cloud_pipeline_components.v1.automl.training_job import AutoMLForecastingTrainingJobRunOp
+from google_cloud_pipeline_components.v1.dataset import TimeSeriesDatasetCreateOp
 from kfp import compiler, dsl
 
 import unittest
@@ -61,7 +61,7 @@ class ForecastingComponentsCompileTest(unittest.TestCase):
           ),
           model_feature_columns=model_feature_columns,
       )
-      dataset_create_op = aiplatform.TimeSeriesDatasetCreateOp(
+      dataset_create_op = TimeSeriesDatasetCreateOp(
           display_name=self._display_name,
           bq_source=self._bq_source,
           project=self._project,
