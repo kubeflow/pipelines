@@ -134,7 +134,7 @@ function getPipelineDetailsUrl(
   return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
 }
 
-async function getLatestVersion(pipelineId: string) {
+export async function getLatestVersion(pipelineId: string) {
   try {
     const listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
       pipelineId,

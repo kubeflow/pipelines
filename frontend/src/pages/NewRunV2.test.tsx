@@ -494,6 +494,8 @@ describe('NewRunV2', () => {
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
 
+      // After pipeline is selected, listPipelineVersions will be called to
+      // retrieve the latest version.
       await waitFor(() => {
         expect(listPipelineVersionsSpy).toHaveBeenCalledWith(
           NEW_TEST_PIPELINE_ID,
