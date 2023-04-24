@@ -28,7 +28,6 @@ __all__ = [
     'ImageDatasetImportDataOp',
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
-    'ModelBatchPredictOp',
     'TimeSeriesDatasetCreateOp',
     'TimeSeriesDatasetExportDataOp',
 ]
@@ -113,9 +112,4 @@ VideoDatasetImportDataOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'dataset/import_video_dataset/component.yaml'
     )
-)
-
-
-ModelBatchPredictOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'batch_predict_job/component.yaml')
 )
