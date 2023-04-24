@@ -45,7 +45,7 @@ import { color, commonCss, padding } from 'src/Css';
 import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
-import { errorToMessage, generateRandomString } from 'src/lib/Utils';
+import { errorToMessage, generateRandomString, logger } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
@@ -146,6 +146,7 @@ export async function getLatestVersion(pipelineId: string) {
       ? listVersionsResponse.pipeline_versions[0]
       : undefined;
   } catch (err) {
+    logger.error('Cannot retrieve pipeline version list.', err);
     return;
   }
 }
