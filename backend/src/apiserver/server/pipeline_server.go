@@ -31,7 +31,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"google.golang.org/grpc/codes"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -128,19 +127,18 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pip
 	return s.resourceManager.CreatePipeline(pipeline)
 }
 
-// Creates a pipeline and a pipeline version.
-// If the pipeline already exists, creates a new pipeline version.
-// Note, this allows partial creation (pipeline or pipeline version only,
-// which is different from v1beta1 behavior.
+// Creates a pipeline and a pipeline version in a single transaction.
 // Supports v1beta1 behavior.
 func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1beta1.CreatePipelineRequest) (*apiv1beta1.Pipeline, error) {
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
-		// Request is intended to create a pipeline and a pipeline version
-		if (request.GetPipeline().GetDefaultVersion() != nil) || (request.GetPipeline().GetUrl().GetPipelineUrl() != "") {
-			// In v1beta1 we did not increment this counter when CreatePipeline was called
-			createPipelineVersionRequests.Inc()
-		}
+		createPipelineVersionRequests.Inc()
+	}
+
+	// URL is a require input for CreatePipelineV1 API
+	pipelineUrlStr := request.GetPipeline().GetUrl().GetPipelineUrl()
+	if pipelineUrlStr == "" {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline (v1beta1) due to missing pipeline URL")
 	}
 
 	// Convert the input request. Fail fast if either pipeline or pipeline version is corrupted.
@@ -151,51 +149,65 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	// Get pipeline name
 	pipelineName := request.GetPipeline().GetName()
 	pipelineFileName := path.Base(request.GetPipeline().GetUrl().GetPipelineUrl())
-	pipelineName, err = buildPipelineName(pipelineName, pipelineFileName)
-	if err != nil {
+	if pipelineName, err = buildPipelineName(pipelineName, pipelineFileName); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", pipelineName, pipelineFileName)
-	}
-	pipeline.Name = pipelineName
-
-	// Create the pipeline
-	createdPipeline, perr := s.createPipeline(ctx, pipeline)
-	if perr == nil {
-		if s.options.CollectMetrics {
-			// Increment if a new pipeline has been created
-			pipelineCount.Inc()
-		}
-	} else if perr.(*util.UserError).ExternalStatusCode() == codes.AlreadyExists {
-		createdPipeline, err = s.resourceManager.GetPipelineByNameAndNamespace(pipeline.Name, pipeline.Namespace)
-		if err != nil {
-			// This should never happen
-			return nil, util.Wrap(perr, util.Wrap(err, "Failed to create a new pipeline (v1beta1), but an existing pipeline was not found").Error())
-		}
+	} else if pipelineName == "" {
+		return nil, util.NewInvalidInputError("Pipeline cannot have empty name")
 	} else {
-		return nil, util.Wrap(perr, "Failed to create a new pipeline (v1beta1). Check the error stack")
+		pipeline.Name = pipelineName
 	}
-
-	// Create the pipeline version
-	createdPipelineVersion, pverr := s.createPipelineVersion(ctx, &model.PipelineVersion{
-		Name:            pipeline.Name,
-		PipelineId:      createdPipeline.UUID,
-		PipelineSpecURI: request.GetPipeline().GetUrl().GetPipelineUrl(),
-		Description:     request.GetPipeline().GetDescription(),
-		Status:          model.PipelineVersionCreating,
-	})
-	if pverr == nil {
-		if s.options.CollectMetrics {
-			// Increment if a new pipeline version has been created
-			pipelineVersionCount.Inc()
+	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
+	// Check authorization
+	if common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: pipeline.Namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Resource:  common.RbacResourceTypePipelines,
 		}
-		return toApiPipelineV1(createdPipeline, createdPipelineVersion), nil
+		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to create a pipeline (v1beta1) due to authorization error. Check if you have write permissions to namespace %s", pipeline.Namespace)
+		}
 	}
 
-	// A new pipeline has been created, but pipeline version creation failed after validation
-	if perr == nil {
-		return toApiPipelineV1(createdPipeline, &model.PipelineVersion{}), nil
+	// Create a pipeline version
+	pipelineVersion := &model.PipelineVersion{
+		Name:            pipeline.Name,
+		PipelineSpecURI: pipelineUrlStr,
+		Description:     pipeline.Description,
+		Status:          model.PipelineVersionCreating,
+	}
+	pipelineUrl, err := url.ParseRequestURI(pipelineUrlStr)
+	if err != nil {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline (v1beta1) due to invalid pipeline spec URL: %v. Please specify a valid URL", pipelineUrlStr)
+	}
+	resp, err := s.httpClient.Get(pipelineUrl.String())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a pipeline (v1beta1) due error downloading the pipeline spec from %v", pipelineUrl.String())
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline (v1beta1) due to error fetching pipeline spec from %v. Request returned %v", pipelineUrl.String(), resp.Status)
+	}
+	defer resp.Body.Close()
+	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due error reading the pipeline spec")
+	}
+	pipelineVersion.PipelineSpec = string(pipelineFile)
+	if pipelineVersion.Name == "" {
+		pipelineVersion.Name = pipelineFileName
 	}
 
-	return nil, util.Wrap(perr, util.Wrap(pverr, "Failed to create a pipeline and a pipeline version (v1beta1)").Error())
+	// Validate the pipeline version
+	if err := s.validatePipelineVersionBeforeCreating(pipelineVersion); err != nil {
+		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to data validation error")
+	}
+
+	// Create both pipeline and pipeline version is a single transaction
+	newPipeline, newPipelineVersion, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1)")
+	}
+	return toApiPipelineV1(newPipeline, newPipelineVersion), nil
 }
 
 // Creates a pipeline, but does not create a pipeline version.
@@ -563,9 +575,6 @@ func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.Pipeline
 	if p.Name == "" {
 		return util.NewInvalidInputError("Pipeline version's name cannot be empty")
 	}
-	if p.PipelineId == "" {
-		return util.NewInvalidInputError("Pipeline version cannot have empty parent pipeline id")
-	}
 	if p.PipelineSpec != "" {
 		return nil
 	}
@@ -592,6 +601,11 @@ func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.Pi
 	// Fail if pipeline URL is missing
 	if pv.PipelineSpecURI == "" {
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline URL")
+	}
+
+	// Fail if parent pipeline id is missing
+	if pv.PipelineId == "" {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline version due empty parent pipeline id")
 	}
 
 	// Check authorization
