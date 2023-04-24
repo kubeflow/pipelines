@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Wait GCP Resource Components."""
 
-from google_cloud_pipeline_components.v1.wait_gcp_resources import WaitGcpResourcesOp
+import unittest
 
-__all__ = [
-    'WaitGcpResourcesOp',
-]
+
+class TestWaitGcpResources(unittest.TestCase):
+
+  def test_experimental_import_path(self):
+    from google_cloud_pipeline_components.experimental.wait_gcp_resources import WaitGcpResourcesOp
