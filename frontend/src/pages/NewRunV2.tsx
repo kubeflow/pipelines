@@ -45,7 +45,7 @@ import { color, commonCss, padding } from 'src/Css';
 import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
-import { errorToMessage, generateRandomString } from 'src/lib/Utils';
+import { errorToMessage, generateRandomString, logger } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
@@ -132,6 +132,23 @@ function getPipelineDetailsUrl(
     : '';
 
   return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
+}
+
+export async function getLatestVersion(pipelineId: string) {
+  try {
+    const listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
+      pipelineId,
+      undefined,
+      1, // Only need the latest one
+      'created_at desc',
+    );
+    return listVersionsResponse.pipeline_versions
+      ? listVersionsResponse.pipeline_versions[0]
+      : undefined;
+  } catch (err) {
+    logger.error('Cannot retrieve pipeline version list.', err);
+    return;
+  }
 }
 
 function NewRunV2(props: NewRunV2Props) {
@@ -436,18 +453,19 @@ function NewRunV2(props: NewRunV2Props) {
             <PipelineSelector
               {...props}
               pipelineName={pipelineName}
-              handlePipelineChange={updatedPipeline => {
+              handlePipelineChange={async updatedPipeline => {
                 if (updatedPipeline.display_name) {
                   setPipelineName(updatedPipeline.display_name);
                 }
                 if (updatedPipeline.pipeline_id) {
+                  const latestVersion = await getLatestVersion(updatedPipeline.pipeline_id);
                   const searchString = urlParser.build({
                     [QUERY_PARAMS.experimentId]: experimentId || '',
                     [QUERY_PARAMS.pipelineId]: updatedPipeline.pipeline_id || '',
-                    [QUERY_PARAMS.pipelineVersionId]: '',
+                    [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
                   });
                   props.history.replace(searchString);
-                  handlePipelineVersionIdChange('');
+                  handlePipelineVersionIdChange(latestVersion?.pipeline_version_id!);
                   handlePipelineIdChange(updatedPipeline.pipeline_id);
                 }
               }}
