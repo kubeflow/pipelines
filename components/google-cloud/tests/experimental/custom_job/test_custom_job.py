@@ -11,15 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for supporting Google Vertex AI Custom Training Job Op."""
-from google_cloud_pipeline_components.v1.custom_job import (
-    create_custom_training_job_op_from_component,
-    create_custom_training_job_from_component,
-    CustomTrainingJobOp,
-)
+import unittest
 
-__all__ = [
-    'CustomTrainingJobOp',
-    'create_custom_training_job_op_from_component',
-    'create_custom_training_job_from_component',
-]
+
+class TestCustomJob(unittest.TestCase):
+
+  def test_experimental_import_path(self):
+    from google_cloud_pipeline_components.experimental.custom_job import (
+        CustomTrainingJobOp,
+        create_custom_training_job_from_component,
+        create_custom_training_job_op_from_component,
+    )
+
+  from google_cloud_pipeline_components.experimental.custom_job.utils import (
+      create_custom_training_job_from_component,
+      create_custom_training_job_op_from_component,
+  )

@@ -16,7 +16,7 @@
 import json
 import os
 
-from google_cloud_pipeline_components.experimental.custom_job import utils
+from google_cloud_pipeline_components.v1.custom_job import utils
 import kfp
 from kfp import components
 from kfp import compiler
