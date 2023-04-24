@@ -56,6 +56,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		return nil, util.Wrap(err, "Failed to convert runtime config")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
+	if err = t.validatePipelineJobInputs(job); err != nil {
+		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job: %s", err.Error()))
+	}
 
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
@@ -256,7 +259,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
-
+	if err = t.validatePipelineJobInputs(job); err != nil {
+		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job: %s", err.Error()))
+	}
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
 	if t.platformSpec != nil {
@@ -305,4 +310,56 @@ func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
 	}
 	_, ok := platformSpec.Platforms["kubernetes"]
 	return ok
+}
+
+func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error {
+	// The pipeline requires no input
+	if t.spec.GetRoot().GetInputDefinitions() == nil {
+		return nil
+	}
+
+	runtimeConfig := job.GetRuntimeConfig()
+	if runtimeConfig == nil {
+		return fmt.Errorf("pipeline requiring input has empty runtime config")
+	}
+
+	for name, param := range t.spec.GetRoot().GetInputDefinitions().GetParameters() {
+		if input, ok := runtimeConfig.GetParameterValues()[name]; !ok {
+			// If the parameter is optional, or there is a default value, it's ok to not have a user input
+			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
+				return fmt.Errorf("parameter %s is not optional, yet has neither default value nor user provided value", name)
+			}
+		} else {
+			// Verify the parameter type is correct
+			switch param.GetParameterType() {
+			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
+				return fmt.Errorf("input parameter %s has unspecified type", name)
+			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
+				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
+					return fmt.Errorf("input parameter %s has type double or integer, but the input parameter is not of Value_NumberValue type", name)
+				}
+			case pipelinespec.ParameterType_STRING:
+				if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
+					return fmt.Errorf("input parameter %s has type string, but the input parameter is not of Value_StringValue type", name)
+				}
+			case pipelinespec.ParameterType_BOOLEAN:
+				if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
+					return fmt.Errorf("input parameter %s has type bool, but the input parameter is not of Value_BoolValue type", name)
+				}
+			case pipelinespec.ParameterType_LIST:
+				if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
+					return fmt.Errorf("input parameter %s has type list, but the input parameter is not of Value_ListValue type", name)
+				}
+			case pipelinespec.ParameterType_STRUCT:
+				if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
+					return fmt.Errorf("input parameter %s has type struct, but the input parameter is not of Value_StructValue type", name)
+				}
+			case pipelinespec.ParameterType_TASK_FINAL_STATUS:
+				return fmt.Errorf("input parameter %s has type TASK_FINAL_STATUS, which is invalid for root component", name)
+			default:
+				return fmt.Errorf("input parameter %s has unknown type", name)
+			}
+		}
+	}
+	return nil
 }

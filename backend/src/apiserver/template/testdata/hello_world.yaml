@@ -51,6 +51,6 @@ root:
   inputDefinitions:
     parameters:
       text:
-        type: STRING
+        parameterType: STRING
 schemaVersion: 2.0.0
 sdkVersion: kfp-1.6.5

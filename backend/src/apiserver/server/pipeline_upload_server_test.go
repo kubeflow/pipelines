@@ -624,7 +624,7 @@ root:
   inputDefinitions:
     parameters:
       text:
-        type: STRING
-schemaVersion: 2.0.0
+        parameterType: STRING
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
