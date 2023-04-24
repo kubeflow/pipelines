@@ -11,10 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Vertex Notification Email Components."""
 
-from google_cloud_pipeline_components.v1.vertex_notification_email import VertexNotificationEmailOp
+import unittest
 
-__all__ = [
-    'VertexNotificationEmailOp',
-]
+
+class TestVertexNotificationEmail(unittest.TestCase):
+
+  def test_experimental_import_path(self):
+    from google_cloud_pipeline_components.experimental.vertex_notification_email import VertexNotificationEmailOp
+
+    print(
+        VertexNotificationEmailOp
+    )  # use variable to avoid removal of unused imports by linting tools
