@@ -28,10 +28,6 @@ __all__ = [
     'ImageDatasetImportDataOp',
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
-    'AutoMLImageTrainingJobRunOp',
-    'AutoMLTextTrainingJobRunOp',
-    'AutoMLTabularTrainingJobRunOp',
-    'AutoMLVideoTrainingJobRunOp',
     'ModelDeployOp',
     'ModelUndeployOp',
     'ModelBatchPredictOp',
@@ -42,7 +38,6 @@ __all__ = [
     'EndpointDeleteOp',
     'TimeSeriesDatasetCreateOp',
     'TimeSeriesDatasetExportDataOp',
-    'AutoMLForecastingTrainingJobRunOp',
 ]
 
 TimeSeriesDatasetCreateOp = load_component_from_file(
@@ -127,41 +122,6 @@ VideoDatasetImportDataOp = load_component_from_file(
     )
 )
 
-
-AutoMLImageTrainingJobRunOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_training_job/automl_image_training_job/component.yaml',
-    )
-)
-
-AutoMLTextTrainingJobRunOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_training_job/automl_text_training_job/component.yaml',
-    )
-)
-
-AutoMLTabularTrainingJobRunOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_training_job/automl_tabular_training_job/component.yaml',
-    )
-)
-
-AutoMLForecastingTrainingJobRunOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_training_job/automl_forecasting_training_job/component.yaml',
-    )
-)
-
-AutoMLVideoTrainingJobRunOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_training_job/automl_video_training_job/component.yaml',
-    )
-)
 
 ModelDeleteOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'model/delete_model/component.yaml')
