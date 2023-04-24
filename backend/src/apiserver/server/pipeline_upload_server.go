@@ -141,28 +141,20 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		Description: pipelineDescription,
 		Namespace:   pipelineNamespace,
 	}
-	newPipeline, err := s.resourceManager.CreatePipeline(pipeline)
+
+	pipelineVersion := &model.PipelineVersion{
+		Name:         pipeline.Name,
+		Description:  pipeline.Description,
+		PipelineSpec: string(pipelineFile),
+	}
+
+	newPipeline, newPipelineVersion, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline and a pipeline version"))
 		return
 	}
 
-	pipelineVersion := &model.PipelineVersion{
-		Name:         newPipeline.Name,
-		Description:  newPipeline.Description,
-		PipelineId:   newPipeline.UUID,
-		PipelineSpec: string(pipelineFile),
-	}
-	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(pipelineVersion)
-	if err != nil {
-		cleanupErr := s.resourceManager.DeletePipeline(newPipeline.UUID)
-		if cleanupErr != nil {
-			s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrapf(err, "Failed to create a pipeline due to failed pipeline version creation. Remove the pipeline %v manually.", newPipeline.UUID))
-			return
-		}
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Pipeline version creation failed"))
-		return
-	} else if s.options.CollectMetrics {
+	if s.options.CollectMetrics {
 		pipelineVersionCount.Inc()
 	}
 
@@ -177,7 +169,6 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Invalid API version"))
 		return
 	}
-
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline due to error marshalling the pipeline"))
 		return
