@@ -16,7 +16,7 @@
 import json
 import os
 
-from google_cloud_pipeline_components.experimental.custom_job import CustomTrainingJobOp
+from google_cloud_pipeline_components.v1.custom_job import CustomTrainingJobOp
 import kfp
 from kfp import compiler
 

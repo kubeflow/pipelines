@@ -13,7 +13,7 @@
 # limitations under the License.
 """Test Vertex AI Custom Job Client module."""
 
-from google_cloud_pipeline_components.experimental.custom_job import utils
+from google_cloud_pipeline_components.v1.custom_job import utils
 from kfp import components
 
 import unittest
