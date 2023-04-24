@@ -39,7 +39,19 @@ from google_cloud_pipeline_components.v1.dataset import (
     VideoDatasetExportDataOp,
     VideoDatasetImportDataOp,
 )
+from google_cloud_pipeline_components.v1.endpoint import (
+    EndpointCreateOp,
+    EndpointDeleteOp,
+    ModelDeployOp,
+    ModelUndeployOp,
+)
+from google_cloud_pipeline_components.v1.model import (
+    ModelDeleteOp,
+    ModelUploadOp,
+    ModelExportOp,
+)
 from kfp import compiler
+from kfp.dsl import Input, Artifact
 
 import unittest
 from google.cloud import aiplatform
@@ -57,12 +69,10 @@ class ComponentsCompileTest(unittest.TestCase):
     self._gcs_output_dir = "gs://test_gcs_output_dir"
     self._pipeline_root = "gs://test_pipeline_root"
     self._gcs_destination_prefix = "gs://test_gcs_output_dir/batch_prediction"
-    self._serving_container_image_uri = (
-        "gcr.io/test_project/test_image:test_tag"
-    )
     self._package_path = os.path.join(
         os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json"
     )
+    self._artifact_uri = "project/test_artifact_uri"
 
   def tearDown(self):
     if os.path.exists(self._package_path):
@@ -282,3 +292,143 @@ class ComponentsCompileTest(unittest.TestCase):
         pipeline_func=pipeline, package_path=self._package_path
     )
     self.assertTrue(os.path.exists(self._package_path))
+
+  def test_model_upload_and_model_delete_op_compile(self):
+    @kfp.dsl.pipeline(name="training-test")
+    def pipeline():
+      model_upload_op = ModelUploadOp(
+          project=self._project,
+          location=self._location,
+          display_name=self._display_name,
+          description="some description",
+          explanation_metadata={"xai_m": "bar"},
+          explanation_parameters={"xai_p": "foo"},
+          encryption_spec_key_name="some encryption_spec_key_name",
+          labels={"foo": "bar"},
+      )
+
+      _ = ModelDeleteOp(
+          model=model_upload_op.outputs["model"],
+      )
+
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=self._package_path
+    )
+
+    with open(self._package_path) as f:
+      executor_output_json = json.load(f, strict=False)
+    with open("testdata/model_upload_and_delete_pipeline.json") as ef:
+      expected_executor_output_json = json.load(ef, strict=False)
+    # Ignore the kfp SDK & schema version during comparison
+    del executor_output_json["sdkVersion"]
+    del executor_output_json["schemaVersion"]
+    self.assertEqual(executor_output_json, expected_executor_output_json)
+
+  def test_create_endpoint_op_and_delete_endpoint_op_compile(self):
+    @kfp.dsl.pipeline(name="delete-endpoint-test")
+    def pipeline():
+      create_endpoint_op = EndpointCreateOp(
+          project=self._project,
+          location=self._location,
+          display_name=self._display_name,
+          description="some description",
+          labels={"foo": "bar"},
+          network="abc",
+          encryption_spec_key_name="some encryption_spec_key_name",
+      )
+
+      delete_endpoint_op = EndpointDeleteOp(
+          endpoint=create_endpoint_op.outputs["endpoint"]
+      )
+
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=self._package_path
+    )
+
+    with open(self._package_path) as f:
+      executor_output_json = json.load(f, strict=False)
+    with open("testdata/create_and_delete_endpoint_pipeline.json") as ef:
+      expected_executor_output_json = json.load(ef, strict=False)
+    # Ignore the kfp SDK & schema version during comparison
+    del executor_output_json["sdkVersion"]
+    del executor_output_json["schemaVersion"]
+    self.assertEqual(executor_output_json, expected_executor_output_json)
+
+  def test_model_export_op_compile(self):
+    @kfp.dsl.pipeline(name="training-test")
+    def pipeline(unmanaged_container_model: Input[Artifact]):
+      model_upload_op = ModelUploadOp(
+          project=self._project,
+          display_name=self._display_name,
+          unmanaged_container_model=unmanaged_container_model,
+      )
+
+      model_export_op = ModelExportOp(
+          model=model_upload_op.outputs["model"],
+          export_format_id="export_format",
+          artifact_destination="artifact_destination",
+          image_destination="image_destination",
+      )
+
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=self._package_path
+    )
+
+    with open(self._package_path) as f:
+      executor_output_json = json.load(f, strict=False)
+    with open("testdata/model_export_pipeline.json") as ef:
+      expected_executor_output_json = json.load(ef, strict=False)
+    # Ignore the kfp SDK & schema version during comparison
+    del executor_output_json["sdkVersion"]
+    del executor_output_json["schemaVersion"]
+    self.assertEqual(executor_output_json, expected_executor_output_json)
+
+  def test_model_deploy_op_and_model_undeploy_op_compile(self):
+    @kfp.dsl.pipeline(name="training-test")
+    def pipeline(unmanaged_container_model: Input[Artifact]):
+      model_upload_op = ModelUploadOp(
+          project=self._project,
+          display_name=self._display_name,
+          unmanaged_container_model=unmanaged_container_model,
+      )
+
+      create_endpoint_op = EndpointCreateOp(
+          project=self._project,
+          location=self._location,
+          display_name=self._display_name,
+      )
+
+      model_deploy_op = ModelDeployOp(
+          model=model_upload_op.outputs["model"],
+          endpoint=create_endpoint_op.outputs["endpoint"],
+          deployed_model_display_name="deployed_model_display_name",
+          traffic_split={},
+          dedicated_resources_machine_type="n1-standard-4",
+          dedicated_resources_min_replica_count=1,
+          dedicated_resources_max_replica_count=2,
+          dedicated_resources_accelerator_type="fake-accelerator",
+          dedicated_resources_accelerator_count=1,
+          automatic_resources_min_replica_count=1,
+          automatic_resources_max_replica_count=2,
+          service_account="fake-sa",
+          explanation_metadata={"xai_m": "bar"},
+          explanation_parameters={"xai_p": "foo"},
+      )
+
+      _ = ModelUndeployOp(
+          model=model_upload_op.outputs["model"],
+          endpoint=create_endpoint_op.outputs["endpoint"],
+      ).after(model_deploy_op)
+
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=self._package_path
+    )
+
+    with open(self._package_path) as f:
+      executor_output_json = json.load(f, strict=False)
+    with open("testdata/model_deploy_and_undeploy_pipeline.json") as ef:
+      expected_executor_output_json = json.load(ef, strict=False)
+    # Ignore the kfp SDK & schema version during comparison
+    del executor_output_json["sdkVersion"]
+    del executor_output_json["schemaVersion"]
+    self.assertEqual(executor_output_json, expected_executor_output_json)
