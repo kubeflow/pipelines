@@ -191,14 +191,11 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	}
 
 	// A new pipeline has been created, but pipeline version creation failed after validation
-	// This block should not be executed when an existing pipeline is found
 	if perr == nil {
-		if cleanupErr := s.deletePipeline(ctx, createdPipeline.UUID); cleanupErr != nil {
-			return nil, util.Wrap(pverr, cleanupErr.Error())
-		}
-		return nil, util.Wrap(pverr, "Failed to create a pipeline and a pipeline version (v1beta1)")
+		return toApiPipelineV1(createdPipeline, &model.PipelineVersion{}), nil
 	}
-	return nil, util.Wrapf(pverr, "Failed to create a new pipeline version in existing pipeline %v (v1beta1)", createdPipeline.UUID)
+
+	return nil, util.Wrap(perr, util.Wrap(pverr, "Failed to create a pipeline and a pipeline version (v1beta1)").Error())
 }
 
 // Creates a pipeline, but does not create a pipeline version.

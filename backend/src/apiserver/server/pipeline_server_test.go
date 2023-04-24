@@ -164,9 +164,14 @@ func TestCreatePipelineV1_InvalidYAML(t *testing.T) {
 			},
 		},
 	)
+	assert.Nil(t, err)
+	assert.NotEqual(t, "", createdPipeline.GetId())
+	assert.Less(t, 0, int(createdPipeline.GetCreatedAt().Seconds))
+	assert.Equal(t, "", createdPipeline.GetDefaultVersion().GetId())
+	assert.Equal(t, 0, int(createdPipeline.GetDefaultVersion().GetCreatedAt().Seconds))
+	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(createdPipeline.Id)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to create a pipeline and a pipeline version (v1beta1)")
-	assert.Nil(t, createdPipeline)
+	assert.Nil(t, newPipelineVersion)
 }
 
 func TestCreatePipelineV1_InvalidURL(t *testing.T) {
@@ -186,39 +191,14 @@ func TestCreatePipelineV1_InvalidURL(t *testing.T) {
 			},
 		},
 	)
+	assert.Nil(t, err)
+	assert.NotEqual(t, "", createdPipeline.GetId())
+	assert.Less(t, 0, int(createdPipeline.GetCreatedAt().Seconds))
+	assert.Equal(t, "", createdPipeline.GetDefaultVersion().GetId())
+	assert.Equal(t, 0, int(createdPipeline.GetDefaultVersion().GetCreatedAt().Seconds))
+	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(createdPipeline.Id)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch pipeline spec with url")
-	assert.Nil(t, createdPipeline)
-}
-
-func TestCreatePipelineV1_MissingUrl(t *testing.T) {
-	httpServer := getMockServer(t)
-	// Close the server when test finishes
-	defer httpServer.Close()
-
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
-
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	createdPipeline, err := pipelineServer.CreatePipelineV1(
-		context.Background(), &api.CreatePipelineRequest{
-			Pipeline: &api.Pipeline{
-				Name: "argument-parameters",
-				ResourceReferences: []*api.ResourceReference{
-					{
-						Key: &api.ResourceKey{
-							Id:   "test-namespace",
-							Type: api.ResourceType_NAMESPACE,
-						},
-						Relationship: api.Relationship_OWNER,
-					},
-				},
-			},
-		},
-	)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to create a pipeline version due to missing pipeline URL")
-	assert.Nil(t, createdPipeline)
+	assert.Nil(t, newPipelineVersion)
 }
 
 func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
