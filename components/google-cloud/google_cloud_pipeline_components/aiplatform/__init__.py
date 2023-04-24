@@ -28,14 +28,7 @@ __all__ = [
     'ImageDatasetImportDataOp',
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
-    'ModelDeployOp',
-    'ModelUndeployOp',
     'ModelBatchPredictOp',
-    'ModelDeleteOp',
-    'ModelExportOp',
-    'ModelUploadOp',
-    'EndpointCreateOp',
-    'EndpointDeleteOp',
     'TimeSeriesDatasetCreateOp',
     'TimeSeriesDatasetExportDataOp',
 ]
@@ -123,42 +116,6 @@ VideoDatasetImportDataOp = load_component_from_file(
 )
 
 
-ModelDeleteOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'model/delete_model/component.yaml')
-)
-
-ModelExportOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'model/export_model/component.yaml')
-)
-
-ModelDeployOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'endpoint/deploy_model/component.yaml'
-    )
-)
-
-ModelUndeployOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'endpoint/undeploy_model/component.yaml'
-    )
-)
-
 ModelBatchPredictOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'batch_predict_job/component.yaml')
-)
-
-ModelUploadOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'model/upload_model/component.yaml')
-)
-
-EndpointCreateOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'endpoint/create_endpoint/component.yaml'
-    )
-)
-
-EndpointDeleteOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'endpoint/delete_endpoint/component.yaml'
-    )
 )
