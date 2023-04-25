@@ -20,6 +20,17 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Data struct to represent Node status
+type NodeStatus struct {
+	ID          string
+	DisplayName string
+	State       string
+	StartTime   int64
+	CreateTime  int64
+	FinishTime  int64
+	Children    []string
+}
+
 type RetrieveArtifact func(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically
@@ -54,4 +65,9 @@ type ExecutionStatus interface {
 
 	// does ExecutionStatus contain any finished node or not
 	HasMetrics() bool
+
+	// Any node status exists or not
+	HasNodes() bool
+	// Get node statuses, the NodeStatus data struct could be extended if needed
+	NodeStatuses() map[string]NodeStatus
 }
