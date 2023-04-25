@@ -15,9 +15,11 @@
 
 import json
 import os
-from google_cloud_pipeline_components.experimental import dataproc
+
 import kfp
+from google_cloud_pipeline_components.v1 import dataproc
 from kfp import compiler
+
 import unittest
 
 
