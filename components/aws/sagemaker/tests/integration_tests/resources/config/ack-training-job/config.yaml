@@ -22,7 +22,7 @@ Arguments:
       inputMode: File
   resource_config:
     instanceCount: 1
-    instanceType: ml.m4.xlarge
+    instanceType: ml.m5.xlarge
     volumeSizeInGB: 20
   stopping_condition:
     maxRuntimeInSeconds: 3600
