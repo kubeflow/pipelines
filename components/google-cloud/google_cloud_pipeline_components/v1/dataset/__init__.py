@@ -14,8 +14,8 @@
 """Google Cloud Pipeline Dataset components."""
 
 import os
-from kfp import components
 
+from kfp import components
 
 __all__ = [
     'ImageDatasetCreateOp',
@@ -31,6 +31,7 @@ __all__ = [
     'ImageDatasetImportDataOp',
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
+    'GetVertexDatasetOp',
 ]
 
 ImageDatasetCreateOp = components.load_component_from_file(
@@ -99,4 +100,8 @@ VideoDatasetImportDataOp = components.load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'import_video_dataset/component.yaml'
     )
+)
+
+GetVertexDatasetOp = components.load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'get_vertex_dataset/component.yaml')
 )
