@@ -75,6 +75,7 @@ def prepare_data_for_train(
   """
   # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
   from typing import NamedTuple
+
   # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
 
   column_metadata = preprocess_metadata['column_metadata']
