@@ -17,7 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Callable, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -27,6 +27,7 @@ from kfp.components import graph_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
+from kfp.components import task_final_status
 from kfp.components.types import artifact_types
 from kfp.components.types import custom_artifact_types
 from kfp.components.types import type_annotations
@@ -348,6 +349,43 @@ def extract_component_interface(
     component_name = name or _python_function_name_to_component_name(
         func.__name__)
 
+    def assign_descriptions(
+        inputs_or_outputs: Mapping[str, Union[structures.InputSpec,
+                                              structures.OutputSpec]],
+        docstring_params: List[docstring_parser.DocstringParam],
+    ) -> None:
+        """Assigns descriptions to InputSpec or OutputSpec for each component
+        input/output found in the parsed docstring parameters."""
+        docstring_inputs = {param.arg_name: param for param in docstring_params}
+        for name, spec in inputs_or_outputs.items():
+            if name in docstring_inputs:
+                spec.description = docstring_inputs[name].description
+
+    def parse_docstring_with_return_as_args(
+            docstring: Union[str,
+                             None]) -> Union[docstring_parser.Docstring, None]:
+        """Modifies docstring so that a return section can be treated as an
+        args section, then parses the docstring."""
+        if docstring is None:
+            return None
+
+        # Returns and Return are the only two keywords docstring_parser uses for returns
+        # use newline to avoid replacements that aren't in the return section header
+        return_keywords = ['Returns:\n', 'Returns\n', 'Return:\n', 'Return\n']
+        for keyword in return_keywords:
+            if keyword in docstring:
+                modified_docstring = docstring.replace(keyword.strip(), 'Args:')
+                return docstring_parser.parse(modified_docstring)
+
+        return None
+
+    assign_descriptions(inputs, parsed_docstring.params)
+
+    modified_parsed_docstring = parse_docstring_with_return_as_args(
+        original_docstring)
+    if modified_parsed_docstring is not None:
+        assign_descriptions(outputs, modified_parsed_docstring.params)
+
     description = get_pipeline_description(
         decorator_description=description,
         docstring=parsed_docstring,
@@ -521,7 +559,12 @@ def make_input_for_parameterized_container_component_function(
     else:
         placeholder = placeholders.InputValuePlaceholder(name)
         # small hack to encode the runtime value's type for a custom json.dumps function
-        placeholder._ir_type = type_utils.get_parameter_type_name(annotation)
+        if (annotation == task_final_status.PipelineTaskFinalStatus or
+                type_utils.is_task_final_status_type(annotation)):
+            placeholder._ir_type = 'STRUCT'
+        else:
+            placeholder._ir_type = type_utils.get_parameter_type_name(
+                annotation)
         return placeholder
 
 

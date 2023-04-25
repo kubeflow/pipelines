@@ -14,14 +14,18 @@
 """Google Cloud Pipeline Model components."""
 
 import os
-
+from kfp import components
 from .export_model import component as model_export_component
 from .upload_model import component as model_upload_component
 
 __all__ = [
     'ModelExportOp',
     'ModelUploadOp',
+    'ModelDeleteOp',
 ]
 
 ModelExportOp = model_export_component.model_export
 ModelUploadOp = model_upload_component.model_upload
+ModelDeleteOp = components.load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'delete_model/component.yaml')
+)

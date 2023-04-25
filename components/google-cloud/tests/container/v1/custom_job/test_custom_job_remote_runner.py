@@ -34,7 +34,7 @@ from google.protobuf import json_format
 import unittest
 from unittest import mock
 
-_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
+_SYSTEM_LABELS = {"key1": "value1", "key2": "value2"}
 
 
 class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -48,17 +48,24 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         '{"image_uri": "google/cloud-sdk:latest", "command": '
         '["sh", "-c", "set -e -x\\necho \\"$0, this is an output '
         'parameter\\"\\n", '
-        '"{{$.inputs.parameters[\'input_text\']}}", '
-        '"{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}')
+        "\"{{$.inputs.parameters['input_text']}}\", "
+        "\"{{$.outputs.parameters['output_value'].output_file}}\"]}}]}}"
+    )
     self._project = "test_project"
     self._location = "test_region"
-    self._custom_job_name = f"/projects/{self._project}/locations/{self._location}/jobs/test_job_id"
+    self._custom_job_name = (
+        f"/projects/{self._project}/locations/{self._location}/jobs/test_job_id"
+    )
     self._gcp_resources = os.path.join(
-        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "gcp_resources")
+        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "gcp_resources"
+    )
     self._type = "CustomJob"
-    self._custom_job_uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
+    self._custom_job_uri_prefix = (
+        f"https://{self._location}-aiplatform.googleapis.com/v1/"
+    )
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
+        _SYSTEM_LABELS
+    )
 
   def tearDown(self):
     if os.path.exists(self._gcp_resources):
@@ -66,8 +73,8 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   def test_custom_job_remote_runner_on_region_is_set_correctly_in_client_options(
-      self, mock_job_service_client):
-
+      self, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -79,20 +86,25 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     job_client.get_custom_job.return_value = get_custom_job_response
     get_custom_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
 
-    custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                               self._location, self._payload,
-                                               self._gcp_resources)
+    custom_job_remote_runner.create_custom_job(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources,
+    )
     mock_job_service_client.assert_called_once_with(
         client_options={
             "api_endpoint": "test_region-aiplatform.googleapis.com"
         },
-        client_info=mock.ANY)
+        client_info=mock.ANY,
+    )
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(os.path, "exists", autospec=True)
   def test_custom_job_remote_runner_on_payload_deserializes_correctly(
-      self, mock_path_exists, mock_job_service_client):
-
+      self, mock_path_exists, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -106,22 +118,27 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_path_exists.return_value = False
 
-    custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                               self._location, self._payload,
-                                               self._gcp_resources)
+    custom_job_remote_runner.create_custom_job(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources,
+    )
 
     expected_parent = f"projects/{self._project}/locations/{self._location}"
     expected_job_spec = json.loads(self._payload, strict=False)
     expected_job_spec["labels"] = _SYSTEM_LABELS
 
     job_client.create_custom_job.assert_called_once_with(
-        parent=expected_parent, custom_job=expected_job_spec)
+        parent=expected_parent, custom_job=expected_job_spec
+    )
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(os.path, "exists", autospec=True)
   def test_custom_job_remote_runner_raises_exception_on_internal_error(
-      self, mock_path_exists, mock_job_service_client):
-
+      self, mock_path_exists, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -136,15 +153,19 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_path_exists.return_value = False
 
     with self.assertRaises(SystemExit):
-      custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                                 self._location, self._payload,
-                                                 self._gcp_resources)
+      custom_job_remote_runner.create_custom_job(
+          self._type,
+          self._project,
+          self._location,
+          self._payload,
+          self._gcp_resources,
+      )
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(os.path, "exists", autospec=True)
   def test_custom_job_remote_runner_raises_exception_on_user_error(
-      self, mock_path_exists, mock_job_service_client):
-
+      self, mock_path_exists, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -160,15 +181,20 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_path_exists.return_value = False
 
     with self.assertRaises(ValueError):
-      custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                                 self._location, self._payload,
-                                                 self._gcp_resources)
+      custom_job_remote_runner.create_custom_job(
+          self._type,
+          self._project,
+          self._location,
+          self._payload,
+          self._gcp_resources,
+      )
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(os.path, "exists", autospec=True)
   @mock.patch.object(time, "sleep", autospec=True)
   def test_custom_job_remote_runner_retries_to_get_status_on_non_completed_job(
-      self, mock_time_sleep, mock_path_exists, mock_job_service_client):
+      self, mock_time_sleep, mock_path_exists, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -177,29 +203,40 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     create_custom_job_response.name = self._custom_job_name
 
     get_custom_job_response_success = mock.Mock()
-    get_custom_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    get_custom_job_response_success.state = (
+        gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    )
 
     get_custom_job_response_running = mock.Mock()
-    get_custom_job_response_running.state = gca_job_state.JobState.JOB_STATE_RUNNING
+    get_custom_job_response_running.state = (
+        gca_job_state.JobState.JOB_STATE_RUNNING
+    )
 
     job_client.get_custom_job.side_effect = [
-        get_custom_job_response_running, get_custom_job_response_success
+        get_custom_job_response_running,
+        get_custom_job_response_success,
     ]
 
     mock_path_exists.return_value = False
 
-    custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                               self._location, self._payload,
-                                               self._gcp_resources)
+    custom_job_remote_runner.create_custom_job(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources,
+    )
     mock_time_sleep.assert_called_once_with(
-        job_remote_runner._POLLING_INTERVAL_IN_SECONDS)
+        job_remote_runner._POLLING_INTERVAL_IN_SECONDS
+    )
     self.assertEqual(job_client.get_custom_job.call_count, 2)
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(os.path, "exists", autospec=True)
   @mock.patch.object(time, "sleep", autospec=True)
   def test_custom_job_remote_runner_returns_gcp_resources(
-      self, mock_time_sleep, mock_path_exists, mock_job_service_client):
+      self, mock_time_sleep, mock_path_exists, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -208,32 +245,41 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     create_custom_job_response.name = self._custom_job_name
 
     get_custom_job_response_success = mock.Mock()
-    get_custom_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    get_custom_job_response_success.state = (
+        gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    )
 
     job_client.get_custom_job.side_effect = [get_custom_job_response_success]
 
     mock_path_exists.return_value = False
 
-    custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                               self._location, self._payload,
-                                               self._gcp_resources)
+    custom_job_remote_runner.create_custom_job(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources,
+    )
 
     with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
 
       # Instantiate GCPResources Proto
-      custom_job_resources = json_format.Parse(serialized_gcp_resources,
-                                               GcpResources())
+      custom_job_resources = json_format.Parse(
+          serialized_gcp_resources, GcpResources()
+      )
 
       self.assertEqual(len(custom_job_resources.resources), 1)
       custom_job_name = custom_job_resources.resources[0].resource_uri[
-          len(self._custom_job_uri_prefix):]
+          len(self._custom_job_uri_prefix) :
+      ]
       self.assertEqual(custom_job_name, self._custom_job_name)
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(time, "sleep", autospec=True)
   def test_custom_job_remote_runner_raises_exception_with_more_than_one_resources_in_gcp_resources(
-      self, mock_time_sleep, mock_job_service_client):
+      self, mock_time_sleep, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -242,7 +288,9 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     create_custom_job_response.name = self._custom_job_name
 
     get_custom_job_response_success = mock.Mock()
-    get_custom_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    get_custom_job_response_success.state = (
+        gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    )
 
     job_client.get_custom_job.side_effect = [get_custom_job_response_success]
 
@@ -250,25 +298,35 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     custom_job_resources = GcpResources()
     custom_job_resource_1 = custom_job_resources.resources.add()
     custom_job_resource_1.resource_type = "CustomJob"
-    custom_job_resource_1.resource_uri = f"{self._custom_job_uri_prefix}{self._custom_job_name}"
+    custom_job_resource_1.resource_uri = (
+        f"{self._custom_job_uri_prefix}{self._custom_job_name}"
+    )
 
     custom_job_resource_2 = custom_job_resources.resources.add()
     custom_job_resource_2.resource_type = "CustomJob"
-    custom_job_resource_2.resource_uri = f"{self._custom_job_uri_prefix}{self._custom_job_name}"
+    custom_job_resource_2.resource_uri = (
+        f"{self._custom_job_uri_prefix}{self._custom_job_name}"
+    )
 
     with open(self._gcp_resources, "w") as f:
       f.write(json_format.MessageToJson(custom_job_resources))
 
     with self.assertRaisesRegex(
-        ValueError, "gcp_resources should contain one resource, found 2"):
-      custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                                 self._location, self._payload,
-                                                 self._gcp_resources)
+        ValueError, "gcp_resources should contain one resource, found 2"
+    ):
+      custom_job_remote_runner.create_custom_job(
+          self._type,
+          self._project,
+          self._location,
+          self._payload,
+          self._gcp_resources,
+      )
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(time, "sleep", autospec=True)
   def test_custom_job_remote_runner_raises_exception_empty_URI_in_gcp_resources(
-      self, mock_time_sleep, mock_job_service_client):
+      self, mock_time_sleep, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -277,7 +335,9 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     create_custom_job_response.name = self._custom_job_name
 
     get_custom_job_response_success = mock.Mock()
-    get_custom_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    get_custom_job_response_success.state = (
+        gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    )
 
     job_client.get_custom_job.side_effect = [get_custom_job_response_success]
 
@@ -292,19 +352,29 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        "Job Name in gcp_resource is not formatted correctly or is empty."):
-      custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                                 self._location, self._payload,
-                                                 self._gcp_resources)
+        "Job Name in gcp_resource is not formatted correctly or is empty.",
+    ):
+      custom_job_remote_runner.create_custom_job(
+          self._type,
+          self._project,
+          self._location,
+          self._payload,
+          self._gcp_resources,
+      )
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(google.auth, "default", autospec=True)
   @mock.patch.object(google.auth.transport.requests, "Request", autospec=True)
   @mock.patch.object(requests, "post", autospec=True)
   @mock.patch.object(ExecutionContext, "__init__", autospec=True)
-  def test_custom_job_remote_runner_cancel(self, mock_execution_context,
-                                           mock_post_requests, _, mock_auth,
-                                           mock_job_service_client):
+  def test_custom_job_remote_runner_cancel(
+      self,
+      mock_execution_context,
+      mock_post_requests,
+      _,
+      mock_auth,
+      mock_job_service_client,
+  ):
     creds = mock.Mock()
     creds.token = "fake_token"
     mock_auth.return_value = [creds, "project"]
@@ -321,9 +391,13 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     get_custom_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
     mock_execution_context.return_value = None
 
-    custom_job_remote_runner.create_custom_job(self._type, self._project,
-                                               self._location, self._payload,
-                                               self._gcp_resources)
+    custom_job_remote_runner.create_custom_job(
+        self._type,
+        self._project,
+        self._location,
+        self._payload,
+        self._gcp_resources,
+    )
 
     # Call cancellation handler
     mock_execution_context.call_args[1]["on_cancel"]()
@@ -333,4 +407,5 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         headers={
             "Content-type": "application/json",
             "Authorization": "Bearer fake_token",
-        })
+        },
+    )

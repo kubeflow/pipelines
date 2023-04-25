@@ -58,7 +58,7 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
 - {name: dataset, type: google.VertexDataset}
-- {name: data_item_labels, type: JsonObject, optional: true, default: "{}"}
+- {name: data_item_labels, type: JsonObject, optional: true, default: '{}'}
 - {name: gcs_source, type: String, optional: true}
 - {name: import_schema_uri, type: String, optional: true}
 outputs:
@@ -79,18 +79,14 @@ implementation:
     - {inputValue: data_item_labels}
     - if:
         cond: {isPresent: gcs_source}
-        then: {
-          concat: [
-            '--method.gcs_source', {inputValue: gcs_source}
-          ]
-        }
+        then:
+        - --method.gcs_source
+        - {inputValue: gcs_source}
     - if:
         cond: {isPresent: import_schema_uri}
-        then: {
-          concat: [
-            '--method.import_schema_uri', {inputValue: import_schema_uri}
-          ]
-        }
+        then:
+        - --method.import_schema_uri
+        - {inputValue: import_schema_uri}
     - --executor_input
     - '{{$}}'
     - --resource_name_output_artifact_uri

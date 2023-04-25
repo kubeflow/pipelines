@@ -18,7 +18,6 @@ import os
 from kfp.components import load_component_from_file
 
 __all__ = [
-    'ModelEvaluationOp',
     'ModelImportEvaluationOp',
     'EvaluationDataSamplerOp',
     'TargetFieldDataRemoverOp',
@@ -29,9 +28,6 @@ __all__ = [
     'GetVertexModelOp',
 ]
 
-ModelEvaluationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'component.yaml')
-)
 
 ModelImportEvaluationOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml')

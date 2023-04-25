@@ -18,10 +18,12 @@ class ComponentTest(absltest.TestCase):
     self._output_dir = self.create_tempdir().full_path
 
     with open(os.path.join(self._input_dir, 'data.json'), 'w') as f:
-      f.writelines([
-          '{{ "text": "foo{0}", "label": "bar{1}" }}\n'.format(i, i % 2)
-          for i in range(100)
-      ])
+      f.writelines(
+          [
+              '{{ "text": "foo{0}", "label": "bar{1}" }}\n'.format(i, i % 2)
+              for i in range(100)
+          ]
+      )
 
   def test_split_dataset_into_train_and_validation(self):
     """Test case to cover component function."""
@@ -34,8 +36,9 @@ class ComponentTest(absltest.TestCase):
     )
 
     with open(os.path.join(self._output_dir, 'train.json'), 'r') as f:
-      self.assertLen([json.loads(line) for line in f.read().splitlines()],
-                     int(100*0.95))
+      self.assertLen(
+          [json.loads(line) for line in f.read().splitlines()], int(100 * 0.95)
+      )
 
     with open(os.path.join(self._output_dir, 'validation.json'), 'r') as f:
       self.assertCountEqual(
@@ -46,5 +49,5 @@ class ComponentTest(absltest.TestCase):
               {'text': 'foo55', 'label': 'bar1'},
               {'text': 'foo75', 'label': 'bar1'},
               {'text': 'foo86', 'label': 'bar0'},
-          ]
+          ],
       )

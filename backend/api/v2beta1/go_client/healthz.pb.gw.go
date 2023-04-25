@@ -100,7 +100,7 @@ func RegisterHealthzServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 }
 
 var (
-	pattern_HealthzService_GetHealthz_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "healthz"}, ""))
+	pattern_HealthzService_GetHealthz_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "healthz"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (

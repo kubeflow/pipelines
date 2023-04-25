@@ -11,7 +11,7 @@ Arguments:
   input_config:
     - InputName: mnist_tar
       S3Input:
-        S3Uri: s3://sagemaker-sample-data-((REGION))/algorithms/kmeans/mnist/mnist.pkl.gz
+        S3Uri: s3://((DATA_BUCKET))/algorithms/mnist.pkl.gz
         LocalPath: /opt/ml/processing/input
         S3DataType: S3Prefix
         S3InputMode: File

@@ -83,11 +83,21 @@ describe('NewRunV2', () => {
 
   const NEW_TEST_PIPELINE_ID = 'new-test-pipeline-id';
   const NEW_TEST_PIPELINE_NAME = 'new-test-pipeline';
+  const NEW_TEST_PIPELINE_VERSION_ID = 'new-test-pipeline-version-id';
+  const NEW_TEST_PIPELINE_VERSION_NAME = 'new-test-pipeline-version';
   const NEW_TEST_PIPELINE: V2beta1Pipeline = {
     created_at: new Date(2018, 8, 7, 6, 5, 4),
     description: '',
     display_name: NEW_TEST_PIPELINE_NAME,
     pipeline_id: NEW_TEST_PIPELINE_ID,
+  };
+
+  const NEW_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
+    description: '',
+    display_name: NEW_TEST_PIPELINE_VERSION_NAME,
+    pipeline_id: NEW_TEST_PIPELINE_ID,
+    pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
+    pipeline_spec: v2LWPipelineSpec,
   };
 
   // Reponse from BE while POST a run for creating New UI-Run
@@ -443,6 +453,15 @@ describe('NewRunV2', () => {
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockImplementation(() => NEW_TEST_PIPELINE);
 
+      const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+      listPipelineVersionsSpy.mockImplementation(() => {
+        const response: V2beta1ListPipelinesResponse = {
+          pipeline_versions: [NEW_TEST_PIPELINE_VERSION],
+          total_size: 1,
+        };
+        return response;
+      });
+
       render(
         <CommonTestWrapper>
           <NewRunV2
@@ -474,6 +493,17 @@ describe('NewRunV2', () => {
 
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
+
+      // After pipeline is selected, listPipelineVersions will be called to
+      // retrieve the latest version.
+      await waitFor(() => {
+        expect(listPipelineVersionsSpy).toHaveBeenCalledWith(
+          NEW_TEST_PIPELINE_ID,
+          undefined,
+          1,
+          'created_at desc',
+        );
+      });
 
       screen.getByDisplayValue(NEW_TEST_PIPELINE_NAME);
     });

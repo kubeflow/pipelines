@@ -22,8 +22,8 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     region = boto3_session.region_name
     download_path = os.path.join(download_dir, "mnist.pkl.gz")
     boto3_session.resource("s3", region_name=region).Bucket(
-        "sagemaker-sample-data-{}".format(region)
-    ).download_file("algorithms/kmeans/mnist/mnist.pkl.gz", download_path)
+        utils.get_s3_data_bucket()
+    ).download_file("algorithms/mnist.pkl.gz", download_path)
     with gzip.open(download_path, "rb") as f:
         train_set, valid_set, test_set = pickle.load(f, encoding="latin1")
 
@@ -38,7 +38,9 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     payload = np2csv(train_set[0][30:31])
 
     response = runtime.invoke_endpoint(
-        EndpointName=endpoint_name, ContentType="text/csv", Body=payload,
+        EndpointName=endpoint_name,
+        ContentType="text/csv",
+        Body=payload,
     )
     return json.loads(response["Body"].read().decode())
 
@@ -48,7 +50,8 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     [
         pytest.param("resources/config/kmeans-mnist-update-endpoint"),
         pytest.param(
-            "resources/config/kmeans-mnist-endpoint", marks=pytest.mark.canary_test
+            "resources/config/kmeans-mnist-endpoint",
+            marks=[pytest.mark.canary_test, pytest.mark.shallow_canary],
         ),
     ],
 )

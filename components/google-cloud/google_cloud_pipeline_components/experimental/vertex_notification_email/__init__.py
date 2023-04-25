@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +13,8 @@
 # limitations under the License.
 """Google Cloud Pipeline Experimental Vertex Notification Email Components."""
 
-import os
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.v1.vertex_notification_email import VertexNotificationEmailOp
 
 __all__ = [
     'VertexNotificationEmailOp',
 ]
-
-VertexNotificationEmailOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'component.yaml')
-)

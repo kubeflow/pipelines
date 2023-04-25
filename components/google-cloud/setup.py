@@ -40,10 +40,12 @@ with open("README.md") as fp:
 setup(
     name="google-cloud-pipeline-components",
     version=version.__version__,
-    description="This SDK enables a set of First Party (Google owned) pipeline"
-    " components that allow users to take their experience from Vertex AI"
-    " SDK and other Google Cloud services and create a corresponding pipeline"
-    " using KFP or Managed Pipelines.",
+    description=(
+        "This SDK enables a set of First Party (Google owned) pipeline"
+        " components that allow users to take their experience from Vertex AI"
+        " SDK and other Google Cloud services and create a corresponding"
+        " pipeline using KFP or Managed Pipelines."
+    ),
     long_description=_GCPC_LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
@@ -81,11 +83,13 @@ setup(
     packages=find_packages(where=relative_directory, include="*"),
     package_data={
         GCPC_DIR_NAME: [
-            x.replace(relative_data_path + "/", "") for x in
-            glob.glob(relative_data_path + "/**/*.yaml", recursive=True) +
-            glob.glob(
-                relative_data_path + "/**/automl/**/*.json",
-                recursive=True)
+            x.replace(relative_data_path + "/", "")
+            for x in glob.glob(
+                relative_data_path + "/**/*.yaml", recursive=True
+            )
+            + glob.glob(
+                relative_data_path + "/**/automl/**/*.json", recursive=True
+            )
         ]
     },
 )

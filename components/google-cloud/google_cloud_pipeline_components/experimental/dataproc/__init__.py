@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,12 @@
 # limitations under the License.
 """Google Cloud Pipeline Dataproc Batch components."""
 
-import os
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.v1.dataproc import (
+    DataprocPySparkBatchOp,
+    DataprocSparkBatchOp,
+    DataprocSparkRBatchOp,
+    DataprocSparkSqlBatchOp,
+)
 
 __all__ = [
     'DataprocPySparkBatchOp',
@@ -23,25 +26,3 @@ __all__ = [
     'DataprocSparkRBatchOp',
     'DataprocSparkSqlBatchOp',
 ]
-
-DataprocPySparkBatchOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_pyspark_batch/component.yaml'
-    )
-)
-
-DataprocSparkBatchOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'create_spark_batch/component.yaml')
-)
-
-DataprocSparkRBatchOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_spark_r_batch/component.yaml'
-    )
-)
-
-DataprocSparkSqlBatchOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'create_spark_sql_batch/component.yaml'
-    )
-)

@@ -21,33 +21,39 @@ from google.cloud import aiplatform
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.aiplatform import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
-from google_cloud_pipeline_components.aiplatform import utils
+from google_cloud_pipeline_components.container.aiplatform import utils
 
-INIT_KEY = 'init'
-METHOD_KEY = 'method'
-_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
+INIT_KEY = "init"
+METHOD_KEY = "method"
+_SYSTEM_LABELS = {"key1": "value1", "key2": "value2"}
+
 
 class TestAutoMLImageTrainingJob(aiplatform.AutoMLImageTrainingJob):
+
   def __init__(self, *_0, **_1):
     return
+
   def run(self):
     return
+
   def cancel(self):
     return
+
 
 class RemoteRunnerTests(unittest.TestCase):
 
   def setUp(self):
     super(RemoteRunnerTests, self).setUp()
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
+        _SYSTEM_LABELS
+    )
 
   def test_split_args_separates_init_and_method_args(self):
     test_kwargs = {
         f"{INIT_KEY}.test.class.init_1": 1,
         f"{INIT_KEY}.testclass.init_2": 2,
         f"{METHOD_KEY}.testclass.method_1": 1,
-        f"{METHOD_KEY}.testclass.method_2": 2
+        f"{METHOD_KEY}.testclass.method_2": 2,
     }
 
     init_args, method_args = remote_runner.split_args(test_kwargs)
@@ -69,7 +75,7 @@ class RemoteRunnerTests(unittest.TestCase):
   def test_split_args_on_emtpy_method_returns_empty_dict(self):
     test_kargs = {
         f"{METHOD_KEY}.testclass.method_1": 1,
-        f"{METHOD_KEY}.testclass.method_2": 2
+        f"{METHOD_KEY}.testclass.method_2": 2,
     }
 
     init_args, method_args = remote_runner.split_args(test_kargs)
@@ -89,27 +95,27 @@ class RemoteRunnerTests(unittest.TestCase):
                     "artifacts": [{
                         "name": "test_name",
                         "type": {
-                            "instanceSchema":
-                                "properties:\ntitle: kfp.Dataset\ntype: object\n"
+                            "instanceSchema": (
+                                "properties:\ntitle: kfp.Dataset\ntype:"
+                                " object\n"
+                            )
                         },
-                        "uri": "gs://test_path/dataset"
+                        "uri": "gs://test_path/dataset",
                     }]
                 }
             },
-            "outputFile": "/gcs/test_path/executor_output.json"
+            "outputFile": "/gcs/test_path/executor_output.json",
         }
     }
     expected_output = {
         "artifacts": {
             "dataset": {
                 "artifacts": [{
-                    "name":
-                        "test_name",
-                    "uri":
-                        "https://us-central1-aiplatform.googleapis.com/v1/projects/513263813639/locations/us-central1/models/7027708888837259264",
+                    "name": "test_name",
+                    "uri": "https://us-central1-aiplatform.googleapis.com/v1/projects/513263813639/locations/us-central1/models/7027708888837259264",
                     "metadata": {
                         "resourceName": "projects/513263813639/locations/us-central1/models/7027708888837259264"
-                    }
+                    },
                 }]
             }
         }
@@ -117,24 +123,27 @@ class RemoteRunnerTests(unittest.TestCase):
 
     remote_runner.write_to_artifact(
         executor_input_dict,
-        "projects/513263813639/locations/us-central1/models/7027708888837259264"
+        "projects/513263813639/locations/us-central1/models/7027708888837259264",
     )
 
     mock_open.return_value.__enter__().write.assert_called_once_with(
         json.dumps(expected_output)
     )
 
-  @mock.patch('builtins.open', new_callable=mock.mock_open())
+  @mock.patch("builtins.open", new_callable=mock.mock_open())
   @mock.patch.object(os, "makedirs", autospec=True)
   def test_write_to_artifact_with_no_artifacts_writes_emtpy_dict(
       self, mock_makedirs, mock_open
   ):
-    remote_runner.write_to_artifact({
-        "outputs": {
-            "artifacts": {},
-            "outputFile": "/gcs/test_path/executor_output.json"
-        }
-    }, "test_resource_uri")
+    remote_runner.write_to_artifact(
+        {
+            "outputs": {
+                "artifacts": {},
+                "outputFile": "/gcs/test_path/executor_output.json",
+            }
+        },
+        "test_resource_uri",
+    )
 
     mock_open.return_value.__enter__().write.assert_called_once_with(
         json.dumps({})
@@ -142,46 +151,46 @@ class RemoteRunnerTests(unittest.TestCase):
 
   def test_resolve_input_args_resource_noun_removes_gcs_prefix(self):
     type_to_resolve = aiplatform.Model
-    value = '/gcs/test_resource_name'
-    expected_result = 'test_resource_name'
+    value = "/gcs/test_resource_name"
+    expected_result = "test_resource_name"
 
     result = remote_runner.resolve_input_args(value, type_to_resolve)
     self.assertEqual(result, expected_result)
 
   def test_resolve_input_args_resource_noun_not_changed(self):
     type_to_resolve = aiplatform.base.VertexAiResourceNoun
-    value = 'test_resource_name'
-    expected_result = 'test_resource_name'
+    value = "test_resource_name"
+    expected_result = "test_resource_name"
 
     result = remote_runner.resolve_input_args(value, type_to_resolve)
     self.assertEqual(result, expected_result)
 
   def test_resolve_input_args_not_type_to_resolve_not_changed(self):
     type_to_resolve = object
-    value = '/gcs/test_resource_name'
-    expected_result = '/gcs/test_resource_name'
+    value = "/gcs/test_resource_name"
+    expected_result = "/gcs/test_resource_name"
 
     result = remote_runner.resolve_input_args(value, type_to_resolve)
     self.assertEqual(result, expected_result)
 
   def test_resolve_init_args_key_does_not_end_with_name_not_changed(self):
-    key = 'resource'
-    value = '/gcs/test_resource_name'
-    expected_result = '/gcs/test_resource_name'
+    key = "resource"
+    value = "/gcs/test_resource_name"
+    expected_result = "/gcs/test_resource_name"
 
     result = remote_runner.resolve_init_args(key, value)
     self.assertEqual(result, expected_result)
 
   def test_resolve_init_args_key_ends_with_name_removes_gcs_prefix(self):
-    key = 'resource_name'
-    value = '/gcs/test_resource_name'
-    expected_result = 'test_resource_name'
+    key = "resource_name"
+    value = "/gcs/test_resource_name"
+    expected_result = "test_resource_name"
 
     result = remote_runner.resolve_init_args(key, value)
     self.assertEqual(result, expected_result)
 
   def test_make_output_with_not_resource_name_returns_serialized_list_json(
-      self
+      self,
   ):
     output_object = ["a", 2]
     expected_result = '["a", 2]'
@@ -202,21 +211,23 @@ class RemoteRunnerTests(unittest.TestCase):
 
   def test_cast_with_str_value_to_bool(self):
     expected_result = True
-    result = remote_runner.cast('True', bool)
+    result = remote_runner.cast("True", bool)
     self.assertEqual(result, expected_result)
 
   def test_cast_with_str_value_to_list(self):
     expected_result = int(2)
-    result = remote_runner.cast('2', int)
+    result = remote_runner.cast("2", int)
     self.assertIsInstance(result, type(expected_result))
     self.assertEqual(result, expected_result)
 
   def test_attach_system_labels(self):
     os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
-        _SYSTEM_LABELS)
+        _SYSTEM_LABELS
+    )
     self.assertEqual(
         remote_runner.attach_system_labels({}, "VideoDataset", "create"),
-        {"labels": '{"key1": "value1", "key2": "value2"}'})
+        {"labels": '{"key1": "value1", "key2": "value2"}'},
+    )
 
   @mock.patch.object(
       utils, "resolve_annotation", autospec=True, return_value=bool
@@ -231,10 +242,12 @@ class RemoteRunnerTests(unittest.TestCase):
       remote_runner, "resolve_init_args", autospec=True, return_value="True"
   )
   def test_prepare_parameters_with_init_params(
-      self, mock_resolve_init_args, mock_resolve_input_args,
-      mock_get_deserializer, mock_resolve_annotation
+      self,
+      mock_resolve_init_args,
+      mock_resolve_input_args,
+      mock_get_deserializer,
+      mock_resolve_annotation,
   ):
-
     def sample_method(input: bool):
       pass
 
@@ -257,10 +270,11 @@ class RemoteRunnerTests(unittest.TestCase):
       remote_runner, "resolve_init_args", autospec=True, return_value="True"
   )
   def test_prepare_parameters_with_init_params_no_serializer(
-      self, mock_resolve_init_args, mock_get_deserializer,
-      mock_resolve_annotation
+      self,
+      mock_resolve_init_args,
+      mock_get_deserializer,
+      mock_resolve_annotation,
   ):
-
     def sample_method(input: bool):
       pass
 
@@ -285,10 +299,12 @@ class RemoteRunnerTests(unittest.TestCase):
       remote_runner, "resolve_init_args", autospec=True, return_value="True"
   )
   def test_prepare_parameters_with_method_params(
-      self, mock_resolve_init_args, mock_resolve_input_args,
-      mock_get_deserializer, mock_resolve_annotation
+      self,
+      mock_resolve_init_args,
+      mock_resolve_input_args,
+      mock_get_deserializer,
+      mock_resolve_annotation,
   ):
-
     def sample_method(input: bool):
       pass
 
@@ -297,7 +313,7 @@ class RemoteRunnerTests(unittest.TestCase):
     remote_runner.prepare_parameters(input_kwargs, sample_method, False)
     mock_resolve_annotation.assert_called_once_with(bool)
     mock_get_deserializer.assert_called_once_with(bool)
-    mock_resolve_input_args.assert_called_once_with('True', bool)
+    mock_resolve_input_args.assert_called_once_with("True", bool)
     mock_resolve_init_args.assert_not_called()
     self.assertDictEqual(input_kwargs, expected_kwargs)
 
@@ -316,17 +332,23 @@ class RemoteRunnerTests(unittest.TestCase):
   @mock.patch.object(
       remote_runner, "split_args", autospec=True, return_value="True"
   )
-  @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+  @mock.patch.object(ExecutionContext, "__init__", autospec=True)
   def test_runner_cancel(
-      self, mock_execution_context, mock_split_args, mock_prepare_parameters,
-      _0, _1, mock_training_job
+      self,
+      mock_execution_context,
+      mock_split_args,
+      mock_prepare_parameters,
+      _0,
+      _1,
+      mock_training_job,
   ):
-    mock_split_args.return_value = ({'project': 'project_id'}, {})
+    mock_split_args.return_value = ({"project": "project_id"}, {})
     mock_training_job_instance = mock.Mock()
     mock_training_job.return_value = mock_training_job_instance
     mock_execution_context.return_value = None
 
     remote_runner.runner("AutoMLImageTrainingJob", "run", None, None)
     self.assertEqual(
-        mock_execution_context.call_args[1]['on_cancel'],
-        mock_training_job_instance.cancel)
+        mock_execution_context.call_args[1]["on_cancel"],
+        mock_training_job_instance.cancel,
+    )

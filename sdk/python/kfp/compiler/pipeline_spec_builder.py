@@ -362,6 +362,9 @@ def _build_component_spec_from_component_spec_structure(
                 input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
             component_spec.input_definitions.parameters[
                 input_name].is_optional = True
+            if input_spec.description:
+                component_spec.input_definitions.parameters[
+                    input_name].description = input_spec.description
 
         elif type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[
@@ -375,6 +378,9 @@ def _build_component_spec_from_component_spec_structure(
                     input_name=input_name,
                     default_value=input_spec.default,
                 )
+            if input_spec.description:
+                component_spec.input_definitions.parameters[
+                    input_name].description = input_spec.description
 
         else:
             component_spec.input_definitions.artifacts[
@@ -386,6 +392,9 @@ def _build_component_spec_from_component_spec_structure(
             if input_spec.optional:
                 component_spec.input_definitions.artifacts[
                     input_name].is_optional = True
+            if input_spec.description:
+                component_spec.input_definitions.artifacts[
+                    input_name].description = input_spec.description
 
     for output_name, output_spec in (component_spec_struct.outputs or
                                      {}).items():
@@ -393,6 +402,9 @@ def _build_component_spec_from_component_spec_structure(
             component_spec.output_definitions.parameters[
                 output_name].parameter_type = type_utils.get_parameter_type(
                     output_spec.type)
+            if output_spec.description:
+                component_spec.output_definitions.parameters[
+                    output_name].description = output_spec.description
         else:
             component_spec.output_definitions.artifacts[
                 output_name].artifact_type.CopyFrom(
@@ -400,6 +412,9 @@ def _build_component_spec_from_component_spec_structure(
                         output_spec.type))
             component_spec.output_definitions.artifacts[
                 output_name].is_artifact_list = output_spec.is_artifact_list
+            if output_spec.description:
+                component_spec.output_definitions.artifacts[
+                    output_name].description = output_spec.description
 
     return component_spec
 

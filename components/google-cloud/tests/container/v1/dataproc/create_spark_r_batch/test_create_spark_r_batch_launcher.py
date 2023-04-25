@@ -27,18 +27,27 @@ class LauncherDataprocSparkRBatchJobUtilsTests(unittest.TestCase):
   def setUp(self):
     super(LauncherDataprocSparkRBatchJobUtilsTests, self).setUp()
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
     self._input_args = [
-        '--type', 'DataprocSparkRBatch', '--project', 'test_project',
-        '--location', 'us_central1', '--batch_id', 'test_batch_id',
-        '--payload', 'test_payload',
-        '--gcp_resources', self._gcp_resources
+        '--type',
+        'DataprocSparkRBatch',
+        '--project',
+        'test_project',
+        '--location',
+        'us_central1',
+        '--batch_id',
+        'test_batch_id',
+        '--payload',
+        'test_payload',
+        '--gcp_resources',
+        self._gcp_resources,
     ]
 
-  @mock.patch.object(
-      remote_runner, 'create_spark_r_batch', autospec=True)
-  def test_launcher_on_dataproc_create_spark_r_batch_job_type(self, mock_dataproc_spark_r_batch_job):
+  @mock.patch.object(remote_runner, 'create_spark_r_batch', autospec=True)
+  def test_launcher_on_dataproc_create_spark_r_batch_job_type(
+      self, mock_dataproc_spark_r_batch_job
+  ):
     launcher.main(self._input_args)
     mock_dataproc_spark_r_batch_job.assert_called_once_with(
         type='DataprocSparkRBatch',
@@ -46,4 +55,5 @@ class LauncherDataprocSparkRBatchJobUtilsTests(unittest.TestCase):
         location='us_central1',
         batch_id='test_batch_id',
         payload='test_payload',
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+    )

@@ -27,21 +27,30 @@ class LauncherDataflowFlexTemplateTests(unittest.TestCase):
   def setUp(self):
     super(LauncherDataflowFlexTemplateTests, self).setUp()
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'test_file_path/test_file.txt')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
+    )
     self._input_args = [
-        '--type', 'DataflowJob', '--project', 'test_project',
-        '--location', 'us_central1', '--payload', 'test_payload',
-        '--gcp_resources', self._gcp_resources
+        '--type',
+        'DataflowJob',
+        '--project',
+        'test_project',
+        '--location',
+        'us_central1',
+        '--payload',
+        'test_payload',
+        '--gcp_resources',
+        self._gcp_resources,
     ]
 
-  @mock.patch.object(
-      remote_runner, 'launch_flex_template', autospec=True)
-  def test_launcher_on_dataflow_flex_template_job_type(self, mock_dataflow_flex_template_job):
+  @mock.patch.object(remote_runner, 'launch_flex_template', autospec=True)
+  def test_launcher_on_dataflow_flex_template_job_type(
+      self, mock_dataflow_flex_template_job
+  ):
     launcher.main(self._input_args)
     mock_dataflow_flex_template_job.assert_called_once_with(
         type='DataflowJob',
         project='test_project',
         location='us_central1',
         payload='test_payload',
-        gcp_resources=self._gcp_resources)
+        gcp_resources=self._gcp_resources,
+    )

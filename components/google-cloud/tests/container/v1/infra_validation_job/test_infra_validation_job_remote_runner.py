@@ -33,7 +33,8 @@ class InfraValidationJobRunnerUtilsTests(unittest.TestCase):
     self._type = 'InfraValidationJob'
 
     self._output_file_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath', 'foo')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath', 'foo'
+    )
 
     self._executor_input_dict = {
         'inputs': {
@@ -41,57 +42,54 @@ class InfraValidationJobRunnerUtilsTests(unittest.TestCase):
                 'unmanaged_container_model': {
                     'artifacts': [{
                         'metadata': {
-                            'containerSpec': {
-                                'imageUri': 'image_foo'
-                            }
+                            'containerSpec': {'imageUri': 'image_foo'}
                         },
                         'name': 'unmanaged_container_model',
                         'type': {
                             'schemaTitle': 'google.UnmanagedContainerModel'
                         },
-                        'uri': 'gs://abc'
+                        'uri': 'gs://abc',
                     }]
                 }
             }
         },
-        'outputs': {
-            'outputFile': self._output_file_path
-        }
+        'outputs': {'outputFile': self._output_file_path},
     }
     self._executor_input = json.dumps(self._executor_input_dict)
     self._gcp_resources = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources'
+    )
 
     self._infra_validation_example_path = 'test_infra_validation_example_path'
     self._machine_type = 'n1-standard-8'
 
-    self._payload = json.dumps(
-        {'infra_validation_example_path': self._infra_validation_example_path,
-         'machine_type': self._machine_type})
+    self._payload = json.dumps({
+        'infra_validation_example_path': self._infra_validation_example_path,
+        'machine_type': self._machine_type,
+    })
 
     self._expected_args = ['--model_base_path', 'gs://abc']
     if self._infra_validation_example_path:
       self._expected_args.extend([
-          '--infra_validation_example_path', self._infra_validation_example_path
+          '--infra_validation_example_path',
+          self._infra_validation_example_path,
       ])
 
     self._expected_env_variables = [{
         'name': 'INFRA_VALIDATION_MODE',
-        'value': '1'
+        'value': '1',
     }]
 
     self._expected_job_spec = {
         'display_name': 'infra-validation',
         'job_spec': {
             'worker_pool_specs': [{
-                'machine_spec': {
-                    'machine_type': self._machine_type
-                },
+                'machine_spec': {'machine_type': self._machine_type},
                 'replica_count': 1,
                 'container_spec': {
                     'image_uri': 'image_foo',
                     'args': self._expected_args,
-                    'env': self._expected_env_variables
+                    'env': self._expected_env_variables,
                 },
             }]
         },
@@ -102,13 +100,15 @@ class InfraValidationJobRunnerUtilsTests(unittest.TestCase):
       os.remove(self._gcp_resources)
 
   def test_construct_infra_validation_job_spec(self):
-    actual_job_spec = infra_validation_job_remote_runner.construct_infra_validation_job_payload(self._executor_input, self._payload)
+    actual_job_spec = infra_validation_job_remote_runner.construct_infra_validation_job_payload(
+        self._executor_input, self._payload
+    )
     self.assertDictEqual(self._expected_job_spec, json.loads(actual_job_spec))
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   def test_infra_validation_job_remote_runner_succeeded(
-      self, mock_job_service_client):
-
+      self, mock_job_service_client
+  ):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
 
@@ -121,9 +121,15 @@ class InfraValidationJobRunnerUtilsTests(unittest.TestCase):
     get_custom_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
 
     infra_validation_job_remote_runner.create_infra_validation_job(
-        self._type, self._project, self._location, self._gcp_resources,
-        self._executor_input, self._payload)
+        self._type,
+        self._project,
+        self._location,
+        self._gcp_resources,
+        self._executor_input,
+        self._payload,
+    )
 
     job_client.create_custom_job.assert_called_once_with(
         parent=f'projects/{self._project}/locations/{self._location}',
-        custom_job=self._expected_job_spec)
+        custom_job=self._expected_job_spec,
+    )

@@ -144,9 +144,9 @@ func RegisterReportServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 }
 
 var (
-	pattern_ReportService_ReportWorkflow_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "workflows"}, ""))
+	pattern_ReportService_ReportWorkflow_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "workflows"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ReportService_ReportScheduledWorkflow_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "scheduledworkflows"}, ""))
+	pattern_ReportService_ReportScheduledWorkflow_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "scheduledworkflows"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (
