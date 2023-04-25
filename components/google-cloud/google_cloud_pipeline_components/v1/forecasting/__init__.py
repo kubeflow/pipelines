@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +13,28 @@
 # limitations under the License.
 """Google Cloud Pipeline Experimental Forecasting Components."""
 
-from google_cloud_pipeline_components.v1.forecasting import (
-    ForecastingPrepareDataForTrainOp,
-    ForecastingPreprocessingOp,
-    ForecastingValidationOp,
-)
+import os
+
+
+from kfp.components import load_component_from_file
+
 
 __all__ = [
     'ForecastingPreprocessingOp',
     'ForecastingValidationOp',
     'ForecastingPrepareDataForTrainOp',
 ]
+
+ForecastingPreprocessingOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'preprocess/component.yaml')
+)
+
+ForecastingValidationOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'validate/component.yaml')
+)
+
+ForecastingPrepareDataForTrainOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'prepare_data_for_train/component.yaml'
+    )
+)

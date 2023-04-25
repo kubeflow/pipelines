@@ -13,7 +13,7 @@
 # limitations under the License.
 """Test Vertex Forecasting prepare data for train module."""
 
-from google_cloud_pipeline_components.experimental.forecasting.prepare_data_for_train import component
+from google_cloud_pipeline_components.v1.forecasting.prepare_data_for_train import component
 
 import unittest
 
