@@ -64,6 +64,7 @@ def test_create_endpoint(
         utils.replace_placeholders(
             os.path.join(test_file_dir, "config.yaml"),
             os.path.join(download_dir, "config.yaml"),
+            shallow_canary=True,
         )
     )
 

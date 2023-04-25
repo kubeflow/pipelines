@@ -24,6 +24,7 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
         utils.replace_placeholders(
             os.path.join(test_file_dir, "config.yaml"),
             os.path.join(download_dir, "ack-training-job.yaml"),
+            shallow_canary=True,
         )
     )
     input_job_name = utils.generate_random_string(10) + "-trn-job"
