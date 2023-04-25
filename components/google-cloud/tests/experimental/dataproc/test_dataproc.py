@@ -11,18 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Dataproc Batch components."""
+import unittest
 
-from google_cloud_pipeline_components.v1.dataproc import (
-    DataprocPySparkBatchOp,
-    DataprocSparkBatchOp,
-    DataprocSparkRBatchOp,
-    DataprocSparkSqlBatchOp,
-)
 
-__all__ = [
-    'DataprocPySparkBatchOp',
-    'DataprocSparkBatchOp',
-    'DataprocSparkRBatchOp',
-    'DataprocSparkSqlBatchOp',
-]
+class TestDataproc(unittest.TestCase):
+
+  def test_experimental_import_path(self):
+    from google_cloud_pipeline_components.experimental.dataproc import (
+        DataprocSparkSqlBatchOp,
+        DataprocSparkRBatchOp,
+        DataprocPySparkBatchOp,
+        DataprocSparkBatchOp,
+    )
