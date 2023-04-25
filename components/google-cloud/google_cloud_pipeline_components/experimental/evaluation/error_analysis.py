@@ -11,24 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Evaluation components."""
+"""Google Cloud Pipeline Evaluation Error Analysis components."""
 
-from google_cloud_pipeline_components.v1.evaluation import (
-    ModelImportEvaluationOp,
-    EvaluationDataSamplerOp,
-    TargetFieldDataRemoverOp,
-    ModelEvaluationClassificationOp,
-    ModelEvaluationRegressionOp,
-    ModelEvaluationForecastingOp,
-    ModelEvaluationFeatureAttributionOp,
+from google_cloud_pipeline_components.v1.evaluation.error_analysis import (
+    EvaluationDatasetPreprocessorOp,
+    EvaluatedAnnotationOp,
+    FeatureExtractorOp,
+    ErrorAnalysisAnnotationOp,
+    ModelImportEvaluatedAnnotationOp,
 )
 
+
 __all__ = [
-    'ModelImportEvaluationOp',
-    'EvaluationDataSamplerOp',
-    'TargetFieldDataRemoverOp',
-    'ModelEvaluationClassificationOp',
-    'ModelEvaluationRegressionOp',
-    'ModelEvaluationForecastingOp',
-    'ModelEvaluationFeatureAttributionOp',
+    'EvaluationDatasetPreprocessorOp',
+    'EvaluatedAnnotationOp',
+    'FeatureExtractorOp',
+    'ErrorAnalysisAnnotationOp',
+    'ModelImportEvaluatedAnnotationOp',
 ]
