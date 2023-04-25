@@ -11,9 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Dataset components."""
-from google_cloud_pipeline_components.v1.dataset import GetVertexDatasetOp
+import unittest
 
-__all__ = [
-    'GetVertexDatasetOp',
-]
+
+class TestDataset(unittest.TestCase):
+
+  def test_experimental_import_path(self):
+    from google_cloud_pipeline_components.experimental.dataset import GetVertexDatasetOp
+
+    print(
+        GetVertexDatasetOp
+    )  # use variable to avoid removal of unused imports by linting tools

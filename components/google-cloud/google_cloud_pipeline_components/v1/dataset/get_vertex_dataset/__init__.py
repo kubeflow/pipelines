@@ -11,9 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Dataset components."""
-from google_cloud_pipeline_components.v1.dataset import GetVertexDatasetOp
-
-__all__ = [
-    'GetVertexDatasetOp',
-]
+"""Get Vertex Dataset Component."""
