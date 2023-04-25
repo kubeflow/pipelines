@@ -292,7 +292,7 @@ class ComponentBuilder():
         self._maybe_write_file(_DOCKERFILE, dockerfile_contents,
                                overwrite_dockerfile)
 
-    def build_image(self, push_image: bool):
+    def build_image(self, platform: str, push_image: bool):
         logging.info(f'Building image {self._target_image} using Docker...')
         client = docker.from_env()
 
@@ -305,6 +305,7 @@ class ComponentBuilder():
                 dockerfile='Dockerfile',
                 tag=self._target_image,
                 decode=True,
+                platform=platform,
             )
             for log in logs:
                 message = log.get('stream', '').rstrip('\n')
@@ -379,6 +380,11 @@ def component():
     default=True,
     help='Build the container image.')
 @click.option(
+    '--platform',
+    type=str,
+    default='linux/amd64',
+    help='The platform to build the container image for.')
+@click.option(
     '--push-image/--no-push-image',
     type=bool,
     is_flag=True,
@@ -386,7 +392,7 @@ def component():
     help='Push the built image to its remote repository.')
 def build(components_directory: str, component_filepattern: str, engine: str,
           kfp_package_path: Optional[str], overwrite_dockerfile: bool,
-          build_image: bool, push_image: bool):
+          build_image: bool, platform: str, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
 
     if build_image and engine != 'docker':
@@ -428,4 +434,4 @@ def build(components_directory: str, component_filepattern: str, engine: str,
     builder.maybe_generate_dockerignore()
     builder.maybe_generate_dockerfile(overwrite_dockerfile=overwrite_dockerfile)
     if build_image:
-        builder.build_image(push_image=push_image)
+        builder.build_image(platform=platform, push_image=push_image)
