@@ -13,9 +13,7 @@
 # limitations under the License.
 """Google Cloud Pipeline Dataflow components."""
 
-import os
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.v1.dataflow import DataflowPythonJobOp
 
 __all__ = [
     'DataflowFlexTemplateJobOp',
@@ -37,7 +35,3 @@ except ImportError:
     )
 
   DataflowFlexTemplateJobOp = _raise_unsupported
-
-DataflowPythonJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'python_job/component.yaml')
-)
