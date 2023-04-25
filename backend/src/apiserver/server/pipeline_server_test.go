@@ -164,14 +164,9 @@ func TestCreatePipelineV1_InvalidYAML(t *testing.T) {
 			},
 		},
 	)
-	assert.Nil(t, err)
-	assert.NotEqual(t, "", createdPipeline.GetId())
-	assert.Less(t, 0, int(createdPipeline.GetCreatedAt().Seconds))
-	assert.Equal(t, "", createdPipeline.GetDefaultVersion().GetId())
-	assert.Equal(t, 0, int(createdPipeline.GetDefaultVersion().GetCreatedAt().Seconds))
-	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(createdPipeline.Id)
 	assert.NotNil(t, err)
-	assert.Nil(t, newPipelineVersion)
+	assert.Contains(t, err.Error(), "pipeline spec is invalid")
+	assert.Nil(t, createdPipeline)
 }
 
 func TestCreatePipelineV1_InvalidURL(t *testing.T) {
@@ -191,17 +186,12 @@ func TestCreatePipelineV1_InvalidURL(t *testing.T) {
 			},
 		},
 	)
-	assert.Nil(t, err)
-	assert.NotEqual(t, "", createdPipeline.GetId())
-	assert.Less(t, 0, int(createdPipeline.GetCreatedAt().Seconds))
-	assert.Equal(t, "", createdPipeline.GetDefaultVersion().GetId())
-	assert.Equal(t, 0, int(createdPipeline.GetDefaultVersion().GetCreatedAt().Seconds))
-	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(createdPipeline.Id)
 	assert.NotNil(t, err)
-	assert.Nil(t, newPipelineVersion)
+	assert.Contains(t, err.Error(), "Failed to create a pipeline (v1beta1) due to error fetching pipeline spec")
+	assert.Nil(t, createdPipeline)
 }
 
-func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
+func TestCreatePipelineV1_MissingUrl(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -210,7 +200,7 @@ func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, "default")
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	existingPipeline, _ := pipelineServer.CreatePipelineV1(
+	createdPipeline, err := pipelineServer.CreatePipelineV1(
 		context.Background(), &api.CreatePipelineRequest{
 			Pipeline: &api.Pipeline{
 				Name: "argument-parameters",
@@ -226,7 +216,21 @@ func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
 			},
 		},
 	)
-	createdPipeline, err := pipelineServer.CreatePipelineV1(
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to create a pipeline (v1beta1) due to missing pipeline URL")
+	assert.Nil(t, createdPipeline)
+}
+
+func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, "default")
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer.CreatePipelineV1(
 		context.Background(), &api.CreatePipelineRequest{
 			Pipeline: &api.Pipeline{
 				Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
@@ -243,22 +247,26 @@ func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
 			},
 		},
 	)
-	assert.Nil(t, err)
-	assert.NotEqual(t, "", createdPipeline.GetId())
-	assert.Equal(t, existingPipeline.GetId(), createdPipeline.GetId())
-	assert.Less(t, 0, int(createdPipeline.GetCreatedAt().Seconds))
-
-	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(createdPipeline.Id)
-	assert.Nil(t, err)
-	assert.NotNil(t, newPipelineVersion)
-	assert.Equal(t, newPipelineVersion.PipelineId, existingPipeline.GetId())
-	assert.Equal(t, newPipelineVersion.PipelineId, createdPipeline.GetId())
-
-	assert.Equal(t, "", existingPipeline.GetDefaultVersion().GetId())
-	assert.Equal(t, 0, int(existingPipeline.GetDefaultVersion().GetCreatedAt().Seconds))
-
-	assert.Equal(t, newPipelineVersion.UUID, createdPipeline.GetDefaultVersion().GetId())
-	assert.Less(t, 0, int(createdPipeline.GetDefaultVersion().GetCreatedAt().Seconds))
+	createdPipeline, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: httpServer.URL + "/xgboost_sample_pipeline.yaml"},
+				Name: "argument-parameters",
+				ResourceReferences: []*api.ResourceReference{
+					{
+						Key: &api.ResourceKey{
+							Id:   "test-namespace",
+							Type: api.ResourceType_NAMESPACE,
+						},
+						Relationship: api.Relationship_OWNER,
+					},
+				},
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to create a new pipeline. The name argument-parameters already exists")
+	assert.Nil(t, createdPipeline)
 }
 
 func TestCreatePipelineVersionV1_YAML(t *testing.T) {
@@ -407,8 +415,9 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 			},
 		},
 	})
-
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Request returned 404 Not Found")
 }
 
 func TestListPipelineVersion_NoResourceKey(t *testing.T) {
