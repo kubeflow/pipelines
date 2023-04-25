@@ -16,12 +16,16 @@
 import json
 import os
 
-from google.cloud.aiplatform import hyperparameter_tuning as hpt
-from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import HyperparameterTuningJobRunOp, serialize_parameters, serialize_metrics
 import kfp
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import (
+    HyperparameterTuningJobRunOp,
+    serialize_metrics,
+    serialize_parameters,
+)
 from kfp import compiler
 
 import unittest
+from google.cloud.aiplatform import hyperparameter_tuning as hpt
 
 
 class HPTuningJobCompileTest(unittest.TestCase):

@@ -14,14 +14,24 @@
 """Test Hyperparameter Tuning Job module."""
 
 import json
-from unittest import mock
 
-from google.cloud import aiplatform
-from google.cloud.aiplatform import hyperparameter_tuning as hpt
-from google.cloud.aiplatform_v1.types import hyperparameter_tuning_job, study
-from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import GetBestHyperparametersOp, GetBestTrialOp, GetHyperparametersOp, GetTrialsOp, GetWorkerPoolSpecsOp, IsMetricBeyondThresholdOp, serialize_metrics, serialize_parameters
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import (
+    GetBestHyperparametersOp,
+    GetBestTrialOp,
+    GetHyperparametersOp,
+    GetTrialsOp,
+    GetWorkerPoolSpecsOp,
+    IsMetricBeyondThresholdOp,
+    serialize_metrics,
+)
 
 import unittest
+from unittest import mock
+from google.cloud import aiplatform
+from google.cloud.aiplatform_v1.types import (
+    hyperparameter_tuning_job,
+    study,
+)
 
 
 class HyperparameterTuningJobTest(unittest.TestCase):
@@ -153,58 +163,6 @@ class HyperparameterTuningJobTest(unittest.TestCase):
     }]
     self._metrics_spec_max = serialize_metrics({'accuracy': 'maximize'})
     self._metrics_spec_min = serialize_metrics({'loss': 'minimize'})
-
-  def test_serialize_parameters(self):
-    parameters = {
-        'lr': hpt.DoubleParameterSpec(min=0.001, max=0.1, scale='log'),
-        'units': hpt.IntegerParameterSpec(min=4, max=128, scale='linear'),
-        'activation': hpt.CategoricalParameterSpec(values=['relu', 'selu']),
-        'batch_size': hpt.DiscreteParameterSpec(
-            values=[128, 256], scale='linear'
-        ),
-    }
-    expected_outputs = [
-        {
-            'parameter_id': 'lr',
-            'double_value_spec': {'min_value': 0.001, 'max_value': 0.1},
-            'scale_type': 2,
-            'conditional_parameter_specs': [],
-        },
-        {
-            'parameter_id': 'units',
-            'integer_value_spec': {'min_value': '4', 'max_value': '128'},
-            'scale_type': 1,
-            'conditional_parameter_specs': [],
-        },
-        {
-            'parameter_id': 'activation',
-            'categorical_value_spec': {'values': ['relu', 'selu']},
-            'scale_type': 0,
-            'conditional_parameter_specs': [],
-        },
-        {
-            'parameter_id': 'batch_size',
-            'discrete_value_spec': {'values': [128.0, 256.0]},
-            'scale_type': 1,
-            'conditional_parameter_specs': [],
-        },
-    ]
-
-    outputs = serialize_parameters(parameters)
-    self.assertEqual(outputs, expected_outputs)
-
-  def test_serialize_metrics(self):
-    metrics = {
-        'loss': 'minimize',
-        'accuracy': 'maximize',
-    }
-    expected_outputs = [
-        {'metric_id': 'loss', 'goal': 2},
-        {'metric_id': 'accuracy', 'goal': 1},
-    ]
-
-    outputs = serialize_metrics(metrics)
-    self.assertEqual(outputs, expected_outputs)
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   def test_get_trials_op(self, mock_job_service_client):
@@ -392,3 +350,6 @@ class HyperparameterTuningJobTest(unittest.TestCase):
     )
 
     self.assertEqual(output, expected_output)
+
+  def test_experimental_import_path(self):
+    pass
