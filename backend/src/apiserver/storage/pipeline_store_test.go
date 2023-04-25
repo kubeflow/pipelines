@@ -601,6 +601,185 @@ func TestGetPipelineByNameAndNamespaceV1_NotFound(t *testing.T) {
 		"Failed to get pipeline by name and namespace")
 }
 
+func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
+	tests := []struct {
+		name                string
+		p                   *model.Pipeline
+		pv                  *model.PipelineVersion
+		wantPipeline        *model.Pipeline
+		wantPipelineVersion *model.PipelineVersion
+		wantErr             bool
+		errMsg              string
+	}{
+		{
+			"Valid - pipeline v2",
+			&model.Pipeline{
+				Name:        "pipeline v2",
+				Description: "pipeline two",
+				Namespace:   "user1",
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 3,
+				Name:           "pipeline v2",
+				Description:    "pipeline two",
+				Namespace:      "user1",
+				Status:         model.PipelineCreating,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  4,
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Status:          model.PipelineVersionCreating,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - pipeline v1",
+			&model.Pipeline{
+				Name:        "pipeline v1",
+				Description: "pipeline one",
+				Parameters:  `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v1 version 1",
+				Parameters:      `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Description:     "pipeline v1 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    v1SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 3,
+				Name:           "pipeline v1",
+				Description:    "pipeline one",
+				Parameters:     `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Status:         model.PipelineCreating,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  4,
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Name:            "pipeline v1 version 1",
+				Parameters:      `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Description:     "pipeline v1 version description",
+				Status:          model.PipelineVersionCreating,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    v1SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid - duplicate pipeline v2",
+			&model.Pipeline{
+				Name:        "default pipeline",
+				Description: "pipeline three",
+				Namespace:   "kubeflow",
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline version three",
+				Description:     "pipeline version three description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			nil,
+			nil,
+			true,
+			"Failed to create a new pipeline. The name default pipeline already exists",
+		},
+		{
+			"Valid - duplicate pipeline version v2",
+			&model.Pipeline{
+				Name:        "pipeline three",
+				Description: "pipeline three",
+				Namespace:   "kubeflow",
+			},
+			&model.PipelineVersion{
+				Name:            "default version",
+				Description:     "default version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 3,
+				Name:           "pipeline three",
+				Description:    "pipeline three",
+				Namespace:      "kubeflow",
+				Status:         model.PipelineCreating,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  4,
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Name:            "default version",
+				Description:     "default version description",
+				Status:          model.PipelineVersionCreating,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := NewFakeDBOrFatal()
+			pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+			// Create a default pipeline
+			pipelineStore.CreatePipeline(
+				&model.Pipeline{
+					Name:      "default pipeline",
+					Namespace: "kubeflow",
+					Status:    model.PipelineReady,
+				})
+			// Create a default version
+			pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil)
+			pipelineStore.CreatePipelineVersion(
+				&model.PipelineVersion{
+					Name:       "default version",
+					Parameters: `[{"Name":"param3","value":"three"}]`,
+					PipelineId: DefaultFakePipelineId,
+					Status:     model.PipelineVersionReady,
+				},
+			)
+			pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+
+			gotPipeline, gotPipelineVersion, err := pipelineStore.CreatePipelineAndPipelineVersion(tt.p, tt.pv)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, gotPipeline)
+				assert.Nil(t, gotPipelineVersion)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.wantPipeline, gotPipeline)
+				assert.Equal(t, tt.wantPipelineVersion, gotPipelineVersion)
+			}
+			db.Close()
+		})
+	}
+}
+
 func TestCreatePipeline(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
@@ -1724,3 +1903,76 @@ func TestUpdatePipelineVersionStatusError(t *testing.T) {
 		DefaultFakePipelineId, model.PipelineVersionDeleting)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
+
+var v2SpecHelloWorld = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        text:
+          type: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--text"
+        - "{{$.inputs.parameters['text']}}"
+        command:
+        - sh
+        - "-ec"
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          python3 -u "$program_path" "$@"
+        - |
+          def hello_world(text):
+              print(text)
+              return text
+
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
+
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.7
+pipelineInfo:
+  name: hello-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      text:
+        type: STRING
+schemaVersion: 2.0.0
+sdkVersion: kfp-1.6.5
+`
+var v1SpecHelloWorld = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  templates:
+  - name: whalesay
+    inputs:
+      parameters:
+      - name: dup
+        value: "value1"
+    container:
+      image: docker/whalesay:latest`

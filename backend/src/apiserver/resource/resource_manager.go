@@ -332,6 +332,68 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 	return newPipeline, nil
 }
 
+// Creates a pipeline and a pipeline version.
+// This is used when two resources need to be created in a single DB transaction.
+func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
+	// Assign the default namespace if it is empty
+	if p.Namespace == "" {
+		p.Namespace = r.GetDefaultNamespace()
+	}
+
+	// Fetch pipeline spec, verify it, and parse parameters
+	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version as template is broken")
+	}
+	pv.PipelineSpec = string(pipelineSpecBytes)
+	if pipelineSpecURI != "" {
+		pv.PipelineSpecURI = pipelineSpecURI
+	}
+	tmpl, err := template.New(pipelineSpecBytes)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
+	} else if tmpl.IsV2() {
+		tmpl.OverrideV2PipelineName(p.Name, p.Namespace)
+	}
+	paramsJSON, err := tmpl.ParametersJSON()
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to error converting parameters to json")
+	}
+	pv.Parameters = paramsJSON
+	pv.PipelineSpec = string(tmpl.Bytes())
+
+	// Create records in KFP DB (both pipelines and pipeline_versions tables)
+	newPipeline, newVersion, err := r.pipelineStore.CreatePipelineAndPipelineVersion(p, pv)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version")
+	}
+
+	// TODO(gkcalat): consider removing this after v2beta1 GA if we adopt storing PipelineSpec in DB.
+	// Store the pipeline file
+	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(newVersion.UUID))
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to error saving PipelineSpec to ObjectStore")
+	}
+
+	newPipeline.Status = model.PipelineReady
+	err = r.pipelineStore.UpdatePipelineStatus(
+		newPipeline.UUID,
+		newPipeline.Status,
+	)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline after creation")
+	}
+	newVersion.Status = model.PipelineVersionReady
+	err = r.pipelineStore.UpdatePipelineVersionStatus(
+		newVersion.UUID,
+		newVersion.Status,
+	)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline version after creation")
+	}
+	return newPipeline, newVersion, nil
+}
+
 // Updates the status of a pipeline.
 func (r *ResourceManager) UpdatePipelineStatus(pipelineId string, status model.PipelineStatus) error {
 	err := r.pipelineStore.UpdatePipelineStatus(pipelineId, status)
