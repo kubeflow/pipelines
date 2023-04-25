@@ -83,24 +83,27 @@ def read_from_file_in_tar(file_path, file_name="data", decode=True):
             return f.read()
 
 
-def replace_placeholders(input_filename, output_filename):
+def replace_placeholders(input_filename, output_filename, shallow_canary=False):
     region = get_region()
     variables_to_replace = {
         "((REGION))": region,
         "((SAGEMAKER_ROLE_ARN))": get_sagemaker_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
         "((KMEANS_REGISTRY))": get_algorithm_image_registry("kmeans", region, "1"),
-        "((XGBOOST_REGISTRY))": get_algorithm_image_registry(
-            "xgboost", region, "1.0-1"
-        ),
-        "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
-        "((FSX_ID))": get_fsx_id(),
-        "((FSX_SUBNET))": get_fsx_subnet(),
-        "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
-        "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
-        "((ROBOMAKER_ROLE_ARN))": get_robomaker_role_arn(),
     }
-
+    if not shallow_canary:
+        extra_variables_to_replace = {
+            "((XGBOOST_REGISTRY))": get_algorithm_image_registry(
+                "xgboost", region, "1.0-1"
+            ),
+            "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
+            "((FSX_ID))": get_fsx_id(),
+            "((FSX_SUBNET))": get_fsx_subnet(),
+            "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
+            "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
+            "((ROBOMAKER_ROLE_ARN))": get_robomaker_role_arn(),
+        }
+        variables_to_replace = {**variables_to_replace, **extra_variables_to_replace}
     filedata = ""
     with open(input_filename, "r") as f:
         filedata = f.read()
