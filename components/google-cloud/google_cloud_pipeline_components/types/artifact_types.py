@@ -15,7 +15,6 @@
 
 from typing import Dict, Optional
 from kfp import dsl
-import json
 
 # The artifact property key for the resource name
 ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
@@ -234,4 +233,50 @@ class UnmanagedContainerModel(dsl.Artifact):
             'predictSchemata': predict_schemata,
             'containerSpec': container_spec,
         }
+    )
+
+
+@google_artifact('google.ClassificationMetrics')
+class ClassificationMetrics(dsl.Metrics):
+  """An artifact representing evaluation classification metrics."""
+
+  def __init__(
+      self,
+      name: str = 'evaluation_metrics',
+      recall: Optional[float] = None,
+      precision: Optional[float] = None,
+      f1_score: Optional[float] = None,
+      accuracy: Optional[float] = None,
+      au_prc: Optional[float] = None,
+      au_roc: Optional[float] = None,
+      log_loss: Optional[float] = None,
+  ):
+    """Args:
+
+    recall: Recall (True Positive Rate) for the given confidence threshold.
+    precision: Precision for the given confidence threshold.
+    f1_score: The harmonic mean of recall and precision.
+    accuracy: Accuracy is the fraction of predictions given the correct label.
+    au_prc: The Area Under Precision-Recall Curve metric.
+    au_roc: The Area Under Receiver Operating Characteristic curve metric.
+    log_loss: The Log Loss metric.
+    """
+    metadata = {}
+    if recall is not None:
+      metadata['recall'] = recall
+    if precision is not None:
+      metadata['precision'] = precision
+    if f1_score is not None:
+      metadata['f1Score'] = f1_score
+    if accuracy is not None:
+      metadata['accuracy'] = accuracy
+    if au_prc is not None:
+      metadata['auPrc'] = au_prc
+    if au_roc is not None:
+      metadata['auRoc'] = au_roc
+    if log_loss is not None:
+      metadata['logLoss'] = log_loss
+    super().__init__(
+        name=name,
+        metadata=metadata,
     )
