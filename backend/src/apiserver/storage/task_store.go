@@ -400,11 +400,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.ToString(),
 			)
 		}
-		sql, args, err := sqlInsert.ToSql()
-		if err != nil {
-			return "", nil, util.NewInternalServerError(err, "Failed to create query to check existing tasks")
-		}
-		return sql, args, nil
+		return sqlInsert.ToSql()
 	}
 
 	// Check for existing tasks and fill empty field with existing data.
