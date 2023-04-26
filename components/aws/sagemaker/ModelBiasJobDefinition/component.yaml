@@ -92,7 +92,7 @@ outputs:
 
 implementation:
   container:
-    image: rdpen/test-modelmoni:26
+    image: rdpen/test-modelmoni:28
     command: [python3]
     args:
       - ModelBiasJobDefinition/src/ModelBiasJobDefinition_component.py
