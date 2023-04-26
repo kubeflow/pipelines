@@ -17,6 +17,8 @@ import os
 
 from kfp.components import load_component_from_file
 
+from .classification import component as classification_component
+
 __all__ = [
     'ModelImportEvaluationOp',
     'EvaluationDataSamplerOp',
@@ -43,8 +45,8 @@ TargetFieldDataRemoverOp = load_component_from_file(
     )
 )
 
-ModelEvaluationClassificationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'classification/component.yaml')
+ModelEvaluationClassificationOp = (
+    classification_component.model_evaluation_classification
 )
 
 ModelEvaluationRegressionOp = load_component_from_file(
