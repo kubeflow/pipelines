@@ -97,7 +97,7 @@ func TestCreateRunV1_no_experiment(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	manager.SetDefaultExperimentId(exp.UUID)
+	manager.SetDefaultExperimentId(exp.UUID, "")
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 	assert.NotNil(t, runDetail)
@@ -1099,7 +1099,7 @@ func TestReportRunMetricsV1_Unauthorized(t *testing.T) {
 	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
 	defer clientManager.Close()
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager, "default")
+	resourceManager = resource.NewResourceManager(clientManager)
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	_, err := runServer.ReportRunMetricsV1(ctx, &apiv1beta1.ReportRunMetricsRequest{
@@ -1354,7 +1354,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 
 	// make the following request unauthorized
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager, "")
+	resourceManager = resource.NewResourceManager(clientManager)
 
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &apiv1beta1.ReadArtifactRequest{
@@ -1382,7 +1382,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 
 func TestReadArtifactsV1_Run_NotFound(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clientManager, "")
+	manager := resource.NewResourceManager(clientManager)
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &apiv1beta1.ReadArtifactRequest{
 		RunId:        "Wrong_RUN_UUID",

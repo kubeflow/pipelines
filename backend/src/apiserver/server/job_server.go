@@ -82,23 +82,8 @@ type JobServer struct {
 }
 
 func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	pipelineId := job.PipelineSpec.PipelineId
-	pipelineVersionId := job.PipelineSpec.PipelineVersionId
-	if pipelineVersionId != "" {
-		ns, err := s.resourceManager.FetchNamespaceFromPipelineVersionId(pipelineVersionId)
-		if err != nil {
-			ns = ""
-		}
-		job.Namespace = ns
-	} else if pipelineId != "" {
-		ns, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
-		if err != nil {
-			ns = ""
-		}
-		job.Namespace = ns
-	}
 	if job.ExperimentId == "" {
-		expId, err := s.resourceManager.GetDefaultExperimentId()
+		expId, err := s.resourceManager.GetDefaultExperimentId(job.Namespace)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to create a recurring run due to missing parent experiment and default experiment")
 		}

@@ -22,11 +22,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-var defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": ""}
+var defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": "", "Namespace": ""}
 
 type DefaultExperimentStoreInterface interface {
-	GetDefaultExperimentId() (string, error)
-	SetDefaultExperimentId(id string) error
+	GetDefaultExperimentId(namespace string) (string, error)
+	SetDefaultExperimentId(id string, namespace string) error
 }
 
 // Implementation of a DefaultExperimentStoreInterface. This stores the default experiment's ID,
@@ -79,11 +79,14 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 	return nil
 }
 
-func (s *DefaultExperimentStore) SetDefaultExperimentId(id string) error {
+func (s *DefaultExperimentStore) SetDefaultExperimentId(id string, namespace string) error {
 	sql, args, err := sq.
-		Update("default_experiments").
-		SetMap(sq.Eq{"DefaultExperimentId": id}).
-		Where(sq.Eq{"DefaultExperimentId": ""}).
+		Insert("default_experiments").
+		SetMap(sq.Eq{
+			"DefaultExperimentId": id,
+			"Namespace":           namespace,
+		}).
+		Suffix("ON DUPLICATE KEY UPDATE DefaultExperimentId").
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to set default experiment ID")
@@ -95,9 +98,9 @@ func (s *DefaultExperimentStore) SetDefaultExperimentId(id string) error {
 	return nil
 }
 
-func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
+func (s *DefaultExperimentStore) GetDefaultExperimentId(namespace string) (string, error) {
 	var defaultExperimentId string
-	sql, args, err := sq.Select("DefaultExperimentId").From("default_experiments").ToSql()
+	sql, args, err := sq.Select("DefaultExperimentId").From("default_experiments").Where(sq.Eq{"Namespace": namespace}).ToSql()
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error creating query to get default experiment ID")
 	}
