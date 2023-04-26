@@ -31,7 +31,7 @@ import (
 	runParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
-	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"

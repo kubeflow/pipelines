@@ -93,7 +93,7 @@ func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.Up
 func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -128,7 +128,7 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 	parameters.Uploadfile = runtime.NamedReader(filePath, file)
 
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call

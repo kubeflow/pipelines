@@ -78,7 +78,7 @@ func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
 func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model.V2beta1Pipeline,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	parameters.Context = ctx
@@ -101,7 +101,7 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model
 func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.V2beta1Pipeline,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -124,7 +124,7 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.V2bet
 
 func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -147,7 +147,7 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 
 func (c *PipelineClient) DeletePipelineVersion(parameters *params.DeletePipelineVersionParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -170,7 +170,7 @@ func (c *PipelineClient) DeletePipelineVersion(parameters *params.DeletePipeline
 func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 	[]*model.V2beta1Pipeline, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -224,7 +224,7 @@ func listAllForPipeline(client PipelineInterface, parameters *params.ListPipelin
 func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipelineVersionParams) (*model.V2beta1PipelineVersion,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	parameters.Context = ctx
@@ -247,7 +247,7 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipeline
 func (c *PipelineClient) ListPipelineVersions(parameters *params.ListPipelineVersionsParams) (
 	[]*model.V2beta1PipelineVersion, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -271,7 +271,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.ListPipelineVer
 func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersionParams) (*model.V2beta1PipelineVersion,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call

@@ -76,7 +76,7 @@ func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 
 func (c *RunClient) Create(parameters *params.CreateRunParams) (*model.V2beta1Run, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -99,7 +99,7 @@ func (c *RunClient) Create(parameters *params.CreateRunParams) (*model.V2beta1Ru
 
 func (c *RunClient) Get(parameters *params.GetRunParams) (*model.V2beta1Run, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -122,7 +122,7 @@ func (c *RunClient) Get(parameters *params.GetRunParams) (*model.V2beta1Run, err
 
 func (c *RunClient) Archive(parameters *params.ArchiveRunParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -146,7 +146,7 @@ func (c *RunClient) Archive(parameters *params.ArchiveRunParams) error {
 
 func (c *RunClient) Unarchive(parameters *params.UnarchiveRunParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -170,7 +170,7 @@ func (c *RunClient) Unarchive(parameters *params.UnarchiveRunParams) error {
 
 func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -195,7 +195,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {
 func (c *RunClient) List(parameters *params.ListRunsParams) (
 	[]*model.V2beta1Run, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -248,7 +248,7 @@ func listAllForRun(client RunInterface, parameters *params.ListRunsParams, maxRe
 }
 
 func (c *RunClient) Terminate(parameters *params.TerminateRunParams) error {
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call

@@ -77,7 +77,7 @@ func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool) (
 func (c *RecurringRunClient) Create(parameters *params.CreateRecurringRunParams) (*model.V2beta1RecurringRun,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -95,7 +95,7 @@ func (c *RecurringRunClient) Create(parameters *params.CreateRecurringRunParams)
 func (c *RecurringRunClient) Get(parameters *params.GetRecurringRunParams) (*model.V2beta1RecurringRun,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -112,7 +112,7 @@ func (c *RecurringRunClient) Get(parameters *params.GetRecurringRunParams) (*mod
 
 func (c *RecurringRunClient) Delete(parameters *params.DeleteRecurringRunParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -129,7 +129,7 @@ func (c *RecurringRunClient) Delete(parameters *params.DeleteRecurringRunParams)
 
 func (c *RecurringRunClient) Enable(parameters *params.EnableRecurringRunParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -146,7 +146,7 @@ func (c *RecurringRunClient) Enable(parameters *params.EnableRecurringRunParams)
 
 func (c *RecurringRunClient) Disable(parameters *params.DisableRecurringRunParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -164,7 +164,7 @@ func (c *RecurringRunClient) Disable(parameters *params.DisableRecurringRunParam
 func (c *RecurringRunClient) List(parameters *params.ListRecurringRunsParams) (
 	[]*model.V2beta1RecurringRun, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call

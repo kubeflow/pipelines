@@ -23,6 +23,7 @@ import (
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client/run_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -47,7 +48,7 @@ type RunClient struct {
 func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*RunClient, error) {
 
-	runtime, err := NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
 	}
@@ -63,21 +64,21 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 	*RunClient, error) {
 
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating run client
 	return &RunClient{
 		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 
 func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -85,9 +86,9 @@ func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunD
 	response, err := c.apiClient.RunService.CreateRunV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetRunV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, nil, util.NewUserError(err,
@@ -111,7 +112,7 @@ func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunD
 func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -119,9 +120,9 @@ func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
 	response, err := c.apiClient.RunService.GetRunV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetRunV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, nil, util.NewUserError(err,
@@ -144,7 +145,7 @@ func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
 
 func (c *RunClient) Archive(parameters *params.ArchiveRunV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -153,9 +154,9 @@ func (c *RunClient) Archive(parameters *params.ArchiveRunV1Params) error {
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -168,7 +169,7 @@ func (c *RunClient) Archive(parameters *params.ArchiveRunV1Params) error {
 
 func (c *RunClient) Unarchive(parameters *params.UnarchiveRunV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -177,9 +178,9 @@ func (c *RunClient) Unarchive(parameters *params.UnarchiveRunV1Params) error {
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -192,7 +193,7 @@ func (c *RunClient) Unarchive(parameters *params.UnarchiveRunV1Params) error {
 
 func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -201,9 +202,9 @@ func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -217,7 +218,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
 func (c *RunClient) List(parameters *params.ListRunsV1Params) (
 	[]*model.APIRun, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -226,9 +227,9 @@ func (c *RunClient) List(parameters *params.ListRunsV1Params) (
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, 0, "", util.NewUserError(err,
@@ -270,7 +271,7 @@ func listAllForRun(client RunInterface, parameters *params.ListRunsV1Params, max
 }
 
 func (c *RunClient) Terminate(parameters *params.TerminateRunV1Params) error {
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call

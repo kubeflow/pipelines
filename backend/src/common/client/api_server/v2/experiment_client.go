@@ -16,7 +16,6 @@ package api_server_v2
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client"
@@ -27,10 +26,6 @@ import (
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
-)
-
-const (
-	apiServerDefaultTimeout = 35 * time.Second
 )
 
 type ExperimentInterface interface {
@@ -78,7 +73,7 @@ func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 func (c *ExperimentClient) Create(parameters *params.CreateExperimentParams) (*model.V2beta1Experiment,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -96,7 +91,7 @@ func (c *ExperimentClient) Create(parameters *params.CreateExperimentParams) (*m
 func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.V2beta1Experiment,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -114,7 +109,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.V
 func (c *ExperimentClient) List(parameters *params.ListExperimentsParams) (
 	[]*model.V2beta1Experiment, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -131,7 +126,7 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentsParams) (
 
 func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -178,7 +173,7 @@ func listAllForExperiment(client ExperimentInterface, parameters *params.ListExp
 
 func (c *ExperimentClient) Archive(parameters *params.ArchiveExperimentParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -196,7 +191,7 @@ func (c *ExperimentClient) Archive(parameters *params.ArchiveExperimentParams) e
 
 func (c *ExperimentClient) Unarchive(parameters *params.UnarchiveExperimentParams) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call

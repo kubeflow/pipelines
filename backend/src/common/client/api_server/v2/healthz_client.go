@@ -49,7 +49,7 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*Healthz
 }
 
 func (c *HealthzClient) GetHealthz() (*model.V2beta1GetHealthzResponse, error) {
-	parameters := params.NewGetHealthzParamsWithTimeout(apiServerDefaultTimeout)
+	parameters := params.NewGetHealthzParamsWithTimeout(api_server.APIServerDefaultTimeout)
 	response, err := c.apiClient.HealthzService.GetHealthz(parameters, api_server.PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetHealthzDefault); ok {

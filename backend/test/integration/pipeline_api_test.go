@@ -24,7 +24,7 @@ import (
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
-	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"

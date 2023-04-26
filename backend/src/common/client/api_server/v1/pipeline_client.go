@@ -23,6 +23,7 @@ import (
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -47,16 +48,16 @@ type PipelineClient struct {
 
 func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineDefaultVersionV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.PipelineService.UpdatePipelineDefaultVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -70,7 +71,7 @@ func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineD
 func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*PipelineClient, error) {
 
-	runtime, err := NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline client: %w", err)
 	}
@@ -86,30 +87,30 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
 	*PipelineClient, error) {
 
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating pipeline client
 	return &PipelineClient{
 		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 
 func (c *PipelineClient) Create(parameters *params.CreatePipelineV1Params) (*model.APIPipeline,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	parameters.Context = ctx
 	response, err := c.apiClient.PipelineService.CreatePipelineV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreatePipelineV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -123,7 +124,7 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineV1Params) (*mod
 func (c *PipelineClient) Get(parameters *params.GetPipelineV1Params) (*model.APIPipeline,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -131,9 +132,9 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineV1Params) (*model.API
 	response, err := c.apiClient.PipelineService.GetPipelineV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -146,7 +147,7 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineV1Params) (*model.API
 
 func (c *PipelineClient) Delete(parameters *params.DeletePipelineV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -154,9 +155,9 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineV1Params) error
 	_, err := c.apiClient.PipelineService.DeletePipelineV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeletePipelineV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -169,7 +170,7 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineV1Params) error
 
 func (c *PipelineClient) DeletePipelineVersion(parameters *params.DeletePipelineVersionV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -177,9 +178,9 @@ func (c *PipelineClient) DeletePipelineVersion(parameters *params.DeletePipeline
 	_, err := c.apiClient.PipelineService.DeletePipelineVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeletePipelineVersionV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -191,7 +192,7 @@ func (c *PipelineClient) DeletePipelineVersion(parameters *params.DeletePipeline
 
 func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (template.Template, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -199,9 +200,9 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (temp
 	response, err := c.apiClient.PipelineService.GetTemplate(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetTemplateDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -216,7 +217,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (temp
 func (c *PipelineClient) List(parameters *params.ListPipelinesV1Params) (
 	[]*model.APIPipeline, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -224,9 +225,9 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesV1Params) (
 	response, err := c.apiClient.PipelineService.ListPipelinesV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListPipelinesV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, 0, "", util.NewUserError(err,
@@ -270,16 +271,16 @@ func listAllForPipeline(client PipelineInterface, parameters *params.ListPipelin
 func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipelineVersionV1Params) (*model.APIPipelineVersion,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	parameters.Context = ctx
 	response, err := c.apiClient.PipelineService.CreatePipelineVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreatePipelineVersionV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -293,7 +294,7 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipeline
 func (c *PipelineClient) ListPipelineVersions(parameters *params.ListPipelineVersionsV1Params) (
 	[]*model.APIPipelineVersion, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -301,9 +302,9 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.ListPipelineVer
 	response, err := c.apiClient.PipelineService.ListPipelineVersionsV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListPipelineVersionsV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, 0, "", util.NewUserError(err,
@@ -317,7 +318,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.ListPipelineVer
 func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersionV1Params) (*model.APIPipelineVersion,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -325,9 +326,9 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersio
 	response, err := c.apiClient.PipelineService.GetPipelineVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineVersionV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -341,7 +342,7 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersio
 func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.GetPipelineVersionTemplateParams) (
 	template.Template, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -349,9 +350,9 @@ func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.GetPipeli
 	response, err := c.apiClient.PipelineService.GetPipelineVersionTemplate(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineVersionTemplateDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
