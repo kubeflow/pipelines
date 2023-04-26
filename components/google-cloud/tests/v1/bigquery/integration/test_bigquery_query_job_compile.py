@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure they compile correctly."""
+print('trigger test')
 
 import json
 import os
