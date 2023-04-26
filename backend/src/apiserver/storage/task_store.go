@@ -400,7 +400,6 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.ToString(),
 			)
 		}
-		// sqlInsert = sqlInsert.Suffix(fmt.Sprintf("ON DUPLICATE KEY UPDATE %v", taskColumnsUpdates))
 		sql, args, err := sqlInsert.ToSql()
 		if err != nil {
 			return "", nil, util.NewInternalServerError(err, "Failed to create query to check existing tasks")
