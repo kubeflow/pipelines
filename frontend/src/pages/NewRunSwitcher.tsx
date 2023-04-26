@@ -90,7 +90,7 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   const { isFetching: pipelineIsFetching, data: pipeline } = useQuery<V2beta1Pipeline, Error>(
-    [],
+    ['pipeline'],
     () => {
       if (!pipelineIdFromPipeline) {
         throw new Error('Pipeline ID is missing');
@@ -107,7 +107,7 @@ function NewRunSwitcher(props: PageProps) {
     V2beta1PipelineVersion,
     Error
   >(
-    [],
+    ['pipelineVersion'],
     () => {
       if (!(pipelineId && pipelineVersionId)) {
         throw new Error('Pipeline id or pipeline Version ID is missing');
@@ -125,7 +125,7 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: pipelineTemplateStrIsFetching,
     data: templateStrFromTemplate,
   } = useQuery<string, Error>(
-    [],
+    ['pipelineVersionTemplate'],
     async () => {
       if (!pipelineVersionId) {
         return '';
