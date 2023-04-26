@@ -578,7 +578,7 @@ var v2SpecHelloWorld = `components:
     inputDefinitions:
       parameters:
         text:
-          type: STRING
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-hello-world:

@@ -1028,7 +1028,7 @@ func TestListRuns(t *testing.T) {
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
-				"text": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+				"text": structpb.NewStringValue("world"),
 			},
 		},
 	}
@@ -1050,7 +1050,7 @@ func TestListRuns(t *testing.T) {
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
-				"text": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+				"text": structpb.NewStringValue("world"),
 			},
 		},
 		State: apiv2beta1.RuntimeState_PENDING,
@@ -1068,7 +1068,7 @@ func TestListRuns(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	listRunsResponse.Runs[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
-		"text": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"text": structpb.NewStringValue("world"),
 	}
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
 }

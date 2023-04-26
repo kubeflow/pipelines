@@ -260,7 +260,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 	if err = t.validatePipelineJobInputs(job); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job: %s", err.Error()))
+		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job inputs: %s", err.Error()))
 	}
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
@@ -336,28 +336,28 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 				return fmt.Errorf("input parameter %s has unspecified type", name)
 			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
 				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
-					return fmt.Errorf("input parameter %s has type double or integer, but the input parameter is not of Value_NumberValue type", name)
+					return fmt.Errorf("input parameter %s requires type double or integer, but the input parameter is not of Value_NumberValue type", name)
 				}
 			case pipelinespec.ParameterType_STRING:
 				if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
-					return fmt.Errorf("input parameter %s has type string, but the input parameter is not of Value_StringValue type", name)
+					return fmt.Errorf("input parameter %s requires type string, but the input parameter is not of Value_StringValue type", name)
 				}
 			case pipelinespec.ParameterType_BOOLEAN:
 				if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
-					return fmt.Errorf("input parameter %s has type bool, but the input parameter is not of Value_BoolValue type", name)
+					return fmt.Errorf("input parameter %s requires type bool, but the input parameter is not of Value_BoolValue type", name)
 				}
 			case pipelinespec.ParameterType_LIST:
 				if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
-					return fmt.Errorf("input parameter %s has type list, but the input parameter is not of Value_ListValue type", name)
+					return fmt.Errorf("input parameter %s requires type list, but the input parameter is not of Value_ListValue type", name)
 				}
 			case pipelinespec.ParameterType_STRUCT:
 				if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
-					return fmt.Errorf("input parameter %s has type struct, but the input parameter is not of Value_StructValue type", name)
+					return fmt.Errorf("input parameter %s requires type struct, but the input parameter is not of Value_StructValue type", name)
 				}
 			case pipelinespec.ParameterType_TASK_FINAL_STATUS:
-				return fmt.Errorf("input parameter %s has type TASK_FINAL_STATUS, which is invalid for root component", name)
+				return fmt.Errorf("input parameter %s requires type TASK_FINAL_STATUS, which is invalid for root component", name)
 			default:
-				return fmt.Errorf("input parameter %s has unknown type", name)
+				return fmt.Errorf("input parameter %s requires type unknown", name)
 			}
 		}
 	}
