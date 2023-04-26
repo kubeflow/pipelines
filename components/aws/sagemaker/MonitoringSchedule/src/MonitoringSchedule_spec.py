@@ -50,6 +50,7 @@ class SageMakerMonitoringScheduleOutputs(SageMakerComponentBaseOutputs):
     last_modified_time: Output
     last_monitoring_execution_summary: Output
     monitoring_schedule_status: Output
+    sagemaker_resource_name: Output
 
 
 class SageMakerMonitoringScheduleSpec(
@@ -97,6 +98,9 @@ class SageMakerMonitoringScheduleSpec(
         ),
         monitoring_schedule_status=OutputValidator(
             description="The status of an monitoring job.",
+        ),
+        sagemaker_resource_name=OutputValidator(
+            description="Resource name on Sagemaker",
         ),
     )
 

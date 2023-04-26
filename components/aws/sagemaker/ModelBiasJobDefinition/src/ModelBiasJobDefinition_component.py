@@ -54,6 +54,7 @@ class SageMakerModelBiasJobDefinitionComponent(SageMakerComponent):
         self.group = "sagemaker.services.k8s.aws"
         self.version = "v1alpha1"
         self.plural = "modelbiasjobdefinitions"
+        self.spaced_out_resource_name = "Model Bias Job Definition"
 
         self.job_request_outline_location = (
             "ModelBiasJobDefinition/src/ModelBiasJobDefinition_request.yaml.tpl"
@@ -76,7 +77,8 @@ class SageMakerModelBiasJobDefinitionComponent(SageMakerComponent):
     def _submit_job_request(self, request: Dict) -> object:
 
         if self.resource_upgrade:
-            self.initial_resouce_condition_times = self._get_condition_times()
+            ack_resource = self._get_resource()
+            self.initial_status = ack_resource.get("status", None)
             return super()._patch_custom_resource(request)
         else:
             return super()._create_resource(request, 6, 10)
@@ -98,16 +100,7 @@ class SageMakerModelBiasJobDefinitionComponent(SageMakerComponent):
 
     def _get_upgrade_status(self):
 
-        job_status = self._get_job_status()
-        # Needed because Requeue errors are not counted in _check_resource_conditions.
-        recoverable_conditions = self._get_conditions_of_type("ACK.Recoverable")
-        if len(recoverable_conditions) == 0:
-            return job_status
-        else:
-            sm_job_status = job_status.raw_status
-        return SageMakerJobStatus(
-            is_completed=False, has_error=False, raw_status=sm_job_status
-        )
+        return self._get_job_status()
 
     def _after_job_complete(
         self,
@@ -130,6 +123,8 @@ class SageMakerModelBiasJobDefinitionComponent(SageMakerComponent):
         outputs.conditions = str(
             ack_statuses["conditions"] if "conditions" in ack_statuses else None
         )
+        outputs.sagemaker_resource_name = self.job_name
+
         ############GENERATED SECTION ABOVE############
 
 

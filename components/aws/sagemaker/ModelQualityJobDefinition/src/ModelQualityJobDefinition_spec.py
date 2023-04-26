@@ -52,6 +52,7 @@ class SageMakerModelQualityJobDefinitionOutputs(SageMakerComponentBaseOutputs):
 
     ack_resource_metadata: Output
     conditions: Output
+    sagemaker_resource_name: Output
 
 
 class SageMakerModelQualityJobDefinitionSpec(
@@ -120,6 +121,9 @@ class SageMakerModelQualityJobDefinitionSpec(
         ),
         conditions=OutputValidator(
             description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+        ),
+        sagemaker_resource_name=OutputValidator(
+            description="Resource name on Sagemaker",
         ),
     )
 

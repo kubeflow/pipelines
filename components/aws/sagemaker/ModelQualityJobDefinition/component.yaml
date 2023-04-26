@@ -83,11 +83,16 @@ outputs:
       type: JsonArray,
       description: "All CRS managed by ACK have a common `Status.",
     }
+  - {
+      name: sagemaker_resource_name,
+      type: String,
+      description: "Resource name on Sagemaker",
+    }
   ###########################GENERATED SECTION ABOVE############################
 
 implementation:
   container:
-    image: rdpen/test-modelmoni:25
+    image: rdpen/test-modelmoni:26
     command: [python3]
     args:
       - ModelQualityJobDefinition/src/ModelQualityJobDefinition_component.py
