@@ -352,4 +352,13 @@ class HyperparameterTuningJobTest(unittest.TestCase):
     self.assertEqual(output, expected_output)
 
   def test_experimental_import_path(self):
-    pass
+    from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import (
+        HyperparameterTuningJobRunOp,
+        serialize_metrics,
+        serialize_parameters,
+    )
+
+    # use variable to avoid removal of unused imports by linting tools
+    print(HyperparameterTuningJobRunOp)
+    print(serialize_metrics)
+    print(serialize_parameters)

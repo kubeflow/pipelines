@@ -20,6 +20,5 @@ class TestVertexNotificationEmail(unittest.TestCase):
   def test_experimental_import_path(self):
     from google_cloud_pipeline_components.experimental.vertex_notification_email import VertexNotificationEmailOp
 
-    print(
-        VertexNotificationEmailOp
-    )  # use variable to avoid removal of unused imports by linting tools
+    # use variable to avoid removal of unused imports by linting tools
+    print(VertexNotificationEmailOp)
