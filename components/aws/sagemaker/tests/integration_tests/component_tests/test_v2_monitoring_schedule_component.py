@@ -152,6 +152,8 @@ def test_v2_monitoring_schedule(
             if monitoring_schedule_describe["MonitoringScheduleStatus"] == "Scheduled":
                 break
 
+            time.sleep(30)
+
         print(f"Describe monitoring Schedule \n {monitoring_schedule_describe}")
 
         # Verify if monitoring schedule is created with correct name and endpoint
