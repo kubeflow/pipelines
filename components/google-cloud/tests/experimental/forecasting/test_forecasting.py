@@ -23,12 +23,7 @@ class TestVertexNotificationEmail(unittest.TestCase):
         ForecastingValidationOp,
     )
 
-    print(
-        ForecastingPrepareDataForTrainOp
-    )  # use variable to avoid removal of unused imports by linting tools
-    print(
-        ForecastingValidationOp
-    )  # use variable to avoid removal of unused imports by linting tools
-    print(
-        ForecastingPreprocessingOp
-    )  # use variable to avoid removal of unused imports by linting tools
+    # use variable to avoid removal of unused imports by linting tools
+    print(ForecastingPrepareDataForTrainOp)
+    print(ForecastingValidationOp)
+    print(ForecastingPreprocessingOp)
