@@ -1,46 +1,12 @@
 import pytest
 import os
 import utils
-import io
-import numpy
 import json
-import pickle
-import gzip
 
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
 
-
-def run_predict_mnist(boto3_session, endpoint_name, download_dir):
-    """https://github.com/awslabs/amazon-sagemaker-
-    examples/blob/a8c20eeb72dc7d3e94aaaf28be5bf7d7cd5695cb.
-
-    /sagemaker-python-sdk/1P_kmeans_lowlevel/kmeans_mnist_lowlevel.ipynb
-    """
-    # Download and load dataset
-    region = boto3_session.region_name
-    download_path = os.path.join(download_dir, "mnist.pkl.gz")
-    boto3_session.resource("s3", region_name=region).Bucket(
-        "sagemaker-sample-data-{}".format(region)
-    ).download_file("algorithms/kmeans/mnist/mnist.pkl.gz", download_path)
-    with gzip.open(download_path, "rb") as f:
-        train_set, valid_set, test_set = pickle.load(f, encoding="latin1")
-
-    # Function to create a csv from numpy array
-    def np2csv(arr):
-        csv = io.BytesIO()
-        numpy.savetxt(csv, arr, delimiter=",", fmt="%g")
-        return csv.getvalue().decode().rstrip()
-
-    # Run prediction on an image
-    runtime = boto3_session.client("sagemaker-runtime")
-    payload = np2csv(train_set[0][30:31])
-
-    response = runtime.invoke_endpoint(
-        EndpointName=endpoint_name, ContentType="text/csv", Body=payload,
-    )
-    return json.loads(response["Body"].read().decode())
 
 
 @pytest.mark.parametrize(
@@ -121,7 +87,7 @@ def test_create_endpoint(
             assert instance_type == test_params["ExpectedInstanceType"]
 
         # Validate the model for use by running a prediction
-        result = run_predict_mnist(boto3_session, input_endpoint_name, download_dir)
+        result = sagemaker_utils.run_predict_mnist(boto3_session, input_endpoint_name, download_dir)
         print(f"prediction result: {result}")
         assert json.dumps(result, sort_keys=True) == json.dumps(
             test_params["ExpectedPrediction"], sort_keys=True

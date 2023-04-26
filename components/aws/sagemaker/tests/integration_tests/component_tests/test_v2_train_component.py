@@ -9,7 +9,7 @@ import ast
 
 @pytest.mark.parametrize(
     "test_file_dir",
-    [pytest.param("resources/config/ack-training-job", marks=pytest.mark.canary_test)],
+    [pytest.param("resources/config/ack-training-job", marks=[pytest.mark.canary_test, pytest.mark.v2])],
 )
 def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
     k8s_client = ack_utils.k8s_client()
@@ -49,7 +49,7 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
 
     # Verify Training job was successful on SageMaker
     print(f"training job name: {input_job_name}")
-    train_response = ack_utils.describe_training_job(k8s_client, input_job_name)
+    train_response = ack_utils._get_resource(k8s_client, input_job_name, "trainingjobs")
     assert train_response["status"]["trainingJobStatus"] == "Completed"
 
     # Verify model artifacts output was generated from this run
@@ -60,7 +60,7 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
 
     utils.remove_dir(download_dir)
 
-
+@pytest.mark.v2
 def test_terminate_trainingjob(kfp_client, experiment_id):
     k8s_client = ack_utils.k8s_client()
     test_file_dir = "resources/config/ack-training-job"
