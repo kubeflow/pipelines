@@ -229,7 +229,6 @@ describe('deploy helloworld sample run', () => {
 
     await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
 
-    await browser.keys('Tab');
     await browser.keys(runWithoutExperimentName);
 
     await browser.keys('Tab');
