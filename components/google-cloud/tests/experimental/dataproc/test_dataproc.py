@@ -23,3 +23,9 @@ class TestDataproc(unittest.TestCase):
         DataprocPySparkBatchOp,
         DataprocSparkBatchOp,
     )
+
+    # use variable to avoid removal of unused imports by linting tools
+    print(DataprocSparkSqlBatchOp)
+    print(DataprocSparkRBatchOp)
+    print(DataprocPySparkBatchOp)
+    print(DataprocSparkBatchOp)

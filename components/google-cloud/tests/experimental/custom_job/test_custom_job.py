@@ -22,8 +22,15 @@ class TestCustomJob(unittest.TestCase):
         create_custom_training_job_from_component,
         create_custom_training_job_op_from_component,
     )
+    # use variable to avoid removal of unused imports by linting tools
+    print(CustomTrainingJobOp)
+    print(create_custom_training_job_from_component)
+    print(create_custom_training_job_op_from_component)
 
-  from google_cloud_pipeline_components.experimental.custom_job.utils import (
-      create_custom_training_job_from_component,
-      create_custom_training_job_op_from_component,
-  )
+    from google_cloud_pipeline_components.experimental.custom_job.utils import (
+        create_custom_training_job_from_component,
+        create_custom_training_job_op_from_component,
+    )
+    # use variable to avoid removal of unused imports by linting tools
+    print(create_custom_training_job_from_component)
+    print(create_custom_training_job_op_from_component)
