@@ -515,6 +515,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 		})
 	}
 }
+
 func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 	db, taskStore := initializeTaskStore()
 	defer db.Close()
