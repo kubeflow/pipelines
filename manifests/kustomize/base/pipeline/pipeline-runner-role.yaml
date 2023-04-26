@@ -78,3 +78,9 @@ rules:
   - seldondeployments
   verbs:
   - '*'
+- apiGroups:
+  - argoproj.io
+  verbs:
+  - create
+  resources:
+  - workflowtaskresults
