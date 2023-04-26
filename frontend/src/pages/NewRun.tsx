@@ -59,6 +59,7 @@ import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
 import PipelinesDialog from '../components/PipelinesDialog';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 interface NewRunState {
   description: string;
@@ -824,10 +825,14 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-          [QUERY_PARAMS.pipelineVersionId]: pipelineVersion?.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: isFeatureEnabled(FeatureKey.V2_ALPHA)
+            ? pipelineVersion?.id || ''
+            : '',
         });
         this.props.history.replace(searchString);
-        this.props.handlePipelineVersionIdChange(pipelineVersion?.id || '');
+        this.props.handlePipelineVersionIdChange(
+          isFeatureEnabled(FeatureKey.V2_ALPHA) ? pipelineVersion?.id || '' : '',
+        );
         this.props.handlePipelineIdChange(pipeline.id);
       }
     }
