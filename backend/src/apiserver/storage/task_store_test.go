@@ -549,8 +549,8 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 		PodName:           "pod99",
 		RunId:             defaultFakeRunIdTwo,
 		MLMDExecutionID:   "5",
-		StartedTimestamp:  7,
-		FinishedTimestamp: 8,
+		StartedTimestamp:  3,
+		FinishedTimestamp: 4,
 		Fingerprint:       "10",
 	}
 
@@ -566,6 +566,7 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 		StartedTimestamp:  5,
 		FinishedTimestamp: 6,
 		Fingerprint:       "1",
+		State:             model.RuntimeStateUnspecified,
 		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 1, State: model.RuntimeStateUnspecified}},
 	}
 	want2 := &model.Task{
@@ -579,6 +580,7 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 		StartedTimestamp:  7,
 		FinishedTimestamp: 8,
 		Fingerprint:       "10",
+		State:             model.RuntimeStateUnspecified,
 		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 2, State: model.RuntimeStateUnspecified}},
 	}
 	want3 := &model.Task{
@@ -592,6 +594,7 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 		StartedTimestamp:  3,
 		FinishedTimestamp: 4,
 		Fingerprint:       "10",
+		State:             model.RuntimeStateUnspecified,
 		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 4, State: model.RuntimeStateUnspecified}},
 	}
 
