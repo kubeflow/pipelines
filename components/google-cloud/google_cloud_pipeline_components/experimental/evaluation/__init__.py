@@ -27,7 +27,6 @@ __all__ = [
     'ModelEvaluationRegressionOp',
     'ModelEvaluationForecastingOp',
     'ModelEvaluationFeatureAttributionOp',
-    'GetVertexModelOp',
 ]
 
 
@@ -61,8 +60,4 @@ ModelEvaluationFeatureAttributionOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'feature_attribution/component.yaml'
     )
-)
-
-GetVertexModelOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'get_vertex_model.yaml')
 )
