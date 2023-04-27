@@ -147,14 +147,15 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  // Three possible source for template string (priority from high to low)
+  // Three possible sources for template string
   // 1. pipelineManifest: pipeline_spec stored in run or recurring run
-  // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
-  // 3. templateStrFromTemplate(v1): template in the response of getPipelineVersionTemplate()
+  // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version (direct to v2)
+  // 3. templateStrFromTemplate(v1): template in the response of getPipelineVersionTemplate() (direct to v1)
   const templateString =
     pipelineManifest ??
     (isTemplateV2(templateStrFromSpec) ? templateStrFromSpec : templateStrFromTemplate);
 
+  // TODO(jlyaoyuli): simplify the logic of page redirection and usage of template string source
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     if (
       (getV2RunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) &&
