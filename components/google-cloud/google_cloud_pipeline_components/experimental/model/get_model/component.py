@@ -19,20 +19,20 @@ from kfp.dsl import OutputPath
 
 
 @container_component
-def resolve_vertex_model(
+def get_vertex_model(
     gcp_resources: OutputPath(str),
     model: Output[VertexModel],
     model_name: str,
     model_version: str = '',
 ):
-  """Resolves a model artifact or string inputs to an existing Vertex model.
+  """Gets a model artifact or string inputs to an existing Vertex model.
 
   Args:
     model_name (str): Vertex model resource name in the format of
       projects/{project}/locations/{location}/models/{model} or
       projects/{project}/locations/{location}/models/{model}@{model_version_id
       or model_version_alias}.
-    model_version (Optional[str]): The desired Vertex Model version to resolve.
+    model_version (Optional[str]): The desired Vertex Model version to get.
       If model_name and model_version are provided, model_version will override
       any version or alias if present in model_name.
 
@@ -51,7 +51,7 @@ def resolve_vertex_model(
           'python3',
           '-u',
           '-m',
-          'google_cloud_pipeline_components.container.experimental.model.resolve_model.resolve_model',
+          'google_cloud_pipeline_components.container.experimental.model.get_model.get_model',
       ],
       args=[
           '--model_name',

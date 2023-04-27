@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""GCP launcher for Resolve Model based on the AI Platform SDK."""
+"""GCP launcher for Get Model based on the AI Platform SDK."""
 
 import argparse
 import os
@@ -38,7 +38,7 @@ def _make_parent_dirs_and_return_path(file_path: str):
 def _parse_args(args):
   """Parse command line arguments."""
   parser = argparse.ArgumentParser(
-      prog='Vertex Pipelines resolve model launcher', description=''
+      prog='Vertex Pipelines get model launcher', description=''
   )
   parser.add_argument(
       '--executor_input',
@@ -67,13 +67,13 @@ def _parse_args(args):
   return vars(parsed_args)
 
 
-def _resolve_model(
+def _get_model(
     executor_input,
     gcp_resources,
     model_name: str,
     model_version: Optional[str] = None,
 ):
-  """Resolve model."""
+  """Get model."""
   if model_version:
     model_resource_name = f'{model_name.split("@", 1)[0]}@{model_version}'
   else:
@@ -136,7 +136,7 @@ def main(argv):
     argv: A list of system arguments.
   """
   parsed_args = _parse_args(argv)
-  _resolve_model(**parsed_args)
+  _get_model(**parsed_args)
 
 
 if __name__ == '__main__':

@@ -11,4 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Resolve Vertex Model Component."""
+"""Google Cloud Pipeline Components - Get Model Launcher and Remote Runner."""
