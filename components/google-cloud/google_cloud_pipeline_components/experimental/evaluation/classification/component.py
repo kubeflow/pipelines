@@ -81,10 +81,10 @@ def model_evaluation_classification(
     predictions_bigquery_source (Optional[google.BQTable]): BigQuery table with
       prediction or explanation data to be used for this evaluation. For
       prediction results, the table column should be named "predicted_*".
-      ground_truth_format(Optional[str]): Required for custom tabular and non
-      tabular data. The file format for the ground truth files. `jsonl` is
-      currently the only allowed format. If not set, defaulted to `jsonl`.
-      ground_truth_gcs_source(Optional[Sequence[str]]): Required for custom
+    ground_truth_format(Optional[str]): Required for custom tabular and non
+      tabular data. The file format for the ground truth files. Valid values are
+      `csv`,`jsonl`. If not set, defaulted to `jsonl`.
+    ground_truth_gcs_source(Optional[Sequence[str]]): Required for custom
       tabular and non tabular data. The GCS uris representing where the ground
       truth is located. Used to provide ground truth for each prediction
       instance when they are not part of the batch prediction jobs prediction
