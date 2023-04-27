@@ -50,6 +50,7 @@ def get_fsx_id():
 def get_algorithm_image_registry(framework, region, version=None):
     return retrieve(framework, region, version).split(".")[0]
 
+
 def get_assume_role_arn():
     return os.environ.get("ASSUME_ROLE_ARN")
 
@@ -96,7 +97,9 @@ def replace_placeholders(input_filename, output_filename, shallow_canary=False):
                 "xgboost", region, "1.0-1"
             ),
             "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
-            "((MODEL_MONITOR_IMAGE))": get_algorithm_image_registry("model-monitor", region)
+            "((MODEL_MONITOR_IMAGE))": get_algorithm_image_registry(
+                "model-monitor", region
+            ),
             "((FSX_ID))": get_fsx_id(),
             "((FSX_SUBNET))": get_fsx_subnet(),
             "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
