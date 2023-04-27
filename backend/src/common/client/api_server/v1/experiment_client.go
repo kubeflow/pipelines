@@ -22,6 +22,7 @@ import (
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -45,7 +46,7 @@ type ExperimentClient struct {
 func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime, err := NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
 	}
@@ -55,28 +56,28 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Creating experiment client
 	return &ExperimentClient{
 		apiClient:      apiClient,
-		authInfoWriter: PassThroughAuth,
+		authInfoWriter: api_server.PassThroughAuth,
 	}, nil
 }
 
 func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating experiment client
 	return &ExperimentClient{
 		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 
 func (c *ExperimentClient) Create(parameters *params.CreateExperimentV1Params) (*model.APIExperiment,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -84,9 +85,9 @@ func (c *ExperimentClient) Create(parameters *params.CreateExperimentV1Params) (
 	response, err := c.apiClient.ExperimentService.CreateExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateExperimentV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -100,7 +101,7 @@ func (c *ExperimentClient) Create(parameters *params.CreateExperimentV1Params) (
 func (c *ExperimentClient) Get(parameters *params.GetExperimentV1Params) (*model.APIExperiment,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -108,9 +109,9 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentV1Params) (*model
 	response, err := c.apiClient.ExperimentService.GetExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetExperimentV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -124,7 +125,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentV1Params) (*model
 func (c *ExperimentClient) List(parameters *params.ListExperimentsV1Params) (
 	[]*model.APIExperiment, int, string, error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -132,9 +133,9 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentsV1Params) (
 	response, err := c.apiClient.ExperimentService.ListExperimentsV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListExperimentsV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, 0, "", util.NewUserError(err,
@@ -147,7 +148,7 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentsV1Params) (
 
 func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -155,9 +156,9 @@ func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentV1Params) e
 	_, err := c.apiClient.ExperimentService.DeleteExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeleteExperimentV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -200,7 +201,7 @@ func listAllForExperiment(client ExperimentInterface, parameters *params.ListExp
 
 func (c *ExperimentClient) Archive(parameters *params.ArchiveExperimentV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -209,9 +210,9 @@ func (c *ExperimentClient) Archive(parameters *params.ArchiveExperimentV1Params)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ArchiveExperimentV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
@@ -224,7 +225,7 @@ func (c *ExperimentClient) Archive(parameters *params.ArchiveExperimentV1Params)
 
 func (c *ExperimentClient) Unarchive(parameters *params.UnarchiveExperimentV1Params) error {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -233,9 +234,9 @@ func (c *ExperimentClient) Unarchive(parameters *params.UnarchiveExperimentV1Par
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UnarchiveExperimentV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,

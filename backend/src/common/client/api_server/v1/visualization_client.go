@@ -8,6 +8,7 @@ import (
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client/visualization_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -26,7 +27,7 @@ type VisualizationClient struct {
 func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*VisualizationClient, error) {
 
-	runtime, err := NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating visualization client: %w", err)
 	}
@@ -42,31 +43,31 @@ func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterVisualizationClient(namespace string, debug bool) (
 	*VisualizationClient, error) {
 
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating upload client
 	return &VisualizationClient{
 		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 
 func (c *VisualizationClient) Create(parameters *params.CreateVisualizationV1Params) (*model.APIVisualization,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.VisualizationService.CreateVisualizationV1(parameters, PassThroughAuth)
+	response, err := c.apiClient.VisualizationService.CreateVisualizationV1(parameters, api_server.PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateVisualizationV1Default); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,

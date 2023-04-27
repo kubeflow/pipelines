@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
-	"github.com/kubeflow/pipelines/backend/test"
+	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	test "github.com/kubeflow/pipelines/backend/test/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

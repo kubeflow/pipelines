@@ -20,9 +20,9 @@ import (
 )
 
 const (
+	APIServerDefaultTimeout            = 35 * time.Second
 	apiServerBasePath                  = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/"
 	apiServerKubeflowInClusterBasePath = "ml-pipeline.%s:8888"
-	apiServerDefaultTimeout            = 35 * time.Second
 	saDefaultTokenPath                 = "/var/run/secrets/kubeflow/pipelines/token"
 	saTokenPathEnvVar                  = "KF_PIPELINES_SA_TOKEN_PATH"
 )
