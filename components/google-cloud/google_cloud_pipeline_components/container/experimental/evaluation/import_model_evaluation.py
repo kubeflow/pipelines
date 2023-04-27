@@ -17,16 +17,17 @@ import base64
 import json
 import logging
 import os
-import six
 import sys
+from typing import Any, Dict, List, Optional, Tuple, Iterable
 
-from google.cloud import aiplatform
 from google.api_core import gapic_v1
-from google.protobuf.struct_pb2 import Value, Struct, NULL_VALUE, ListValue
+from google.cloud import aiplatform
+from google.cloud.aiplatform_v1.types.model_evaluation_slice import ModelEvaluationSlice
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import six
 
+from google.protobuf.struct_pb2 import ListValue, NULL_VALUE, Struct, Value
 from google.protobuf import json_format
-from typing import Any, Dict, List, Optional, Tuple
 
 PROBLEM_TYPE_TO_SCHEMA_URI = {
     'classification': 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml',
@@ -284,32 +285,51 @@ def main(argv):
           explanation_file_name, sliced_feature_attributions
       )
     # BatchImportModelEvaluationSlices has a size limit of 50 slices.
-    for i in range(0, len(sliced_metrics), SLICE_BATCH_IMPORT_LIMIT):
-      model_evaluation_slices = []
-      for one_slice in sliced_metrics[i : i + SLICE_BATCH_IMPORT_LIMIT]:
-        slice_spec = to_slice(one_slice['singleOutputSlicingSpec'])
-        slice_config = {
-            'metrics': one_slice['metrics'],
-            'metrics_schema_uri': schema_uri,
-            'slice_': slice_spec,
+    slices = []
+    slices_with_slice_spec = []
+    slices_with_explanations = []
+    for one_slice in sliced_metrics:
+      slice_spec = to_slice(one_slice['singleOutputSlicingSpec'])
+      slice_config = {
+          'metrics': one_slice['metrics'],
+          'metrics_schema_uri': schema_uri,
+          'slice_': slice_spec,
+      }
+      if (
+          sliced_feature_attributions
+          and slice_spec['dimension'] == 'annotationSpec'
+      ):
+        slice_config['model_explanation'] = {
+            'mean_attributions': [
+                {
+                    'feature_attributions': sliced_feature_attributions[
+                        slice_spec['value']
+                    ]
+                }
+            ]
         }
-        if sliced_feature_attributions:
-          slice_config['model_explanation'] = {
-              'mean_attributions': [
-                  {
-                      'feature_attributions': sliced_feature_attributions[
-                          slice_spec['value']
-                      ]
-                  }
-              ]
-          }
-        model_evaluation_slices.append(slice_config)
-      slice_resource_names.extend(
-          client.batch_import_model_evaluation_slices(
-              parent=model_evaluation_name,
-              model_evaluation_slices=model_evaluation_slices,
-          ).imported_model_evaluation_slices
-      )
+        slices_with_explanations.append(slice_config)
+      elif 'slice_spec' in slice_spec:
+        slices_with_slice_spec.append(slice_config)
+      else:
+        slices.append(slice_config)
+
+    def batch_import_slices_list(slices_list) -> Iterable[str]:
+      for i in range(0, len(slices_list), SLICE_BATCH_IMPORT_LIMIT):
+        yield client.batch_import_model_evaluation_slices(
+            parent=model_evaluation_name,
+            model_evaluation_slices=slices_list[
+                i : i + SLICE_BATCH_IMPORT_LIMIT
+            ],
+        ).imported_model_evaluation_slices
+
+    slice_resource_names.extend(batch_import_slices_list(slices))
+    slice_resource_names.extend(
+        batch_import_slices_list(slices_with_slice_spec)
+    )
+    slice_resource_names.extend(
+        batch_import_slices_list(slices_with_explanations)
+    )
 
     for slice_resource in slice_resource_names:
       slice_mlmd_resource = resources.resources.add()
@@ -390,7 +410,38 @@ def sliced_explanation_to_dict(
 
 
 def to_slice(slicing_spec: Dict[str, Any]):
+  """Converts a VertexEvaluation OutputSlicingSpec to a Vertex AI Slice.
+
+  Args:
+    slicing_spec: VertexEvaluation OutputSlicingSpec
+
+  Returns:
+    A dictionary with keys 'dimension' and 'value'. Optionally with key
+      'sliceSpec'.
+  """
   value = ''
+  if 'dimension' in slicing_spec and slicing_spec['dimension'] == 'slice':
+    value = slicing_spec['value'] if 'value' in slicing_spec else ''
+    slice_spec = ModelEvaluationSlice.Slice.SliceSpec.from_json(
+        json.dumps(slicing_spec.get('slicingSpec', {}))
+    )
+    slice_ = {
+        'dimension': slicing_spec['dimension'],
+        'value': value,
+    }
+    if slice_spec:
+      slice_['slice_spec'] = slice_spec
+    return slice_
+  elif (
+      'dimension' in slicing_spec
+      and slicing_spec['dimension'] == 'annotationSpec'
+      and 'value' in slicing_spec
+  ):
+    return {
+        'dimension': slicing_spec['dimension'],
+        'value': slicing_spec['value'],
+    }
+
   if 'bytesValue' in slicing_spec:
     value = base64.b64decode(slicing_spec['bytesValue']).decode('utf-8')
   elif 'floatValue' in slicing_spec:
