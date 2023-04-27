@@ -40,6 +40,8 @@ import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import * as JsYaml from 'js-yaml';
+import NewRunSwitcher from './NewRunSwitcher';
+import * as features from '../features';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
 const v2XGYamlTemplateString = fs.readFileSync(V2_XG_PIPELINESPEC_PATH, 'utf8');
@@ -71,7 +73,7 @@ describe('NewRunV2', () => {
     display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
     pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
     pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-    pipeline_spec: v2XGPipelineSpec,
+    pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
   };
   const OTHER_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
     description: '',
@@ -358,6 +360,77 @@ describe('NewRunV2', () => {
     );
     fireEvent.change(runNameInput, { target: { value: 'Run with custom name' } });
     expect(runNameInput.closest('input')?.value).toBe('Run with custom name');
+  });
+
+  describe('source of template string', () => {
+    it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
+      jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+      const getPipelineVersionTemplateSpy = jest.spyOn(
+        Apis.pipelineServiceApi,
+        'getPipelineVersionTemplate',
+      );
+      getPipelineVersionTemplateSpy.mockImplementation(() =>
+        Promise.resolve({ template: v2XGYamlTemplateString }),
+      );
+
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...generatePropsNewRun()} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+        expect(getPipelineVersionTemplateSpy).toHaveBeenCalled();
+      });
+
+      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+    });
+
+    it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
+      const TEST_PIPELINE_VERSION_NOT_V2SPEC: V2beta1PipelineVersion = {
+        description: '',
+        display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: 'test-not-v2-spec-version-id',
+        pipeline_spec: { spec: { arguments: { parameters: [{ name: 'output' }] } } },
+      };
+
+      jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+      const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_NOT_V2SPEC);
+      const getPipelineVersionTemplateSpy = jest.spyOn(
+        Apis.pipelineServiceApi,
+        'getPipelineVersionTemplate',
+      );
+      getPipelineVersionTemplateSpy.mockImplementation(() =>
+        Promise.resolve({ template: 'test template' }),
+      );
+
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher
+            {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-not-v2-spec-version-id')}
+          />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(getPipelineV2Spy).toHaveBeenCalled();
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+        expect(getPipelineVersionTemplateSpy).toHaveBeenCalled();
+      });
+
+      expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+    });
   });
 
   describe('starting a new run', () => {
