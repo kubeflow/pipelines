@@ -17,7 +17,7 @@ Arguments:
   production_variants:
     - variantName: variant-1
       initialVariantWeight: 1.0
-      instanceType: ml.m4.xlarge
+      instanceType: ml.m5.xlarge
       initialInstanceCount: 1
   second_production_variants:
     - variantName: variant-1

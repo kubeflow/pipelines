@@ -633,7 +633,6 @@ class SageMakerComponent:
             # If the controller has not consumed the update, any existing erorr will not representative of the new state.
             if self.resource_upgrade and not self.is_update_consumed_by_controller():
                 continue
-
             if condition_type == "ACK.Terminal" and condition_status == "True":
                 logging.error(json.dumps(condition, indent=2))
                 logging.error(
