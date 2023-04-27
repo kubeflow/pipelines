@@ -537,7 +537,13 @@ function NewRunV2(props: NewRunV2Props) {
                   [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
                   [QUERY_PARAMS.cloneFromRun]: existingRunId || '',
                 });
+              } else if (existingRecurringRunId) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
+                  [QUERY_PARAMS.cloneFromRecurringRun]: existingRecurringRunId || '',
+                });
               } else {
+                // Enter new run page from run list (none of pipeline is selected)
                 searchString = urlParser.build({
                   [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
                 });
