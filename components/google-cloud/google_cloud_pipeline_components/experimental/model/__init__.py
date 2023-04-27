@@ -15,10 +15,10 @@
 
 import os
 
-from .resolve_model import component as resolve_vertex_model_component
+from .get_model import component as get_vertex_model_component
 
 __all__ = [
-    'ResolveVertexModelOp',
+    'GetVertexModelOp',
 ]
 
-ResolveVertexModelOp = resolve_vertex_model_component.resolve_vertex_model
+GetVertexModelOp = get_vertex_model_component.get_vertex_model

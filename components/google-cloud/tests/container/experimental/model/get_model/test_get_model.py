@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test Vertex AI Resolve Model Launcher Client module."""
+"""Test Vertex AI Get Model Launcher Client module."""
 
 import os
 
 import google.auth
 from google.cloud import aiplatform
-from google_cloud_pipeline_components.container.experimental.model.resolve_model import resolve_model
+from google_cloud_pipeline_components.container.experimental.model.get_model import get_model
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
@@ -51,10 +51,10 @@ def mock_api_call(test_func):
   return mocked_test
 
 
-class ResolveModelTests(unittest.TestCase):
+class GetModelTests(unittest.TestCase):
 
   def setUp(self):
-    super(ResolveModelTests, self).setUp()
+    super(GetModelTests, self).setUp()
     self._gcp_resources = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'test_file_path/test_file.txt'
     )
@@ -75,7 +75,7 @@ class ResolveModelTests(unittest.TestCase):
     get_model_response.name = MODEL_NAME
     mock_api.return_value = get_model_response
 
-    resolve_model.main(self._input_args)
+    get_model.main(self._input_args)
 
     mock_api.assert_called_once_with(
         mock.ANY,
@@ -93,7 +93,7 @@ class ResolveModelTests(unittest.TestCase):
     get_model_response.version_id = '2'
     mock_api.return_value = get_model_response
 
-    resolve_model.main(self._input_args)
+    get_model.main(self._input_args)
 
     mock_api.assert_called_once_with(
         mock.ANY,
@@ -113,7 +113,7 @@ class ResolveModelTests(unittest.TestCase):
     get_model_response.version_id = '3'
     mock_api.return_value = get_model_response
 
-    resolve_model.main(self._input_args)
+    get_model.main(self._input_args)
 
     mock_api.assert_called_once_with(
         mock.ANY,
@@ -133,7 +133,7 @@ class ResolveModelTests(unittest.TestCase):
     get_model_response.version_id = '3'
     mock_api.return_value = get_model_response
 
-    resolve_model.main(self._input_args)
+    get_model.main(self._input_args)
 
     mock_api.assert_called_once_with(
         mock.ANY,
@@ -142,7 +142,7 @@ class ResolveModelTests(unittest.TestCase):
 
   def test_main_argparse_raises(self):
     with self.assertRaises(SystemExit):
-      resolve_model.main(self._input_args)
+      get_model.main(self._input_args)
 
   def test_launcher_argparse_raises_model_version(self):
     self._input_args.extend((
@@ -150,10 +150,10 @@ class ResolveModelTests(unittest.TestCase):
         '3',
     ))
     with self.assertRaises(SystemExit):
-      resolve_model.main(self._input_args)
+      get_model.main(self._input_args)
 
   @mock_api_call
-  def test_resolve_model_gcp_resources(self, mock_api, mock_update_artifacts):
+  def test_get_model_gcp_resources(self, mock_api, mock_update_artifacts):
     get_model_response = mock.Mock()
     get_model_response.name = MODEL_NAME
     get_model_response.version_id = '1'
@@ -164,7 +164,7 @@ class ResolveModelTests(unittest.TestCase):
         f'{MODEL_NAME}@1',
     ))
 
-    resolve_model.main(self._input_args)
+    get_model.main(self._input_args)
 
     mock_api.assert_called_once_with(
         mock.ANY,
