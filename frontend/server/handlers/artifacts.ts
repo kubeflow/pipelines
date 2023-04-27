@@ -383,11 +383,18 @@ function getNamespaceFromUrl(path: string): string | undefined {
   return params.get('namespace') || undefined;
 }
 
+function isValidNameSpace(namespace: string) {
+  return (
+    namespace.length <= 63 && namespace.match('[a-z0-9]([-a-z0-9]*[a-z0-9])?')?.includes(namespace)
+  );
+}
+
 // `new URL('/path')` doesn't work, because URL only accepts full URL with scheme and hostname.
 // We use the DUMMY_BASE_PATH like `new URL('/path', DUMMY_BASE_PATH)`, so that URL can parse paths
 // properly.
 const DUMMY_BASE_PATH = 'http://dummy-base-path';
 
 export function getArtifactServiceGetter({ serviceName, servicePort }: ArtifactsProxyConfig) {
-  return (namespace: string) => `http://${serviceName}.${namespace}:${servicePort}`;
+  return (namespace: string) =>
+    isValidNameSpace(namespace) ? `http://${serviceName}.${namespace}:${servicePort}` : '';
 }
