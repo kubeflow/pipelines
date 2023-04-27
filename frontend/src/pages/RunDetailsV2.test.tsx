@@ -88,7 +88,7 @@ describe('RunDetailsV2', () => {
       pipeline_id: 'some-pipeline-id',
       pipeline_manifest: '{some-template-string}',
     },
-    runtime_config: { parameters: [{ name: 'param1', value: 'value1' }] },
+    runtime_config: { parameters: { param1: 'value1' } },
     state: V2beta1RuntimeState.SUCCEEDED,
   };
   const TEST_EXPERIMENT: V2beta1Experiment = {
@@ -378,6 +378,23 @@ describe('RunDetailsV2', () => {
       userEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
+    });
+
+    it('shows run parameters', () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      userEvent.click(screen.getByText('Detail'));
+
+      screen.getByText('param1'); // 'Parameter name'
+      screen.getByText('value1'); // 'Parameter value'
     });
 
     it('switches to Pipeline Spec tab', async () => {
