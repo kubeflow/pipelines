@@ -328,7 +328,7 @@ func TestCreateRunV1_RuntimeParams_V2Spec(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"text":   {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
 		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
 		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
@@ -339,7 +339,7 @@ func TestCreateRunV1_RuntimeParams_V2Spec(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
-			PipelineManifest: v2SpecHelloWorld,
+			PipelineManifest: v2SpecHelloWorldParams,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 				Parameters:   v2RuntimeParams,
 				PipelineRoot: "model-pipeline-root",
@@ -360,7 +360,7 @@ func TestCreateRunV1_RuntimeParams_V2Spec(t *testing.T) {
 			FinishedAt:     &timestamp.Timestamp{},
 			Status:         "Pending",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
-				PipelineManifest: v2SpecHelloWorld,
+				PipelineManifest: v2SpecHelloWorldParams,
 				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",
@@ -598,7 +598,7 @@ func TestCreateRun(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"text":   {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
 		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
 		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
@@ -606,7 +606,7 @@ func TestCreateRun(t *testing.T) {
 	}
 
 	pipelineSpecStruct := &structpb.Struct{}
-	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+	yaml.Unmarshal([]byte(v2SpecHelloWorldParams), pipelineSpecStruct)
 
 	run := &apiv2beta1.Run{
 		DisplayName:  "run1",
@@ -673,6 +673,33 @@ func TestCreateRun_missingParameter(t *testing.T) {
 	assert.Contains(t, err.Error(), "is not optional, yet has neither default value nor user provided value")
 }
 
+func TestCreateRun_extraParameter(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	run := &apiv2beta1.Run{
+		DisplayName:  "run1",
+		ExperimentId: experiment.UUID,
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: pipelineSpecStruct,
+		},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("hello"),
+				"param2": structpb.NewStringValue("world"),
+			},
+			PipelineRoot: "model-pipeline-root",
+		},
+	}
+	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "parameter(s) provided are not required by pipeline:")
+}
+
 func TestGetRunV1(t *testing.T) {
 	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
@@ -721,7 +748,7 @@ func TestGetRun(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"text":   {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
 		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
 		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
@@ -729,7 +756,7 @@ func TestGetRun(t *testing.T) {
 	}
 
 	pipelineSpecStruct := &structpb.Struct{}
-	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+	yaml.Unmarshal([]byte(v2SpecHelloWorldParams), pipelineSpecStruct)
 
 	run := &apiv2beta1.Run{
 		DisplayName:  "run1",
@@ -1028,7 +1055,7 @@ func TestListRuns(t *testing.T) {
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
-				"text": structpb.NewStringValue("world"),
+				"param1": structpb.NewStringValue("world"),
 			},
 		},
 	}
@@ -1050,7 +1077,7 @@ func TestListRuns(t *testing.T) {
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
-				"text": structpb.NewStringValue("world"),
+				"param1": structpb.NewStringValue("world"),
 			},
 		},
 		State: apiv2beta1.RuntimeState_PENDING,
@@ -1068,7 +1095,7 @@ func TestListRuns(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	listRunsResponse.Runs[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
-		"text": structpb.NewStringValue("world"),
+		"param1": structpb.NewStringValue("world"),
 	}
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
 }
@@ -1543,7 +1570,7 @@ func TestRetryRun(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"text":   &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
 		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
 		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
 		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
@@ -1551,7 +1578,7 @@ func TestRetryRun(t *testing.T) {
 	}
 
 	pipelineSpecStruct := &structpb.Struct{}
-	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+	yaml.Unmarshal([]byte(v2SpecHelloWorldParams), pipelineSpecStruct)
 
 	run := &apiv2beta1.Run{
 		DisplayName:  "run1",

@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strings"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -313,17 +314,25 @@ func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
 }
 
 func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error {
-	// The pipeline requires no input
-	if t.spec.GetRoot().GetInputDefinitions() == nil {
-		return nil
+	// If the pipeline requires no input, t.spec.GetRoot().GetInputDefinitions() will be nil,
+	// but we still need to verify that no extra parameters are provided.
+	requiredParams := make(map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec)
+	if t.spec.GetRoot().GetInputDefinitions() != nil {
+		requiredParams = t.spec.GetRoot().GetInputDefinitions().GetParameters()
 	}
 
 	runtimeConfig := job.GetRuntimeConfig()
 	if runtimeConfig == nil {
-		return fmt.Errorf("pipeline requiring input has empty runtime config")
+		if len(requiredParams) != 0 {
+			return fmt.Errorf("pipeline requiring input has empty runtime config")
+		} else {
+			// both required parameters and inputs are empty
+			return nil
+		}
 	}
 
-	for name, param := range t.spec.GetRoot().GetInputDefinitions().GetParameters() {
+	// Verify that required parameters are provided
+	for name, param := range requiredParams {
 		if input, ok := runtimeConfig.GetParameterValues()[name]; !ok {
 			// If the parameter is optional, or there is a default value, it's ok to not have a user input
 			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
@@ -361,5 +370,17 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			}
 		}
 	}
+
+	// Verify that only required parameters are provided
+	extraParams := make([]string, 0)
+	for name, _ := range runtimeConfig.GetParameterValues() {
+		if _, ok := requiredParams[name]; !ok {
+			extraParams = append(extraParams, name)
+		}
+	}
+	if len(extraParams) > 0 {
+		return fmt.Errorf("parameter(s) provided are not required by pipeline: %s", strings.Join(extraParams, ", "))
+	}
+
 	return nil
 }
