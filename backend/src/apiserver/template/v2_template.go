@@ -324,7 +324,11 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 	runtimeConfig := job.GetRuntimeConfig()
 	if runtimeConfig == nil {
 		if len(requiredParams) != 0 {
-			return fmt.Errorf("pipeline requiring input has empty runtime config")
+			requiredParamNames := make([]string, 0)
+			for name, _ := range requiredParams {
+				requiredParamNames = append(requiredParamNames, name)
+			}
+			return fmt.Errorf("pipeline requiring input has no paramater(s) provided. Need parameter(s): %s", strings.Join(requiredParamNames, ", "))
 		} else {
 			// both required parameters and inputs are empty
 			return nil
