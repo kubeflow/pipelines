@@ -91,3 +91,17 @@ func TestSQLiteDialect_Concat_WithoutSeparator(t *testing.T) {
 	expectedQuery := `col1||col2`
 	assert.Equal(t, expectedQuery, actualQuery)
 }
+
+func TestSQLiteDialect_Upsert(t *testing.T) {
+	sqliteDialect := NewSQLiteDialect()
+	actualQuery := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", []string{"uuid", "name"}...)
+	expectedQuery := `insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow") ON CONFLICT(namespace) DO UPDATE SET uuid=excluded.uuid,name=excluded.name`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+func TestMySQLDialect_Upsert(t *testing.T) {
+	sqliteDialect := NewMySQLDialect()
+	actualQuery := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", []string{"uuid", "name"}...)
+	expectedQuery := `insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow") ON DUPLICATE KEY UPDATE uuid=VALUES(uuid),name=VALUES(name)`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
