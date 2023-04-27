@@ -19,6 +19,8 @@ import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
 
+export const PIPELINE_SPEC = 'pipeline_spec';
+
 export function isV2Pipeline(workflow: Workflow): boolean {
   return workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true';
 }
@@ -33,7 +35,7 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 export function isTemplateV2(templateString: string): boolean {
   try {
     const template =
-      jsyaml.safeLoad(templateString)['pipeline_spec'] ?? jsyaml.safeLoad(templateString);
+      jsyaml.safeLoad(templateString)[PIPELINE_SPEC] ?? jsyaml.safeLoad(templateString);
     if (isArgoWorkflowTemplate(template)) {
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
