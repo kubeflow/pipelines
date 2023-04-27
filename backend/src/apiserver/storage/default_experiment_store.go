@@ -86,11 +86,11 @@ func (s *DefaultExperimentStore) SetDefaultExperimentId(id string, namespace str
 			"DefaultExperimentId": id,
 			"Namespace":           namespace,
 		}).
-		Suffix("ON DUPLICATE KEY UPDATE DefaultExperimentId").
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to set default experiment ID")
 	}
+	sql = s.db.Upsert(sql, "Namespace", "DefaultExperimentId")
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Error setting default experiment ID")
