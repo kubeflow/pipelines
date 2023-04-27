@@ -141,7 +141,7 @@ func NewSQLiteDialect() SQLiteDialect {
 
 func prepareUpdateSuffixMySQL(columns []string) string {
 	columnsExtended := make([]string, 0)
-	for _, c := range taskColumnsWithPayload {
+	for _, c := range columns {
 		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=VALUES(%[1]v)", c))
 	}
 	return strings.Join(columnsExtended, ",")
@@ -149,7 +149,7 @@ func prepareUpdateSuffixMySQL(columns []string) string {
 
 func prepareUpdateSuffixSQLite(columns []string) string {
 	columnsExtended := make([]string, 0)
-	for _, c := range taskColumnsWithPayload {
+	for _, c := range columns {
 		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=excluded.%[1]v", c))
 	}
 	return strings.Join(columnsExtended, ",")
