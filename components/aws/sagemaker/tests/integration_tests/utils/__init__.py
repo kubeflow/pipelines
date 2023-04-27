@@ -50,38 +50,6 @@ def get_fsx_id():
 def get_algorithm_image_registry(framework, region, version=None):
     return retrieve(framework, region, version).split(".")[0]
 
-
-def get_model_monitor_image_registry(region):
-    region_account_map = {
-        "us-east-1": "156813124566",
-        "us-east-2": "777275614652",
-        "us-west-1": "890145073186",
-        "us-west-2": "159807026194",
-        "af-south-1": "875698925577",
-        "ap-east-1": "001633400207",
-        "ap-northeast-1": "574779866223",
-        "ap-northeast-2": "709848358524",
-        "ap-northeast-3": "990339680094",
-        "ap-south-1": "126357580389",
-        "ap-southeast-1": "245545462676",
-        "ap-southeast-2": "563025443158",
-        "ap-southeast-3": "669540362728",
-        "ca-central-1": "536280801234",
-        "cn-north-1": "453000072557",
-        "cn-northwest-1": "453252182341",
-        "eu-central-1": "048819808253",
-        "eu-north-1": "895015795356",
-        "eu-south-1": "933208885752",
-        "eu-west-1": "468650794304",
-        "eu-west-2": "749857270468",
-        "eu-west-3": "680080141114",
-        "me-south-1": "607024016150",
-        "sa-east-1": "539772159869",
-        "us-gov-west-1": "362178532790",
-    }
-    return region_account_map[region]
-
-
 def get_assume_role_arn():
     return os.environ.get("ASSUME_ROLE_ARN")
 
@@ -128,6 +96,7 @@ def replace_placeholders(input_filename, output_filename, shallow_canary=False):
                 "xgboost", region, "1.0-1"
             ),
             "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
+            "((MODEL_MONITOR_IMAGE))": get_algorithm_image_registry("model-monitor", region)
             "((FSX_ID))": get_fsx_id(),
             "((FSX_SUBNET))": get_fsx_subnet(),
             "((FSX_SECURITY_GROUP))": get_fsx_security_group(),

@@ -11,7 +11,6 @@ from utils import ack_utils
     [
         pytest.param(
             "resources/config/ack-model-explainability-job-definition",
-            marks=pytest.mark.canary_test,
         ),
         pytest.param(
             "resources/config/ack-data-quality-job-definition",
