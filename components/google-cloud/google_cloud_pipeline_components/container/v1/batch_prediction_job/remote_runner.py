@@ -155,7 +155,9 @@ def create_batch_prediction_job(
         get_batch_prediction_job_with_client, job_name
     )
 
-    vertex_uri_prefix = f'https://{location}-aiplatform.googleapis.com/v1/'
+    vertex_uri_prefix = (
+        f'https://{location}-autopush-aiplatform.sandbox.googleapis.com/v1/'
+    )
     vertex_batch_predict_job_artifact = VertexBatchPredictionJob(
         'batchpredictionjob',
         vertex_uri_prefix + get_job_response.name,

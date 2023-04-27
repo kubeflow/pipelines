@@ -73,7 +73,7 @@ class JobRemoteRunner:
     self.location = location
     self.gcp_resources = gcp_resources
     self.client_options = {
-        'api_endpoint': location + '-aiplatform.googleapis.com'
+        'api_endpoint': location + '-autopush-aiplatform.sandbox.googleapis.com'
     }
     self.client_info = gapic_v1.client_info.ClientInfo(
         user_agent='google-cloud-pipeline-components'
