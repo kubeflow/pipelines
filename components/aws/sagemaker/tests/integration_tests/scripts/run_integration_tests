@@ -332,5 +332,4 @@ fi
 
 DIR_THIS_FILE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.xml -n 9
 cd $DIR_THIS_FILE/../ && python -m pytest components/aws/sagemaker/tests/integration_tests/component_tests/test_v2_monitoring_schedule_component.py --junitxml ./integration_tests.xml -n 9
