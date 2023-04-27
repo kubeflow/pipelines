@@ -1,3 +1,17 @@
+// Copyright 2018-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package api_server
 
 import (
@@ -10,6 +24,7 @@ import (
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,7 +50,7 @@ type PipelineUploadClient struct {
 func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*PipelineUploadClient, error) {
 
-	runtime, err := NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline upload client: %w", err)
 	}
@@ -51,14 +66,14 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool) (
 	*PipelineUploadClient, error) {
 
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating upload client
 	return &PipelineUploadClient{
 		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 
@@ -78,7 +93,7 @@ func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.Up
 func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.APIPipeline,
 	error) {
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -87,9 +102,9 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
@@ -113,7 +128,7 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 	parameters.Uploadfile = runtime.NamedReader(filePath, file)
 
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
@@ -122,9 +137,9 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineVersionDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,

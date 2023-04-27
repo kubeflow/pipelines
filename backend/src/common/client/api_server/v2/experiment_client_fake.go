@@ -15,20 +15,13 @@
 package api_server_v2
 
 import (
-	"fmt"
-
 	"github.com/go-openapi/strfmt"
-	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	experimentmodel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 )
 
-const (
-	v2ExperimentForClientErrorTest = "EXPERIMENT_CLIENT_ERROR"
-)
-
-func getDefaultExperiment(id string, name string) *experimentmodel.V2beta1Experiment {
-	return &experimentmodel.V2beta1Experiment{
+func getDefaultExperiment(id string, name string) *model.V2beta1Experiment {
+	return &model.V2beta1Experiment{
 		CreatedAt:    strfmt.NewDateTime(),
 		Description:  "EXPERIMENT_DESCRIPTION",
 		ExperimentID: id,
@@ -42,63 +35,33 @@ func NewExperimentClientFake() *ExperimentClientFake {
 	return &ExperimentClientFake{}
 }
 
-func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentParams) (
-	*experimentmodel.V2beta1Experiment, error) {
-	switch params.Body.DisplayName {
-	case v2ExperimentForClientErrorTest:
-		return nil, fmt.Errorf(api_server.ClientErrorString)
-	default:
-		return getDefaultExperiment("500", params.Body.DisplayName), nil
-	}
+func (c *ExperimentClientFake) Create(parameters *params.CreateExperimentParams) (
+	*model.V2beta1Experiment, error) {
+	return getDefaultExperiment("500", parameters.Body.DisplayName), nil
 }
 
-func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentParams) (
-	*experimentmodel.V2beta1Experiment, error) {
-	switch params.ExperimentID {
-	case v2ExperimentForClientErrorTest:
-		return nil, fmt.Errorf(api_server.ClientErrorString)
-	default:
-		return getDefaultExperiment(params.ExperimentID, "EXPERIMENT_NAME"), nil
-	}
+func (c *ExperimentClientFake) Get(parameters *params.GetExperimentParams) (
+	*model.V2beta1Experiment, error) {
+	return getDefaultExperiment(parameters.ExperimentID, "EXPERIMENT_NAME"), nil
 }
 
-func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentsParams) (
-	[]*experimentmodel.V2beta1Experiment, int, string, error) {
-	const (
-		FirstToken  = ""
-		SecondToken = "SECOND_TOKEN"
-		FinalToken  = ""
-	)
-
-	token := ""
-	if params.PageToken != nil {
-		token = *params.PageToken
-	}
-
-	switch token {
-	case FirstToken:
-		return []*experimentmodel.V2beta1Experiment{
-			getDefaultExperiment("100", "MY_FIRST_EXPERIMENT"),
-			getDefaultExperiment("101", "MY_SECOND_EXPERIMENT"),
-		}, 2, SecondToken, nil
-	case SecondToken:
-		return []*experimentmodel.V2beta1Experiment{
-			getDefaultExperiment("102", "MY_THIRD_EXPERIMENT"),
-		}, 1, FinalToken, nil
-	default:
-		return nil, 0, "", fmt.Errorf(api_server.InvalidFakeRequest, token)
-	}
+func (c *ExperimentClientFake) List(params *params.ListExperimentsParams) (
+	[]*model.V2beta1Experiment, int, string, error) {
+	return []*model.V2beta1Experiment{
+		getDefaultExperiment("100", "MY_FIRST_EXPERIMENT"),
+		getDefaultExperiment("101", "MY_SECOND_EXPERIMENT"),
+	}, 2, "SECOND_TOKEN", nil
 }
 
-func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentsParams,
-	maxResultSize int) ([]*experimentmodel.V2beta1Experiment, error) {
-	return listAllForExperiment(c, params, maxResultSize)
+func (c *ExperimentClientFake) ListAll(params *params.ListExperimentsParams,
+	maxResultSize int) ([]*model.V2beta1Experiment, error) {
+	return listAllForExperiment(c, params, 1)
 }
 
-func (c *ExperimentClientFake) Archive(params *experimentparams.ArchiveExperimentParams) error {
+func (c *ExperimentClientFake) Archive(parameters *params.ArchiveExperimentParams) error {
 	return nil
 }
 
-func (c *ExperimentClientFake) Unarchive(params *experimentparams.UnarchiveExperimentParams) error {
+func (c *ExperimentClientFake) Unarchive(parameters *params.UnarchiveExperimentParams) error {
 	return nil
 }
