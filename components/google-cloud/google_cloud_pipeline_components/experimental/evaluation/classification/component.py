@@ -46,6 +46,7 @@ def model_evaluation_classification(
     class_labels: list = [],
     prediction_score_column: str = '',
     prediction_label_column: str = '',
+    slicing_specs: list = [],
     positive_classes: list = [],
     dataflow_service_account: str = '',
     dataflow_disk_size: int = 50,
@@ -119,6 +120,26 @@ def model_evaluation_classification(
     prediction_id_column (Optional[str]): Optional. The column name of the field
       containing ids for classes the model is scoring. Formatted to be able to
       find nested columns, delimited by `.`.
+    slicing_specs (Optional[Sequence[SlicingSpec]]): Optional. List of
+      google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec. When
+      provided, compute metrics for each defined slice. Below is an example of
+      how to format this input.
+      1: First, create a SlicingSpec. ```from
+        google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice import
+        SliceSpec from
+        google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice.SliceSpec
+        import SliceConfig  slicing_spec = SliceSpec(configs={ 'feature_a':
+        SliceConfig(SliceSpec.Value(string_value='label_a') ) })```
+      2: Create a list to store the slicing specs into. `slicing_specs = []`.
+      3: Format each SlicingSpec into a JSON or Dict. `slicing_spec_json =
+        json_format.MessageToJson(slicing_spec)` or `slicing_spec_dict =
+        json_format.MessageToDict(slicing_spec).
+      4: Combine each slicing_spec JSON into a list.
+        `slicing_specs.append(slicing_spec_json)`.
+      5: Finally, pass slicing_specs as an parameter for this component.
+        `ModelEvaluationClassificationOp(slicing_specs=slicing_specs)` For more
+        details on configuring slices, see
+      https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.ModelEvaluationSlice
     positive_classes (Optional[Sequence[str]]): Optional. The list of class
       names to create binary classification metrics based on one-vs-rest for
       each value of positive_classes provided.
@@ -184,11 +205,14 @@ def model_evaluation_classification(
               input_name='predictions_bigquery_source',
               then=[
                   '--batch_prediction_bigquery_source',
-                  "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}",
-                  '.',
-                  "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}",
-                  '.',
-                  "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}",
+                  ConcatPlaceholder([
+                      'bq://',
+                      "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}",
+                      '.',
+                      "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}",
+                      '.',
+                      "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}",
+                  ]),
               ],
           ),
           IfPresentPlaceholder(
@@ -214,6 +238,13 @@ def model_evaluation_classification(
           prediction_score_column,
           '--prediction_label_column',
           prediction_label_column,
+          IfPresentPlaceholder(
+              input_name='slicing_specs',
+              then=[
+                  '--slicing_specs',
+                  slicing_specs,
+              ],
+          ),
           '--positive_classes',
           positive_classes,
           '--dataflow_job_prefix',
