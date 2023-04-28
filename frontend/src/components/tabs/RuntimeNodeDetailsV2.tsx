@@ -26,7 +26,13 @@ import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage } from 'src/lib/Utils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
-import { getArtifactTypeName, getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import {
+  EXECUTION_KEY_CACHED_EXECUTION_ID,
+  getArtifactTypeName,
+  getArtifactTypes,
+  KfpExecutionProperties,
+  LinkedArtifact,
+} from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
@@ -236,7 +242,7 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
     podName =
       execution
         .getCustomPropertiesMap()
-        .get('pod_name')
+        .get(KfpExecutionProperties.POD_NAME)
         ?.getStringValue() || '';
     podNameSpace =
       execution
@@ -246,7 +252,7 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
     cachedExecutionId =
       execution
         .getCustomPropertiesMap()
-        .get('cached_execution_id')
+        .get(EXECUTION_KEY_CACHED_EXECUTION_ID)
         ?.getStringValue() || '';
   }
 
