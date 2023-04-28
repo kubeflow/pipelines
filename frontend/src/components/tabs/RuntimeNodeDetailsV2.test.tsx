@@ -122,7 +122,7 @@ describe('RuntimeNodeDetailsV2', () => {
   it('shows cached text if the execution is cached', async () => {
     TEST_EXECUTION.getCustomPropertiesMap().set(
       'cached_execution_id',
-      new Value().setStringValue('123'),
+      new Value().setStringValue('135'),
     );
     const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
     getPodLogsSpy.mockImplementation(() => 'test-logs-details');
