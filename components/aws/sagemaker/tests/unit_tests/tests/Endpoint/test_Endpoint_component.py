@@ -12,15 +12,15 @@ class EndpointComponentTestCase(unittest.TestCase):
         "--region",
         "us-west-1",
         "--endpoint_config_name",
-        "test",
+        "sample_endpoint_config",
         "--endpoint_name",
-        "test1",
+        "xgboost_endpoint",
     ]
 
     @classmethod
     def setUp(cls):
         cls.component = SageMakerEndpointComponent()
-        cls.component.job_name = "test"
+        cls.component.job_name = "xgboost_endpoint"
 
     def test_get_job_status(self):
         with patch(
@@ -144,8 +144,8 @@ class EndpointComponentTestCase(unittest.TestCase):
             self.component._after_submit_job_request(
                 {}, request, spec.inputs, spec.outputs
             )
-            log_line1 = "Endpoint in Sagemaker: https://us-west-1.console.aws.amazon.com/sagemaker/home?region=us-west-1#/endpoints/test1"
-            log_line2 = "CloudWatch logs: https://us-west-1.console.aws.amazon.com/cloudwatch/home?region=us-west-1#logStream:group=/aws/sagemaker/Endpoints/test1"
+            log_line1 = "Endpoint in Sagemaker: https://us-west-1.console.aws.amazon.com/sagemaker/home?region=us-west-1#/endpoints/xgboost_endpoint"
+            log_line2 = "CloudWatch logs: https://us-west-1.console.aws.amazon.com/cloudwatch/home?region=us-west-1#logStream:group=/aws/sagemaker/Endpoints/xgboost_endpoint"
             assert log_line1 in captured.records[0].getMessage()
             assert log_line2 in captured.records[1].getMessage()
 
@@ -158,7 +158,7 @@ class EndpointComponentTestCase(unittest.TestCase):
         ) as mock_namespace:
             mock_namespace.return_value = "test-namespace"
             self.component.Do(named_spec)
-            self.assertEqual("test1", self.component.job_name)
+            self.assertEqual("xgboost_endpoint", self.component.job_name)
 
     def test_after_job_completed(self):
 
@@ -192,7 +192,7 @@ class EndpointComponentTestCase(unittest.TestCase):
             self.assertEqual(spec.outputs.last_modified_time, "6")
             self.assertEqual(spec.outputs.pending_deployment_summary, "7")
             self.assertEqual(spec.outputs.production_variants, "8")
-            self.assertEqual(spec.outputs.sagemaker_resource_name, "test")
+            self.assertEqual(spec.outputs.sagemaker_resource_name, "xgboost_endpoint")
 
 
 if __name__ == "__main__":

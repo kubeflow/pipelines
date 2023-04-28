@@ -12,15 +12,15 @@ class ModelComponentTestCase(unittest.TestCase):
         "--region",
         "us-west-1",
         "--model_name",
-        "test1",
+        "sample-model",
         "--execution_role_arn",
-        "arn",
+        "arn:aws:iam::000000000000:role/sample-exec-role",
     ]
 
     @classmethod
     def setUp(cls):
         cls.component = SageMakerModelComponent()
-        cls.component.job_name = "test"
+        cls.component.job_name = "sample-model"
 
     @patch("Model.src.Model_component.super", MagicMock())
     def test_do_sets_name(self):
@@ -31,13 +31,13 @@ class ModelComponentTestCase(unittest.TestCase):
         ) as mock_namespace:
             mock_namespace.return_value = "test-namespace"
             self.component.Do(named_spec)
-            self.assertEqual("test1", self.component.job_name)
+            self.assertEqual("sample-model", self.component.job_name)
 
     def test_get_job_status(self):
         with patch(
             "Model.src.Model_component.SageMakerComponent._get_resource"
         ) as mock_get_resource:
-            mock_get_resource.return_value = {"arn": "arn"}
+            mock_get_resource.return_value = {"arn": "arn:aws:sagemaker:us-east-1:000000000000:model/sample-model"}
 
             self.assertEqual(
                 self.component._get_job_status(),
@@ -55,7 +55,7 @@ class ModelComponentTestCase(unittest.TestCase):
             self.component._after_submit_job_request(
                 {}, request, spec.inputs, spec.outputs
             )
-            log_line1 = "Model in Sagemaker: https://us-west-1.console.aws.amazon.com/sagemaker/home?region=us-west-1#/models/test"
+            log_line1 = "Model in Sagemaker: https://us-west-1.console.aws.amazon.com/sagemaker/home?region=us-west-1#/models/sample-model"
             assert log_line1 in captured.records[0].getMessage()
 
     def test_after_job_completed(self):
@@ -89,7 +89,7 @@ class ModelComponentTestCase(unittest.TestCase):
 
                 # Accidental update, no change.
                 # Updates with change are caught by the common unit tests.
-                mock_get_resource.return_value = {"arn": "arn"}
+                mock_get_resource.return_value = {"arn": "arn:aws:sagemaker:us-east-1:000000000000:model/sample-model"}
                 mock_condition_list.return_value = []
                 self.assertEqual(
                     self.component._get_upgrade_status(),

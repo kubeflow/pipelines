@@ -8,7 +8,7 @@ class EndpointSpecTestCase(unittest.TestCase):
         "--region",
         "us-west-1",
         "--endpoint_config_name",
-        "test",
+        "sample-endpoint-config",
         "--production_variants",
         "[]",
     ]

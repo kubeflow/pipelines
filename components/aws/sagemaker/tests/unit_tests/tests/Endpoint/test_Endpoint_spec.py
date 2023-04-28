@@ -8,9 +8,9 @@ class EndpointSpecTestCase(unittest.TestCase):
         "--region",
         "us-west-1",
         "--endpoint_config_name",
-        "test",
+        "sample_endpoint_config",
         "--endpoint_name",
-        "test1",
+        "xgboost_endpoint",
     ]
     INCORRECT_ARGS = ["--empty"]
 

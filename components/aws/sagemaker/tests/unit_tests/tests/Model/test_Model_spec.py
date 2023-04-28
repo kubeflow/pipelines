@@ -8,9 +8,9 @@ class ModelSpecTestCase(unittest.TestCase):
         "--region",
         "us-west-1",
         "--model_name",
-        "test1",
+        "sample-model",
         "--execution_role_arn",
-        "arn",
+        "arn:aws:iam::000000000000:role/sample-exec-role",
     ]
 
     INCORRECT_ARGS = ["--empty"]

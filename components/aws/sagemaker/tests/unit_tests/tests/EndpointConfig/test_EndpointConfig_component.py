@@ -12,7 +12,7 @@ class EndpointConfigComponentTestCase(unittest.TestCase):
         "--region",
         "us-west-1",
         "--endpoint_config_name",
-        "test",
+        "sample-endpoint-config",
         "--production_variants",
         "[]",
     ]
@@ -20,7 +20,7 @@ class EndpointConfigComponentTestCase(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.component = SageMakerEndpointConfigComponent()
-        cls.component.job_name = "test"
+        cls.component.job_name = "sample-endpoint-config"
 
     @patch("EndpointConfig.src.EndpointConfig_component.super", MagicMock())
     def test_do_sets_name(self):
@@ -31,13 +31,13 @@ class EndpointConfigComponentTestCase(unittest.TestCase):
         ) as mock_namespace:
             mock_namespace.return_value = "test-namespace"
             self.component.Do(named_spec)
-            self.assertEqual("test", self.component.job_name)
+            self.assertEqual("sample-endpoint-config", self.component.job_name)
 
     def test_get_job_status(self):
         with patch(
             "EndpointConfig.src.EndpointConfig_component.SageMakerComponent._get_resource"
         ) as mock_get_resource:
-            mock_get_resource.return_value = {"arn": "arn"}
+            mock_get_resource.return_value = {"arn": "arn:aws:sagemaker:us-east-1:000000000000:endpoint-config/sample-endpoint-config"}
 
             self.assertEqual(
                 self.component._get_job_status(),
@@ -55,7 +55,7 @@ class EndpointConfigComponentTestCase(unittest.TestCase):
             self.component._after_submit_job_request(
                 {}, request, spec.inputs, spec.outputs
             )
-            log_line1 = "Endpoint Config in Sagemaker: https://us-west-1.console.aws.amazon.com/sagemaker/home?region=us-west-1#/endpointConfig/test"
+            log_line1 = "Endpoint Config in Sagemaker: https://us-west-1.console.aws.amazon.com/sagemaker/home?region=us-west-1#/endpointConfig/sample-endpoint-config"
             assert log_line1 in captured.records[0].getMessage()
 
     def test_after_job_completed(self):
@@ -78,7 +78,7 @@ class EndpointConfigComponentTestCase(unittest.TestCase):
 
             self.assertEqual(spec.outputs.ack_resource_metadata, "1")
             self.assertEqual(spec.outputs.conditions, "2")
-            self.assertEqual(spec.outputs.sagemaker_resource_name, "test")
+            self.assertEqual(spec.outputs.sagemaker_resource_name, "sample-endpoint-config")
 
     def test_get_upgrade_status(self):
         with patch(
@@ -90,7 +90,7 @@ class EndpointConfigComponentTestCase(unittest.TestCase):
 
                 # Accidental update, no change.
                 # Updates with change are caught by the common unit tests.
-                mock_get_resource.return_value = {"arn": "arn"}
+                mock_get_resource.return_value = {"arn": "arn:aws:sagemaker:us-east-1:000000000000:endpoint-config/sample-endpoint-config"}
                 mock_condition_list.return_value = []
                 self.assertEqual(
                     self.component._get_upgrade_status(),
