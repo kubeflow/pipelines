@@ -17,6 +17,7 @@ import json
 import os
 import time
 
+from absl.testing import parameterized
 import google.auth
 import google.auth.transport.requests
 from google.cloud import aiplatform
@@ -37,7 +38,10 @@ from unittest import mock
 _SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
 
 
-class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
+class BatchPredictionJobRemoteRunnerUtilsTests(
+    unittest.TestCase,
+    parameterized.TestCase,
+):
   """Unit Tests for Batch Prediction Job Remote Runner."""
 
   def setUp(self):
@@ -509,7 +513,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
         },
     )
 
-  def test_batch_prediction_job_remote_runner_sanitize_job_spec(self):
+  def test_batch_prediction_job_remote_runner_sanitize_explanation_spec(self):
     explanation_payload = (
         '{"explanation_spec": '
         '{"metadata": {"inputs": { "test_input_1": '
@@ -537,6 +541,34 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     )
     self.assertEqual(
         expected_metadata, job_spec['explanation_spec']['metadata']
+    )
+
+  @parameterized.parameters([
+      ('bq://project.dataset.table', 'bq://project.dataset.table'),
+      ('bigquery://project.dataset.table', 'bigquery://project.dataset.table'),
+      ('project.dataset.table', 'bq://project.dataset.table'),
+      ('project.dataset', 'bq://project.dataset'),
+      ('project', 'bq://project'),
+  ])
+  def test_batch_prediction_job_remote_runner_sanitize_bq_uri(
+      self,
+      uri: str,
+      expected: str,
+  ):
+    payload = (
+        '{"input_config": {"bigquery_source": "'
+        + uri
+        + '"},"output_config": {"bigquery_destination": {"output_uri": "'
+        + uri
+        + '"}}}'
+    )
+    job_spec = batch_prediction_job_remote_runner.sanitize_job_spec(
+        json_util.recursive_remove_empty(json.loads(payload, strict=False))
+    )
+    self.assertEqual(job_spec['input_config']['bigquery_source'], expected)
+    self.assertEqual(
+        job_spec['output_config']['bigquery_destination']['output_uri'],
+        expected,
     )
 
   def test_batch_prediction_job_remote_runner_insert_system_labels_into_payload(
