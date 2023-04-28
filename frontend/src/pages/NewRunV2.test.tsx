@@ -17,6 +17,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'fs';
 import 'jest';
+import * as JsYaml from 'js-yaml';
+import * as features from 'src/features';
 import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -38,10 +40,8 @@ import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import NewRunV2 from './NewRunV2';
-import { PageProps } from './Page';
-import * as JsYaml from 'js-yaml';
 import NewRunSwitcher from './NewRunSwitcher';
-import * as features from '../features';
+import { PageProps } from './Page';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
 const v2XGYamlTemplateString = fs.readFileSync(V2_XG_PIPELINESPEC_PATH, 'utf8');
