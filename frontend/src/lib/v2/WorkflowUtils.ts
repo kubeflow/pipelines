@@ -19,7 +19,7 @@ import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
 
-// This key can be used to retrieve 'pipeline_spec' in yaml file which contains 'platform_spec'
+// This key is used to retrieve the platform-agnostic pipeline definition
 export const PIPELINE_SPEC_TEMPLATE_KEY = 'pipeline_spec';
 
 export function isV2Pipeline(workflow: Workflow): boolean {
