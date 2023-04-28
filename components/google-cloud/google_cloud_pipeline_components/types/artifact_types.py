@@ -237,7 +237,7 @@ class UnmanagedContainerModel(dsl.Artifact):
 
 
 @google_artifact('google.ClassificationMetrics')
-class ClassificationMetrics(dsl.Metrics):
+class _ClassificationMetrics(dsl.Metrics):
   """An artifact representing evaluation classification metrics."""
 
   def __init__(
@@ -276,6 +276,106 @@ class ClassificationMetrics(dsl.Metrics):
       metadata['auRoc'] = au_roc
     if log_loss is not None:
       metadata['logLoss'] = log_loss
+    super().__init__(
+        name=name,
+        metadata=metadata,
+    )
+
+
+@google_artifact('google.RegressionMetrics')
+class _RegressionMetrics(dsl.Metrics):
+  """An artifact representing evaluation regression metrics."""
+
+  def __init__(
+      self,
+      name: str = 'evaluation_metrics',
+      root_mean_squared_error: Optional[float] = None,
+      mean_absolute_error: Optional[float] = None,
+      mean_absolute_percentage_error: Optional[float] = None,
+      r_squared: Optional[float] = None,
+      root_mean_squared_log_error: Optional[float] = None,
+  ):
+    """Args:
+
+    root_mean_squared_error: Root Mean Squared Error (RMSE).
+    mean_absolute_error: Mean Absolute Error (MAE).
+    mean_absolute_percentage_error: Mean absolute percentage error.
+    r_squared: Coefficient of determination as Pearson correlation coefficient.
+    root_mean_squared_log_error: Root mean squared log error.
+    """
+    metadata = {}
+    if root_mean_squared_error is not None:
+      metadata['rootMeanSquaredError'] = root_mean_squared_error
+    if mean_absolute_error is not None:
+      metadata['meanAbsoluteError'] = mean_absolute_error
+    if mean_absolute_percentage_error is not None:
+      metadata['meanAbsolutePercentageError'] = mean_absolute_percentage_error
+    if r_squared is not None:
+      metadata['rSquared'] = r_squared
+    if root_mean_squared_log_error is not None:
+      metadata['rootMeanSquaredLogError'] = root_mean_squared_log_error
+    super().__init__(
+        name=name,
+        metadata=metadata,
+    )
+
+
+@google_artifact('google.ForecastingMetrics')
+class _ForecastingMetrics(dsl.Metrics):
+  """An artifact representing evaluation forecasting metrics."""
+
+  def __init__(
+      self,
+      name: str = 'evaluation_metrics',
+      root_mean_squared_error: Optional[float] = None,
+      mean_absolute_error: Optional[float] = None,
+      mean_absolute_percentage_error: Optional[float] = None,
+      r_squared: Optional[float] = None,
+      root_mean_squared_log_error: Optional[float] = None,
+      weighted_absolute_percentage_error: Optional[float] = None,
+      root_mean_squared_percentage_error: Optional[float] = None,
+      symmetric_mean_absolute_percentage_error: Optional[float] = None,
+  ):
+    """Args:
+
+    root_mean_squared_error: Root Mean Squared Error (RMSE).
+    mean_absolute_error: Mean Absolute Error (MAE).
+    mean_absolute_percentage_error: Mean absolute percentage error.
+    r_squared: Coefficient of determination as Pearson correlation coefficient.
+    root_mean_squared_log_error: Root mean squared log error.
+    weighted_absolute_percentage_error: Weighted Absolute Percentage Error.
+      Does not use weights, this is just what the metric is called.
+      Undefined if actual values sum to zero.
+      Will be very large if actual values sum to a very small number.
+    root_mean_squared_percentage_error: Root Mean Square Percentage Error.
+      Square root of MSPE.
+      Undefined/imaginary when MSPE is negative.
+    symmetric_mean_absolute_percentage_error: Symmetric Mean Absolute Percentage
+      Error.
+    """
+    metadata = {}
+    if root_mean_squared_error is not None:
+      metadata['rootMeanSquaredError'] = root_mean_squared_error
+    if mean_absolute_error is not None:
+      metadata['meanAbsoluteError'] = mean_absolute_error
+    if mean_absolute_percentage_error is not None:
+      metadata['meanAbsolutePercentageError'] = mean_absolute_percentage_error
+    if r_squared is not None:
+      metadata['rSquared'] = r_squared
+    if root_mean_squared_log_error is not None:
+      metadata['rootMeanSquaredLogError'] = root_mean_squared_log_error
+    if weighted_absolute_percentage_error is not None:
+      metadata['weightedAbsolutePercentageError'] = (
+          weighted_absolute_percentage_error
+      )
+    if root_mean_squared_percentage_error is not None:
+      metadata['rootMeanSquaredPercentageError'] = (
+          root_mean_squared_percentage_error
+      )
+    if symmetric_mean_absolute_percentage_error is not None:
+      metadata['symmetricMeanAbsolutePercentageError'] = (
+          symmetric_mean_absolute_percentage_error
+      )
     super().__init__(
         name=name,
         metadata=metadata,
