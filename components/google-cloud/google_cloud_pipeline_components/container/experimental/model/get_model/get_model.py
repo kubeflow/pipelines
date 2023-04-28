@@ -79,34 +79,42 @@ def _get_model(
   else:
     model_resource_name = model_name
 
-  segments_dict = aiplatform.gapic.ModelServiceClient.parse_model_path(
-      model_resource_name
-  )
-  location = segments_dict.get('location', '')
-  if not location:
-    raise ValueError(
-        'Model resource name must be in the format'
-        ' projects/{project}/locations/{location}/models/{model} or'
-        ' projects/{project}/locations/{location}/models/{model}@{model_version}'
+  if '/publisher/' not in model_resource_name:
+    segments_dict = aiplatform.gapic.ModelServiceClient.parse_model_path(
+        model_resource_name
     )
-  api_endpoint = location + '-aiplatform.googleapis.com'
-  vertex_uri_prefix = f'https://{api_endpoint}/v1/'
+    location = segments_dict.get('location', '')
+    if not location:
+      raise ValueError(
+          'Model resource name must be in the format'
+          ' projects/{project}/locations/{location}/models/{model} or'
+          ' projects/{project}/locations/{location}/models/{model}@{model_version}'
+      )
+    api_endpoint = location + '-aiplatform.googleapis.com'
+    vertex_uri_prefix = f'https://{api_endpoint}/v1/'
 
-  client = aiplatform.gapic.ModelServiceClient(
-      client_info=gapic_v1.client_info.ClientInfo(
-          user_agent='google-cloud-pipeline-components'
-      ),
-      client_options={
-          'api_endpoint': api_endpoint,
-      },
-  )
+    client = aiplatform.gapic.ModelServiceClient(
+        client_info=gapic_v1.client_info.ClientInfo(
+            user_agent='google-cloud-pipeline-components'
+        ),
+        client_options={
+            'api_endpoint': api_endpoint,
+        },
+    )
 
-  get_model_response = client.get_model(name=model_resource_name)
+    get_model_response = client.get_model(name=model_resource_name)
 
-  resp_model_name_without_version = get_model_response.name.split('@', 1)[0]
-  model_resource_name = (
-      f'{resp_model_name_without_version}@{get_model_response.version_id}'
-  )
+    resp_model_name_without_version = get_model_response.name.split('@', 1)[0]
+    model_resource_name = (
+        f'{resp_model_name_without_version}@{get_model_response.version_id}'
+    )
+  else:
+    # If "/publisher/" is in resource_name, it is a Model Garden model. We can
+    # skip and directly build the artifact if it is a model garden model.
+    # TODO(b/279978677): Use SDK function when supported to retrieve location.
+    location = model_resource_name.split('/')[3]
+    api_endpoint = location + '-aiplatform.googleapis.com'
+    vertex_uri_prefix = f'https://{api_endpoint}/v1/'
 
   vertex_model = VertexModel(
       'model', vertex_uri_prefix + model_resource_name, model_resource_name
