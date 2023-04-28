@@ -25,7 +25,7 @@ def get_vertex_model(
     model_name: str,
     model_version: str = '',
 ):
-  """Gets a model artifact or string inputs to an existing Vertex model.
+    """Gets a model artifact or string inputs to an existing Vertex model.
 
   Args:
     model_name (str): Vertex model resource name in the format of
@@ -45,22 +45,22 @@ def get_vertex_model(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.experimental.model.get_model.get_model',
-      ],
-      args=[
-          '--model_name',
-          model_name,
-          '--model_version',
-          model_version,
-          '--gcp_resources',
-          gcp_resources,
-          '--executor_input',
-          '{{$}}',
-      ],
-  )
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b2',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.experimental.model.get_model.get_model',
+        ],
+        args=[
+            '--model_name',
+            model_name,
+            '--model_version',
+            model_version,
+            '--gcp_resources',
+            gcp_resources,
+            '--executor_input',
+            '{{$}}',
+        ],
+    )
