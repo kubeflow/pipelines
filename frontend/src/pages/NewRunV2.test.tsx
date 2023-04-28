@@ -39,9 +39,9 @@ import { V2beta1RecurringRun, RecurringRunMode } from 'src/apisv2beta1/recurring
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
-import NewRunV2 from './NewRunV2';
-import NewRunSwitcher from './NewRunSwitcher';
-import { PageProps } from './Page';
+import NewRunV2 from 'src/pages/NewRunV2';
+import NewRunSwitcher from 'src/pages/NewRunSwitcher';
+import { PageProps } from 'src/Page';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
 const v2XGYamlTemplateString = fs.readFileSync(V2_XG_PIPELINESPEC_PATH, 'utf8');
