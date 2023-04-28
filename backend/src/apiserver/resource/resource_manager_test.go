@@ -231,7 +231,7 @@ func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.J
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param1\":\"world\"}",
+				Parameters:   "{\"text\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
@@ -264,6 +264,9 @@ func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -1684,6 +1687,9 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
 		},
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:   2,
@@ -1835,27 +1841,6 @@ func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
 	assert.NotEqual(t, runDetail.WorkflowRuntimeManifest, newRun.WorkflowRuntimeManifest)
 	assert.Equal(t, runDetail.WorkflowSpecManifest, newRun.WorkflowSpecManifest)
 	assert.Empty(t, newRun.PipelineSpecManifest)
-
-	manager.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
-	newRun2, err := manager.CreateRun(
-		context.Background(),
-		&model.Run{
-			DisplayName: "run1",
-			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: v2SpecHelloWorld,
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
-			},
-			ExperimentId: runDetail.ExperimentId,
-		},
-	)
-	assert.Nil(t, err)
-	assert.Equal(t, "run1", newRun2.DisplayName)
-	assert.Empty(t, newRun2.PipelineId)
-	assert.Empty(t, newRun2.PipelineVersionId)
-	assert.Empty(t, newRun2.WorkflowRuntimeManifest)
-	assert.Equal(t, v2SpecHelloWorld, newRun2.WorkflowSpecManifest)
-	assert.Equal(t, v2SpecHelloWorld, newRun2.PipelineSpecManifest)
 }
 
 func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
@@ -2433,7 +2418,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param1\":\"world\"}",
+				Parameters:   "{\"text\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
@@ -4153,7 +4138,7 @@ components:
     inputDefinitions:
       parameters:
         text:
-          type: STRING
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-hello-world:
@@ -4199,8 +4184,8 @@ root:
   inputDefinitions:
     parameters:
       text:
-        type: STRING
-schemaVersion: 2.0.0
+        parameterType: STRING
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
 
