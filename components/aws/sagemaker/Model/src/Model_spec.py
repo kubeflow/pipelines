@@ -64,12 +64,12 @@ class SageMakerModelSpec(
         ),
         enable_network_isolation=InputValidator(
             input_type=SpecInputParsers.str_to_bool,
-            description="Isolates the model container. No inbound or outbound network calls can be made to or from the model",
+            description="Isolates the model container.",
             required=False,
         ),
         execution_role_arn=InputValidator(
             input_type=str,
-            description="The Amazon Resource Name (ARN) of the IAM role that SageMaker can assume to access model artifacts a",
+            description="The Amazon Resource Name (ARN) of the IAM role that SageMaker can assume to access model artifacts and docker image for deployment on ML compute instances or for batch transform jobs.",
             required=True,
         ),
         inference_execution_config=InputValidator(
@@ -82,17 +82,17 @@ class SageMakerModelSpec(
         ),
         primary_container=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="The location of the primary docker image containing inference code, associated artifacts, and custom",
+            description="The location of the primary docker image containing inference code, associated artifacts, and custom environment map that the inference code uses when the model is deployed for predictions.",
             required=False,
         ),
         tags=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="An array of key-value pairs. You can use tags to categorize your Amazon Web Services resources in di",
+            description="An array of key-value pairs.",
             required=False,
         ),
         vpc_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="A VpcConfig object that specifies the VPC that you want your model to connect to. Control access to",
+            description="A VpcConfig object that specifies the VPC that you want your model to connect to.",
             required=False,
         ),
         **vars(COMMON_INPUTS),
@@ -100,10 +100,10 @@ class SageMakerModelSpec(
 
     OUTPUTS = SageMakerModelOutputs(
         ack_resource_metadata=OutputValidator(
-            description="All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+            description="All CRs managed by ACK have a common `Status.",
         ),
         conditions=OutputValidator(
-            description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+            description="All CRS managed by ACK have a common `Status.",
         ),
         sagemaker_resource_name=OutputValidator(
             description="Resource name on Sagemaker",

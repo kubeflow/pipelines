@@ -61,22 +61,20 @@ class SageMakerEndpointSpec(
     INPUTS: SageMakerEndpointInputs = SageMakerEndpointInputs(
         deployment_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="The deployment configuration for an endpoint, which contains the desired deployment strategy and rol",
+            description="The deployment configuration for an endpoint, which contains the desired deployment strategy and rollback configurations.",
             required=False,
         ),
         endpoint_config_name=InputValidator(
             input_type=str,
-            description="The name of an endpoint configuration. For more information, see CreateEndpointConfig.",
+            description="The name of an endpoint configuration.",
             required=True,
         ),
         endpoint_name=InputValidator(
-            input_type=str,
-            description="The name of the endpoint.The name must be unique within an Amazon Web Services Region in your Amazon",
-            required=True,
+            input_type=str, description="The name of the endpoint.", required=True
         ),
         tags=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="An array of key-value pairs. You can use tags to categorize your Amazon Web Services resources in di",
+            description="An array of key-value pairs.",
             required=False,
         ),
         **vars(COMMON_INPUTS),
@@ -84,16 +82,16 @@ class SageMakerEndpointSpec(
 
     OUTPUTS = SageMakerEndpointOutputs(
         ack_resource_metadata=OutputValidator(
-            description="All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+            description="All CRs managed by ACK have a common `Status.",
         ),
         conditions=OutputValidator(
-            description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+            description="All CRS managed by ACK have a common `Status.",
         ),
         creation_time=OutputValidator(
             description="A timestamp that shows when the endpoint was created.",
         ),
         endpoint_status=OutputValidator(
-            description="The status of the endpoint.   * OutOfService: Endpoint is not available to take incoming requests.",
+            description="The status of the endpoint.",
         ),
         failure_reason=OutputValidator(
             description="If the status of the endpoint is Failed, the reason why it failed.",
@@ -102,7 +100,7 @@ class SageMakerEndpointSpec(
             description="A timestamp that shows when the endpoint was last modified.",
         ),
         pending_deployment_summary=OutputValidator(
-            description="Returns the summary of an in-progress deployment. This field is only returned when the endpoint is c",
+            description="Returns the summary of an in-progress deployment.",
         ),
         production_variants=OutputValidator(
             description="An array of ProductionVariantSummary objects, one for each model hosted behind this endpoint.",

@@ -82,7 +82,7 @@ class SageMakerTrainingJobSpec(
     INPUTS: SageMakerTrainingJobInputs = SageMakerTrainingJobInputs(
         algorithm_specification=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="The registry path of the Docker image that contains the training algorithm and algorithm-specific me",
+            description="The registry path of the Docker image that contains the training algorithm and algorithm-specific metadata, including the input mode.",
             required=True,
         ),
         checkpoint_config=InputValidator(
@@ -92,7 +92,7 @@ class SageMakerTrainingJobSpec(
         ),
         debug_hook_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Configuration information for the Amazon SageMaker Debugger hook parameters, metric and tensor colle",
+            description="Configuration information for the Amazon SageMaker Debugger hook parameters, metric and tensor collections, and storage paths.",
             required=False,
         ),
         debug_rule_configurations=InputValidator(
@@ -102,17 +102,17 @@ class SageMakerTrainingJobSpec(
         ),
         enable_inter_container_traffic_encryption=InputValidator(
             input_type=SpecInputParsers.str_to_bool,
-            description="To encrypt all communications between ML compute instances in distributed training, choose True. Enc",
+            description="To encrypt all communications between ML compute instances in distributed training, choose True.",
             required=False,
         ),
         enable_managed_spot_training=InputValidator(
             input_type=SpecInputParsers.str_to_bool,
-            description="To train models using managed spot training, choose True. Managed spot training provides a fully man",
+            description="To train models using managed spot training, choose True.",
             required=False,
         ),
         enable_network_isolation=InputValidator(
             input_type=SpecInputParsers.str_to_bool,
-            description="Isolates the training container. No inbound or outbound network calls can be made, except for calls",
+            description="Isolates the training container.",
             required=False,
         ),
         environment=InputValidator(
@@ -122,32 +122,32 @@ class SageMakerTrainingJobSpec(
         ),
         experiment_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Associates a SageMaker job as a trial component with an experiment and trial. Specified when you cal",
+            description="Associates a SageMaker job as a trial component with an experiment and trial.",
             required=False,
         ),
         hyper_parameters=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Algorithm-specific parameters that influence the quality of the model. You set hyperparameters befor",
+            description="Algorithm-specific parameters that influence the quality of the model.",
             required=False,
         ),
         input_data_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="An array of Channel objects. Each channel is a named input source. InputDataConfig describes the inp",
+            description="An array of Channel objects.",
             required=False,
         ),
         output_data_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Specifies the path to the S3 location where you want to store model artifacts. SageMaker creates sub",
+            description="Specifies the path to the S3 location where you want to store model artifacts.",
             required=True,
         ),
         profiler_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Configuration information for Amazon SageMaker Debugger system monitoring, framework profiling, and",
+            description="Configuration information for Amazon SageMaker Debugger system monitoring, framework profiling, and storage paths.",
             required=False,
         ),
         profiler_rule_configurations=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="Configuration information for Amazon SageMaker Debugger rules for profiling system and framework met",
+            description="Configuration information for Amazon SageMaker Debugger rules for profiling system and framework metrics.",
             required=False,
         ),
         resource_config=InputValidator(
@@ -162,17 +162,17 @@ class SageMakerTrainingJobSpec(
         ),
         role_arn=InputValidator(
             input_type=str,
-            description="The Amazon Resource Name (ARN) of an IAM role that SageMaker can assume to perform tasks on your beh",
+            description="The Amazon Resource Name (ARN) of an IAM role that SageMaker can assume to perform tasks on your behalf.",
             required=True,
         ),
         stopping_condition=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Specifies a limit to how long a model training job can run. It also specifies how long a managed Spo",
+            description="Specifies a limit to how long a model training job can run.",
             required=True,
         ),
         tags=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="An array of key-value pairs. You can use tags to categorize your Amazon Web Services resources in di",
+            description="An array of key-value pairs.",
             required=False,
         ),
         tensor_board_output_config=InputValidator(
@@ -181,13 +181,11 @@ class SageMakerTrainingJobSpec(
             required=False,
         ),
         training_job_name=InputValidator(
-            input_type=str,
-            description="The name of the training job. The name must be unique within an Amazon Web Services Region in an Ama",
-            required=True,
+            input_type=str, description="The name of the training job.", required=True
         ),
         vpc_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="A VpcConfig object that specifies the VPC that you want your training job to connect to. Control acc",
+            description="A VpcConfig object that specifies the VPC that you want your training job to connect to.",
             required=False,
         ),
         **vars(COMMON_INPUTS),
@@ -195,10 +193,10 @@ class SageMakerTrainingJobSpec(
 
     OUTPUTS = SageMakerTrainingJobOutputs(
         ack_resource_metadata=OutputValidator(
-            description="All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+            description="All CRs managed by ACK have a common `Status.",
         ),
         conditions=OutputValidator(
-            description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+            description="All CRS managed by ACK have a common `Status.",
         ),
         creation_time=OutputValidator(
             description="A timestamp that indicates when the training job was created.",
@@ -222,10 +220,10 @@ class SageMakerTrainingJobSpec(
             description="Profiling status of a training job.",
         ),
         secondary_status=OutputValidator(
-            description="Provides detailed information about the state of the training job. For detailed information on the s",
+            description="Provides detailed information about the state of the training job.",
         ),
         training_job_status=OutputValidator(
-            description="The status of the training job.   SageMaker provides the following training job statuses:   * InProg",
+            description="The status of the training job.",
         ),
         warm_pool_status=OutputValidator(
             description="The status of the warm pool associated with the training job.",

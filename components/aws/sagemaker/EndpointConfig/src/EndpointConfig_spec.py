@@ -59,7 +59,7 @@ class SageMakerEndpointConfigSpec(
     INPUTS: SageMakerEndpointConfigInputs = SageMakerEndpointConfigInputs(
         async_inference_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Specifies configuration for how an endpoint performs asynchronous inference. This is a required fiel",
+            description="Specifies configuration for how an endpoint performs asynchronous inference.",
             required=False,
         ),
         data_capture_config=InputValidator(
@@ -69,12 +69,12 @@ class SageMakerEndpointConfigSpec(
         ),
         endpoint_config_name=InputValidator(
             input_type=str,
-            description="The name of the endpoint configuration. You specify this name in a CreateEndpoint request.",
+            description="The name of the endpoint configuration.",
             required=True,
         ),
         kms_key_id=InputValidator(
             input_type=str,
-            description="The Amazon Resource Name (ARN) of a Amazon Web Services Key Management Service key that SageMaker us",
+            description="The Amazon Resource Name (ARN) of a Amazon Web Services Key Management Service key that SageMaker uses to encrypt data on the storage volume attached to the ML compute instance that hosts the endpoint",
             required=False,
         ),
         production_variants=InputValidator(
@@ -84,7 +84,7 @@ class SageMakerEndpointConfigSpec(
         ),
         tags=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="An array of key-value pairs. You can use tags to categorize your Amazon Web Services resources in di",
+            description="An array of key-value pairs.",
             required=False,
         ),
         **vars(COMMON_INPUTS),
@@ -92,10 +92,10 @@ class SageMakerEndpointConfigSpec(
 
     OUTPUTS = SageMakerEndpointConfigOutputs(
         ack_resource_metadata=OutputValidator(
-            description="All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+            description="All CRs managed by ACK have a common `Status.",
         ),
         conditions=OutputValidator(
-            description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+            description="All CRS managed by ACK have a common `Status.",
         ),
         sagemaker_resource_name=OutputValidator(
             description="Resource name on Sagemaker",
