@@ -18,6 +18,11 @@ import os
 from kfp.components import load_component_from_file
 
 from .classification import component as classification_component
+from .data_sampler import component as data_sampler_component
+from .feature_attribution import component as feature_attribution_component
+from .forecasting import component as forecasting_component
+from .regression import component as regression_component
+from .target_field_data_remover import component as target_field_data_remover_component
 
 __all__ = [
     'ModelImportEvaluationOp',
@@ -34,30 +39,22 @@ ModelImportEvaluationOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml')
 )
 
-EvaluationDataSamplerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'data_sampler/component.yaml')
-)
+EvaluationDataSamplerOp = data_sampler_component.evaluation_data_sampler
 
-TargetFieldDataRemoverOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'target_field_data_remover/component.yaml'
-    )
+TargetFieldDataRemoverOp = (
+    target_field_data_remover_component.target_field_data_remover
 )
 
 ModelEvaluationClassificationOp = (
     classification_component.model_evaluation_classification
 )
 
-ModelEvaluationRegressionOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'regression/component.yaml')
+ModelEvaluationRegressionOp = regression_component.model_evaluation_regression
+
+ModelEvaluationForecastingOp = (
+    forecasting_component.model_evaluation_forecasting
 )
 
-ModelEvaluationForecastingOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting/component.yaml')
-)
-
-ModelEvaluationFeatureAttributionOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'feature_attribution/component.yaml'
-    )
+ModelEvaluationFeatureAttributionOp = (
+    feature_attribution_component.feature_attribution
 )
