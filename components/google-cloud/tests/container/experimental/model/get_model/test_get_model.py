@@ -46,7 +46,7 @@ def mock_api_call(test_func):
 
     mock_update_artifacts.return_value = None
 
-    test_func(self, mock_get_model, mock_update_artifacts)
+    test_func(self, mock_get_model)
 
   return mocked_test
 
@@ -66,7 +66,7 @@ class GetModelTests(unittest.TestCase):
     ]
 
   @mock_api_call
-  def test_main_model_name(self, mock_api, _):
+  def test_main_model_name(self, mock_api):
     self._input_args.extend((
         '--model_name',
         MODEL_NAME,
@@ -83,7 +83,7 @@ class GetModelTests(unittest.TestCase):
     )
 
   @mock_api_call
-  def test_main_model_name_with_version(self, mock_api, _):
+  def test_main_model_name_with_version(self, mock_api):
     self._input_args.extend((
         '--model_name',
         f'{MODEL_NAME}@2',
@@ -101,7 +101,7 @@ class GetModelTests(unittest.TestCase):
     )
 
   @mock_api_call
-  def test_main_model_name_and_version(self, mock_api, _):
+  def test_main_model_name_and_version(self, mock_api):
     self._input_args.extend((
         '--model_name',
         MODEL_NAME,
@@ -121,7 +121,7 @@ class GetModelTests(unittest.TestCase):
     )
 
   @mock_api_call
-  def test_main_model_name_and_version_override(self, mock_api, _):
+  def test_main_model_name_and_version_override(self, mock_api):
     self._input_args.extend((
         '--model_name',
         f'{MODEL_NAME}@2',
@@ -153,7 +153,45 @@ class GetModelTests(unittest.TestCase):
       get_model.main(self._input_args)
 
   @mock_api_call
-  def test_get_model_gcp_resources(self, mock_api, mock_update_artifacts):
+  def test_main_model_name_in_model_garden(self, _):
+    self._input_args.extend((
+        '--model_name',
+        f'projects/test-project/locations/test-location/publisher/test-publisher/models/test-model-name',
+    ))
+
+    get_model.main(self._input_args)
+
+    with open(self._gcp_resources) as f:
+      serialized_gcp_resources = f.read()
+
+      # Instantiate GCPResources Proto
+      model_resources = json_format.Parse(
+          serialized_gcp_resources, gcp_resources_pb2.GcpResources()
+      )
+
+      self.assertLen(model_resources.resources, 1)
+      model_name = model_resources.resources[0].resource_uri[
+          len('https://test-location-aiplatform.googleapis.com/v1/') :
+      ]
+      self.assertEqual(
+          model_name,
+          f'projects/test-project/locations/test-location/publisher/test-publisher/models/test-model-name',
+      )
+
+  def test_main_argparse_raises(self):
+    with self.assertRaises(SystemExit):
+      get_model.main(self._input_args)
+
+  def test_launcher_argparse_raises_model_version(self):
+    self._input_args.extend((
+        '--model_version',
+        '3',
+    ))
+    with self.assertRaises(SystemExit):
+      get_model.main(self._input_args)
+
+  @mock_api_call
+  def test_get_model_gcp_resources(self, mock_api):
     get_model_response = mock.Mock()
     get_model_response.name = MODEL_NAME
     get_model_response.version_id = '1'
