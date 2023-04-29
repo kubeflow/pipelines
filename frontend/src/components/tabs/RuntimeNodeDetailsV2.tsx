@@ -258,7 +258,6 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
   // Early return if it is from cache.
   // TODO(jlyaoyuli): Consider to link to the cached execution.
   if (cachedExecutionId) {
-    // TODO(jlyaoyuli): show cached exection details
     logsInfo.set(LogsInfoKeys.LOGS_DETAILS, 'This step output is taken from cache.');
     return logsInfo;
   }
