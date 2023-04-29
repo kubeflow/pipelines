@@ -255,11 +255,10 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
       customPropertiesMap.get(EXECUTION_KEY_CACHED_EXECUTION_ID)?.getStringValue() || '';
   }
 
-  // Early return if it is from cache.
   // TODO(jlyaoyuli): Consider to link to the cached execution.
   if (cachedExecutionId) {
     logsInfo.set(LogsInfoKeys.LOGS_DETAILS, 'This step output is taken from cache.');
-    return logsInfo;
+    return logsInfo; // Early return if it is from cache.
   }
 
   try {
