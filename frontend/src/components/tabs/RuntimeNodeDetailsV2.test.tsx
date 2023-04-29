@@ -83,7 +83,7 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalled();
     });
 
-    screen.findByText('Failed to retrieve pod logs');
+    screen.getByText('Failed to retrieve pod logs.');
   });
 
   it('displays logs details on side panel of execution node', async () => {
@@ -116,7 +116,7 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalled();
     });
 
-    screen.findByText('test-logs-details');
+    screen.findByTestId('logs-view-window');
   });
 
   it('shows cached text if the execution is cached', async () => {
@@ -155,6 +155,6 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalledTimes(0);
     });
 
-    screen.findByText('This step output is taken from cache.');
+    screen.findByTestId('logs-view-window'); // Still can load log view window
   });
 });

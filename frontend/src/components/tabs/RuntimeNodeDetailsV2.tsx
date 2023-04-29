@@ -35,15 +35,21 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
-import ArtifactPreview from '../ArtifactPreview';
-import Banner from '../Banner';
-import DetailsTable from '../DetailsTable';
-import { FlowElementDataBase } from '../graph/Constants';
-import LogViewer from '../LogViewer';
-import { getResourceStateText, ResourceType } from '../ResourceInfo';
-import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
+import ArtifactPreview from 'src/components/ArtifactPreview';
+import Banner from 'src/components/Banner';
+import DetailsTable from 'src/components/DetailsTable';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
+import LogViewer from 'src/components/LogViewer';
+import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
+import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
 import { ArtifactTitle } from './ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from './InputOutputTab';
+
+export enum LogsInfoKeys {
+  LOGS_DETAILS = 'logs_details',
+  LOGS_BANNER_MESSAGE = 'logs_banner_message',
+  LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info',
+}
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -134,9 +140,9 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
     { enabled: !!execution },
   );
 
-  const logsDetails = logsInfo?.get('logsDetails');
-  const logsBannerMessage = logsInfo?.get('logsBannerMessage');
-  const logsBannerAdditionalInfo = logsInfo?.get('logsBannerAdditionalInfo');
+  const logsDetails = logsInfo?.get(LogsInfoKeys.LOGS_DETAILS);
+  const logsBannerMessage = logsInfo?.get(LogsInfoKeys.LOGS_BANNER_MESSAGE);
+  const logsBannerAdditionalInfo = logsInfo?.get(LogsInfoKeys.LOGS_BANNER_ADDITIONAL_INFO);
 
   const [selectedTab, setSelectedTab] = useState(0);
 
@@ -173,7 +179,10 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
             )}
             {!logsBannerMessage && (
               <div className={commonCss.pageOverflowHidden}>
-                <LogViewer logLines={(logsDetails || '').split('\n')} />
+                <LogViewer
+                  logLines={(logsDetails || '').split('\n')}
+                  data-testid={'logs-view-window'}
+                />
               </div>
             )}
           </div>
@@ -237,42 +246,32 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
   let logsDetails = '';
   let logsBannerMessage = '';
   let logsBannerAdditionalInfo = '';
+  const customPropertiesMap = execution.getCustomPropertiesMap();
 
   if (execution) {
-    podName =
-      execution
-        .getCustomPropertiesMap()
-        .get(KfpExecutionProperties.POD_NAME)
-        ?.getStringValue() || '';
-    podNameSpace =
-      execution
-        .getCustomPropertiesMap()
-        .get('namespace')
-        ?.getStringValue() || '';
+    podName = customPropertiesMap.get(KfpExecutionProperties.POD_NAME)?.getStringValue() || '';
+    podNameSpace = customPropertiesMap.get('namespace')?.getStringValue() || '';
     cachedExecutionId =
-      execution
-        .getCustomPropertiesMap()
-        .get(EXECUTION_KEY_CACHED_EXECUTION_ID)
-        ?.getStringValue() || '';
+      customPropertiesMap.get(EXECUTION_KEY_CACHED_EXECUTION_ID)?.getStringValue() || '';
   }
 
   // Early return if it is from cache.
   // TODO(jlyaoyuli): Consider to link to the cached execution.
   if (cachedExecutionId) {
     // TODO(jlyaoyuli): show cached exection details
-    logsInfo.set('logsDetails', 'This step output is taken from cache.');
+    logsInfo.set(LogsInfoKeys.LOGS_DETAILS, 'This step output is taken from cache.');
     return logsInfo;
   }
 
   try {
     logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace);
-    logsInfo.set('logsDetails', logsDetails);
+    logsInfo.set(LogsInfoKeys.LOGS_DETAILS, logsDetails);
   } catch (err) {
     let errMsg = await errorToMessage(err);
     logsBannerMessage = 'Failed to retrieve pod logs.';
-    logsInfo.set('logsBannerMessage', logsBannerMessage);
-    logsBannerAdditionalInfo += 'Error response: ' + errMsg;
-    logsInfo.set('logsBannerAdditionalInfo', logsBannerAdditionalInfo);
+    logsInfo.set(LogsInfoKeys.LOGS_BANNER_MESSAGE, logsBannerMessage);
+    logsBannerAdditionalInfo = 'Error response: ' + errMsg;
+    logsInfo.set(LogsInfoKeys.LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
   }
   return logsInfo;
 }
