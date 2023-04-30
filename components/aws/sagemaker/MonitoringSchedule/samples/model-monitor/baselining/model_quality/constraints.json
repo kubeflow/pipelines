@@ -1,0 +1,49 @@
+{
+  "version" : 0.0,
+  "binary_classification_constraints" : {
+    "recall" : {
+      "threshold" : 0.5714285714285714,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "precision" : {
+      "threshold" : 1.0,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "accuracy" : {
+      "threshold" : 0.9402985074626866,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "true_positive_rate" : {
+      "threshold" : 0.5714285714285714,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "true_negative_rate" : {
+      "threshold" : 1.0,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "false_positive_rate" : {
+      "threshold" : 0.0,
+      "comparison_operator" : "GreaterThanThreshold"
+    },
+    "false_negative_rate" : {
+      "threshold" : 0.4285714285714286,
+      "comparison_operator" : "GreaterThanThreshold"
+    },
+    "auc" : {
+      "threshold" : 0.9395127993393898,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "f0_5" : {
+      "threshold" : 0.8695652173913042,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "f1" : {
+      "threshold" : 0.7272727272727273,
+      "comparison_operator" : "LessThanThreshold"
+    },
+    "f2" : {
+      "threshold" : 0.625,
+      "comparison_operator" : "LessThanThreshold"
+    }
+  }
+}
