@@ -1,5 +1,14 @@
-# Current Version 2.0.0b1.dev (Still in Development)
-* Add notes for next release here.
+# Current Version 2.0.0b3.dev (Still in Development)
+
+# Release 2.0.0b2
+* Add `experimental.dataflow.DataflowFlexTemplateJobOp` component
+* Remove `aiplatform.CustomContainerTrainingJobRunOp` and `aiplatform.CustomPythonPackageTrainingJobRunOp` components
+* Migrate other `aiplatform.automl_training_job`, `aiplatform.ModelUndeployOp`, `aiplatform.EndpointDeleteOp`, and `aiplatform.ModelDeleteOp` components to the v1 namespace
+* Deduplicate component definitions between experimental and v1 namespaces
+
+# Release 2.0.0b1
+* Change base image to ubuntu OS
+* Set google-api-core<1.34.0 to avoid 900s timeout
 
 # Release 2.0.0b0
 * Release of GCPC v2 beta
