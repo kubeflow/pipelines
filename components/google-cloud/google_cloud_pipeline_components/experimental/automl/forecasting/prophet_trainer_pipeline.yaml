@@ -719,6 +719,10 @@ components:
           defaultValue: -1.0
           isOptional: true
           parameterType: NUMBER_INTEGER
+        legacy_transformations_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
         location:
           parameterType: STRING
         materialized_examples_format:
@@ -765,9 +769,9 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         tf_auto_transform_features:
-          defaultValue: []
+          defaultValue: {}
           isOptional: true
-          parameterType: LIST
+          parameterType: STRUCT
         tf_custom_transformation_definitions:
           defaultValue: []
           isOptional: true
@@ -1238,7 +1242,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
@@ -1272,7 +1276,7 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-bigquery-query-job:
       container:
         args:
@@ -1327,7 +1331,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-feature-transform-engine:
       container:
         args:
@@ -1357,6 +1361,7 @@ deploymentSpec:
         - '{"Concat": ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}'
         - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
+        - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
         - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
         - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
         - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
@@ -1399,8 +1404,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -1408,7 +1413,7 @@ deploymentSpec:
         - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
         - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
     exec-get-fte-suffix:
       container:
         args:
@@ -1442,7 +1447,7 @@ deploymentSpec:
           \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
           \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-get-table-location:
       container:
         args:
@@ -1478,7 +1483,7 @@ deploymentSpec:
           \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
           \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
           \  return client.get_table(table).location\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-model-evaluation-regression:
       container:
         args:
@@ -1592,10 +1597,10 @@ deploymentSpec:
           ", "\"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, ", "\"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"1\",
           ", "\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, ", "\"container_spec\":
-          {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230416_0125\",
+          {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325\",
           ", "\"args\": [\"prophet_trainer\", \"", "--job_name={{$.pipeline_job_name}}\",
-          \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125\",
-          \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230416_0125\",
+          \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325\",
+          \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230424_1325\",
           \"", "--artifacts_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/model/\",
           \"", "--evaluated_examples_dir=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/eval/\", \"", "--region=", "{{$.inputs.parameters[''location'']}}",
@@ -1653,7 +1658,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-validate-inputs:
       container:
         args:
@@ -1687,22 +1692,22 @@ deploymentSpec:
           \ parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
           \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
           \n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
-          \  dataset_pattern = r'.[a-zA-Z0-9_]+'\n  table_pattern = r'.[^\\.\\:`]+'\n\
+          \  dataset_pattern = r'[a-zA-Z0-9_]+'\n  table_pattern = r'[^\\.\\:`]+'\n\
+          \  dataset_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}')\n\
+          \  table_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}[.:]{table_pattern}')\n\
           \n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters\
           \ = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n\
           \  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n \
           \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
-          \      raise ValueError(f'Invalid column name: {column}.')\n  dataset_uri_pattern\
-          \ = re.compile(project_pattern + dataset_pattern)\n  if (bigquery_destination_uri\
+          \      raise ValueError(f'Invalid column name: {column}.')\n  if (bigquery_destination_uri\
           \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
           \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
-          \  table_uri_pattern = re.compile(project_pattern + dataset_pattern +\n\
-          \                                 table_pattern)\n  if (source_model_uri\
-          \ and not table_uri_pattern.fullmatch(source_model_uri)):\n    raise ValueError(f'Invalid\
-          \ BigQuery table URI: {source_model_uri}.')\n\n  # Validate data source.\n\
-          \  data_source_count = sum([bool(source) for source in [\n      data_source_bigquery_table_path,\
-          \ data_source_csv_filenames]])\n  if data_source_count > 1:\n    raise ValueError(f'Expected\
-          \ 1 data source, found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
+          \  if (source_model_uri and not table_uri_pattern.fullmatch(source_model_uri)):\n\
+          \    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\
+          \n  # Validate data source.\n  data_source_count = sum([bool(source) for\
+          \ source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n\
+          \  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source,\
+          \ found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
           \      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n\
           \    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
           \  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n\
@@ -1748,7 +1753,7 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
 pipelineInfo:
   name: prophet-train
 root:
