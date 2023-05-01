@@ -84,7 +84,7 @@ class SageMakerModelQualityJobDefinitionSpec(
         ),
         model_quality_job_input=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="A list of the inputs that are monitored. Currently endpoints are supported.",
+            description="A list of the inputs that are monitored.",
             required=True,
         ),
         model_quality_job_output_config=InputValidator(
@@ -99,7 +99,7 @@ class SageMakerModelQualityJobDefinitionSpec(
         ),
         role_arn=InputValidator(
             input_type=str,
-            description="The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on y",
+            description="The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on your behalf.",
             required=True,
         ),
         stopping_condition=InputValidator(
@@ -109,7 +109,7 @@ class SageMakerModelQualityJobDefinitionSpec(
         ),
         tags=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="(Optional) An array of key-value pairs. For more information, see Using Cost Allocation Tags (https:",
+            description="(Optional) An array of key-value pairs.",
             required=False,
         ),
         **vars(COMMON_INPUTS),
@@ -117,10 +117,10 @@ class SageMakerModelQualityJobDefinitionSpec(
 
     OUTPUTS = SageMakerModelQualityJobDefinitionOutputs(
         ack_resource_metadata=OutputValidator(
-            description="All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+            description="All CRs managed by ACK have a common `Status.",
         ),
         conditions=OutputValidator(
-            description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+            description="All CRS managed by ACK have a common `Status.",
         ),
         sagemaker_resource_name=OutputValidator(
             description="Resource name on Sagemaker",

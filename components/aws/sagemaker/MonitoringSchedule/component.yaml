@@ -75,7 +75,7 @@ outputs:
 
 implementation:
   container:
-    image: rdpen/test-modelmoni:29
+    image: rdpen/test-modelmoni:30
     command: [python3]
     args:
       - MonitoringSchedule/src/MonitoringSchedule_component.py

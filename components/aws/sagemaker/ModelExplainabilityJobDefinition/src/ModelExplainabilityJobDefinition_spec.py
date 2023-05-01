@@ -64,7 +64,7 @@ class SageMakerModelExplainabilityJobDefinitionSpec(
     INPUTS: SageMakerModelExplainabilityJobDefinitionInputs = SageMakerModelExplainabilityJobDefinitionInputs(
         job_definition_name=InputValidator(
             input_type=str,
-            description="The name of the model explainability job definition. The name must be unique within an Amazon Web Se",
+            description="The name of the model explainability job definition.",
             required=True,
         ),
         job_resources=InputValidator(
@@ -99,7 +99,7 @@ class SageMakerModelExplainabilityJobDefinitionSpec(
         ),
         role_arn=InputValidator(
             input_type=str,
-            description="The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on y",
+            description="The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on your behalf.",
             required=True,
         ),
         stopping_condition=InputValidator(
@@ -109,7 +109,7 @@ class SageMakerModelExplainabilityJobDefinitionSpec(
         ),
         tags=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="(Optional) An array of key-value pairs. For more information, see Using Cost Allocation Tags (https:",
+            description="(Optional) An array of key-value pairs.",
             required=False,
         ),
         **vars(COMMON_INPUTS),
@@ -117,10 +117,10 @@ class SageMakerModelExplainabilityJobDefinitionSpec(
 
     OUTPUTS = SageMakerModelExplainabilityJobDefinitionOutputs(
         ack_resource_metadata=OutputValidator(
-            description="All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+            description="All CRs managed by ACK have a common `Status.",
         ),
         conditions=OutputValidator(
-            description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+            description="All CRS managed by ACK have a common `Status.",
         ),
         sagemaker_resource_name=OutputValidator(
             description="Resource name on Sagemaker",

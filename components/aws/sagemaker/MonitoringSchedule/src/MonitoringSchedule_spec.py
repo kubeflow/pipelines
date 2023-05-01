@@ -66,12 +66,12 @@ class SageMakerMonitoringScheduleSpec(
         ),
         monitoring_schedule_name=InputValidator(
             input_type=str,
-            description="The name of the monitoring schedule. The name must be unique within an Amazon Web Services Region wi",
+            description="The name of the monitoring schedule.",
             required=True,
         ),
         tags=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_list,
-            description="(Optional) An array of key-value pairs. For more information, see Using Cost Allocation Tags (https:",
+            description="(Optional) An array of key-value pairs.",
             required=False,
         ),
         **vars(COMMON_INPUTS),
@@ -79,10 +79,10 @@ class SageMakerMonitoringScheduleSpec(
 
     OUTPUTS = SageMakerMonitoringScheduleOutputs(
         ack_resource_metadata=OutputValidator(
-            description="All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+            description="All CRs managed by ACK have a common `Status.",
         ),
         conditions=OutputValidator(
-            description="All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+            description="All CRS managed by ACK have a common `Status.",
         ),
         creation_time=OutputValidator(
             description="The time at which the monitoring job was created.",
