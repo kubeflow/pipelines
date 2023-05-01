@@ -42,14 +42,12 @@ import { FlowElementDataBase } from 'src/components/graph/Constants';
 import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
-import { ArtifactTitle } from './ArtifactTitle';
-import InputOutputTab, { getArtifactParamList } from './InputOutputTab';
+import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
+import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputOutputTab';
 
-export enum LogsInfoKeys {
-  LOGS_DETAILS = 'logs_details',
-  LOGS_BANNER_MESSAGE = 'logs_banner_message',
-  LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info',
-}
+export const LOGS_DETAILS = 'logs_details';
+export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
+export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -140,9 +138,9 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
     { enabled: !!execution },
   );
 
-  const logsDetails = logsInfo?.get(LogsInfoKeys.LOGS_DETAILS);
-  const logsBannerMessage = logsInfo?.get(LogsInfoKeys.LOGS_BANNER_MESSAGE);
-  const logsBannerAdditionalInfo = logsInfo?.get(LogsInfoKeys.LOGS_BANNER_ADDITIONAL_INFO);
+  const logsDetails = logsInfo?.get(LOGS_DETAILS);
+  const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
+  const logsBannerAdditionalInfo = logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO);
 
   const [selectedTab, setSelectedTab] = useState(0);
 
@@ -178,11 +176,8 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
               </React.Fragment>
             )}
             {!logsBannerMessage && (
-              <div className={commonCss.pageOverflowHidden}>
-                <LogViewer
-                  logLines={(logsDetails || '').split('\n')}
-                  data-testid={'logs-view-window'}
-                />
+              <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
+                <LogViewer logLines={(logsDetails || '').split('\n')} />
               </div>
             )}
           </div>
@@ -257,19 +252,19 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
 
   // TODO(jlyaoyuli): Consider to link to the cached execution.
   if (cachedExecutionId) {
-    logsInfo.set(LogsInfoKeys.LOGS_DETAILS, 'This step output is taken from cache.');
+    logsInfo.set(LOGS_DETAILS, 'This step output is taken from cache.');
     return logsInfo; // Early return if it is from cache.
   }
 
   try {
     logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace);
-    logsInfo.set(LogsInfoKeys.LOGS_DETAILS, logsDetails);
+    logsInfo.set(LOGS_DETAILS, logsDetails);
   } catch (err) {
     let errMsg = await errorToMessage(err);
     logsBannerMessage = 'Failed to retrieve pod logs.';
-    logsInfo.set(LogsInfoKeys.LOGS_BANNER_MESSAGE, logsBannerMessage);
+    logsInfo.set(LOGS_BANNER_MESSAGE, logsBannerMessage);
     logsBannerAdditionalInfo = 'Error response: ' + errMsg;
-    logsInfo.set(LogsInfoKeys.LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
+    logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
   }
   return logsInfo;
 }

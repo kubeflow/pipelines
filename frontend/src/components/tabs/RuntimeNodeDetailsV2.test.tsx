@@ -36,6 +36,7 @@ describe('RuntimeNodeDetailsV2', () => {
   const TSET_MLMD_INFO: NodeMlmdInfo = {
     execution: TEST_EXECUTION,
   };
+  const TEST_LOG_VIEW_ID = 'logs-view-window';
 
   beforeEach(() => {
     TEST_EXECUTION.setId(TEST_EXECUTION_ID);
@@ -116,7 +117,7 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalled();
     });
 
-    screen.findByTestId('logs-view-window');
+    screen.getByTestId(TEST_LOG_VIEW_ID);
   });
 
   it('shows cached text if the execution is cached', async () => {
@@ -155,6 +156,6 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalledTimes(0);
     });
 
-    screen.findByTestId('logs-view-window'); // Still can load log view window
+    screen.getByTestId(TEST_LOG_VIEW_ID); // Still can load log view window
   });
 });
