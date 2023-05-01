@@ -92,7 +92,7 @@ implementation:
         '{"display_name": "automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230416_0125',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230424_1325',
         '", "args": ["forecasting_mp_ensemble',
         '", "--transform_output_path=',
         {inputUri: transform_output},

@@ -53,7 +53,7 @@ implementation:
         '{"display_name": "automl-tabular-finalizer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230416_0125',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325',
         '", "args": ["cancel_l2l_tuner", "--error_file_path=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--cleanup_lro_job_infos=',
