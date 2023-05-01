@@ -26,12 +26,14 @@ from kfp import dsl
 # preserve function docstrings for components by setting component decorators to passthrough decorators
 # also enables autodoc to document the components as functions without using the autodata directive (https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#directive-autodata)
 def container_component_decorator(func):
+    func._is_component = True
     return func
 
 
 def component_decorator(*args, **kwargs):
 
     def decorator(func):
+        func._is_component = True
         return func
 
     return decorator
@@ -184,7 +186,6 @@ pygments_style = None
 htmlhelp_basename = 'KfpKubernetesdoc'
 
 
-# TODO: align with GCPC representation of components (in particular, OutputPath and Output[])
 def strip_outputs_from_signature(app, what, name, obj, options, signature,
                                  return_annotation):
     if signature is not None:
@@ -194,5 +195,12 @@ def strip_outputs_from_signature(app, what, name, obj, options, signature,
     return signature, return_annotation
 
 
+def component_grouper(app, what, name, obj, section, parent):
+    """Group components in page summaries under a "Components" header."""
+    if getattr(obj, '_is_component', False):
+        return 'Components'
+
+
 def setup(app):
     app.connect('autodoc-process-signature', strip_outputs_from_signature)
+    app.connect('autodocsumm-grouper', component_grouper)
