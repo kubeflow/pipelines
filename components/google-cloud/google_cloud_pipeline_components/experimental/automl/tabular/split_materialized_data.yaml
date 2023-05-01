@@ -30,7 +30,7 @@ outputs:
     to materialized_test_split.}
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325
     command:
     - sh
     - -ec
@@ -72,8 +72,17 @@ implementation:
         with tf.io.gfile.GFile(artifact_path, 'r') as f:
           materialized_data_json = json.load(f)
 
-        file_patterns = materialized_data_json['tf_record_data_source'][
-            'file_patterns']
+        if 'tf_record_data_source' in materialized_data_json:
+          file_patterns = materialized_data_json['tf_record_data_source'][
+              'file_patterns']
+        elif 'avro_data_source' in materialized_data_json:
+          file_patterns = materialized_data_json['avro_data_source'][
+              'file_patterns']
+        elif 'parquet_data_source' in materialized_data_json:
+          file_patterns = materialized_data_json['parquet_data_source'][
+              'file_patterns']
+        else:
+          raise ValueError(f'Unsupported training data source: {materialized_data_json}')
 
         # we map indices to file patterns based on the ordering of insertion order
         # in our transform_data (see above in _generate_analyze_and_transform_data)

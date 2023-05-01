@@ -144,7 +144,7 @@ deploymentSpec:
           \ ValueError(\n        'One of data_source_csv_filenames and data_source_bigquery_table_path'\n\
           \        ' must be specified.'\n    )\n  with open(data_source_artifact,\
           \ 'w') as f:\n    f.write(json.dumps(data_source_dict))\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230416_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-tabular-feature-ranking-and-selection:
       container:
         args:
@@ -161,7 +161,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230416_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
           \"args\": [\"feature_selection\", \"--data_source=", "{{$.inputs.artifacts[''data_source''].uri}}",
           "\", \"--target_column=", "{{$.inputs.parameters[''target_column_name'']}}",
           "\", \"--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}",
@@ -174,7 +174,7 @@ deploymentSpec:
           \"--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\",
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
