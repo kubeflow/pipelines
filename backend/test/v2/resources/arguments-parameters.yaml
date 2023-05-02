@@ -1,0 +1,50 @@
+# PIPELINE DEFINITION
+# Name: whalesay
+# Inputs:
+#    param1: str [Default: 'hello']
+#    param2: str
+components:
+  comp-whalesay:
+    executorLabel: exec-whalesay
+    inputDefinitions:
+      parameters:
+        param1:
+          parameterType: STRING
+        param2:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-whalesay:
+      container:
+        args:
+        - '{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}'
+        command:
+        - cowsay
+        image: docker/whalesay:latest
+pipelineInfo:
+  name: whalesay
+root:
+  dag:
+    tasks:
+      whalesay:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-whalesay
+        inputs:
+          parameters:
+            param1:
+              componentInputParameter: param1
+            param2:
+              componentInputParameter: param2
+        taskInfo:
+          name: whalesay
+  inputDefinitions:
+    parameters:
+      param1:
+        defaultValue: hello
+        parameterType: STRING
+      param2:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

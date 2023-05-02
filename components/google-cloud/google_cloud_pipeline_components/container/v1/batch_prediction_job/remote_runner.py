@@ -31,10 +31,18 @@ from kfp import dsl
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
 LABELS_PAYLOAD_KEY = 'labels'
 _BATCH_PREDICTION_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
-_BQ_DATASET_TEMPLATE = r'(bq://(?P<project>.*)\.(?P<dataset>.*))'
+_BQ_PROJECT_ID_PATTERN = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'
+_BQ_DATASET_ID_PATTERN = r'[a-zA-Z0-9_]+'
+_BQ_TABLE_ID_PATTERN = r'[^\.\:]+'
+_BQ_FULL_TABLE_URI_PATTERN = re.compile(
+    r'(?P<scheme>(bq|bigquery)://)?'
+    rf'(?P<project>{_BQ_PROJECT_ID_PATTERN})'
+    rf'([:\.](?P<dataset>{_BQ_DATASET_ID_PATTERN})'
+    rf'([:\.](?P<table>{_BQ_TABLE_ID_PATTERN}))?)?'
+)
 
 
-def sanitize_job_spec(job_spec):
+def _sanitize_explanation_metadata(job_spec):
   """If the job_spec contains explanation metadata, convert to ExplanationMetadata for the job client to recognize."""
   if ('explanation_spec' in job_spec) and (
       'metadata' in job_spec['explanation_spec']
@@ -44,6 +52,38 @@ def sanitize_job_spec(job_spec):
             json.dumps(job_spec['explanation_spec']['metadata'])
         )
     )
+  return job_spec
+
+
+def _add_bigquery_scheme(job_spec):
+  """Adds bq:// scheme to BQ URIs where the scheme is missing."""
+  bq_dataset_pattern = re.compile(_BQ_FULL_TABLE_URI_PATTERN)
+  if (
+      'input_config' in job_spec
+      and 'bigquery_source' in job_spec['input_config']
+  ):
+    uri = job_spec['input_config']['bigquery_source']
+    match = bq_dataset_pattern.fullmatch(uri)
+    if match and match.group('scheme') is None:
+      job_spec['input_config']['bigquery_source'] = 'bq://' + uri
+  if (
+      'output_config' in job_spec
+      and 'bigquery_destination' in job_spec['output_config']
+      and 'output_uri' in job_spec['output_config']['bigquery_destination']
+  ):
+    uri = job_spec['output_config']['bigquery_destination']['output_uri']
+    match = bq_dataset_pattern.match(uri)
+    if match and match.group('scheme') is None:
+      job_spec['output_config']['bigquery_destination']['output_uri'] = (
+          'bq://' + uri
+      )
+  return job_spec
+
+
+def sanitize_job_spec(job_spec):
+  """Cleans job spec before calling the Batch Prediction API."""
+  job_spec = _sanitize_explanation_metadata(job_spec)
+  job_spec = _add_bigquery_scheme(job_spec)
   return job_spec
 
 
@@ -168,8 +208,8 @@ def create_batch_prediction_job(
 
     # Output the BQTable artifact
     if get_job_response.output_info.bigquery_output_dataset:
-      bq_dataset_pattern = re.compile(_BQ_DATASET_TEMPLATE)
-      match = bq_dataset_pattern.match(
+      bq_dataset_pattern = re.compile(_BQ_FULL_TABLE_URI_PATTERN)
+      match = bq_dataset_pattern.fullmatch(
           get_job_response.output_info.bigquery_output_dataset
       )
       try:

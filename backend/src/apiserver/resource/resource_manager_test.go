@@ -231,7 +231,7 @@ func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.J
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param1\":\"world\"}",
+				Parameters:   "{\"text\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
@@ -264,6 +264,9 @@ func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -715,6 +718,116 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			tmpl, err = template.New(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
+		})
+	}
+}
+
+func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
+	tests := []struct {
+		name         string
+		p            *model.Pipeline
+		pv           *model.PipelineVersion
+		wantPipeline *model.Pipeline
+		wantVersion  *model.PipelineVersion
+		wantErr      bool
+		errorMsg     string
+	}{
+		{
+			"Valid - pipeline v2",
+			&model.Pipeline{
+				Name:        "pipeline v2",
+				Description: "pipeline two",
+				Namespace:   "user1",
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 1,
+				Name:           "pipeline v2",
+				Description:    "pipeline two",
+				Namespace:      "user1",
+				Status:         model.PipelineReady,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  2,
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Status:          model.PipelineVersionReady,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+				Parameters:      "[]",
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - pipeline v1",
+			&model.Pipeline{
+				Name:        "pipeline v1",
+				Description: "pipeline one",
+				Parameters:  `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v1 version 1",
+				Description:     "pipeline v1 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    complexPipeline,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 1,
+				Name:           "pipeline v1",
+				Description:    "pipeline one",
+				Parameters:     `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Status:         model.PipelineReady,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  2,
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Name:            "pipeline v1 version 1",
+				Description:     "pipeline v1 version description",
+				Status:          model.PipelineVersionReady,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    complexPipeline,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := NewFakeClientManagerOrFatalV2()
+			defer store.Close()
+			manager := NewResourceManager(store)
+			pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
+			assert.True(t, ok)
+			pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+
+			gotPipeline, gotVersion, err := manager.CreatePipelineAndPipelineVersion(tt.p, tt.pv)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, gotPipeline)
+				assert.Nil(t, gotVersion)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.wantPipeline, gotPipeline)
+				tt.wantVersion.PipelineSpec = gotVersion.PipelineSpec
+				tt.wantVersion.Parameters = gotVersion.Parameters
+				assert.Equal(t, tt.wantVersion, gotVersion)
+			}
 		})
 	}
 }
@@ -1573,6 +1686,9 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
 		},
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:   2,
@@ -1724,27 +1840,6 @@ func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
 	assert.NotEqual(t, runDetail.WorkflowRuntimeManifest, newRun.WorkflowRuntimeManifest)
 	assert.Equal(t, runDetail.WorkflowSpecManifest, newRun.WorkflowSpecManifest)
 	assert.Empty(t, newRun.PipelineSpecManifest)
-
-	manager.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
-	newRun2, err := manager.CreateRun(
-		context.Background(),
-		&model.Run{
-			DisplayName: "run1",
-			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: v2SpecHelloWorld,
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
-			},
-			ExperimentId: runDetail.ExperimentId,
-		},
-	)
-	assert.Nil(t, err)
-	assert.Equal(t, "run1", newRun2.DisplayName)
-	assert.Empty(t, newRun2.PipelineId)
-	assert.Empty(t, newRun2.PipelineVersionId)
-	assert.Empty(t, newRun2.WorkflowRuntimeManifest)
-	assert.Equal(t, v2SpecHelloWorld, newRun2.WorkflowSpecManifest)
-	assert.Equal(t, v2SpecHelloWorld, newRun2.PipelineSpecManifest)
 }
 
 func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
@@ -2315,7 +2410,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param1\":\"world\"}",
+				Parameters:   "{\"text\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
@@ -4035,7 +4130,7 @@ components:
     inputDefinitions:
       parameters:
         text:
-          type: STRING
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-hello-world:
@@ -4081,8 +4176,8 @@ root:
   inputDefinitions:
     parameters:
       text:
-        type: STRING
-schemaVersion: 2.0.0
+        parameterType: STRING
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
 

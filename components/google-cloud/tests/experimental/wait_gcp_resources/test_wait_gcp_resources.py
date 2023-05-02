@@ -19,3 +19,6 @@ class TestWaitGcpResources(unittest.TestCase):
 
   def test_experimental_import_path(self):
     from google_cloud_pipeline_components.experimental.wait_gcp_resources import WaitGcpResourcesOp
+
+    # use variable to avoid removal of unused imports by linting tools
+    print(WaitGcpResourcesOp)

@@ -1,0 +1,28 @@
+# PIPELINE DEFINITION
+# Name: whalesay
+components:
+  comp-whalesay:
+    executorLabel: exec-whalesay
+deploymentSpec:
+  executors:
+    exec-whalesay:
+      container:
+        args:
+        - hello world
+        command:
+        - cowsay
+        image: docker/whalesay:latest
+pipelineInfo:
+  name: whalesay
+root:
+  dag:
+    tasks:
+      whalesay:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-whalesay
+        taskInfo:
+          name: whalesay
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

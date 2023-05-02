@@ -4,7 +4,7 @@ import json
 import math
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import warnings
 
 _DEFAULT_NUM_PARALLEL_TRAILS = 35
@@ -31,6 +31,8 @@ def _update_parameters(
   )
 
 
+# TODO(b/277393122): Once we finish L2L+FTE integration, add use_fte flag
+# to signify FTE usage instead of the presence of num_selected_features.
 def _get_default_pipeline_params(
     project: str,
     location: str,
@@ -89,6 +91,7 @@ def _get_default_pipeline_params(
     stage_1_tuning_result_artifact_uri: Optional[str] = None,
     quantiles: Optional[List[float]] = None,
     enable_probabilistic_inference: bool = False,
+    num_selected_features: Optional[int] = None,
 ) -> Dict[str, Any]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -198,6 +201,9 @@ def _get_default_pipeline_params(
       the mean of a predictive distribution is the point prediction that
       minimizes RMSE loss. If quantiles are specified, then the quantiles of the
       distribution are also returned.
+    num_selected_features: Number of selected features for feature selection,
+      defaults to None, in which case all features are used. If specified,
+      enable_probabilistic_inference and run_distillation cannot be enabled.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -208,10 +214,6 @@ def _get_default_pipeline_params(
     stage_1_tuner_worker_pool_specs_override = []
   if not cv_trainer_worker_pool_specs_override:
     cv_trainer_worker_pool_specs_override = []
-  if not additional_experiments:
-    additional_experiments = {}
-  if not quantiles:
-    quantiles = []
 
   parameter_values = {}
   parameters = {
@@ -229,7 +231,6 @@ def _get_default_pipeline_params(
       'validation_fraction': validation_fraction,
       'test_fraction': test_fraction,
       'optimization_objective': optimization_objective,
-      'transformations': transformations,
       'train_budget_milli_node_hours': train_budget_milli_node_hours,
       'stage_1_num_parallel_trials': stage_1_num_parallel_trials,
       'stage_2_num_parallel_trials': stage_2_num_parallel_trials,
@@ -251,36 +252,16 @@ def _get_default_pipeline_params(
       'export_additional_model_without_custom_ops': (
           export_additional_model_without_custom_ops
       ),
-      'stats_and_example_gen_dataflow_machine_type': (
-          stats_and_example_gen_dataflow_machine_type
-      ),
-      'stats_and_example_gen_dataflow_max_num_workers': (
-          stats_and_example_gen_dataflow_max_num_workers
-      ),
-      'stats_and_example_gen_dataflow_disk_size_gb': (
-          stats_and_example_gen_dataflow_disk_size_gb
-      ),
-      'transform_dataflow_machine_type': transform_dataflow_machine_type,
-      'transform_dataflow_max_num_workers': transform_dataflow_max_num_workers,
-      'transform_dataflow_disk_size_gb': transform_dataflow_disk_size_gb,
       'dataflow_subnetwork': dataflow_subnetwork,
       'dataflow_use_public_ips': dataflow_use_public_ips,
       'dataflow_service_account': dataflow_service_account,
       'encryption_spec_key_name': encryption_spec_key_name,
-      'additional_experiments': additional_experiments,
       'max_selected_features': max_selected_features,
       'stage_1_tuning_result_artifact_uri': stage_1_tuning_result_artifact_uri,
-      'quantiles': quantiles,
-      'enable_probabilistic_inference': enable_probabilistic_inference,
   }
   parameter_values.update(
       {param: value for param, value in parameters.items() if value is not None}
   )
-
-  if apply_feature_selection_tuning:
-    parameter_values.update({
-        'apply_feature_selection_tuning': apply_feature_selection_tuning,
-    })
 
   if run_evaluation:
     eval_parameters = {
@@ -319,26 +300,101 @@ def _get_default_pipeline_params(
             if value is not None
         }
     )
-  if run_distillation:
-    distillation_parameters = {
-        'distill_batch_predict_machine_type': (
-            distill_batch_predict_machine_type
+
+  # V1 pipeline without FTE
+  if num_selected_features is None:
+    if not additional_experiments:
+      additional_experiments = {}
+    if not quantiles:
+      quantiles = []
+
+    parameters = {
+        'transformations': transformations,
+        'stats_and_example_gen_dataflow_machine_type': (
+            stats_and_example_gen_dataflow_machine_type
         ),
-        'distill_batch_predict_starting_replica_count': (
-            distill_batch_predict_starting_replica_count
+        'stats_and_example_gen_dataflow_max_num_workers': (
+            stats_and_example_gen_dataflow_max_num_workers
         ),
-        'distill_batch_predict_max_replica_count': (
-            distill_batch_predict_max_replica_count
+        'stats_and_example_gen_dataflow_disk_size_gb': (
+            stats_and_example_gen_dataflow_disk_size_gb
         ),
-        'run_distillation': run_distillation,
+        'transform_dataflow_machine_type': transform_dataflow_machine_type,
+        'transform_dataflow_max_num_workers': (
+            transform_dataflow_max_num_workers
+        ),
+        'transform_dataflow_disk_size_gb': transform_dataflow_disk_size_gb,
+        'additional_experiments': additional_experiments,
+        'quantiles': quantiles,
+        'enable_probabilistic_inference': enable_probabilistic_inference,
     }
     parameter_values.update(
         {
             param: value
-            for param, value in distillation_parameters.items()
+            for param, value in parameters.items()
             if value is not None
         }
     )
+
+    if apply_feature_selection_tuning:
+      parameter_values.update({
+          'apply_feature_selection_tuning': apply_feature_selection_tuning,
+      })
+
+    if run_distillation:
+      distillation_parameters = {
+          'distill_batch_predict_machine_type': (
+              distill_batch_predict_machine_type
+          ),
+          'distill_batch_predict_starting_replica_count': (
+              distill_batch_predict_starting_replica_count
+          ),
+          'distill_batch_predict_max_replica_count': (
+              distill_batch_predict_max_replica_count
+          ),
+          'run_distillation': run_distillation,
+      }
+      parameter_values.update(
+          {
+              param: value
+              for param, value in distillation_parameters.items()
+              if value is not None
+          }
+      )
+
+  # V2 pipeline (with FTE)
+  else:
+    if run_distillation or enable_probabilistic_inference:
+      raise ValueError(
+          'Distillation and probabilistic inference are currently not supported'
+          ' when num_selected_features is specified.'
+      )
+
+    parameters = {
+        'num_selected_features': num_selected_features,
+        'dataset_level_custom_transformation_definitions': [],
+        'dataset_level_transformations': [],
+        'tf_auto_transform_features': {},
+        'tf_custom_transformation_definitions': [],
+        'legacy_transformations_path': transformations,
+        'feature_transform_engine_dataflow_machine_type': (
+            transform_dataflow_machine_type
+        ),
+        'feature_transform_engine_dataflow_max_num_workers': (
+            transform_dataflow_max_num_workers
+        ),
+        'feature_transform_engine_dataflow_disk_size_gb': (
+            transform_dataflow_disk_size_gb
+        ),
+    }
+    parameter_values.update(
+        {
+            param: value
+            for param, value in parameters.items()
+            if value is not None
+        }
+    )
+
   return parameter_values
 
 
@@ -398,6 +454,7 @@ def get_automl_tabular_pipeline_and_parameters(
     stage_1_tuning_result_artifact_uri: Optional[str] = None,
     quantiles: Optional[List[float]] = None,
     enable_probabilistic_inference: bool = False,
+    num_selected_features: Optional[int] = None,
 ) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -505,6 +562,8 @@ def get_automl_tabular_pipeline_and_parameters(
       the mean of a predictive distribution is the point prediction that
       minimizes RMSE loss. If quantiles are specified, then the quantiles of the
       distribution are also returned.
+    num_selected_features: Number of selected features for feature selection,
+      defaults to None, in which case all features are used.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -565,11 +624,22 @@ def get_automl_tabular_pipeline_and_parameters(
       stage_1_tuning_result_artifact_uri=stage_1_tuning_result_artifact_uri,
       quantiles=quantiles,
       enable_probabilistic_inference=enable_probabilistic_inference,
+      num_selected_features=num_selected_features,
   )
 
-  pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'automl_tabular_pipeline.yaml'
-  )
+  # V1 pipeline without FTE
+  if num_selected_features is None:
+    pipeline_definition_path = os.path.join(
+        pathlib.Path(__file__).parent.resolve(), 'automl_tabular_pipeline.yaml'
+    )
+
+  # V2 pipeline with FTE
+  else:
+    pipeline_definition_path = os.path.join(
+        pathlib.Path(__file__).parent.resolve(),
+        'automl_tabular_v2_pipeline.yaml',
+    )
+
   return pipeline_definition_path, parameter_values
 
 
@@ -1677,7 +1747,10 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_transform_execution_engine: Optional[str] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     optimizer_type: str = 'adam',
@@ -1753,6 +1826,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
+    tf_transform_execution_engine: The execution engine used to execute TF-based
+      transformations.
     tf_auto_transform_features: List of auto transform features in the
       comma-separated string format.
     tf_custom_transformation_definitions: TF custom transformation definitions
@@ -1846,6 +1921,9 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
   if transform_config and tf_transformations_path:
     raise ValueError(
         'Only one of transform_config and tf_transformations_path can '
@@ -1942,7 +2020,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
-      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -1950,7 +2027,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       'validation_fraction': validation_fraction,
       'test_fraction': test_fraction,
       'tf_auto_transform_features': (
-          tf_auto_transform_features if tf_auto_transform_features else []
+          tf_auto_transform_features if tf_auto_transform_features else {}
       ),
       'tf_custom_transformation_definitions': (
           tf_custom_transformation_definitions
@@ -1958,6 +2035,16 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           else []
       ),
       'tf_transformations_path': tf_transformations_path,
+      'materialized_examples_format': (
+          materialized_examples_format
+          if materialized_examples_format
+          else 'tfrecords_gzip'
+      ),
+      'tf_transform_execution_engine': (
+          tf_transform_execution_engine
+          if tf_transform_execution_engine
+          else 'dataflow'
+      ),
   }
   _update_parameters(parameter_values, fte_params)
 
@@ -2002,7 +2089,10 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_transform_execution_engine: Optional[str] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     data_source_csv_filenames: Optional[str] = None,
@@ -2067,6 +2157,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
+    tf_transform_execution_engine: The execution engine used to execute TF-based
+      transformations.
     tf_auto_transform_features: List of auto transform features in the
       comma-separated string format.
     tf_custom_transformation_definitions: TF custom transformation definitions
@@ -2148,6 +2240,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         training_fraction=training_fraction,
         validation_fraction=validation_fraction,
         test_fraction=test_fraction,
+        tf_transform_execution_engine=tf_transform_execution_engine,
         tf_auto_transform_features=tf_auto_transform_features,
         tf_custom_transformation_definitions=tf_custom_transformation_definitions,
         tf_transformations_path=tf_transformations_path,
@@ -2199,6 +2292,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         training_fraction=training_fraction,
         validation_fraction=validation_fraction,
         test_fraction=test_fraction,
+        tf_transform_execution_engine=tf_transform_execution_engine,
         tf_auto_transform_features=tf_auto_transform_features,
         tf_custom_transformation_definitions=tf_custom_transformation_definitions,
         tf_transformations_path=tf_transformations_path,
@@ -2262,7 +2356,10 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_transform_execution_engine: Optional[str] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     enable_profiler: bool = False,
@@ -2328,6 +2425,8 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
+    tf_transform_execution_engine: The execution engine used to execute TF-based
+      transformations.
     tf_auto_transform_features: List of auto transform features in the
       comma-separated string format.
     tf_custom_transformation_definitions: TF custom transformation definitions
@@ -2391,6 +2490,9 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
   if transform_config and tf_transformations_path:
     raise ValueError(
         'Only one of transform_config and tf_transformations_path can '
@@ -2468,7 +2570,6 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
-      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -2476,7 +2577,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       'validation_fraction': validation_fraction,
       'test_fraction': test_fraction,
       'tf_auto_transform_features': (
-          tf_auto_transform_features if tf_auto_transform_features else []
+          tf_auto_transform_features if tf_auto_transform_features else {}
       ),
       'tf_custom_transformation_definitions': (
           tf_custom_transformation_definitions
@@ -2484,6 +2585,16 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
           else []
       ),
       'tf_transformations_path': tf_transformations_path,
+      'materialized_examples_format': (
+          materialized_examples_format
+          if materialized_examples_format
+          else 'tfrecords_gzip'
+      ),
+      'tf_transform_execution_engine': (
+          tf_transform_execution_engine
+          if tf_transform_execution_engine
+          else 'dataflow'
+      ),
   }
   _update_parameters(parameter_values, fte_params)
 
@@ -2527,7 +2638,10 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_transform_execution_engine: Optional[str] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     enable_profiler: bool = False,
@@ -2593,6 +2707,8 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
+    tf_transform_execution_engine: The execution engine used to execute TF-based
+      transformations.
     tf_auto_transform_features: List of auto transform features in the
       comma-separated string format.
     tf_custom_transformation_definitions: TF custom transformation definitions
@@ -2656,6 +2772,9 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
   if transform_config and tf_transformations_path:
     raise ValueError(
         'Only one of transform_config and tf_transformations_path can '
@@ -2733,7 +2852,6 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
-      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -2741,7 +2859,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
       'validation_fraction': validation_fraction,
       'test_fraction': test_fraction,
       'tf_auto_transform_features': (
-          tf_auto_transform_features if tf_auto_transform_features else []
+          tf_auto_transform_features if tf_auto_transform_features else {}
       ),
       'tf_custom_transformation_definitions': (
           tf_custom_transformation_definitions
@@ -2749,6 +2867,16 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
           else []
       ),
       'tf_transformations_path': tf_transformations_path,
+      'materialized_examples_format': (
+          materialized_examples_format
+          if materialized_examples_format
+          else 'tfrecords_gzip'
+      ),
+      'tf_transform_execution_engine': (
+          tf_transform_execution_engine
+          if tf_transform_execution_engine
+          else 'dataflow'
+      ),
   }
   _update_parameters(parameter_values, fte_params)
 
@@ -2788,7 +2916,10 @@ def get_tabnet_trainer_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_transform_execution_engine: Optional[str] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     max_steps: int = -1,
@@ -2865,6 +2996,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
+    tf_transform_execution_engine: The execution engine used to execute TF-based
+      transformations.
     tf_auto_transform_features: List of auto transform features in the
       comma-separated string format.
     tf_custom_transformation_definitions: TF custom transformation definitions
@@ -2968,6 +3101,9 @@ def get_tabnet_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
   if transform_config and tf_transformations_path:
     raise ValueError(
         'Only one of transform_config and tf_transformations_path can '
@@ -3062,7 +3198,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
       ),
       'run_feature_selection': run_feature_selection,
       'feature_selection_algorithm': feature_selection_algorithm,
-      'materialized_examples_format': materialized_examples_format,
       'max_selected_features': max_selected_features,
       'predefined_split_key': predefined_split_key,
       'stratified_split_key': stratified_split_key,
@@ -3070,7 +3205,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       'validation_fraction': validation_fraction,
       'test_fraction': test_fraction,
       'tf_auto_transform_features': (
-          tf_auto_transform_features if tf_auto_transform_features else []
+          tf_auto_transform_features if tf_auto_transform_features else {}
       ),
       'tf_custom_transformation_definitions': (
           tf_custom_transformation_definitions
@@ -3078,6 +3213,16 @@ def get_tabnet_trainer_pipeline_and_parameters(
           else []
       ),
       'tf_transformations_path': tf_transformations_path,
+      'materialized_examples_format': (
+          materialized_examples_format
+          if materialized_examples_format
+          else 'tfrecords_gzip'
+      ),
+      'tf_transform_execution_engine': (
+          tf_transform_execution_engine
+          if tf_transform_execution_engine
+          else 'dataflow'
+      ),
   }
   _update_parameters(parameter_values, fte_params)
 
@@ -3352,7 +3497,9 @@ def get_xgboost_trainer_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     data_source_csv_filenames: Optional[str] = None,
@@ -3514,6 +3661,9 @@ def get_xgboost_trainer_pipeline_and_parameters(
     Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {}
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
   training_and_eval_parameters = {
       'project': project,
       'location': location,
@@ -3612,7 +3762,7 @@ def get_xgboost_trainer_pipeline_and_parameters(
       'validation_fraction': validation_fraction,
       'test_fraction': test_fraction,
       'tf_auto_transform_features': (
-          tf_auto_transform_features if tf_auto_transform_features else []
+          tf_auto_transform_features if tf_auto_transform_features else {}
       ),
       'tf_custom_transformation_definitions': (
           tf_custom_transformation_definitions
@@ -3664,7 +3814,9 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    tf_auto_transform_features: Optional[List[str]] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
     tf_custom_transformation_definitions: Optional[List[Dict[str, Any]]] = None,
     tf_transformations_path: Optional[str] = None,
     data_source_csv_filenames: Optional[str] = None,
@@ -3790,6 +3942,9 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {}
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
   training_and_eval_parameters = {
       'project': project,
       'location': location,
@@ -3865,7 +4020,7 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
       'validation_fraction': validation_fraction,
       'test_fraction': test_fraction,
       'tf_auto_transform_features': (
-          tf_auto_transform_features if tf_auto_transform_features else []
+          tf_auto_transform_features if tf_auto_transform_features else {}
       ),
       'tf_custom_transformation_definitions': (
           tf_custom_transformation_definitions

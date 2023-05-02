@@ -111,6 +111,14 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: api-integration-test-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+    - - name: run-api-integration-tests-v2
+        template: run-api-integration-tests-v2
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}/v2"
+          - name: api-integration-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
     - - name: run-frontend-integration-tests
         template: run-frontend-integration-tests
         arguments:
@@ -265,6 +273,20 @@ spec:
       - /go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+
+  - name: run-api-integration-tests-v2
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image
+    container:
+      image: "{{inputs.parameters.api-integration-test-image}}"
+      command:
+      - /go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--test_v2_api",
       ]
 
   - name: run-frontend-integration-tests

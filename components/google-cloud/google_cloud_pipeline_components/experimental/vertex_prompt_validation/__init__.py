@@ -11,16 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Vertex Notification Email Components."""
+"""Google Cloud Pipeline Vertex Prompt Validation Component."""
 
 import os
 
-from kfp.components import load_component_from_file
+from .component import vertex_pipelines_prompt_validation as VertexPromptValidationOp
 
 __all__ = [
     'VertexPromptValidationOp',
 ]
-
-VertexPromptValidationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'component.yaml')
-)

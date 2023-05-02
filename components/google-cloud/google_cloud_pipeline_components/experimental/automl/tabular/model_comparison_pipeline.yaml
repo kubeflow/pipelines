@@ -641,12 +641,6 @@ deploymentSpec:
         - generate_iso8601_underscore_datetime_format
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -662,7 +656,7 @@ deploymentSpec:
           \  import datetime\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
           \n  timestamp = datetime.datetime.now().strftime('%Y_%m_%dT%H_%M_%S_%f')[:23]\n\
           \  return f'{run_id}_{timestamp}Z'\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-get-experiment:
       container:
         args:

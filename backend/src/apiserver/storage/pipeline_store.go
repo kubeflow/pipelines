@@ -84,6 +84,7 @@ type PipelineStoreInterface interface {
 	// This supports v1beta1 behavior.
 	GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error)
 	ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error)
+	CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error)
 
 	// `pipelines`
 	CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error)
@@ -515,6 +516,102 @@ func (s *PipelineStore) DeletePipeline(id string) error {
 		return util.NewInternalServerError(err, "Failed to create query to delete a pipeline with id %v", id)
 	}
 	return s.ExecuteSQL(sql, args, "delete", "pipeline")
+}
+
+// Creates a pipeline and a pipeline version in a single transaction.
+func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
+	newPipeline := *p
+	newPipelineVersion := *pv
+
+	// Set creation time
+	newPipeline.CreatedAtInSec = s.time.Now().Unix()
+	newPipelineVersion.CreatedAtInSec = s.time.Now().Unix()
+
+	// Set ids
+	pID, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create a pipeline UUID")
+	}
+	pvID, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create a pipeline version UUID")
+	}
+	newPipeline.UUID = pID.String()
+	newPipelineVersion.UUID = pvID.String()
+	newPipelineVersion.PipelineId = newPipeline.UUID
+
+	// Set temporal status. This needs to be updated in a follow-up call.
+	newPipeline.Status = model.PipelineCreating
+	newPipelineVersion.Status = model.PipelineVersionCreating
+
+	// Create queries for the KFP DB
+	pipelineSql, pipelineArgs, err := sq.
+		Insert("pipelines").
+		SetMap(
+			sq.Eq{
+				"UUID":           newPipeline.UUID,
+				"CreatedAtInSec": newPipeline.CreatedAtInSec,
+				"Name":           newPipeline.Name,
+				"Description":    newPipeline.Description,
+				"Status":         string(newPipeline.Status),
+				"Namespace":      newPipeline.Namespace,
+				// Parameters and DefaultVersionId are deprecated and set to empty string
+				"DefaultVersionId": "",
+				"Parameters":       "",
+			},
+		).
+		ToSql()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create query to insert a pipeline")
+	}
+	versionSql, versionArgs, err := sq.
+		Insert("pipeline_versions").
+		SetMap(
+			sq.Eq{
+				"UUID":            newPipelineVersion.UUID,
+				"CreatedAtInSec":  newPipelineVersion.CreatedAtInSec,
+				"Name":            newPipelineVersion.Name,
+				"Parameters":      newPipelineVersion.Parameters,
+				"PipelineId":      newPipelineVersion.PipelineId,
+				"Status":          string(newPipelineVersion.Status),
+				"CodeSourceUrl":   newPipelineVersion.CodeSourceUrl,
+				"Description":     newPipelineVersion.Description,
+				"PipelineSpec":    newPipelineVersion.PipelineSpec,
+				"PipelineSpecURI": newPipelineVersion.PipelineSpecURI,
+			},
+		).
+		ToSql()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create query to insert a pipeline version")
+	}
+
+	// Insert into pipelines table
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to start a transaction to create a new pipeline and a new pipeline version")
+	}
+
+	_, err = tx.Exec(pipelineSql, pipelineArgs...)
+	if err != nil {
+		if s.db.IsDuplicateError(err) {
+			tx.Rollback()
+			return nil, nil, util.NewAlreadyExistError(
+				"Failed to create a new pipeline. The name %v already exists. Please specify a new name", p.Name)
+		}
+		tx.Rollback()
+		return nil, nil, util.NewInternalServerError(err, "Failed to insert a new pipeline")
+	}
+
+	_, err = tx.Exec(versionSql, versionArgs...)
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, util.NewInternalServerError(err, "Failed to insert a new pipeline version")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to update pipelines and pipeline_versions in a transaction")
+	}
+	return &newPipeline, &newPipelineVersion, nil
 }
 
 // Inserts a record into `pipelines` table.

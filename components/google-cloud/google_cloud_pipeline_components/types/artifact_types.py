@@ -15,7 +15,6 @@
 
 from typing import Dict, Optional
 from kfp import dsl
-import json
 
 # The artifact property key for the resource name
 ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
@@ -234,4 +233,150 @@ class UnmanagedContainerModel(dsl.Artifact):
             'predictSchemata': predict_schemata,
             'containerSpec': container_spec,
         }
+    )
+
+
+@google_artifact('google.ClassificationMetrics')
+class _ClassificationMetrics(dsl.Metrics):
+  """An artifact representing evaluation classification metrics."""
+
+  def __init__(
+      self,
+      name: str = 'evaluation_metrics',
+      recall: Optional[float] = None,
+      precision: Optional[float] = None,
+      f1_score: Optional[float] = None,
+      accuracy: Optional[float] = None,
+      au_prc: Optional[float] = None,
+      au_roc: Optional[float] = None,
+      log_loss: Optional[float] = None,
+  ):
+    """Args:
+
+    recall: Recall (True Positive Rate) for the given confidence threshold.
+    precision: Precision for the given confidence threshold.
+    f1_score: The harmonic mean of recall and precision.
+    accuracy: Accuracy is the fraction of predictions given the correct label.
+    au_prc: The Area Under Precision-Recall Curve metric.
+    au_roc: The Area Under Receiver Operating Characteristic curve metric.
+    log_loss: The Log Loss metric.
+    """
+    metadata = {}
+    if recall is not None:
+      metadata['recall'] = recall
+    if precision is not None:
+      metadata['precision'] = precision
+    if f1_score is not None:
+      metadata['f1Score'] = f1_score
+    if accuracy is not None:
+      metadata['accuracy'] = accuracy
+    if au_prc is not None:
+      metadata['auPrc'] = au_prc
+    if au_roc is not None:
+      metadata['auRoc'] = au_roc
+    if log_loss is not None:
+      metadata['logLoss'] = log_loss
+    super().__init__(
+        name=name,
+        metadata=metadata,
+    )
+
+
+@google_artifact('google.RegressionMetrics')
+class _RegressionMetrics(dsl.Metrics):
+  """An artifact representing evaluation regression metrics."""
+
+  def __init__(
+      self,
+      name: str = 'evaluation_metrics',
+      root_mean_squared_error: Optional[float] = None,
+      mean_absolute_error: Optional[float] = None,
+      mean_absolute_percentage_error: Optional[float] = None,
+      r_squared: Optional[float] = None,
+      root_mean_squared_log_error: Optional[float] = None,
+  ):
+    """Args:
+
+    root_mean_squared_error: Root Mean Squared Error (RMSE).
+    mean_absolute_error: Mean Absolute Error (MAE).
+    mean_absolute_percentage_error: Mean absolute percentage error.
+    r_squared: Coefficient of determination as Pearson correlation coefficient.
+    root_mean_squared_log_error: Root mean squared log error.
+    """
+    metadata = {}
+    if root_mean_squared_error is not None:
+      metadata['rootMeanSquaredError'] = root_mean_squared_error
+    if mean_absolute_error is not None:
+      metadata['meanAbsoluteError'] = mean_absolute_error
+    if mean_absolute_percentage_error is not None:
+      metadata['meanAbsolutePercentageError'] = mean_absolute_percentage_error
+    if r_squared is not None:
+      metadata['rSquared'] = r_squared
+    if root_mean_squared_log_error is not None:
+      metadata['rootMeanSquaredLogError'] = root_mean_squared_log_error
+    super().__init__(
+        name=name,
+        metadata=metadata,
+    )
+
+
+@google_artifact('google.ForecastingMetrics')
+class _ForecastingMetrics(dsl.Metrics):
+  """An artifact representing evaluation forecasting metrics."""
+
+  def __init__(
+      self,
+      name: str = 'evaluation_metrics',
+      root_mean_squared_error: Optional[float] = None,
+      mean_absolute_error: Optional[float] = None,
+      mean_absolute_percentage_error: Optional[float] = None,
+      r_squared: Optional[float] = None,
+      root_mean_squared_log_error: Optional[float] = None,
+      weighted_absolute_percentage_error: Optional[float] = None,
+      root_mean_squared_percentage_error: Optional[float] = None,
+      symmetric_mean_absolute_percentage_error: Optional[float] = None,
+  ):
+    """Args:
+
+    root_mean_squared_error: Root Mean Squared Error (RMSE).
+    mean_absolute_error: Mean Absolute Error (MAE).
+    mean_absolute_percentage_error: Mean absolute percentage error.
+    r_squared: Coefficient of determination as Pearson correlation coefficient.
+    root_mean_squared_log_error: Root mean squared log error.
+    weighted_absolute_percentage_error: Weighted Absolute Percentage Error.
+      Does not use weights, this is just what the metric is called.
+      Undefined if actual values sum to zero.
+      Will be very large if actual values sum to a very small number.
+    root_mean_squared_percentage_error: Root Mean Square Percentage Error.
+      Square root of MSPE.
+      Undefined/imaginary when MSPE is negative.
+    symmetric_mean_absolute_percentage_error: Symmetric Mean Absolute Percentage
+      Error.
+    """
+    metadata = {}
+    if root_mean_squared_error is not None:
+      metadata['rootMeanSquaredError'] = root_mean_squared_error
+    if mean_absolute_error is not None:
+      metadata['meanAbsoluteError'] = mean_absolute_error
+    if mean_absolute_percentage_error is not None:
+      metadata['meanAbsolutePercentageError'] = mean_absolute_percentage_error
+    if r_squared is not None:
+      metadata['rSquared'] = r_squared
+    if root_mean_squared_log_error is not None:
+      metadata['rootMeanSquaredLogError'] = root_mean_squared_log_error
+    if weighted_absolute_percentage_error is not None:
+      metadata['weightedAbsolutePercentageError'] = (
+          weighted_absolute_percentage_error
+      )
+    if root_mean_squared_percentage_error is not None:
+      metadata['rootMeanSquaredPercentageError'] = (
+          root_mean_squared_percentage_error
+      )
+    if symmetric_mean_absolute_percentage_error is not None:
+      metadata['symmetricMeanAbsolutePercentageError'] = (
+          symmetric_mean_absolute_percentage_error
+      )
+    super().__init__(
+        name=name,
+        metadata=metadata,
     )
