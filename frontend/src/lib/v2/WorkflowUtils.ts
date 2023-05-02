@@ -21,6 +21,15 @@ import { Workflow } from 'src/third_party/mlmd/argo_template';
 
 // This key is used to retrieve the platform-agnostic pipeline definition
 export const PIPELINE_SPEC_TEMPLATE_KEY = 'pipeline_spec';
+export const PLATFORM_SPEC_TEMPLATE_KEY = 'platform_spec';
+
+export function getPipelineDefFromYaml(template: string) {
+  return jsyaml.safeLoad(template)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
+}
+
+export function getPlatformDefFromYaml(template: string) {
+  return jsyaml.safeLoad(template)[PLATFORM_SPEC_TEMPLATE_KEY];
+}
 
 export function isV2Pipeline(workflow: Workflow): boolean {
   return workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true';
@@ -35,9 +44,7 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 
 export function isTemplateV2(templateString: string): boolean {
   try {
-    const template =
-      jsyaml.safeLoad(templateString)[PIPELINE_SPEC_TEMPLATE_KEY] ??
-      jsyaml.safeLoad(templateString);
+    const template = getPipelineDefFromYaml(templateString);
     if (isArgoWorkflowTemplate(template)) {
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
@@ -55,8 +62,7 @@ export function isTemplateV2(templateString: string): boolean {
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   // If pipeline_spec exists in the return value of safeload, which means the original yaml contains
   // platform_spec, then the pipeline spec is stored in pipeline_spec field.
-  const pipelineSpecYAML =
-    jsyaml.safeLoad(template)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
+  const pipelineSpecYAML = getPipelineDefFromYaml(template);
   const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);
   if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
@@ -71,15 +77,18 @@ export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   // return pipelineSpec;
 }
 
+export function convertYamlToPlatformSpec(template: string) {
+  const platformSpecYAML = getPlatformDefFromYaml(template);
+  // parse to PlatformSpec and return it
+}
+
 // This needs to be changed to use pipeline_manifest vs workflow_manifest to distinguish V1 and V2.
 export function isPipelineSpec(templateString: string) {
   if (!templateString) {
     return false;
   }
   try {
-    const template =
-      jsyaml.safeLoad(templateString)[PIPELINE_SPEC_TEMPLATE_KEY] ??
-      jsyaml.safeLoad(templateString);
+    const template = getPipelineDefFromYaml(templateString);
     if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
       StaticGraphParser.createGraph(template!);
       return false;
@@ -100,8 +109,7 @@ export function isPipelineSpec(templateString: string) {
 export function getContainer(componentSpec: ComponentSpec, templateString: string) {
   const executionLabel = componentSpec?.executorLabel;
 
-  const jsonTemplate =
-    jsyaml.safeLoad(templateString)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(templateString);
+  const jsonTemplate = getPipelineDefFromYaml(templateString);
   const deploymentSpec = jsonTemplate['deploymentSpec'];
 
   const executorsMap = deploymentSpec['executors'];
