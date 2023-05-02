@@ -79,7 +79,7 @@ func (s *UpgradeTests) TestVerify() {
 	s.VerifyPipelines()
 	s.VerifyRuns()
 	s.VerifyRecurringRuns()
-	s.VerifyCreatingRunsAndJobs()
+	s.VerifyCreatingRunsAndRecurringRuns()
 }
 
 // Check the namespace have ML job installed and ready
@@ -452,7 +452,7 @@ func (s *UpgradeTests) VerifyRecurringRuns() {
 	assert.Equal(t, expectedRecurringRun, recurringRun)
 }
 
-func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
+func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 	t := s.T()
 
 	/* ---------- Get the oldest pipeline and the newest experiment ---------- */
