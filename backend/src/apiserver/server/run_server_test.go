@@ -831,6 +831,8 @@ func TestListRunsV1(t *testing.T) {
 		},
 	}
 	listRunsResponse, err := server.ListRunsV1(context.Background(), &apiv1beta1.ListRunsRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
 
 	matched := 0
 	for _, resRef := range expectedRun.GetResourceReferences() {
@@ -848,12 +850,9 @@ func TestListRunsV1(t *testing.T) {
 	expectedRun.CreatedAt = listRunsResponse.Runs[0].GetCreatedAt()
 	expectedRun.ScheduledAt = listRunsResponse.Runs[0].GetScheduledAt()
 	expectedRun.FinishedAt = listRunsResponse.Runs[0].GetFinishedAt()
-
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
 
-	listRunsResponse2, err := server.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{
+	listRunsResponse2, err := server.ListRunsV1(context.Background(), &apiv1beta1.ListRunsRequest{
 		ResourceReferenceKey: &apiv1beta1.ResourceKey{
 			Type: apiv1beta1.ResourceType_EXPERIMENT,
 			Id:   experiment.UUID,
@@ -863,6 +862,66 @@ func TestListRunsV1(t *testing.T) {
 	assert.Equal(t, 1, len(listRunsResponse2.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse2.Runs[0])
 	assert.Equal(t, listRunsResponse.Runs[0], listRunsResponse2.Runs[0])
+}
+
+func TestListRunsV1_MultiUser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &apiv1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	_, err := server.CreateRunV1(ctx, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	expectedRun := &apiv1beta1.Run{
+		Id:             "123e4567-e89b-12d3-a456-426655440000",
+		Name:           "run1",
+		ServiceAccount: "pipeline-runner",
+		StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+		FinishedAt:     &timestamp.Timestamp{},
+		Status:         "Pending",
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+		ResourceReferences: []*apiv1beta1.ResourceReference{
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: experiment.Namespace},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+		},
+	}
+	listRunsResponse, err := server.ListRunsV1(ctx, &apiv1beta1.ListRunsRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(listRunsResponse.Runs))
+
+	listRunsResponse2, err := server.ListRunsV1(ctx, &apiv1beta1.ListRunsRequest{
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_EXPERIMENT,
+			Id:   experiment.UUID,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listRunsResponse2.Runs))
+	assert.Equal(t, expectedRun, listRunsResponse2.Runs[0])
 }
 
 func TestListRunsV1_Unauthorized(t *testing.T) {
