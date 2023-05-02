@@ -113,6 +113,7 @@ class SageMakerComponent:
     namespace: Optional[str] = None
     resource_upgrade: bool = False
     initial_status: dict
+    update_supported: bool
 
     job_request_outline_location: str
     job_request_location: str
@@ -196,6 +197,11 @@ class SageMakerComponent:
         signal.signal(signal.SIGTERM, signal_term_handler)
 
         self.resource_upgrade = self._is_upgrade()
+        if self.resource_upgrade and not self.update_supported:
+            logging.error(
+                f"Resource upgrade is not supported for {self.spaced_out_resource_name}"
+            )
+            return False
         request = self._create_job_request(inputs, outputs)
 
         try:

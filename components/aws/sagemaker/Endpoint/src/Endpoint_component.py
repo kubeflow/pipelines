@@ -56,6 +56,7 @@ class SageMakerEndpointComponent(SageMakerComponent):
 
         self.job_request_outline_location = "Endpoint/src/Endpoint_request.yaml.tpl"
         self.job_request_location = "Endpoint/src/Endpoint_request.yaml"
+        self.update_supported = True
         ############GENERATED SECTION ABOVE############
 
         super().Do(spec.inputs, spec.outputs, spec.output_paths)

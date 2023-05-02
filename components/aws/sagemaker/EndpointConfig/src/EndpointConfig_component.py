@@ -60,6 +60,7 @@ class SageMakerEndpointConfigComponent(SageMakerComponent):
             "EndpointConfig/src/EndpointConfig_request.yaml.tpl"
         )
         self.job_request_location = "EndpointConfig/src/EndpointConfig_request.yaml"
+        self.update_supported = False
         ############GENERATED SECTION ABOVE############
 
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
@@ -102,9 +103,7 @@ class SageMakerEndpointConfigComponent(SageMakerComponent):
 
     def _get_upgrade_status(self):
 
-        return SageMakerJobStatus(
-            is_completed=True, has_error=True, raw_status="Unsupported"
-        )
+        return self._get_job_status()
 
     def _after_job_complete(
         self,

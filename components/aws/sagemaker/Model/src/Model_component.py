@@ -56,6 +56,7 @@ class SageMakerModelComponent(SageMakerComponent):
 
         self.job_request_outline_location = "Model/src/Model_request.yaml.tpl"
         self.job_request_location = "Model/src/Model_request.yaml"
+        self.update_supported = False
         ############GENERATED SECTION ABOVE############
 
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
@@ -98,9 +99,7 @@ class SageMakerModelComponent(SageMakerComponent):
 
     def _get_upgrade_status(self):
 
-        return SageMakerJobStatus(
-            is_completed=True, has_error=True, raw_status="Unsupported"
-        )
+        return self._get_job_status()
 
     def _after_job_complete(
         self,
