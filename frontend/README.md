@@ -238,6 +238,17 @@ payload stream, therefore we need a helper tool `protobuf.js` to validate and en
 You can check out the result like `pbjs_ml_pipelines.js`, `pbjs_ml_pipelines.d.ts` in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
 -->
 
+## Platform Spec API
+For KFP v2, we use platform spec to represent a platform definition.
+
+### Kubernetes
+The details of Kubernetes platform is in [kubernetes_platform/proto/kubernetes_executor_config.proto](kubernetes_platform/proto/kubernetes_executor_config.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
+
+```
+npm run build:platform-spec:kubernetes-platform
+```
+
+
 ## Large features development
 
 To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features. 
