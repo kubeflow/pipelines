@@ -16,8 +16,7 @@
 
 # The following code is to make sure RTD extracts the documentation
 # correctly when using KFP v2
-from kfp import dsl, components, deprecated
-from typing import Callable
+from kfp import dsl
 
 
 def container_component_decorator(func):
@@ -33,9 +32,6 @@ def component_decorator(*args, **kwargs):
 
 dsl.component = component_decorator
 dsl.container_component = container_component_decorator
-components.load_component_from_file = (
-    deprecated.components.load_component_from_file
-)
 
 
 # -- Project information -----------------------------------------------------
