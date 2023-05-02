@@ -513,7 +513,11 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 			PipelineID:        pipelineVersions[0].PipelineID,
 			PipelineVersionID: pipelineVersions[0].PipelineVersionID,
 		},
-		RuntimeConfig:  &recurring_run_model.V2beta1RuntimeConfig{},
+		RuntimeConfig: &recurring_run_model.V2beta1RuntimeConfig{
+			Parameters: map[string]interface{}{
+				"url": "gs://ml-pipeline-playground/shakespeare1.txt",
+			},
+		},
 		MaxConcurrency: 10,
 		Mode:           recurring_run_model.RecurringRunModeENABLE,
 	}}
