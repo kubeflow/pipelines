@@ -35,8 +35,6 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
         "endpointName"
     ] = deploy_endpoint
 
-    print(test_params)
-
     try:
         _, _, _ = kfp_client_utils.compile_run_monitor_pipeline(
             kfp_client,
@@ -138,7 +136,6 @@ def test_v2_monitoring_schedule(
         assert job_definition_describe["status"]["ackResourceMetadata"]["arn"] != None
 
         # Check if the monitoring schedule is created
-        print("Describe monitoring Schedule Name: " + monitoring_schedule_name)
 
         # wait for 5 minutes for monitoring schedule to be scheduled
         for i in range(10):
@@ -153,7 +150,8 @@ def test_v2_monitoring_schedule(
 
             time.sleep(30)
 
-        print(f"Describe monitoring Schedule \n {monitoring_schedule_describe}")
+        print("Describe monitoring Schedule Name: " + monitoring_schedule_name)
+        print(monitoring_schedule_describe)
 
         # Verify if monitoring schedule is created with correct name and endpoint
 
