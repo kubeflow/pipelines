@@ -273,8 +273,15 @@ func (s *RunServer) ListRunsV1(ctx context.Context, r *apiv1beta1.ListRunsReques
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list v1beta1 runs")
 	}
-
-	return &apiv1beta1.ListRunsResponse{Runs: toApiRunsV1(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
+	apiRuns := toApiRunsV1(runs)
+	if apiRuns == nil {
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal run representations to their v1beta1 API counterparts"), "Failed to list v1beta1 runs")
+	}
+	return &apiv1beta1.ListRunsResponse{
+		Runs:          apiRuns,
+		TotalSize:     int32(runsCount),
+		NextPageToken: nextPageToken,
+	}, nil
 }
 
 // Archives a run.

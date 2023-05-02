@@ -183,7 +183,6 @@ func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
 	}
-
 	if experimentId != "" {
 		if err := s.resourceManager.ValidateExperimentNamespace(experimentId, namespace); err != nil {
 			return nil, 0, "", util.Wrap(err, "Failed to list recurring runs due to namespace mismatch")
@@ -204,12 +203,13 @@ func (s *JobServer) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsRequest)
 		listJobRequests.Inc()
 	}
 
-	filterContext, err := validateFilterV1(r.ResourceReferenceKey)
+	filterContext, err := validateFilterV1(r.GetResourceReferenceKey())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
 	}
 	namespace := ""
 	experimentId := ""
+
 	if filterContext.ReferenceKey != nil {
 		switch filterContext.ReferenceKey.Type {
 		case model.NamespaceResourceType:
