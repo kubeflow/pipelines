@@ -1,6 +1,6 @@
 import * as jspb from 'google-protobuf'
 
-import * as google_protobuf_any_pb from 'google-protobuf/google/protobuf/any_pb';
+import * as google_protobuf_duration_pb from 'google-protobuf/google/protobuf/duration_pb';
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 import * as google_rpc_status_pb from './google/rpc/status_pb';
 
@@ -402,6 +402,15 @@ export namespace ComponentInputsSpec {
     hasArtifactType(): boolean;
     clearArtifactType(): ArtifactSpec;
 
+    getIsArtifactList(): boolean;
+    setIsArtifactList(value: boolean): ArtifactSpec;
+
+    getIsOptional(): boolean;
+    setIsOptional(value: boolean): ArtifactSpec;
+
+    getDescription(): string;
+    setDescription(value: string): ArtifactSpec;
+
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ArtifactSpec.AsObject;
     static toObject(includeInstance: boolean, msg: ArtifactSpec): ArtifactSpec.AsObject;
@@ -413,6 +422,9 @@ export namespace ComponentInputsSpec {
   export namespace ArtifactSpec {
     export type AsObject = {
       artifactType?: ArtifactTypeSchema.AsObject,
+      isArtifactList: boolean,
+      isOptional: boolean,
+      description: string,
     }
   }
 
@@ -429,6 +441,12 @@ export namespace ComponentInputsSpec {
     hasDefaultValue(): boolean;
     clearDefaultValue(): ParameterSpec;
 
+    getIsOptional(): boolean;
+    setIsOptional(value: boolean): ParameterSpec;
+
+    getDescription(): string;
+    setDescription(value: string): ParameterSpec;
+
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ParameterSpec.AsObject;
     static toObject(includeInstance: boolean, msg: ParameterSpec): ParameterSpec.AsObject;
@@ -442,6 +460,8 @@ export namespace ComponentInputsSpec {
       type: PrimitiveType.PrimitiveTypeEnum,
       parameterType: ParameterType.ParameterTypeEnum,
       defaultValue?: google_protobuf_struct_pb.Value.AsObject,
+      isOptional: boolean,
+      description: string,
     }
   }
 
@@ -485,6 +505,12 @@ export namespace ComponentOutputsSpec {
     hasMetadata(): boolean;
     clearMetadata(): ArtifactSpec;
 
+    getIsArtifactList(): boolean;
+    setIsArtifactList(value: boolean): ArtifactSpec;
+
+    getDescription(): string;
+    setDescription(value: string): ArtifactSpec;
+
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ArtifactSpec.AsObject;
     static toObject(includeInstance: boolean, msg: ArtifactSpec): ArtifactSpec.AsObject;
@@ -499,6 +525,8 @@ export namespace ComponentOutputsSpec {
       propertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
       customPropertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
       metadata?: google_protobuf_struct_pb.Struct.AsObject,
+      isArtifactList: boolean,
+      description: string,
     }
   }
 
@@ -509,6 +537,9 @@ export namespace ComponentOutputsSpec {
 
     getParameterType(): ParameterType.ParameterTypeEnum;
     setParameterType(value: ParameterType.ParameterTypeEnum): ParameterSpec;
+
+    getDescription(): string;
+    setDescription(value: string): ParameterSpec;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ParameterSpec.AsObject;
@@ -522,6 +553,7 @@ export namespace ComponentOutputsSpec {
     export type AsObject = {
       type: PrimitiveType.PrimitiveTypeEnum,
       parameterType: ParameterType.ParameterTypeEnum,
+      description: string,
     }
   }
 
@@ -810,6 +842,7 @@ export namespace ParameterType {
     BOOLEAN = 4,
     LIST = 5,
     STRUCT = 6,
+    TASK_FINAL_STATUS = 7,
   }
 }
 
@@ -854,6 +887,16 @@ export class PipelineTaskSpec extends jspb.Message {
   hasParameterIterator(): boolean;
   clearParameterIterator(): PipelineTaskSpec;
 
+  getRetryPolicy(): PipelineTaskSpec.RetryPolicy | undefined;
+  setRetryPolicy(value?: PipelineTaskSpec.RetryPolicy): PipelineTaskSpec;
+  hasRetryPolicy(): boolean;
+  clearRetryPolicy(): PipelineTaskSpec;
+
+  getIteratorPolicy(): PipelineTaskSpec.IteratorPolicy | undefined;
+  setIteratorPolicy(value?: PipelineTaskSpec.IteratorPolicy): PipelineTaskSpec;
+  hasIteratorPolicy(): boolean;
+  clearIteratorPolicy(): PipelineTaskSpec;
+
   getIteratorCase(): PipelineTaskSpec.IteratorCase;
 
   serializeBinary(): Uint8Array;
@@ -874,6 +917,8 @@ export namespace PipelineTaskSpec {
     triggerPolicy?: PipelineTaskSpec.TriggerPolicy.AsObject,
     artifactIterator?: ArtifactIteratorSpec.AsObject,
     parameterIterator?: ParameterIteratorSpec.AsObject,
+    retryPolicy?: PipelineTaskSpec.RetryPolicy.AsObject,
+    iteratorPolicy?: PipelineTaskSpec.IteratorPolicy.AsObject,
   }
 
   export class CachingOptions extends jspb.Message {
@@ -920,6 +965,60 @@ export namespace PipelineTaskSpec {
       TRIGGER_STRATEGY_UNSPECIFIED = 0,
       ALL_UPSTREAM_TASKS_SUCCEEDED = 1,
       ALL_UPSTREAM_TASKS_COMPLETED = 2,
+    }
+  }
+
+
+  export class RetryPolicy extends jspb.Message {
+    getMaxRetryCount(): number;
+    setMaxRetryCount(value: number): RetryPolicy;
+
+    getBackoffDuration(): google_protobuf_duration_pb.Duration | undefined;
+    setBackoffDuration(value?: google_protobuf_duration_pb.Duration): RetryPolicy;
+    hasBackoffDuration(): boolean;
+    clearBackoffDuration(): RetryPolicy;
+
+    getBackoffFactor(): number;
+    setBackoffFactor(value: number): RetryPolicy;
+
+    getBackoffMaxDuration(): google_protobuf_duration_pb.Duration | undefined;
+    setBackoffMaxDuration(value?: google_protobuf_duration_pb.Duration): RetryPolicy;
+    hasBackoffMaxDuration(): boolean;
+    clearBackoffMaxDuration(): RetryPolicy;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): RetryPolicy.AsObject;
+    static toObject(includeInstance: boolean, msg: RetryPolicy): RetryPolicy.AsObject;
+    static serializeBinaryToWriter(message: RetryPolicy, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): RetryPolicy;
+    static deserializeBinaryFromReader(message: RetryPolicy, reader: jspb.BinaryReader): RetryPolicy;
+  }
+
+  export namespace RetryPolicy {
+    export type AsObject = {
+      maxRetryCount: number,
+      backoffDuration?: google_protobuf_duration_pb.Duration.AsObject,
+      backoffFactor: number,
+      backoffMaxDuration?: google_protobuf_duration_pb.Duration.AsObject,
+    }
+  }
+
+
+  export class IteratorPolicy extends jspb.Message {
+    getParallelismLimit(): number;
+    setParallelismLimit(value: number): IteratorPolicy;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): IteratorPolicy.AsObject;
+    static toObject(includeInstance: boolean, msg: IteratorPolicy): IteratorPolicy.AsObject;
+    static serializeBinaryToWriter(message: IteratorPolicy, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): IteratorPolicy;
+    static deserializeBinaryFromReader(message: IteratorPolicy, reader: jspb.BinaryReader): IteratorPolicy;
+  }
+
+  export namespace IteratorPolicy {
+    export type AsObject = {
+      parallelismLimit: number,
     }
   }
 
@@ -1051,6 +1150,12 @@ export class PipelineInfo extends jspb.Message {
   getName(): string;
   setName(value: string): PipelineInfo;
 
+  getDisplayName(): string;
+  setDisplayName(value: string): PipelineInfo;
+
+  getDescription(): string;
+  setDescription(value: string): PipelineInfo;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PipelineInfo.AsObject;
   static toObject(includeInstance: boolean, msg: PipelineInfo): PipelineInfo.AsObject;
@@ -1062,6 +1167,8 @@ export class PipelineInfo extends jspb.Message {
 export namespace PipelineInfo {
   export type AsObject = {
     name: string,
+    displayName: string,
+    description: string,
   }
 }
 
@@ -1280,6 +1387,12 @@ export namespace PipelineDeploymentConfig {
       getMemoryLimit(): number;
       setMemoryLimit(value: number): ResourceSpec;
 
+      getCpuRequest(): number;
+      setCpuRequest(value: number): ResourceSpec;
+
+      getMemoryRequest(): number;
+      setMemoryRequest(value: number): ResourceSpec;
+
       getAccelerator(): PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig | undefined;
       setAccelerator(value?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig): ResourceSpec;
       hasAccelerator(): boolean;
@@ -1297,6 +1410,8 @@ export namespace PipelineDeploymentConfig {
       export type AsObject = {
         cpuLimit: number,
         memoryLimit: number,
+        cpuRequest: number,
+        memoryRequest: number,
         accelerator?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.AsObject,
       }
 
@@ -1798,6 +1913,62 @@ export namespace PipelineStateEnum {
     QUEUED = 11,
     NOT_TRIGGERED = 12,
     UNSCHEDULABLE = 13,
+  }
+}
+
+export class PlatformSpec extends jspb.Message {
+  getPlatformsMap(): jspb.Map<string, SinglePlatformSpec>;
+  clearPlatformsMap(): PlatformSpec;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): PlatformSpec.AsObject;
+  static toObject(includeInstance: boolean, msg: PlatformSpec): PlatformSpec.AsObject;
+  static serializeBinaryToWriter(message: PlatformSpec, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PlatformSpec;
+  static deserializeBinaryFromReader(message: PlatformSpec, reader: jspb.BinaryReader): PlatformSpec;
+}
+
+export namespace PlatformSpec {
+  export type AsObject = {
+    platformsMap: Array<[string, SinglePlatformSpec.AsObject]>,
+  }
+}
+
+export class SinglePlatformSpec extends jspb.Message {
+  getDeploymentSpec(): PlatformDeploymentConfig | undefined;
+  setDeploymentSpec(value?: PlatformDeploymentConfig): SinglePlatformSpec;
+  hasDeploymentSpec(): boolean;
+  clearDeploymentSpec(): SinglePlatformSpec;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SinglePlatformSpec.AsObject;
+  static toObject(includeInstance: boolean, msg: SinglePlatformSpec): SinglePlatformSpec.AsObject;
+  static serializeBinaryToWriter(message: SinglePlatformSpec, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SinglePlatformSpec;
+  static deserializeBinaryFromReader(message: SinglePlatformSpec, reader: jspb.BinaryReader): SinglePlatformSpec;
+}
+
+export namespace SinglePlatformSpec {
+  export type AsObject = {
+    deploymentSpec?: PlatformDeploymentConfig.AsObject,
+  }
+}
+
+export class PlatformDeploymentConfig extends jspb.Message {
+  getExecutorsMap(): jspb.Map<string, google_protobuf_struct_pb.Struct>;
+  clearExecutorsMap(): PlatformDeploymentConfig;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): PlatformDeploymentConfig.AsObject;
+  static toObject(includeInstance: boolean, msg: PlatformDeploymentConfig): PlatformDeploymentConfig.AsObject;
+  static serializeBinaryToWriter(message: PlatformDeploymentConfig, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PlatformDeploymentConfig;
+  static deserializeBinaryFromReader(message: PlatformDeploymentConfig, reader: jspb.BinaryReader): PlatformDeploymentConfig;
+}
+
+export namespace PlatformDeploymentConfig {
+  export type AsObject = {
+    executorsMap: Array<[string, google_protobuf_struct_pb.Struct.AsObject]>,
   }
 }
 
