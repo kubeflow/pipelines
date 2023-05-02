@@ -132,7 +132,7 @@ func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, 
 	}
 
 	// Check authorization
-	if !common.IsMultiUserMode() {
+	if common.IsMultiUserMode() {
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace: run.Namespace,
 			Verb:      common.RbacResourceVerbCreate,

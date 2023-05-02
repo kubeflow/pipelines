@@ -103,14 +103,16 @@ func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, 
 		job.Namespace = ns
 	}
 
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: job.Namespace,
-		Verb:      common.RbacResourceVerbCreate,
-		Resource:  common.RbacResourceTypeJobs,
-		Name:      job.DisplayName,
-	}
-	if err := s.canAccessJob(ctx, "", resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
+	if common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: job.Namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Resource:  common.RbacResourceTypeJobs,
+			Name:      job.DisplayName,
+		}
+		if err := s.canAccessJob(ctx, "", resourceAttributes); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
+		}
 	}
 	return s.resourceManager.CreateJob(ctx, job)
 }

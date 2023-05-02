@@ -229,7 +229,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	)
 	assert.Nil(t, err)
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
-	_, err = resourceManager.CreatePipelineVersion(
+	resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version",
 			PipelineId: DefaultFakeUUID,
