@@ -400,11 +400,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.ToString(),
 			)
 		}
-		sql, args, err := sqlInsert.ToSql()
-		if err != nil {
-			return "", nil, util.NewInternalServerError(err, "Failed to create query to check existing tasks")
-		}
-		return sql, args, nil
+		return sqlInsert.ToSql()
 	}
 
 	// Check for existing tasks and fill empty field with existing data.
@@ -413,6 +409,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 		return nil, util.NewInternalServerError(err, "Failed to check for existing tasks")
 	}
 	for _, task := range tasks {
+		task.State = task.State.ToV2()
 		if task.UUID == "" {
 			id, err := s.uuid.NewRandom()
 			if err != nil {
@@ -421,12 +418,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 			task.UUID = id.String()
 		}
 		if task.CreatedTimestamp == 0 {
-			now := s.time.Now().Unix()
-			if task.StartedTimestamp < now {
-				task.CreatedTimestamp = task.StartedTimestamp
-			} else {
-				task.CreatedTimestamp = now
-			}
+			task.CreatedTimestamp = s.time.Now().Unix()
 		}
 		if len(task.StateHistory) == 0 || task.StateHistory[len(task.StateHistory)-1].State != task.State {
 			task.StateHistory = append(task.StateHistory, &model.RuntimeStatus{
