@@ -106,6 +106,7 @@ func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: job.Namespace,
 		Verb:      common.RbacResourceVerbCreate,
+		Resource:  common.RbacResourceTypeJobs,
 		Name:      job.DisplayName,
 	}
 	if err := s.canAccessJob(ctx, "", resourceAttributes); err != nil {

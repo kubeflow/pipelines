@@ -35,46 +35,6 @@ type DefaultExperimentStore struct {
 }
 
 func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
-	// // First check that the table is in fact empty
-	// tx, err := s.db.Begin()
-	// if err != nil {
-	// 	return util.NewInternalServerError(err, "Failed to create a new transaction to initialize default experiment table")
-	// }
-	// rows, err := tx.Query("SELECT * FROM default_experiments")
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return util.NewInternalServerError(err, "Failed to get default experiment")
-	// }
-	// if err := rows.Err(); err != nil {
-	// 	tx.Rollback()
-	// 	return util.NewInternalServerError(err, "Failed to get default experiment")
-	// }
-	// next := rows.Next()
-	// defer rows.Close()
-
-	// // If the table is not initialized, then set the default value.
-	// if !next {
-	// 	sql, args, queryErr := sq.
-	// 		Insert("default_experiments").
-	// 		SetMap(defaultExperimentDBValue).
-	// 		ToSql()
-
-	// 	if queryErr != nil {
-	// 		tx.Rollback()
-	// 		return util.NewInternalServerError(queryErr, "Error creating query to initialize default experiment table")
-	// 	}
-
-	// 	_, err = tx.Exec(sql, args...)
-	// 	if err != nil {
-	// 		tx.Rollback()
-	// 		return util.NewInternalServerError(err, "Error initializing the default experiment table")
-	// 	}
-	// }
-	// err = tx.Commit()
-	// if err != nil {
-	// 	glog.Error("Failed to commit transaction to initialize default experiment table")
-	// 	return util.NewInternalServerError(err, "Failed to initializing the default experiment table")
-	// }
 	return nil
 }
 

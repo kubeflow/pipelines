@@ -308,11 +308,6 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 // Creates a pipeline, but does not create a pipeline version.
 // Call CreatePipelineVersion to create a pipeline version.
 func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
-	// Assign the default namespace if it is empty
-	if p.Namespace == "" {
-		p.Namespace = ""
-	}
-
 	// Create a record in KFP DB (only pipelines table)
 	newPipeline, err := r.pipelineStore.CreatePipeline(p)
 	if err != nil {

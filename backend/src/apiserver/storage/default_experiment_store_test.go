@@ -24,9 +24,6 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
-	// Initialize for the first time
-	// err := defaultExperimentStore.initializeDefaultExperimentTable()
-	// assert.Nil(t, err)
 	// Set the default experiment ID
 	err := defaultExperimentStore.SetDefaultExperimentId("test-ID", "")
 	assert.Nil(t, err)
