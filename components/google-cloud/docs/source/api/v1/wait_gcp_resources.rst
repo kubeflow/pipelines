@@ -2,3 +2,4 @@ Wait on GCP Resources
 ==========================
 
 .. automodule:: google_cloud_pipeline_components.v1.wait_gcp_resources
+.. autofunction:: WaitGcpResourcesOp
