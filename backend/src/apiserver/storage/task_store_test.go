@@ -599,30 +599,21 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		tasks   []*model.Task
-		want    []*model.Task
-		wantErr bool
-		errMsg  string
+		name  string
+		tasks []*model.Task
+		want  []*model.Task
 	}{
 		{
 			"valid - three tasks",
 			[]*model.Task{task1, task2, task3},
 			[]*model.Task{want1, want2, want3},
-			false,
-			"",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := taskStore.CreateOrUpdateTasks(tt.tasks)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.Nil(t, err)
-				assert.Equal(t, tt.want, got)
-			}
+			assert.Nil(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
