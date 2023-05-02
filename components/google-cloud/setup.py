@@ -18,7 +18,6 @@ import importlib
 import os
 import types
 
-import dependencies
 from setuptools import find_packages
 from setuptools import setup
 
@@ -52,11 +51,23 @@ setup(
     author="The Google Cloud Pipeline Components authors",
     author_email="google-cloud-pipeline-components@google.com",
     license="Apache License 2.0",
-    extras_require={"tests": dependencies.make_required_test_packages()},
+    extras_require={
+        "tests": [
+            "mock>=4.0.0",
+            "flake8>=3.0.0",
+            "pytest>=6.0.0",
+        ]
+    },
     include_package_data=True,
     python_requires=">=3.7.0,<3.12.0",
-    install_requires=dependencies.make_required_install_packages(),
-    dependency_links=dependencies.make_dependency_links(),
+    install_requires=[
+        # Pin google-api-core version for the bug fixing in 1.31.5
+        # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
+        "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
+        "kfp>=2.0.0b10",
+        "google-cloud-aiplatform>=1.14.0,<2",
+    ],
+    dependency_links=[],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Operating System :: Unix",
