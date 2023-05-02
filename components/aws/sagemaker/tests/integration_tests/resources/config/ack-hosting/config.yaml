@@ -1,0 +1,20 @@
+PipelineDefinition: resources/definition/create_hosting_v2_pipeline.py
+TestName: ack-endpoint-test
+Timeout: 3600
+ExpectedPrediction:
+  predictions:
+    - distance_to_cluster: 7.448746204376221
+      closest_cluster: 2.0
+Arguments:
+  region: ((REGION))
+  execution_role_arn: ((SAGEMAKER_ROLE_ARN))
+  primary_container:
+    image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+    modelDataURL: s3://((DATA_BUCKET))/mnist_kmeans_example/model/kmeans-mnist-model/model.tar.gz
+    containerHostname: xgboost
+    mode: SingleModel
+  production_variants:
+    - variantName: variant-1
+      initialVariantWeight: 1.0
+      instanceType: ml.m5.xlarge
+      initialInstanceCount: 1
