@@ -1928,6 +1928,8 @@ describe('NewRun', () => {
           },
         },
       });
+
+      expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
     });
 
     it('displays an error message if periodic schedule end date/time is earlier than start date/time', async () => {
