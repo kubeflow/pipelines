@@ -20,7 +20,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -184,12 +183,12 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	var err error
 
 	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
+	if refKey != nil && refKey.Type == model.ExperimentResourceType {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
 		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", runColumns,
 			selectCount, refKey.ID)
-	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
+	} else if refKey != nil && refKey.Type == model.NamespaceResourceType {
 		filteredSelectBuilder, err = list.FilterOnNamespace("run_details", runColumns,
 			selectCount, refKey.ID)
 	} else {

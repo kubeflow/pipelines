@@ -240,7 +240,7 @@ func FilterOnResourceReference(tableName string, columns []string, resourceType 
 		selectBuilder = sq.Select("count(*)")
 	}
 	selectBuilder = selectBuilder.From(tableName)
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.ID != "" {
+	if filterContext.ReferenceKey != nil {
 		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
 			From("resource_references as rf").
 			Where(sq.And{

@@ -193,8 +193,6 @@ func TestCreateRunV1_pipeline(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
-	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
-	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
 }
@@ -210,8 +208,6 @@ func TestCreateRunV1_pipelineversion(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
-	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
-	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
 }
@@ -231,8 +227,6 @@ func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
-	assert.Equal(t, apiv1beta1.ResourceType_NAMESPACE, runDetail.Run.ResourceReferences[1].Key.Type)
-	assert.Equal(t, "default", runDetail.Run.ResourceReferences[1].Key.Id)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
 	assert.Equal(t, testWorkflow.ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
@@ -263,7 +257,6 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
-	expectedRuntimeWorkflow.Namespace = experiment.Namespace
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
@@ -441,7 +434,7 @@ func TestCreateRunV1Patch(t *testing.T) {
 			},
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"default\",\"uid\":\"workflow2\",\"creationTimestamp\":null,\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"ns1\",\"uid\":\"workflow2\",\"creationTimestamp\":null,\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
 
@@ -763,7 +756,7 @@ func TestListRunsV1(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	_, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	_, err := server.CreateRunV1(context.Background(), &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRun := &apiv1beta1.Run{
@@ -781,21 +774,12 @@ func TestListRunsV1(t *testing.T) {
 		},
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: experiment.Namespace},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
 	}
-	listRunsResponse, err := server.ListRunsV1(nil, &apiv1beta1.ListRunsRequest{
-		ResourceReferenceKey: &apiv1beta1.ResourceKey{
-			Type: apiv1beta1.ResourceType_NAMESPACE,
-			Id:   experiment.Namespace,
-		},
-	})
+	listRunsResponse, err := server.ListRunsV1(context.Background(), &apiv1beta1.ListRunsRequest{})
 
 	matched := 0
 	for _, resRef := range expectedRun.GetResourceReferences() {

@@ -657,7 +657,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			},
 			&apiv2.Pipeline{
 				DisplayName: "pipeline 1",
-				Namespace:   "default",
+				Namespace:   "",
 			},
 			false,
 			"",
@@ -670,7 +670,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			},
 			&apiv2.Pipeline{
 				DisplayName: "pipeline 2",
-				Namespace:   "default",
+				Namespace:   "",
 			},
 			false,
 			"",

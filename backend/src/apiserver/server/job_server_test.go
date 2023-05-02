@@ -968,7 +968,7 @@ func TestGetRecurringRun(t *testing.T) {
 }
 
 func TestListRecurringRuns(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
+	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
@@ -989,7 +989,7 @@ func TestListRecurringRuns(t *testing.T) {
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 		},
-		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentId: experiment.UUID,
 	}
 
 	_, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
@@ -1016,7 +1016,7 @@ func TestListRecurringRuns(t *testing.T) {
 			Parameters:   make(map[string]*structpb.Value),
 		},
 		Status:       apiv2beta1.RecurringRun_ENABLED,
-		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentId: experiment.UUID,
 	}
 
 	expectedRecurringRunsList := []*apiv2beta1.RecurringRun{expectedRecurringRun}
@@ -1026,10 +1026,10 @@ func TestListRecurringRuns(t *testing.T) {
 	assert.Equal(t, 0, len(actualRecurringRunsList.RecurringRuns))
 
 	actualRecurringRunsList2, err := server.ListRecurringRuns(nil, &apiv2beta1.ListRecurringRunsRequest{
-		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentId: experiment.UUID,
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(actualRecurringRunsList.RecurringRuns))
+	assert.Equal(t, 1, len(actualRecurringRunsList2.RecurringRuns))
 	assert.Equal(t, expectedRecurringRunsList, actualRecurringRunsList2.RecurringRuns)
 }
 

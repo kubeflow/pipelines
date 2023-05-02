@@ -94,14 +94,20 @@ func TestSQLiteDialect_Concat_WithoutSeparator(t *testing.T) {
 
 func TestSQLiteDialect_Upsert(t *testing.T) {
 	sqliteDialect := NewSQLiteDialect()
-	actualQuery := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", []string{"uuid", "name"}...)
+	actualQuery := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", true, []string{"uuid", "name"}...)
 	expectedQuery := `insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow") ON CONFLICT(namespace) DO UPDATE SET uuid=excluded.uuid,name=excluded.name`
 	assert.Equal(t, expectedQuery, actualQuery)
+	actualQuery2 := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", false, []string{"uuid", "name"}...)
+	expectedQuery2 := `insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow") ON CONFLICT(namespace) DO UPDATE SET uuid=uuid,name=name`
+	assert.Equal(t, expectedQuery2, actualQuery2)
 }
 
 func TestMySQLDialect_Upsert(t *testing.T) {
 	sqliteDialect := NewMySQLDialect()
-	actualQuery := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", []string{"uuid", "name"}...)
+	actualQuery := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", true, []string{"uuid", "name"}...)
 	expectedQuery := `insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow") ON DUPLICATE KEY UPDATE uuid=VALUES(uuid),name=VALUES(name)`
 	assert.Equal(t, expectedQuery, actualQuery)
+	actualQuery2 := sqliteDialect.Upsert(`insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow")`, "namespace", false, []string{"uuid", "name"}...)
+	expectedQuery2 := `insert into table (uuid, name, namespace) values ("a", "item1", "kubeflow"),("b", "item1", "kubeflow") ON DUPLICATE KEY UPDATE uuid=uuid,name=name`
+	assert.Equal(t, expectedQuery2, actualQuery2)
 }

@@ -161,7 +161,7 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 			Name: "exp1",
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},

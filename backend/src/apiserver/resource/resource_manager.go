@@ -401,8 +401,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to create a run with empty experiment id due to error creating the default experiment in namespace %v", run.Namespace)
 			}
-			run.ExperimentId = defExpId
 		}
+		run.ExperimentId = defExpId
 	}
 
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
@@ -895,8 +895,8 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id due to error creating the default experiment in namespace %v", job.Namespace)
 			}
-			job.ExperimentId = defExpId
 		}
+		job.ExperimentId = defExpId
 	}
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the job.PipelineSpec if an existing pipeline version is used.

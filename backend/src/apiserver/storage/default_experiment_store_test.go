@@ -20,36 +20,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitializeDefaultExperimentTable(t *testing.T) {
-	db := NewFakeDBOrFatal()
-	defaultExperimentStore := NewDefaultExperimentStore(db)
-
-	// Initialize for the first time
-	err := defaultExperimentStore.initializeDefaultExperimentTable()
-	assert.Nil(t, err)
-	// Initialize again should be no-op and no error
-	err = defaultExperimentStore.initializeDefaultExperimentTable()
-	assert.Nil(t, err)
-	// Default experiment ID is empty after table initialization
-	defaultExperimentId, err := defaultExperimentStore.GetDefaultExperimentId("")
-	assert.Nil(t, err)
-	assert.Equal(t, "", defaultExperimentId)
-
-	// Initializing the table with an invalid DB is an error
-	db.Close()
-	err = defaultExperimentStore.initializeDefaultExperimentTable()
-	assert.NotNil(t, err)
-}
-
 func TestGetAndSetDefaultExperimentId(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
 	// Initialize for the first time
-	err := defaultExperimentStore.initializeDefaultExperimentTable()
-	assert.Nil(t, err)
+	// err := defaultExperimentStore.initializeDefaultExperimentTable()
+	// assert.Nil(t, err)
 	// Set the default experiment ID
-	err = defaultExperimentStore.SetDefaultExperimentId("test-ID", "")
+	err := defaultExperimentStore.SetDefaultExperimentId("test-ID", "")
 	assert.Nil(t, err)
 	// Get the default experiment ID
 	defaultExperimentId, err := defaultExperimentStore.GetDefaultExperimentId("")

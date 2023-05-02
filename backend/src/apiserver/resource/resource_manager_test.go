@@ -1934,14 +1934,6 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 			ReferenceType: model.ExperimentResourceType,
 			Relationship:  model.OwnerRelationship,
 		},
-		{
-			ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
-			ResourceType: model.RunResourceType,
-			// Experiment is now set
-			ReferenceUUID: "",
-			ReferenceType: model.NamespaceResourceType,
-			Relationship:  model.OwnerRelationship,
-		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "The CreateRun return has unexpected value")
 	runDetail, err = manager.GetRun(runDetail.UUID)
@@ -2118,7 +2110,7 @@ func TestDeleteExperiment_ClearsDefaultExperiment(t *testing.T) {
 	err := manager.SetDefaultExperimentId(experiment.UUID, experiment.Namespace)
 	assert.Nil(t, err)
 	// Verify that default experiment ID is set
-	defaultExperimentId, err := manager.GetDefaultExperimentId("")
+	defaultExperimentId, err := manager.GetDefaultExperimentId(experiment.Namespace)
 	assert.Nil(t, err)
 	assert.Equal(t, experiment.UUID, defaultExperimentId)
 
@@ -3975,7 +3967,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
-		Namespace:      "default",
+		Namespace:      "",
 		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
@@ -3989,7 +3981,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	experimentID, err := manager.CreateDefaultExperiment("")
+	experimentID, err := manager.CreateDefaultExperiment("multi-user")
 	assert.Nil(t, err)
 	experiment, err := manager.GetExperiment(experimentID)
 	assert.Nil(t, err)
@@ -3999,7 +3991,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
-		Namespace:      "default",
+		Namespace:      "multi-user",
 		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)

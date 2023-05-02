@@ -49,7 +49,7 @@ func TestCreateExperimentV1(t *testing.T) {
 		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
@@ -71,7 +71,7 @@ func TestCreateExperiment(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "default",
+		Namespace:    "",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -462,7 +462,7 @@ func TestGetExperimentV1(t *testing.T) {
 		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
@@ -486,7 +486,7 @@ func TestGetExperiment(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "default",
+		Namespace:    "",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -638,7 +638,7 @@ func TestListExperimentsV1(t *testing.T) {
 	createResult, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	result, err := server.ListExperimentsV1(nil, &apiv1beta1.ListExperimentsRequest{
-		ResourceReferenceKey: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 	})
 	expectedExperiment := []*apiv1beta1.Experiment{{
 		Id:           createResult.Id,
@@ -648,7 +648,7 @@ func TestListExperimentsV1(t *testing.T) {
 		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
@@ -672,7 +672,7 @@ func TestListExperiments(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "default",
+		Namespace:    "",
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
