@@ -35,7 +35,7 @@ loader.exec_module(version)
 
 # Get the long descriptions including link to RELEASE notes from README files.
 with open("README.md") as fp:
-  _GCPC_LONG_DESCRIPTION = fp.read()
+    _GCPC_LONG_DESCRIPTION = fp.read()
 
 setup(
     name="google-cloud-pipeline-components",
@@ -44,15 +44,17 @@ setup(
         "This SDK enables a set of First Party (Google owned) pipeline"
         " components that allow users to take their experience from Vertex AI"
         " SDK and other Google Cloud services and create a corresponding"
-        " pipeline using KFP or Managed Pipelines."
-    ),
+        " pipeline using KFP or Managed Pipelines."),
     long_description=_GCPC_LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Pipeline Components authors",
     author_email="google-cloud-pipeline-components@google.com",
     license="Apache License 2.0",
-    extras_require={"tests": dependencies.make_required_test_packages()},
+    extras_require={
+        "tests": dependencies.make_required_test_packages(),
+        "docs": dependencies.make_docs_required_packages(),
+    },
     include_package_data=True,
     python_requires=">=3.7.0,<3.12.0",
     install_requires=dependencies.make_required_install_packages(),
@@ -83,13 +85,10 @@ setup(
     packages=find_packages(where=relative_directory, include="*"),
     package_data={
         GCPC_DIR_NAME: [
-            x.replace(relative_data_path + "/", "")
-            for x in glob.glob(
-                relative_data_path + "/**/*.yaml", recursive=True
-            )
-            + glob.glob(
-                relative_data_path + "/**/automl/**/*.json", recursive=True
-            )
+            x.replace(relative_data_path + "/", "") for x in
+            glob.glob(relative_data_path + "/**/*.yaml", recursive=True) +
+            glob.glob(
+                relative_data_path + "/**/automl/**/*.json", recursive=True)
         ]
     },
 )
