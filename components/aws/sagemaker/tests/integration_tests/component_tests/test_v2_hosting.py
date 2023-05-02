@@ -10,7 +10,10 @@ import json
 @pytest.mark.parametrize(
     "test_file_dir",
     [
-        pytest.param("resources/config/ack-hosting", marks=[pytest.mark.canary_test, pytest.mark.v2]),
+        pytest.param(
+            "resources/config/ack-hosting",
+            marks=[pytest.mark.canary_test, pytest.mark.v2, pytest.mark.shallow_canary],
+        ),
         pytest.param("resources/config/ack-hosting-update", marks=pytest.mark.v2),
     ],
 )
@@ -83,6 +86,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
             k8s_client, input_endpoint_config_name, "endpointconfigs"
         )
         ack_utils._delete_resource(k8s_client, input_model_name, "models")
+
 
 @pytest.mark.v2
 def test_terminate_v2_endpoint(kfp_client, experiment_id):

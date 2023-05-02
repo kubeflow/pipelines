@@ -58,7 +58,9 @@ def wait_for_trainingjob_status(
     return False
 
 
-def wait_for_condition(k8s_client, resource_name, validator_function, wait_periods=10, period_length=8):
+def wait_for_condition(
+    k8s_client, resource_name, validator_function, wait_periods=10, period_length=8
+):
     for _ in range(wait_periods):
         if not validator_function(k8s_client, resource_name):
             sleep(period_length)
@@ -66,25 +68,26 @@ def wait_for_condition(k8s_client, resource_name, validator_function, wait_perio
             return True
     return False
 
-def does_endpoint_exist(
-    k8s_client, endpoint_name
-):
+
+def does_endpoint_exist(k8s_client, endpoint_name):
     try:
         response = _get_resource(k8s_client, endpoint_name, "endpoints")
         if response:
             return True
-        if response is None: # kubernetes module error
+        if response is None:  # kubernetes module error
             return False
     except:
         return False
-def is_endpoint_deleted(
-    k8s_client, endpoint_name
-):
+
+
+def is_endpoint_deleted(k8s_client, endpoint_name):
     try:
         response = _get_resource(k8s_client, endpoint_name, "endpoints")
         if response:
             return False
-        if response is None: # kubernetes module error, 404 would mean the resource doesnt exist
-            return False 
+        if (
+            response is None
+        ):  # kubernetes module error, 404 would mean the resource doesnt exist
+            return False
     except:
         return True
