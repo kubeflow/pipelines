@@ -24,6 +24,7 @@ from kfp.dsl import Input
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_JOB_ID_PLACEHOLDER
+from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 
 
@@ -32,7 +33,6 @@ def model_evaluation_regression(
     gcp_resources: OutputPath(str),
     evaluation_metrics: Output[_RegressionMetrics],
     project: str,
-    root_dir: str,
     target_field_name: str,
     model: Input[VertexModel] = None,
     location: str = 'us-central1',
@@ -64,9 +64,6 @@ def model_evaluation_regression(
       project: Project to run evaluation container.
       location: Location for running the evaluation. If not set,
         defaulted to `us-central1`.
-      root_dir: The GCS directory for keeping staging files. A random
-        subdirectory will be created under the directory to keep job info for
-        resuming the job in case of failure.
       predictions_format: The file format for the batch
         prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
         formats, from Vertex Batch Prediction. If not set, defaulted to `jsonl`.
@@ -189,7 +186,7 @@ def model_evaluation_regression(
           '--ground_truth_bigquery_source',
           ground_truth_bigquery_source,
           '--root_dir',
-          f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
+          f'{PIPELINE_ROOT_PLACEHOLDER}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
           '--prediction_score_column',
           prediction_score_column,
           '--dataflow_job_prefix',

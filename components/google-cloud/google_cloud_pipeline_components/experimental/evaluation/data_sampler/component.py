@@ -16,6 +16,7 @@ from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_JOB_ID_PLACEHOLDER
+from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 
 
@@ -25,7 +26,6 @@ def evaluation_data_sampler(
     bigquery_output_table: OutputPath(str),
     gcs_output_directory: OutputPath(list),
     project: str,
-    root_dir: str,
     location: str = 'us-central1',
     gcs_source_uris: list = [],
     bigquery_source_uri: str = '',
@@ -47,9 +47,6 @@ def evaluation_data_sampler(
       project: Project to retrieve dataset from.
       location: Location to retrieve dataset from. If not set,
         defaulted to `us-central1`.
-      root_dir: The GCS directory for keeping staging files. A random
-        subdirectory will be created under the directory to keep job info for
-        resuming the job in case of failure.
       gcs_source_uris: Google Cloud Storage URI(-s) to your
         instances to run data sampler on. They must match `instances_format`.
         May contain wildcards. For more information on wildcards, see
@@ -102,7 +99,7 @@ def evaluation_data_sampler(
           '--location',
           location,
           '--root_dir',
-          f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
+          f'{PIPELINE_ROOT_PLACEHOLDER}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
           '--gcs_source_uris',
           gcs_source_uris,
           '--bigquery_source_uri',

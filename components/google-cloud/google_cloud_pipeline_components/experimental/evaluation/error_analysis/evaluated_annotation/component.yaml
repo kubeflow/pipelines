@@ -10,10 +10,6 @@ description: |
       location (Optional[str]):
           GCP Region.
           If not set, defaulted to `us-central1`.
-      root_dir (str):
-          Required. The GCS directory for keeping staging files.
-          A random subdirectory will be created under the directory to keep job info for resuming
-          the job in case of failure.
       predictions_storage_source (system.Artifact):
           Required. An artifact with its URI pointing toward a GCS directory with prediction files
           to be used for this evaluation. `jsonl` is currently the only allowed format.
@@ -54,7 +50,6 @@ description: |
 inputs:
   - { name: project, type: String }
   - { name: location, type: String, default: "us-central1" }
-  - { name: root_dir, type: String }
   - { name: predictions_storage_source, type: Artifact }
   - { name: ground_truth_storage_source, type: String, default: "" }
   - { name: dataflow_service_account, type: String, default: "" }
@@ -84,7 +79,7 @@ implementation:
       - --location
       - { inputValue: location }
       - --root_dir
-      - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+      - "{{$.pipeline_root}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --batch_prediction_format
       - "jsonl"
       - if:
