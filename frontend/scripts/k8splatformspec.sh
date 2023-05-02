@@ -5,10 +5,6 @@ set -ex
 # Run the following command under /frontend to execute this file
 # npm run build:kubernetes-platform-spec
 
-
-# Convert buffer to runtime object using protoc
-# Download google protos as dependencies.
-
 protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
        --js_out="import_style=commonjs,binary:src/generated/platform_spec/kubernetes_platform" \
        --grpc-web_out="import_style=commonjs+dts,mode=grpcweb:src/generated/platform_spec/kubernetes_platform" \
