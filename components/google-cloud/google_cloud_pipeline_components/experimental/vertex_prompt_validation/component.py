@@ -19,26 +19,29 @@ from kfp.dsl import PipelineTaskFinalStatus
 
 @container_component
 def vertex_pipelines_prompt_validation(
-    gcs_path: str,
+    prompt_dataset: str,
     model_id: str,
     rai_validation_enabled: bool,
+    fail_on_warning: bool,
 ):
   # fmt: off
   """Validates the large language models prompt tuning dataset.
 
-  It expects a JSONL file and validates
-  it for correct format, tokenize limits of input/output prompts, etc.
+  It expects a JSONL file and validates it for correct format, tokenize limits
+  of input/output prompts, harmful content etc.
 
-  This component works only on Vertex Pipelines. This component raises an exception when run on
-  Kubeflow Pipelines.
+  This component works only on Vertex Pipelines. This component raises an
+  exception when run on Kubeflow Pipelines.
 
   Args:
-    gcs_path (str):
+    prompt_dataset (str):
       GCS path to the file containing the prompt tuning data.
     model_id (str):
       Large Language Model to tune.
     rai_validation_enabled (bool):
       If enabled, validates prompt data for harmful content.
+    fail_on_warning (bool):
+      If enabled, fails the component on warnings.
   """
   # fmt: on
   return ContainerSpec(

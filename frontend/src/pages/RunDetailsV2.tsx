@@ -213,6 +213,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 <RuntimeNodeDetailsV2
                   layers={layers}
                   onLayerChange={layerChange}
+                  runId={runId}
                   element={selectedNode}
                   elementMlmdInfo={selectedNodeMlmdInfo}
                   namespace={namespace}
@@ -226,9 +227,17 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         {selectedTab === 1 && (
           <div className={padding()}>
             <DetailsTable title='Run details' fields={getDetailsFields(run)} />
-          </div>
 
-          // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
+            {!!run.runtime_config?.parameters && (
+              <DetailsTable
+                title='Run parameters'
+                fields={Object.entries(run.runtime_config?.parameters).map(param => [
+                  param[0],
+                  param[1],
+                ])}
+              />
+            )}
+          </div>
         )}
 
         {/* Pipeline Spec tab */}

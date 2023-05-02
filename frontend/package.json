@@ -146,7 +146,7 @@
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.8.3",
     "webpack-bundle-analyzer": "^3.6.1",
-    "yaml": "^2.0.0"
+    "yaml": "^2.2.2"
   },
   "homepage": "./",
   "jest": {

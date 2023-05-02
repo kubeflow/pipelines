@@ -19,6 +19,5 @@ class TestDataset(unittest.TestCase):
   def test_experimental_import_path(self):
     from google_cloud_pipeline_components.experimental.dataset import GetVertexDatasetOp
 
-    print(
-        GetVertexDatasetOp
-    )  # use variable to avoid removal of unused imports by linting tools
+    # use variable to avoid removal of unused imports by linting tools
+    print(GetVertexDatasetOp)

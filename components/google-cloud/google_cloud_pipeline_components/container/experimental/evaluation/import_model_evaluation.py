@@ -17,26 +17,31 @@ import base64
 import json
 import logging
 import os
-import six
 import sys
+from typing import Any, Dict, List, Optional, Tuple, Iterable
 
-from google.cloud import aiplatform
 from google.api_core import gapic_v1
-from google.protobuf.struct_pb2 import Value, Struct, NULL_VALUE, ListValue
+from google.cloud import aiplatform
+from google.cloud.aiplatform_v1.types.model_evaluation_slice import ModelEvaluationSlice
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import six
 
+from google.protobuf.struct_pb2 import ListValue, NULL_VALUE, Struct, Value
 from google.protobuf import json_format
-from typing import Any, Dict
 
 PROBLEM_TYPE_TO_SCHEMA_URI = {
     'classification': 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml',
     'regression': 'gs://google-cloud-aiplatform/schema/modelevaluation/regression_metrics_1.0.0.yaml',
     'forecasting': 'gs://google-cloud-aiplatform/schema/modelevaluation/forecasting_metrics_1.0.0.yaml',
+    'text-generation': 'gs://google-cloud-aiplatform/schema/modelevaluation/general_text_generation_metrics_1.0.0.yaml',
+    'question-answering': 'gs://google-cloud-aiplatform/schema/modelevaluation/question_answering_metrics_1.0.0.yaml',
+    'summarization': 'gs://google-cloud-aiplatform/schema/modelevaluation/summarization_metrics_1.0.0.yaml',
 }
 
 MODEL_EVALUATION_RESOURCE_TYPE = 'ModelEvaluation'
 MODEL_EVALUATION_SLICE_RESOURCE_TYPE = 'ModelEvaluationSlice'
 SLICE_BATCH_IMPORT_LIMIT = 50
+ULM_TASKS = set(['text-generation', 'question-answering', 'summarization'])
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -47,37 +52,53 @@ def _make_parent_dirs_and_return_path(file_path: str):
 parser = argparse.ArgumentParser(
     prog='Vertex Model Service evaluation importer', description=''
 )
-parser.add_argument('--metrics', dest='metrics', type=str, default=None)
+parser.add_argument('--metrics', dest='metrics', type=str, default='')
 parser.add_argument(
     '--classification_metrics',
     dest='classification_metrics',
     type=str,
-    default=None,
+    default='',
 )
 parser.add_argument(
-    '--forecasting_metrics', dest='forecasting_metrics', type=str, default=None
+    '--forecasting_metrics', dest='forecasting_metrics', type=str, default=''
 )
 parser.add_argument(
-    '--regression_metrics', dest='regression_metrics', type=str, default=None
+    '--regression_metrics', dest='regression_metrics', type=str, default=''
+)
+parser.add_argument(
+    '--text_generation_metrics',
+    dest='text_generation_metrics',
+    type=str,
+    default='',
+)
+parser.add_argument(
+    '--question_answering_metrics',
+    dest='question_answering_metrics',
+    type=str,
+    default='',
+)
+parser.add_argument(
+    '--summarization_metrics',
+    dest='summarization_metrics',
+    type=str,
+    default='',
 )
 parser.add_argument(
     '--feature_attributions',
     dest='feature_attributions',
     type=str,
-    default=None,
+    default='',
 )
 parser.add_argument(
-    '--metrics_explanation', dest='metrics_explanation', type=str, default=None
+    '--metrics_explanation', dest='metrics_explanation', type=str, default=''
 )
-parser.add_argument('--explanation', dest='explanation', type=str, default=None)
+parser.add_argument('--explanation', dest='explanation', type=str, default='')
+parser.add_argument('--problem_type', dest='problem_type', type=str, default='')
 parser.add_argument(
-    '--problem_type', dest='problem_type', type=str, default=None
-)
-parser.add_argument(
-    '--display_name', nargs='?', dest='display_name', type=str, default=None
+    '--display_name', nargs='?', dest='display_name', type=str, default=''
 )
 parser.add_argument(
-    '--pipeline_job_id', dest='pipeline_job_id', type=str, default=None
+    '--pipeline_job_id', dest='pipeline_job_id', type=str, default=''
 )
 parser.add_argument(
     '--pipeline_job_resource_name',
@@ -86,13 +107,13 @@ parser.add_argument(
     default=None,
 )
 parser.add_argument(
-    '--dataset_path', nargs='?', dest='dataset_path', type=str, default=None
+    '--dataset_path', nargs='?', dest='dataset_path', type=str, default=''
 )
 parser.add_argument(
     '--dataset_paths', nargs='?', dest='dataset_paths', type=str, default='[]'
 )
 parser.add_argument(
-    '--dataset_type', nargs='?', dest='dataset_type', type=str, default=None
+    '--dataset_type', nargs='?', dest='dataset_type', type=str, default=''
 )
 parser.add_argument(
     '--model_name',
@@ -127,10 +148,21 @@ def main(argv):
   elif parsed_args.regression_metrics:
     metrics_file_path = parsed_args.regression_metrics
     problem_type = 'regression'
+  elif parsed_args.text_generation_metrics:
+    metrics_file_path = parsed_args.text_generation_metrics
+    problem_type = 'text-generation'
+  elif parsed_args.question_answering_metrics:
+    metrics_file_path = parsed_args.question_answering_metrics
+    problem_type = 'question-answering'
+  elif parsed_args.summarization_metrics:
+    metrics_file_path = parsed_args.summarization_metrics
+    problem_type = 'summarization'
   else:
     metrics_file_path = parsed_args.metrics
     problem_type = parsed_args.problem_type
 
+  logging.info('metrics_file_path: %s', metrics_file_path)
+  logging.info('problem_type: %s', problem_type)
   metrics_file_path = (
       metrics_file_path
       if not metrics_file_path.startswith('gs://')
@@ -138,47 +170,15 @@ def main(argv):
   )
 
   schema_uri = PROBLEM_TYPE_TO_SCHEMA_URI.get(problem_type)
-  with open(metrics_file_path) as metrics_file:
-    all_metrics = json.loads(metrics_file.read())['slicedMetrics']
-    all_sliced_metrics = []
-    for slice_idx in range(len(all_metrics)):
-      one_slice = all_metrics[slice_idx]
-      if problem_type == 'classification':
-        if (
-            'metrics' in one_slice
-            and 'classification' in one_slice['metrics']
-            and 'confusionMatrix' in one_slice['metrics']['classification']
-            and 'annotationSpecs'
-            in one_slice['metrics']['classification']['confusionMatrix']
-            and 'confidenceMetrics' in one_slice['metrics']['classification']
-            and len(
-                one_slice['metrics']['classification']['confusionMatrix'][
-                    'annotationSpecs'
-                ]
-            )
-            > 100
-        ):
-          confidence_metrics = one_slice['metrics']['classification'][
-              'confidenceMetrics'
-          ]
-          for idx in range(len(confidence_metrics)):
-            if 'confusionMatrix' in confidence_metrics[idx]:
-              del confidence_metrics[idx]['confusionMatrix']
-          one_slice['metrics']['classification'][
-              'confidenceMetrics'
-          ] = confidence_metrics
-
-      all_sliced_metrics.append({
-          **one_slice,
-          'metrics': to_value(next(iter(one_slice['metrics'].values()))),
-      })
-  overall_slice = all_sliced_metrics[0]
-  sliced_metrics = all_sliced_metrics[1:]
+  overall_slice, sliced_metrics = read_metrics_from_file(
+      metrics_file_path, problem_type
+  )
 
   model_evaluation = {
       'metrics': overall_slice['metrics'],
       'metrics_schema_uri': schema_uri,
   }
+  print(f'uploading model evaluation metrics: {model_evaluation}')
 
   if (
       parsed_args.explanation
@@ -249,7 +249,7 @@ def main(argv):
           'evaluation_dataset_type': parsed_args.dataset_type,
           'evaluation_dataset_path': dataset_paths or None,
       }.items()
-      if value is not None
+      if value
   }
   if metadata:
     model_evaluation['metadata'] = to_value(metadata)
@@ -285,32 +285,51 @@ def main(argv):
           explanation_file_name, sliced_feature_attributions
       )
     # BatchImportModelEvaluationSlices has a size limit of 50 slices.
-    for i in range(0, len(sliced_metrics), SLICE_BATCH_IMPORT_LIMIT):
-      model_evaluation_slices = []
-      for one_slice in sliced_metrics[i : i + SLICE_BATCH_IMPORT_LIMIT]:
-        slice_spec = to_slice(one_slice['singleOutputSlicingSpec'])
-        slice_config = {
-            'metrics': one_slice['metrics'],
-            'metrics_schema_uri': schema_uri,
-            'slice_': slice_spec,
+    slices = []
+    slices_with_slice_spec = []
+    slices_with_explanations = []
+    for one_slice in sliced_metrics:
+      slice_spec = to_slice(one_slice['singleOutputSlicingSpec'])
+      slice_config = {
+          'metrics': one_slice['metrics'],
+          'metrics_schema_uri': schema_uri,
+          'slice_': slice_spec,
+      }
+      if (
+          sliced_feature_attributions
+          and slice_spec['dimension'] == 'annotationSpec'
+      ):
+        slice_config['model_explanation'] = {
+            'mean_attributions': [
+                {
+                    'feature_attributions': sliced_feature_attributions[
+                        slice_spec['value']
+                    ]
+                }
+            ]
         }
-        if sliced_feature_attributions:
-          slice_config['model_explanation'] = {
-              'mean_attributions': [
-                  {
-                      'feature_attributions': sliced_feature_attributions[
-                          slice_spec['value']
-                      ]
-                  }
-              ]
-          }
-        model_evaluation_slices.append(slice_config)
-      slice_resource_names.extend(
-          client.batch_import_model_evaluation_slices(
-              parent=model_evaluation_name,
-              model_evaluation_slices=model_evaluation_slices,
-          ).imported_model_evaluation_slices
-      )
+        slices_with_explanations.append(slice_config)
+      elif 'slice_spec' in slice_spec:
+        slices_with_slice_spec.append(slice_config)
+      else:
+        slices.append(slice_config)
+
+    def batch_import_slices_list(slices_list) -> Iterable[str]:
+      for i in range(0, len(slices_list), SLICE_BATCH_IMPORT_LIMIT):
+        yield client.batch_import_model_evaluation_slices(
+            parent=model_evaluation_name,
+            model_evaluation_slices=slices_list[
+                i : i + SLICE_BATCH_IMPORT_LIMIT
+            ],
+        ).imported_model_evaluation_slices
+
+    slice_resource_names.extend(batch_import_slices_list(slices))
+    slice_resource_names.extend(
+        batch_import_slices_list(slices_with_slice_spec)
+    )
+    slice_resource_names.extend(
+        batch_import_slices_list(slices_with_explanations)
+    )
 
     for slice_resource in slice_resource_names:
       slice_mlmd_resource = resources.resources.add()
@@ -321,6 +340,61 @@ def main(argv):
 
   with open(parsed_args.gcp_resources, 'w') as f:
     f.write(json_format.MessageToJson(resources))
+
+
+def read_metrics_from_file(
+    metrics_file_path: str, problem_type: str
+) -> Tuple[Dict[str, Any], Optional[List[Dict[str, Any]]]]:
+  """Reads the metrics and sliced metrics from gcs file.
+
+  Args:
+      metrics_file_path: The gcs file with holds the metrics.
+      problem_type: The problem type of the metrics.
+
+  Returns:
+      tuple(dict[str, Any], dict[str, Any]): a tuple of evaluation metrics and
+      the corresponding sliced metrics.
+  """
+  with open(metrics_file_path) as metrics_file:
+    all_metrics = json.loads(metrics_file.read())
+    if problem_type in ULM_TASKS:
+      return {'metrics': to_value(all_metrics)}, None
+    all_metrics = all_metrics['slicedMetrics']
+    all_sliced_metrics = []
+    for slice_idx in range(len(all_metrics)):
+      one_slice = all_metrics[slice_idx]
+      if problem_type == 'classification':
+        if (
+            'metrics' in one_slice
+            and 'classification' in one_slice['metrics']
+            and 'confusionMatrix' in one_slice['metrics']['classification']
+            and 'annotationSpecs'
+            in one_slice['metrics']['classification']['confusionMatrix']
+            and 'confidenceMetrics' in one_slice['metrics']['classification']
+            and len(
+                one_slice['metrics']['classification']['confusionMatrix'][
+                    'annotationSpecs'
+                ]
+            )
+            > 100
+        ):
+          confidence_metrics = one_slice['metrics']['classification'][
+              'confidenceMetrics'
+          ]
+          for idx in range(len(confidence_metrics)):
+            if 'confusionMatrix' in confidence_metrics[idx]:
+              del confidence_metrics[idx]['confusionMatrix']
+          one_slice['metrics']['classification'][
+              'confidenceMetrics'
+          ] = confidence_metrics
+
+      all_sliced_metrics.append({
+          **one_slice,
+          'metrics': to_value(next(iter(one_slice['metrics'].values()))),
+      })
+  overall_slice = all_sliced_metrics[0]
+  sliced_metrics = all_sliced_metrics[1:]
+  return overall_slice, sliced_metrics
 
 
 def sliced_explanation_to_dict(
@@ -336,7 +410,38 @@ def sliced_explanation_to_dict(
 
 
 def to_slice(slicing_spec: Dict[str, Any]):
+  """Converts a VertexEvaluation OutputSlicingSpec to a Vertex AI Slice.
+
+  Args:
+    slicing_spec: VertexEvaluation OutputSlicingSpec
+
+  Returns:
+    A dictionary with keys 'dimension' and 'value'. Optionally with key
+      'sliceSpec'.
+  """
   value = ''
+  if 'dimension' in slicing_spec and slicing_spec['dimension'] == 'slice':
+    value = slicing_spec['value'] if 'value' in slicing_spec else ''
+    slice_spec = ModelEvaluationSlice.Slice.SliceSpec.from_json(
+        json.dumps(slicing_spec.get('slicingSpec', {}))
+    )
+    slice_ = {
+        'dimension': slicing_spec['dimension'],
+        'value': value,
+    }
+    if slice_spec:
+      slice_['slice_spec'] = slice_spec
+    return slice_
+  elif (
+      'dimension' in slicing_spec
+      and slicing_spec['dimension'] == 'annotationSpec'
+      and 'value' in slicing_spec
+  ):
+    return {
+        'dimension': slicing_spec['dimension'],
+        'value': slicing_spec['value'],
+    }
+
   if 'bytesValue' in slicing_spec:
     value = base64.b64decode(slicing_spec['bytesValue']).decode('utf-8')
   elif 'floatValue' in slicing_spec:

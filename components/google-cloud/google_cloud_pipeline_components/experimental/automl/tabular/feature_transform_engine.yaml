@@ -224,13 +224,29 @@ description: |
           is for allowlisted customers only. In addition, executing on "bigquery" only supports
           auto transformations (i.e., specified by tf_auto_transform_features) and will raise an
           error when tf_custom_transformation_definitions or tf_transformations_path is set.
-      tf_auto_transform_features (Optional[JsonArray]):
-          List of auto TF transform features.
+      tf_auto_transform_features (Optional[JsonObject]):
+          Dict[str, List[str]] mapping auto and/or type-resolutions to TF transform features.
 
           FTE will automatically configure a set of built-in transformations for each feature based
           on its data statistics.  If users do not want auto type resolution, but want the set of
           transformations for a given type to be automatically generated, they may specify
-          pre-resolved transformations (see the tf_transformations_path argument below).
+          pre-resolved transformations types.
+
+          The following type hint dict keys are supported:
+              * 'auto'
+              * 'categorical'
+              * 'numeric'
+              * 'text'
+              * 'timestamp'
+
+          Example:
+
+          .. code-block:: python
+            {
+              "auto": ["feature1"],
+              "categorical": ["feature2", "feature3"],
+            }
+
           Note that the target and weight column may not be included as an auto transformation
           unless users are running forecasting.
 
@@ -299,25 +315,6 @@ description: |
                   "input_columns": ["feature_2"]
                 }
               ]
-
-          If users do not want auto type resolution, but want the set of
-          transformations for a given type to be automatically generated, they may specify
-          pre-resolved transformations for the following types in the user provided transform
-          config. Pre-resolved transformations may not have an output column specified. Currently
-          accepted pre-resolved transformations are as follows:
-              * AutoCategorical
-              * AutoText
-              * AutoNumeric
-              * AutoTimestamp
-
-          Example:
-
-                  .. code-block:: python
-
-                    {
-                      "transformation": "AutoCategorical",
-                      "input_columns": ["feature_1"]
-                    }
 
           Additional information about FTE's currently supported built-in transformations:
 
@@ -721,7 +718,12 @@ description: |
                   is optional. All other arguments are those defined in custom_transform_fn.py,
                   which includes `"x"` in this case. See tf_custom_transformation_definitions above.
 
+      legacy_transformations_path (Optional[str])
+          Deprecated. Prefer tf_auto_transform_features.
 
+          Path to a GCS file containing JSON string for legacy style transformations.
+          Note that legacy_transformations_path and tf_auto_transform_features cannot both be
+          specified.
       target_column (Optional[str]):
           Target column of input data.
       weight_column (Optional[str]):
@@ -741,13 +743,13 @@ description: |
            Arrays are not yet supported in this algorithm.
 
           CMIM(Conditional Mutual Information Maximization):
-            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, "Feature
-            selection using Joint Mutual Information Maximisation," Expert Systems with
+            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, “Feature
+            selection using Joint Mutual Information Maximisation,” Expert Systems with
             Applications, vol. 42, issue 22, 1 December 2015, Pages 8520-8532.
 
           JMIM(Joint Mutual Information Maximization):
-            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, "Feature
-            selection using Joint Mutual Information Maximisation," Expert Systems with
+            Reference paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, “Feature
+            selection using Joint Mutual Information Maximisation,” Expert Systems with
             Applications, vol. 42, issue 22, 1 December 2015, Pages 8520-8532.
 
           MRMR(MIQ Minimum-redundancy Maximum-relevance):
@@ -859,9 +861,10 @@ inputs:
 - {name: validation_fraction, type: Float, default: "-1"}
 - {name: test_fraction, type: Float, default: "-1"}
 - {name: tf_transform_execution_engine, type: String, default: "dataflow"}
-- {name: tf_auto_transform_features, type: JsonArray, default: "[]"}
+- {name: tf_auto_transform_features, type: JsonObject, default: "{}"}
 - {name: tf_custom_transformation_definitions, type: JsonArray, default: "[]"}
 - {name: tf_transformations_path, type: String, default: ""}
+- {name: legacy_transformations_path, type: String, default: ""}
 - {name: target_column, type: String, default: ""}
 - {name: weight_column, type: String, default: ""}
 - {name: prediction_type, type: String, default: ""}
@@ -898,7 +901,7 @@ outputs:
 
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
     args: [
       feature_transform_engine,
       concat: [
@@ -1000,6 +1003,10 @@ implementation:
       concat: [
         "--tf_transformations_path=",
         {inputValue: tf_transformations_path}
+      ],
+      concat: [
+        "--legacy_transformations_path=",
+        {inputValue: legacy_transformations_path}
       ],
       concat: [
         "--data_source_csv_filenames=",
@@ -1142,8 +1149,8 @@ implementation:
         "--dataflow_machine_type=",
         {inputValue: dataflow_machine_type}
       ],
-      "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230416_0125",
-      "--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230416_0125",
+      "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325",
+      "--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325",
       concat: [
         "--dataflow_disk_size_gb=",
         {inputValue: dataflow_disk_size_gb}

@@ -433,7 +433,7 @@ func TestCreateJob_V2(t *testing.T) {
 			}},
 		},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: v2SpecHelloWorld,
+			WorkflowManifest: v2SpecHelloWorldParams,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 				Parameters:   v2RuntimeParams,
 				PipelineRoot: "model-pipeline-root",
@@ -463,8 +463,8 @@ func TestCreateJob_V2(t *testing.T) {
 		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
 		Status:    "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
-			PipelineManifest: v2SpecHelloWorld,
-			WorkflowManifest: v2SpecHelloWorld,
+			PipelineManifest: v2SpecHelloWorldParams,
+			WorkflowManifest: v2SpecHelloWorldParams,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 				Parameters:   v2RuntimeParams,
 				PipelineRoot: "model-pipeline-root",
@@ -495,6 +495,7 @@ func TestCreateJob_V2(t *testing.T) {
 	expectedJob_V2.PipelineSpec.PipelineName = job.GetPipelineSpec().GetPipelineName()
 	expectedJob_V2.CreatedAt = job.GetCreatedAt()
 	expectedJob_V2.UpdatedAt = job.GetUpdatedAt()
+	job.PipelineSpec.RuntimeConfig.Parameters = v2RuntimeParams
 
 	assert.Equal(t, expectedJob_V2, job)
 }
@@ -877,6 +878,9 @@ func TestCreateRecurringRun(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
@@ -903,9 +907,14 @@ func TestCreateRecurringRun(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
-			Parameters:   make(map[string]*structpb.Value),
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	}
+	recurringRun.RuntimeConfig.Parameters = map[string]*structpb.Value{
+		"param1": structpb.NewStringValue("world"),
 	}
 	assert.Equal(t, expectedRecurringRun, recurringRun)
 }
@@ -931,6 +940,9 @@ func TestGetRecurringRun(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
@@ -957,13 +969,18 @@ func TestGetRecurringRun(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
-			Parameters:   make(map[string]*structpb.Value),
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
 	recurringRun, err := server.GetRecurringRun(nil, &apiv2beta1.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
+	recurringRun.RuntimeConfig.Parameters = map[string]*structpb.Value{
+		"param1": structpb.NewStringValue("world"),
+	}
 	assert.Equal(t, expectedRecurringRun, recurringRun)
 }
 
@@ -988,6 +1005,9 @@ func TestListRecurringRuns(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
@@ -1013,7 +1033,9 @@ func TestListRecurringRuns(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
-			Parameters:   make(map[string]*structpb.Value),
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		Status:       apiv2beta1.RecurringRun_ENABLED,
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
@@ -1028,6 +1050,9 @@ func TestListRecurringRuns(t *testing.T) {
 	actualRecurringRunsList2, err := server.ListRecurringRuns(nil, &apiv2beta1.ListRecurringRunsRequest{
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	})
+	actualRecurringRunsList2.RecurringRuns[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
+		"param1": structpb.NewStringValue("world"),
+	}
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(actualRecurringRunsList.RecurringRuns))
 	assert.Equal(t, expectedRecurringRunsList, actualRecurringRunsList2.RecurringRuns)
@@ -1054,6 +1079,9 @@ func TestEnableRecurringRun(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
@@ -1086,6 +1114,9 @@ func TestDisableRecurringRun(t *testing.T) {
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
 		},
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}

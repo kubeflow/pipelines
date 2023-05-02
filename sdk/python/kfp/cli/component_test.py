@@ -407,7 +407,13 @@ class Test(unittest.TestCase):
         )
         self.assertEqual(result.exit_code, 0)
 
-        self._docker_client.api.build.assert_called_once()
+        self._docker_client.api.build.assert_called_once_with(
+            path=mock.ANY,
+            dockerfile='Dockerfile',
+            tag=mock.ANY,
+            decode=True,
+            platform='linux/amd64',
+        )
         self._docker_client.images.push.assert_called_once_with(
             'custom-image', stream=True, decode=True)
 
