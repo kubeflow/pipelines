@@ -1,29 +1,11 @@
-.. google_cloud_pipeline_components documentation master file, created by
-   sphinx-quickstart on Fri May  7 04:23:22 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to google_cloud_pipeline_components's documentation!
-============================================================
-
-Overview
-^^^^^^^^
-Google Cloud Pipeline Components provides an SDK with a set of pipeline components for users to interact with Google Cloud services such as Vertex AI, Dataflow and BigQuery.
-To learn more about Google Cloud Pipeline Components see
-
-* https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction
+.. mdinclude:: ../../README.md
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Contents:
+   :maxdepth: 3
+   :caption: Contents
+   :hidden:
 
-   google_cloud_pipeline_components.aiplatform
-   google_cloud_pipeline_components.experimental
-   google_cloud_pipeline_components.v1
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Home <self>
+   API Reference <api/index>
+   Source Code <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud>
