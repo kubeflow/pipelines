@@ -90,7 +90,7 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
             self.initial_status = ack_resource.get("status", None)
             return super()._patch_custom_resource(request)
         else:
-            return super()._create_resource(request, 6, 10)
+            return super()._create_resource(request, 12, 15)
 
     def _on_job_terminated(self):
         super()._delete_custom_resource()
@@ -187,14 +187,8 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
 
     def _get_upgrade_status(self):
 
-        job_status = self._get_job_status()
-        # Needed because Requeue errors are not counted in _check_resource_conditions.
-        recoverable_conditions = self._get_conditions_of_type("ACK.Recoverable")
-        if len(recoverable_conditions) == 0:
-            return job_status
-        sm_job_status = job_status.raw_status
         return SageMakerJobStatus(
-            is_completed=False, has_error=False, raw_status=sm_job_status
+            is_completed=True, has_error=True, raw_status="Unsupported"
         )
 
     def _after_job_complete(

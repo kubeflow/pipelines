@@ -68,7 +68,7 @@ outputs:
 
 implementation:
   container:
-    image: 518953804033.dkr.ecr.us-west-2.amazonaws.com/kfp20:28
+    image: 518953804033.dkr.ecr.us-west-2.amazonaws.com/kfp20:29
     command: [python3]
     args:
       - EndpointConfig/src/EndpointConfig_component.py

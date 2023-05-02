@@ -79,7 +79,7 @@ class SageMakerEndpointConfigComponent(SageMakerComponent):
             self.initial_status = ack_resource.get("status", None)
             return super()._patch_custom_resource(request)
         else:
-            return super()._create_resource(request, 6, 10)
+            return super()._create_resource(request, 12, 15)
 
     def _on_job_terminated(self):
         super()._delete_custom_resource()
@@ -102,7 +102,9 @@ class SageMakerEndpointConfigComponent(SageMakerComponent):
 
     def _get_upgrade_status(self):
 
-        return self._get_job_status()
+        return SageMakerJobStatus(
+            is_completed=True, has_error=True, raw_status="Unsupported"
+        )
 
     def _after_job_complete(
         self,
