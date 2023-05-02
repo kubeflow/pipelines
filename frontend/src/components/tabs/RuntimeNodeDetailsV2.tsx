@@ -147,7 +147,7 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Volumes', 'Logs']}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -167,8 +167,14 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
           </div>
         )}
-        {/* Logs tab */}
+        {/* Volumes tab */}
         {selectedTab === 2 && (
+          <div className={padding(20)} data-testid={'volumes-view-window'}>
+            <DetailsTable title='Volume Mounts' fields={getNodeVolumeMounts()} />
+          </div>
+        )}
+        {/* Logs tab */}
+        {selectedTab === 3 && (
           <div className={commonCss.page}>
             {logsBannerMessage && (
               <React.Fragment>
@@ -231,6 +237,13 @@ function getTaskDetailsFields(
   }
 
   return details;
+}
+
+function getNodeVolumeMounts(
+  templateString?: string,
+  element?: FlowElement<FlowElementDataBase> | null,
+): Array<KeyValue<string>> {
+  return [];
 }
 
 async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<string, string>> {
