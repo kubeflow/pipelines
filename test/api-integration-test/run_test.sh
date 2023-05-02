@@ -27,7 +27,7 @@ usage()
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [--run_upgrade_tests_preparation run preparation step of upgrade tests instead]
     [--run_upgrade_tests_verification run verification step of upgrade tests instead]
-    [--test-v2-api    run test using v2 API]
+    [--test_v2_api    run test using v2 API]
     [-h help]"
 }
 
