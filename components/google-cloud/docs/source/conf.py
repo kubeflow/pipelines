@@ -177,6 +177,13 @@ def example_grouper(app, what, name, obj, section, parent):
     return 'Components'
 
 
+def autodoc_skip_member(app, what, name, obj, skip, options):
+  skip = True
+  if name == 'create_custom_training_job_op_from_component':
+    return skip
+
+
 def setup(app):
   app.connect('autodoc-process-signature', strip_outputs_from_signature)
   app.connect('autodocsumm-grouper', example_grouper)
+  app.connect('autodoc-skip-member', autodoc_skip_member)
