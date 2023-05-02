@@ -52,55 +52,53 @@ def _make_parent_dirs_and_return_path(file_path: str):
 parser = argparse.ArgumentParser(
     prog='Vertex Model Service evaluation importer', description=''
 )
-parser.add_argument('--metrics', dest='metrics', type=str, default=None)
+parser.add_argument('--metrics', dest='metrics', type=str, default='')
 parser.add_argument(
     '--classification_metrics',
     dest='classification_metrics',
     type=str,
-    default=None,
+    default='',
 )
 parser.add_argument(
-    '--forecasting_metrics', dest='forecasting_metrics', type=str, default=None
+    '--forecasting_metrics', dest='forecasting_metrics', type=str, default=''
 )
 parser.add_argument(
-    '--regression_metrics', dest='regression_metrics', type=str, default=None
+    '--regression_metrics', dest='regression_metrics', type=str, default=''
 )
 parser.add_argument(
     '--text_generation_metrics',
     dest='text_generation_metrics',
     type=str,
-    default=None,
+    default='',
 )
 parser.add_argument(
     '--question_answering_metrics',
     dest='question_answering_metrics',
     type=str,
-    default=None,
+    default='',
 )
 parser.add_argument(
     '--summarization_metrics',
     dest='summarization_metrics',
     type=str,
-    default=None,
+    default='',
 )
 parser.add_argument(
     '--feature_attributions',
     dest='feature_attributions',
     type=str,
-    default=None,
+    default='',
 )
 parser.add_argument(
-    '--metrics_explanation', dest='metrics_explanation', type=str, default=None
+    '--metrics_explanation', dest='metrics_explanation', type=str, default=''
 )
-parser.add_argument('--explanation', dest='explanation', type=str, default=None)
+parser.add_argument('--explanation', dest='explanation', type=str, default='')
+parser.add_argument('--problem_type', dest='problem_type', type=str, default='')
 parser.add_argument(
-    '--problem_type', dest='problem_type', type=str, default=None
-)
-parser.add_argument(
-    '--display_name', nargs='?', dest='display_name', type=str, default=None
+    '--display_name', nargs='?', dest='display_name', type=str, default=''
 )
 parser.add_argument(
-    '--pipeline_job_id', dest='pipeline_job_id', type=str, default=None
+    '--pipeline_job_id', dest='pipeline_job_id', type=str, default=''
 )
 parser.add_argument(
     '--pipeline_job_resource_name',
@@ -109,13 +107,13 @@ parser.add_argument(
     default=None,
 )
 parser.add_argument(
-    '--dataset_path', nargs='?', dest='dataset_path', type=str, default=None
+    '--dataset_path', nargs='?', dest='dataset_path', type=str, default=''
 )
 parser.add_argument(
     '--dataset_paths', nargs='?', dest='dataset_paths', type=str, default='[]'
 )
 parser.add_argument(
-    '--dataset_type', nargs='?', dest='dataset_type', type=str, default=None
+    '--dataset_type', nargs='?', dest='dataset_type', type=str, default=''
 )
 parser.add_argument(
     '--model_name',
@@ -163,6 +161,8 @@ def main(argv):
     metrics_file_path = parsed_args.metrics
     problem_type = parsed_args.problem_type
 
+  logging.info('metrics_file_path: %s', metrics_file_path)
+  logging.info('problem_type: %s', problem_type)
   metrics_file_path = (
       metrics_file_path
       if not metrics_file_path.startswith('gs://')
@@ -249,7 +249,7 @@ def main(argv):
           'evaluation_dataset_type': parsed_args.dataset_type,
           'evaluation_dataset_path': dataset_paths or None,
       }.items()
-      if value is not None
+      if value
   }
   if metadata:
     model_evaluation['metadata'] = to_value(metadata)
