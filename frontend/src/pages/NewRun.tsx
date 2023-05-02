@@ -1166,7 +1166,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         this.setStateSafe({ isBeingStarted: false });
       }
 
-      if (this.state.experiment) {
+      if (this.state.isRecurringRun) {
+        this.props.history.push(RoutePage.RECURRING_RUNS);
+      } else if (this.state.experiment) {
         this.props.history.push(
           RoutePage.EXPERIMENT_DETAILS.replace(
             ':' + RouteParams.experimentId,
