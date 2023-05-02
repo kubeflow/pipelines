@@ -83,7 +83,7 @@ def bigquery_ml_roc_curve_job(
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
 
   Returns:
-      roc_curve (system.Artifact):
+      roc_curve (google.BQTable):
         Describes common metrics applicable to the type of model supplied.
         For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-roc#mlroc_curve_output
