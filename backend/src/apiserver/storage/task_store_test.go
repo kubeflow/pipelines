@@ -515,3 +515,105 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 		})
 	}
 }
+
+func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
+	db, taskStore := initializeTaskStore()
+	defer db.Close()
+
+	// These are existing tasks created inside initializeTaskStore()
+	task1 := &model.Task{
+		PodName:           "pod4",
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "4",
+		StartedTimestamp:  5,
+		FinishedTimestamp: 6,
+		Fingerprint:       "1",
+	}
+	task2 := &model.Task{
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		PodName:           "pod5",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "5",
+		StartedTimestamp:  7,
+		FinishedTimestamp: 8,
+		Fingerprint:       "10",
+	}
+
+	// This is a new task
+	task3 := &model.Task{
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		PodName:           "pod99",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "5",
+		StartedTimestamp:  3,
+		FinishedTimestamp: 4,
+		Fingerprint:       "10",
+	}
+
+	// Expected results
+	want1 := &model.Task{
+		UUID:              defaultFakeTaskIdFour,
+		CreatedTimestamp:  5,
+		PodName:           "pod4",
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "4",
+		StartedTimestamp:  5,
+		FinishedTimestamp: 6,
+		Fingerprint:       "1",
+		State:             model.RuntimeStateUnspecified,
+		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 1, State: model.RuntimeStateUnspecified}},
+	}
+	want2 := &model.Task{
+		UUID:              defaultFakeTaskIdFive,
+		CreatedTimestamp:  7,
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		PodName:           "pod5",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "5",
+		StartedTimestamp:  7,
+		FinishedTimestamp: 8,
+		Fingerprint:       "10",
+		State:             model.RuntimeStateUnspecified,
+		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 2, State: model.RuntimeStateUnspecified}},
+	}
+	want3 := &model.Task{
+		UUID:              defaultFakeTaskIdSix,
+		CreatedTimestamp:  3,
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns2/pipeline/pipeline2",
+		PodName:           "pod99",
+		RunId:             defaultFakeRunIdTwo,
+		MLMDExecutionID:   "5",
+		StartedTimestamp:  3,
+		FinishedTimestamp: 4,
+		Fingerprint:       "10",
+		State:             model.RuntimeStateUnspecified,
+		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 4, State: model.RuntimeStateUnspecified}},
+	}
+
+	tests := []struct {
+		name  string
+		tasks []*model.Task
+		want  []*model.Task
+	}{
+		{
+			"valid - three tasks",
+			[]*model.Task{task1, task2, task3},
+			[]*model.Task{want1, want2, want3},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := taskStore.CreateOrUpdateTasks(tt.tasks)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
