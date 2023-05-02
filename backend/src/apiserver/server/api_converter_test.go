@@ -1166,11 +1166,11 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp123"},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp123"},
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 				{
@@ -1208,12 +1208,7 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 			Parameters:           `[{"name":"param2","value":"world"}]`,
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "run123", ResourceType: model.RunResourceType, ReferenceUUID: "job123",
-				ReferenceName: "j123", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
-			},
-		},
+		RecurringRunId: "job123",
 	}
 	apiRun := toApiRunDetailV1(modelRun)
 	expectedApiRun := &apiv1beta1.RunDetail{
@@ -1231,13 +1226,12 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
-					Name:         "j123",
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-				{
 					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
 					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 			},
 		},
@@ -1287,13 +1281,8 @@ func TestToApiRunsV1(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: "manifest",
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "job1",
-				ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
-			},
-		},
-		Metrics: []*model.RunMetric{metric1, metric2},
+		RecurringRunId: "job1",
+		Metrics:        []*model.RunMetric{metric1, metric2},
 	}
 	modelRun2 := model.Run{
 		UUID:         "run2",
@@ -1309,13 +1298,8 @@ func TestToApiRunsV1(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: "manifest",
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "run2", ResourceType: model.RunResourceType, ReferenceUUID: "job2",
-				ReferenceName: "j2", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
-			},
-		},
-		Metrics: []*model.RunMetric{metric2},
+		RecurringRunId: "job2",
+		Metrics:        []*model.RunMetric{metric2},
 	}
 	apiRuns := toApiRunsV1([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*apiv1beta1.Run{
@@ -1332,12 +1316,12 @@ func TestToApiRunsV1(t *testing.T) {
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
-					Name: "j1", Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-				{
 					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
 					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 			},
 			Metrics: []*apiv1beta1.RunMetric{apiMetric1, apiMetric2},
@@ -1352,12 +1336,12 @@ func TestToApiRunsV1(t *testing.T) {
 			Status:       "Succeeded",
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job2"},
-					Name: "j2", Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-				{
 					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
 					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job2"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 			},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
