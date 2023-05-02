@@ -199,7 +199,7 @@ class SageMakerComponent:
         self.resource_upgrade = self._is_upgrade()
         if self.resource_upgrade and not self.update_supported:
             logging.error(
-                f"Resource upgrade is not supported for {self.spaced_out_resource_name}"
+                f"Resource update is not supported for {self.spaced_out_resource_name}"
             )
             return False
         request = self._create_job_request(inputs, outputs)
@@ -636,7 +636,7 @@ class SageMakerComponent:
             condition_status = condition["status"]
             condition_message = condition.get("message", "No error message found.")
 
-            # If the controller has not consumed the update, any existing erorr will not representative of the new state.
+            # If the controller has not consumed the update, any existing error will not representative of the new state.
             if self.resource_upgrade and not self.is_update_consumed_by_controller():
                 continue
             if condition_type == "ACK.Terminal" and condition_status == "True":

@@ -71,12 +71,7 @@ class SageMakerModelComponent(SageMakerComponent):
 
     def _submit_job_request(self, request: Dict) -> object:
 
-        if self.resource_upgrade:
-            ack_resource = self._get_resource()
-            self.initial_status = ack_resource.get("status", None)
-            return super()._patch_custom_resource(request)
-        else:
-            return super()._create_resource(request, 12, 15)
+        return super()._create_resource(request, 12, 15)
 
     def _on_job_terminated(self):
         super()._delete_custom_resource()
