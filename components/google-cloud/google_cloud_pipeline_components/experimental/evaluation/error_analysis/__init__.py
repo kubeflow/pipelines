@@ -14,18 +14,13 @@
 """Google Cloud Pipeline Model Evaluation Error Analysis components."""
 
 import os
-
-from .feature_extractor import component as feature_extractor
 from .dataset_preprocessor import component as dataset_preprocessor
-from .error_analysis_annotation import component as error_analysis_annotation
 
 from kfp.components import load_component_from_file
 
 __all__ = [
     'EvaluationDatasetPreprocessorOp',
     'EvaluatedAnnotationOp',
-    'FeatureExtractorOp',
-    'ErrorAnalysisAnnotationOp',
     'ModelImportEvaluatedAnnotationOp',
 ]
 
@@ -39,10 +34,6 @@ EvaluatedAnnotationOp = load_component_from_file(
         'evaluated_annotation/component.yaml',
     )
 )
-
-FeatureExtractorOp = feature_extractor.feature_extractor_error_analysis
-
-ErrorAnalysisAnnotationOp = error_analysis_annotation.error_analysis_annotation
 
 ModelImportEvaluatedAnnotationOp = load_component_from_file(
     os.path.join(
