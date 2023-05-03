@@ -19,6 +19,10 @@ import * as React from 'react';
 import { useState } from 'react';
 import { FlowElement } from 'react-flow-renderer';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
+import {
+  KubernetesExecutorConfig,
+  PvcMount,
+} from 'src/generated/platform_spec/kubernetes_platform';
 import { useQuery } from 'react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
@@ -44,6 +48,10 @@ import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo'
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputOutputTab';
+import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import jsyaml from 'js-yaml';
+import { PlatformDeploymentConfig, PlatformSpec } from 'src/generated/pipeline_spec/pipeline_spec';
+import { getComponentSpec } from './StaticNodeDetailsV2';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
@@ -68,6 +76,7 @@ const NODE_STATE_UNAVAILABLE = (
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
   onLayerChange: (layers: string[]) => void;
+  templateString?: string;
   runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
@@ -77,6 +86,7 @@ interface RuntimeNodeDetailsV2Props {
 export function RuntimeNodeDetailsV2({
   layers,
   onLayerChange,
+  templateString,
   runId,
   element,
   elementMlmdInfo,
@@ -90,9 +100,11 @@ export function RuntimeNodeDetailsV2({
     if (NodeTypeNames.EXECUTION === element.type) {
       return (
         <TaskNodeDetail
+          templateString={templateString}
           runId={runId}
           element={element}
           execution={elementMlmdInfo?.execution}
+          layers={layers}
           namespace={namespace}
         ></TaskNodeDetail>
       );
@@ -120,13 +132,22 @@ export function RuntimeNodeDetailsV2({
 }
 
 interface TaskNodeDetailProps {
+  templateString?: string;
   runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   execution?: Execution;
+  layers: string[];
   namespace: string | undefined;
 }
 
-function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetailProps) {
+function TaskNodeDetail({
+  templateString,
+  runId,
+  element,
+  execution,
+  layers,
+  namespace,
+}: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>(
     ['log_details'],
     async () => {
@@ -147,7 +168,7 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Volumes', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -165,16 +186,14 @@ function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetail
         {selectedTab === 1 && (
           <div className={padding(20)}>
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
-          </div>
-        )}
-        {/* Volumes tab */}
-        {selectedTab === 2 && (
-          <div className={padding(20)} data-testid={'volumes-view-window'}>
-            <DetailsTable title='Volume Mounts' fields={getNodeVolumeMounts()} />
+            <DetailsTable
+              title='Volume Mounts'
+              fields={getNodeVolumeMounts(layers, templateString, element)}
+            />
           </div>
         )}
         {/* Logs tab */}
-        {selectedTab === 3 && (
+        {selectedTab === 2 && (
           <div className={commonCss.page}>
             {logsBannerMessage && (
               <React.Fragment>
@@ -240,10 +259,40 @@ function getTaskDetailsFields(
 }
 
 function getNodeVolumeMounts(
+  layers: string[],
   templateString?: string,
   element?: FlowElement<FlowElementDataBase> | null,
 ): Array<KeyValue<string>> {
-  return [];
+  if (!templateString || !element) {
+    return [];
+  }
+
+  const taskKey = getTaskKeyFromNodeKey(element.id);
+  const pipelineSpec = convertYamlToV2PipelineSpec(templateString);
+  const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+
+  const platformSpecObj = jsyaml.safeLoad(templateString)['platform_spec'];
+  if (!platformSpecObj) {
+    return [];
+  }
+
+  const ts_platformspec = PlatformSpec.fromJSON(platformSpecObj);
+  // Currently support kubernetes platform
+  const k8sDeploymentSpec = PlatformDeploymentConfig.fromJSON(
+    ts_platformspec.platforms['kubernetes'].deploymentSpec,
+  );
+  const matchedExecutorObj = Object.entries(k8sDeploymentSpec.executors).find(
+    ([executorName]) => executorName === componentSpec?.executorLabel,
+  );
+
+  let volumeMounts: Array<KeyValue<string>> = [];
+  if (matchedExecutorObj) {
+    const executor = KubernetesExecutorConfig.fromJSON(matchedExecutorObj[1]);
+    const pvcMounts = Object.values(executor.pvcMount).map(pvcm => PvcMount.fromJSON(pvcm));
+    volumeMounts = pvcMounts.map(pvcm => [pvcm.mountPath, pvcm.taskOutputParameter?.producerTask]);
+  }
+
+  return volumeMounts;
 }
 
 async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<string, string>> {

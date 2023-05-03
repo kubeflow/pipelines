@@ -199,7 +199,7 @@ function ArtifactNodeDetail({ pipelineSpec, element, layers }: ArtifactNodeDetai
   );
 }
 
-function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], taskKey: string) {
+export function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], taskKey: string) {
   let currentDag = pipelineSpec.root?.dag;
   const taskLayers = [...layers.slice(1), taskKey];
   let componentSpec;
