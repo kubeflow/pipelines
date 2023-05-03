@@ -23,6 +23,8 @@ const V2_LW_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_p
 const v2LWYamlTemplateString = fs.readFileSync(V2_LW_PIPELINESPEC_PATH, 'utf8');
 const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
 const v2PVCYamlString = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
+// The templateStr used in WorkflowUtils is not directly from yaml file. 
+// Instead, it is from BE (already been processed), 
 const v2PVCTemplateString = jsyaml.safeDump(jsyaml.safeLoadAll(v2PVCYamlString)[0]);
 
 testBestPractices();
