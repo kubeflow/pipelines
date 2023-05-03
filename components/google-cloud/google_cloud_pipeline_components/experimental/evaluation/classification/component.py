@@ -110,8 +110,9 @@ def model_evaluation_classification(
         in the predictions file. Formatted to be able to find nested columns,
         delimited by `.`. Alternatively referred to as the ground truth (or
         ground_truth_column) field.
-      model (Optional[google.VertexModel]): The Model used for predictions job.
-        Must share the same ancestor Location.
+      model (Optional[google.VertexModel]): The managed Vertex Model used for
+        predictions job, if using Vertex batch prediction. Must share the same
+        location as the provided input argument `location`.
       prediction_score_column (Optional[str]): The column name of the field
         containing batch prediction scores. Formatted to be able to find nested
         columns, delimited by `.`. If not set, defaulted to `prediction.scores`
