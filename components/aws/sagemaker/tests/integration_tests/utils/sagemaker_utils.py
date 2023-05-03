@@ -9,6 +9,8 @@ import io
 import numpy
 import json
 
+from utils import get_s3_data_bucket
+
 def describe_training_job(client, training_job_name):
     return client.describe_training_job(TrainingJobName=training_job_name)
 
@@ -101,8 +103,8 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     region = boto3_session.region_name
     download_path = os.path.join(download_dir, "mnist.pkl.gz")
     boto3_session.resource("s3", region_name=region).Bucket(
-        "sagemaker-sample-data-{}".format(region)
-    ).download_file("algorithms/kmeans/mnist/mnist.pkl.gz", download_path)
+        get_s3_data_bucket()
+    ).download_file("algorithms/mnist.pkl.gz", download_path)
     with gzip.open(download_path, "rb") as f:
         train_set, valid_set, test_set = pickle.load(f, encoding="latin1")
 

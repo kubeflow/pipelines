@@ -23,6 +23,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         utils.replace_placeholders(
             os.path.join(test_file_dir, "config.yaml"),
             os.path.join(download_dir, "config.yaml"),
+            shallow_canary=True
         )
     )
     k8s_client = ack_utils.k8s_client()
