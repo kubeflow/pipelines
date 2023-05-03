@@ -24,13 +24,13 @@ inputs:
       name: debug_hook_config,
       type: JsonObject,
       default: '{}',
-      description: "Configuration information for the Debugger hook parameters, metric and tensor collections, and storage paths.",
+      description: "Configuration information for the Amazon SageMaker Debugger hook parameters, metric and tensor collections, and storage paths.",
     }
   - {
       name: debug_rule_configurations,
       type: JsonArray,
       default: '[]',
-      description: "Configuration information for Debugger rules for debugging output tensors.",
+      description: "Configuration information for Amazon SageMaker Debugger rules for debugging output tensors.",
     }
   - {
       name: enable_inter_container_traffic_encryption,
@@ -84,13 +84,13 @@ inputs:
       name: profiler_config,
       type: JsonObject,
       default: '{}',
-      description: "Configuration information for Debugger system monitoring, framework profiling, and storage paths.",
+      description: "Configuration information for Amazon SageMaker Debugger system monitoring, framework profiling, and storage paths.",
     }
   - {
       name: profiler_rule_configurations,
       type: JsonArray,
       default: '[]',
-      description: "Configuration information for Debugger rules for profiling system and framework metrics.",
+      description: "Configuration information for Amazon SageMaker Debugger rules for profiling system and framework metrics.",
     }
   - {
       name: resource_config,
@@ -126,7 +126,7 @@ inputs:
       name: tensor_board_output_config,
       type: JsonObject,
       default: '{}',
-      description: "Configuration of storage locations for the Debugger TensorBoard output data.",
+      description: "Configuration of storage locations for the Amazon SageMaker Debugger TensorBoard output data.",
     }
   - {
       name: training_job_name,
@@ -156,14 +156,24 @@ outputs:
       description: "All CRS managed by ACK have a common `Status.",
     }
   - {
+      name: creation_time,
+      type: String,
+      description: "A timestamp that indicates when the training job was created.",
+    }
+  - {
       name: debug_rule_evaluation_statuses,
       type: JsonArray,
-      description: "Evaluation status of Debugger rules for debugging on a training job.",
+      description: "Evaluation status of Amazon SageMaker Debugger rules for debugging on a training job.",
     }
   - {
       name: failure_reason,
       type: String,
       description: "If the training job failed, the reason it failed.",
+    }
+  - {
+      name: last_modified_time,
+      type: String,
+      description: "A timestamp that indicates when the status of the training job was last modified.",
     }
   - {
       name: model_artifacts,
@@ -173,7 +183,7 @@ outputs:
   - {
       name: profiler_rule_evaluation_statuses,
       type: JsonArray,
-      description: "Evaluation status of Debugger rules for profiling on a training job.",
+      description: "Evaluation status of Amazon SageMaker Debugger rules for profiling on a training job.",
     }
   - {
       name: profiling_status,
@@ -199,7 +209,7 @@ outputs:
 
 implementation:
   container:
-    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.1.0
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.2.0
     command: [python3]
     args:
       - TrainingJob/src/TrainingJob_component.py
