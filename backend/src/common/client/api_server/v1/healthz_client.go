@@ -53,14 +53,14 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*Healthz
 func NewKubeflowInClusterHealthzClient(namespace string, debug bool) (
 	*HealthzClient, error) {
 
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating experiment client
 	return &HealthzClient{
 		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 
