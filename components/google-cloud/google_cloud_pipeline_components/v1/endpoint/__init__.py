@@ -13,10 +13,10 @@
 # limitations under the License.
 """Google Cloud Pipeline Endpoint components."""
 
-import os
-from kfp import components
-from .create_endpoint import component as create_endpoint_component
-from .deploy_model import component as deploy_model_component
+from .create_endpoint.component import endpoint_create as EndpointCreateOp
+from .delete_endpoint.component import endpoint_delete as EndpointDeleteOp
+from .deploy_model.component import model_deploy as ModelDeployOp
+from .undeploy_model.component import model_undeploy as ModelUndeployOp
 
 __all__ = [
     'EndpointCreateOp',
@@ -24,12 +24,3 @@ __all__ = [
     'ModelDeployOp',
     'ModelUndeployOp',
 ]
-
-EndpointCreateOp = create_endpoint_component.endpoint_create
-EndpointDeleteOp = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'delete_endpoint/component.yaml')
-)
-ModelDeployOp = deploy_model_component.model_deploy
-ModelUndeployOp = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'undeploy_model/component.yaml')
-)
