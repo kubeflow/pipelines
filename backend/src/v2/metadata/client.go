@@ -848,6 +848,8 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 }
 
 // TODO consider batching these requests
+// TODO(lingqinggan): need to create artifact types during initiation, and only allow these types.
+// Currently we allow users to create any artifact type.
 func (c *Client) GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error) {
 	defer func() {
 		if err != nil {
@@ -856,18 +858,18 @@ func (c *Client) GetOrInsertArtifactType(ctx context.Context, schema string) (ty
 	}()
 	at, err := SchemaToArtifactType(schema)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("converting schema to artifact type failed: %w", err)
 	}
 	getTypesRes, err := c.svc.GetArtifactType(ctx, &pb.GetArtifactTypeRequest{TypeName: at.Name})
-	if err != nil {
-		return 0, err
+	if err == nil {
+		if getTypesRes.GetArtifactType() != nil {
+			return getTypesRes.GetArtifactType().GetId(), nil
+		}
 	}
-	if getTypesRes.GetArtifactType() != nil {
-		return getTypesRes.GetArtifactType().GetId(), nil
-	}
+	// If artifact type is empty, create one
 	putTypeRes, err := c.svc.PutArtifactType(ctx, &pb.PutArtifactTypeRequest{ArtifactType: at})
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("PutArtifactType failed: %w", err)
 	}
 	return putTypeRes.GetTypeId(), err
 }
