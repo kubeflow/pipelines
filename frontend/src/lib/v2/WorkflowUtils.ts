@@ -24,6 +24,9 @@ export const PIPELINE_SPEC_TEMPLATE_KEY = 'pipeline_spec';
 export const PLATFORM_SPEC_TEMPLATE_KEY = 'platform_spec';
 
 export function getPipelineDefFromYaml(template: string) {
+  // If pipeline_spec exists in the return value of safeload,
+  // which means the original yaml contains platform_spec,
+  // then the PipelineSpec(IR) is stored in 'pipeline_spec' field.
   return jsyaml.safeLoad(template)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
 }
 
@@ -60,8 +63,6 @@ export function isTemplateV2(templateString: string): boolean {
 
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
-  // If pipeline_spec exists in the return value of safeload, which means the original yaml contains
-  // platform_spec, then the pipeline spec is stored in pipeline_spec field.
   const pipelineSpecYAML = getPipelineDefFromYaml(template);
   const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);
   if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
