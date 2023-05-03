@@ -54,11 +54,13 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
         self.group = "sagemaker.services.k8s.aws"
         self.version = "v1alpha1"
         self.plural = "trainingjobs"
+        self.spaced_out_resource_name = "Training Job"
 
         self.job_request_outline_location = (
             "TrainingJob/src/TrainingJob_request.yaml.tpl"
         )
         self.job_request_location = "TrainingJob/src/TrainingJob_request.yaml"
+        self.update_supported = False
         ############GENERATED SECTION ABOVE############
 
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
@@ -84,7 +86,7 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
 
     def _submit_job_request(self, request: Dict) -> object:
 
-        return super()._create_resource(request, 6, 10)
+        return super()._create_resource(request, 12, 15)
 
     def _on_job_terminated(self):
         super()._delete_custom_resource()
@@ -179,6 +181,10 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
             )
         return SageMakerJobStatus(is_completed=False, raw_status=sm_job_status)
 
+    def _get_upgrade_status(self):
+
+        return self._get_job_status()
+
     def _after_job_complete(
         self,
         job: object,
@@ -200,6 +206,9 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
         outputs.conditions = str(
             ack_statuses["conditions"] if "conditions" in ack_statuses else None
         )
+        outputs.creation_time = str(
+            ack_statuses["creationTime"] if "creationTime" in ack_statuses else None
+        )
         outputs.debug_rule_evaluation_statuses = str(
             ack_statuses["debugRuleEvaluationStatuses"]
             if "debugRuleEvaluationStatuses" in ack_statuses
@@ -207,6 +216,11 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
         )
         outputs.failure_reason = str(
             ack_statuses["failureReason"] if "failureReason" in ack_statuses else None
+        )
+        outputs.last_modified_time = str(
+            ack_statuses["lastModifiedTime"]
+            if "lastModifiedTime" in ack_statuses
+            else None
         )
         outputs.model_artifacts = str(
             ack_statuses["modelArtifacts"] if "modelArtifacts" in ack_statuses else None

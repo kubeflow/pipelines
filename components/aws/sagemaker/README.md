@@ -40,7 +40,9 @@ The Processing component enables you to submit processing jobs to Amazon SageMak
 
 #### Hosting Deploy
 
-The Deploy component enables you to deploy a model in Amazon SageMaker Hosting from a Kubeflow Pipelines workflow. For more information, see [SageMaker Hosting Services - Create Endpoint Kubeflow Pipeline component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/deploy).
+The Hosting component allows you to submit Amazon SageMaker Hosting deployments directly from a Kubeflow Pipelines workflow. For more information, see [SageMaker Endpoint Kubeflow Pipelines component version 2](./Endpoint), [SageMaker Endpoint Config Kubeflow Pipelines component version 2](./EndpointConfig), [SageMaker Model Kubeflow Pipelines component version 2](./Model)
+
+For more information about Version 1 of Hosting components see [SageMaker Hosting Services - Create Endpoint Kubeflow Pipeline component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/deploy).
 
 #### Batch Transform component
 
