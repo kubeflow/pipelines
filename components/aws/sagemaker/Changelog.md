@@ -4,6 +4,11 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components) or [Dockerhub](https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components). New releases after v1.1.1 will be using the public ECR repository
 
 ---------------------------------------------
+** Change log for version 2.2.0 **
+
+- Introducing SageMaker Hosting components v2. This release includes [Model](./Model/), [EndpointConfig](./EndpointConfig/), [Endpoint](./Endpoint/).
+> Pull request : [#9243](https://github.com/kubeflow/pipelines/pull/9243)
+
 **Change log for version 2.1.0**
 - Adds support for Managed Warm Pool clusters, Instance Groups, Retry Strategy in the Training Job component.
 

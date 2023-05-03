@@ -17,6 +17,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'fs';
 import 'jest';
+import * as JsYaml from 'js-yaml';
+import * as features from 'src/features';
 import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -37,9 +39,9 @@ import { V2beta1RecurringRun, RecurringRunMode } from 'src/apisv2beta1/recurring
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
-import NewRunV2 from './NewRunV2';
-import { PageProps } from './Page';
-import * as JsYaml from 'js-yaml';
+import NewRunV2 from 'src/pages/NewRunV2';
+import NewRunSwitcher from 'src/pages/NewRunSwitcher';
+import { PageProps } from 'src/Page';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
 const v2XGYamlTemplateString = fs.readFileSync(V2_XG_PIPELINESPEC_PATH, 'utf8');
@@ -71,7 +73,7 @@ describe('NewRunV2', () => {
     display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
     pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
     pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-    pipeline_spec: v2XGPipelineSpec,
+    pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
   };
   const OTHER_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
     description: '',
@@ -236,12 +238,15 @@ describe('NewRunV2', () => {
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
-  function generatePropsNewRun(): PageProps {
+  function generatePropsNewRun(
+    pid = ORIGINAL_TEST_PIPELINE_ID,
+    vid = ORIGINAL_TEST_PIPELINE_VERSION_ID,
+  ): PageProps {
     return {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
       location: {
         pathname: RoutePage.NEW_RUN,
-        search: `?${QUERY_PARAMS.pipelineId}=${ORIGINAL_TEST_PIPELINE_ID}&${QUERY_PARAMS.pipelineVersionId}=${ORIGINAL_TEST_PIPELINE_VERSION_ID}`,
+        search: `?${QUERY_PARAMS.pipelineId}=${pid}&${QUERY_PARAMS.pipelineVersionId}=${vid}`,
       } as any,
       match: '' as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
@@ -358,6 +363,65 @@ describe('NewRunV2', () => {
     );
     fireEvent.change(runNameInput, { target: { value: 'Run with custom name' } });
     expect(runNameInput.closest('input')?.value).toBe('Run with custom name');
+  });
+
+  describe('redirect to different new run page', () => {
+    it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
+      jest
+        .spyOn(features, 'isFeatureEnabled')
+        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...generatePropsNewRun()} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
+
+      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+    });
+
+    it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
+      const TEST_PIPELINE_VERSION_NOT_V2SPEC: V2beta1PipelineVersion = {
+        description: '',
+        display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: 'test-not-v2-spec-version-id',
+        pipeline_spec: { spec: { arguments: { parameters: [{ name: 'output' }] } } },
+      };
+
+      jest
+        .spyOn(features, 'isFeatureEnabled')
+        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+      const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_NOT_V2SPEC);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher
+            {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-not-v2-spec-version-id')}
+          />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(getPipelineV2Spy).toHaveBeenCalled();
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
+
+      expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+    });
   });
 
   describe('starting a new run', () => {

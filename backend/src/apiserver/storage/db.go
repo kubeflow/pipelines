@@ -56,6 +56,9 @@ type SQLDialect interface {
 	// Modifies the SELECT clause in query to return one that locks the selected
 	// row for update.
 	SelectForUpdate(query string) string
+
+	// Inserts new rows and updates duplicates based on the key column.
+	Upsert(query string, key string, columns ...string) string
 }
 
 // MySQLDialect implements SQLDialect with mysql dialect implementation.
@@ -115,6 +118,14 @@ func (d SQLiteDialect) SelectForUpdate(query string) string {
 	return query
 }
 
+func (d MySQLDialect) Upsert(query string, key string, columns ...string) string {
+	return fmt.Sprintf("%v ON DUPLICATE KEY UPDATE %v", query, prepareUpdateSuffixMySQL(columns))
+}
+
+func (d SQLiteDialect) Upsert(query string, key string, columns ...string) string {
+	return fmt.Sprintf("%v ON CONFLICT(%v) DO UPDATE SET %v", query, key, prepareUpdateSuffixSQLite(columns))
+}
+
 func (d SQLiteDialect) IsDuplicateError(err error) bool {
 	sqlError, ok := err.(sqlite3.Error)
 	return ok && sqlError.Code == sqlite3.ErrConstraint
@@ -126,4 +137,20 @@ func NewMySQLDialect() MySQLDialect {
 
 func NewSQLiteDialect() SQLiteDialect {
 	return SQLiteDialect{}
+}
+
+func prepareUpdateSuffixMySQL(columns []string) string {
+	columnsExtended := make([]string, 0)
+	for _, c := range columns {
+		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=VALUES(%[1]v)", c))
+	}
+	return strings.Join(columnsExtended, ",")
+}
+
+func prepareUpdateSuffixSQLite(columns []string) string {
+	columnsExtended := make([]string, 0)
+	for _, c := range columns {
+		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=excluded.%[1]v", c))
+	}
+	return strings.Join(columnsExtended, ",")
 }

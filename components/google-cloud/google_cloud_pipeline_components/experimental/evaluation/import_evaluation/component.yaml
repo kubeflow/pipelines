@@ -32,6 +32,9 @@ inputs:
   - {name: classification_metrics, type: google.ClassificationMetrics, optional: True}
   - {name: forecasting_metrics, type: google.ForecastingMetrics, optional: True}
   - {name: regression_metrics, type: google.RegressionMetrics, optional: True}
+  - {name: text_generation_metrics, type: Metrics, optional: True}
+  - {name: question_answering_metrics, type: Metrics, optional: True}
+  - {name: summarization_metrics, type: Metrics, optional: True}
   - {name: explanation, type: Metrics, optional: True}
   - {name: feature_attributions, type: Metrics, optional: True}
   - {name: display_name, type: String, default: ''}
@@ -42,7 +45,7 @@ outputs:
   - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b2
     command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation]
     args:
       - if:
@@ -72,6 +75,21 @@ implementation:
           then:
           - --regression_metrics
           - "{{$.inputs.artifacts['regression_metrics'].uri}}"
+      - if:
+          cond: {isPresent: text_generation_metrics}
+          then:
+          - --text_generation_metrics
+          - "{{$.inputs.artifacts['text_generation_metrics'].uri}}"
+      - if:
+          cond: {isPresent: question_answering_metrics}
+          then:
+          - --question_answering_metrics
+          - "{{$.inputs.artifacts['question_answering_metrics'].uri}}"
+      - if:
+          cond: {isPresent: summarization_metrics}
+          then:
+          - --summarization_metrics
+          - "{{$.inputs.artifacts['summarization_metrics'].uri}}"
       - if:
           cond: {isPresent: feature_attributions}
           then:

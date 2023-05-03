@@ -68,6 +68,7 @@
     "build": "npm run lint && EXTEND_ESLINT=true react-scripts build",
     "build:protos": "cd .. && node frontend/scripts/gen_grpc_web_protos.js",
     "build:replace": "node scripts/replace_protos.js",
+    "build:platform-spec:kubernetes-platform": "bash ./scripts/k8splatformspec.sh",
     "build:pipeline-spec": "bash ./scripts/pipelinespec.sh",
     "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" -f Dockerfile ..",
     "eject": "react-scripts eject",
@@ -146,7 +147,7 @@
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.8.3",
     "webpack-bundle-analyzer": "^3.6.1",
-    "yaml": "^2.0.0"
+    "yaml": "^2.2.2"
   },
   "homepage": "./",
   "jest": {

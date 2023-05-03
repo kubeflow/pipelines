@@ -23,3 +23,30 @@ __all__ = [
 WaitGcpResourcesOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'component.yaml')
 )
+"""
+Receives a GCP Resource, polling the resource status and waits for it to finish.
+Currently this component only support waiting on a DataflowJob resource.
+
+To use this component, first create a component that outputs a JSON formatted gcp_resources proto, then pass it to the wait component.
+
+dataflow_python_op = gcpc.v1.dataflow.LaunchPythonOp(
+    python_file_path = ...
+)
+
+dataflow_wait_op = gcpc.v1.wait_gcp_resources.WaitGcp_ResourcesOp(
+    gcp_resources = dataflow_python_op.outputs["gcp_resources"]
+)
+
+For details on how to create a Json serialized gcp_resources proto as output, see
+https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto
+
+
+Args:
+  gcp_resources (str):
+      Serialized JSON of gcp_resources proto, indicating the resource to wait on by this component
+      For details, see https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto
+
+Returns:
+  gcp_resources (str):
+      The final result of the gcp resource, including the error information, if exists.
+"""

@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strings"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -56,6 +57,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		return nil, util.Wrap(err, "Failed to convert runtime config")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
+	if err = t.validatePipelineJobInputs(job); err != nil {
+		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job inputs: %s", err.Error()))
+	}
 
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
@@ -256,7 +260,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
-
+	if err = t.validatePipelineJobInputs(job); err != nil {
+		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job inputs: %s", err.Error()))
+	}
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
 	if t.platformSpec != nil {
@@ -305,4 +311,80 @@ func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
 	}
 	_, ok := platformSpec.Platforms["kubernetes"]
 	return ok
+}
+
+func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error {
+	// If the pipeline requires no input, t.spec.GetRoot().GetInputDefinitions() will be nil,
+	// but we still need to verify that no extra parameters are provided.
+	requiredParams := make(map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec)
+	if t.spec.GetRoot().GetInputDefinitions() != nil {
+		requiredParams = t.spec.GetRoot().GetInputDefinitions().GetParameters()
+	}
+
+	runtimeConfig := job.GetRuntimeConfig()
+	if runtimeConfig == nil {
+		if len(requiredParams) != 0 {
+			requiredParamNames := make([]string, 0)
+			for name, _ := range requiredParams {
+				requiredParamNames = append(requiredParamNames, name)
+			}
+			return fmt.Errorf("pipeline requiring input has no paramater(s) provided. Need parameter(s): %s", strings.Join(requiredParamNames, ", "))
+		} else {
+			// both required parameters and inputs are empty
+			return nil
+		}
+	}
+
+	// Verify that required parameters are provided
+	for name, param := range requiredParams {
+		if input, ok := runtimeConfig.GetParameterValues()[name]; !ok {
+			// If the parameter is optional, or there is a default value, it's ok to not have a user input
+			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
+				return fmt.Errorf("parameter %s is not optional, yet has neither default value nor user provided value", name)
+			}
+		} else {
+			// Verify the parameter type is correct
+			switch param.GetParameterType() {
+			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
+				return fmt.Errorf("input parameter %s has unspecified type", name)
+			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
+				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
+					return fmt.Errorf("input parameter %s requires type double or integer, but the parameter value is not of number value type", name)
+				}
+			case pipelinespec.ParameterType_STRING:
+				if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
+					return fmt.Errorf("input parameter %s requires type string, but the input parameter is not of string value type", name)
+				}
+			case pipelinespec.ParameterType_BOOLEAN:
+				if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
+					return fmt.Errorf("input parameter %s requires type bool, but the input parameter is not of bool value type", name)
+				}
+			case pipelinespec.ParameterType_LIST:
+				if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
+					return fmt.Errorf("input parameter %s requires type list, but the input parameter is not of list value type", name)
+				}
+			case pipelinespec.ParameterType_STRUCT:
+				if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
+					return fmt.Errorf("input parameter %s requires type struct, but the input parameter is not of struct value type", name)
+				}
+			case pipelinespec.ParameterType_TASK_FINAL_STATUS:
+				return fmt.Errorf("input parameter %s requires type TASK_FINAL_STATUS, which is invalid for root component", name)
+			default:
+				return fmt.Errorf("input parameter %s requires type unknown", name)
+			}
+		}
+	}
+
+	// Verify that only required parameters are provided
+	extraParams := make([]string, 0)
+	for name, _ := range runtimeConfig.GetParameterValues() {
+		if _, ok := requiredParams[name]; !ok {
+			extraParams = append(extraParams, name)
+		}
+	}
+	if len(extraParams) > 0 {
+		return fmt.Errorf("parameter(s) provided are not required by pipeline: %s", strings.Join(extraParams, ", "))
+	}
+
+	return nil
 }

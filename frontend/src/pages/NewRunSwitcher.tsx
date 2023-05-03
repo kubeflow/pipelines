@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from 'react-query';
 import { QUERY_PARAMS } from 'src/components/Router';
-import { isFeatureEnabled, FeatureKey } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { URLParser } from 'src/lib/URLParser';
@@ -120,22 +119,6 @@ function NewRunSwitcher(props: PageProps) {
   const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
   const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
 
-  const {
-    isSuccess: isTemplatePullSuccessFromPipeline,
-    isFetching: pipelineTemplateStrIsFetching,
-    data: templateStrFromTemplate,
-  } = useQuery<string, Error>(
-    ['ApiPipelineVersionTemplate', pipelineVersionIdParam],
-    async () => {
-      if (!pipelineVersionId) {
-        return '';
-      }
-      const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
-      return template?.template || '';
-    },
-    { enabled: !!pipelineVersion, staleTime: Infinity, cacheTime: 0 },
-  );
-
   const { data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['experiment', experimentId],
     async () => {
@@ -147,33 +130,28 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  const templateString =
-    pipelineManifest ?? isTemplateV2(templateStrFromSpec)
-      ? templateStrFromSpec
-      : templateStrFromTemplate;
+  // Two possible sources for template string
+  // 1. pipelineManifest: pipeline_spec stored in run or recurring run created by SDK
+  // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
+  const templateString = pipelineManifest ?? templateStrFromSpec;
 
-  if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if (
-      (getV2RunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) &&
-      isTemplateV2(templateString || '')
-    ) {
-      return (
-        <NewRunV2
-          {...props}
-          namespace={namespace}
-          existingRunId={existingRunId}
-          existingRun={v2Run}
-          existingRecurringRunId={originalRecurringRunId}
-          existingRecurringRun={recurringRun}
-          existingPipeline={pipeline}
-          handlePipelineIdChange={setPipelineIdFromPipeline}
-          existingPipelineVersion={pipelineVersion}
-          handlePipelineVersionIdChange={setPipelineVersionIdParam}
-          templateString={templateString}
-          chosenExperiment={experiment}
-        />
-      );
-    }
+  if (isTemplateV2(templateString || '')) {
+    return (
+      <NewRunV2
+        {...props}
+        namespace={namespace}
+        existingRunId={existingRunId}
+        existingRun={v2Run}
+        existingRecurringRunId={originalRecurringRunId}
+        existingRecurringRun={recurringRun}
+        existingPipeline={pipeline}
+        handlePipelineIdChange={setPipelineIdFromPipeline}
+        existingPipelineVersion={pipelineVersion}
+        handlePipelineVersionIdChange={setPipelineVersionIdParam}
+        templateString={templateString}
+        chosenExperiment={experiment}
+      />
+    );
   }
 
   // Use experiment ID to create new run
@@ -183,8 +161,7 @@ function NewRunSwitcher(props: PageProps) {
     v2RunIsFetching ||
     recurringRunIsFetching ||
     pipelineIsFetching ||
-    pipelineVersionIsFetching ||
-    pipelineTemplateStrIsFetching
+    pipelineVersionIsFetching
   ) {
     return <div>Currently loading pipeline information</div>;
   }

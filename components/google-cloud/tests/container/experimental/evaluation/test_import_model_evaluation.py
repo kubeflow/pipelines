@@ -2,17 +2,19 @@
 
 import json
 import os
-from unittest import mock
 
 import google.auth
 from google.cloud import aiplatform
+from google.cloud.aiplatform_v1.types.model_evaluation_slice import ModelEvaluationSlice
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import main
-from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import to_value
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import PROBLEM_TYPE_TO_SCHEMA_URI
+from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import to_value
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
 from google.protobuf import json_format
 import unittest
+from unittest import mock
+
 
 SCHEMA_URI = 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml'
 DISPLAY_NAME = 'sheesh'
@@ -375,7 +377,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
           serialized_gcp_resources, gcp_resources_pb2.GcpResources()
       )
 
-      self.assertLen(model_evaluation_resources.resources, 1)
+      self.assertLen(model_evaluation_resources.resources, 2)
       model_evaluation_name = model_evaluation_resources.resources[
           0
       ].resource_uri[len(self._model_evaluation_uri_prefix) :]
@@ -813,6 +815,149 @@ class ImportModelEvaluationTest(unittest.TestCase):
         }],
     )
     self.assertEqual(mock_api.call_count, 2)
+
+  @mock_api_call
+  def test_import_model_evaluation_slice_with_slice_dimension_no_slicing_spec(
+      self, _, mock_api
+  ):
+    # Arrange.
+    sliced_metrics = json.loads(METRICS)['slicedMetrics']
+    sliced_metrics[1]['singleOutputSlicingSpec']['dimension'] = 'slice'
+    sliced_metrics[1]['singleOutputSlicingSpec']['value'] = 'test_value'
+    sliced_metrics[1]['singleOutputSlicingSpec']['slicingSpec'] = {
+        'configs': {}
+    }
+    metrics = {'slicedMetrics': sliced_metrics}
+    with open(self.metrics_path, 'w') as f:
+      f.write(json.dumps(metrics))
+
+    # Act.
+    main([
+        '--metrics',
+        self.metrics_path,
+        '--problem_type',
+        'classification',
+        '--model_name',
+        self._model_name,
+        '--pipeline_job_id',
+        PIPELINE_JOB_ID,
+        '--gcp_resources',
+        self._gcp_resources,
+    ])
+
+    # Assert.
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=MODEL_EVAL_NAME,
+        model_evaluation_slices=[{
+            'metrics_schema_uri': SCHEMA_URI,
+            'metrics': to_value(
+                json.loads(METRICS)['slicedMetrics'][1]['metrics']['regression']
+            ),
+            'slice_': {
+                'dimension': 'slice',
+                'value': 'test_value',
+            },
+        }],
+    )
+
+  @mock_api_call
+  def test_import_model_evaluation_slice_with_slice_dimension(
+      self, _, mock_api
+  ):
+    # Arrange.
+    sliced_metrics = json.loads(METRICS)['slicedMetrics']
+    sliced_metrics[1]['singleOutputSlicingSpec']['dimension'] = 'slice'
+    sliced_metrics[1]['singleOutputSlicingSpec']['value'] = 'test_value'
+    sliced_metrics[1]['singleOutputSlicingSpec']['slicingSpec'] = {
+        'configs': {'feature_a': {'value': {'stringValue': 'label_a'}}}
+    }
+    metrics = {'slicedMetrics': sliced_metrics}
+    with open(self.metrics_path, 'w') as f:
+      f.write(json.dumps(metrics))
+
+    # Act.
+    main([
+        '--metrics',
+        self.metrics_path,
+        '--problem_type',
+        'classification',
+        '--model_name',
+        self._model_name,
+        '--pipeline_job_id',
+        PIPELINE_JOB_ID,
+        '--gcp_resources',
+        self._gcp_resources,
+    ])
+
+    # Assert.
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=MODEL_EVAL_NAME,
+        model_evaluation_slices=[{
+            'metrics_schema_uri': SCHEMA_URI,
+            'metrics': to_value(
+                json.loads(METRICS)['slicedMetrics'][1]['metrics']['regression']
+            ),
+            'slice_': {
+                'dimension': 'slice',
+                'value': 'test_value',
+                'slice_spec': ModelEvaluationSlice.Slice.SliceSpec.from_json(
+                    json.dumps(
+                        {
+                            'configs': {
+                                'feature_a': {
+                                    'value': {'stringValue': 'label_a'}
+                                }
+                            }
+                        }
+                    )
+                ),
+            },
+        }],
+    )
+
+  @mock_api_call
+  def test_import_model_evaluation_slice_with_annotation_spec_dimension(
+      self, _, mock_api
+  ):
+    # Arrange.
+    sliced_metrics = json.loads(METRICS)['slicedMetrics']
+    sliced_metrics[1]['singleOutputSlicingSpec']['dimension'] = 'annotationSpec'
+    sliced_metrics[1]['singleOutputSlicingSpec']['value'] = 'test_value'
+    metrics = {'slicedMetrics': sliced_metrics}
+    with open(self.metrics_path, 'w') as f:
+      f.write(json.dumps(metrics))
+
+    # Act.
+    main([
+        '--metrics',
+        self.metrics_path,
+        '--problem_type',
+        'classification',
+        '--model_name',
+        self._model_name,
+        '--pipeline_job_id',
+        PIPELINE_JOB_ID,
+        '--gcp_resources',
+        self._gcp_resources,
+    ])
+
+    # Assert.
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=MODEL_EVAL_NAME,
+        model_evaluation_slices=[{
+            'metrics_schema_uri': SCHEMA_URI,
+            'metrics': to_value(
+                json.loads(METRICS)['slicedMetrics'][1]['metrics']['regression']
+            ),
+            'slice_': {
+                'dimension': 'annotationSpec',
+                'value': 'test_value',
+            },
+        }],
+    )
 
 
 if __name__ == '__main__':

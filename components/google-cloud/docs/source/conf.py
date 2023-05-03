@@ -1,31 +1,33 @@
-# Configuration file for the Sphinx documentation builder.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('..'))
-
-# The following code is to make sure RTD extracts the documentation
-# correctly when using KFP v2
-from kfp import dsl, components, deprecated
-from typing import Callable
+from kfp import dsl
+from kfp import components
+import yaml
+import re
 
 
+# preserve function docstrings for components by setting component decorators to passthrough decorators
+# also enables autodoc to document the components as functions without using the autodata directive (https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#directive-autodata)
 def container_component_decorator(func):
+  func._is_component = True
   return func
 
 
 def component_decorator(*args, **kwargs):
   def decorator(func):
+    func._is_component = True
     return func
 
   return decorator
@@ -33,51 +35,155 @@ def component_decorator(*args, **kwargs):
 
 dsl.component = component_decorator
 dsl.container_component = container_component_decorator
-components.load_component_from_file = (
-    deprecated.components.load_component_from_file
-)
 
 
-# -- Project information -----------------------------------------------------
+def load_from_file(path: str):
+  with open(path) as f:
+    contents = f.read()
+    component_dict = yaml.safe_load(contents)
+  comp = components.load_component_from_text(contents)
+  description = component_dict.get('description', '')
+  comp.__doc__ = description
+  return comp
 
-project = 'google_cloud_pipeline_components'
-copyright = '2023, Google Inc'
-author = 'Google Inc'
 
+components.load_component_from_file = load_from_file
+
+# The short X.Y version
+# update for each release
+VERSION = '2.0.0b2'
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
-
+release = VERSION
 
 # -- General configuration ---------------------------------------------------
+
+# If your documentation needs a minimal Sphinx version, state it here.
+# needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
+    'm2r2',
+    'sphinx_immaterial',
+    'autodocsumm',
+]
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'alphabetical',
+    'imported-members': True,
+    'undoc-members': True,
+    'show-inheritance': False,
+    'autosummary': False,
+}
 
+html_theme = 'sphinx_immaterial'
+html_title = 'Google Cloud Pipeline Components Reference Documentation'
+html_static_path = ['_static']
+html_css_files = ['custom.css']
+html_theme_options = {
+    'icon': {
+        'repo': 'fontawesome/brands/github',
+    },
+    'repo_url': 'https://github.com/kubeflow/pipelines/tree/master/components/google-cloud',
+    'repo_name': 'pipelines',
+    'repo_type': 'github',
+    'edit_uri': 'https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/docs/source',
+    'globaltoc_collapse': True,
+    'features': [
+        'navigation.expand',
+        # "navigation.tabs",
+        # "toc.integrate",
+        'navigation.sections',
+        # "navigation.instant",
+        # "header.autohide",
+        'navigation.top',
+        # "navigation.tracking",
+        'search.highlight',
+        'search.share',
+        'toc.follow',
+        'toc.sticky',
+    ],
+    'font': {'text': 'Open Sans'},
+    'version_dropdown': True,
+    'version_info': [
+        {
+            'version': f'https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-{VERSION}',
+            'title': VERSION,
+            'aliases': ['stable'],
+        },
+    ],
+    # "toc_title_is_page_title": True,
+}
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+# The suffix(es) of source filenames.
+# You can specify multiple suffix as a list of string:
+source_suffix = '.rst'
+
+# The master toctree document.
+master_doc = 'index'
+
+# The language for content autogenerated by Sphinx. Refer to documentation
+# for a list of supported languages.
+#
+# This is also used if you do content translation via gettext catalogs.
+# Usually you set "language" from the command line for these cases.
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = None
 
-# -- Options for HTML output -------------------------------------------------
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
+# The default sidebars (for documents that don't match any pattern) are
+# defined by theme itself.  Builtin themes are using these templates by
+# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
+# 'searchbox.html']``.
 #
-html_theme = 'sphinx_rtd_theme'
+# html_sidebars = {}
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# -- Options for HTMLHelp output ---------------------------------------------
 
-# These paths are either relative to html_static_path
-# or fully qualified paths (eg. https://...)
-html_css_files = [
-    'css/custom.css',
-]
+# Output file base name for HTML help builder.
+htmlhelp_basename = 'GoogleCloudPipelineComponentsDocs'
+
+
+def strip_outputs_from_signature(
+    app, what, name, obj, options, signature, return_annotation
+):
+  if signature is not None:
+    signature = re.sub(
+        (
+            r'[0-9a-zA-Z]+:'
+            r' <kfp\.components\.types\.type_annotations\.OutputPath object at'
+            r' 0x[0-9a-fA-F]+>?,?\s'
+        ),
+        '',
+        signature,
+    )
+  return signature, return_annotation
+
+
+def example_grouper(app, what, name, obj, section, parent):
+  if getattr(obj, '_is_component', False):
+    return 'Components'
+
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+  skip = True
+  if name == 'create_custom_training_job_op_from_component':
+    return skip
+
+
+def setup(app):
+  app.connect('autodoc-process-signature', strip_outputs_from_signature)
+  app.connect('autodocsumm-grouper', example_grouper)
+  app.connect('autodoc-skip-member', autodoc_skip_member)

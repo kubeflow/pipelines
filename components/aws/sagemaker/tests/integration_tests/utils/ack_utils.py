@@ -46,22 +46,48 @@ def _delete_resource(k8s_client, job_name, plural):
     return True
 
 
-def describe_training_job(k8s_client, training_job_name):
-    training_vars = {
-        "group": "sagemaker.services.k8s.aws",
-        "version": "v1alpha1",
-        "plural": "trainingjobs",
-    }
-    return _get_resource(k8s_client, training_job_name, training_vars)
-
-
 # TODO: Make this a generalized function for non-job resources.
 def wait_for_trainingjob_status(
     k8s_client, training_job_name, desiredStatuses, wait_periods, period_length
 ):
     for _ in range(wait_periods):
-        response = describe_training_job(k8s_client, training_job_name)
+        response = _get_resource(k8s_client, training_job_name, "trainingjobs")
         if response["status"]["trainingJobStatus"] in desiredStatuses:
             return True
         sleep(period_length)
     return False
+
+
+def wait_for_condition(
+    k8s_client, resource_name, validator_function, wait_periods=10, period_length=8
+):
+    for _ in range(wait_periods):
+        if not validator_function(k8s_client, resource_name):
+            sleep(period_length)
+        else:
+            return True
+    return False
+
+
+def does_endpoint_exist(k8s_client, endpoint_name):
+    try:
+        response = _get_resource(k8s_client, endpoint_name, "endpoints")
+        if response:
+            return True
+        if response is None:  # kubernetes module error
+            return False
+    except:
+        return False
+
+
+def is_endpoint_deleted(k8s_client, endpoint_name):
+    try:
+        response = _get_resource(k8s_client, endpoint_name, "endpoints")
+        if response:
+            return False
+        if (
+            response is None
+        ):  # kubernetes module error, 404 would mean the resource doesnt exist
+            return False
+    except:
+        return True

@@ -716,12 +716,6 @@ deploymentSpec:
         - get_first_valid
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -736,7 +730,7 @@ deploymentSpec:
           \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
           \n  for value in json.loads(values):\n    if value:\n      return value\n\
           \  raise ValueError('No valid values.')\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-get-model-metadata:
       container:
         args:
@@ -862,12 +856,6 @@ deploymentSpec:
         - maybe_replace_with_default
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -880,7 +868,7 @@ deploymentSpec:
           \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
           \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
           \n  return default if not value else value\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-validate-inputs:
       container:
         args:
@@ -889,12 +877,6 @@ deploymentSpec:
         - --function_to_execute
         - validate_inputs
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -920,22 +902,22 @@ deploymentSpec:
           \ parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
           \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
           \n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
-          \  dataset_pattern = r'.[a-zA-Z0-9_]+'\n  table_pattern = r'.[^\\.\\:`]+'\n\
+          \  dataset_pattern = r'[a-zA-Z0-9_]+'\n  table_pattern = r'[^\\.\\:`]+'\n\
+          \  dataset_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}')\n\
+          \  table_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}[.:]{table_pattern}')\n\
           \n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters\
           \ = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n\
           \  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n \
           \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
-          \      raise ValueError(f'Invalid column name: {column}.')\n  dataset_uri_pattern\
-          \ = re.compile(project_pattern + dataset_pattern)\n  if (bigquery_destination_uri\
+          \      raise ValueError(f'Invalid column name: {column}.')\n  if (bigquery_destination_uri\
           \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
           \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
-          \  table_uri_pattern = re.compile(project_pattern + dataset_pattern +\n\
-          \                                 table_pattern)\n  if (source_model_uri\
-          \ and not table_uri_pattern.fullmatch(source_model_uri)):\n    raise ValueError(f'Invalid\
-          \ BigQuery table URI: {source_model_uri}.')\n\n  # Validate data source.\n\
-          \  data_source_count = sum([bool(source) for source in [\n      data_source_bigquery_table_path,\
-          \ data_source_csv_filenames]])\n  if data_source_count > 1:\n    raise ValueError(f'Expected\
-          \ 1 data source, found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
+          \  if (source_model_uri and not table_uri_pattern.fullmatch(source_model_uri)):\n\
+          \    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\
+          \n  # Validate data source.\n  data_source_count = sum([bool(source) for\
+          \ source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n\
+          \  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source,\
+          \ found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
           \      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n\
           \    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
           \  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n\
@@ -981,7 +963,7 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
 pipelineInfo:
   name: automl-tabular-bqml-arima-prediction
 root:
