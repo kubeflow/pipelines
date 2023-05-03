@@ -1,15 +1,13 @@
 # SageMaker Endpoint Kubeflow Pipelines component v2
 
-Component to create [SageMaker Endpoints](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model.html) in a Kubeflow Pipelines workflow.
-
-
 ## Overview
 
-The Amazon SageMaker components for Kubeflow Pipelines version 1(v1.1.x or below) uses [Boto3 (AWS SDK for Python)](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html) as the backend to create and manage resources on SageMaker. SageMaker components version 2(v2.0.0-alpha2 or above) uses the [ACK Service Controller for SageMaker](https://github.com/aws-controllers-k8s/sagemaker-controller) to do the same. AWS introduced [ACK](https://aws-controllers-k8s.github.io/community/) to facilitate a Kubernetes-native way of managing AWS Cloud resources. ACK includes a set of AWS service-specific controllers, one of which is the SageMaker controller. The SageMaker controller makes it easier for machine learning developers and data scientists who use Kubernetes as their control plane to train, tune, and deploy machine learning models in Amazon SageMaker.
-
-Creating SageMaker resouces using the controller allows you to create and monitor the resources as part of a Kubeflow Pipelines workflow(same as version 1 of components) and additionally provides you a flexible and consistent experience to manage the SageMaker resources from other environments such as using the Kubernetes command line tool(kubectl) or the other Kubeflow applications such as Notebooks.
-
 Endpoint is one of the three components(along with EndpointConfig and Model) you would use to create a Hosting deployment on Sagemaker.
+
+Component to create [SageMaker Endpoints](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model.html) in a Kubeflow Pipelines workflow.
+
+See the SageMaker Components for Kubeflow Pipelines versions section in [SageMaker Components for Kubeflow Pipelines](https://docs.aws.amazon.com/sagemaker/latest/dg/kubernetes-sagemaker-components-for-kubeflow-pipelines.html#kubeflow-pipeline-components) to learn about the differences between the version 1 and version 2 components.
+
 
 ### Kubeflow Pipelines backend compatibility
 SageMaker components are currently supported with Kubeflow pipelines backend v1. This means, you will have to use KFP sdk 1.8.x to create your pipelines.
