@@ -118,4 +118,5 @@ def bigquery_ml_roc_curve_job(
       json.dumps(job_configuration_query_override_json),
       gcp_resources,
       executor_input,
+      'roc_curve',
   )
