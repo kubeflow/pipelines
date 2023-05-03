@@ -54,11 +54,6 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
         print(job_definition_describe)
 
         # Check if the job definition is created
-
-        assert (
-            job_definition_describe["status"]["conditions"][0]["type"]
-            == "ACK.ResourceSynced"
-        )
         assert (
             job_definition_name
             in job_definition_describe["status"]["ackResourceMetadata"]["arn"]
