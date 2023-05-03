@@ -48,6 +48,23 @@ For more information about Version 1 of Hosting components see [SageMaker Hostin
 
 The Batch Transform component enables you to run inference jobs for an entire dataset in Amazon SageMaker from a Kubeflow Pipelines workflow. For more information, see [SageMaker Batch Transform Kubeflow Pipeline component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/batch_transform).
 
+### Model Monitor components
+
+The Model Monitor components allow you to setup Amazon SageMaker monitoring job definition and schedule directly from a Kubeflow Pipelines workflow.
+
+#### Monitoring Job Definition
+
+The Monitoring Job Definition components allow you to create a monitoring job definition that can be used to create a monitoring schedule directly from a Kubeflow Pipelines workflow. For more information, see:
+
+- [SageMaker Data Quality Job Definition Kubeflow Pipelines component version 2](./DataQualityJobDefinition)
+- [SageMaker Model Bias Job Definition Kubeflow Pipelines component version 2](./ModelBiasJobDefinition)
+- [SageMaker Model Explainability Job Definition Kubeflow Pipelines component version 2](./ModelExplainabilityJobDefinition)
+- [SageMaker Model Quality Job Definition Kubeflow Pipelines component version 2](./ModelQualityJobDefinition)
+
+#### Monitoring Schedule
+
+Monitoring Schedule component to create a monitoring schedule that regularly starts Amazon SageMaker Processing Jobs to monitor the data captured for an Amazon SageMaker Endpoint, see [SageMaker Monitoring Schedule Kubeflow Pipelines component version 2](./MonitoringSchedule).
+
 
 ### Ground Truth components
 
