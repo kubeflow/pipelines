@@ -278,6 +278,7 @@ def bigquery_query_job(
     job_configuration_query_override,
     gcp_resources,
     executor_input,
+    artifact_name='destination_table',
 ):
   """Create and poll bigquery job status till it reaches a final state.
 
@@ -308,6 +309,7 @@ def bigquery_query_job(
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input: A json serialized pipeline executor input.
+      artifact_name: The name of the artifact.
   """
   creds, _ = google.auth.default()
   job_uri = check_if_job_exists(gcp_resources)
@@ -329,7 +331,5 @@ def bigquery_query_job(
     projectId = job['configuration']['query']['destinationTable']['projectId']
     datasetId = job['configuration']['query']['destinationTable']['datasetId']
     tableId = job['configuration']['query']['destinationTable']['tableId']
-    bq_table_artifact = BQTable(
-        'destination_table', projectId, datasetId, tableId
-    )
+    bq_table_artifact = BQTable(artifact_name, projectId, datasetId, tableId)
     artifact_util.update_output_artifacts(executor_input, [bq_table_artifact])
