@@ -579,118 +579,178 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
-func TestCreateRun(t *testing.T) {
-	clients, manager, experiment := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-
+func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 	listParams := []interface{}{1, 2, 3}
 	v2RuntimeListParams, _ := structpb.NewList(listParams)
 	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
 	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
-
-	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
-	v2RuntimeParams := map[string]*structpb.Value{
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorldParams), pipelineSpecStruct)
+	runtimeParams := map[string]*structpb.Value{
 		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
 		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
 		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
 		"param5": {Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
 	}
-
-	pipelineSpecStruct := &structpb.Struct{}
-	yaml.Unmarshal([]byte(v2SpecHelloWorldParams), pipelineSpecStruct)
-
-	run := &apiv2beta1.Run{
-		DisplayName:  "run1",
-		ExperimentId: experiment.UUID,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: pipelineSpecStruct,
-		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
-			Parameters:   v2RuntimeParams,
-			PipelineRoot: "model-pipeline-root",
-		},
+	runtimeParamsWithExtra := map[string]*structpb.Value{
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": {Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+		"param6": structpb.NewStringValue("hello"),
+		"param7": structpb.NewStringValue("world"),
 	}
-	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
-	assert.Nil(t, err)
-
-	expectedRun := &apiv2beta1.Run{
-		RunId:          "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentId:   experiment.UUID,
-		DisplayName:    "run1",
-		ServiceAccount: "pipeline-runner",
-		StorageState:   apiv2beta1.Run_AVAILABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
-		FinishedAt:     &timestamp.Timestamp{},
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: run.GetPipelineSpec(),
-		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
-			Parameters:   v2RuntimeParams,
-			PipelineRoot: "model-pipeline-root",
-		},
-		State: apiv2beta1.RuntimeState_PENDING,
-		StateHistory: []*apiv2beta1.RuntimeStatus{
-			{
-				UpdateTime: &timestamp.Timestamp{Seconds: 3},
-				State:      apiv2beta1.RuntimeState_PENDING,
+	tests := []struct {
+		name    string
+		args    *apiv2beta1.CreateRunRequest
+		want    *apiv2beta1.Run
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"Valid V2 - basic",
+			&apiv2beta1.CreateRunRequest{
+				Run: &apiv2beta1.Run{
+					DisplayName:  "run1",
+					ExperimentId: DefaultFakeUUID,
+					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+						PipelineSpec: pipelineSpecStruct,
+					},
+					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+						Parameters:   runtimeParams,
+						PipelineRoot: "model-pipeline-root",
+					},
+				},
 			},
-		},
-	}
-	assert.EqualValues(t, expectedRun, run)
-}
-
-func TestCreateRun_missingParameter(t *testing.T) {
-	clients, manager, experiment := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-
-	pipelineSpecStruct := &structpb.Struct{}
-	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
-
-	run := &apiv2beta1.Run{
-		DisplayName:  "run1",
-		ExperimentId: experiment.UUID,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: pipelineSpecStruct,
-		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
-			Parameters:   map[string]*structpb.Value{},
-			PipelineRoot: "model-pipeline-root",
-		},
-	}
-	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "is not optional, yet has neither default value nor user provided value")
-}
-
-func TestCreateRun_extraParameter(t *testing.T) {
-	clients, manager, experiment := initWithExperiment(t)
-	defer clients.Close()
-	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-
-	pipelineSpecStruct := &structpb.Struct{}
-	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
-
-	run := &apiv2beta1.Run{
-		DisplayName:  "run1",
-		ExperimentId: experiment.UUID,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
-			PipelineSpec: pipelineSpecStruct,
-		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
-			Parameters: map[string]*structpb.Value{
-				"param1": structpb.NewStringValue("hello"),
-				"param2": structpb.NewStringValue("world"),
+			&apiv2beta1.Run{
+				RunId:          "123e4567-e89b-12d3-a456-426655440000",
+				ExperimentId:   DefaultFakeUUID,
+				DisplayName:    "run1",
+				ServiceAccount: "pipeline-runner",
+				StorageState:   apiv2beta1.Run_AVAILABLE,
+				CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+				ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamp.Timestamp{},
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: nil,
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters:   runtimeParams,
+					PipelineRoot: "model-pipeline-root",
+				},
+				State: apiv2beta1.RuntimeState_PENDING,
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamp.Timestamp{Seconds: 3},
+						State:      apiv2beta1.RuntimeState_PENDING,
+					},
+				},
 			},
-			PipelineRoot: "model-pipeline-root",
+			false,
+			"",
+		},
+		{
+			"Valid V2 - no experiment",
+			&apiv2beta1.CreateRunRequest{
+				Run: &apiv2beta1.Run{
+					DisplayName: "run1",
+					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+						PipelineSpec: pipelineSpecStruct,
+					},
+					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+						Parameters:   runtimeParams,
+						PipelineRoot: "model-pipeline-root",
+					},
+				},
+			},
+			&apiv2beta1.Run{
+				RunId:          "123e4567-e89b-12d3-a456-426655440000",
+				ExperimentId:   DefaultFakeUUID,
+				DisplayName:    "run1",
+				ServiceAccount: "pipeline-runner",
+				StorageState:   apiv2beta1.Run_AVAILABLE,
+				CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+				ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamp.Timestamp{},
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: nil,
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters:   runtimeParams,
+					PipelineRoot: "model-pipeline-root",
+				},
+				State: apiv2beta1.RuntimeState_PENDING,
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamp.Timestamp{Seconds: 3},
+						State:      apiv2beta1.RuntimeState_PENDING,
+					},
+				},
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid V2 - missing parameters",
+			&apiv2beta1.CreateRunRequest{
+				Run: &apiv2beta1.Run{
+					DisplayName:  "run1",
+					ExperimentId: DefaultFakeUUID,
+					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+						PipelineSpec: pipelineSpecStruct,
+					},
+					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+						Parameters:   map[string]*structpb.Value{},
+						PipelineRoot: "model-pipeline-root",
+					},
+				},
+			},
+			nil,
+			true,
+			"is not optional, yet has neither default value nor user provided value",
+		},
+		{
+			"Invalid V2 - extra parameter",
+			&apiv2beta1.CreateRunRequest{
+				Run: &apiv2beta1.Run{
+					DisplayName:  "run1",
+					ExperimentId: DefaultFakeUUID,
+					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+						PipelineSpec: pipelineSpecStruct,
+					},
+					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+						Parameters:   runtimeParamsWithExtra,
+						PipelineRoot: "model-pipeline-root",
+					},
+				},
+			},
+			nil,
+			true,
+			"parameter(s) provided are not required by pipeline:",
 		},
 	}
-	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "parameter(s) provided are not required by pipeline:")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, manager, _ := initWithExperiment(t)
+			server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+			server.resourceManager.SetDefaultExperimentId(DefaultFakeUUID, "")
+			got, err := server.CreateRun(context.Background(), tt.args)
+			if tt.wantErr {
+				assert.Nil(t, got)
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				tt.want.PipelineSource = &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: got.GetPipelineSpec(),
+				}
+				assert.EqualValues(t, tt.want, got)
+			}
+			clients.Close()
+		})
+	}
 }
 
 func TestGetRunV1(t *testing.T) {
@@ -1291,9 +1351,9 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 			},
 		},
 	}
-	modelRun, err := toModelRun(apiRun)
-	assert.Nil(t, err)
-	runDetail, _ := manager.CreateRun(context.Background(), modelRun)
+	modelRun, _ := toModelRun(apiRun)
+	modelRun.Namespace = experiment.Namespace
+	runDetail, err := manager.CreateRun(ctx, modelRun)
 	assert.Nil(t, err)
 
 	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
@@ -1301,7 +1361,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"User 'user@google.com' is not authorized with reason",
+		"User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:runs,Subresource:,Name:workflow-name,})",
 	)
 }
 
@@ -1309,33 +1369,14 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	clients, manager, experiment := initWithExperiment(t)
+	clients, manager, oneTimeRun := initWithOneTimeRun(t)
 	defer clients.Close()
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	apiRun := &apiv1beta1.Run{
-		Name: "run1",
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters: []*apiv1beta1.Parameter{
-				{Name: "param1", Value: "world"},
-			},
-		},
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-		},
-	}
-	modelRun, err := toModelRun(apiRun)
-	assert.Nil(t, err)
-	runDetail, _ := manager.CreateRun(context.Background(), modelRun)
-
-	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	err := runServer.canAccessRun(ctx, oneTimeRun.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.Nil(t, err)
 }
 
@@ -1361,6 +1402,10 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: experiment.Namespace},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},

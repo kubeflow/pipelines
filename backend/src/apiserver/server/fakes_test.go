@@ -331,6 +331,10 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: exp.UUID},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: exp.Namespace},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
 		},
 	}
 	modelRun, err := toModelRun(apiRun)

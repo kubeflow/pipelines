@@ -423,40 +423,9 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 }
 
 // Creates a run and schedule a workflow CR.
-// Note: when creating a run from a manifest, this triggers creation of
-// a new pipeline and pipeline version that share the name, description, and namespace.
-// If run.ExperimentId is not specified, it is set to the default experiment.
-// If run.Namespace  is no specified, it gets inferred from the parent experiment.
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
-	if common.IsMultiUserMode() && run.Namespace == "" && run.ExperimentId == "" {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("Run cannot have an empty namespace and experiment id in multi-user mode"), "Failed to create a run")
-	}
-	if run.ExperimentId != "" {
-		ns, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run due to error fetching namespace for experiment %v", run.ExperimentId)
-		}
-		if run.Namespace != "" && run.Namespace != ns {
-			return nil, util.NewInvalidInputError("Failed to create a run in namespace '%v'. Parent experiment %v belongs to namespace '%v'", run.Namespace, run.ExperimentId, ns)
-		}
-		run.Namespace = ns
-	} else {
-		defExpId, err := r.GetDefaultExperimentId(run.Namespace)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a run with empty experiment id. Specify experiment id or check if the default experiment exists in namespace %v", run.Namespace)
-		}
-		// Create the default experiment if it is missing
-		if defExpId == "" {
-			defExpId, err = r.CreateDefaultExperiment(run.Namespace)
-			if err != nil {
-				return nil, util.Wrapf(err, "Failed to create a run with empty experiment id due to error creating the default experiment in namespace %v", run.Namespace)
-			}
-		}
-		run.ExperimentId = defExpId
-	}
-
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
@@ -645,7 +614,7 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunId)
 		}
 	}
-	if err := r.ValidateExperimentNamespace(run.ExperimentId, t.Namespace); err != nil {
+	if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
 	}
 
@@ -919,37 +888,9 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 }
 
 // Creates a recurring run.
-// Note: when creating a recurring run from a manifest, this triggers creation of
-// a new pipeline and pipeline version that share the name, description, and namespace.
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	if common.IsMultiUserMode() && job.Namespace == "" && job.ExperimentId == "" {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run cannot have an empty namespace and experiment id in multi-user mode"), "Failed to create a recurring run")
-	}
-	if job.ExperimentId != "" {
-		ns, err := r.GetNamespaceFromExperimentId(job.ExperimentId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run due to error fetching namespace for experiment %v", job.ExperimentId)
-		}
-		if job.Namespace != "" && job.Namespace != ns {
-			return nil, util.NewInvalidInputError("Failed to create a recurring run in namespace '%v'. Parent experiment %v belongs to namespace '%v'", job.Namespace, job.ExperimentId, ns)
-		}
-		job.Namespace = ns
-	} else {
-		defExpId, err := r.GetDefaultExperimentId(job.Namespace)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id. Specify experiment id or check if the default experiment exists in namespace %v", job.Namespace)
-		}
-		// Create the default experiment if it is missing
-		if defExpId == "" {
-			defExpId, err = r.CreateDefaultExperiment(job.Namespace)
-			if err != nil {
-				return nil, util.Wrapf(err, "Failed to create a recurring run with empty experiment id due to error creating the default experiment in namespace %v", job.Namespace)
-			}
-		}
-		job.ExperimentId = defExpId
-	}
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the job.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
@@ -1772,8 +1713,12 @@ func (r *ResourceManager) ReplaceNamespace(namespace string) string {
 }
 
 // Validates that the provided experiment belongs to the namespace. Returns error otherwise.
-func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, namespace string) error {
+// Returns an error in multi-user mode when experimentId and namespace are both empty.
+func (r *ResourceManager) CheckExperimentBelongsToNamespace(experimentId string, namespace string) error {
 	if experimentId == "" || r.IsEmptyNamespace(namespace) {
+		if common.IsMultiUserMode() {
+			return util.NewInvalidInputError("Resource cannot have an empty namespace and experiment id in multi-user mode")
+		}
 		return nil
 	}
 	experimentNamespace, err := r.GetNamespaceFromExperimentId(experimentId)
@@ -1784,6 +1729,42 @@ func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, names
 		return util.NewInternalServerError(util.NewInvalidInputError("Experiment %s belongs to namespace '%s' (claimed a different namespace '%s')", experimentId, experimentNamespace, namespace), "Failed to validate the namespace of experiment %s", experimentId)
 	}
 	return nil
+}
+
+// Validates the provided experimentId and namespace. Returns valid values if the provided ones are empty.
+// For multi-user more at least one of the input must be non-empty, otherwise, returns an error.
+//  1. Validates that given experimentId belongs to namespace if both are not empty
+//  2. If experimentId is empty, replaces it with the default experimentId from the given namespace.
+//     Creates the default experiment in the given namespace (could be empty in single-user mode) if it is missing.
+//  3. Replaces empty namespace with the parent namespace of the given experimentId.
+func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, namespace string) (string, string, error) {
+	if common.IsMultiUserMode() && experimentId == "" && namespace == "" {
+		return "", "", util.NewInvalidInputError("Both namespace and experiment id can not be empty in multi-user mode")
+	}
+	if experimentId != "" {
+		ns, err := r.GetNamespaceFromExperimentId(experimentId)
+		if err != nil {
+			return "", "", util.Wrapf(err, "Failed to fetch namespace for experiment %v", experimentId)
+		}
+		if namespace != "" && namespace != ns {
+			return "", "", util.NewInvalidInputError("Experiment %v belongs to namespace '%v' instead of '%v'", experimentId, ns, namespace)
+		}
+		namespace = ns
+	} else {
+		defExpId, err := r.GetDefaultExperimentId(namespace)
+		if err != nil {
+			return "", "", util.Wrapf(err, "Specify experiment id or check if the default experiment exists in namespace %v", namespace)
+		}
+		// Create the default experiment if it is missing
+		if defExpId == "" {
+			defExpId, err = r.CreateDefaultExperiment(namespace)
+			if err != nil {
+				return "", "", util.Wrapf(err, "Experiment id is empty. Failed to create a new default experiment in namespace %v", namespace)
+			}
+		}
+		experimentId = defExpId
+	}
+	return experimentId, namespace, nil
 }
 
 // Fetches a task entry.

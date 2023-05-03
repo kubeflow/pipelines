@@ -1732,7 +1732,6 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
@@ -1783,7 +1782,6 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -1999,41 +1997,6 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
-}
-
-func TestCreateRun_NoExperiment(t *testing.T) {
-	viper.Set(common.PodNamespace, "kubeflow")
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	experimentID, _ := manager.CreateDefaultExperiment("")
-	experiment, _ := manager.GetExperiment(experimentID)
-	assert.Equal(t, experiment.Name, "Default")
-	assert.Equal(t, experiment.Namespace, "")
-
-	apiRun := &model.Run{
-		DisplayName: "No experiment",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-	}
-	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-	expectedRunDetail := []*model.ResourceReference{
-		{
-			ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
-			ResourceType: model.RunResourceType,
-			// Experiment is now set
-			ReferenceUUID: experiment.UUID,
-			ReferenceType: model.ExperimentResourceType,
-			Relationship:  model.OwnerRelationship,
-		},
-	}
-	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "The CreateRun return has unexpected value")
-	runDetail, err = manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "CreateRun stored invalid data in database")
 }
 
 func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
@@ -2839,7 +2802,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -2919,77 +2881,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 				{
 					UpdateTimeInSec: 3,
 					State:           model.RuntimeStateUnspecified,
-				},
-			},
-		},
-	}
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())
-}
-
-func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	manager.CreateDefaultExperiment("")
-	job := &model.Job{
-		DisplayName:  "j1",
-		Enabled:      true,
-		PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: testWorkflow.ToStringForStore()},
-		// no experiment reference
-	}
-	newJob, _ := manager.CreateJob(context.Background(), job)
-
-	// report workflow
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-			UID:       "WORKFLOW_1",
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(newJob.UUID),
-			}},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Phase: v1alpha1.WorkflowPending,
-		},
-	})
-
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	runDetail, err := manager.GetRun("WORKFLOW_1")
-	assert.Nil(t, err)
-
-	expectedRunDetail := &model.Run{
-		UUID:           "WORKFLOW_1",
-		ExperimentId:   DefaultFakeUUID,
-		DisplayName:    "MY_NAME",
-		StorageState:   model.StorageStateAvailable,
-		K8SName:        "MY_NAME",
-		Namespace:      newJob.Namespace,
-		RecurringRunId: newJob.UUID,
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
-			PipelineSpecManifest: newJob.PipelineSpec.PipelineSpecManifest,
-			PipelineId:           newJob.PipelineSpec.PipelineId,
-			PipelineName:         newJob.PipelineSpec.PipelineName,
-			PipelineVersionId:    newJob.PipelineSpec.PipelineVersionId,
-		},
-		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: workflow.ToStringForStore(),
-			CreatedAtInSec:          11,
-			ScheduledAtInSec:        11,
-			Conditions:              "Pending",
-			State:                   model.RuntimeStatePending,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 3,
-					State:           model.RuntimeStatePending,
 				},
 			},
 		},
