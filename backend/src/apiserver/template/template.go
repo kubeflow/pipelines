@@ -134,7 +134,7 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	if modelRuntimeConfig.Parameters != "" {
 		err := json.Unmarshal([]byte(modelRuntimeConfig.Parameters), parameters)
 		if err != nil {
-			return nil, err
+			return nil, util.NewInternalServerError(err, "error unmarshalling model runtime config parameters")
 		}
 	}
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
@@ -155,12 +155,12 @@ func stringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter
 	}
 	err := json.Unmarshal([]byte(modelParams), &parameters)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
 	}
 	for name, value := range parameters {
 		valueBytes, err := value.MarshalJSON()
 		if err != nil {
-			return nil, err
+			return nil, util.NewInternalServerError(err, "error marshalling model parameters")
 		}
 		swParam := scheduledworkflow.Parameter{
 			Name:  name,
@@ -183,7 +183,7 @@ func stringArrayToCRDParameters(modelParameters string) ([]scheduledworkflow.Par
 	}
 	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
 	}
 	for _, param := range paramsMapList {
 		desiredParams = append(desiredParams, scheduledworkflow.Parameter{Name: (*param)["name"], Value: (*param)["value"]})
@@ -199,7 +199,7 @@ func modelToParametersMap(modelParameters string) (map[string]string, error) {
 	}
 	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "error marshalling model parameters")
 	}
 	for _, param := range paramsMapList {
 		desiredParamsMap[(*param)["name"]] = (*param)["value"]

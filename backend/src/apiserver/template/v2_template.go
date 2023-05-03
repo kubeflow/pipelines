@@ -43,11 +43,11 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
+		return nil, util.NewInternalServerError(err, "Failed marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, util.Wrap(err, "Failed to parse pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
 
 	job.PipelineSpec = spec
@@ -58,7 +58,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 	if err = t.validatePipelineJobInputs(job); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job inputs: %s", err.Error()))
+		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
 
 	// Pick out Kubernetes platform configs
@@ -78,7 +78,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	// runtime. i.e using ENV var
 	executionSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, obj)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "not Workflow struct")
+		return nil, util.NewInternalServerError(err, "error creating execution spec")
 	}
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {
@@ -97,7 +97,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "convering model trigger to crd trigger failed")
 	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
@@ -248,20 +248,20 @@ func (t *V2Spec) ParametersJSON() (string, error) {
 func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
+		return nil, util.NewInternalServerError(err, "Failed to marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, util.Wrap(err, "Failed to parse pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
 	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelRun.RuntimeConfig)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
+		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 	if err = t.validatePipelineJobInputs(job); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job inputs: %s", err.Error()))
+		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
@@ -277,7 +277,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	executionSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, obj)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "not Workflow struct")
+		return nil, util.Wrap(err, "Error creating execution spec")
 	}
 	// Overwrite namespace from the run object
 	if modelRun.Namespace != "" {
@@ -328,7 +328,10 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			for name, _ := range requiredParams {
 				requiredParamNames = append(requiredParamNames, name)
 			}
-			return fmt.Errorf("pipeline requiring input has no paramater(s) provided. Need parameter(s): %s", strings.Join(requiredParamNames, ", "))
+			return util.NewInvalidInputError(
+				fmt.Sprintf("pipeline requiring input has no paramater(s) provided. Need parameter(s): %s",
+					strings.Join(requiredParamNames, ", ")),
+			)
 		} else {
 			// both required parameters and inputs are empty
 			return nil
@@ -340,37 +343,51 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 		if input, ok := runtimeConfig.GetParameterValues()[name]; !ok {
 			// If the parameter is optional, or there is a default value, it's ok to not have a user input
 			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
-				return fmt.Errorf("parameter %s is not optional, yet has neither default value nor user provided value", name)
+				return util.NewInvalidInputError(
+					fmt.Sprintf("parameter %s is not optional, yet has neither default value nor user provided value", name),
+				)
 			}
 		} else {
 			// Verify the parameter type is correct
 			switch param.GetParameterType() {
 			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
-				return fmt.Errorf("input parameter %s has unspecified type", name)
+				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s has unspecified type", name))
 			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
 				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
-					return fmt.Errorf("input parameter %s requires type double or integer, but the parameter value is not of number value type", name)
+					return util.NewInvalidInputError(
+						fmt.Sprintf("input parameter %s requires type double or integer, but the parameter value is not of number value type", name),
+					)
 				}
 			case pipelinespec.ParameterType_STRING:
 				if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
-					return fmt.Errorf("input parameter %s requires type string, but the input parameter is not of string value type", name)
+					return util.NewInvalidInputError(
+						fmt.Sprintf("input parameter %s requires type string, but the input parameter is not of string value type", name),
+					)
 				}
 			case pipelinespec.ParameterType_BOOLEAN:
 				if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
-					return fmt.Errorf("input parameter %s requires type bool, but the input parameter is not of bool value type", name)
+					return util.NewInvalidInputError(
+						fmt.Sprintf("input parameter %s requires type bool, but the input parameter is not of bool value type", name),
+					)
 				}
 			case pipelinespec.ParameterType_LIST:
 				if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
-					return fmt.Errorf("input parameter %s requires type list, but the input parameter is not of list value type", name)
+					return util.NewInvalidInputError(
+						fmt.Sprintf("input parameter %s requires type list, but the input parameter is not of list value type", name),
+					)
 				}
 			case pipelinespec.ParameterType_STRUCT:
 				if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
-					return fmt.Errorf("input parameter %s requires type struct, but the input parameter is not of struct value type", name)
+					return util.NewInvalidInputError(
+						fmt.Sprintf("input parameter %s requires type struct, but the input parameter is not of struct value type", name),
+					)
 				}
 			case pipelinespec.ParameterType_TASK_FINAL_STATUS:
-				return fmt.Errorf("input parameter %s requires type TASK_FINAL_STATUS, which is invalid for root component", name)
+				return util.NewInvalidInputError(
+					fmt.Sprintf("input parameter %s requires type TASK_FINAL_STATUS, which is invalid for root component", name),
+				)
 			default:
-				return fmt.Errorf("input parameter %s requires type unknown", name)
+				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s requires type unknown", name))
 			}
 		}
 	}
