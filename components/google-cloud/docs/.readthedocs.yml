@@ -5,4 +5,7 @@ sphinx:
 python:
   version: 3.7
   install:
-    - requirements: components/google-cloud/docs/requirements.txt
+    - method: pip
+      path: components/google-cloud
+      extra_requirements:
+        - docs

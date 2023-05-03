@@ -56,7 +56,20 @@ setup(
             "mock>=4.0.0",
             "flake8>=3.0.0",
             "pytest>=6.0.0",
-        ]
+        ],
+        # first list of deps solves a readthedocs dependency resolution error
+        # related to protobuf
+        # second list of deps are true dependencies for building the site
+        "docs": [
+            "protobuf<4.0.0dev,>=3.19.0",
+            "grpcio-status<=1.47.0",
+        ] + [
+            "autodocsumm==0.2.9",
+            "sphinx==5.0.2",
+            "sphinx-immaterial==0.9.0",
+            "sphinx-rtd-theme==1.0.0",
+            "m2r2==0.3.2",
+        ],
     },
     include_package_data=True,
     python_requires=">=3.7.0,<3.12.0",
