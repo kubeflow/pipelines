@@ -101,7 +101,7 @@ class SageMakerComponent:
     COMPONENT_SPEC = SageMakerComponentSpec
 
     STATUS_POLL_INTERVAL = 30
-    UPDATE_PROCESS_INTERVAL = 3
+    UPDATE_PROCESS_INTERVAL = 10
 
     # parameters that will be filled by Do().
     # assignment statements in Do() will be genereated
@@ -113,6 +113,7 @@ class SageMakerComponent:
     namespace: Optional[str] = None
     resource_upgrade: bool = False
     initial_status: dict
+    update_supported: bool
 
     job_request_outline_location: str
     job_request_location: str
@@ -196,6 +197,11 @@ class SageMakerComponent:
         signal.signal(signal.SIGTERM, signal_term_handler)
 
         self.resource_upgrade = self._is_upgrade()
+        if self.resource_upgrade and not self.update_supported:
+            logging.error(
+                f"Resource update is not supported for {self.spaced_out_resource_name}"
+            )
+            return False
         request = self._create_job_request(inputs, outputs)
 
         try:
@@ -217,12 +223,12 @@ class SageMakerComponent:
         )
         try:
             while True:
-                ack_condition = self._check_resource_conditions()
-                if ack_condition:
+                cr_condition = self._check_resource_conditions()
+                if cr_condition:
                     sleep(self.STATUS_POLL_INTERVAL)
                     continue
                 elif (
-                    ack_condition == False
+                    cr_condition == False
                 ):  # ACK.Terminal or special errors (Validation Exception/Invalid Input)
                     return False
 
@@ -235,7 +241,7 @@ class SageMakerComponent:
                 if status and status.is_completed:
                     if self.resource_upgrade:
                         logging.info(
-                            f"{self.spaced_out_resource_name} Upgrade complete, final status: {status.raw_status}"
+                            f"{self.spaced_out_resource_name} Update complete, final status: {status.raw_status}"
                         )
                     else:
                         logging.info(
@@ -282,11 +288,11 @@ class SageMakerComponent:
 
         try:
             while True:
-                ack_condition = self._check_resource_conditions()
-                if ack_condition:  # ACK.Recoverable
+                cr_condition = self._check_resource_conditions()
+                if cr_condition:  # ACK.Recoverable
                     sleep(self.STATUS_POLL_INTERVAL)
                     continue
-                elif ack_condition == False:
+                elif cr_condition == False:
                     if (
                         self.resource_upgrade
                         and not self.is_update_consumed_by_controller()
@@ -630,7 +636,7 @@ class SageMakerComponent:
             condition_status = condition["status"]
             condition_message = condition.get("message", "No error message found.")
 
-            # If the controller has not consumed the update, any existing erorr will not representative of the new state.
+            # If the controller has not consumed the update, any existing error will not representative of the new state.
             if self.resource_upgrade and not self.is_update_consumed_by_controller():
                 continue
             if condition_type == "ACK.Terminal" and condition_status == "True":
@@ -732,10 +738,10 @@ class SageMakerComponent:
         _api = client.CustomObjectsApi(_api_client)
 
         if self.resource_upgrade:
-            logging.info("Stopping component, resource upgrade will still proceed.")
+            logging.info("Recieved termination signal, stopping component but resource update will still proceed if started. Please rerun the component with the desired configuration to revert the update.")
             return _response, True
 
-        logging.info("Deleting resource %s", (self.job_name))
+        logging.info("Recieved termination signal, deleting custom resource %s", (self.job_name))
         _response = None
         if self.namespace is None:
             _response = _api.delete_cluster_custom_object(

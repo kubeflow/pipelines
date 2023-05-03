@@ -62,6 +62,7 @@ class SageMakerMonitoringScheduleComponent(SageMakerComponent):
         self.job_request_location = (
             "MonitoringSchedule/src/MonitoringSchedule_request.yaml"
         )
+        self.update_supported = True
         ############GENERATED SECTION ABOVE############
 
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
@@ -81,7 +82,7 @@ class SageMakerMonitoringScheduleComponent(SageMakerComponent):
             self.initial_status = ack_resource.get("status", None)
             return super()._patch_custom_resource(request)
         else:
-            return super()._create_resource(request, 6, 10)
+            return super()._create_resource(request, 12, 15)
 
     def _on_job_terminated(self):
         super()._delete_custom_resource()

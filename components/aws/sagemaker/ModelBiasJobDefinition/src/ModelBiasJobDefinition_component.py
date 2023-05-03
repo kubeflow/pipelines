@@ -43,7 +43,7 @@ class SageMakerModelBiasJobDefinitionComponent(SageMakerComponent):
 
         ############GENERATED SECTION BELOW############
 
-        self.job_name = spec.inputs.model_bias_job_definition_name = (
+        self.job_name = spec.inputs.job_definition_name = (
             spec.inputs.job_definition_name
             if spec.inputs.job_definition_name
             else SageMakerComponent._generate_unique_timestamped_id(
@@ -62,6 +62,7 @@ class SageMakerModelBiasJobDefinitionComponent(SageMakerComponent):
         self.job_request_location = (
             "ModelBiasJobDefinition/src/ModelBiasJobDefinition_request.yaml"
         )
+        self.update_supported = False
         ############GENERATED SECTION ABOVE############
 
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
@@ -76,12 +77,7 @@ class SageMakerModelBiasJobDefinitionComponent(SageMakerComponent):
 
     def _submit_job_request(self, request: Dict) -> object:
 
-        if self.resource_upgrade:
-            ack_resource = self._get_resource()
-            self.initial_status = ack_resource.get("status", None)
-            return super()._patch_custom_resource(request)
-        else:
-            return super()._create_resource(request, 6, 10)
+        return super()._create_resource(request, 12, 15)
 
     def _on_job_terminated(self):
         super()._delete_custom_resource()

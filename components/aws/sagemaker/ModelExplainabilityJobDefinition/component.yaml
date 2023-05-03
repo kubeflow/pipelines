@@ -92,7 +92,7 @@ outputs:
 
 implementation:
   container:
-    image: rdpen/test-modelmoni:30
+    image: rdpen/test-modelmoni:31
     command: [python3]
     args:
       - ModelExplainabilityJobDefinition/src/ModelExplainabilityJobDefinition_component.py
