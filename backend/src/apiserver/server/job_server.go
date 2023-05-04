@@ -82,49 +82,30 @@ type JobServer struct {
 }
 
 func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	pipelineId := job.PipelineSpec.PipelineId
-	pipelineVersionId := job.PipelineSpec.PipelineVersionId
-	if pipelineVersionId != "" {
-		ns, err := s.resourceManager.FetchNamespaceFromPipelineVersionId(pipelineVersionId)
-		if err != nil {
-			ns = ""
+	// Validate user inputs
+	if job.DisplayName == "" {
+		return nil, util.NewInvalidInputError("Recurring run name is empty. Please specify a valid name")
+	}
+	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(job.ExperimentId, job.Namespace)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentId and namespace combination")
+	}
+	job.ExperimentId = experimentId
+	job.Namespace = namespace
+	// Validate authorization
+	if common.IsMultiUserMode() {
+		if job.Namespace == "" {
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode"), "Failed to create a recurring run due to empty namespace")
 		}
-		job.Namespace = ns
-	} else if pipelineId != "" {
-		ns, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
-		if err != nil {
-			ns = ""
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: job.Namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Resource:  common.RbacResourceTypeJobs,
+			Name:      job.DisplayName,
 		}
-		job.Namespace = ns
-	}
-	if job.ExperimentId == "" {
-		expId, err := s.resourceManager.GetDefaultExperimentId()
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run due to missing parent experiment and default experiment")
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
 		}
-		job.ExperimentId = expId
-	}
-	if job.ExperimentId == "" && common.IsMultiUserMode() {
-		return nil, util.NewInvalidInputError("Failed to create a recurring run due to missing parent experiment id")
-	}
-	if err := s.resourceManager.ValidateExperimentNamespace(job.ExperimentId, job.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", job.Namespace, job.ExperimentId)
-	}
-	if job.Namespace == "" {
-		ns, err := s.resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run due to error fetching namespace of the parent experiment %s", job.ExperimentId)
-		}
-		job.Namespace = ns
-	}
-
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: job.Namespace,
-		Verb:      common.RbacResourceVerbCreate,
-		Name:      job.DisplayName,
-	}
-	if err := s.canAccessJob(ctx, "", resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
 	}
 	return s.resourceManager.CreateJob(ctx, job)
 }
@@ -195,9 +176,8 @@ func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
 	}
-
 	if experimentId != "" {
-		if err := s.resourceManager.ValidateExperimentNamespace(experimentId, namespace); err != nil {
+		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentId, namespace); err != nil {
 			return nil, 0, "", util.Wrap(err, "Failed to list recurring runs due to namespace mismatch")
 		}
 		filterContext = &model.FilterContext{
@@ -216,12 +196,13 @@ func (s *JobServer) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsRequest)
 		listJobRequests.Inc()
 	}
 
-	filterContext, err := validateFilterV1(r.ResourceReferenceKey)
+	filterContext, err := validateFilterV1(r.GetResourceReferenceKey())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
 	}
 	namespace := ""
 	experimentId := ""
+
 	if filterContext.ReferenceKey != nil {
 		switch filterContext.ReferenceKey.Type {
 		case model.NamespaceResourceType:

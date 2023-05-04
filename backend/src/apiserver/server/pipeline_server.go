@@ -313,7 +313,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.Ge
 func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, namespace string, apiRequestVersion string) (*model.Pipeline, *model.PipelineVersion, error) {
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if common.IsMultiUserMode() {
-		if !s.resourceManager.IsDefaultNamespace(namespace) {
+		if !s.resourceManager.IsEmptyNamespace(namespace) {
 			resourceAttributes := &authorizationv1.ResourceAttributes{
 				Namespace: namespace,
 				Verb:      common.RbacResourceVerbGet,
@@ -800,7 +800,7 @@ func (s *PipelineServer) listPipelineVersions(ctx context.Context, pipelineId st
 		if err != nil {
 			return nil, 0, "", util.Wrapf(err, "Failed to list pipeline versions due to error fetching the namespace for pipeline %v", pipelineId)
 		}
-		if !s.resourceManager.IsDefaultNamespace(namespace) {
+		if !s.resourceManager.IsEmptyNamespace(namespace) {
 			resourceAttributes := &authorizationv1.ResourceAttributes{
 				Namespace: namespace,
 				Verb:      common.RbacResourceVerbGet,
@@ -995,7 +995,7 @@ func (s *PipelineServer) canAccessPipelineVersion(ctx context.Context, versionId
 			return util.Wrapf(err, "Failed to access pipeline version %s. Check if it exists and have a namespace assigned", versionId)
 		}
 		// Allow users to access pipelines in the default namespace.
-		if s.resourceManager.IsDefaultNamespace(namespace) {
+		if s.resourceManager.IsEmptyNamespace(namespace) {
 			return nil
 		}
 		resourceAttributes.Namespace = namespace
@@ -1019,7 +1019,7 @@ func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId strin
 			return util.Wrapf(err, "Failed to access pipeline %s. Check if it exists and have a namespace assigned", pipelineId)
 		}
 		// Allow users to access pipelines in the default namespace.
-		if s.resourceManager.IsDefaultNamespace(namespace) {
+		if s.resourceManager.IsEmptyNamespace(namespace) {
 			return nil
 		}
 		resourceAttributes.Namespace = namespace

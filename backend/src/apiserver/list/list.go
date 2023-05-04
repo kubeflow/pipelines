@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -240,7 +241,7 @@ func FilterOnResourceReference(tableName string, columns []string, resourceType 
 		selectBuilder = sq.Select("count(*)")
 	}
 	selectBuilder = selectBuilder.From(tableName)
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.ID != "" {
+	if filterContext.ReferenceKey != nil && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
 		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
 			From("resource_references as rf").
 			Where(sq.And{

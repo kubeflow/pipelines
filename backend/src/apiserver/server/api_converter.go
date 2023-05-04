@@ -1313,7 +1313,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 // Supports v1beta1 API.
 // Note: adds error details to the message if a parsing error occurs.
 func toApiRunV1(r *model.Run) *apiv1beta1.Run {
-	r = r.ToV2()
+	r = r.ToV1()
 	// v1 parameters
 	specParams := toApiParametersV1(r.PipelineSpec.Parameters)
 	if specParams == nil {

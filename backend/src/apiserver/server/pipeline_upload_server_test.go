@@ -121,7 +121,7 @@ func TestUploadPipeline(t *testing.T) {
 					CreatedAtInSec: 1,
 					Name:           "hello-world.yaml",
 					Status:         model.PipelineReady,
-					Namespace:      "default",
+					Namespace:      "",
 				},
 			}
 			pkgsExpect2 := []*model.PipelineVersion{
@@ -226,7 +226,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			CreatedAtInSec: 1,
 			Name:           "arguments.tar.gz",
 			Status:         model.PipelineReady,
-			Namespace:      "default",
+			Namespace:      "",
 		},
 	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
@@ -246,7 +246,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\",\"creationTimestamp\":null},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
-	opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+	opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
@@ -334,7 +334,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			CreatedAtInSec: 1,
 			Name:           "foo bar",
 			Status:         model.PipelineReady,
-			Namespace:      "default",
+			Namespace:      "",
 		},
 	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
@@ -400,7 +400,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			Name:           "foo bar",
 			Status:         model.PipelineReady,
 			Description:    "description of foo bar",
-			Namespace:      "default",
+			Namespace:      "",
 		},
 	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
@@ -551,14 +551,14 @@ func setupWriter(text string) (*bytes.Buffer, *multipart.Writer) {
 
 func setupClientManagerAndServer() (*resource.FakeClientManager, PipelineUploadServer) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return clientManager, server
 }
 
 func updateClientManager(clientManager *resource.FakeClientManager, uuid util.UUIDGeneratorInterface) PipelineUploadServer {
 	clientManager.UpdateUUID(uuid)
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return server
 }

@@ -58,7 +58,7 @@ type SQLDialect interface {
 	SelectForUpdate(query string) string
 
 	// Inserts new rows and updates duplicates based on the key column.
-	Upsert(query string, key string, columns ...string) string
+	Upsert(query string, key string, overwrite bool, columns ...string) string
 }
 
 // MySQLDialect implements SQLDialect with mysql dialect implementation.
@@ -118,12 +118,12 @@ func (d SQLiteDialect) SelectForUpdate(query string) string {
 	return query
 }
 
-func (d MySQLDialect) Upsert(query string, key string, columns ...string) string {
-	return fmt.Sprintf("%v ON DUPLICATE KEY UPDATE %v", query, prepareUpdateSuffixMySQL(columns))
+func (d MySQLDialect) Upsert(query string, key string, overwrite bool, columns ...string) string {
+	return fmt.Sprintf("%v ON DUPLICATE KEY UPDATE %v", query, prepareUpdateSuffixMySQL(columns, overwrite))
 }
 
-func (d SQLiteDialect) Upsert(query string, key string, columns ...string) string {
-	return fmt.Sprintf("%v ON CONFLICT(%v) DO UPDATE SET %v", query, key, prepareUpdateSuffixSQLite(columns))
+func (d SQLiteDialect) Upsert(query string, key string, overwrite bool, columns ...string) string {
+	return fmt.Sprintf("%v ON CONFLICT(%v) DO UPDATE SET %v", query, key, prepareUpdateSuffixSQLite(columns, overwrite))
 }
 
 func (d SQLiteDialect) IsDuplicateError(err error) bool {
@@ -139,18 +139,30 @@ func NewSQLiteDialect() SQLiteDialect {
 	return SQLiteDialect{}
 }
 
-func prepareUpdateSuffixMySQL(columns []string) string {
+func prepareUpdateSuffixMySQL(columns []string, overwrite bool) string {
 	columnsExtended := make([]string, 0)
-	for _, c := range columns {
-		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=VALUES(%[1]v)", c))
+	if overwrite {
+		for _, c := range columns {
+			columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=VALUES(%[1]v)", c))
+		}
+	} else {
+		for _, c := range columns {
+			columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=%[1]v", c))
+		}
 	}
 	return strings.Join(columnsExtended, ",")
 }
 
-func prepareUpdateSuffixSQLite(columns []string) string {
+func prepareUpdateSuffixSQLite(columns []string, overwrite bool) string {
 	columnsExtended := make([]string, 0)
-	for _, c := range columns {
-		columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=excluded.%[1]v", c))
+	if overwrite {
+		for _, c := range columns {
+			columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=excluded.%[1]v", c))
+		}
+	} else {
+		for _, c := range columns {
+			columnsExtended = append(columnsExtended, fmt.Sprintf("%[1]v=%[1]v", c))
+		}
 	}
 	return strings.Join(columnsExtended, ",")
 }
