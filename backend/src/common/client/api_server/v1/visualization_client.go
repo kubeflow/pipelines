@@ -3,7 +3,7 @@ package api_server
 import (
 	"fmt"
 
-	"github.com/go-openapi/runtime"
+	rt "github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client/visualization_service"
@@ -21,7 +21,7 @@ type VisualizationInterface interface {
 
 type VisualizationClient struct {
 	apiClient      *apiclient.Visualization
-	authInfoWriter runtime.ClientAuthInfoWriter
+	authInfoWriter rt.ClientAuthInfoWriter
 }
 
 func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
