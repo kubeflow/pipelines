@@ -751,6 +751,26 @@ func (w *Workflow) PatchTemplateOutputArtifacts() {
 	}
 }
 
+func (w *Workflow) NodeStatuses() map[string]NodeStatus {
+	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
+	for id, node := range w.Status.Nodes {
+		rev[id] = NodeStatus{
+			ID:          node.ID,
+			DisplayName: node.DisplayName,
+			State:       string(node.Phase),
+			StartTime:   node.StartedAt.Unix(),
+			CreateTime:  node.StartedAt.Unix(),
+			FinishTime:  node.FinishedAt.Unix(),
+			Children:    node.Children,
+		}
+	}
+	return rev
+}
+
+func (w *Workflow) HasNodes() bool {
+	return len(w.Status.Nodes) > 0
+}
+
 // implementation of ExecutionClientInterface
 type WorkflowClient struct {
 	client *argoclient.Clientset
