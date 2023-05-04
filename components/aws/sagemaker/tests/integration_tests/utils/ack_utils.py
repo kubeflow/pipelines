@@ -25,25 +25,28 @@ def _get_resource(k8s_client, job_name, plural):
     return job_description
 
 
-def _delete_resource(k8s_client, job_name, plural):
+def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_length=10):
     """Delete the custom resource
     Returns:
-        None or object: None if the resource doesnt exist in server, otherwise the
-            custom object.
+        True or False: True if the resource is deleted, False if the resource deletion times out
     """
     _api = client.CustomObjectsApi(k8s_client)
     namespace = os.environ.get("NAMESPACE")
-    try:
-        _api.delete_namespaced_custom_object(
-            "sagemaker.services.k8s.aws",
-            "v1alpha1",
-            namespace.lower(),
-            plural,
-            job_name.lower(),
-        )
-    except:
-        return False
-    return True
+    for i in range(wait_periods):
+        if _get_resource(k8s_client, job_name, plural) is None:
+            print(f"Resource {job_name} deleted successfully.")
+            return True
+        else:
+            _api.delete_namespaced_custom_object(
+                "sagemaker.services.k8s.aws",
+                "v1alpha1",
+                namespace.lower(),
+                plural,
+                job_name.lower(),
+            )
+        sleep(period_length)
+    print(f"Resourc deletion timed out: {job_name}")
+    return False
 
 
 # TODO: Make this a generalized function for non-job resources.

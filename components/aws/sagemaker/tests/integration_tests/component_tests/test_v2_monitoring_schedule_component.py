@@ -132,18 +132,9 @@ def test_v2_monitoring_schedule(
 
         # Check if the monitoring schedule is created
 
-        # wait for 5 minutes for monitoring schedule to be scheduled
-        for i in range(10):
-            monitoring_schedule_describe = (
-                sagemaker_client.describe_monitoring_schedule(
-                    MonitoringScheduleName=monitoring_schedule_name
-                )
-            )
-
-            if monitoring_schedule_describe["MonitoringScheduleStatus"] == "Scheduled":
-                break
-
-            time.sleep(30)
+        monitoring_schedule_describe = sagemaker_client.describe_monitoring_schedule(
+            MonitoringScheduleName=monitoring_schedule_name
+        )
 
         print("Describe monitoring Schedule Name: " + monitoring_schedule_name)
         print(monitoring_schedule_describe)
@@ -161,20 +152,9 @@ def test_v2_monitoring_schedule(
 
     finally:
         ack_utils._delete_resource(
-            k8s_client, job_definition_name, "modelbiasjobdefinitions"
+            k8s_client,
+            job_definition_name,
+            "modelbiasjobdefinitions",
+            wait_periods=10,
+            period_length=30,
         )
-        try:
-            # wait for 10 minutes for monitoring schedule to be deleted
-            for i in range(20):
-                res = ack_utils._delete_resource(
-                    k8s_client, monitoring_schedule_name, "monitoringschedules"
-                )
-
-                if res == None:
-                    print("MonitoringSchedule resource deleted")
-                    break
-
-                time.sleep(30)
-        except:
-            print("MonitoringSchedule resource failed")
-            raise
