@@ -46,13 +46,11 @@ import (
 )
 
 var (
-	rpcPortFlag      = flag.String("rpcPortFlag", ":8887", "RPC Port")
-	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
-	configPath       = flag.String("config", "", "Path to JSON file containing config")
-	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
-
+	rpcPortFlag        = flag.String("rpcPortFlag", ":8887", "RPC Port")
+	httpPortFlag       = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
+	configPath         = flag.String("config", "", "Path to JSON file containing config")
+	sampleConfigPath   = flag.String("sampleconfig", "", "Path to samples")
 	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
-	defaultNamespace   = flag.String("defaultNamespace", "", "Default namespace used in ApiServer.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -64,16 +62,17 @@ func main() {
 	clientManager := newClientManager()
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
-		*defaultNamespace,
 	)
 	err := loadSamples(resourceManager)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err)
 	}
 
-	_, err = resourceManager.CreateDefaultExperiment()
-	if err != nil {
-		glog.Fatalf("Failed to create default experiment. Err: %v", err)
+	if !common.IsMultiUserMode() {
+		_, err = resourceManager.CreateDefaultExperiment("")
+		if err != nil {
+			glog.Fatalf("Failed to create default experiment. Err: %v", err)
+		}
 	}
 
 	go startRpcServer(resourceManager)
@@ -246,7 +245,6 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 			&model.Pipeline{
 				Name:        config.Name,
 				Description: config.Description,
-				Namespace:   *defaultNamespace,
 			},
 		)
 		if configErr != nil {
