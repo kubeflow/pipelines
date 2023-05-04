@@ -26,8 +26,9 @@ import (
 
 type HealthzApiTest struct {
 	suite.Suite
-	namespace     string
-	healthzClient *api_server.HealthzClient
+	namespace         string
+	resourceNamespace string
+	healthzClient     *api_server.HealthzClient
 }
 
 // Check the namespace have ML job installed and ready
@@ -43,10 +44,27 @@ func (s *HealthzApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
 	}
+
 	s.namespace = *namespace
-	clientConfig := test.GetClientConfig(*namespace)
+
+	var newHealthzClient func() (*api_server.HealthzClient, error)
+
+	if *isKubeflowMode {
+		s.resourceNamespace = *resourceNamespace
+
+		newHealthzClient = func() (*api_server.HealthzClient, error) {
+			return api_server.NewKubeflowInClusterHealthzClient(s.namespace, *isDebugMode)
+		}
+	} else {
+		clientConfig := test.GetClientConfig(*namespace)
+
+		newHealthzClient = func() (*api_server.HealthzClient, error) {
+			return api_server.NewHealthzClient(clientConfig, *isDebugMode)
+		}
+	}
+
 	var err error
-	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false)
+	s.healthzClient, err = newHealthzClient()
 	if err != nil {
 		glog.Exitf("Failed to get healthz client. Error: %v", err)
 	}
