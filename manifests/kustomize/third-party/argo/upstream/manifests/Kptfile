@@ -15,4 +15,4 @@ upstreamLock:
     repo: https://github.com/argoproj/argo-workflows
     directory: /manifests
     ref: v3.4.7
-    commit: 621b0d1a8e09634666ebe403ee7b8fc29db1dc4e
+    commit: f2292647c5a6be2f888447a1fef71445cc05b8fd
