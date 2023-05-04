@@ -171,9 +171,7 @@ describe('RuntimeNodeDetailsV2', () => {
     screen.getByTestId(TEST_LOG_VIEW_ID); // Still can load log view window
   });
 
-  it('displays volume mount in details tab on side panel of execution node', async () => {
-    const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
-    getPodLogsSpy.mockImplementation(() => 'test-logs-details');
+  it('displays volume mounts in details tab on side panel of execution node', async () => {
     render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2

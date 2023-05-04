@@ -50,7 +50,7 @@ import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputOutputTab';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
-import { getComponentSpec } from './StaticNodeDetailsV2';
+import { getComponentSpec } from 'src/components/tabs/StaticNodeDetailsV2';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
