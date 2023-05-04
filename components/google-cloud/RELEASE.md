@@ -1,3 +1,6 @@
+# Release 1.0.43
+* Patch 5de4d78: unpin google-api-core version
+
 # Release 1.0.42
 * Patch cb7d9a8: Update import_model_evaluation so models with 100+ labels will not import confusion matrices at every threshold
 
