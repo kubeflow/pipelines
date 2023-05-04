@@ -2348,7 +2348,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error updating the old workflow")
+	assert.Contains(t, err.Error(), "error updating and creating a workflow")
 }
 
 func TestUnarchiveRun_OK(t *testing.T) {
