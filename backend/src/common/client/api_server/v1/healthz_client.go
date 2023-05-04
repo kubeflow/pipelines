@@ -17,7 +17,7 @@ package api_server
 import (
 	"fmt"
 
-	"github.com/go-openapi/runtime"
+	rt "github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client/healthz_service"
@@ -33,7 +33,7 @@ type HealthzInterface interface {
 
 type HealthzClient struct {
 	apiClient      *apiclient.Healthz
-	authInfoWriter runtime.ClientAuthInfoWriter
+	authInfoWriter rt.ClientAuthInfoWriter
 }
 
 func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*HealthzClient, error) {
