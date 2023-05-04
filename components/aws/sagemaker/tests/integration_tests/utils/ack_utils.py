@@ -10,22 +10,26 @@ def k8s_client():
 def _get_resource(k8s_client, job_name, plural):
     """Get the custom resource detail similar to: kubectl describe <resource> JOB_NAME -n NAMESPACE.
     Returns:
-        None or object: None if the resource doesnt exist in server, otherwise the
+        None or object: None if the resource doesn't exist in server or there is an error, otherwise the
             custom object.
     """
     _api = client.CustomObjectsApi(k8s_client)
     namespace = os.environ.get("NAMESPACE")
-    job_description = _api.get_namespaced_custom_object(
-        "sagemaker.services.k8s.aws",
-        "v1alpha1",
-        namespace.lower(),
-        plural,
-        job_name.lower(),
-    )
+    try:
+        job_description = _api.get_namespaced_custom_object(
+            "sagemaker.services.k8s.aws",
+            "v1alpha1",
+            namespace.lower(),
+            plural,
+            job_name.lower(),
+        )
+    except Exception as e:
+        print(f"Exception occurred while getting resource {job_name}: {e}")
+        return None
     return job_description
 
 
-def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_length=10):
+def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_length=20):
     """Delete the custom resource
     Returns:
         True or False: True if the resource is deleted, False if the resource deletion times out
@@ -37,15 +41,20 @@ def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_lengt
             print(f"Resource {job_name} deleted successfully.")
             return True
         else:
-            _api.delete_namespaced_custom_object(
-                "sagemaker.services.k8s.aws",
-                "v1alpha1",
-                namespace.lower(),
-                plural,
-                job_name.lower(),
-            )
+            try:
+                _api.delete_namespaced_custom_object(
+                    "sagemaker.services.k8s.aws",
+                    "v1alpha1",
+                    namespace.lower(),
+                    plural,
+                    job_name.lower(),
+                )
+            except Exception as e:
+                print(f"Exception occurred while deleting resource {job_name}: {e}")
+                print(f"Retrying deleting resource {job_name}...")
+                continue
         sleep(period_length)
-    print(f"Resourc deletion timed out: {job_name}")
+    print(f"Resource deletion timed out: {job_name}")
     return False
 
 
