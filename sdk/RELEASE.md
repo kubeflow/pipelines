@@ -10,6 +10,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Fix appengine import error [\#9328](https://github.com/kubeflow/pipelines/pull/9328)
 
 ## Documentation Updates
 # 1.8.20
