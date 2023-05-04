@@ -17,7 +17,7 @@ package api_server
 import (
 	"fmt"
 
-	"github.com/go-openapi/runtime"
+	rt "github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
@@ -41,7 +41,7 @@ type JobInterface interface {
 
 type JobClient struct {
 	apiClient      *apiclient.Job
-	authInfoWriter runtime.ClientAuthInfoWriter
+	authInfoWriter rt.ClientAuthInfoWriter
 }
 
 func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (

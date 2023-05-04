@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/go-openapi/runtime"
+	rt "github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -44,7 +45,7 @@ type PipelineUploadInterface interface {
 
 type PipelineUploadClient struct {
 	apiClient      *apiclient.PipelineUpload
-	authInfoWriter runtime.ClientAuthInfoWriter
+	authInfoWriter rt.ClientAuthInfoWriter
 }
 
 func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
