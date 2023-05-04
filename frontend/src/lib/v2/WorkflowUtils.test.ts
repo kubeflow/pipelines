@@ -19,13 +19,17 @@ import { ComponentSpec } from 'src/generated/pipeline_spec';
 import fs from 'fs';
 import jsyaml from 'js-yaml';
 
-const V2_LW_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2LWYamlTemplateString = fs.readFileSync(V2_LW_PIPELINESPEC_PATH, 'utf8');
-const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
-const v2PVCYamlString = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
+const v2LWPipelineSpecPath = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2LWYamlTemplateString = fs.readFileSync(v2LWPipelineSpecPath, 'utf8');
+const v2PVCPipelineSpecPath = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
+const v2PVCYamlString = fs.readFileSync(v2PVCPipelineSpecPath, 'utf8');
 // The templateStr used in WorkflowUtils is not directly from yaml file.
 // Instead, it is from BE (already been processed).
-const v2PVCTemplateString = jsyaml.safeDump(jsyaml.safeLoadAll(v2PVCYamlString)[0]);
+const v2PVCTemplateStringObj = {
+  pipeline_spec: jsyaml.safeLoadAll(v2PVCYamlString)[0],
+  platform_spec: jsyaml.safeLoadAll(v2PVCYamlString)[1],
+};
+const v2PVCTemplateString = jsyaml.safeDump(v2PVCTemplateStringObj);
 
 testBestPractices();
 describe('WorkflowUtils', () => {

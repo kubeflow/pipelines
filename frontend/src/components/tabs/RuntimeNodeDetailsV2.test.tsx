@@ -23,6 +23,18 @@ import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { Execution, Value } from 'src/third_party/mlmd';
 import TestUtils from 'src/TestUtils';
+import fs from 'fs';
+import jsyaml from 'js-yaml';
+
+const v2PVCPipelineSpecPath = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
+const v2PVCYamlString = fs.readFileSync(v2PVCPipelineSpecPath, 'utf8');
+// The templateStr used in RuntimeNodeDetailsV2 is not directly from yaml file.
+// Instead, it is from BE (already been processed).
+const v2PVCTemplateStringObj = {
+  pipeline_spec: jsyaml.safeLoadAll(v2PVCYamlString)[0],
+  platform_spec: jsyaml.safeLoadAll(v2PVCYamlString)[1],
+};
+const v2PVCTemplateString = jsyaml.safeDump(v2PVCTemplateStringObj);
 
 testBestPractices();
 
@@ -157,5 +169,36 @@ describe('RuntimeNodeDetailsV2', () => {
     });
 
     screen.getByTestId(TEST_LOG_VIEW_ID); // Still can load log view window
+  });
+
+  it('displays volume mount in details tab on side panel of execution node', async () => {
+    const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
+    getPodLogsSpy.mockImplementation(() => 'test-logs-details');
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={layers => {}}
+          templateString={v2PVCTemplateString}
+          runId={TEST_RUN_ID}
+          element={{
+            data: {
+              label: 'producer',
+            },
+            id: 'task.producer',
+            position: { x: 100, y: 100 },
+            type: 'EXECUTION',
+          }}
+          elementMlmdInfo={TSET_MLMD_INFO}
+          namespace={undefined}
+        ></RuntimeNodeDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    const detailsTab = await screen.findByText('Task Details');
+    fireEvent.click(detailsTab); // Switch details tab
+
+    screen.getByText('/data');
+    screen.getByText('createpvc');
   });
 });
