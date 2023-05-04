@@ -86,7 +86,7 @@ interface RuntimeNodeDetailsV2Props {
 export function RuntimeNodeDetailsV2({
   layers,
   onLayerChange,
-  pipelineJobString: templateString,
+  pipelineJobString,
   runId,
   element,
   elementMlmdInfo,
@@ -100,7 +100,7 @@ export function RuntimeNodeDetailsV2({
     if (NodeTypeNames.EXECUTION === element.type) {
       return (
         <TaskNodeDetail
-          templateString={templateString}
+          pipelineJobString={pipelineJobString}
           runId={runId}
           element={element}
           execution={elementMlmdInfo?.execution}
@@ -132,7 +132,7 @@ export function RuntimeNodeDetailsV2({
 }
 
 interface TaskNodeDetailProps {
-  templateString?: string;
+  pipelineJobString?: string;
   runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   execution?: Execution;
@@ -141,7 +141,7 @@ interface TaskNodeDetailProps {
 }
 
 function TaskNodeDetail({
-  templateString,
+  pipelineJobString,
   runId,
   element,
   execution,
@@ -188,7 +188,7 @@ function TaskNodeDetail({
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
             <DetailsTable
               title='Volume Mounts'
-              fields={getNodeVolumeMounts(layers, templateString, element)}
+              fields={getNodeVolumeMounts(layers, pipelineJobString, element)}
             />
           </div>
         )}
@@ -260,17 +260,17 @@ function getTaskDetailsFields(
 
 function getNodeVolumeMounts(
   layers: string[],
-  templateString?: string,
+  pipelineJobString?: string,
   element?: FlowElement<FlowElementDataBase> | null,
 ): Array<KeyValue<string>> {
-  if (!templateString || !element) {
+  if (!pipelineJobString || !element) {
     return [];
   }
 
   const taskKey = getTaskKeyFromNodeKey(element.id);
-  const pipelineSpec = convertYamlToV2PipelineSpec(templateString);
+  const pipelineSpec = convertYamlToV2PipelineSpec(pipelineJobString);
   const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
-  const platformSpec = convertYamlToPlatformSpec(templateString);
+  const platformSpec = convertYamlToPlatformSpec(pipelineJobString);
 
   if (!platformSpec) {
     return [];
