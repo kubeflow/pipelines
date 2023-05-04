@@ -92,13 +92,8 @@ def does_endpoint_exist(k8s_client, endpoint_name):
 
 
 def is_endpoint_deleted(k8s_client, endpoint_name):
-    try:
-        response = _get_resource(k8s_client, endpoint_name, "endpoints")
-        if response:
-            return False
-        if (
-            response is None
-        ):  # kubernetes module error, 404 would mean the resource doesnt exist
-            return False
-    except:
+    response = _get_resource(k8s_client, endpoint_name, "endpoints")
+    if response:
+        return False
+    if response is None:
         return True
