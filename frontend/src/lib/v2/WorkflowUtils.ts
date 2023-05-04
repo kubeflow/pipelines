@@ -13,7 +13,7 @@
 // limitations under the License.
 import jsyaml from 'js-yaml';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
-import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
+import { ComponentSpec, PipelineSpec, PlatformSpec } from 'src/generated/pipeline_spec';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -76,6 +76,11 @@ export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   // const buffer = ml_pipelines.PipelineSpec.encode(message).finish();
   // const pipelineSpec = PipelineSpec.deserializeBinary(buffer);
   // return pipelineSpec;
+}
+
+export function convertYamlToPlatformSpec(template: string) {
+  const platformSpecYaml = getPlatformDefFromYaml(template);
+  return platformSpecYaml ? PlatformSpec.fromJSON(platformSpecYaml) : undefined;
 }
 
 // This needs to be changed to use pipeline_manifest vs workflow_manifest to distinguish V1 and V2.

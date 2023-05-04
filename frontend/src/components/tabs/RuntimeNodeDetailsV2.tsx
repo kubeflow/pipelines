@@ -48,9 +48,8 @@ import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo'
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputOutputTab';
-import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
-import jsyaml from 'js-yaml';
-import { PlatformDeploymentConfig, PlatformSpec } from 'src/generated/pipeline_spec/pipeline_spec';
+import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from './StaticNodeDetailsV2';
 
 export const LOGS_DETAILS = 'logs_details';
@@ -270,16 +269,15 @@ function getNodeVolumeMounts(
   const taskKey = getTaskKeyFromNodeKey(element.id);
   const pipelineSpec = convertYamlToV2PipelineSpec(templateString);
   const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+  const platformSpec = convertYamlToPlatformSpec(templateString);
 
-  const platformSpecObj = jsyaml.safeLoad(templateString)['platform_spec'];
-  if (!platformSpecObj) {
+  if (!platformSpec) {
     return [];
   }
 
-  const ts_platformspec = PlatformSpec.fromJSON(platformSpecObj);
   // Currently support kubernetes platform
   const k8sDeploymentSpec = PlatformDeploymentConfig.fromJSON(
-    ts_platformspec.platforms['kubernetes'].deploymentSpec,
+    platformSpec.platforms['kubernetes'].deploymentSpec,
   );
   const matchedExecutorObj = Object.entries(k8sDeploymentSpec.executors).find(
     ([executorName]) => executorName === componentSpec?.executorLabel,
