@@ -146,6 +146,14 @@ func NewInternalServerError(err error, internalMessageFormat string,
 		codes.Internal)
 }
 
+func NewUnavailableServerError(err error, messageFormat string, a ...interface{}) *UserError {
+	internalMessage := fmt.Sprintf(messageFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, "ServiceUnavailable: %v", internalMessage),
+		"Service unavailable",
+		codes.Unavailable)
+}
+
 func NewNotFoundError(err error, externalMessageFormat string,
 	a ...interface{},
 ) *UserError {

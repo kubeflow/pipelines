@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"strconv"
 
 	"github.com/cenkalti/backoff"
@@ -431,6 +432,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return nil, util.NewUnavailableServerError(err, "Failed to create a workflow for (%s) - try again later", executionSpec.ExecutionName())
+		}
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
 	}
 	// Update the run with the new scheduled workflow
@@ -703,10 +707,10 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newExecSpec.SetVersion("")
 		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newExecSpec, v1.CreateOptions{})
 		if createError != nil {
-			return util.Wrap(
-				util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating the old workflow", runId),
-				util.NewInternalServerError(createError, "Failed to retry run %s due to error creating a new workflow", runId).Error(),
-			)
+			if createError, ok := createError.(net.Error); ok && createError.Timeout() {
+				return util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runId, updateError.Error())
+			}
+			return util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runId, updateError.Error())
 		}
 		newExecSpec = newCreatedWorkflow
 	}
@@ -923,6 +927,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	}
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return nil, util.NewUnavailableServerError(err, "Failed to create a recurring run during scheduling a workflow - try again later")
+		}
 		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
 	}
 	// Complete modelJob with info coming back from ScheduledWorkflow client.
@@ -1624,14 +1631,25 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 		v1.CreateOptions{},
 	)
 	if err != nil {
-		err = util.NewInternalServerError(
-			err,
-			"Failed to create SubjectAccessReview for user '%s' (request: %+v)",
-			userIdentity,
-			resourceAttributes,
-		)
-		glog.Info(err.Error())
-		return err
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			reportErr := util.NewUnavailableServerError(
+				err,
+				"Failed to create SubjectAccessReview for user '%s' (request: %+v) - try again later",
+				userIdentity,
+				resourceAttributes,
+			)
+			glog.Info(reportErr.Error())
+			return reportErr
+		} else {
+			reportErr := util.NewInternalServerError(
+				err,
+				"Failed to create SubjectAccessReview for user '%s' (request: %+v)",
+				userIdentity,
+				resourceAttributes,
+			)
+			glog.Info(reportErr.Error())
+			return reportErr
+		}
 	}
 	if !result.Status.Allowed {
 		err := util.NewPermissionDeniedError(
