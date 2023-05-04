@@ -22,6 +22,7 @@ protobuf>=3.13.0,<4
 PyYAML>=5.3,<7
 requests-toolbelt>=0.8.0,<1
 tabulate>=0.8.6,<1
+urllib3<2.0.0
 
 ## standard library backports ##
 typing-extensions>=3.7.4,<5; python_version<"3.9"
