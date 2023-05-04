@@ -80,7 +80,8 @@ export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
 
 export function convertYamlToPlatformSpec(template: string) {
   const platformSpecYaml = getPlatformDefFromYaml(template);
-  return platformSpecYaml ? PlatformSpec.fromJSON(platformSpecYaml) : undefined;
+  const platformSpec = PlatformSpec.fromJSON(platformSpecYaml || '');
+  return Object.keys(platformSpec.platforms).length !== 0 ? platformSpec : undefined;
 }
 
 // This needs to be changed to use pipeline_manifest vs workflow_manifest to distinguish V1 and V2.

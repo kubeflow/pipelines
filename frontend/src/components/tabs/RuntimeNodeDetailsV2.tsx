@@ -272,11 +272,11 @@ function getNodeVolumeMounts(
   const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
   const platformSpec = convertYamlToPlatformSpec(pipelineJobString);
 
-  if (!platformSpec) {
+  // Currently support kubernetes platform
+  if (!platformSpec || !platformSpec.platforms[K8S_PLATFORM_KEY]) {
     return [];
   }
 
-  // Currently support kubernetes platform
   const k8sDeploymentSpec = PlatformDeploymentConfig.fromJSON(
     platformSpec.platforms[K8S_PLATFORM_KEY].deploymentSpec,
   );
