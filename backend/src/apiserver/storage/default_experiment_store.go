@@ -18,14 +18,15 @@ import (
 	"database/sql"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-var defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": "", "Namespace": ""}
+var defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": ""}
 
 type DefaultExperimentStoreInterface interface {
-	GetDefaultExperimentId(namespace string) (string, error)
-	SetDefaultExperimentId(id string, namespace string) error
+	GetDefaultExperimentId() (string, error)
+	SetDefaultExperimentId(id string) error
 }
 
 // Implementation of a DefaultExperimentStoreInterface. This stores the default experiment's ID,
@@ -35,21 +36,58 @@ type DefaultExperimentStore struct {
 }
 
 func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
+	// First check that the table is in fact empty
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize default experiment table")
+	}
+	rows, err := tx.Query("SELECT * FROM default_experiments")
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to get default experiment")
+	}
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to get default experiment")
+	}
+	next := rows.Next()
+	defer rows.Close()
+
+	// If the table is not initialized, then set the default value.
+	if !next {
+		sql, args, queryErr := sq.
+			Insert("default_experiments").
+			SetMap(defaultExperimentDBValue).
+			ToSql()
+
+		if queryErr != nil {
+			tx.Rollback()
+			return util.NewInternalServerError(queryErr, "Error creating query to initialize default experiment table")
+		}
+
+		_, err = tx.Exec(sql, args...)
+		if err != nil {
+			tx.Rollback()
+			return util.NewInternalServerError(err, "Error initializing the default experiment table")
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		glog.Error("Failed to commit transaction to initialize default experiment table")
+		return util.NewInternalServerError(err, "Failed to initializing the default experiment table")
+	}
 	return nil
 }
 
-func (s *DefaultExperimentStore) SetDefaultExperimentId(id string, namespace string) error {
+func (s *DefaultExperimentStore) SetDefaultExperimentId(id string) error {
 	sql, args, err := sq.
-		Insert("default_experiments").
-		SetMap(sq.Eq{
-			"DefaultExperimentId": id,
-			"Namespace":           namespace,
-		}).
+		Update("default_experiments").
+		SetMap(sq.Eq{"DefaultExperimentId": id}).
+		Where(sq.Eq{"DefaultExperimentId": ""}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to set default experiment ID")
 	}
-	sql = s.db.Upsert(sql, "Namespace", false, "DefaultExperimentId")
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Error setting default experiment ID")
@@ -57,9 +95,9 @@ func (s *DefaultExperimentStore) SetDefaultExperimentId(id string, namespace str
 	return nil
 }
 
-func (s *DefaultExperimentStore) GetDefaultExperimentId(namespace string) (string, error) {
+func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 	var defaultExperimentId string
-	sql, args, err := sq.Select("DefaultExperimentId").From("default_experiments").Where(sq.Eq{"Namespace": namespace}).ToSql()
+	sql, args, err := sq.Select("DefaultExperimentId").From("default_experiments").ToSql()
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error creating query to get default experiment ID")
 	}

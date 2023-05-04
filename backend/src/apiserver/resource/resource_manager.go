@@ -150,16 +150,15 @@ func (r *ResourceManager) ListExperiments(filterContext *model.FilterContext, op
 
 // Deletes the experiment with the given id.
 func (r *ResourceManager) DeleteExperiment(experimentId string) error {
-	experiment, err := r.experimentStore.GetExperiment(experimentId)
-	if err != nil {
-		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching it", experimentId)
-	}
-	defaultExperimentId, err := r.GetDefaultExperimentId(experiment.Namespace)
+	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching the default experiment id", experimentId)
 	}
 	if defaultExperimentId != "" && experimentId == defaultExperimentId {
 		return util.NewBadRequestError(util.NewInvalidInputError("Experiment id cannot be equal to the default id %v", defaultExperimentId), "Failed to delete experiment %v. The default experiment cannot be deleted", experimentId)
+	}
+	if _, err := r.experimentStore.GetExperiment(experimentId); err != nil {
+		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching it", experimentId)
 	}
 	return r.experimentStore.DeleteExperiment(experimentId)
 }
@@ -594,7 +593,7 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunId)
 	}
 	if run.ExperimentId == "" {
-		defaultExperimentId, err := r.GetDefaultExperimentId(run.Namespace)
+		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunId)
 		}
@@ -1118,7 +1117,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			}
 		}
 		if experimentId == "" {
-			experimentId, err = r.GetDefaultExperimentId(namespace)
+			experimentId, err = r.GetDefaultExperimentId()
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to report workflow for run %s. Fetching default experiment returned error. Check if you have experiment assigned for job %s", runId, jobId)
 			}
@@ -1292,7 +1291,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 // Creates the default experiment entry.
 func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, error) {
 	// First check that we don't already have a default experiment ID in the DB.
-	defaultExperimentId, err := r.GetDefaultExperimentId(namespace)
+	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
 		return "", util.Wrap(err, "Failed to check if default experiment exists")
 	}
@@ -1319,7 +1318,7 @@ func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, err
 	}
 
 	// Set default experiment ID in the DB
-	err = r.SetDefaultExperimentId(defaultExperiment.UUID, namespace)
+	err = r.SetDefaultExperimentId(defaultExperiment.UUID)
 	if err != nil {
 		return "", util.Wrap(err, "Failed to set default experiment ID")
 	}
@@ -1364,13 +1363,13 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 }
 
 // Fetches the default experiment id.
-func (r *ResourceManager) GetDefaultExperimentId(namespace string) (string, error) {
-	return r.defaultExperimentStore.GetDefaultExperimentId(namespace)
+func (r *ResourceManager) GetDefaultExperimentId() (string, error) {
+	return r.defaultExperimentStore.GetDefaultExperimentId()
 }
 
 // Sets the default experiment id.
-func (r *ResourceManager) SetDefaultExperimentId(id string, namespace string) error {
-	return r.defaultExperimentStore.SetDefaultExperimentId(id, namespace)
+func (r *ResourceManager) SetDefaultExperimentId(id string) error {
+	return r.defaultExperimentStore.SetDefaultExperimentId(id)
 }
 
 // Checks if sample pipelines have been loaded.
@@ -1738,8 +1737,8 @@ func (r *ResourceManager) CheckExperimentBelongsToNamespace(experimentId string,
 //     Creates the default experiment in the given namespace (could be empty in single-user mode) if it is missing.
 //  3. Replaces empty namespace with the parent namespace of the given experimentId.
 func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, namespace string) (string, string, error) {
-	if common.IsMultiUserMode() && experimentId == "" && namespace == "" {
-		return "", "", util.NewInvalidInputError("Both namespace and experiment id can not be empty in multi-user mode")
+	if common.IsMultiUserMode() && experimentId == "" {
+		return "", "", util.NewInvalidInputError("Experiment id can not be empty in multi-user mode")
 	}
 	if experimentId != "" {
 		ns, err := r.GetNamespaceFromExperimentId(experimentId)
@@ -1751,7 +1750,7 @@ func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, n
 		}
 		namespace = ns
 	} else {
-		defExpId, err := r.GetDefaultExperimentId(namespace)
+		defExpId, err := r.GetDefaultExperimentId()
 		if err != nil {
 			return "", "", util.Wrapf(err, "Specify experiment id or check if the default experiment exists in namespace %v", namespace)
 		}

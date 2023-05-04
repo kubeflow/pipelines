@@ -2165,10 +2165,10 @@ func TestDeleteExperiment_ClearsDefaultExperiment(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 	// Set default experiment ID. This is not normally done manually
-	err := manager.SetDefaultExperimentId(experiment.UUID, experiment.Namespace)
+	err := manager.SetDefaultExperimentId(experiment.UUID)
 	assert.Nil(t, err)
 	// Verify that default experiment ID is set
-	defaultExperimentId, err := manager.GetDefaultExperimentId(experiment.Namespace)
+	defaultExperimentId, err := manager.GetDefaultExperimentId()
 	assert.Nil(t, err)
 	assert.Equal(t, experiment.UUID, defaultExperimentId)
 

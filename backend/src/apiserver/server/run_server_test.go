@@ -97,7 +97,7 @@ func TestCreateRunV1_no_experiment(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	manager.SetDefaultExperimentId(exp.UUID, "")
+	manager.SetDefaultExperimentId(exp.UUID)
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 	assert.NotNil(t, runDetail)
@@ -735,7 +735,7 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			clients, manager, _ := initWithExperiment(t)
 			server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-			server.resourceManager.SetDefaultExperimentId(DefaultFakeUUID, "")
+			server.resourceManager.SetDefaultExperimentId(DefaultFakeUUID)
 			got, err := server.CreateRun(context.Background(), tt.args)
 			if tt.wantErr {
 				assert.Nil(t, got)
