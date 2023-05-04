@@ -17,10 +17,8 @@ package server
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -3013,14 +3011,14 @@ func Test_toModelTask(t *testing.T) {
 		},
 		{
 			"argo node status",
-			workflowapi.NodeStatus{
+			util.NodeStatus{
 				ID:          "1",
 				DisplayName: "node_1",
-				Name:        "wrong name",
-				Phase:       workflowapi.NodePhase("Pending"),
+				State:       "Pending",
 				Children:    []string{"node3", "node4"},
-				StartedAt:   v1.Time{Time: time.Unix(4, 0)},
-				FinishedAt:  v1.Time{Time: time.Unix(5, 0)},
+				StartTime:   4,
+				CreateTime:  4,
+				FinishTime:  5,
 			},
 			&model.Task{
 				PodName:           "1",

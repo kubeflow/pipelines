@@ -20,7 +20,6 @@ import (
 	"sort"
 	"strconv"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -1620,15 +1619,15 @@ func toModelTask(t interface{}) (*model.Task, error) {
 				children = append(children, c.GetPodName())
 			}
 		}
-	case workflowapi.NodeStatus:
+	case util.NodeStatus:
 		// TODO(gkcalat): parse input and output artifacts
 		wfStatus := t
 		nodeId = wfStatus.ID
 		name = wfStatus.DisplayName
-		state = string(wfStatus.Phase)
-		startTime = wfStatus.StartedAt.Unix()
-		createTime = startTime
-		finishTime = wfStatus.FinishedAt.Unix()
+		state = wfStatus.State
+		startTime = wfStatus.StartTime
+		createTime = wfStatus.CreateTime
+		finishTime = wfStatus.FinishTime
 		children = wfStatus.Children
 	default:
 		return nil, util.NewUnknownApiVersionError("Task", t)
@@ -1672,20 +1671,21 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			modelTasks = append(modelTasks, modelTask)
 		}
 		return modelTasks, nil
-	case *util.Workflow:
+	case util.ExecutionSpec:
 		execSpec := t
 		runId := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
 		namespace := execSpec.ExecutionNamespace()
-		createdAt := execSpec.GetCreationTimestamp().Unix()
+		createdAt := execSpec.ExecutionObjectMeta().GetCreationTimestamp().Unix()
 		// Get sorted node names to make the results repeatable
-		nodeNames := make([]string, 0, len(execSpec.Status.Nodes))
-		for nodeName := range execSpec.Status.Nodes {
+		nodes := execSpec.ExecutionStatus().NodeStatuses()
+		nodeNames := make([]string, 0, len(nodes))
+		for nodeName := range nodes {
 			nodeNames = append(nodeNames, nodeName)
 		}
 		sort.Strings(nodeNames)
 		modelTasks := make([]*model.Task, 0)
 		for _, nodeName := range nodeNames {
-			node := execSpec.Status.Nodes[nodeName]
+			node := nodes[nodeName]
 			modelTask, err := toModelTask(node)
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to convert Argo workflow to tasks details")
