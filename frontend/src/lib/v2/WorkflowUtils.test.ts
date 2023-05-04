@@ -14,8 +14,14 @@
 
 import { testBestPractices } from 'src/TestUtils';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
-import { getContainer, isV2Pipeline } from './WorkflowUtils';
+import {
+  convertYamlToPlatformSpec,
+  getContainer,
+  isTemplateV2,
+  isV2Pipeline,
+} from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
+import * as features from 'src/features';
 import fs from 'fs';
 import jsyaml from 'js-yaml';
 
@@ -55,6 +61,61 @@ describe('WorkflowUtils', () => {
 
   it('detects v1 pipeline', () => {
     expect(isV2Pipeline(WORKFLOW_EMPTY)).toBeFalsy();
+  });
+
+  it('detects v2 template (yaml file without k8s platform spec)', () => {
+    jest
+      .spyOn(features, 'isFeatureEnabled')
+      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
+  });
+
+  it('detects v2 template (yaml file with k8s platform spec)', () => {
+    jest
+      .spyOn(features, 'isFeatureEnabled')
+      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    expect(isTemplateV2(V2_PVC_TEMPLATE_STRING)).toBeTruthy();
+  });
+
+  it('converts yaml to PlatformSpec (yaml with k8s platform spec)', () => {
+    const platformSpec = convertYamlToPlatformSpec(V2_PVC_TEMPLATE_STRING);
+    expect(platformSpec).toEqual({
+      platforms: {
+        kubernetes: {
+          deploymentSpec: {
+            executors: {
+              'exec-consumer': {
+                pvcMount: [
+                  {
+                    mountPath: '/data',
+                    taskOutputParameter: {
+                      outputParameterKey: 'name',
+                      producerTask: 'createpvc',
+                    },
+                  },
+                ],
+              },
+              'exec-producer': {
+                pvcMount: [
+                  {
+                    mountPath: '/data',
+                    taskOutputParameter: {
+                      outputParameterKey: 'name',
+                      producerTask: 'createpvc',
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('returns undefined if converting yaml "without k8s platform spec" PlatformSpec', () => {
+    const platformSpec = convertYamlToPlatformSpec(V2_LW_YAML_TEMPLATE_STRING);
+    expect(platformSpec).toEqual(undefined);
   });
 
   it('get container of given component from pipelineSpec', () => {
