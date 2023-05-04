@@ -177,7 +177,7 @@ describe('RuntimeNodeDetailsV2', () => {
         <RuntimeNodeDetailsV2
           layers={['root']}
           onLayerChange={layers => {}}
-          templateString={V2_PVC_TEMPLATE_STRING}
+          pipelineJobString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
           element={{
             data: {

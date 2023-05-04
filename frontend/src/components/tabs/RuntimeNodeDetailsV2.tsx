@@ -50,11 +50,12 @@ import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputOutputTab';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
-import { getComponentSpec } from 'src/components/tabs/StaticNodeDetailsV2';
+import { getComponentSpec } from 'src/lib/v2/NodeUtils';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
+export const K8S_PLATFORM_KEY = 'kubernetes';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -75,7 +76,7 @@ const NODE_STATE_UNAVAILABLE = (
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
   onLayerChange: (layers: string[]) => void;
-  templateString?: string;
+  pipelineJobString?: string;
   runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
@@ -85,7 +86,7 @@ interface RuntimeNodeDetailsV2Props {
 export function RuntimeNodeDetailsV2({
   layers,
   onLayerChange,
-  templateString,
+  pipelineJobString: templateString,
   runId,
   element,
   elementMlmdInfo,
@@ -277,7 +278,7 @@ function getNodeVolumeMounts(
 
   // Currently support kubernetes platform
   const k8sDeploymentSpec = PlatformDeploymentConfig.fromJSON(
-    platformSpec.platforms['kubernetes'].deploymentSpec,
+    platformSpec.platforms[K8S_PLATFORM_KEY].deploymentSpec,
   );
   const matchedExecutorObj = Object.entries(k8sDeploymentSpec.executors).find(
     ([executorName]) => executorName === componentSpec?.executorLabel,

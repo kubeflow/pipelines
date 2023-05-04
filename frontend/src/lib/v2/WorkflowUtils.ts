@@ -27,7 +27,6 @@ export function getPipelineDefFromYaml(template: string) {
   // If pipeline_spec exists in the return value of safeload,
   // which means the original yaml contains platform_spec,
   // then the PipelineSpec(IR) is stored in 'pipeline_spec' field.
-  console.log(jsyaml.safeLoad(template));
   return jsyaml.safeLoad(template)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
 }
 
