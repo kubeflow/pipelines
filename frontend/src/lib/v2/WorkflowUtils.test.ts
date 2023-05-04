@@ -19,17 +19,17 @@ import { ComponentSpec } from 'src/generated/pipeline_spec';
 import fs from 'fs';
 import jsyaml from 'js-yaml';
 
-const v2LWPipelineSpecPath = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2LWYamlTemplateString = fs.readFileSync(v2LWPipelineSpecPath, 'utf8');
-const v2PVCPipelineSpecPath = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
-const v2PVCYamlString = fs.readFileSync(v2PVCPipelineSpecPath, 'utf8');
+const V2_LW_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const V2_LW_YAML_TEMPLATE_STRING = fs.readFileSync(V2_LW_PIPELINESPEC_PATH, 'utf8');
+const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
+const V2_PVC_YAML_STRING = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
 // The templateStr used in WorkflowUtils is not directly from yaml file.
 // Instead, it is from BE (already been processed).
-const v2PVCTemplateStringObj = {
-  pipeline_spec: jsyaml.safeLoadAll(v2PVCYamlString)[0],
-  platform_spec: jsyaml.safeLoadAll(v2PVCYamlString)[1],
+const V2_PVC_TEMPLATE_STRING_OBJ = {
+  pipeline_spec: jsyaml.safeLoadAll(V2_PVC_YAML_STRING)[0],
+  platform_spec: jsyaml.safeLoadAll(V2_PVC_YAML_STRING)[1],
 };
-const v2PVCTemplateString = jsyaml.safeDump(v2PVCTemplateStringObj);
+const V2_PVC_TEMPLATE_STRING = jsyaml.safeDump(V2_PVC_TEMPLATE_STRING_OBJ);
 
 testBestPractices();
 describe('WorkflowUtils', () => {
@@ -58,7 +58,7 @@ describe('WorkflowUtils', () => {
   });
 
   it('get container of given component from pipelineSpec', () => {
-    const pipelineSpecStr = v2LWYamlTemplateString;
+    const pipelineSpecStr = V2_LW_YAML_TEMPLATE_STRING;
     const componentSpec = {} as ComponentSpec;
     componentSpec.executorLabel = 'exec-preprocess';
 
@@ -86,7 +86,7 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
   });
 
   it('get container of given component from pipelineSpec in yaml with multiple spec', () => {
-    const templateStr = v2PVCTemplateString;
+    const templateStr = V2_PVC_TEMPLATE_STRING;
     const componentSpec = {} as ComponentSpec;
     componentSpec.executorLabel = 'exec-producer';
 

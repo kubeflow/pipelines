@@ -26,15 +26,15 @@ import TestUtils from 'src/TestUtils';
 import fs from 'fs';
 import jsyaml from 'js-yaml';
 
-const v2PVCPipelineSpecPath = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
-const v2PVCYamlString = fs.readFileSync(v2PVCPipelineSpecPath, 'utf8');
+const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
+const V2_PVC_YAML_STRING = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
 // The templateStr used in RuntimeNodeDetailsV2 is not directly from yaml file.
 // Instead, it is from BE (already been processed).
-const v2PVCTemplateStringObj = {
-  pipeline_spec: jsyaml.safeLoadAll(v2PVCYamlString)[0],
-  platform_spec: jsyaml.safeLoadAll(v2PVCYamlString)[1],
+const V2_PVC_TEMPLATE_STRING_OBJ = {
+  pipeline_spec: jsyaml.safeLoadAll(V2_PVC_YAML_STRING)[0],
+  platform_spec: jsyaml.safeLoadAll(V2_PVC_YAML_STRING)[1],
 };
-const v2PVCTemplateString = jsyaml.safeDump(v2PVCTemplateStringObj);
+const V2_PVC_TEMPLATE_STRING = jsyaml.safeDump(V2_PVC_TEMPLATE_STRING_OBJ);
 
 testBestPractices();
 
@@ -177,7 +177,7 @@ describe('RuntimeNodeDetailsV2', () => {
         <RuntimeNodeDetailsV2
           layers={['root']}
           onLayerChange={layers => {}}
-          templateString={v2PVCTemplateString}
+          templateString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
           element={{
             data: {
