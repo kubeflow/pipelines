@@ -100,6 +100,7 @@ def replace_placeholders(input_filename, output_filename, shallow_canary=False):
             "((MODEL_MONITOR_IMAGE))": get_algorithm_image_registry(
                 "model-monitor", region
             ),
+            "((CLARIFY_IMAGE))": get_algorithm_image_registry("clarify", region),
             "((FSX_ID))": get_fsx_id(),
             "((FSX_SUBNET))": get_fsx_subnet(),
             "((FSX_SECURITY_GROUP))": get_fsx_security_group(),

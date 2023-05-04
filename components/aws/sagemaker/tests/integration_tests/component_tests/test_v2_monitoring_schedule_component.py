@@ -11,9 +11,10 @@ from utils import ack_utils
     [
         pytest.param(
             "resources/config/ack-model-explainability-job-definition",
+            marks=pytest.mark.v2,
         ),
         pytest.param(
-            "resources/config/ack-data-quality-job-definition",
+            "resources/config/ack-data-quality-job-definition", marks=pytest.mark.v2
         ),
     ],
 )
@@ -50,9 +51,6 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
             k8s_client, job_definition_name, test_params["Plural"]
         )
 
-        print("Describe job definition " + job_definition_name)
-        print(job_definition_describe)
-
         # Check if the job definition is created
         assert (
             job_definition_name
@@ -71,7 +69,7 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
     [
         pytest.param(
             "resources/config/ack-monitoring-schedule",
-            marks=pytest.mark.canary_test,
+            marks=[pytest.mark.canary_test, pytest.mark.v2],
         ),
     ],
 )
@@ -155,6 +153,13 @@ def test_v2_monitoring_schedule(
             k8s_client,
             job_definition_name,
             "modelbiasjobdefinitions",
+            wait_periods=10,
+            period_length=30,
+        )
+        ack_utils._delete_resource(
+            k8s_client,
+            monitoring_schedule_name,
+            "monitoringschedules",
             wait_periods=10,
             period_length=30,
         )
