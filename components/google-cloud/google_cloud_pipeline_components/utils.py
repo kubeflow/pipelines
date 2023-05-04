@@ -85,5 +85,10 @@ def container_component_dumps(obj: Any) -> Any:
     return json_string
 
   string_fields = collect_string_fields(obj)
+  print("DEBUG", string_fields)
+
   json_string = json.dumps(obj, default=custom_placeholder_encoder)
-  return unquote_nonstring_placeholders(json_string, string_fields)
+  json_string = unquote_nonstring_placeholders(json_string, string_fields)
+  print("DEBUG", json_string)
+  # assert json.loads(json_string)
+  return json_string
