@@ -23,11 +23,11 @@ from kfp import dsl
 
 @dsl.container_component
 def endpoint_delete(
-    endpoint: Input[VertexEndpoint],
-    gcp_resources: dsl.OutputPath(str),
+        endpoint: Input[VertexEndpoint],
+        gcp_resources: dsl.OutputPath(str),
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Deletes a Google Cloud Vertex Endpoint.
   For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete.
 
@@ -41,31 +41,31 @@ def endpoint_delete(
 
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint.launcher',
-      ],
-      args=[
-          '--type',
-          'DeleteEndpoint',
-          '--payload',
-          dsl.ConcatPlaceholder([
-              '{',
-              '"endpoint": "',
-              "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
-              '"',
-              '}',
-          ]),
-          '--project',
-          '',  # not being used
-          '--location',
-          '',  # not being used
-          '--gcp_resources',
-          gcp_resources,
-      ],
-  )
+    # fmt: on
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint.launcher',
+        ],
+        args=[
+            '--type',
+            'DeleteEndpoint',
+            '--payload',
+            dsl.ConcatPlaceholder([
+                '{',
+                '"endpoint": "',
+                "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+                '"',
+                '}',
+            ]),
+            '--project',
+            '',  # not being used
+            '--location',
+            '',  # not being used
+            '--gcp_resources',
+            gcp_resources,
+        ],
+    )

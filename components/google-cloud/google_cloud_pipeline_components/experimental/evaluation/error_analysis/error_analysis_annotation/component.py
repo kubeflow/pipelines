@@ -32,8 +32,8 @@ def error_analysis_annotation(
     num_neighbors: int = 5,
     encryption_spec_key_name: str = '',
 ):
-  # fmt: off
-  """Computes error analysis annotations from image embeddings.
+    # fmt: off
+    """Computes error analysis annotations from image embeddings.
 
   Args:
       project (str): Required. GCP Project ID.
@@ -62,49 +62,49 @@ def error_analysis_annotation(
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.custom_job.launcher',
-      ],
-      args=[
-          '--type',
-          'CustomJob',
-          '--project',
-          project,
-          '--location',
-          location,
-          '--gcp_resource',
-          gcp_resources,
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"display_name":',
-              f' "error-analysis-annotation-{PIPELINE_JOB_ID_PLACEHOLDER}',
-              f'-{PIPELINE_TASK_ID_PLACEHOLDER}", ',
-              '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
-              '", "machine_spec": {"machine_type": "',
-              machine_type,
-              '"},',
-              ' "container_spec": {"image_uri":"',
-              'us-docker.pkg.dev/vertex-ai-restricted/vision-error-analysis/error-analysis:v0.2',
-              '", "args": ["--embeddings_dir=',
-              embeddings_dir,
-              '", "--root_dir=',
-              f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
-              '", "--num_neighbors=',
-              num_neighbors,
-              '", "--error_analysis_output_uri=',
-              error_analysis_output_uri,
-              '", "--executor_input={{$.json_escape[1]}}"]}}]}',
-              ', "encryption_spec": {"kms_key_name":"',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.custom_job.launcher',
+        ],
+        args=[
+            '--type',
+            'CustomJob',
+            '--project',
+            project,
+            '--location',
+            location,
+            '--gcp_resource',
+            gcp_resources,
+            '--payload',
+            ConcatPlaceholder([
+                '{',
+                '"display_name":',
+                f' "error-analysis-annotation-{PIPELINE_JOB_ID_PLACEHOLDER}',
+                f'-{PIPELINE_TASK_ID_PLACEHOLDER}", ',
+                '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
+                '", "machine_spec": {"machine_type": "',
+                machine_type,
+                '"},',
+                ' "container_spec": {"image_uri":"',
+                'us-docker.pkg.dev/vertex-ai-restricted/vision-error-analysis/error-analysis:v0.2',
+                '", "args": ["--embeddings_dir=',
+                embeddings_dir,
+                '", "--root_dir=',
+                f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
+                '", "--num_neighbors=',
+                num_neighbors,
+                '", "--error_analysis_output_uri=',
+                error_analysis_output_uri,
+                '", "--executor_input={{$.json_escape[1]}}"]}}]}',
+                ', "encryption_spec": {"kms_key_name":"',
+                encryption_spec_key_name,
+                '"}',
+                '}',
+            ]),
+        ],
+    )

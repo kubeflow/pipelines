@@ -23,13 +23,13 @@ from kfp.dsl import OutputPath
 
 @dsl.container_component
 def model_undeploy(
-    model: Input[VertexModel],
-    endpoint: Input[VertexEndpoint],
-    gcp_resources: OutputPath(str),
-    traffic_split: Dict[str, str] = {},
+        model: Input[VertexModel],
+        endpoint: Input[VertexEndpoint],
+        gcp_resources: OutputPath(str),
+        traffic_split: Dict[str, str] = {},
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Undeploys a Google Cloud Vertex DeployedModel within the Endpoint.
   For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
 
@@ -51,36 +51,36 @@ def model_undeploy(
 
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.endpoint.undeploy_model.launcher',
-      ],
-      args=[
-          '--type',
-          'UndeployModel',
-          '--payload',
-          dsl.ConcatPlaceholder([
-              '{',
-              '"endpoint": "',
-              "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
-              '"',
-              ', "model": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
-              '"',
-              ', "traffic_split": ',
-              traffic_split,
-              '}',
-          ]),
-          '--project',
-          '',
-          '--location',
-          '',
-          '--gcp_resources',
-          gcp_resources,
-      ],
-  )
+    # fmt: on
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.endpoint.undeploy_model.launcher',
+        ],
+        args=[
+            '--type',
+            'UndeployModel',
+            '--payload',
+            dsl.ConcatPlaceholder([
+                '{',
+                '"endpoint": "',
+                "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+                '"',
+                ', "model": "',
+                "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+                '"',
+                ', "traffic_split": ',
+                traffic_split,
+                '}',
+            ]),
+            '--project',
+            '',
+            '--location',
+            '',
+            '--gcp_resources',
+            gcp_resources,
+        ],
+    )

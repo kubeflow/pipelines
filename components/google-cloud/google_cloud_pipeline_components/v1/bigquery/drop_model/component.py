@@ -32,8 +32,8 @@ def bigquery_drop_model_job(
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
 ):
-  # fmt: off
-  """Launch a BigQuery drop model job and waits for it to finish.
+    # fmt: off
+    """Launch a BigQuery drop model job and waits for it to finish.
 
   Args:
       project (str):
@@ -69,48 +69,47 @@ def bigquery_drop_model_job(
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.bigquery.drop_model.launcher',
-      ],
-      args=[
-          '--type',
-          'BigqueryDropModelJob',
-          '--project',
-          project,
-          '--location',
-          location,
-          '--model_name',
-          ConcatPlaceholder([
-              "{{$.inputs.artifacts['model'].metadata['projectId']}}",
-              '.',
-              "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
-              '.',
-              "{{$.inputs.artifacts['model'].metadata['modelId']}}",
-          ]),
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"configuration": {',
-              '"query": ',
-              job_configuration_query,
-              ', "labels": ',
-              labels,
-              '}',
-              '}',
-          ]),
-          '--job_configuration_query_override',
-          ConcatPlaceholder(
-              ['{', '"query_parameters": ', query_parameters, '}']
-          ),
-          '--gcp_resources',
-          gcp_resources,
-          '--executor_input',
-          '{{$}}',
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.bigquery.drop_model.launcher',
+        ],
+        args=[
+            '--type',
+            'BigqueryDropModelJob',
+            '--project',
+            project,
+            '--location',
+            location,
+            '--model_name',
+            ConcatPlaceholder([
+                "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+                '.',
+                "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+                '.',
+                "{{$.inputs.artifacts['model'].metadata['modelId']}}",
+            ]),
+            '--payload',
+            ConcatPlaceholder([
+                '{',
+                '"configuration": {',
+                '"query": ',
+                job_configuration_query,
+                ', "labels": ',
+                labels,
+                '}',
+                '}',
+            ]),
+            '--job_configuration_query_override',
+            ConcatPlaceholder(
+                ['{', '"query_parameters": ', query_parameters, '}']),
+            '--gcp_resources',
+            gcp_resources,
+            '--executor_input',
+            '{{$}}',
+        ],
+    )

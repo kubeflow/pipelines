@@ -33,8 +33,8 @@ def bigquery_export_model_job(
     job_configuration_extract: Dict[str, str] = {},
     labels: Dict[str, str] = {},
 ):
-  # fmt: off
-  """Launch a BigQuery export model job and waits for it to finish.
+    # fmt: off
+    """Launch a BigQuery export model job and waits for it to finish.
 
   Args:
       project (str):
@@ -70,48 +70,48 @@ def bigquery_export_model_job(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.bigquery.export_model.launcher',
-      ],
-      args=[
-          '--type',
-          'BigqueryExportModelJob',
-          '--project',
-          project,
-          '--location',
-          location,
-          '--model_name',
-          ConcatPlaceholder([
-              "{{$.inputs.artifacts['model'].metadata['projectId']}}",
-              '.',
-              "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
-              '.',
-              "{{$.inputs.artifacts['model'].metadata['modelId']}}",
-          ]),
-          '--model_destination_path',
-          model_destination_path,
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"configuration": {',
-              '"query": ',
-              job_configuration_extract,
-              ', "labels": ',
-              labels,
-              '}',
-              '}',
-          ]),
-          '--exported_model_path',
-          exported_model_path,
-          '--gcp_resources',
-          gcp_resources,
-          '--executor_input',
-          '{{$}}',
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.bigquery.export_model.launcher',
+        ],
+        args=[
+            '--type',
+            'BigqueryExportModelJob',
+            '--project',
+            project,
+            '--location',
+            location,
+            '--model_name',
+            ConcatPlaceholder([
+                "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+                '.',
+                "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+                '.',
+                "{{$.inputs.artifacts['model'].metadata['modelId']}}",
+            ]),
+            '--model_destination_path',
+            model_destination_path,
+            '--payload',
+            ConcatPlaceholder([
+                '{',
+                '"configuration": {',
+                '"query": ',
+                job_configuration_extract,
+                ', "labels": ',
+                labels,
+                '}',
+                '}',
+            ]),
+            '--exported_model_path',
+            exported_model_path,
+            '--gcp_resources',
+            gcp_resources,
+            '--executor_input',
+            '{{$}}',
+        ],
+    )

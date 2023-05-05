@@ -34,8 +34,8 @@ def bigquery_query_job(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
 ):
-  # fmt: off
-  """Launch a BigQuery query job and waits for it to finish.
+    # fmt: off
+    """Launch a BigQuery query job and waits for it to finish.
 
   Args:
       project (str):
@@ -87,50 +87,50 @@ def bigquery_query_job(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher',
-      ],
-      args=[
-          '--type',
-          'BigqueryQueryJob',
-          '--project',
-          project,
-          '--location',
-          location,
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"configuration": {',
-              '"query": ',
-              job_configuration_query,
-              ', "labels": ',
-              labels,
-              '}',
-              '}',
-          ]),
-          '--job_configuration_query_override',
-          ConcatPlaceholder([
-              '{',
-              '"query": "',
-              query,
-              '"',
-              ', "query_parameters": ',
-              query_parameters,
-              ', "destination_encryption_configuration": {',
-              '"kmsKeyName": "',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
-          '--gcp_resources',
-          gcp_resources,
-          '--executor_input',
-          '{{$}}',
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher',
+        ],
+        args=[
+            '--type',
+            'BigqueryQueryJob',
+            '--project',
+            project,
+            '--location',
+            location,
+            '--payload',
+            ConcatPlaceholder([
+                '{',
+                '"configuration": {',
+                '"query": ',
+                job_configuration_query,
+                ', "labels": ',
+                labels,
+                '}',
+                '}',
+            ]),
+            '--job_configuration_query_override',
+            ConcatPlaceholder([
+                '{',
+                '"query": "',
+                query,
+                '"',
+                ', "query_parameters": ',
+                query_parameters,
+                ', "destination_encryption_configuration": {',
+                '"kmsKeyName": "',
+                encryption_spec_key_name,
+                '"}',
+                '}',
+            ]),
+            '--gcp_resources',
+            gcp_resources,
+            '--executor_input',
+            '{{$}}',
+        ],
+    )

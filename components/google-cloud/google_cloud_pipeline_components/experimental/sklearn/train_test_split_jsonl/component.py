@@ -27,8 +27,8 @@ def train_test_split_jsonl_with_sklearn(
     validation_split: Optional[float] = 0.2,
     random_seed: Optional[int] = 0,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Split JSONL Data into training and validation data using scikit-learn.
   Args:
     training_data_path (str):
@@ -43,24 +43,24 @@ def train_test_split_jsonl_with_sklearn(
     random_seed (Optional[int]):
       Global random seed to ensure the output is deterministic.
     """
-  # fmt: on
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.experimental.sklearn.train_test_split_jsonl',
-      ],
-      args=[
-          '--input-data-path',
-          input_data_path,
-          '--validataion-split',
-          validation_split,
-          '--random-seed',
-          random_seed,
-          '--training-data-path',
-          training_data_path.path,
-          '--validation-data-path',
-          validation_data_path.path,
-      ],
-  )
+    # fmt: on
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.experimental.sklearn.train_test_split_jsonl',
+        ],
+        args=[
+            '--input-data-path',
+            input_data_path,
+            '--validataion-split',
+            validation_split,
+            '--random-seed',
+            random_seed,
+            '--training-data-path',
+            training_data_path.path,
+            '--validation-data-path',
+            validation_data_path.path,
+        ],
+    )

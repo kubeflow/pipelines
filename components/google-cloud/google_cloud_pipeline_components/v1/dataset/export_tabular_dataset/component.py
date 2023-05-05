@@ -28,8 +28,8 @@ def tabular_dataset_export(
     exported_dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Exports data to output dir to GCS.
   Args:
       output_dir (String):
@@ -54,31 +54,31 @@ def tabular_dataset_export(
           All of the files that are exported in this export operation.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
-          '--cls_name',
-          'TabularDataset',
-          '--method_name',
-          'export_data',
-      ],
-      args=[
-          '--init.dataset_name',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
-          '--init.project',
-          project,
-          '--init.location',
-          location,
-          '--method.output_dir',
-          output_dir,
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          exported_dataset.uri,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+            '--cls_name',
+            'TabularDataset',
+            '--method_name',
+            'export_data',
+        ],
+        args=[
+            '--init.dataset_name',
+            "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+            '--init.project',
+            project,
+            '--init.location',
+            location,
+            '--method.output_dir',
+            output_dir,
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            exported_dataset.uri,
+        ],
+    )

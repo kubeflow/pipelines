@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
@@ -32,8 +31,8 @@ def video_dataset_create(
     labels: Optional[dict] = {},
     encryption_spec_key_name: Optional[str] = None,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Creates a new video dataset and optionally imports data into dataset
   when source and import_schema_uri are passed.
   Args:
@@ -97,47 +96,47 @@ def video_dataset_create(
           Instantiated representation of the managed video dataset resource.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
-          '--cls_name',
-          'VideoDataset',
-          '--method_name',
-          'create',
-      ],
-      args=[
-          '--method.project',
-          project,
-          '--method.location',
-          location,
-          '--method.display_name',
-          display_name,
-          '--method.data_item_labels',
-          data_item_labels,
-          dsl.IfPresentPlaceholder(
-              input_name='gcs_source', then=['--method.gcs_source', gcs_source]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='import_schema_uri',
-              then=['--method.import_schema_uri', import_schema_uri],
-          ),
-          '--method.labels',
-          labels,
-          dsl.IfPresentPlaceholder(
-              input_name='encryption_spec_key_name',
-              then=[
-                  '--method.encryption_spec_key_name',
-                  encryption_spec_key_name,
-              ],
-          ),
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          dataset.uri,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+            '--cls_name',
+            'VideoDataset',
+            '--method_name',
+            'create',
+        ],
+        args=[
+            '--method.project',
+            project,
+            '--method.location',
+            location,
+            '--method.display_name',
+            display_name,
+            '--method.data_item_labels',
+            data_item_labels,
+            dsl.IfPresentPlaceholder(
+                input_name='gcs_source',
+                then=['--method.gcs_source', gcs_source]),
+            dsl.IfPresentPlaceholder(
+                input_name='import_schema_uri',
+                then=['--method.import_schema_uri', import_schema_uri],
+            ),
+            '--method.labels',
+            labels,
+            dsl.IfPresentPlaceholder(
+                input_name='encryption_spec_key_name',
+                then=[
+                    '--method.encryption_spec_key_name',
+                    encryption_spec_key_name,
+                ],
+            ),
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            dataset.uri,
+        ],
+    )

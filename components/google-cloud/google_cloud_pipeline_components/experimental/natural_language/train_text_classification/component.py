@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from kfp import dsl
@@ -45,8 +44,8 @@ def train_tfhub_model(
     validation_steps_per_epoch: Optional[int] = -1,
     test_steps_per_epoch: Optional[int] = -1,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
     Launch Vertex CustomJob to train a new Cloud natural language TFHub model.
 
   Args:
@@ -123,80 +122,76 @@ def train_tfhub_model(
           gcs_destination_output_uri_prefix is specified.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.custom_job.launcher',
-      ],
-      args=[
-          '--type',
-          'CustomJob',
-          '--project',
-          project,
-          '--location',
-          location,
-          '--gcp_resources',
-          gcp_resources,
-          '--payload',
-          dsl.ConcatPlaceholder(
-              items=[
-                  (
-                      '{"display_name":'
-                      ' "train-tfhub-model-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",'
-                      ' "job_spec": {"worker_pool_specs": [{"replica_count":"'
-                  ),
-                  '1',
-                  '", "machine_spec": {',
-                  '"machine_type": "',
-                  machine_type,
-                  '"',
-                  ', "accelerator_type": "',
-                  accelerator_type,
-                  '"',
-                  ', "accelerator_count": ',
-                  accelerator_count,
-                  '}',
-                  ', "container_spec": {"image_uri":"',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-language/tfhub_model_trainer_image_gpu:latest',
-                  '", "args": [ "--input_data_path=',
-                  input_data_path,
-                  '", "--input_format=',
-                  input_format,
-                  '", "--natural_language_task_type=',
-                  natural_language_task_type,
-                  '", "--model_architecture=',
-                  model_architecture,
-                  '", "--train_batch_size=',
-                  train_batch_size,
-                  '", "--eval_batch_size=',
-                  eval_batch_size,
-                  '", "--num_epochs=',
-                  num_epochs,
-                  '", "--dropout=',
-                  dropout,
-                  '", "--initial_learning_rate=',
-                  initial_learning_rate,
-                  '", "--warmup=',
-                  warmup,
-                  '", "--optimizer_type=',
-                  optimizer_type,
-                  '", "--random_seed=',
-                  random_seed,
-                  '", "--train_steps_per_epoch=',
-                  train_steps_per_epoch,
-                  '", "--validation_steps_per_epoch=',
-                  validation_steps_per_epoch,
-                  '", "--test_steps_per_epoch=',
-                  test_steps_per_epoch,
-                  '", "--model_output_path=',
-                  model_output.path,
-                  '" ]}}]}}',
-              ]
-          ),
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.custom_job.launcher',
+        ],
+        args=[
+            '--type',
+            'CustomJob',
+            '--project',
+            project,
+            '--location',
+            location,
+            '--gcp_resources',
+            gcp_resources,
+            '--payload',
+            dsl.ConcatPlaceholder(items=[
+                ('{"display_name":'
+                 ' "train-tfhub-model-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",'
+                 ' "job_spec": {"worker_pool_specs": [{"replica_count":"'),
+                '1',
+                '", "machine_spec": {',
+                '"machine_type": "',
+                machine_type,
+                '"',
+                ', "accelerator_type": "',
+                accelerator_type,
+                '"',
+                ', "accelerator_count": ',
+                accelerator_count,
+                '}',
+                ', "container_spec": {"image_uri":"',
+                'us-docker.pkg.dev/vertex-ai-restricted/automl-language/tfhub_model_trainer_image_gpu:latest',
+                '", "args": [ "--input_data_path=',
+                input_data_path,
+                '", "--input_format=',
+                input_format,
+                '", "--natural_language_task_type=',
+                natural_language_task_type,
+                '", "--model_architecture=',
+                model_architecture,
+                '", "--train_batch_size=',
+                train_batch_size,
+                '", "--eval_batch_size=',
+                eval_batch_size,
+                '", "--num_epochs=',
+                num_epochs,
+                '", "--dropout=',
+                dropout,
+                '", "--initial_learning_rate=',
+                initial_learning_rate,
+                '", "--warmup=',
+                warmup,
+                '", "--optimizer_type=',
+                optimizer_type,
+                '", "--random_seed=',
+                random_seed,
+                '", "--train_steps_per_epoch=',
+                train_steps_per_epoch,
+                '", "--validation_steps_per_epoch=',
+                validation_steps_per_epoch,
+                '", "--test_steps_per_epoch=',
+                test_steps_per_epoch,
+                '", "--model_output_path=',
+                model_output.path,
+                '" ]}}]}}',
+            ]),
+        ],
+    )

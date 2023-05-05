@@ -137,7 +137,7 @@
             "-m",
             "google_cloud_pipeline_components.container.v1.dataproc.create_spark_batch.launcher"
           ],
-          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3"
         }
       }
     }
@@ -167,10 +167,7 @@
               },
               "args": {
                 "runtimeValue": {
-                  "constant": [
-                    "test-arg-1",
-                    "test-arg-2"
-                  ]
+                  "constant": ["test-arg-1", "test-arg-2"]
                 }
               },
               "batch_id": {
@@ -185,18 +182,12 @@
               },
               "file_uris": {
                 "runtimeValue": {
-                  "constant": [
-                    "test-file-uri-1",
-                    "test-file-uri-2"
-                  ]
+                  "constant": ["test-file-uri-1", "test-file-uri-2"]
                 }
               },
               "jar_file_uris": {
                 "runtimeValue": {
-                  "constant": [
-                    "test-jar-file-uri-1",
-                    "test-jar-file-uri-2"
-                  ]
+                  "constant": ["test-jar-file-uri-1", "test-jar-file-uri-2"]
                 }
               },
               "kms_key": {
@@ -234,10 +225,7 @@
               },
               "network_tags": {
                 "runtimeValue": {
-                  "constant": [
-                    "test-tag-1",
-                    "test-tag-2"
-                  ]
+                  "constant": ["test-tag-1", "test-tag-2"]
                 }
               },
               "network_uri": {

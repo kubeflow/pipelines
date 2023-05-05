@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
@@ -47,8 +46,8 @@ def automl_image_training_job(
     model_labels: Optional[dict] = None,
     disable_early_stopping: Optional[bool] = False,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
     Runs the AutoML Image training job and returns a model.
   If training on a Vertex AI dataset, you can use one of the following split configurations:
       Data fraction splits:
@@ -236,110 +235,110 @@ def automl_image_training_job(
           produce a Vertex AI Model.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
-          '--cls_name',
-          'AutoMLImageTrainingJob',
-          '--method_name',
-          'run',
-      ],
-      args=[
-          '--init.project',
-          project,
-          '--init.location',
-          location,
-          '--init.display_name',
-          display_name,
-          '--init.prediction_type',
-          prediction_type,
-          '--init.multi_label',
-          multi_label,
-          '--init.model_type',
-          model_type,
-          '--init.labels',
-          labels,
-          '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
-          '--method.disable_early_stopping',
-          disable_early_stopping,
-          dsl.IfPresentPlaceholder(
-              input_name='training_encryption_spec_key_name',
-              then=[
-                  '--init.training_encryption_spec_key_name',
-                  training_encryption_spec_key_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_encryption_spec_key_name',
-              then=[
-                  '--init.model_encryption_spec_key_name',
-                  model_encryption_spec_key_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_display_name',
-              then=['--method.model_display_name', model_display_name],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='training_fraction_split',
-              then=[
-                  '--method.training_fraction_split',
-                  training_fraction_split,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='validation_fraction_split',
-              then=[
-                  '--method.validation_fraction_split',
-                  validation_fraction_split,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='test_fraction_split',
-              then=['--method.test_fraction_split', test_fraction_split],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='budget_milli_node_hours',
-              then=[
-                  '--method.budget_milli_node_hours',
-                  budget_milli_node_hours,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='training_filter_split',
-              then=['--method.training_filter_split', training_filter_split],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='validation_filter_split',
-              then=[
-                  '--method.validation_filter_split',
-                  validation_filter_split,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='test_filter_split',
-              then=['--method.test_filter_split', test_filter_split],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='base_model',
-              then=[
-                  '--init.base_model',
-                  "{{$.inputs.artifacts['base_model'].metadata['resourceName']}}",
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_labels',
-              then=['--method.model_labels', model_labels],
-          ),
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          model.uri,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+            '--cls_name',
+            'AutoMLImageTrainingJob',
+            '--method_name',
+            'run',
+        ],
+        args=[
+            '--init.project',
+            project,
+            '--init.location',
+            location,
+            '--init.display_name',
+            display_name,
+            '--init.prediction_type',
+            prediction_type,
+            '--init.multi_label',
+            multi_label,
+            '--init.model_type',
+            model_type,
+            '--init.labels',
+            labels,
+            '--method.dataset',
+            "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+            '--method.disable_early_stopping',
+            disable_early_stopping,
+            dsl.IfPresentPlaceholder(
+                input_name='training_encryption_spec_key_name',
+                then=[
+                    '--init.training_encryption_spec_key_name',
+                    training_encryption_spec_key_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_encryption_spec_key_name',
+                then=[
+                    '--init.model_encryption_spec_key_name',
+                    model_encryption_spec_key_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_display_name',
+                then=['--method.model_display_name', model_display_name],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='training_fraction_split',
+                then=[
+                    '--method.training_fraction_split',
+                    training_fraction_split,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='validation_fraction_split',
+                then=[
+                    '--method.validation_fraction_split',
+                    validation_fraction_split,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='test_fraction_split',
+                then=['--method.test_fraction_split', test_fraction_split],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='budget_milli_node_hours',
+                then=[
+                    '--method.budget_milli_node_hours',
+                    budget_milli_node_hours,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='training_filter_split',
+                then=['--method.training_filter_split', training_filter_split],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='validation_filter_split',
+                then=[
+                    '--method.validation_filter_split',
+                    validation_filter_split,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='test_filter_split',
+                then=['--method.test_filter_split', test_filter_split],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='base_model',
+                then=[
+                    '--init.base_model',
+                    "{{$.inputs.artifacts['base_model'].metadata['resourceName']}}",
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_labels',
+                then=['--method.model_labels', model_labels],
+            ),
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            model.uri,
+        ],
+    )

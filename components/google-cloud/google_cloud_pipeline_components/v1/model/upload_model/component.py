@@ -40,8 +40,8 @@ def model_upload(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
 ):
-  # fmt: off
-  """Uploads a model and returns a Model representing the uploaded Model resource.
+    # fmt: off
+    """Uploads a model and returns a Model representing the uploaded Model resource.
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload.
@@ -114,54 +114,54 @@ def model_upload(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.model.upload_model.launcher',
-      ],
-      args=[
-          '--type',
-          'UploadModel',
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"display_name": "',
-              display_name,
-              '"',
-              ', "description": "',
-              description,
-              '"',
-              ', "explanation_spec": {',
-              '"parameters": ',
-              explanation_parameters,
-              ', "metadata": ',
-              explanation_metadata,
-              '}',
-              ', "encryption_spec": {"kms_key_name":"',
-              encryption_spec_key_name,
-              '"}',
-              ', "labels": ',
-              labels,
-              '}',
-          ]),
-          '--project',
-          project,
-          '--location',
-          location,
-          '--gcp_resources',
-          gcp_resources,
-          '--executor_input',
-          '{{$}}',
-          IfPresentPlaceholder(
-              input_name='parent_model',
-              then=ConcatPlaceholder([
-                  '--parent_model_name ',
-                  "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}",
-              ]),
-          ),
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.model.upload_model.launcher',
+        ],
+        args=[
+            '--type',
+            'UploadModel',
+            '--payload',
+            ConcatPlaceholder([
+                '{',
+                '"display_name": "',
+                display_name,
+                '"',
+                ', "description": "',
+                description,
+                '"',
+                ', "explanation_spec": {',
+                '"parameters": ',
+                explanation_parameters,
+                ', "metadata": ',
+                explanation_metadata,
+                '}',
+                ', "encryption_spec": {"kms_key_name":"',
+                encryption_spec_key_name,
+                '"}',
+                ', "labels": ',
+                labels,
+                '}',
+            ]),
+            '--project',
+            project,
+            '--location',
+            location,
+            '--gcp_resources',
+            gcp_resources,
+            '--executor_input',
+            '{{$}}',
+            IfPresentPlaceholder(
+                input_name='parent_model',
+                then=ConcatPlaceholder([
+                    '--parent_model_name ',
+                    "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}",
+                ]),
+            ),
+        ],
+    )
