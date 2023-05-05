@@ -98,7 +98,7 @@ if ! [ -x "$(command -v pip)" ]; then\n\
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\n\
 fi\n\
 \n\
-PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.0.0-beta.13\' && "$0" "$@"\n\
+PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.0.0-beta.16\' && "$0" "$@"\n\
 ',
         'sh',
         '-ec',
