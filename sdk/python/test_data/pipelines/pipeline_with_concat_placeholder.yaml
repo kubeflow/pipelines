@@ -34,4 +34,4 @@ root:
         taskInfo:
           name: component-with-concat-placeholder
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.14
+sdkVersion: kfp-2.0.0-beta.16
