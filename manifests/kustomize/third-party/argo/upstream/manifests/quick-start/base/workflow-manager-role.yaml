@@ -6,6 +6,7 @@ metadata: # kpt-merge: /workflow-manager
     workflows.argoproj.io/description: |
       This is an example of the permissions you would need if you wanted to use a resource template to create and manage
       other workflows. The same pattern would be suitable for other resurces, e.g. a service
+    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|Role|default|workflow-manager'
 rules:
   - apiGroups:
       - argoproj.io

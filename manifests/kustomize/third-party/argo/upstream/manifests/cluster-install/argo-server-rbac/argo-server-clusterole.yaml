@@ -2,6 +2,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata: # kpt-merge: /argo-server-cluster-role
   name: argo-server-cluster-role
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRole|default|argo-server-cluster-role'
 rules:
   - apiGroups:
       - ""

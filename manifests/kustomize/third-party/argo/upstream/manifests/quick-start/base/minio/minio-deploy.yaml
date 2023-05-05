@@ -4,6 +4,8 @@ metadata: # kpt-merge: /minio
   name: minio
   labels:
     app: minio
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|minio'
 spec:
   selector:
     matchLabels:
@@ -23,7 +25,10 @@ spec:
               value: password
           ports:
             - containerPort: 9000
-          command: [minio, server, /data]
+              name: api
+            - containerPort: 9001
+              name: dashboard
+          command: [minio, server, --console-address, ":9001", /data]
           lifecycle:
             postStart:
               exec:
