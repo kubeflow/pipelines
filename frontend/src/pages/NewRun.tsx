@@ -824,10 +824,10 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-          [QUERY_PARAMS.pipelineVersionId]: '',
+          [QUERY_PARAMS.pipelineVersionId]: pipelineVersion?.id || '',
         });
         this.props.history.replace(searchString);
-        this.props.handlePipelineVersionIdChange('');
+        this.props.handlePipelineVersionIdChange(pipelineVersion?.id || '');
         this.props.handlePipelineIdChange(pipeline.id);
       }
     }
