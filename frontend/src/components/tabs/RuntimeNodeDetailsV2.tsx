@@ -128,7 +128,7 @@ interface TaskNodeDetailProps {
 
 function TaskNodeDetail({ runId, element, execution, namespace }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>(
-    ['log_details'],
+    [execution],
     async () => {
       if (!execution) {
         throw new Error('No execution is found.');
