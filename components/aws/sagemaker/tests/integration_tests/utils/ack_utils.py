@@ -24,6 +24,7 @@ def _get_resource(k8s_client, job_name, plural):
             job_name.lower(),
         )
     except Exception as e:
+        print(f"Exception occurred while getting resource {job_name}: {e}")
         return None
     return job_description
 

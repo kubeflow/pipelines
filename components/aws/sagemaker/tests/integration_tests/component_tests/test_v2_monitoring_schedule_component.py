@@ -94,7 +94,12 @@ def test_v2_monitoring_schedule(
         )
 
 
-# Testing monitoring schedule with model data quality job definition
+# Test updating monitoring schedule using the same pipeline
+# Steps:
+# Prepare pipeline inputs for job_definition_1 and monitoring schedule
+# Run the pipeline
+# Update pipeline input (instanceType) for job_definition_2
+# Rerun the same pipeline
 @pytest.mark.parametrize(
     "test_file_dir",
     [
@@ -181,11 +186,11 @@ def test_v2_monitoring_schedule_update(
         )
 
         # Verify if job definition is created with correct instance type
-        job_definition_describe = sagemaker_client.describe_data_quality_job_definition(
+        job_definition_1_describe = sagemaker_client.describe_data_quality_job_definition(
             JobDefinitionName=job_definition_name_1
         )
         assert (
-            job_definition_describe["JobResources"]["ClusterConfig"]["InstanceType"]
+            job_definition_1_describe["JobResources"]["ClusterConfig"]["InstanceType"]
             == "ml.m5.large"
         )
 
