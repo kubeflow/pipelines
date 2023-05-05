@@ -2,7 +2,7 @@ import kfp
 from kfp import components
 from kfp import dsl
 
-sagemaker_Model_op = components.load_component_from_file("../../Model/component.yaml")
+sagemaker_Model_op = components.load_component_from_file("../../Modelv2/component.yaml")
 
 sagemaker_EndpointConfig_op = components.load_component_from_file(
     "../../EndpointConfig/component.yaml"
