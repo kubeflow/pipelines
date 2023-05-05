@@ -8,7 +8,7 @@ github.com/Masterminds/sprig/v3,https://github.com/Masterminds/sprig/blob/v3.2.3
 github.com/Masterminds/squirrel,https://github.com/Masterminds/squirrel/blob/fa735ea14f09/LICENSE.txt,MIT
 github.com/VividCortex/mysqlerr,https://github.com/VividCortex/mysqlerr/blob/6c6b55f8796f/LICENSE,MIT
 github.com/antonmedv/expr,https://github.com/antonmedv/expr/blob/v1.12.5/LICENSE,MIT
-github.com/argoproj/argo-workflows/v3,https://github.com/argoproj/argo-workflows/blob/v3.4.7/LICENSE,Apache-2.0
+github.com/argoproj/argo-workflows/v3,https://github.com/argoproj/argo-workflows/blob/v3.3.10/LICENSE,Apache-2.0
 github.com/argoproj/pkg,https://github.com/argoproj/pkg/blob/v0.13.6/LICENSE,Apache-2.0
 github.com/asaskevich/govalidator,https://github.com/asaskevich/govalidator/blob/f21760c49a8d/LICENSE,MIT
 github.com/aws/aws-sdk-go,https://github.com/aws/aws-sdk-go/blob/v1.44.105/LICENSE.txt,Apache-2.0
@@ -104,7 +104,6 @@ go.mongodb.org/mongo-driver,https://github.com/mongodb/mongo-go-driver/blob/v1.8
 go.opencensus.io,https://github.com/census-instrumentation/opencensus-go/blob/v0.24.0/LICENSE,Apache-2.0
 gocloud.dev,https://github.com/google/go-cloud/blob/v0.22.0/LICENSE,Apache-2.0
 golang.org/x/crypto,https://cs.opensource.google/go/x/crypto/+/v0.7.0:LICENSE,BSD-3-Clause
-golang.org/x/exp/maps,https://cs.opensource.google/go/x/exp/+/334a2380:LICENSE,BSD-3-Clause
 golang.org/x/net,https://cs.opensource.google/go/x/net/+/v0.9.0:LICENSE,BSD-3-Clause
 golang.org/x/oauth2,https://cs.opensource.google/go/x/oauth2/+/v0.7.0:LICENSE,BSD-3-Clause
 golang.org/x/sys,https://cs.opensource.google/go/x/sys/+/v0.8.0:LICENSE,BSD-3-Clause
@@ -134,8 +133,8 @@ k8s.io/kube-openapi/pkg,https://github.com/kubernetes/kube-openapi/blob/8b0f38b5
 k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json,https://github.com/kubernetes/kube-openapi/blob/8b0f38b5fd1f/pkg/internal/third_party/go-json-experiment/json/LICENSE,BSD-3-Clause
 k8s.io/kube-openapi/pkg/validation/spec,https://github.com/kubernetes/kube-openapi/blob/8b0f38b5fd1f/pkg/validation/spec/LICENSE,Apache-2.0
 k8s.io/kubernetes/pkg/apis/core,https://github.com/kubernetes/kubernetes/blob/v1.11.1/LICENSE,Apache-2.0
-k8s.io/utils,https://github.com/kubernetes/utils/blob/d93618cff8a2/LICENSE,Apache-2.0
-k8s.io/utils/internal/third_party/forked/golang/net,https://github.com/kubernetes/utils/blob/d93618cff8a2/internal/third_party/forked/golang/LICENSE,BSD-3-Clause
+k8s.io/utils,https://github.com/kubernetes/utils/blob/9f6742963106/LICENSE,Apache-2.0
+k8s.io/utils/internal/third_party/forked/golang/net,https://github.com/kubernetes/utils/blob/9f6742963106/internal/third_party/forked/golang/LICENSE,BSD-3-Clause
 sigs.k8s.io/json,https://github.com/kubernetes-sigs/json/blob/bc3834ca7abd/LICENSE,Apache-2.0
 sigs.k8s.io/structured-merge-diff/v4,https://github.com/kubernetes-sigs/structured-merge-diff/blob/v4.2.3/LICENSE,Apache-2.0
 sigs.k8s.io/yaml,https://github.com/kubernetes-sigs/yaml/blob/v1.3.0/LICENSE,MIT
