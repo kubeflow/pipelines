@@ -17,9 +17,15 @@ import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo
 import { getContainer, isV2Pipeline } from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
 import fs from 'fs';
+import jsyaml from 'js-yaml';
 
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+const V2_LW_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2LWYamlTemplateString = fs.readFileSync(V2_LW_PIPELINESPEC_PATH, 'utf8');
+const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
+const v2PVCYamlString = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
+// The templateStr used in WorkflowUtils is not directly from yaml file.
+// Instead, it is from BE (already been processed).
+const v2PVCTemplateString = jsyaml.safeDump(jsyaml.safeLoadAll(v2PVCYamlString)[0]);
 
 testBestPractices();
 describe('WorkflowUtils', () => {
@@ -48,7 +54,7 @@ describe('WorkflowUtils', () => {
   });
 
   it('get container of given component from pipelineSpec', () => {
-    const pipelineSpecStr = v2YamlTemplateString;
+    const pipelineSpecStr = v2LWYamlTemplateString;
     const componentSpec = {} as ComponentSpec;
     componentSpec.executorLabel = 'exec-preprocess';
 
@@ -70,6 +76,34 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
         '-ec',
         'program_path=$(mktemp -d)\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\npython3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
         "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef preprocess(\n    # An input parameter of type string.\n    message: str,\n    # An input parameter of type dict.\n    input_dict_parameter: Dict[str, int],\n    # An input parameter of type list.\n    input_list_parameter: List[str],\n    # Use Output[T] to get a metadata-rich handle to the output artifact\n    # of type `Dataset`.\n    output_dataset_one: Output[Dataset],\n    # A locally accessible filepath for another output artifact of type\n    # `Dataset`.\n    output_dataset_two_path: OutputPath('Dataset'),\n    # A locally accessible filepath for an output parameter of type string.\n    output_parameter_path: OutputPath(str),\n    # A locally accessible filepath for an output parameter of type bool.\n    output_bool_parameter_path: OutputPath(bool),\n    # A locally accessible filepath for an output parameter of type dict.\n    output_dict_parameter_path: OutputPath(Dict[str, int]),\n    # A locally accessible filepath for an output parameter of type list.\n    output_list_parameter_path: OutputPath(List[str]),\n):\n    \"\"\"Dummy preprocessing step.\"\"\"\n\n    # Use Dataset.path to access a local file path for writing.\n    # One can also use Dataset.uri to access the actual URI file path.\n    with open(output_dataset_one.path, 'w') as f:\n        f.write(message)\n\n    # OutputPath is used to just pass the local file path of the output artifact\n    # to the function.\n    with open(output_dataset_two_path, 'w') as f:\n        f.write(message)\n\n    with open(output_parameter_path, 'w') as f:\n        f.write(message)\n\n    with open(output_bool_parameter_path, 'w') as f:\n        f.write(\n            str(True))  # use either `str()` or `json.dumps()` for bool values.\n\n    import json\n    with open(output_dict_parameter_path, 'w') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with open(output_list_parameter_path, 'w') as f:\n        f.write(json.dumps(input_list_parameter))\n\n",
+      ],
+      image: 'python:3.7',
+    });
+  });
+
+  it('get container of given component from pipelineSpec in yaml with multiple spec', () => {
+    const templateStr = v2PVCTemplateString;
+    const componentSpec = {} as ComponentSpec;
+    componentSpec.executorLabel = 'exec-producer';
+
+    const container = getContainer(componentSpec, templateStr);
+
+    expect(container).toEqual({
+      args: ['--executor_input', '{{$}}', '--function_to_execute', 'producer'],
+      command: [
+        'sh',
+        '-c',
+        '\n\
+if ! [ -x "$(command -v pip)" ]; then\n\
+    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\n\
+fi\n\
+\n\
+PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.0.0-beta.13\' && "$0" "$@"\n\
+',
+        'sh',
+        '-ec',
+        'program_path=$(mktemp -d)\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\npython3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
+        "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef producer() -> str:\n    with open('/data/file.txt', 'w') as file:\n        file.write('Hello world')\n    with open('/data/file.txt', 'r') as file:\n        content = file.read()\n    print(content)\n    return content\n\n",
       ],
       image: 'python:3.7',
     });

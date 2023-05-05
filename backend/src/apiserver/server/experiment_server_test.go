@@ -35,7 +35,7 @@ import (
 
 func TestCreateExperimentV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
@@ -49,7 +49,7 @@ func TestCreateExperimentV1(t *testing.T) {
 		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
@@ -59,7 +59,7 @@ func TestCreateExperimentV1(t *testing.T) {
 
 func TestCreateExperiment(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
@@ -71,14 +71,14 @@ func TestCreateExperiment(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "default",
+		Namespace:    "",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
 
 func TestCreateExperimentV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 	clientManager.DB().Close()
@@ -89,7 +89,7 @@ func TestCreateExperimentV1_Failed(t *testing.T) {
 
 func TestCreateExperiment_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
 	clientManager.DB().Close()
@@ -100,7 +100,7 @@ func TestCreateExperiment_Failed(t *testing.T) {
 
 func TestCreateExperiment_EmptyName(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "", Description: "first experiment"}
 	clientManager.DB().Close()
@@ -111,7 +111,7 @@ func TestCreateExperiment_EmptyName(t *testing.T) {
 
 func TestCreateExperimentV1_EmptyName(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "", Description: "first experiment"}
 	clientManager.DB().Close()
@@ -186,7 +186,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 
 	tests := []struct {
@@ -360,7 +360,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(tt.fakeId, nil))
-		resourceManager = resource.NewResourceManager(clientManager, "default")
+		resourceManager = resource.NewResourceManager(clientManager)
 		server = ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 		got, err := server.CreateExperimentV1(ctx, &apiv1beta1.CreateExperimentRequest{Experiment: tt.experiment})
 		if tt.wantError {
@@ -382,7 +382,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 
 	tests := []struct {
@@ -446,7 +446,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 
 func TestGetExperimentV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
@@ -462,7 +462,7 @@ func TestGetExperimentV1(t *testing.T) {
 		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
@@ -472,7 +472,7 @@ func TestGetExperimentV1(t *testing.T) {
 
 func TestGetExperiment(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
@@ -486,14 +486,14 @@ func TestGetExperiment(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "default",
+		Namespace:    "",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
 
 func TestGetExperimentV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
@@ -507,7 +507,7 @@ func TestGetExperimentV1_Failed(t *testing.T) {
 
 func TestGetExperiment_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
@@ -570,7 +570,7 @@ func TestGetExperimentV1_Multiuser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	resourceReferences := []*apiv1beta1.ResourceReference{
 		{
@@ -606,7 +606,7 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{
 		DisplayName: "exp1",
@@ -631,14 +631,14 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 
 func TestListExperimentsV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
 	createResult, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	result, err := server.ListExperimentsV1(nil, &apiv1beta1.ListExperimentsRequest{
-		ResourceReferenceKey: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+		ResourceReferenceKey: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 	})
 	expectedExperiment := []*apiv1beta1.Experiment{{
 		Id:           createResult.Id,
@@ -648,7 +648,7 @@ func TestListExperimentsV1(t *testing.T) {
 		StorageState: apiv1beta1.Experiment_STORAGESTATE_AVAILABLE,
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
 				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
@@ -659,7 +659,7 @@ func TestListExperimentsV1(t *testing.T) {
 
 func TestListExperiments(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
@@ -672,7 +672,7 @@ func TestListExperiments(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "default",
+		Namespace:    "",
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
@@ -680,7 +680,7 @@ func TestListExperiments(t *testing.T) {
 
 func TestListExperimentsV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 
@@ -694,7 +694,7 @@ func TestListExperimentsV1_Failed(t *testing.T) {
 
 func TestListExperiments_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
@@ -762,7 +762,7 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "ns1")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 
 	resourceReferences := []*apiv1beta1.ResourceReference{
@@ -889,7 +889,7 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{
 		DisplayName: "exp1",
@@ -967,7 +967,7 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 	_, err := runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run2 := &apiv1beta1.Run{
 		Name:               "run2",
@@ -976,7 +976,7 @@ func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 	_, err = runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil))
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job1 := &apiv1beta1.Job{
 		Name:           "name1",
@@ -1043,7 +1043,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	_, err := runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run2 := &apiv1beta1.Run{
 		Name:               "run2",
@@ -1052,7 +1052,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	_, err = runServer.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil))
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job1 := &apiv1beta1.Job{
 		Name:           "name1",
@@ -1107,7 +1107,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 // deleting an experiment that does not exist in single user mode, for V2 api.
 func TestDeleteExperiments_SingleUser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
 	resultExperiment, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
@@ -1125,7 +1125,7 @@ func TestDeleteExperiments_SingleUser(t *testing.T) {
 // deleting an experiment that does not exist in single user mode, for V1 api.
 func TestDeleteExperimentsV1_SingleUser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiv1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 	resultExperiment, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
@@ -1148,7 +1148,7 @@ func TestDeleteExperiments_MultiUser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment", Namespace: "ns1"}
 	resultExperiment, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
@@ -1171,7 +1171,7 @@ func TestDeleteExperimentsV1_MultiUser(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	resourceReferences := []*apiv1beta1.ResourceReference{
 		{

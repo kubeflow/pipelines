@@ -17,7 +17,7 @@ package api_server
 import (
 	"fmt"
 
-	"github.com/go-openapi/runtime"
+	rt "github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
@@ -43,7 +43,7 @@ type PipelineInterface interface {
 
 type PipelineClient struct {
 	apiClient      *apiclient.Pipeline
-	authInfoWriter runtime.ClientAuthInfoWriter
+	authInfoWriter rt.ClientAuthInfoWriter
 }
 
 func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineDefaultVersionV1Params) error {

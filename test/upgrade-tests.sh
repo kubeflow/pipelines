@@ -24,6 +24,7 @@ usage()
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
+    [--test_v2_api          run test using v2 API]
     [-h help]"
 }
 
@@ -50,6 +51,9 @@ while [ "$1" != "" ]; do
                                       ;;
              --timeout )              shift
                                       TIMEOUT_SECONDS=$1
+                                      ;;
+             --test_v2_api )
+                                      TEST_V2_API=true
                                       ;;
              -h | --help )            usage
                                       exit
@@ -95,9 +99,18 @@ echo "argo installed"
 time KFP_DEPLOY_RELEASE=true source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP standalone of latest release deployed"
 
+if [ -n "$TEST_V2_API" ]; then
+  TEST_PREPARATION_ENTRYPOINT=upgrade-test-preparation-v2
+  TEST_VERIFICATION_ENTRYPOINT=upgrade-test-verification-v2
+else
+  TEST_PREPARATION_ENTRYPOINT=upgrade-test-preparation
+  TEST_VERIFICATION_ENTRYPOINT=upgrade-test-verification
+fi
+
+
 echo "submitting argo workflow to setup test env before upgrade..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
---entrypoint upgrade-test-preparation \
+--entrypoint ${TEST_PREPARATION_ENTRYPOINT} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
@@ -117,7 +130,7 @@ echo "KFP standalone of commit ${COMMIT_SHA} deployed"
 
 echo "submitting argo workflow to verify test env after upgrade..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
---entrypoint upgrade-test-verification \
+--entrypoint ${TEST_VERIFICATION_ENTRYPOINT} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \

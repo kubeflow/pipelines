@@ -302,7 +302,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			CreatedAtInSec: createdAtInSec.Int64,
 			UpdatedAtInSec: updatedAtInSec.Int64,
 		}
-		job = job.ToV1().ToV2()
+		job = job.ToV2()
 		jobs = append(jobs, job)
 	}
 	return jobs, nil

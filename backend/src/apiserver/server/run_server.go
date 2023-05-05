@@ -110,33 +110,30 @@ func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerO
 // Creates a run.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, error) {
-	if common.IsMultiUserMode() {
-		if run.ExperimentId == "" {
-			return nil, util.NewInvalidInputError("Failed to create a run due to missing parent experiment id")
-		}
+	// Validate user inputs
+	if run.DisplayName == "" {
+		return nil, util.Wrapf(util.NewInvalidInputError("The run name is empty. Please specify a valid name"), "Failed to create a run due to invalid name")
 	}
-	if err := s.resourceManager.ValidateExperimentNamespace(run.ExperimentId, run.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", run.Namespace, run.ExperimentId)
-	}
-	ns, err := s.resourceManager.GetNamespaceFromExperimentId(run.ExperimentId)
+	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(run.ExperimentId, run.Namespace)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run due to error fetching parent experiment's %s namespace", run.ExperimentId)
+		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentId and namespace combination")
 	}
-	run.Namespace = ns
-
+	run.ExperimentId = experimentId
+	run.Namespace = namespace
 	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: run.Namespace,
-		Verb:      common.RbacResourceVerbCreate,
-		Resource:  common.RbacResourceTypePipelines,
-	}
-	if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
-	}
-
-	// Validate the pipeline. Fail fast if this is corrupted.
-	if err := s.validateRun(run); err != nil {
-		return nil, util.Wrap(err, "Failed to create a run as run validation failed")
+	if common.IsMultiUserMode() {
+		if run.Namespace == "" {
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run cannot have an empty namespace in multi-user mode"), "Failed to create a run due to empty namespace")
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: run.Namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Resource:  common.RbacResourceTypeRuns,
+			Name:      run.DisplayName,
+		}
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
+		}
 	}
 	return s.resourceManager.CreateRun(ctx, run)
 }
@@ -217,7 +214,7 @@ func (s *RunServer) listRuns(ctx context.Context, pageToken string, pageSize int
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
 	}
 	if experimentId != "" {
-		if err := s.resourceManager.ValidateExperimentNamespace(experimentId, namespace); err != nil {
+		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentId, namespace); err != nil {
 			return nil, 0, "", util.Wrap(err, "Failed to list runs due to namespace mismatch")
 		}
 		filterContext = &model.FilterContext{
@@ -263,8 +260,15 @@ func (s *RunServer) ListRunsV1(ctx context.Context, r *apiv1beta1.ListRunsReques
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list v1beta1 runs")
 	}
-
-	return &apiv1beta1.ListRunsResponse{Runs: toApiRunsV1(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
+	apiRuns := toApiRunsV1(runs)
+	if apiRuns == nil {
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal run representations to their v1beta1 API counterparts"), "Failed to list v1beta1 runs")
+	}
+	return &apiv1beta1.ListRunsResponse{
+		Runs:          apiRuns,
+		TotalSize:     int32(runsCount),
+		NextPageToken: nextPageToken,
+	}, nil
 }
 
 // Archives a run.
@@ -374,7 +378,7 @@ func (s *RunServer) reportRunMetrics(ctx context.Context, metrics []*model.RunMe
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, existingRun.ExperimentId, experimentId), "Failed to report run metrics")
 	}
 	if experimentId != "" {
-		if err := s.resourceManager.ValidateExperimentNamespace(experimentId, existingRun.Namespace); err != nil {
+		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentId, existingRun.Namespace); err != nil {
 			return nil, util.Wrap(err, "Failed to report run metrics due to namespace mismatch")
 		}
 		resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -695,16 +699,6 @@ func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRe
 	}
 
 	return &empty.Empty{}, nil
-}
-
-func (s *RunServer) validateRun(r *model.Run) error {
-	if r.DisplayName == "" {
-		return util.NewInvalidInputError("The run name is empty. Please specify a valid name")
-	}
-	if r.ExperimentId == "" && common.IsMultiUserMode() {
-		return util.NewInvalidInputError("Experiment id can not be empty in run")
-	}
-	return nil
 }
 
 func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttributes *authorizationv1.ResourceAttributes) error {

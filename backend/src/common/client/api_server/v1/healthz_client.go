@@ -17,6 +17,7 @@ package api_server
 import (
 	"fmt"
 
+	rt "github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client/healthz_service"
@@ -31,7 +32,8 @@ type HealthzInterface interface {
 }
 
 type HealthzClient struct {
-	apiClient *apiclient.Healthz
+	apiClient      *apiclient.Healthz
+	authInfoWriter rt.ClientAuthInfoWriter
 }
 
 func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*HealthzClient, error) {
@@ -45,6 +47,20 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*Healthz
 	// Creating upload client
 	return &HealthzClient{
 		apiClient: apiClient,
+	}, nil
+}
+
+func NewKubeflowInClusterHealthzClient(namespace string, debug bool) (
+	*HealthzClient, error) {
+
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating experiment client
+	return &HealthzClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
 	}, nil
 }
 

@@ -13,16 +13,8 @@
 # limitations under the License.
 """Google Cloud Pipeline Tensorboard Components."""
 
-import os
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.tensorboard.tensorboard_experiment_creator.component import tensorboard_experiment_creator as TensorboardExperimentCreatorOp
 
 __all__ = [
     'TensorboardExperimentCreatorOp',
 ]
-
-TensorboardExperimentCreatorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'tensorboard_experiment_creator.yaml'
-    )
-)

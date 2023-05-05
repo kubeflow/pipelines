@@ -119,14 +119,14 @@ def feature_extractor_error_analysis(
                   then=(
                       "\", \"--test_dataset_resource_name={{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}"
                   ),
-                  else_='None',
+                  else_='',
               ),
               IfPresentPlaceholder(
                   input_name='training_dataset',
                   then=(
                       "\", \"--training_dataset_resource_name={{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
                   ),
-                  else_='None',
+                  else_='',
               ),
               '", "--embeddings_dir=',
               embeddings_dir,

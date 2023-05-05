@@ -118,4 +118,5 @@ def bigquery_ml_confusion_matrix_job(
       json.dumps(job_configuration_query_override_json),
       gcp_resources,
       executor_input,
+      'confusion_matrix',
   )

@@ -432,7 +432,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to build query to update or insert tasks")
 	}
-	sql = s.db.Upsert(sql, "UUID", taskColumnsWithPayload...)
+	sql = s.db.Upsert(sql, "UUID", true, taskColumnsWithPayload...)
 	_, err = s.db.Exec(sql, arg...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to update or insert tasks. Query: %v. Args: %v", sql, arg)

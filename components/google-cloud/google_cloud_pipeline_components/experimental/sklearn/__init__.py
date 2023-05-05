@@ -13,14 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline SKLearn components."""
 
-import os
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.sklearn.train_test_split_jsonl.component import train_test_split_jsonl_with_sklearn as SklearnTrainTestSplitJsonlOp
 
 __all__ = ['SklearnTrainTestSplitJsonlOp']
-
-SklearnTrainTestSplitJsonlOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'train_test_split_jsonl/component.yaml'
-    )
-)

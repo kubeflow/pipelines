@@ -317,7 +317,7 @@ func TestCreateJob_NoResRefs(t *testing.T) {
 	clients, manager, _, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &apiv1beta1.Job{
 		Name:           "job1",
@@ -500,6 +500,86 @@ func TestCreateJob_V2(t *testing.T) {
 	assert.Equal(t, expectedJob_V2, job)
 }
 
+func TestListRecurringRuns_MultiUser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	apiRecurringRun := &apiv2beta1.RecurringRun{
+		DisplayName:    "recurring_run_1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}},
+		},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
+		},
+		ExperimentId: experiment.UUID,
+	}
+
+	_, err := server.CreateRecurringRun(ctx, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	assert.Nil(t, err)
+
+	expectedRecurringRun := &apiv2beta1.RecurringRun{
+		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "recurring_run_1",
+		ServiceAccount: "pipeline-runner",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Namespace:      "ns1",
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}},
+		},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
+		},
+		Status:       apiv2beta1.RecurringRun_ENABLED,
+		ExperimentId: experiment.UUID,
+	}
+
+	expectedRecurringRunsList := []*apiv2beta1.RecurringRun{expectedRecurringRun}
+
+	actualRecurringRunsList, err := server.ListRecurringRuns(ctx, &apiv2beta1.ListRecurringRunsRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(actualRecurringRunsList.RecurringRuns))
+
+	actualRecurringRunsList2, err := server.ListRecurringRuns(ctx, &apiv2beta1.ListRecurringRunsRequest{
+		ExperimentId: experiment.UUID,
+	})
+	actualRecurringRunsList2.RecurringRuns[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
+		"param1": structpb.NewStringValue("world"),
+	}
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(actualRecurringRunsList2.RecurringRuns))
+	assert.Equal(t, expectedRecurringRunsList, actualRecurringRunsList2.RecurringRuns)
+}
+
 func TestCreateJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -537,7 +617,7 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.GetJob(ctx, &apiv1beta1.GetJobRequest{Id: job.Id})
@@ -744,7 +824,7 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.EnableJob(ctx, &apiv1beta1.EnableJobRequest{Id: job.Id})
@@ -789,7 +869,7 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	manager = resource.NewResourceManager(clients, "default")
+	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.DisableJob(ctx, &apiv1beta1.DisableJobRequest{Id: job.Id})
@@ -985,7 +1065,7 @@ func TestGetRecurringRun(t *testing.T) {
 }
 
 func TestListRecurringRuns(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
+	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
@@ -1009,10 +1089,10 @@ func TestListRecurringRuns(t *testing.T) {
 				"param1": structpb.NewStringValue("world"),
 			},
 		},
-		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentId: experiment.UUID,
 	}
 
-	_, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	_, err := server.CreateRecurringRun(context.Background(), &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
 	expectedRecurringRun := &apiv2beta1.RecurringRun{
@@ -1038,23 +1118,27 @@ func TestListRecurringRuns(t *testing.T) {
 			},
 		},
 		Status:       apiv2beta1.RecurringRun_ENABLED,
-		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentId: experiment.UUID,
 	}
 
 	expectedRecurringRunsList := []*apiv2beta1.RecurringRun{expectedRecurringRun}
 
-	actualRecurringRunsList, err := server.ListRecurringRuns(nil, &apiv2beta1.ListRecurringRunsRequest{})
+	actualRecurringRunsList, err := server.ListRecurringRuns(context.Background(), &apiv2beta1.ListRecurringRunsRequest{})
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(actualRecurringRunsList.RecurringRuns))
+	assert.Equal(t, 1, len(actualRecurringRunsList.RecurringRuns))
+	actualRecurringRunsList.RecurringRuns[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
+		"param1": structpb.NewStringValue("world"),
+	}
+	assert.Equal(t, expectedRecurringRunsList, actualRecurringRunsList.RecurringRuns)
 
-	actualRecurringRunsList2, err := server.ListRecurringRuns(nil, &apiv2beta1.ListRecurringRunsRequest{
-		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	actualRecurringRunsList2, err := server.ListRecurringRuns(context.Background(), &apiv2beta1.ListRecurringRunsRequest{
+		ExperimentId: experiment.UUID,
 	})
 	actualRecurringRunsList2.RecurringRuns[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
 		"param1": structpb.NewStringValue("world"),
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(actualRecurringRunsList.RecurringRuns))
+	assert.Equal(t, 1, len(actualRecurringRunsList2.RecurringRuns))
 	assert.Equal(t, expectedRecurringRunsList, actualRecurringRunsList2.RecurringRuns)
 }
 
