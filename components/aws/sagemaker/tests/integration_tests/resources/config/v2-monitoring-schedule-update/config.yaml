@@ -1,6 +1,6 @@
-PipelineDefinition: resources/definition/data_quality_job_defi_v2_pipeline.py
-TestName: ack-data-quality-job-definition
-Timeout: 1000
+PipelineDefinition: resources/definition/monitoring_schedule_update_v2_pipeline.py
+TestName: v2-monitoring-schedule-update
+Timeout: 4000
 Plural: dataqualityjobdefinitions
 JobInputName: data_quality_job_input
 ModelImage: ((XGBOOST_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:0.90-1-cpu-py3
@@ -29,8 +29,9 @@ Arguments:
   job_resources:
     clusterConfig:
       instanceCount: 1
-      instanceType: ml.m5.large
       volumeSizeInGB: 30
   role_arn: ((SAGEMAKER_ROLE_ARN))
   stopping_condition:
     maxRuntimeInSeconds: 3600
+  monitoring_type: DataQuality
+  schedule_expression: cron(0 * ? * * *)
