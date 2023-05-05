@@ -6,11 +6,8 @@ Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-k
 ---------------------------------------------
 ** Change log for version 2.2.1 **
 - Fixing Path bug when cloning repository on macbook
-- Directory name for version 2 of Model component has been updated from Model to Modelv2.
+- Directory name for version 2 of `Model` component has been updated from `Model` to `Modelv2`.
 > Pull request : [#9331](https://github.com/kubeflow/pipelines/pull/9331) 
-
-- Introducing SageMaker Hosting components v2. This release includes [Model](./Modelv2/), [EndpointConfig](./EndpointConfig/), [Endpoint](./Endpoint/).
-> Pull request : [#9243](https://github.com/kubeflow/pipelines/pull/9243)
 
 ** Change log for version 2.2.0 **
 
