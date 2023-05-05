@@ -1,4 +1,10 @@
-## Current Version 2.0.0b3.dev (Still in Development)
+## Current Version 2.0.0b4.dev (Still in Development)
+
+## Release 2.0.0b3
+* Support sparse layer masking feature selection for `experimental.automl.tabular` classification/regression components
+* Fixes for GCPC v2 reference documentation
+* Fix `experimental.dataflow.DataflowFlexTemplateJobOp` component
+* Remove unused SDK dependency on `google-cloud-notebooks` and `google-cloud-storage`
 
 ## Release 2.0.0b2
 * Add `experimental.dataflow.DataflowFlexTemplateJobOp` component

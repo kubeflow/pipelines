@@ -49,11 +49,16 @@ def load_from_file(path: str):
 
 components.load_component_from_file = load_from_file
 
+# order from earliest to latest
+# start with 2.0.0b3, which is the first time we're using the new theme
+V2_DROPDOWN_VERSIONS = ['2.0.0b3']
+
 # The short X.Y version
 # update for each release
-VERSION = '2.0.0b2'
+LATEST_VERSION = V2_DROPDOWN_VERSIONS[-1]
+
 # The full version, including alpha/beta/rc tags
-release = VERSION
+release = LATEST_VERSION
 
 # -- General configuration ---------------------------------------------------
 
@@ -111,10 +116,11 @@ html_theme_options = {
     'version_dropdown': True,
     'version_info': [
         {
-            'version': f'https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-{VERSION}',
-            'title': VERSION,
-            'aliases': ['stable'],
-        },
+            'version': f'https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-{version}',
+            'title': version,
+            'aliases': [],
+        }
+        for version in reversed(V2_DROPDOWN_VERSIONS)
     ],
     # "toc_title_is_page_title": True,
 }
