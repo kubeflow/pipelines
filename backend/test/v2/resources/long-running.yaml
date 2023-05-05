@@ -45,4 +45,4 @@ root:
         taskInfo:
           name: wait-op-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.0.0-beta.16
