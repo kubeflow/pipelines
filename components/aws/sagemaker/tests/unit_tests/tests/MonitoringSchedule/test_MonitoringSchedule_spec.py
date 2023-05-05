@@ -10,11 +10,16 @@ class MonitoringScheduleSpecTestCase(unittest.TestCase):
         "--region",
         "us-west-1",
         "--monitoring_schedule_name",
-        "test",
+        "test_monitoring_schedule_name",
         "--monitoring_schedule_config",
-        "{'test': 'test'}",
+        "{'monitoringType': 'DataQuality', 'monitoringJobDefinitionName': 'test_monitoring_name', 'scheduleConfig': '' }",
     ]
-    INCORRECT_ARGS = ["--empty"]
+    INCORRECT_ARGS = [
+        "--region",
+        "us-west-1",
+        "--monitoring_schedule_name",
+        "test_monitoring_schedule_name",
+    ]
 
     def test_minimum_required_args(self):
         # Will raise an exception if the inputs are incorrect
