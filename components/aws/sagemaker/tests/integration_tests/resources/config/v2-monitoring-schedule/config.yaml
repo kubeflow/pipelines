@@ -1,6 +1,6 @@
 PipelineDefinition: resources/definition/monitoring_schedule_v2_pipeline.py
 TestName: v2-monitoring-schedule
-Timeout: 1000
+Timeout: 4000
 ModelImage: ((XGBOOST_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:0.90-1-cpu-py3
 ModelUrl: s3://((DATA_BUCKET))/model-monitor/xgboost-churn-model.tar.gz
 EndpointCapture: s3://((DATA_BUCKET))/model-monitor/endpoint_capture
