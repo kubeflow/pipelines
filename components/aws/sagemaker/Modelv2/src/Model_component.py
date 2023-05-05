@@ -14,7 +14,7 @@ import logging
 from typing import Dict
 import json
 
-from Model.src.Model_spec import (
+from Modelv2.src.Model_spec import (
     SageMakerModelInputs,
     SageMakerModelOutputs,
     SageMakerModelSpec,
@@ -54,8 +54,8 @@ class SageMakerModelComponent(SageMakerComponent):
         self.plural = "models"
         self.spaced_out_resource_name = "Model"
 
-        self.job_request_outline_location = "Model/src/Model_request.yaml.tpl"
-        self.job_request_location = "Model/src/Model_request.yaml"
+        self.job_request_outline_location = "Modelv2/src/Model_request.yaml.tpl"
+        self.job_request_location = "Modelv2/src/Model_request.yaml"
         self.update_supported = False
         ############GENERATED SECTION ABOVE############
 
