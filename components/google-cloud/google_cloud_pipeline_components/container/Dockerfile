@@ -33,6 +33,9 @@ RUN pip3 install -U "apache_beam[gcp]<2.34.0"
 # Required for sklearn/train_test_split_jsonl
 RUN pip3 install -U "fsspec>=0.7.4" "gcsfs>=0.6.0" "pandas<=1.3.5" "scikit-learn<=1.0.2"
 
+# Required by experimental.notebooks.NotebooksExecutorOp
+RUN pip3 install -U google-cloud-notebooks
+
 # Install main package (switch to using pypi package for official release)
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
