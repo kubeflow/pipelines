@@ -100,7 +100,7 @@ def test_v2_monitoring_schedule(
     [
         pytest.param(
             "resources/config/v2-monitoring-schedule-update",
-            marks=[pytest.mark.canary_test, pytest.mark.v2],
+            marks=[pytest.mark.v2],
         ),
     ],
 )
