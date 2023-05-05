@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Google Cloud Pipeline AutoML Training Job components."""
-import os
 
-from kfp import components
+from google_cloud_pipeline_components.v1.automl.training_job.automl_forecasting_training_job.component import automl_forecasting_training_job as AutoMLForecastingTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job.automl_image_training_job.component import automl_image_training_job as AutoMLImageTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job.automl_tabular_training_job.component import automl_tabular_training_job as AutoMLTabularTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job.automl_text_training_job.component import automl_text_training_job as AutoMLTextTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job.automl_video_training_job.component import automl_video_training_job as AutoMLVideoTrainingJobRunOp
 
 __all__ = [
     'AutoMLImageTrainingJobRunOp',
@@ -23,38 +26,3 @@ __all__ = [
     'AutoMLForecastingTrainingJobRunOp',
     'AutoMLVideoTrainingJobRunOp',
 ]
-
-AutoMLImageTrainingJobRunOp = components.load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_image_training_job/component.yaml',
-    )
-)
-
-AutoMLTextTrainingJobRunOp = components.load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_text_training_job/component.yaml',
-    )
-)
-
-AutoMLTabularTrainingJobRunOp = components.load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_tabular_training_job/component.yaml',
-    )
-)
-
-AutoMLForecastingTrainingJobRunOp = components.load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_forecasting_training_job/component.yaml',
-    )
-)
-
-AutoMLVideoTrainingJobRunOp = components.load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'automl_video_training_job/component.yaml',
-    )
-)
