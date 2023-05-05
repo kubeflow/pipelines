@@ -533,16 +533,39 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         // (1) new pipeline (and a default version) from local file
         // (2) new pipeline (and a default version) from url
         // (3) new pipeline version (under an existing pipeline) from url
-        if (this.state.newPipeline) {
+        let pipelineVersionResponse: V2beta1PipelineVersion;
+        if (this.state.newPipeline && this.state.importMethod === ImportMethod.LOCAL) {
+          const pipelineResponse = await Apis.uploadPipelineV2(
+            this.state.pipelineName!,
+            this.state.pipelineDescription,
+            this.state.file!,
+            namespace,
+          );
+          const listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
+            pipelineResponse.pipeline_id!,
+            undefined,
+            1, // Only need the latest one
+            'created_at desc',
+          );
+          if (listVersionsResponse.pipeline_versions) {
+            pipelineVersionResponse = listVersionsResponse.pipeline_versions[0];
+          } else {
+            throw new Error('Pipeline is empty');
+          }
+        } else if (this.state.newPipeline && this.state.importMethod === ImportMethod.URL) {
           const newPipeline: V2beta1Pipeline = {
             description: this.state.pipelineDescription,
             display_name: this.state.pipelineName,
             namespace,
           };
-          const response = await Apis.pipelineServiceApiV2.createPipeline(newPipeline);
-          this.setState({ pipelineId: response.pipeline_id });
+          const createPipelineResponse = await Apis.pipelineServiceApiV2.createPipeline(
+            newPipeline,
+          );
+          this.setState({ pipelineId: createPipelineResponse.pipeline_id });
+          pipelineVersionResponse = await this._createPipelineVersion();
+        } else {
+          pipelineVersionResponse = await this._createPipelineVersion();
         }
-        const pipelineVersionResponse = await this._createPipelineVersion();
 
         // If success, go to pipeline details page of the new version
         this.props.history.push(
