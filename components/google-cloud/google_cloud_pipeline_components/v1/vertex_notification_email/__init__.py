@@ -15,7 +15,7 @@
 
 import os
 
-from . import component as vertex_notification_email_component
+from google_cloud_pipeline_components.v1.vertex_notification_email import component as vertex_notification_email_component
 
 __all__ = [
     'VertexNotificationEmailOp',

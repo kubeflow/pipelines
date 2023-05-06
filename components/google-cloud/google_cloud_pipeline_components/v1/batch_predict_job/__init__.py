@@ -15,7 +15,7 @@
 
 import os
 
-from . import component as batch_predict_job_component
+from google_cloud_pipeline_components.v1.batch_predict_job import component as batch_predict_job_component
 
 __all__ = [
     'ModelBatchPredictOp',

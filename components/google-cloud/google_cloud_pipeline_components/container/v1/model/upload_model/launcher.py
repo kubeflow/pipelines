@@ -17,8 +17,8 @@ import argparse
 import logging
 import sys
 
-from . import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
+from google_cloud_pipeline_components.container.v1.model.upload_model import remote_runner
 
 
 def _parse_args(args):

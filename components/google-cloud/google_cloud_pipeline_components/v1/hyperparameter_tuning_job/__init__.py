@@ -15,9 +15,9 @@
 
 import os
 
-from . import component as hyperparameter_tuning_job_component
-from .utils import serialize_metrics
-from .utils import serialize_parameters
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import component as hyperparameter_tuning_job_component
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import serialize_metrics
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import serialize_parameters
 
 __all__ = [
     'HyperparameterTuningJobRunOp',

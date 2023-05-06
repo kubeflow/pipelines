@@ -34,11 +34,8 @@ import requests
 
 from google.rpc import code_pb2
 from google.protobuf import json_format
-
-from ...utils import execution_context
-from .utils import error_util
-from .utils import json_util
-
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util, error_util
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5

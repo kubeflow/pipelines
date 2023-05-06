@@ -15,7 +15,7 @@
 
 import os
 
-from .component import vertex_pipelines_prompt_validation as VertexPromptValidationOp
+from google_cloud_pipeline_components.experimental.vertex_prompt_validation.component import vertex_pipelines_prompt_validation as VertexPromptValidationOp
 
 __all__ = [
     'VertexPromptValidationOp',

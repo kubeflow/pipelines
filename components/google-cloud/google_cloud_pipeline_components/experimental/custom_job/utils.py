@@ -13,7 +13,6 @@
 # limitations under the License.
 """Module for supporting Google Vertex AI Custom Training Job Op."""
 
-# support previous import path from .utils
 from google_cloud_pipeline_components.v1.custom_job import (
     create_custom_training_job_op_from_component,
     create_custom_training_job_from_component,
