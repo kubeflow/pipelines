@@ -20,8 +20,8 @@ from kfp.dsl import OutputPath
 
 @dsl.container_component
 def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Deletes a Google Cloud Vertex Model.
   For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/delete.
 
@@ -35,31 +35,31 @@ def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
 
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.model.delete_model.launcher',
-      ],
-      args=[
-          '--type',
-          'DeleteModel',
-          '--payload',
-          dsl.ConcatPlaceholder([
-              '{',
-              '"model": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
-              '"',
-              '}',
-          ]),
-          '--project',
-          '',
-          '--location',
-          '',
-          '--gcp_resources',
-          gcp_resources,
-      ],
-  )
+    # fmt: on
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.model.delete_model.launcher',
+        ],
+        args=[
+            '--type',
+            'DeleteModel',
+            '--payload',
+            dsl.ConcatPlaceholder([
+                '{',
+                '"model": "',
+                "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+                '"',
+                '}',
+            ]),
+            '--project',
+            '',
+            '--location',
+            '',
+            '--gcp_resources',
+            gcp_resources,
+        ],
+    )

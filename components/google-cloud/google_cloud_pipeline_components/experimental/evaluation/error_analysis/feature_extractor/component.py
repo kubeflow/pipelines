@@ -37,8 +37,8 @@ def feature_extractor_error_analysis(
     feature_extractor_machine_type: str = 'n1-standard-32',
     encryption_spec_key_name: str = '',
 ):
-  # fmt: off
-  """Extracts feature embeddings of a dataset.
+    # fmt: off
+    """Extracts feature embeddings of a dataset.
 
   Args:
       project (str): Required. GCP Project ID.
@@ -74,67 +74,67 @@ def feature_extractor_error_analysis(
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.custom_job.launcher',
-      ],
-      args=[
-          '--type',
-          'CustomJob',
-          '--project',
-          project,
-          '--location',
-          location,
-          '--gcp_resource',
-          gcp_resources,
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"display_name":',
-              f' "feature-extractor-{PIPELINE_JOB_ID_PLACEHOLDER}',
-              f'-{PIPELINE_TASK_ID_PLACEHOLDER}", ',
-              '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
-              '", "machine_spec": {"machine_type": "',
-              feature_extractor_machine_type,
-              '"},',
-              ' "container_spec": {"image_uri":"',
-              'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230420_0621_RC00',
-              '", "args": ["--project_id=',
-              project,
-              '", "--location=',
-              location,
-              '", "--root_dir=',
-              f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
-              '", "--test_dataset_storage_source=',
-              preprocessed_test_dataset_storage_source,
-              '", "--training_dataset_storage_source=',
-              preprocessed_training_dataset_storage_source,
-              IfPresentPlaceholder(
-                  input_name='test_dataset',
-                  then=(
-                      "\", \"--test_dataset_resource_name={{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}"
-                  ),
-                  else_='',
-              ),
-              IfPresentPlaceholder(
-                  input_name='training_dataset',
-                  then=(
-                      "\", \"--training_dataset_resource_name={{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
-                  ),
-                  else_='',
-              ),
-              '", "--embeddings_dir=',
-              embeddings_dir,
-              '", "--executor_input={{$.json_escape[1]}}"]}}]}',
-              ', "encryption_spec": {"kms_key_name":"',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.custom_job.launcher',
+        ],
+        args=[
+            '--type',
+            'CustomJob',
+            '--project',
+            project,
+            '--location',
+            location,
+            '--gcp_resource',
+            gcp_resources,
+            '--payload',
+            ConcatPlaceholder([
+                '{',
+                '"display_name":',
+                f' "feature-extractor-{PIPELINE_JOB_ID_PLACEHOLDER}',
+                f'-{PIPELINE_TASK_ID_PLACEHOLDER}", ',
+                '"job_spec": {"worker_pool_specs": [{"replica_count":"1',
+                '", "machine_spec": {"machine_type": "',
+                feature_extractor_machine_type,
+                '"},',
+                ' "container_spec": {"image_uri":"',
+                'gcr.io/cloud-aiplatform-private/starburst/v5/cmle:20230420_0621_RC00',
+                '", "args": ["--project_id=',
+                project,
+                '", "--location=',
+                location,
+                '", "--root_dir=',
+                f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
+                '", "--test_dataset_storage_source=',
+                preprocessed_test_dataset_storage_source,
+                '", "--training_dataset_storage_source=',
+                preprocessed_training_dataset_storage_source,
+                IfPresentPlaceholder(
+                    input_name='test_dataset',
+                    then=(
+                        "\", \"--test_dataset_resource_name={{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}"
+                    ),
+                    else_='',
+                ),
+                IfPresentPlaceholder(
+                    input_name='training_dataset',
+                    then=(
+                        "\", \"--training_dataset_resource_name={{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}"
+                    ),
+                    else_='',
+                ),
+                '", "--embeddings_dir=',
+                embeddings_dir,
+                '", "--executor_input={{$.json_escape[1]}}"]}}]}',
+                ', "encryption_spec": {"kms_key_name":"',
+                encryption_spec_key_name,
+                '"}',
+                '}',
+            ]),
+        ],
+    )

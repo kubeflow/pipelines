@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from kfp import dsl
@@ -42,8 +41,8 @@ def notebooks_executor(
     block_pipeline: Optional[bool] = True,
     fail_pipeline: Optional[bool] = True,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Executes a notebook using the Notebooks Executor API.
 
   The component uses the same inputs as the Notebooks Executor API and additional
@@ -97,70 +96,66 @@ def notebooks_executor(
     RuntimeError with the error message.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.experimental.notebooks.executor',
-      ],
-      args=[
-          '--project',
-          project,
-          '--input_notebook_file',
-          input_notebook_file,
-          '--output_notebook_folder',
-          output_notebook_folder,
-          '--execution_id',
-          execution_id,
-          '--location',
-          location,
-          '--master_type',
-          master_type,
-          '--container_image_uri',
-          container_image_uri,
-          dsl.IfPresentPlaceholder(
-              input_name='accelerator_type',
-              then=['--accelerator_type', accelerator_type],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='accelerator_core_count',
-              then=['--accelerator_core_count', accelerator_core_count],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='labels', then=['--labels', labels]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='params_yaml_file',
-              then=['--params_yaml_file', params_yaml_file],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='parameters', then=['--parameters', parameters]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='service_account',
-              then=['--service_account', service_account],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='job_type', then=['--job_type', job_type]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='kernel_spec', then=['--kernel_spec', kernel_spec]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='block_pipeline',
-              then=['--block_pipeline', block_pipeline],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='fail_pipeline',
-              then=['--fail_pipeline', fail_pipeline],
-          ),
-          '----output-paths',
-          state,
-          output_notebook_file,
-          gcp_resources,
-          error,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.experimental.notebooks.executor',
+        ],
+        args=[
+            '--project',
+            project,
+            '--input_notebook_file',
+            input_notebook_file,
+            '--output_notebook_folder',
+            output_notebook_folder,
+            '--execution_id',
+            execution_id,
+            '--location',
+            location,
+            '--master_type',
+            master_type,
+            '--container_image_uri',
+            container_image_uri,
+            dsl.IfPresentPlaceholder(
+                input_name='accelerator_type',
+                then=['--accelerator_type', accelerator_type],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='accelerator_core_count',
+                then=['--accelerator_core_count', accelerator_core_count],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='labels', then=['--labels', labels]),
+            dsl.IfPresentPlaceholder(
+                input_name='params_yaml_file',
+                then=['--params_yaml_file', params_yaml_file],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='parameters', then=['--parameters', parameters]),
+            dsl.IfPresentPlaceholder(
+                input_name='service_account',
+                then=['--service_account', service_account],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='job_type', then=['--job_type', job_type]),
+            dsl.IfPresentPlaceholder(
+                input_name='kernel_spec', then=['--kernel_spec', kernel_spec]),
+            dsl.IfPresentPlaceholder(
+                input_name='block_pipeline',
+                then=['--block_pipeline', block_pipeline],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='fail_pipeline',
+                then=['--fail_pipeline', fail_pipeline],
+            ),
+            '----output-paths',
+            state,
+            output_notebook_file,
+            gcp_resources,
+            error,
+        ],
+    )

@@ -24,8 +24,8 @@ def vertex_pipelines_notification_email(
     recipients: List[str],
     pipeline_task_final_status: PipelineTaskFinalStatus,
 ):
-  # fmt: off
-  """When this component is included as an exit handler, sends a notification email with the status of the upstream DAG to the specified recipients.
+    # fmt: off
+    """When this component is included as an exit handler, sends a notification email with the status of the upstream DAG to the specified recipients.
 
   This component works only on Vertex Pipelines. This component raises an
   exception when run on Kubeflow Pipelines.
@@ -38,19 +38,19 @@ def vertex_pipelines_notification_email(
       The task final status
       of the upstream DAG that this component will use in the notification.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.vertex_notification_email.executor',
-      ],
-      args=[
-          '--type',
-          'VertexNotificationEmail',
-          '--payload',
-          '',
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.vertex_notification_email.executor',
+        ],
+        args=[
+            '--type',
+            'VertexNotificationEmail',
+            '--payload',
+            '',
+        ],
+    )

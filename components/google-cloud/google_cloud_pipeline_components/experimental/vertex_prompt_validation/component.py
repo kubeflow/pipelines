@@ -24,8 +24,8 @@ def vertex_pipelines_prompt_validation(
     rai_validation_enabled: bool,
     fail_on_warning: bool,
 ):
-  # fmt: off
-  """Validates the large language models prompt tuning dataset.
+    # fmt: off
+    """Validates the large language models prompt tuning dataset.
 
   It expects a JSONL file and validates it for correct format, tokenize limits
   of input/output prompts, harmful content etc.
@@ -43,19 +43,19 @@ def vertex_pipelines_prompt_validation(
     fail_on_warning (bool):
       If enabled, fails the component on warnings.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.vertex_prompt_validation.executor',
-      ],
-      args=[
-          '--type',
-          'VertexPromptValidation',
-          '--payload',
-          '',
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.vertex_prompt_validation.executor',
+        ],
+        args=[
+            '--type',
+            'VertexPromptValidation',
+            '--payload',
+            '',
+        ],
+    )

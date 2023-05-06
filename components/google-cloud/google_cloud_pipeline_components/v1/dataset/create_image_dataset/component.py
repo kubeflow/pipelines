@@ -30,8 +30,8 @@ def image_dataset_create(
     labels: Optional[Dict[str, str]] = {},
     encryption_spec_key_name: Optional[str] = None,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Creates a new image dataset and optionally imports data into dataset
   when source and import_schema_uri are passed.
 
@@ -96,53 +96,53 @@ def image_dataset_create(
       dataset (google.VertexDataset):
           Instantiated representation of the managed image dataset resource.
   """
-  # fmt: on
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
-          '--cls_name',
-          'ImageDataset',
-          '--method_name',
-          'create',
-      ],
-      args=[
-          '--method.project',
-          project,
-          '--method.location',
-          location,
-          '--method.display_name',
-          display_name,
-          '--method.data_item_labels',
-          data_item_labels,
-          dsl.IfPresentPlaceholder(
-              'gcs_source',
-              then=[
-                  '--method.gcs_source',
-                  gcs_source,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              'import_schema_uri',
-              then=[
-                  '--method.import_schema_uri',
-                  import_schema_uri,
-              ],
-          ),
-          '--method.labels',
-          labels,
-          dsl.IfPresentPlaceholder(
-              'encryption_spec_key_name',
-              then=[
-                  '--method.encryption_spec_key_name',
-                  encryption_spec_key_name,
-              ],
-          ),
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          dataset.uri,
-      ],
-  )
+    # fmt: on
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+            '--cls_name',
+            'ImageDataset',
+            '--method_name',
+            'create',
+        ],
+        args=[
+            '--method.project',
+            project,
+            '--method.location',
+            location,
+            '--method.display_name',
+            display_name,
+            '--method.data_item_labels',
+            data_item_labels,
+            dsl.IfPresentPlaceholder(
+                'gcs_source',
+                then=[
+                    '--method.gcs_source',
+                    gcs_source,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                'import_schema_uri',
+                then=[
+                    '--method.import_schema_uri',
+                    import_schema_uri,
+                ],
+            ),
+            '--method.labels',
+            labels,
+            dsl.IfPresentPlaceholder(
+                'encryption_spec_key_name',
+                then=[
+                    '--method.encryption_spec_key_name',
+                    encryption_spec_key_name,
+                ],
+            ),
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            dataset.uri,
+        ],
+    )

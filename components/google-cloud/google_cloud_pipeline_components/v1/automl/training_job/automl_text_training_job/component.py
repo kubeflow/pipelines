@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
@@ -41,8 +40,8 @@ def automl_text_training_job(
     model_display_name: Optional[str] = None,
     model_labels: Optional[dict] = None,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
     Runs the training job and returns a model.
   If training on a Vertex AI dataset, you can use one of the following split configurations:
       Data fraction splits:
@@ -158,79 +157,79 @@ def automl_text_training_job(
       model: The trained Vertex AI Model resource.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
-          '--cls_name',
-          'AutoMLTextTrainingJob',
-          '--method_name',
-          'run',
-      ],
-      args=[
-          '--init.project',
-          project,
-          '--init.location',
-          location,
-          '--init.display_name',
-          display_name,
-          '--init.prediction_type',
-          prediction_type,
-          '--init.multi_label',
-          multi_label,
-          '--init.labels',
-          labels,
-          '--init.sentiment_max',
-          sentiment_max,
-          '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
-          dsl.IfPresentPlaceholder(
-              input_name='training_encryption_spec_key_name',
-              then=[
-                  '--init.training_encryption_spec_key_name',
-                  training_encryption_spec_key_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_encryption_spec_key_name',
-              then=[
-                  '--init.model_encryption_spec_key_name',
-                  model_encryption_spec_key_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_display_name',
-              then=['--method.model_display_name', model_display_name],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='training_fraction_split',
-              then=[
-                  '--method.training_fraction_split',
-                  training_fraction_split,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='validation_fraction_split',
-              then=[
-                  '--method.validation_fraction_split',
-                  validation_fraction_split,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='test_fraction_split',
-              then=['--method.test_fraction_split', test_fraction_split],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_labels',
-              then=['--method.model_labels', model_labels],
-          ),
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          model.uri,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+            '--cls_name',
+            'AutoMLTextTrainingJob',
+            '--method_name',
+            'run',
+        ],
+        args=[
+            '--init.project',
+            project,
+            '--init.location',
+            location,
+            '--init.display_name',
+            display_name,
+            '--init.prediction_type',
+            prediction_type,
+            '--init.multi_label',
+            multi_label,
+            '--init.labels',
+            labels,
+            '--init.sentiment_max',
+            sentiment_max,
+            '--method.dataset',
+            "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+            dsl.IfPresentPlaceholder(
+                input_name='training_encryption_spec_key_name',
+                then=[
+                    '--init.training_encryption_spec_key_name',
+                    training_encryption_spec_key_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_encryption_spec_key_name',
+                then=[
+                    '--init.model_encryption_spec_key_name',
+                    model_encryption_spec_key_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_display_name',
+                then=['--method.model_display_name', model_display_name],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='training_fraction_split',
+                then=[
+                    '--method.training_fraction_split',
+                    training_fraction_split,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='validation_fraction_split',
+                then=[
+                    '--method.validation_fraction_split',
+                    validation_fraction_split,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='test_fraction_split',
+                then=['--method.test_fraction_split', test_fraction_split],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_labels',
+                then=['--method.model_labels', model_labels],
+            ),
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            model.uri,
+        ],
+    )

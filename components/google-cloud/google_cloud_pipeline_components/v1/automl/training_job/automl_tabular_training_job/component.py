@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
@@ -58,8 +57,8 @@ def automl_tabular_training_job(
     export_evaluated_data_items_bigquery_destination_uri: Optional[str] = None,
     export_evaluated_data_items_override_destination: Optional[bool] = None,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
     Runs the training job and returns a model.
   If training on a Vertex AI dataset, you can use one of the following split configurations:
       Data fraction splits:
@@ -304,168 +303,167 @@ def automl_tabular_training_job(
           produce a Vertex AI Model.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
-          '--cls_name',
-          'AutoMLTabularTrainingJob',
-          '--method_name',
-          'run',
-      ],
-      args=[
-          '--init.project',
-          project,
-          '--init.location',
-          location,
-          '--init.display_name',
-          display_name,
-          '--init.optimization_prediction_type',
-          optimization_prediction_type,
-          '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
-          '--method.target_column',
-          target_column,
-          dsl.IfPresentPlaceholder(
-              input_name='optimization_objective',
-              then=['--init.optimization_objective', optimization_objective],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='column_specs',
-              then=['--init.column_specs', column_specs],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='column_transformations',
-              then=['--init.column_transformations', column_transformations],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='optimization_objective_recall_value',
-              then=[
-                  '--init.optimization_objective_recall_value',
-                  optimization_objective_recall_value,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='optimization_objective_precision_value',
-              then=[
-                  '--init.optimization_objective_precision_value',
-                  optimization_objective_precision_value,
-              ],
-          ),
-          '--init.labels',
-          labels,
-          dsl.IfPresentPlaceholder(
-              input_name='training_encryption_spec_key_name',
-              then=[
-                  '--init.training_encryption_spec_key_name',
-                  training_encryption_spec_key_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_encryption_spec_key_name',
-              then=[
-                  '--init.model_encryption_spec_key_name',
-                  model_encryption_spec_key_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='training_fraction_split',
-              then=[
-                  '--method.training_fraction_split',
-                  training_fraction_split,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='validation_fraction_split',
-              then=[
-                  '--method.validation_fraction_split',
-                  validation_fraction_split,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='test_fraction_split',
-              then=['--method.test_fraction_split', test_fraction_split],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='predefined_split_column_name',
-              then=[
-                  '--method.predefined_split_column_name',
-                  predefined_split_column_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='timestamp_split_column_name',
-              then=[
-                  '--method.timestamp_split_column_name',
-                  timestamp_split_column_name,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='weight_column',
-              then=['--method.weight_column', weight_column],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='budget_milli_node_hours',
-              then=[
-                  '--method.budget_milli_node_hours',
-                  budget_milli_node_hours,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_display_name',
-              then=['--method.model_display_name', model_display_name],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_labels',
-              then=['--method.model_labels', model_labels],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_id', then=['--method.model_id', model_id]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='parent_model',
-              then=['--method.parent_model', parent_model],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='is_default_version',
-              then=['--method.is_default_version', is_default_version],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_version_aliases',
-              then=['--method.model_version_aliases', model_version_aliases],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='model_version_description',
-              then=[
-                  '--method.model_version_description',
-                  model_version_description,
-              ],
-          ),
-          '--method.disable_early_stopping',
-          disable_early_stopping,
-          '--method.export_evaluated_data_items',
-          export_evaluated_data_items,
-          dsl.IfPresentPlaceholder(
-              input_name='export_evaluated_data_items_bigquery_destination_uri',
-              then=[
-                  '--method.export_evaluated_data_items_bigquery_destination_uri',
-                  export_evaluated_data_items_bigquery_destination_uri,
-              ],
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='export_evaluated_data_items_override_destination',
-              then=[
-                  '--method.export_evaluated_data_items_override_destination',
-                  export_evaluated_data_items_override_destination,
-              ],
-          ),
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          model.uri,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+            '--cls_name',
+            'AutoMLTabularTrainingJob',
+            '--method_name',
+            'run',
+        ],
+        args=[
+            '--init.project',
+            project,
+            '--init.location',
+            location,
+            '--init.display_name',
+            display_name,
+            '--init.optimization_prediction_type',
+            optimization_prediction_type,
+            '--method.dataset',
+            "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+            '--method.target_column',
+            target_column,
+            dsl.IfPresentPlaceholder(
+                input_name='optimization_objective',
+                then=['--init.optimization_objective', optimization_objective],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='column_specs',
+                then=['--init.column_specs', column_specs],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='column_transformations',
+                then=['--init.column_transformations', column_transformations],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='optimization_objective_recall_value',
+                then=[
+                    '--init.optimization_objective_recall_value',
+                    optimization_objective_recall_value,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='optimization_objective_precision_value',
+                then=[
+                    '--init.optimization_objective_precision_value',
+                    optimization_objective_precision_value,
+                ],
+            ),
+            '--init.labels',
+            labels,
+            dsl.IfPresentPlaceholder(
+                input_name='training_encryption_spec_key_name',
+                then=[
+                    '--init.training_encryption_spec_key_name',
+                    training_encryption_spec_key_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_encryption_spec_key_name',
+                then=[
+                    '--init.model_encryption_spec_key_name',
+                    model_encryption_spec_key_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='training_fraction_split',
+                then=[
+                    '--method.training_fraction_split',
+                    training_fraction_split,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='validation_fraction_split',
+                then=[
+                    '--method.validation_fraction_split',
+                    validation_fraction_split,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='test_fraction_split',
+                then=['--method.test_fraction_split', test_fraction_split],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='predefined_split_column_name',
+                then=[
+                    '--method.predefined_split_column_name',
+                    predefined_split_column_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='timestamp_split_column_name',
+                then=[
+                    '--method.timestamp_split_column_name',
+                    timestamp_split_column_name,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='weight_column',
+                then=['--method.weight_column', weight_column],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='budget_milli_node_hours',
+                then=[
+                    '--method.budget_milli_node_hours',
+                    budget_milli_node_hours,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_display_name',
+                then=['--method.model_display_name', model_display_name],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_labels',
+                then=['--method.model_labels', model_labels],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_id', then=['--method.model_id', model_id]),
+            dsl.IfPresentPlaceholder(
+                input_name='parent_model',
+                then=['--method.parent_model', parent_model],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='is_default_version',
+                then=['--method.is_default_version', is_default_version],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_version_aliases',
+                then=['--method.model_version_aliases', model_version_aliases],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='model_version_description',
+                then=[
+                    '--method.model_version_description',
+                    model_version_description,
+                ],
+            ),
+            '--method.disable_early_stopping',
+            disable_early_stopping,
+            '--method.export_evaluated_data_items',
+            export_evaluated_data_items,
+            dsl.IfPresentPlaceholder(
+                input_name='export_evaluated_data_items_bigquery_destination_uri',
+                then=[
+                    '--method.export_evaluated_data_items_bigquery_destination_uri',
+                    export_evaluated_data_items_bigquery_destination_uri,
+                ],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='export_evaluated_data_items_override_destination',
+                then=[
+                    '--method.export_evaluated_data_items_override_destination',
+                    export_evaluated_data_items_override_destination,
+                ],
+            ),
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            model.uri,
+        ],
+    )

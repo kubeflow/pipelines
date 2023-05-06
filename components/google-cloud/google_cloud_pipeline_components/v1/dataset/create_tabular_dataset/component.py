@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
@@ -31,8 +30,8 @@ def tabular_dataset_create(
     labels: Optional[dict] = {},
     encryption_spec_key_name: Optional[str] = None,
 ):
-  # fmt: off
-  """
+    # fmt: off
+    """
   Creates a new tabular dataset.
   Args:
       display_name (String):
@@ -79,44 +78,43 @@ def tabular_dataset_create(
           Instantiated representation of the managed tabular dataset resource.
 
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
-          '--cls_name',
-          'TabularDataset',
-          '--method_name',
-          'create',
-      ],
-      args=[
-          '--method.project',
-          project,
-          '--method.location',
-          location,
-          '--method.display_name',
-          display_name,
-          dsl.IfPresentPlaceholder(
-              input_name='gcs_source', then=['--method.gcs_source', gcs_source]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='bq_source', then=['--method.bq_source', bq_source]
-          ),
-          '--method.labels',
-          labels,
-          dsl.IfPresentPlaceholder(
-              input_name='encryption_spec_key_name',
-              then=[
-                  '--method.encryption_spec_key_name',
-                  encryption_spec_key_name,
-              ],
-          ),
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          dataset.uri,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+            '--cls_name',
+            'TabularDataset',
+            '--method_name',
+            'create',
+        ],
+        args=[
+            '--method.project',
+            project,
+            '--method.location',
+            location,
+            '--method.display_name',
+            display_name,
+            dsl.IfPresentPlaceholder(
+                input_name='gcs_source',
+                then=['--method.gcs_source', gcs_source]),
+            dsl.IfPresentPlaceholder(
+                input_name='bq_source', then=['--method.bq_source', bq_source]),
+            '--method.labels',
+            labels,
+            dsl.IfPresentPlaceholder(
+                input_name='encryption_spec_key_name',
+                then=[
+                    '--method.encryption_spec_key_name',
+                    encryption_spec_key_name,
+                ],
+            ),
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            dataset.uri,
+        ],
+    )

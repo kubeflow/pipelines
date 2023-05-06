@@ -31,8 +31,8 @@ def model_export(
     artifact_destination: str = '',
     image_destination: str = '',
 ):
-  # fmt: off
-  """Exports a trained, exportable, Model to a location specified by the user.
+    # fmt: off
+    """Exports a trained, exportable, Model to a location specified by the user.
 
   A Model is considered to be exportable if it has at least one supported
   export format.
@@ -79,48 +79,48 @@ def model_export(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.model.export_model.launcher',
-      ],
-      args=[
-          '--type',
-          'ExportModel',
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"name": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
-              '"',
-              ', "output_config": {',
-              '"export_format_id": "',
-              export_format_id,
-              '"',
-              ', "artifact_destination": {',
-              '"output_uri_prefix": "',
-              artifact_destination,
-              '"',
-              '}',
-              ', "image_destination":  {',
-              '"output_uri": "',
-              image_destination,
-              '"',
-              '}',
-              '}',
-              '}',
-          ]),
-          '--project',
-          '',  # not being used
-          '--location',
-          '',  # not being used
-          '--gcp_resources',
-          gcp_resources,
-          '--output_info',
-          output_info,
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.model.export_model.launcher',
+        ],
+        args=[
+            '--type',
+            'ExportModel',
+            '--payload',
+            ConcatPlaceholder([
+                '{',
+                '"name": "',
+                "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+                '"',
+                ', "output_config": {',
+                '"export_format_id": "',
+                export_format_id,
+                '"',
+                ', "artifact_destination": {',
+                '"output_uri_prefix": "',
+                artifact_destination,
+                '"',
+                '}',
+                ', "image_destination":  {',
+                '"output_uri": "',
+                image_destination,
+                '"',
+                '}',
+                '}',
+                '}',
+            ]),
+            '--project',
+            '',  # not being used
+            '--location',
+            '',  # not being used
+            '--gcp_resources',
+            gcp_resources,
+            '--output_info',
+            output_info,
+        ],
+    )
