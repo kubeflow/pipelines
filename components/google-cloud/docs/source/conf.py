@@ -12,20 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
-from kfp import components
-import yaml
 import re
+
+from google_cloud_pipeline_components import utils
+from kfp import components
+from kfp import dsl
+import yaml
 
 
 # preserve function docstrings for components by setting component decorators to passthrough decorators
 # also enables autodoc to document the components as functions without using the autodata directive (https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#directive-autodata)
-def container_component_decorator(func):
+def first_order_passthrough_decorator(func):
   func._is_component = True
   return func
 
 
-def component_decorator(*args, **kwargs):
+def second_order_passthrough_decorator(*args, **kwargs):
   def decorator(func):
     func._is_component = True
     return func
@@ -33,8 +35,9 @@ def component_decorator(*args, **kwargs):
   return decorator
 
 
-dsl.component = component_decorator
-dsl.container_component = container_component_decorator
+utils.gcpc_output_name_converter = second_order_passthrough_decorator
+dsl.component = second_order_passthrough_decorator
+dsl.container_component = first_order_passthrough_decorator
 
 
 def load_from_file(path: str):
@@ -162,15 +165,15 @@ pygments_style = None
 htmlhelp_basename = 'GoogleCloudPipelineComponentsDocs'
 
 
-def strip_outputs_from_signature(
+def modify_signature_for_better_component_rendering(
     app, what, name, obj, options, signature, return_annotation
 ):
   if signature is not None:
     signature = re.sub(
         (
-            r'[0-9a-zA-Z]+:'
+            r'[0-9a-zA-Z_]+:'
             r' <kfp\.components\.types\.type_annotations\.OutputPath object at'
-            r' 0x[0-9a-fA-F]+>?,?\s'
+            r' 0x[0-9a-fA-F]+>?,?\s?'
         ),
         '',
         signature,
@@ -190,6 +193,9 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 
 
 def setup(app):
-  app.connect('autodoc-process-signature', strip_outputs_from_signature)
+  app.connect(
+      'autodoc-process-signature',
+      modify_signature_for_better_component_rendering,
+  )
   app.connect('autodocsumm-grouper', example_grouper)
   app.connect('autodoc-skip-member', autodoc_skip_member)
