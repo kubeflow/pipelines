@@ -15,7 +15,7 @@
 
 import os
 
-from .python_job import component as dataflow_python_component
+from google_cloud_pipeline_components.v1.dataflow.python_job import component as dataflow_python_component
 
 __all__ = [
     'DataflowPythonJobOp',

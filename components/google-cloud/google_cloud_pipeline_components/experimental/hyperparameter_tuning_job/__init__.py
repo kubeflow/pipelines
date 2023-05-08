@@ -20,7 +20,7 @@ from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import (
     serialize_parameters,
 )
 
-from .utils import (
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job.utils import (
     GetBestHyperparametersOp,
     GetBestTrialOp,
     GetHyperparametersOp,

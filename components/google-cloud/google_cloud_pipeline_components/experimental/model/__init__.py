@@ -15,7 +15,7 @@
 
 import os
 
-from .get_model import component as get_vertex_model_component
+from google_cloud_pipeline_components.experimental.model.get_model import component as get_vertex_model_component
 
 __all__ = [
     'GetVertexModelOp',

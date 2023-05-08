@@ -13,10 +13,10 @@
 # limitations under the License.
 """Google Cloud Pipeline Endpoint components."""
 
-from .create_endpoint.component import endpoint_create as EndpointCreateOp
-from .delete_endpoint.component import endpoint_delete as EndpointDeleteOp
-from .deploy_model.component import model_deploy as ModelDeployOp
-from .undeploy_model.component import model_undeploy as ModelUndeployOp
+from google_cloud_pipeline_components.v1.endpoint.create_endpoint.component import endpoint_create as EndpointCreateOp
+from google_cloud_pipeline_components.v1.endpoint.delete_endpoint.component import endpoint_delete as EndpointDeleteOp
+from google_cloud_pipeline_components.v1.endpoint.deploy_model.component import model_deploy as ModelDeployOp
+from google_cloud_pipeline_components.v1.endpoint.undeploy_model.component import model_undeploy as ModelUndeployOp
 
 __all__ = [
     'EndpointCreateOp',
