@@ -7,3 +7,5 @@ data:
 kind: ConfigMap
 metadata: # kpt-merge: /workflow-controller-configmap
   name: workflow-controller-configmap
+  annotations:
+    internal.kpt.dev/upstream-identifier: '|ConfigMap|default|workflow-controller-configmap'

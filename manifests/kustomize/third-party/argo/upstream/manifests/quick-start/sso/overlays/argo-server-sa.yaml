@@ -5,3 +5,4 @@ metadata: # kpt-merge: /argo-server
   annotations:
     workflows.argoproj.io/rbac-rule: "'authors' in groups && email == 'kilgore@kilgore.trout'"
     workflows.argoproj.io/rbac-rule-precedence: "1"
+    internal.kpt.dev/upstream-identifier: '|ServiceAccount|default|argo-server'

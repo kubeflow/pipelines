@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: # kpt-merge: /argo-server
   name: argo-server
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|argo-server'
 spec:
   template:
     spec:

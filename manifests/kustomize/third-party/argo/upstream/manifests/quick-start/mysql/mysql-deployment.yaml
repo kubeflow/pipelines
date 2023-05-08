@@ -4,6 +4,8 @@ metadata: # kpt-merge: /mysql
   name: mysql
   labels:
     app: mysql
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|mysql'
 spec:
   selector:
     matchLabels:
@@ -14,6 +16,7 @@ spec:
       labels:
         app: mysql
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: main
           image: mysql:8
@@ -29,9 +32,9 @@ spec:
           ports:
             - containerPort: 3306
           readinessProbe:
-            exec:
-              command: ["mysql", "-u", "mysql", "-ppassword", "argo", "-e", "SELECT 1"]
-            initialDelaySeconds: 15
-            timeoutSeconds: 2
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 30
+            periodSeconds: 10
       nodeSelector:
         kubernetes.io/os: linux

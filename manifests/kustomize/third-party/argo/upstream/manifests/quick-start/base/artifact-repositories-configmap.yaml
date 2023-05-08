@@ -6,6 +6,7 @@ metadata: # kpt-merge: /artifact-repositories
     # you'll want to change the default over time, e.g. when you move to new storage solution,
     # so we recommend you version them from the outset by suffixing the version
     workflows.argoproj.io/default-artifact-repository: default-v1
+    internal.kpt.dev/upstream-identifier: '|ConfigMap|default|artifact-repositories'
 data:
   default-v1: |
     archiveLogs: true

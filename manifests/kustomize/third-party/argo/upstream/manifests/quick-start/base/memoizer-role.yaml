@@ -5,6 +5,7 @@ metadata: # kpt-merge: /memoizer
   annotations:
     workflows.argoproj.io/description: |
       Only needed if you are using ConfigMap-based cache for memoization.
+    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|Role|default|memoizer'
 rules:
   - apiGroups:
       - ""

@@ -147,12 +147,11 @@ stringData:
 apiVersion: v1
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.7/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.7/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.7/docs/workflow-controller-configmap.yaml
 
   # Choice of an executor is deprecated in favor of emissary executor
-  containerRuntimeExecutor: emissary
   executor: |
     imagePullPolicy: IfNotPresent
     resources:
@@ -2714,7 +2713,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 2.0.0-beta.0
+    version: 2.0.0-beta.1
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
