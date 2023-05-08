@@ -119,8 +119,6 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           reload={this.reload}
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
-          getExpandComponent={this.getExpandedArtifactsRow}
-          toggleExpansion={this.toggleRowExpand}
           emptyMessage='No artifacts found.'
         />
       </div>
@@ -151,12 +149,12 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     }
     const artifacts = await this.getArtifacts(listOperationOpts);
     this.clearBanner();
-    const collapsedAndExpandedRows = await this.getRowsFromArtifacts(request, artifacts);
-    if (collapsedAndExpandedRows) {
+    let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
+    const collapsedAndExpandedRows = await this.getGroupedRowsFromArtifacts(request, artifacts);
+    if (flattenedRows) {
       this.setState({
         artifacts,
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
+        rows: flattenedRows,
       });
     }
     return listOperationOpts.getNextPageToken();
@@ -197,20 +195,11 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     return [];
   }
 
-  /**
-   * Temporary solution to apply sorting, filtering, and pagination to the
-   * local list of artifacts until server-side handling is available
-   * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
-   * @param request
-   * @param artifacts
-   */
-  private async getRowsFromArtifacts(
+  private async getFlattenedRowsFromArtifacts(
     request: ListRequest,
     artifacts: Artifact[],
-  ): Promise<CollapsedAndExpandedRows | undefined> {
+  ): Promise<Row[]> {
     try {
-      // TODO: When backend supports sending creation time back when we list
-      // artifacts, let's use it directly.
       const artifactsWithCreationTimes = await Promise.all(
         artifacts.map(async artifact => {
           const artifactId = artifact.getId();
@@ -225,32 +214,32 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         }),
       );
 
-      return groupRows(
-        artifactsWithCreationTimes
-          .map(({ artifact, creationTime }) => {
-            const typeId = artifact.getTypeId();
-            const artifactType = this.artifactTypesMap!.get(typeId);
-            const type = artifactType ? artifactType.getName() : artifact.getTypeId();
-            return {
-              id: `${artifact.getId()}`,
-              otherFields: [
-                getResourcePropertyViaFallBack(
-                  artifact,
-                  ARTIFACT_PROPERTY_REPOS,
-                  PIPELINE_WORKSPACE_FIELDS,
-                ) || '[unknown]',
-                getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS) ||
-                  '[unknown]',
-                artifact.getId(),
-                type,
-                artifact.getUri(),
-                creationTime || '',
-              ],
-            } as Row;
-          })
-          .filter(rowFilterFn(request))
-          .sort(rowCompareFn(request, this.state.columns)),
-      );
+      const flattenedRows: Row[] = artifactsWithCreationTimes
+        .map(({ artifact, creationTime }) => {
+          const typeId = artifact.getTypeId();
+          const artifactType = this.artifactTypesMap!.get(typeId);
+          const type = artifactType ? artifactType.getName() : artifact.getTypeId();
+          return {
+            id: `${artifact.getId()}`,
+            otherFields: [
+              getResourcePropertyViaFallBack(
+                artifact,
+                ARTIFACT_PROPERTY_REPOS,
+                PIPELINE_WORKSPACE_FIELDS,
+              ) || '[unknown]',
+              getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS) ||
+                '[unknown]',
+              artifact.getId(),
+              type,
+              artifact.getUri(),
+              creationTime || '',
+            ],
+          } as Row;
+        })
+        .filter(rowFilterFn(request))
+        .sort(rowCompareFn(request, this.state.columns));
+
+      return flattenedRows;
     } catch (err) {
       if (err.message) {
         this.showPageError(err.message, err);
@@ -258,7 +247,22 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError('Unknown error', err);
       }
     }
-    return;
+    return [];
+  }
+
+  /**
+   * Temporary solution to apply sorting, filtering, and pagination to the
+   * local list of artifacts until server-side handling is available
+   * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
+   * @param request
+   * @param artifacts
+   */
+  private async getGroupedRowsFromArtifacts(
+    request: ListRequest,
+    artifacts: Artifact[],
+  ): Promise<CollapsedAndExpandedRows | undefined> {
+    const flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
+    return groupRows(flattenedRows);
   }
 
   /**
