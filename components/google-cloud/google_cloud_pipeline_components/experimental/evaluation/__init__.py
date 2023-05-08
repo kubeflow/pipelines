@@ -17,12 +17,12 @@ import os
 
 from kfp.components import load_component_from_file
 
-from .classification import component as classification_component
-from .data_sampler import component as data_sampler_component
-from .feature_attribution import component as feature_attribution_component
-from .forecasting import component as forecasting_component
-from .regression import component as regression_component
-from .target_field_data_remover import component as target_field_data_remover_component
+from google_cloud_pipeline_components.experimental.evaluation.classification import component as classification_component
+from google_cloud_pipeline_components.experimental.evaluation.data_sampler import component as data_sampler_component
+from google_cloud_pipeline_components.experimental.evaluation.feature_attribution import component as feature_attribution_component
+from google_cloud_pipeline_components.experimental.evaluation.forecasting import component as forecasting_component
+from google_cloud_pipeline_components.experimental.evaluation.regression import component as regression_component
+from google_cloud_pipeline_components.experimental.evaluation.target_field_data_remover import component as target_field_data_remover_component
 
 __all__ = [
     'ModelImportEvaluationOp',

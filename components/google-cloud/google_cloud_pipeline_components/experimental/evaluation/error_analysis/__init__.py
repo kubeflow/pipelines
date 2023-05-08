@@ -15,9 +15,9 @@
 
 import os
 
-from .feature_extractor import component as feature_extractor
-from .dataset_preprocessor import component as dataset_preprocessor
-from .error_analysis_annotation import component as error_analysis_annotation
+from google_cloud_pipeline_components.experimental.evaluation.error_analysis.feature_extractor import component as feature_extractor
+from google_cloud_pipeline_components.experimental.evaluation.error_analysis.dataset_preprocessor import component as dataset_preprocessor
+from google_cloud_pipeline_components.experimental.evaluation.error_analysis.error_analysis_annotation import component as error_analysis_annotation
 
 from kfp.components import load_component_from_file
 

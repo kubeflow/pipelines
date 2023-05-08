@@ -15,10 +15,10 @@
 
 import os
 
-from .create_pyspark_batch import component as create_pyspark_batch_component
-from .create_spark_batch import component as create_spark_batch_component
-from .create_spark_r_batch import component as create_spark_r_batch_component
-from .create_spark_sql_batch import component as create_spark_sql_batch_component
+from google_cloud_pipeline_components.v1.dataproc.create_pyspark_batch import component as create_pyspark_batch_component
+from google_cloud_pipeline_components.v1.dataproc.create_spark_batch import component as create_spark_batch_component
+from google_cloud_pipeline_components.v1.dataproc.create_spark_r_batch import component as create_spark_r_batch_component
+from google_cloud_pipeline_components.v1.dataproc.create_spark_sql_batch import component as create_spark_sql_batch_component
 
 __all__ = [
     'DataprocPySparkBatchOp',

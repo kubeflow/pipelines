@@ -29,8 +29,8 @@ from google.cloud import aiplatform
 from google.cloud.aiplatform_v1.types import job_state as gca_job_state
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import requests
-from ...utils import execution_context
-from .utils import json_util, error_util
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util, error_util
 
 from google.protobuf import json_format
 
