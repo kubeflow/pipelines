@@ -13,14 +13,14 @@
 # limitations under the License.
 """Component and utility function for running Vertex Pipelines components as Google Vertex AI Custom Training jobs."""
 
-from google_cloud_pipeline_components.v1.custom_job import component as custom_job_component
-from google_cloud_pipeline_components.v1.custom_job.utils import create_custom_training_job_from_component
-from google_cloud_pipeline_components.v1.custom_job.utils import create_custom_training_job_op_from_component
+from google_cloud_pipeline_components.v1.custom_job.component import custom_training_job as CustomTrainingJobOp
+from google_cloud_pipeline_components.v1.custom_job.utils import (
+    create_custom_training_job_from_component,
+    create_custom_training_job_op_from_component,
+)
 
 __all__ = [
     'CustomTrainingJobOp',
     'create_custom_training_job_op_from_component',
     'create_custom_training_job_from_component',
 ]
-
-CustomTrainingJobOp = custom_job_component.custom_training_job

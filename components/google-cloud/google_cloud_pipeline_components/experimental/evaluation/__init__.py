@@ -15,14 +15,13 @@
 
 import os
 
-from kfp.components import load_component_from_file
-
-from google_cloud_pipeline_components.experimental.evaluation.classification import component as classification_component
-from google_cloud_pipeline_components.experimental.evaluation.data_sampler import component as data_sampler_component
-from google_cloud_pipeline_components.experimental.evaluation.feature_attribution import component as feature_attribution_component
-from google_cloud_pipeline_components.experimental.evaluation.forecasting import component as forecasting_component
-from google_cloud_pipeline_components.experimental.evaluation.regression import component as regression_component
-from google_cloud_pipeline_components.experimental.evaluation.target_field_data_remover import component as target_field_data_remover_component
+from google_cloud_pipeline_components.experimental.evaluation.classification.component import model_evaluation_classification as ModelEvaluationClassificationOp
+from google_cloud_pipeline_components.experimental.evaluation.data_sampler.component import evaluation_data_sampler as EvaluationDataSamplerOp
+from google_cloud_pipeline_components.experimental.evaluation.feature_attribution.component import feature_attribution as ModelEvaluationFeatureAttributionOp
+from google_cloud_pipeline_components.experimental.evaluation.forecasting.component import model_evaluation_forecasting as ModelEvaluationForecastingOp
+from google_cloud_pipeline_components.experimental.evaluation.regression.component import model_evaluation_regression as ModelEvaluationRegressionOp
+from google_cloud_pipeline_components.experimental.evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
+from kfp import components
 
 __all__ = [
     'ModelImportEvaluationOp',
@@ -35,7 +34,7 @@ __all__ = [
 ]
 
 
-ModelImportEvaluationOp = load_component_from_file(
+ModelImportEvaluationOp = components.load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml')
 )
 """
@@ -66,23 +65,3 @@ Args:
   display_name (str):
     The display name for the uploaded model evaluation resource.
 """
-
-EvaluationDataSamplerOp = data_sampler_component.evaluation_data_sampler
-
-TargetFieldDataRemoverOp = (
-    target_field_data_remover_component.target_field_data_remover
-)
-
-ModelEvaluationClassificationOp = (
-    classification_component.model_evaluation_classification
-)
-
-ModelEvaluationRegressionOp = regression_component.model_evaluation_regression
-
-ModelEvaluationForecastingOp = (
-    forecasting_component.model_evaluation_forecasting
-)
-
-ModelEvaluationFeatureAttributionOp = (
-    feature_attribution_component.feature_attribution
-)

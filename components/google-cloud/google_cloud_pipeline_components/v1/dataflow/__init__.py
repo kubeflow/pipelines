@@ -14,10 +14,8 @@
 """Google Cloud Pipeline DataFlow component."""
 
 
-from google_cloud_pipeline_components.v1.dataflow.python_job import component as dataflow_python_component
+from google_cloud_pipeline_components.v1.dataflow.python_job.component import dataflow_python as DataflowPythonJobOp
 
 __all__ = [
     'DataflowPythonJobOp',
 ]
-
-DataflowPythonJobOp = dataflow_python_component.dataflow_python

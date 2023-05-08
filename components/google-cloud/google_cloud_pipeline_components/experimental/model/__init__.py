@@ -14,10 +14,8 @@
 """Google Cloud Pipeline Experimental Model components."""
 
 
-from google_cloud_pipeline_components.experimental.model.get_model import component as get_vertex_model_component
+from google_cloud_pipeline_components.experimental.model.get_model.component import get_vertex_model as GetVertexModelOp
 
 __all__ = [
     'GetVertexModelOp',
 ]
-
-GetVertexModelOp = get_vertex_model_component.get_vertex_model

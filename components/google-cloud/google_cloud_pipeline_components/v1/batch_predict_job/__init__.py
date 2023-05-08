@@ -14,10 +14,8 @@
 """Google Cloud Pipeline Batch Predict component."""
 
 
-from google_cloud_pipeline_components.v1.batch_predict_job import component as batch_predict_job_component
+from google_cloud_pipeline_components.v1.batch_predict_job.component import model_batch_predict as ModelBatchPredictOp
 
 __all__ = [
     'ModelBatchPredictOp',
 ]
-
-ModelBatchPredictOp = batch_predict_job_component.model_batch_predict
