@@ -288,10 +288,14 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
  *
  * @param graph The dagre graph object
  */
-export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib.Graph | undefined {
-  // safeguard against too big graphs
-  if (!graph || graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
-    return undefined;
+export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib.Graph {
+  // Safeguard against excessively large graphs
+  if (!graph) {
+    throw new Error("Graph object doesn't exist.");
+  } else if (graph.nodeCount() > 1000) {
+    throw new Error('Graph node count exceeds 1000.');
+  } else if (graph.edgeCount() > 1000) {
+    throw new Error('Graph edge count exceeds 1000.');
   }
 
   const result = graphlib.json.read(graphlib.json.write(graph));

@@ -46,7 +46,7 @@ import RunUtils from 'src/lib/RunUtils';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { compareGraphEdges, transitiveReduction } from 'src/lib/StaticGraphParser';
 import { URLParser } from 'src/lib/URLParser';
-import { logger } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { Page } from './Page';
 import PipelineDetailsV1 from './PipelineDetailsV1';
 import PipelineDetailsV2 from './PipelineDetailsV2';
@@ -666,8 +666,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         const template = JsYaml.safeLoad(templateString);
         if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
           graph = StaticGraphParser.createGraph(template!);
-
-          reducedGraph = graph ? transitiveReduction(graph) : undefined;
+          let reducedGraph;
+          try {
+            reducedGraph = transitiveReduction(graph);
+          } catch (err) {
+            const errorMessage = await errorToMessage(err);
+            await this.showErrorDialog('Graph rendering failed', errorMessage);
+          }
           if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
             reducedGraph = undefined; // disable reduction switch
           }
