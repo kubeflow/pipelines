@@ -1,5 +1,83 @@
 # Changelog
 
+## [2.0.0-beta.2](https://github.com/kubeflow/pipelines/compare/2.0.0-beta.1...2.0.0-beta.2) (2023-05-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **SDK:** SDK client v2beta1 API integration. Fixes [\#8706](https://github.com/kubeflow/pipelines/issues/8706) ([\#9112](https://github.com/kubeflow/pipelines/issues/9112))
+
+### Features
+
+* **backend:** Add nodeSelector support. Closes [\#8959](https://github.com/kubeflow/pipelines/issues/8959). ([\#9132](https://github.com/kubeflow/pipelines/issues/9132)) ([276f922](https://github.com/kubeflow/pipelines/commit/276f922a68f483f10bf6ad7515e7c264ad0c0f1a))
+* **backend:** add parameter verification before submitting the workflow ([\#9228](https://github.com/kubeflow/pipelines/issues/9228)) ([52c4c6f](https://github.com/kubeflow/pipelines/commit/52c4c6f70d5d7107582a30dcebffc085426521cc))
+* **backend:** avoid downcast and use ExecutionSpec if possible ([\#9232](https://github.com/kubeflow/pipelines/issues/9232)) ([6c72d95](https://github.com/kubeflow/pipelines/commit/6c72d95b3fc1fb8edbc632a4d9201acd5db36117))
+* **backend:** support secrets ([\#9178](https://github.com/kubeflow/pipelines/issues/9178)) ([b8caf81](https://github.com/kubeflow/pipelines/commit/b8caf811c297ba5409c1ff607e3a04560a51a20a))
+* **components:** Add a remote runner for pipelines ([274ac8b](https://github.com/kubeflow/pipelines/commit/274ac8ba8b64660b52383b16b613b5535053b5b0))
+* **components:** Add logic in import_model_evaluation to accept explanations from slices ([4397b8c](https://github.com/kubeflow/pipelines/commit/4397b8c53f9d002ce2500f46b28d7ef5c6f9d349))
+* **components:** Add slicing_specs input to classification evaluation ([6a55449](https://github.com/kubeflow/pipelines/commit/6a55449ffb5b3d935b32033dc9a13b1852c059a4))
+* **components:** Allow batch predict component to add missing bq:// schemes ([8cc0550](https://github.com/kubeflow/pipelines/commit/8cc0550bac2b7e4135523a34e71ace9a2689d61e))
+* **components:** Allow importing LLM eval metrics ([ecc4ae0](https://github.com/kubeflow/pipelines/commit/ecc4ae02f103d5afb1381d03ef4498fe2a3a2e7b))
+* **components:** Change ResolveVertexModelOp name to GetVertexModelOp ([6a916e8](https://github.com/kubeflow/pipelines/commit/6a916e8b881404b8498aba074ff864cebd17cc79))
+* **components:** Create ResolveVertexModelOp component ([595ae8e](https://github.com/kubeflow/pipelines/commit/595ae8e9fd8e936e6d7e975de27e2a7bf7e3bce1))
+* **components:** Import user slices to the model evaluation importer ([8c9b716](https://github.com/kubeflow/pipelines/commit/8c9b7160b8ca2229e39e735af276782d7baa8863))
+* **components:** Sagemaker V2 Hosting components and tests ([\#9243](https://github.com/kubeflow/pipelines/issues/9243)) ([4818e84](https://github.com/kubeflow/pipelines/commit/4818e849f8e0cf7ddbb4c008fc43ec6f367d48cb))
+* **components:** Support model garden models in GetVertexModelOp ([0b32899](https://github.com/kubeflow/pipelines/commit/0b32899a7adf39dd88b54cc64e3ee651d24da7f3))
+* **components:** Update GCPC image version in two Eval importer components ([1f4d943](https://github.com/kubeflow/pipelines/commit/1f4d9437de69579dc8ef57389945b7fdf2a0f763))
+* **sdk:** support extracting input/output descriptions from component/pipeline docstrings ([\#9156](https://github.com/kubeflow/pipelines/issues/9156)) ([946c51b](https://github.com/kubeflow/pipelines/commit/946c51bafe955dd2dfa3e857e72bbf90ed5ed8ec))
+* **sdk:** Support submitting pipeline with platform config. ([\#9140](https://github.com/kubeflow/pipelines/issues/9140)) ([952e073](https://github.com/kubeflow/pipelines/commit/952e0730a80f0596ca628717d048b82438eaf287))
+* **SDK:** SDK client v2beta1 API integration. Fixes [\#8706](https://github.com/kubeflow/pipelines/issues/8706) ([\#9112](https://github.com/kubeflow/pipelines/issues/9112)) ([07d6c18](https://github.com/kubeflow/pipelines/commit/07d6c1816bf7cf06ae06b02c4c5d05e6261cf232))
+
+
+### Bug Fixes
+
+* **api:** Regenerate v2beta1 API ([\#9197](https://github.com/kubeflow/pipelines/issues/9197)) ([7b70cb5](https://github.com/kubeflow/pipelines/commit/7b70cb5e3786da78d2022fc5eb802b896dc0f416))
+* **backend:** Add upsert for SQLite and MySQL dialects ([\#9245](https://github.com/kubeflow/pipelines/issues/9245)) ([2b92f9b](https://github.com/kubeflow/pipelines/commit/2b92f9bb61ee23107e7bed9b2fb6845e88352540))
+* **backend:** Allow empty namespace and remove default namespace. Fixes [\#8945](https://github.com/kubeflow/pipelines/issues/8945). Fixes [\#8897](https://github.com/kubeflow/pipelines/issues/8897). Fixes [\#8854](https://github.com/kubeflow/pipelines/issues/8854). ([\#9286](https://github.com/kubeflow/pipelines/issues/9286)) ([fbb8b39](https://github.com/kubeflow/pipelines/commit/fbb8b399b32e49f0683d2adf85d89dcbc30e3a31))
+* **backend:** Cleanup pipeline creation and upload logic ([\#9189](https://github.com/kubeflow/pipelines/issues/9189)) ([f5514c7](https://github.com/kubeflow/pipelines/commit/f5514c76624ab0614b0346d9f8205e443c525cd7))
+* **backend:** fix launcher importer error ([\#9290](https://github.com/kubeflow/pipelines/issues/9290)) ([38bf368](https://github.com/kubeflow/pipelines/commit/38bf3681d5d585eeababb25f59c4f38f73b760ec))
+* **backend:** Fix timestamp in task store, add disabled unit test ([\#9246](https://github.com/kubeflow/pipelines/issues/9246)) ([a975e99](https://github.com/kubeflow/pipelines/commit/a975e99d2a31c9cbb587f4114b4d14296d0557f2))
+* **backend:** fix volume bug ([\#9150](https://github.com/kubeflow/pipelines/issues/9150)) ([ca63f20](https://github.com/kubeflow/pipelines/commit/ca63f20049be092a3deeb1d44686e0b8860d4d02))
+* **components:** Changing path for model ([\#9331](https://github.com/kubeflow/pipelines/issues/9331)) ([aae9cb7](https://github.com/kubeflow/pipelines/commit/aae9cb74cb6a8a626388952c9847d49d810de5fa))
+* **components:** Evaluation metrics don't show when using TabNet on Tabular Workflows ([065d31c](https://github.com/kubeflow/pipelines/commit/065d31c7e2743e3e9b347883f1ace34a03c971c8))
+* **components:** fix BQML encryption_spec_key_name default value bug in experimental components ([12398e8](https://github.com/kubeflow/pipelines/commit/12398e86fa72aff6026f006516bca881cf7f7623))
+* **components:** Fix dataset preprocessor to get imported from v1 and change the default value for *_dataset_resource_name from None to empty string ([6677a95](https://github.com/kubeflow/pipelines/commit/6677a95974f64aaef4aeafc73276d9e7d5f27bd5))
+* **components:** Fix feature extractor component definition to make vertex dataset argument optional ([cc4a103](https://github.com/kubeflow/pipelines/commit/cc4a1037f0713b4e23986a1571a6f22c55805840))
+* **components:** fix type error for dict ([9d2abff](https://github.com/kubeflow/pipelines/commit/9d2abff8bcb55bf16e84a11650a28c5db3b2fe95))
+* **components:** fix VertexPromptValidationOp definition ([2abddf0](https://github.com/kubeflow/pipelines/commit/2abddf0db70d53d48b71286eacbc824c729c690f))
+* **components:** replace special characters (curved double quotes “”) in component YAML files ([f5b265e](https://github.com/kubeflow/pipelines/commit/f5b265e90adc114ffb2f5d524614c7aeb4e74b8f))
+* **components:** set input arg default values for import model evaluation ([52f6c97](https://github.com/kubeflow/pipelines/commit/52f6c978f5ceab083962337baa4c00e8eafcc07c))
+* **components:** Update Vertex Pipelines prompt validation component with new input parameters ([6fd7131](https://github.com/kubeflow/pipelines/commit/6fd71313f6978a46246dda257b1a1914ed8da43f))
+* **conformance:** enable healthz test in full Kubeflow. ([\#9297](https://github.com/kubeflow/pipelines/issues/9297)) ([2cfc428](https://github.com/kubeflow/pipelines/commit/2cfc4283d2aa81ae290a8cdda6f711e86e2cb5f7))
+* **frontend:** Buttons dislocated in narrow toolbar ([\#9344](https://github.com/kubeflow/pipelines/issues/9344)) ([1f8fdbc](https://github.com/kubeflow/pipelines/commit/1f8fdbcaef3e0343c0fb79a0d620ce0de399b731))
+* **frontend:** Change the incorrect loading context for run details ([\#9179](https://github.com/kubeflow/pipelines/issues/9179)) ([bb50b8d](https://github.com/kubeflow/pipelines/commit/bb50b8d729102dfed96d7118469647498a6b9bcb))
+* **frontend:** fail to clone SDK-created run / recurring run ([\#9255](https://github.com/kubeflow/pipelines/issues/9255)) ([47735f7](https://github.com/kubeflow/pipelines/commit/47735f74a8141ef94886f72cd482476986fe8741))
+* **frontend:** Failed pipeline version creation should not generate an empty pipeline. ([\#9342](https://github.com/kubeflow/pipelines/issues/9342)) ([9cfa3a2](https://github.com/kubeflow/pipelines/commit/9cfa3a27b83939390dbaf174d98b52edd1d579db))
+* **frontend:** Incorrect run type after pipeline is selected ([\#9339](https://github.com/kubeflow/pipelines/issues/9339)) ([5ff829a](https://github.com/kubeflow/pipelines/commit/5ff829ab6391f493202ada2a55c62c68e3be8605))
+* **frontend:** Logs details is not changed when selected other execution node. ([\#9334](https://github.com/kubeflow/pipelines/issues/9334)) ([f68e780](https://github.com/kubeflow/pipelines/commit/f68e7802e829a471171f039705f08ad2f540cc49))
+* **frontend:** Missing pipeline info while cloning recurring run. ([\#9231](https://github.com/kubeflow/pipelines/issues/9231)) ([c8f6031](https://github.com/kubeflow/pipelines/commit/c8f60315e804995b631ec956f8ca22958fdddeb5))
+* **frontend:** Parameter field is missing after choosing another v2 pipeline ([\#9202](https://github.com/kubeflow/pipelines/issues/9202)) ([1d659d1](https://github.com/kubeflow/pipelines/commit/1d659d15f49ec84f9ce66b622ccb4a97b2c08be4))
+* **frontend:** Parameter field is missing when creating run from run list ([\#9335](https://github.com/kubeflow/pipelines/issues/9335)) ([59db283](https://github.com/kubeflow/pipelines/commit/59db2835fa6ae2e9b8f11d2c3b4ccec4dc5c74b2))
+* **frontend:** Redirect to recurring run list after creating v1 recurring run. ([\#9280](https://github.com/kubeflow/pipelines/issues/9280)) ([34c7475](https://github.com/kubeflow/pipelines/commit/34c7475e3a6475b44f57577aaa11fc335feaebd3))
+* **frontend:** Render graph for yaml file containing platform_spec ([\#9192](https://github.com/kubeflow/pipelines/issues/9192)) ([d8672e6](https://github.com/kubeflow/pipelines/commit/d8672e6eacafebf4d84f0f6ced1cc6b297bc218f))
+* **frontend:** Render run parameters in run details tab. ([\#9217](https://github.com/kubeflow/pipelines/issues/9217)) ([d8f9885](https://github.com/kubeflow/pipelines/commit/d8f988529118351c4d0cd4424413def7ea07986b))
+* **frontend:** Replace obsoleted hyperlinks in new pipeline page. ([\#9181](https://github.com/kubeflow/pipelines/issues/9181)) ([3537504](https://github.com/kubeflow/pipelines/commit/353750465eb94b15e088299286c30aebdaa8e4e2))
+* **release:** Update release image with the latest api-generator ([\#9198](https://github.com/kubeflow/pipelines/issues/9198)) ([8645cac](https://github.com/kubeflow/pipelines/commit/8645cac9a6aa44cfe22cce71933b18614f23efac))
+* **sdk:** allow user to choose platform for component container build. Fixes [\#8883](https://github.com/kubeflow/pipelines/issues/8883) ([\#9212](https://github.com/kubeflow/pipelines/issues/9212)) ([b59b708](https://github.com/kubeflow/pipelines/commit/b59b70875ecdb5d5aef3b119b592c7733652ece7))
+* **sdk:** fix appengine import error ([\#9323](https://github.com/kubeflow/pipelines/issues/9323)) ([c437004](https://github.com/kubeflow/pipelines/commit/c437004761b282c4542e0cf627ac8cfef0741128))
+* **sdk:** fix handling of PipelineTaskFinalStatus in ir_type_ attribute hack ([\#9186](https://github.com/kubeflow/pipelines/issues/9186)) ([41c0d78](https://github.com/kubeflow/pipelines/commit/41c0d78f5f028c7906e1c2eb507fb2510a0fcff6))
+* **sdk:** fixes module not found error for containerized python components. Fixes [\#8385](https://github.com/kubeflow/pipelines/issues/8385) ([\#9157](https://github.com/kubeflow/pipelines/issues/9157)) ([3164dfb](https://github.com/kubeflow/pipelines/commit/3164dfb01ade53daaed838feba9f43f8fe108ee6))
+* **SDK:** fix `client.run_pipeline` with `pipeline_id` and `version_id` gives error ([\#9191](https://github.com/kubeflow/pipelines/issues/9191)) ([91277b1](https://github.com/kubeflow/pipelines/commit/91277b1e91cf999ed3e9d66514cd17e0abf4025a))
+
+
+### Other Pull Requests
+
+* release 2.0.0b16 ([\#9325](https://github.com/kubeflow/pipelines/issues/9325)) ([58ebd20](https://github.com/kubeflow/pipelines/commit/58ebd202c4541d161f239aaa43321fa25f4c36b5))
+* [WIP] test: Add v2 upgrade test ([\#9287](https://github.com/kubeflow/pipelines/issues/9287)) ([e115e0c](https://github.com/kubeflow/pipelines/commit/e115e0c01f7a56aa0fb00ca9d31437a2c9ea80d8))
+* feat(components):Release the default pipeline with SLM feature selection ([4ccb0ef](https://github.com/kubeflow/pipelines/commit/4ccb0ef602ae24f42b498b55288bc9c4b6340204))
+* feature(frontend) Support Logs tab in KFP v2 ([\#9265](https://github.com/kubeflow/pipelines/issues/9265)) ([430bd54](https://github.com/kubeflow/pipelines/commit/430bd5406f1b8310158cd053929bb272dd577d5c))
+*  feat(sdk): support `display_name` and `description` in `@dsl.pipeline` decorator ([\#9153](https://github.com/kubeflow/pipelines/issues/9153)) ([91abbea](https://github.com/kubeflow/pipelines/commit/91abbeaf2fda4aebc6f5bffbb2a701a3728cb2f2))
+
 ## [2.0.0-beta.1](https://github.com/kubeflow/pipelines/compare/2.0.0-beta.0...2.0.0-beta.1) (2023-04-11)
 
 
