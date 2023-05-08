@@ -8,6 +8,7 @@ metadata: # kpt-merge: /agent
       This is the minimum recommended permissions needed if you want to use the agent, e.g. for HTTP or plugin templates.
 
       If <= v3.2 you must replace `workflowtasksets/status` with `patch workflowtasksets`.
+    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|Role|default|agent'
 rules:
   - apiGroups:
       - argoproj.io
