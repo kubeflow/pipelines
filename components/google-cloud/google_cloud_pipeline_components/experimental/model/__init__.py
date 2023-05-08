@@ -13,7 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline Experimental Model components."""
 
-import os
 
 from google_cloud_pipeline_components.experimental.model.get_model import component as get_vertex_model_component
 

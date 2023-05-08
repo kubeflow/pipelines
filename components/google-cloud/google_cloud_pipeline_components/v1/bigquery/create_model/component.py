@@ -15,7 +15,6 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec

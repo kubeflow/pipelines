@@ -13,7 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline Vertex email notification component."""
 
-import os
 
 from google_cloud_pipeline_components.v1.vertex_notification_email import component as vertex_notification_email_component
 

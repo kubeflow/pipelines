@@ -13,7 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline hyperparameter tuning component and utilities."""
 
-import os
 
 from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import component as hyperparameter_tuning_job_component
 from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import serialize_metrics

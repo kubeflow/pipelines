@@ -13,7 +13,6 @@
 # limitations under the License.
 """GCP launcher for Delete Model based on the AI Platform SDK."""
 
-import argparse
 import logging
 import sys
 

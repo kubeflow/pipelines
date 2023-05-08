@@ -13,7 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline Batch Predict component."""
 
-import os
 
 from google_cloud_pipeline_components.v1.batch_predict_job import component as batch_predict_job_component
 

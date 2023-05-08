@@ -13,12 +13,9 @@
 # limitations under the License.
 
 from kfp import dsl
-from typing import Dict, Optional
-from google_cloud_pipeline_components.types.artifact_types import VertexDataset
-from google_cloud_pipeline_components.types.artifact_types import VertexModel
+from typing import Optional
 from kfp.dsl import Output
 from kfp.dsl import Input
-from kfp.dsl import Metrics
 from kfp.dsl import Artifact
 
 

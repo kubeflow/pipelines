@@ -25,7 +25,6 @@ from google.api_core import gapic_v1
 from google.cloud import storage
 from google.cloud import aiplatform_v1
 
-from google.protobuf import json_format
 
 
 BATCH_IMPORT_LIMIT = 50

@@ -14,7 +14,6 @@
 
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
-from kfp.dsl import PipelineTaskFinalStatus
 
 
 @container_component

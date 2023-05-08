@@ -13,7 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline Vertex Prompt Validation Component."""
 
-import os
 
 from google_cloud_pipeline_components.experimental.vertex_prompt_validation.component import vertex_pipelines_prompt_validation as VertexPromptValidationOp
 

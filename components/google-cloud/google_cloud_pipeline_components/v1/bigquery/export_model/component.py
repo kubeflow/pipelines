@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
+from typing import Dict
 
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from kfp.dsl import ConcatPlaceholder
