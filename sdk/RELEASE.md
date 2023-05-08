@@ -19,7 +19,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
-* Depends on `kfp-server-api==2.0.0b2`
+* Depends on `kfp-server-api==2.0.0b2` [\#9355](https://github.com/kubeflow/pipelines/pull/9355)
 
 ## Documentation updates
 
