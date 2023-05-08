@@ -156,7 +156,7 @@ class Client:
     ) -> None:
         """Create a new instance of kfp client."""
         warnings.warn(
-            'This client only works with Kubeflow Pipeline v2.0.0-beta.1 '
+            'This client only works with Kubeflow Pipeline v2.0.0-beta.2 '
             'and later versions.',
             category=FutureWarning)
 

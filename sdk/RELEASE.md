@@ -9,6 +9,20 @@
 ## Bug fixes and other changes
 
 ## Documentation updates
+
+# 2.0.0-beta.17
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Depends on `kfp-server-api==2.0.0b2` [\#9355](https://github.com/kubeflow/pipelines/pull/9355)
+
+## Documentation updates
+
 # 2.0.0-beta.16
 
 ## Features
