@@ -121,7 +121,7 @@ class PrepareForTrainTests(unittest.TestCase):
         'day',
         1,
     )
-    outputs = component.prepare_data_for_train(
+    outputs = component.prepare_data_for_train_implementation(
         input_tables=input_table_specs,
         preprocess_metadata=self._preprocessed_table_metadata(),
     )
@@ -163,7 +163,7 @@ class PrepareForTrainTests(unittest.TestCase):
         'day',
         1,
     )
-    outputs = component.prepare_data_for_train(
+    outputs = component.prepare_data_for_train_implementation(
         input_tables=input_table_specs,
         preprocess_metadata=self._preprocessed_table_metadata(),
         model_feature_columns=model_feature_columns,

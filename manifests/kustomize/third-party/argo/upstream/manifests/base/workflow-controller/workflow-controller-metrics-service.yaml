@@ -9,6 +9,7 @@ metadata: # kpt-merge: /workflow-controller-metrics
       This service is deprecated. It will be removed in v3.4.
 
       https://github.com/argoproj/argo-workflows/issues/8441
+    internal.kpt.dev/upstream-identifier: '|Service|default|workflow-controller-metrics'
 spec:
   selector:
     app: workflow-controller

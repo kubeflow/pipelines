@@ -19,6 +19,7 @@ import { JobServiceApi } from 'src/apis/job';
 import { RecurringRunServiceApi } from 'src/apisv2beta1/recurringrun';
 import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from 'src/apis/pipeline';
 import {
+  V2beta1Pipeline,
   V2beta1PipelineVersion,
   PipelineServiceApi as PipelineServiceApiV2,
 } from 'src/apisv2beta1/pipeline';
@@ -417,6 +418,29 @@ export class Apis {
         method: 'POST',
       },
     );
+  }
+
+  public static async uploadPipelineV2(
+    pipelineName: string,
+    pipelineDescription: string,
+    pipelineData: File,
+    namespace?: string,
+  ): Promise<V2beta1Pipeline> {
+    const fd = new FormData();
+    fd.append('uploadfile', pipelineData, pipelineData.name);
+    let query = `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+      pipelineDescription,
+    )}`;
+
+    if (namespace) {
+      query = `${query}&namespace=${encodeURIComponent(namespace)}`;
+    }
+
+    return await this._fetchAndParse<V2beta1Pipeline>('/pipelines/upload', v2beta1Prefix, query, {
+      body: fd,
+      cache: 'no-cache',
+      method: 'POST',
+    });
   }
 
   public static async uploadPipelineVersionV2(

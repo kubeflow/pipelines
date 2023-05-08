@@ -213,6 +213,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 <RuntimeNodeDetailsV2
                   layers={layers}
                   onLayerChange={layerChange}
+                  pipelineJobString={pipelineJobStr}
                   runId={runId}
                   element={selectedNode}
                   elementMlmdInfo={selectedNodeMlmdInfo}

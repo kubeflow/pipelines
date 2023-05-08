@@ -13,15 +13,8 @@
 # limitations under the License.
 """Google Cloud Pipeline Experimental Forecasting Components."""
 
-import os
-from typing import Optional
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.notebooks.executor.component import notebooks_executor as NotebooksExecutorOp
 
 __all__ = [
     'NotebooksExecutorOp',
 ]
-
-NotebooksExecutorOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'executor/component.yaml')
-)

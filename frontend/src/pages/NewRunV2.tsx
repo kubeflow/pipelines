@@ -166,6 +166,7 @@ function NewRunV2(props: NewRunV2Props) {
     chosenExperiment,
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
+  const urlParser = new URLParser(props);
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
@@ -181,7 +182,9 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
-  const [isRecurringRun, setIsRecurringRun] = useState(cloneOrigin.isRecurring);
+  const [isRecurringRun, setIsRecurringRun] = useState(
+    urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
+  );
   const initialTrigger = cloneOrigin.recurringRun?.trigger
     ? cloneOrigin.recurringRun.trigger
     : undefined;
@@ -201,7 +204,6 @@ function NewRunV2(props: NewRunV2Props) {
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.runtime_config
     : cloneOrigin.run?.runtime_config;
-  const urlParser = new URLParser(props);
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
@@ -463,6 +465,7 @@ function NewRunV2(props: NewRunV2Props) {
                     [QUERY_PARAMS.experimentId]: experimentId || '',
                     [QUERY_PARAMS.pipelineId]: updatedPipeline.pipeline_id || '',
                     [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
+                    [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
                   });
                   props.history.replace(searchString);
                   handlePipelineVersionIdChange(latestVersion?.pipeline_version_id!);
@@ -486,6 +489,7 @@ function NewRunV2(props: NewRunV2Props) {
                     [QUERY_PARAMS.pipelineId]: existingPipeline.pipeline_id || '',
                     [QUERY_PARAMS.pipelineVersionId]:
                       updatedPipelineVersion.pipeline_version_id || '',
+                    [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
                   });
                   props.history.replace(searchString);
                   handlePipelineVersionIdChange(updatedPipelineVersion.pipeline_version_id);

@@ -23,11 +23,11 @@ PROJECT="${PROJECT:-kfp-ci}"
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
 # 1. install go in /home/prow/go1.15.10
 cd /home/prow
-mkdir go1.15.10
-cd go1.15.10
-curl -LO https://dl.google.com/go/go1.15.10.linux-amd64.tar.gz
-tar -xf go1.15.10.linux-amd64.tar.gz
-export PATH="/home/prow/go1.15.10/go/bin:${PATH}"
+mkdir go1.20.4
+cd go1.20.4
+curl -LO https://dl.google.com/go/go1.20.4.linux-amd64.tar.gz
+tar -xf go1.20.4.linux-amd64.tar.gz
+export PATH="/home/prow/go1.20.4/go/bin:${PATH}"
 cd /home/prow/go/src/github.com/kubeflow/pipelines/backend/src/v2
 # 2. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876

@@ -824,10 +824,11 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-          [QUERY_PARAMS.pipelineVersionId]: '',
+          [QUERY_PARAMS.pipelineVersionId]: pipelineVersion?.id || '',
+          [QUERY_PARAMS.isRecurring]: this.state.isRecurringRun ? '1' : '',
         });
         this.props.history.replace(searchString);
-        this.props.handlePipelineVersionIdChange('');
+        this.props.handlePipelineVersionIdChange(pipelineVersion?.id || '');
         this.props.handlePipelineIdChange(pipeline.id);
       }
     }
@@ -869,6 +870,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: pipelineVersion.id || '',
           [QUERY_PARAMS.cloneFromRun]: cloneFromRunValue || '',
+          [QUERY_PARAMS.isRecurring]: this.state.isRecurringRun ? '1' : '',
         });
         this.props.history.replace(searchString);
         this.props.handlePipelineVersionIdChange(pipelineVersion.id);
