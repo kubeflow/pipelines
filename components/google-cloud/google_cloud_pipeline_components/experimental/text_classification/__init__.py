@@ -13,14 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline Text Classification component."""
 
-import os
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.text_classification.train_tensorflow_model import train_tensorflow_text_classification_model as TextClassificationTrainingOp
 
 __all__ = ['TextClassificationTrainingOp']
-
-TextClassificationTrainingOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'train_tensorflow_model/component.yaml'
-    )
-)

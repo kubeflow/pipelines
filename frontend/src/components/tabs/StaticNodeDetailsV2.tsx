@@ -21,6 +21,7 @@ import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { ParameterType } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { getStringEnumKey } from 'src/lib/Utils';
+import { getComponentSpec } from 'src/lib/v2/NodeUtils';
 import {
   getKeysFromArtifactNodeKey,
   getTaskKeyFromNodeKey,
@@ -197,25 +198,6 @@ function ArtifactNodeDetail({ pipelineSpec, element, layers }: ArtifactNodeDetai
       )}
     </div>
   );
-}
-
-function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], taskKey: string) {
-  let currentDag = pipelineSpec.root?.dag;
-  const taskLayers = [...layers.slice(1), taskKey];
-  let componentSpec;
-  for (let i = 0; i < taskLayers.length; i++) {
-    const pipelineTaskSpec = currentDag?.tasks[taskLayers[i]];
-    const componentName = pipelineTaskSpec?.componentRef?.name;
-    if (!componentName) {
-      return null;
-    }
-    componentSpec = pipelineSpec.components[componentName];
-    if (!componentSpec) {
-      return null;
-    }
-    currentDag = componentSpec.dag;
-  }
-  return componentSpec;
 }
 
 function getInputArtifacts(componentSpec: ComponentSpec) {

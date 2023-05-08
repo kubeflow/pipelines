@@ -13,16 +13,14 @@
 # limitations under the License.
 """Test common GCPC utils."""
 
-import json
-import os
 from typing import Dict, List
 
-import kfp
-from google_cloud_pipeline_components import utils
-from kfp import compiler, dsl
-from kfp.dsl import Artifact, Input, Output
-
 import unittest
+from google_cloud_pipeline_components import utils
+from kfp import dsl
+from kfp.dsl import Artifact
+from kfp.dsl import Input
+from kfp.dsl import Output
 
 
 class ComponentsCompileTest(unittest.TestCase):
@@ -215,3 +213,151 @@ class ComponentsCompileTest(unittest.TestCase):
         ]['args'][0],
         """["{{$.inputs.parameters['string']}}", {{$.inputs.parameters['integer']}}, {{$.inputs.parameters['floating_pt']}}, {{$.inputs.parameters['boolean']}}, {{$.inputs.parameters['dictionary']}}, {{$.inputs.parameters['array']}}, {{$.inputs.parameters['hlist']}}, "{{$.inputs.artifacts['in_artifact'].path}}", "{{$.outputs.artifacts['out_artifact'].path}}"]""",
     )
+
+
+class TestGCPCOutputNameConverter(unittest.TestCase):
+
+  def test_container_component_parameter(self):
+    @utils.gcpc_output_name_converter('output__parameter', 'parameter')
+    @dsl.container_component
+    def comp(
+        parameter: str,
+        output__parameter: dsl.OutputPath(str),
+    ):
+      return dsl.ContainerSpec(
+          image='alpine',
+          command=[
+              'echo',
+              output__parameter,
+          ],
+          args=[output__parameter],
+      )
+
+    # check inner component
+    self.assertIn(
+        'parameter',
+        comp.pipeline_spec.components[
+            'comp-comp'
+        ].output_definitions.parameters,
+    )
+    self.assertNotIn(
+        'output__parameter',
+        comp.pipeline_spec.components[
+            'comp-comp'
+        ].output_definitions.parameters,
+    )
+
+    # check root
+    self.assertIn(
+        'parameter',
+        comp.pipeline_spec.root.output_definitions.parameters,
+    )
+    self.assertNotIn(
+        'output__parameter',
+        comp.pipeline_spec.root.output_definitions.parameters,
+    )
+
+    # check command and args
+    self.assertEqual(
+        "{{$.outputs.parameters['parameter'].output_file}}",
+        comp.pipeline_spec.deployment_spec['executors']['exec-comp'][
+            'container'
+        ]['command'][1],
+    )
+    self.assertEqual(
+        "{{$.outputs.parameters['parameter'].output_file}}",
+        comp.pipeline_spec.deployment_spec['executors']['exec-comp'][
+            'container'
+        ]['args'][0],
+    )
+
+  def test_container_component_artifact(self):
+    @utils.gcpc_output_name_converter('output__artifact', 'artifact')
+    @dsl.container_component
+    def comp(
+        artifact: Input[Artifact],
+        output__artifact: Output[Artifact],
+    ):
+      return dsl.ContainerSpec(
+          image='alpine',
+          command=[
+              'echo',
+              output__artifact.path,
+          ],
+          args=[output__artifact.path],
+      )
+
+    # check inner component
+    self.assertIn(
+        'artifact',
+        comp.pipeline_spec.components['comp-comp'].output_definitions.artifacts,
+    )
+    self.assertNotIn(
+        'output__artifact',
+        comp.pipeline_spec.components['comp-comp'].output_definitions.artifacts,
+    )
+
+    # check root
+    self.assertIn(
+        'artifact',
+        comp.pipeline_spec.root.output_definitions.artifacts,
+    )
+    self.assertNotIn(
+        'output__artifact',
+        comp.pipeline_spec.root.output_definitions.artifacts,
+    )
+
+    # check command and args
+    self.assertEqual(
+        "{{$.outputs.artifacts['artifact'].path}}",
+        comp.pipeline_spec.deployment_spec['executors']['exec-comp'][
+            'container'
+        ]['command'][1],
+    )
+    self.assertEqual(
+        "{{$.outputs.artifacts['artifact'].path}}",
+        comp.pipeline_spec.deployment_spec['executors']['exec-comp'][
+            'container'
+        ]['args'][0],
+    )
+
+  def test_cannot_use_on_pipeline(self):
+    @dsl.container_component
+    def comp(
+        artifact: Input[Artifact],
+    ):
+      return dsl.ContainerSpec(
+          image='alpine',
+          command=[
+              'echo',
+              artifact.path,
+          ],
+      )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        r'The \'gcpc_output_name_converter\' decorator can only be used on'
+        r' primitive container components. You are trying to use it on a'
+        r' pipeline\.',
+    ):
+
+      @utils.gcpc_output_name_converter('output__artifact', 'artifact')
+      @dsl.pipeline
+      def pipeline(artifact: Input[Artifact]):
+        comp(artifact=artifact)
+
+  def test_cannot_use_on_python_component(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        r'The \'gcpc_output_name_converter\' decorator can only be used on'
+        r' primitive container components. You are trying to use it on a'
+        r' Python component\.',
+    ):
+
+      @utils.gcpc_output_name_converter('output__artifact', 'artifact')
+      @dsl.component
+      def comp(
+          artifact: Input[Artifact],
+          output__artifact: Output[Artifact],
+      ):
+        pass

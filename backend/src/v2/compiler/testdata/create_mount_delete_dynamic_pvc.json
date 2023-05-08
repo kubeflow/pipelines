@@ -63,16 +63,11 @@
       "executors": {
         "exec-comp": {
           "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "comp"
-            ],
+            "args": ["--executor_input", "{{$}}", "--function_to_execute", "comp"],
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.16' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d) printf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\" python3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\" ",
@@ -83,16 +78,11 @@
         },
         "exec-comp-2": {
           "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "comp"
-            ],
+            "args": ["--executor_input", "{{$}}", "--function_to_execute", "comp"],
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.16' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d) printf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\" python3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\" ",
@@ -126,9 +116,7 @@
             "componentRef": {
               "name": "comp-comp"
             },
-            "dependentTasks": [
-              "createpvc"
-            ],
+            "dependentTasks": ["createpvc"],
             "taskInfo": {
               "name": "comp"
             }
@@ -140,10 +128,7 @@
             "componentRef": {
               "name": "comp-comp-2"
             },
-            "dependentTasks": [
-              "comp",
-              "createpvc"
-            ],
+            "dependentTasks": ["comp", "createpvc"],
             "taskInfo": {
               "name": "comp-2"
             }
@@ -159,9 +144,7 @@
               "parameters": {
                 "access_modes": {
                   "runtimeValue": {
-                    "constant": [
-                      "ReadWriteMany"
-                    ]
+                    "constant": ["ReadWriteMany"]
                   }
                 },
                 "pvc_name_suffix": {
@@ -192,10 +175,7 @@
             "componentRef": {
               "name": "comp-deletepvc"
             },
-            "dependentTasks": [
-              "comp-2",
-              "createpvc"
-            ],
+            "dependentTasks": ["comp-2", "createpvc"],
             "inputs": {
               "parameters": {
                 "pvc_name": {
@@ -214,6 +194,6 @@
       }
     },
     "schemaVersion": "2.1.0",
-    "sdkVersion": "kfp-2.0.0-beta.13"
+    "sdkVersion": "kfp-2.0.0-beta.16"
   }
 }

@@ -1,19 +1,29 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from google_cloud_pipeline_components import utils
+from kfp import dsl
+from kfp.dsl import OutputPath
 
-name: Wait GCP Resources
-description: |
+
+@utils.gcpc_output_name_converter('output__gcp_resources', 'gcp_resources')
+@dsl.container_component
+def wait_gcp_resources(
+    gcp_resources: str,
+    output__gcp_resources: OutputPath(str),
+):
+  # fmt: off
+  """
   Receives a GCP Resource, polling the resource status and waits for it to finish.
   Currently this component only support waiting on a DataflowJob resource.
 
@@ -39,19 +49,27 @@ description: |
   Returns:
     gcp_resources (str):
         The final result of the gcp resource, including the error information, if exists.
-inputs:
-- {name: gcp_resources, type: String}
-outputs:
-- {name: gcp_resources, type: String}
-implementation:
-  container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.wait_gcp_resources.launcher]
-    args: [
-      --type, Wait,
-      # project and location are already specified in the input gcp_resources
-      --project, '',
-      --location, '',
-      --payload, {inputValue: gcp_resources},
-      --gcp_resources, {outputPath: gcp_resources},
-    ]
+
+  """
+  # fmt: on
+  return dsl.ContainerSpec(
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      command=[
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.wait_gcp_resources.launcher',
+      ],
+      args=[
+          '--type',
+          'Wait',
+          '--project',
+          '',
+          '--location',
+          '',
+          '--payload',
+          gcp_resources,
+          '--gcp_resources',
+          output__gcp_resources,
+      ],
+  )

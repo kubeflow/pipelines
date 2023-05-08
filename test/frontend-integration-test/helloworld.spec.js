@@ -99,6 +99,7 @@ describe('deploy helloworld sample run', () => {
       reverse: true,
     });
 
+    await browser.keys('Tab');
     await browser.keys(runName);
 
     await browser.keys('Tab');

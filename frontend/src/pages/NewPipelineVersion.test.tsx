@@ -41,7 +41,7 @@ describe('NewPipelineVersion', () => {
   let getPipelineSpy: jest.SpyInstance<{}>;
   let createPipelineSpy: jest.SpyInstance<{}>;
   let createPipelineVersionSpy: jest.SpyInstance<{}>;
-  let uploadPipelineVersionSpy: jest.SpyInstance<{}>;
+  let uploadPipelineSpy: jest.SpyInstance<{}>;
 
   let MOCK_PIPELINE = {
     pipeline_id: 'original-run-pipeline-id',
@@ -81,8 +81,8 @@ describe('NewPipelineVersion', () => {
     createPipelineSpy = jest
       .spyOn(Apis.pipelineServiceApiV2, 'createPipeline')
       .mockImplementation(() => MOCK_PIPELINE);
-    uploadPipelineVersionSpy = jest
-      .spyOn(Apis, 'uploadPipelineVersionV2')
+    uploadPipelineSpy = jest
+      .spyOn(Apis, 'uploadPipelineV2')
       .mockImplementation(() => MOCK_PIPELINE);
   });
 
@@ -395,13 +395,13 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state()).toHaveProperty('isPrivate', false);
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      // create pipeline first
-      expect(createPipelineSpy).toHaveBeenLastCalledWith({
-        description: 'test pipeline description',
-        display_name: 'test pipeline name',
-      });
-      // then call uploadPipelineVersion
-      expect(uploadPipelineVersionSpy).toHaveBeenCalled();
+
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        'test pipeline description',
+        file,
+        undefined,
+      );
     });
 
     it('creates private pipeline from local file in multi user mode', async () => {
@@ -431,14 +431,13 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state()).toHaveProperty('isPrivate', true);
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      // create pipeline first
-      expect(createPipelineSpy).toHaveBeenLastCalledWith({
-        description: 'test pipeline description',
-        display_name: 'test pipeline name',
-        namespace: 'ns',
-      });
-      // then call uploadPipelineVersion
-      expect(uploadPipelineVersionSpy).toHaveBeenCalled();
+
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        'test pipeline description',
+        file,
+        'ns',
+      );
     });
 
     it('creates shared pipeline from local file in multi user mode', async () => {
@@ -468,13 +467,13 @@ describe('NewPipelineVersion', () => {
 
       expect(tree.state()).toHaveProperty('isPrivate', false);
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      // create pipeline first
-      expect(createPipelineSpy).toHaveBeenLastCalledWith({
-        description: 'test pipeline description',
-        display_name: 'test pipeline name',
-      });
-      // then call uploadPipelineVersion
-      expect(uploadPipelineVersionSpy).toHaveBeenCalled();
+
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        'test pipeline description',
+        file,
+        undefined,
+      );
     });
 
     it('allows updating pipeline version name', async () => {
