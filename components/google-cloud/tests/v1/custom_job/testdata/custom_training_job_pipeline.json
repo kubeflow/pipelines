@@ -103,7 +103,7 @@
              "-m",
              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
            ],
-           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
+           "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3"
          }
        }
      }

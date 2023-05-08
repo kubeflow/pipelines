@@ -239,7 +239,7 @@ def automl_image_training_job(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
       command=[
           'python3',
           '-m',

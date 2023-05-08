@@ -40,7 +40,7 @@ def vertex_pipelines_notification_email(
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
       command=[
           'python3',
           '-u',
