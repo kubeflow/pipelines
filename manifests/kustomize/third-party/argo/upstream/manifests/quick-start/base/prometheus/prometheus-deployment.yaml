@@ -10,6 +10,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: # kpt-merge: /prometheus
   name: prometheus
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|prometheus'
 spec:
   replicas: 1
   selector:

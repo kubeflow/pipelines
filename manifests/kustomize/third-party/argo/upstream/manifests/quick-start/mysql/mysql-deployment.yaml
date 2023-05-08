@@ -4,6 +4,8 @@ metadata: # kpt-merge: /mysql
   name: mysql
   labels:
     app: mysql
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|mysql'
 spec:
   selector:
     matchLabels:
