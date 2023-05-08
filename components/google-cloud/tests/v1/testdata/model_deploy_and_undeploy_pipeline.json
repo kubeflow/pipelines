@@ -284,7 +284,7 @@
                       "-m",
                       "google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher"
                   ],
-                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
+                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3"
               }
           },
           "exec-model-deploy": {
@@ -307,7 +307,7 @@
                       "-m",
                       "google_cloud_pipeline_components.container.v1.endpoint.deploy_model.launcher"
                   ],
-                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
+                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3"
               }
           },
           "exec-model-undeploy": {
@@ -330,7 +330,7 @@
                       "-m",
                       "google_cloud_pipeline_components.container.v1.endpoint.undeploy_model.launcher"
                   ],
-                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
+                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3"
               }
           },
           "exec-model-upload": {
@@ -356,7 +356,7 @@
                       "-m",
                       "google_cloud_pipeline_components.container.v1.model.upload_model.launcher"
                   ],
-                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1"
+                  "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3"
               }
           }
       }
