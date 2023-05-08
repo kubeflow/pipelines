@@ -13,7 +13,6 @@
 # limitations under the License.
 """Google Cloud Pipeline Dataproc Batch components."""
 
-import os
 
 from google_cloud_pipeline_components.v1.dataproc.create_pyspark_batch import component as create_pyspark_batch_component
 from google_cloud_pipeline_components.v1.dataproc.create_spark_batch import component as create_spark_batch_component

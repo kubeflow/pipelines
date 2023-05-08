@@ -18,7 +18,6 @@ import logging
 import os
 from os import path
 import re
-import sys
 import time
 from typing import Optional
 

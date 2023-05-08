@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
 
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
-from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp.dsl import Input
-from kfp.dsl import OutputPath
 from kfp import dsl
 
 

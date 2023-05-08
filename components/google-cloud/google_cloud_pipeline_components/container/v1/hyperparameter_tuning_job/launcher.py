@@ -13,7 +13,6 @@
 # limitations under the License.
 """GCP launcher for hyperparameter tuning jobs based on the AI Platform SDK."""
 
-import argparse
 import logging
 import sys
 
