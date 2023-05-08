@@ -14,12 +14,8 @@
 """Google Cloud Pipeline Vertex email notification component."""
 
 
-from google_cloud_pipeline_components.v1.vertex_notification_email import component as vertex_notification_email_component
+from google_cloud_pipeline_components.v1.vertex_notification_email.component import vertex_pipelines_notification_email as VertexNotificationEmailOp
 
 __all__ = [
     'VertexNotificationEmailOp',
 ]
-
-VertexNotificationEmailOp = (
-    vertex_notification_email_component.vertex_pipelines_notification_email
-)

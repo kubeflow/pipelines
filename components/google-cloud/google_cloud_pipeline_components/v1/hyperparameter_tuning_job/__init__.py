@@ -14,16 +14,14 @@
 """Google Cloud Pipeline hyperparameter tuning component and utilities."""
 
 
-from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import component as hyperparameter_tuning_job_component
-from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import serialize_metrics
-from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import serialize_parameters
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.component import hyperparameter_tuning_job as HyperparameterTuningJobRunOp
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import (
+    serialize_metrics,
+    serialize_parameters,
+)
 
 __all__ = [
     'HyperparameterTuningJobRunOp',
     'serialize_metrics',
     'serialize_parameters',
 ]
-
-HyperparameterTuningJobRunOp = (
-    hyperparameter_tuning_job_component.hyperparameter_tuning_job
-)
