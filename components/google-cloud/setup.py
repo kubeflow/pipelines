@@ -80,6 +80,15 @@ setup(
         "kfp>=2.0.0b10",
         "google-cloud-aiplatform>=1.14.0,<2",
     ],
+    project_urls={
+        "User Documentation": "https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction",
+        "Reference Documentation": (
+            "https://google-cloud-pipeline-components.readthedocs.io/"
+        ),
+        "Source": "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
+        # TODO: update to point to reference documentation release notes once available post GCPC v2 GA
+        "Release Notes": "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/RELEASE.md",
+    },
     dependency_links=[],
     classifiers=[
         "Development Status :: 4 - Beta",
