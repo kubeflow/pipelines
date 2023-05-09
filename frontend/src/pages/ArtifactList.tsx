@@ -28,16 +28,16 @@ import {
 import { Artifact, ArtifactType, GetArtifactsRequest } from 'src/third_party/mlmd';
 import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { classes } from 'typestyle';
-import { ArtifactLink } from '../components/ArtifactLink';
+import { ArtifactLink } from 'src/components/ArtifactLink';
 import CustomTable, {
   Column,
   CustomRendererProps,
   ExpandState,
   Row,
-} from '../components/CustomTable';
-import { RoutePageFactory } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { commonCss, padding } from '../Css';
+} from 'src/components/CustomTable';
+import { RoutePageFactory } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
+import { commonCss, padding } from 'src/Css';
 import {
   CollapsedAndExpandedRows,
   getExpandedRow,
@@ -46,8 +46,8 @@ import {
   rowCompareFn,
   rowFilterFn,
   serviceErrorToString,
-} from '../lib/Utils';
-import { Page } from './Page';
+} from 'src/lib/Utils';
+import { Page } from 'src/pages/Page';
 
 interface ArtifactListState {
   artifacts: Artifact[];
