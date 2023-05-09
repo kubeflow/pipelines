@@ -10,7 +10,7 @@ Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-k
 
 > Pull request : [#9253](https://github.com/kubeflow/pipelines/pull/9253), [#9368](https://github.com/kubeflow/pipelines/pull/9368)
 
-This PR [#9253](https://github.com/kubeflow/pipelines/pull/9253) was merged accidentally without the changelog and image pointing to an unofficial repository. Please do not use this commit.
+Note: [#9253](https://github.com/kubeflow/pipelines/pull/9253) was merged accidentally with image pointing to an unofficial repository. Please do not pin to the commit corresponding to this PR.
 
 ** Change log for version 2.2.1 **
 - Fix: Path issue with git clone on macbook. Directory name for version 2 of Model component has been updated from `components/aws/sagemaker/Model` to `components/aws/sagemaker/Modelv2`.
