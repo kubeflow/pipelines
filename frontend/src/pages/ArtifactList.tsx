@@ -150,7 +150,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     const artifacts = await this.getArtifacts(listOperationOpts);
     this.clearBanner();
     let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
-    const collapsedAndExpandedRows = await this.getGroupedRowsFromArtifacts(request, artifacts);
+    // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
     if (flattenedRows) {
       this.setState({
         artifacts,
