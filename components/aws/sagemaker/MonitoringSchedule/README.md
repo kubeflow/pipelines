@@ -14,6 +14,8 @@ See the SageMaker Components for Kubeflow Pipelines versions section in [SageMak
 ### Kubeflow Pipelines backend compatibility
 SageMaker components are currently supported with Kubeflow pipelines backend v1. This means, you will have to use KFP sdk 1.8.x to create your pipelines.
 
+## Getting Started
+Follow [this guide](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples#prerequisites) to setup the prerequisites for MonitoringSchedule depending on your deployment.
 
 ## Input Parameters
 Find the high level component input parameters and their description in the [component's input specification](./component.yaml). The parameters with `JsonObject` or `JsonArray` type inputs have nested fields, you will have to refer to the [MonitoringSchedule CRD specification](https://aws-controllers-k8s.github.io/community/reference/sagemaker/v1alpha1/monitoringschedule/) for the respective structure and pass the input in JSON format. 
