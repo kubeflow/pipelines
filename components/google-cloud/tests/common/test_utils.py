@@ -15,12 +15,13 @@
 
 from typing import Dict, List
 
-import unittest
 from google_cloud_pipeline_components import utils
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input
 from kfp.dsl import Output
+
+import unittest
 
 
 class ComponentsCompileTest(unittest.TestCase):
