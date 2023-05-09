@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Dataset components."""
+"""Dataset components."""
 import os
 
 from google_cloud_pipeline_components.v1.dataset.create_image_dataset.component import image_dataset_create as ImageDatasetCreateOp

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Vertex email notification component."""
+"""Vertex email notification components."""
 
 
 from google_cloud_pipeline_components.v1.vertex_notification_email.component import vertex_pipelines_notification_email as VertexNotificationEmailOp
