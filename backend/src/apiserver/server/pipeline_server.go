@@ -117,6 +117,7 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pip
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace: pipeline.Namespace,
 			Verb:      common.RbacResourceVerbCreate,
+			Group:     common.RbacPipelinesGroup,
 			Resource:  common.RbacResourceTypePipelines,
 		}
 		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
