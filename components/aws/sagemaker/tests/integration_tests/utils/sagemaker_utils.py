@@ -11,6 +11,7 @@ import json
 
 from utils import get_s3_data_bucket
 
+
 def describe_training_job(client, training_job_name):
     return client.describe_training_job(TrainingJobName=training_job_name)
 
@@ -35,6 +36,18 @@ def delete_endpoint(client, endpoint_name):
     client.delete_endpoint(EndpointName=endpoint_name)
     waiter = client.get_waiter("endpoint_deleted")
     waiter.wait(EndpointName=endpoint_name)
+
+
+def describe_monitoring_schedule(client, monitoring_schedule_name):
+    return client.describe_monitoring_schedule(
+        MonitoringScheduleName=monitoring_schedule_name
+    )
+
+
+def describe_data_quality_job_definition(client, job_definition_name):
+    return client.describe_data_quality_job_definition(
+        JobDefinitionName=job_definition_name
+    )
 
 
 def describe_hpo_job(client, job_name):
@@ -93,6 +106,7 @@ def stop_labeling_job(client, labeling_job_name):
 def describe_processing_job(client, processing_job_name):
     return client.describe_processing_job(ProcessingJobName=processing_job_name)
 
+
 def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     """https://github.com/awslabs/amazon-sagemaker-
     examples/blob/a8c20eeb72dc7d3e94aaaf28be5bf7d7cd5695cb.
@@ -119,6 +133,8 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     payload = np2csv(train_set[0][30:31])
 
     response = runtime.invoke_endpoint(
-        EndpointName=endpoint_name, ContentType="text/csv", Body=payload,
+        EndpointName=endpoint_name,
+        ContentType="text/csv",
+        Body=payload,
     )
     return json.loads(response["Body"].read().decode())

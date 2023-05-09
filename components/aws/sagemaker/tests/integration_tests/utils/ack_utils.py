@@ -36,25 +36,25 @@ def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_lengt
     """
     _api = client.CustomObjectsApi(k8s_client)
     namespace = os.environ.get("NAMESPACE")
-    for i in range(wait_periods):
+
+    try:
+        _api.delete_namespaced_custom_object(
+            "sagemaker.services.k8s.aws",
+            "v1alpha1",
+            namespace.lower(),
+            plural,
+            job_name.lower(),
+        )
+    except Exception as e:
+        print(f"Exception occurred while deleting resource {job_name}: {e}")
+
+    for _ in range(wait_periods):
+        sleep(period_length)
         if _get_resource(k8s_client, job_name, plural) is None:
             print(f"Resource {job_name} deleted successfully.")
             return True
-        else:
-            try:
-                _api.delete_namespaced_custom_object(
-                    "sagemaker.services.k8s.aws",
-                    "v1alpha1",
-                    namespace.lower(),
-                    plural,
-                    job_name.lower(),
-                )
-            except Exception as e:
-                print(f"Exception occurred while deleting resource {job_name}: {e}")
-                print(f"Retrying deleting resource {job_name}...")
-                continue
-        sleep(period_length)
-    print(f"Resource deletion timed out: {job_name}")
+
+    print(f"Wait for resource deletion timed out, resource name: {job_name}")
     return False
 
 

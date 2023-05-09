@@ -4,6 +4,7 @@ import os
 import utils
 from utils import kfp_client_utils
 from utils import ack_utils
+from utils import sagemaker_utils
 
 
 # Testing monitoring schedule with model bias job definition
@@ -65,8 +66,8 @@ def test_v2_monitoring_schedule(
         assert job_definition_describe["status"]["ackResourceMetadata"]["arn"] != None
 
         # Verify if monitoring schedule is created with correct name and endpoint
-        monitoring_schedule_describe = sagemaker_client.describe_monitoring_schedule(
-            MonitoringScheduleName=monitoring_schedule_name
+        monitoring_schedule_describe = sagemaker_utils.describe_monitoring_schedule(
+            sagemaker_client, monitoring_schedule_name
         )
         assert (
             monitoring_schedule_name
@@ -166,8 +167,8 @@ def test_v2_monitoring_schedule_update(
         )
 
         # Verify if monitoring schedule is created with correct name and endpoint
-        monitoring_schedule_describe = sagemaker_client.describe_monitoring_schedule(
-            MonitoringScheduleName=monitoring_schedule_name
+        monitoring_schedule_describe = sagemaker_utils.describe_monitoring_schedule(
+            sagemaker_client, monitoring_schedule_name
         )
         assert (
             monitoring_schedule_name
@@ -186,8 +187,10 @@ def test_v2_monitoring_schedule_update(
         )
 
         # Verify if job definition is created with correct instance type
-        job_definition_1_describe = sagemaker_client.describe_data_quality_job_definition(
-            JobDefinitionName=job_definition_name_1
+        job_definition_1_describe = (
+            sagemaker_utils.describe_data_quality_job_definition(
+                sagemaker_client, job_definition_name_1
+            )
         )
         assert (
             job_definition_1_describe["JobResources"]["ClusterConfig"]["InstanceType"]
@@ -211,8 +214,8 @@ def test_v2_monitoring_schedule_update(
         )
 
         monitoring_schedule_updated_describe = (
-            sagemaker_client.describe_monitoring_schedule(
-                MonitoringScheduleName=monitoring_schedule_name
+            sagemaker_utils.describe_monitoring_schedule(
+                sagemaker_client, monitoring_schedule_name
             )
         )
 
@@ -225,8 +228,8 @@ def test_v2_monitoring_schedule_update(
 
         # Verify if job definition is created with correct instance type
         job_definition_2_describe = (
-            sagemaker_client.describe_data_quality_job_definition(
-                JobDefinitionName=job_definition_name_2
+            sagemaker_utils.describe_data_quality_job_definition(
+                sagemaker_client, job_definition_name_2
             )
         )
         assert (

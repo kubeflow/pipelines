@@ -137,11 +137,7 @@ def boto3_session(region):
 
 @pytest.fixture(scope="session")
 def sagemaker_client(boto3_session):
-    return boto3_session.client(
-        service_name="sagemaker",
-        # Increase max_attempts to avoid ThrottlingException
-        config=Config(connect_timeout=5, read_timeout=60, retries={"max_attempts": 20}),
-    )
+    return boto3_session.client(service_name="sagemaker")
 
 
 @pytest.fixture(scope="session")
