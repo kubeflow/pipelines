@@ -44,8 +44,8 @@ class SageMakerEndpointConfigComponent(SageMakerComponent):
         ############GENERATED SECTION BELOW############
 
         self.job_name = spec.inputs.endpoint_config_name = (
-            spec.inputs.endpoint_config_name  # todo: need customize
-            if spec.inputs.endpoint_config_name  # todo: need customize
+            spec.inputs.endpoint_config_name
+            if spec.inputs.endpoint_config_name
             else SageMakerComponent._generate_unique_timestamped_id(
                 prefix="endpoint-config"
             )

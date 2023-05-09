@@ -86,7 +86,7 @@ outputs:
 
 implementation:
   container:
-    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.2.1
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.3.0
     command: [python3]
     args:
       - Endpoint/src/Endpoint_component.py

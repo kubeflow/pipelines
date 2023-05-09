@@ -44,8 +44,8 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
         ############GENERATED SECTION BELOW############
 
         self.job_name = spec.inputs.training_job_name = (
-            spec.inputs.training_job_name  # todo: need customize
-            if spec.inputs.training_job_name  # todo: need customize
+            spec.inputs.training_job_name
+            if spec.inputs.training_job_name
             else SageMakerComponent._generate_unique_timestamped_id(
                 prefix="training-job"
             )
