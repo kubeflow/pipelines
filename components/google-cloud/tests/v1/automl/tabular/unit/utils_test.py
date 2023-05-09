@@ -1,5 +1,5 @@
 """Tests for utils."""
-from google_cloud_pipeline_components.experimental.automl.tabular import utils
+from google_cloud_pipeline_components.v1.automl.tabular import utils
 import unittest
 
 
