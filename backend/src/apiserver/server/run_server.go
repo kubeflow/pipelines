@@ -128,6 +128,7 @@ func (s *RunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, 
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace: run.Namespace,
 			Verb:      common.RbacResourceVerbCreate,
+			Group:     common.RbacPipelinesGroup,
 			Resource:  common.RbacResourceTypeRuns,
 			Name:      run.DisplayName,
 		}
