@@ -12,3 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Experimental Google Cloud Pipeline Components."""
+import warnings
+
+_gcpc_package_name = 'google_cloud_pipeline_components'
+
+warnings.warn(
+    f'You are using a component from the {_gcpc_package_name!r} experimental'
+    ' namespace, which contains components that may not be stable across'
+    ' versions of the library. To ensure the stability of your pipelines, it'
+    f' is recommended that you pin {_gcpc_package_name!r} to a specific patch'
+    ' version and migrate the equivalent stable component from the v1'
+    ' namespace when it becomes available.',
+    stacklevel=2,
+)
