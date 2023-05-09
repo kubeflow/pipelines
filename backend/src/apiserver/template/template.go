@@ -199,7 +199,7 @@ func modelToParametersMap(modelParameters string) (map[string]string, error) {
 	}
 	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "error marshalling model parameters")
+		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
 	}
 	for _, param := range paramsMapList {
 		desiredParamsMap[(*param)["name"]] = (*param)["value"]

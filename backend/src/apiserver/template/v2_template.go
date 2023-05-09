@@ -97,7 +97,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
-		return nil, util.Wrap(err, "convering model trigger to crd trigger failed")
+		return nil, util.Wrap(err, "converting model trigger to crd trigger failed")
 	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
@@ -329,8 +329,8 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 				requiredParamNames = append(requiredParamNames, name)
 			}
 			return util.NewInvalidInputError(
-				fmt.Sprintf("pipeline requiring input has no paramater(s) provided. Need parameter(s): %s",
-					strings.Join(requiredParamNames, ", ")),
+				"pipeline requiring input has no paramater(s) provided. Need parameter(s): %s",
+				strings.Join(requiredParamNames, ", "),
 			)
 		} else {
 			// both required parameters and inputs are empty
@@ -343,9 +343,8 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 		if input, ok := runtimeConfig.GetParameterValues()[name]; !ok {
 			// If the parameter is optional, or there is a default value, it's ok to not have a user input
 			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
-				return util.NewInvalidInputError(
-					fmt.Sprintf("parameter %s is not optional, yet has neither default value nor user provided value", name),
-				)
+				return util.NewInvalidInputError("parameter %s is not optional, yet has neither default value "+
+					"nor user provided value", name)
 			}
 		} else {
 			// Verify the parameter type is correct
@@ -354,40 +353,34 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s has unspecified type", name))
 			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
 				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
-					return util.NewInvalidInputError(
-						fmt.Sprintf("input parameter %s requires type double or integer, but the parameter value is not of number value type", name),
-					)
+					return util.NewInvalidInputError("input parameter %s requires type double or integer, "+
+						"but the parameter value is not of number value type", name)
 				}
 			case pipelinespec.ParameterType_STRING:
 				if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
-					return util.NewInvalidInputError(
-						fmt.Sprintf("input parameter %s requires type string, but the input parameter is not of string value type", name),
-					)
+					return util.NewInvalidInputError("input parameter %s requires type string, but the "+
+						"input parameter is not of string value type", name)
 				}
 			case pipelinespec.ParameterType_BOOLEAN:
 				if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
-					return util.NewInvalidInputError(
-						fmt.Sprintf("input parameter %s requires type bool, but the input parameter is not of bool value type", name),
-					)
+					return util.NewInvalidInputError("input parameter %s requires type bool, but the input "+
+						"parameter is not of bool value type", name)
 				}
 			case pipelinespec.ParameterType_LIST:
 				if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
-					return util.NewInvalidInputError(
-						fmt.Sprintf("input parameter %s requires type list, but the input parameter is not of list value type", name),
-					)
+					return util.NewInvalidInputError("input parameter %s requires type list, but the input "+
+						"parameter is not of list value type", name)
 				}
 			case pipelinespec.ParameterType_STRUCT:
 				if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
-					return util.NewInvalidInputError(
-						fmt.Sprintf("input parameter %s requires type struct, but the input parameter is not of struct value type", name),
-					)
+					return util.NewInvalidInputError("input parameter %s requires type struct, but the input "+
+						"parameter is not of struct value type", name)
 				}
 			case pipelinespec.ParameterType_TASK_FINAL_STATUS:
-				return util.NewInvalidInputError(
-					fmt.Sprintf("input parameter %s requires type TASK_FINAL_STATUS, which is invalid for root component", name),
-				)
+				return util.NewInvalidInputError("input parameter %s requires type TASK_FINAL_STATUS, which is "+
+					"invalid for root component", name)
 			default:
-				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s requires type unknown", name))
+				return util.NewInvalidInputError("input parameter %s requires type unknown", name)
 			}
 		}
 	}
@@ -400,7 +393,8 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 		}
 	}
 	if len(extraParams) > 0 {
-		return fmt.Errorf("parameter(s) provided are not required by pipeline: %s", strings.Join(extraParams, ", "))
+		return util.NewInvalidInputError("parameter(s) provided are not required by pipeline: %s",
+			strings.Join(extraParams, ", "))
 	}
 
 	return nil
