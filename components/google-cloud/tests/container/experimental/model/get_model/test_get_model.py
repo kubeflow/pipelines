@@ -156,7 +156,7 @@ class GetModelTests(unittest.TestCase):
   def test_main_model_name_in_model_garden(self, _):
     self._input_args.extend((
         '--model_name',
-        f'projects/test-project/locations/test-location/publisher/test-publisher/models/test-model-name',
+        f'projects/test-project/locations/test-location/publishers/test-publisher/models/test-model-name',
     ))
 
     get_model.main(self._input_args)
@@ -175,7 +175,7 @@ class GetModelTests(unittest.TestCase):
       ]
       self.assertEqual(
           model_name,
-          f'projects/test-project/locations/test-location/publisher/test-publisher/models/test-model-name',
+          f'projects/test-project/locations/test-location/publishers/test-publisher/models/test-model-name',
       )
 
   def test_main_argparse_raises(self):
