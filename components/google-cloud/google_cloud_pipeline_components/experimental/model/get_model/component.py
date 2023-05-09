@@ -32,9 +32,9 @@ def get_vertex_model(
       projects/{project}/locations/{location}/models/{model} or
       projects/{project}/locations/{location}/models/{model}@{model_version_id
       or model_version_alias}.
-    model_version (Optional[str]): The desired Vertex Model version to get.
-      If model_name and model_version are provided, model_version will override
-      any version or alias if present in model_name.
+    model_version (Optional[str]): The desired Vertex Model version to get. If
+      model_name and model_version are provided, model_version will override any
+      version or alias if present in model_name.
 
   Returns:
       model (google.VertexModel):
@@ -46,7 +46,7 @@ def get_vertex_model(
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
       command=[
           'python3',
           '-u',

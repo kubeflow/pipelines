@@ -79,7 +79,7 @@ def _get_model(
   else:
     model_resource_name = model_name
 
-  if '/publisher/' not in model_resource_name:
+  if '/publishers/' not in model_resource_name:
     segments_dict = aiplatform.gapic.ModelServiceClient.parse_model_path(
         model_resource_name
     )
