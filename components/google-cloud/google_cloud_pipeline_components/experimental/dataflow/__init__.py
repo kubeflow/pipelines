@@ -13,25 +13,10 @@
 # limitations under the License.
 """Experimnental Dataflow components."""
 
+from google_cloud_pipeline_components.experimental.dataflow.flex_template.component import dataflow_flex_template as DataflowFlexTemplateJobOp
 from google_cloud_pipeline_components.v1.dataflow import DataflowPythonJobOp
 
 __all__ = [
     'DataflowFlexTemplateJobOp',
     'DataflowPythonJobOp',
 ]
-
-# TODO(wwoo): remove try block after experimental components are migrated to v2.
-try:
-  from .flex_template import component as dataflow_flex_template_component  # type: ignore
-
-  DataflowFlexTemplateJobOp = (
-      dataflow_flex_template_component.dataflow_flex_template
-  )
-except ImportError:
-
-  def _raise_unsupported(*args, **kwargs):
-    raise ImportError(
-        'DataflowFlexTemplateJobOp requires KFP SDK v2.0.0b1 or higher.'
-    )
-
-  DataflowFlexTemplateJobOp = _raise_unsupported
