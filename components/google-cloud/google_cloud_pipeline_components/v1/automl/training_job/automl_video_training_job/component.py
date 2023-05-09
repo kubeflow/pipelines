@@ -186,7 +186,7 @@ def automl_video_training_job(
           '--init.model_type',
           model_type,
           '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           dsl.IfPresentPlaceholder(
               input_name='training_encryption_spec_key_name',
               then=[

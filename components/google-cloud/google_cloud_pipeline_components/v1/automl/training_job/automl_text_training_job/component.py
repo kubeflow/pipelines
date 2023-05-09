@@ -187,7 +187,7 @@ def automl_text_training_job(
           '--init.sentiment_max',
           sentiment_max,
           '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           dsl.IfPresentPlaceholder(
               input_name='training_encryption_spec_key_name',
               then=[

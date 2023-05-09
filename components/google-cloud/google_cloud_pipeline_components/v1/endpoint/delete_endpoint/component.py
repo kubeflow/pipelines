@@ -54,7 +54,7 @@ def endpoint_delete(
           dsl.ConcatPlaceholder([
               '{',
               '"endpoint": "',
-              "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+              endpoint.metadata['resourceName'],
               '"',
               '}',
           ]),

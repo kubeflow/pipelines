@@ -160,7 +160,7 @@ def model_upload(
               input_name='parent_model',
               then=ConcatPlaceholder([
                   '--parent_model_name ',
-                  "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}",
+                  parent_model.metadata['resourceName'],
               ]),
           ),
       ],

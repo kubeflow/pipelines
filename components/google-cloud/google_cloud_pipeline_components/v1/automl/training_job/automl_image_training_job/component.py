@@ -265,7 +265,7 @@ def automl_image_training_job(
           '--init.labels',
           labels,
           '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           '--method.disable_early_stopping',
           disable_early_stopping,
           dsl.IfPresentPlaceholder(
@@ -330,7 +330,7 @@ def automl_image_training_job(
               input_name='base_model',
               then=[
                   '--init.base_model',
-                  "{{$.inputs.artifacts['base_model'].metadata['resourceName']}}",
+                  base_model.metadata['resourceName'],
               ],
           ),
           dsl.IfPresentPlaceholder(

@@ -69,7 +69,7 @@ def text_dataset_export(
       ],
       args=[
           '--init.dataset_name',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           '--init.project',
           project,
           '--init.location',

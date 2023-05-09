@@ -67,10 +67,10 @@ def model_undeploy(
           dsl.ConcatPlaceholder([
               '{',
               '"endpoint": "',
-              "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+              endpoint.metadata['resourceName'],
               '"',
               ', "model": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+              model.metadata['resourceName'],
               '"',
               ', "traffic_split": ',
               traffic_split,

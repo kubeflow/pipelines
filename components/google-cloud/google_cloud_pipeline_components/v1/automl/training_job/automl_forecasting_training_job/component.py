@@ -414,7 +414,7 @@ def automl_forecasting_training_job(
           '--method.data_granularity_count',
           data_granularity_count,
           '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           dsl.IfPresentPlaceholder(
               input_name='optimization_objective',
               then=['--init.optimization_objective', optimization_objective],

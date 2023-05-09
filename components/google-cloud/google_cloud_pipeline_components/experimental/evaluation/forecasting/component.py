@@ -173,7 +173,7 @@ def model_evaluation_forecasting(
               input_name='predictions_gcs_source',
               then=[
                   '--batch_prediction_gcs_source',
-                  "{{$.inputs.artifacts['predictions_gcs_source'].uri}}",
+                  predictions_gcs_source.uri,
               ],
           ),
           IfPresentPlaceholder(
@@ -182,11 +182,11 @@ def model_evaluation_forecasting(
                   '--batch_prediction_bigquery_source',
                   ConcatPlaceholder([
                       'bq://',
-                      "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}",
+                      predictions_bigquery_source.metadata['projectId'],
                       '.',
-                      "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}",
+                      predictions_bigquery_source.metadata['datasetId'],
                       '.',
-                      "{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}",
+                      predictions_bigquery_source.metadata['tableId'],
                   ]),
               ],
           ),
@@ -194,7 +194,7 @@ def model_evaluation_forecasting(
               input_name='model',
               then=[
                   '--model_name',
-                  "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+                  model.metadata['resourceName'],
               ],
           ),
           '--ground_truth_format',

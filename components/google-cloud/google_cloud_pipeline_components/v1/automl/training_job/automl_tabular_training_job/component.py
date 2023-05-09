@@ -327,7 +327,7 @@ def automl_tabular_training_job(
           '--init.optimization_prediction_type',
           optimization_prediction_type,
           '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           '--method.target_column',
           target_column,
           dsl.IfPresentPlaceholder(

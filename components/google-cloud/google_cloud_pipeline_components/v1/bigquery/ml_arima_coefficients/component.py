@@ -98,11 +98,11 @@ def bigquery_ml_arima_coefficients(
           location,
           '--model_name',
           ConcatPlaceholder([
-              "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+              model.metadata['projectId'],
               '.',
-              "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+              model.metadata['datasetId'],
               '.',
-              "{{$.inputs.artifacts['model'].metadata['modelId']}}",
+              model.metadata['modelId'],
           ]),
           '--payload',
           ConcatPlaceholder([
