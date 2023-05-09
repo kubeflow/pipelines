@@ -2,10 +2,13 @@ import pytest
 import boto3
 import kfp
 import os
+from utils import sagemaker_utils
 import utils
 
 from datetime import datetime
 from filelock import FileLock
+from sagemaker import image_uris
+from botocore.config import Config
 
 
 def pytest_addoption(parser):
@@ -180,3 +183,80 @@ def experiment_id(kfp_client, tmp_path_factory, worker_id):
             data = get_experiment_id(kfp_client)
             fn.write_text(data)
     return data
+
+
+@pytest.fixture(scope="session")
+# Deploy endpoint for testing model monitoring
+def deploy_endpoint(sagemaker_client, s3_data_bucket, sagemaker_role_arn, region):
+    model_name = "model-monitor-" + utils.generate_random_string(5) + "-model"
+    endpoint_name = "model-monitor-" + utils.generate_random_string(5) + "-endpoint-v2"
+    endpoint_config_name = (
+        "model-monitor-" + utils.generate_random_string(5) + "-endpoint-config"
+    )
+
+    # create sagemaker model
+    # TODO upgrade to a newer xgboost version
+    image_uri = image_uris.retrieve("xgboost", region, "0.90-1")
+    create_model_api_response = sagemaker_client.create_model(
+        ModelName=model_name,
+        PrimaryContainer={
+            "Image": image_uri,
+            "ModelDataUrl": f"s3://{s3_data_bucket}/model-monitor/xgb-churn-prediction-model.tar.gz",
+            "Environment": {},
+        },
+        ExecutionRoleArn=sagemaker_role_arn,
+    )
+
+    # create sagemaker endpoint config
+    create_endpoint_config_api_response = sagemaker_client.create_endpoint_config(
+        EndpointConfigName=endpoint_config_name,
+        ProductionVariants=[
+            {
+                "VariantName": "variant-1",
+                "ModelName": model_name,
+                "InitialInstanceCount": 1,
+                "InstanceType": "ml.m5.large",
+            },
+        ],
+        DataCaptureConfig={
+            "EnableCapture": True,
+            "CaptureOptions": [{"CaptureMode": "Input"}, {"CaptureMode": "Output"}],
+            "InitialSamplingPercentage": 100,
+            "DestinationS3Uri": f"s3://{s3_data_bucket}/model-monitor/datacapture",
+        },
+    )
+
+    # create sagemaker endpoint
+    create_endpoint_api_response = sagemaker_client.create_endpoint(
+        EndpointName=endpoint_name,
+        EndpointConfigName=endpoint_config_name,
+    )
+
+    try:
+        sagemaker_client.get_waiter("endpoint_in_service").wait(
+            EndpointName=endpoint_name
+        )
+    finally:
+        resp = sagemaker_client.describe_endpoint(EndpointName=endpoint_name)
+        endpoint_status = resp["EndpointStatus"]
+        endpoint_arn = resp["EndpointArn"]
+        print(f"Deployed endpoint {endpoint_arn}, ended with status {endpoint_status}")
+
+        if endpoint_status != "InService":
+            message = sagemaker_client.describe_endpoint(EndpointName=endpoint_name)[
+                "FailureReason"
+            ]
+            print(
+                "Endpoint deployment failed with the following error: {}".format(
+                    message
+                )
+            )
+            raise Exception("Endpoint deployment failed")
+
+    yield endpoint_name
+
+    # delete model and endpoint config
+    print("deleting endpoint.................")
+    sagemaker_utils.delete_endpoint(sagemaker_client, endpoint_name)
+    sagemaker_client.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
+    sagemaker_client.delete_model(ModelName=model_name)
