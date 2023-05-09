@@ -271,7 +271,7 @@ def model_batch_predict(
                   input_name='model',
                   then=ConcatPlaceholder([
                       '"model": "',
-                      "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+                      model.metadata['resourceName'],
                       '",',
                   ]),
               ),

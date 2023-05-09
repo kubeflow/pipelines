@@ -130,7 +130,7 @@ def dataset_preprocessor_error_analysis(
               input_name='test_dataset',
               then=[
                   '--test_dataset',
-                  "{{$.inputs.artifacts['test_dataset'].metadata['resourceName']}}",
+                  test_dataset.metadata['resourceName'],
                   '--test_dataset_annotation_set_name',
                   test_dataset_annotation_set_name,
               ],
@@ -139,7 +139,7 @@ def dataset_preprocessor_error_analysis(
               input_name='training_dataset',
               then=[
                   '--training_dataset',
-                  "{{$.inputs.artifacts['training_dataset'].metadata['resourceName']}}",
+                  training_dataset.metadata['resourceName'],
                   '--training_dataset_annotation_set_name',
                   training_dataset_annotation_set_name,
               ],

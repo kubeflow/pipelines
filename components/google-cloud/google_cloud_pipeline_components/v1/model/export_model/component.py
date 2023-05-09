@@ -95,7 +95,7 @@ def model_export(
           ConcatPlaceholder([
               '{',
               '"name": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+              model.metadata['resourceName'],
               '"',
               ', "output_config": {',
               '"export_format_id": "',

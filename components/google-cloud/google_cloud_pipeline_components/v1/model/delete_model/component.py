@@ -50,7 +50,7 @@ def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
           dsl.ConcatPlaceholder([
               '{',
               '"model": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+              model.metadata['resourceName'],
               '"',
               '}',
           ]),
