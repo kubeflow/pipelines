@@ -11,4 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Components corresponding to the v1 Vertex AI API (https://cloud.google.com/vertex-ai/docs/reference#versions)."""
+"""V1 Google Cloud Pipeline Components.
+
+These components correspond to the v1 Vertex AI API
+(https://cloud.google.com/vertex-ai/docs/reference#versions).
+"""

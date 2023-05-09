@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Model components."""
+"""Experimental model components."""
 
 
 from google_cloud_pipeline_components.experimental.model.get_model.component import get_vertex_model as GetVertexModelOp

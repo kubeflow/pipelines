@@ -10,7 +10,7 @@ Experimental Components
    dataflow
    dataproc
    dataset
-   evaluation
+   evaluation/index
    forecasting
    hyperparameter_tuning_job
    model

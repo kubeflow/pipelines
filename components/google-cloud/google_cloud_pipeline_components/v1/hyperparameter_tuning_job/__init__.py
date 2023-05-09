@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline hyperparameter tuning component and utilities."""
+"""Hyperparameter tuning component and utilities."""
 
 
 from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.component import hyperparameter_tuning_job as HyperparameterTuningJobRunOp

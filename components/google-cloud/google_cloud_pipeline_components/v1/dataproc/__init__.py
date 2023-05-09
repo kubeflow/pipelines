@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Dataproc Batch components."""
+"""Dataproc components."""
 
 
 from google_cloud_pipeline_components.v1.dataproc.create_pyspark_batch.component import dataproc_create_pyspark_batch as DataprocPySparkBatchOp

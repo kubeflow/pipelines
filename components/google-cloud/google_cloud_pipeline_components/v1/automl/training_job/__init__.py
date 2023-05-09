@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline AutoML Training Job components."""
+"""AutoML training job components."""
 
 from google_cloud_pipeline_components.v1.automl.training_job.automl_forecasting_training_job.component import automl_forecasting_training_job as AutoMLForecastingTrainingJobRunOp
 from google_cloud_pipeline_components.v1.automl.training_job.automl_image_training_job.component import automl_image_training_job as AutoMLImageTrainingJobRunOp

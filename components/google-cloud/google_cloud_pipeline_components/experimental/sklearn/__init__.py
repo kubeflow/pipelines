@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline SKLearn components."""
+"""Experimental scikit-learn component."""
 
 from google_cloud_pipeline_components.experimental.sklearn.train_test_split_jsonl.component import train_test_split_jsonl_with_sklearn as SklearnTrainTestSplitJsonlOp
 

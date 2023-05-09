@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Vertex Prompt Validation Component."""
+"""Experimental Vertex prompt validation component."""
 
 
 from google_cloud_pipeline_components.experimental.vertex_prompt_validation.component import vertex_pipelines_prompt_validation as VertexPromptValidationOp

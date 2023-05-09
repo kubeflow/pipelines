@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Endpoint components."""
+"""Endpoint components."""
 
 from google_cloud_pipeline_components.v1.endpoint.create_endpoint.component import endpoint_create as EndpointCreateOp
 from google_cloud_pipeline_components.v1.endpoint.delete_endpoint.component import endpoint_delete as EndpointDeleteOp

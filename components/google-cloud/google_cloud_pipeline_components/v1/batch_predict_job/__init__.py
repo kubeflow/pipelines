@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Batch Predict component."""
+"""Batch prediction components."""
 
 
 from google_cloud_pipeline_components.v1.batch_predict_job.component import model_batch_predict as ModelBatchPredictOp
