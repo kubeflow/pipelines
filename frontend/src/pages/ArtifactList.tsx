@@ -77,18 +77,16 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
           label: 'Pipeline/Workspace',
-          sortKey: 'pipelineName',
         },
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
           label: 'Name',
-          sortKey: 'name',
         },
-        { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
-        { label: 'URI', flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
-        { label: 'Created at', flex: 1, sortKey: 'created_at' },
+        { label: 'ID', flex: 1 },
+        { label: 'Type', flex: 2 },
+        { label: 'URI', flex: 2, customRenderer: this.uriCustomRenderer },
+        { label: 'Created at', flex: 1 },
       ],
       expandedRows: new Map(),
       rows: [],
@@ -139,6 +137,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     if (request.pageToken) {
       listOperationOpts.setNextPageToken(request.pageToken);
     }
+    // TODO(jlyaoyuli): Add filter functionality for "entire" artifact list.
 
     // TODO: Consider making an Api method for returning and caching types
     if (!this.artifactTypesMap || !this.artifactTypesMap.size) {
@@ -235,8 +234,8 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
             ],
           } as Row;
         })
-        .filter(rowFilterFn(request))
-        .sort(rowCompareFn(request, this.state.columns));
+        .filter(rowFilterFn(request));
+      // TODO(jlyaoyuli): Add sort functionality for entire artifact list.
 
       return flattenedRows;
     } catch (err) {
