@@ -1009,7 +1009,7 @@ func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId strin
 		}
 	}
 	// Skip authentication if the namespace is empty to enable shared pipelines in multi-user mode
-	if !s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
 		return nil
 	}
 	resourceAttributes.Group = common.RbacPipelinesGroup

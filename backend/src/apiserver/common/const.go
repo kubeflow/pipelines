@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package common
 const (
 	RbacKubeflowGroup    = "kubeflow.org"
 	RbacPipelinesGroup   = "pipelines.kubeflow.org"
-	RbacPipelinesVersion = "v1beta1"
+	RbacPipelinesVersion = "v2beta1"
 
 	RbacResourceTypePipelines      = "pipelines"
 	RbacResourceTypeExperiments    = "experiments"

@@ -1362,7 +1362,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:runs,Subresource:,Name:workflow-name,})",
+		"User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
