@@ -66,17 +66,15 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
           label: 'Run ID/Workspace/Pipeline',
-          sortKey: 'workspace',
         },
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
           label: 'Name',
-          sortKey: 'name',
         },
-        { label: 'State', flex: 1, sortKey: 'state' },
-        { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
+        { label: 'State', flex: 1 },
+        { label: 'ID', flex: 1 },
+        { label: 'Type', flex: 2 },
       ],
       executions: [],
       expandedRows: new Map(),
@@ -128,6 +126,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     if (request.pageSize) {
       listOperationOpts.setMaxResultSize(request.pageSize);
     }
+    // TODO(jlyaoyuli): Add filter functionality for "entire" execution list.
 
     try {
       // TODO: Consider making an Api method for returning and caching types
@@ -215,8 +214,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           ],
         } as Row;
       })
-      .filter(rowFilterFn(request))
-      .sort(rowCompareFn(request, this.state.columns));
+      .filter(rowFilterFn(request));
+    // TODO(jlyaoyuli): Add sort functionality in execution list.
   }
 
   /**
