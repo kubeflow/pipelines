@@ -279,7 +279,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 			},
 			nil,
 			true,
-			"Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 		{
 			"Invalid - missing name",
@@ -306,7 +306,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 			},
 			nil,
 			true,
-			"Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 		{
 			"Valid - multiple namespaces",
@@ -341,21 +341,21 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 			"",
 		},
 		{
-			"Invalid - wrong owner",
+			"Invalid - wrong owner type",
 			DefaultFakeIdEight,
 			&apiv1beta1.Experiment{
 				Name:        "exp6",
 				Description: "first experiment",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp2"},
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "ns1"},
 						Relationship: apiv1beta1.Relationship_OWNER,
 					},
 				},
 			},
 			nil,
 			true,
-			"Invalid input error: Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 	}
 	for _, tt := range tests {
@@ -417,7 +417,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 			},
 			nil,
 			true,
-			"Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 		{
 			"Invalid - missing name",
@@ -833,9 +833,9 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 		{
 			"Missing resource reference key",
 			&apiv1beta1.ListExperimentsRequest{},
-			false,
-			"",
-			[]*apiv1beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 		{
 			"Empty namespace",
@@ -845,9 +845,9 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 					Id:   "",
 				},
 			},
-			false,
-			"",
-			[]*apiv1beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 		{
 			"No namespace",
@@ -857,9 +857,9 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 					Id:   "-",
 				},
 			},
-			false,
-			"",
-			[]*apiv1beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 	}
 
@@ -931,9 +931,9 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 		{
 			"Missing namespace",
 			&apiV2beta1.ListExperimentsRequest{},
-			false,
-			"",
-			[]*apiV2beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 	}
 

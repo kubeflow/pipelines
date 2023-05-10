@@ -524,6 +524,9 @@ func (r *ResourceManager) ListRuns(filterContext *model.FilterContext, opts *lis
 
 // Archives a run with a given id.
 func (r *ResourceManager) ArchiveRun(runId string) error {
+	if _, err := r.GetRun(runId); err != nil {
+		return util.Wrapf(err, "Failed to archive run %v as it does not exist", runId)
+	}
 	if err := r.runStore.ArchiveRun(runId); err != nil {
 		return util.Wrapf(err, "Failed to archive run %v", runId)
 	}
@@ -1791,13 +1794,4 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
-}
-
-// Fetches run metric entries for a given run id.
-func (r *ResourceManager) GetRunMetrics(runId string) ([]*model.RunMetric, error) {
-	metrics, err := r.runStore.GetMetrics(runId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to fetch run metrics for run %s", runId)
-	}
-	return metrics, nil
 }
