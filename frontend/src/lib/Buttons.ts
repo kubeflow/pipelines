@@ -78,7 +78,9 @@ export default class Buttons {
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
       title: 'Archive',
-      tooltip: 'Archive',
+      tooltip: useCurrentResource
+        ? `Archive this ${resourceName}`
+        : `Archive selected ${resourceName}(s)`,
     };
     return this;
   }
