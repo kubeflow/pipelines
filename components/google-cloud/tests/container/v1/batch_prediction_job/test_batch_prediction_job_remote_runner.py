@@ -556,16 +556,18 @@ class BatchPredictionJobRemoteRunnerUtilsTests(
       expected: str,
   ):
     payload = (
-        '{"input_config": {"bigquery_source": "'
+        '{"input_config": {"bigquery_source": {"input_uri": "'
         + uri
-        + '"},"output_config": {"bigquery_destination": {"output_uri": "'
+        + '"}},"output_config": {"bigquery_destination": {"output_uri": "'
         + uri
         + '"}}}'
     )
     job_spec = batch_prediction_job_remote_runner.sanitize_job_spec(
         json_util.recursive_remove_empty(json.loads(payload, strict=False))
     )
-    self.assertEqual(job_spec['input_config']['bigquery_source'], expected)
+    self.assertEqual(
+        job_spec['input_config']['bigquery_source']['input_uri'], expected
+    )
     self.assertEqual(
         job_spec['output_config']['bigquery_destination']['output_uri'],
         expected,
