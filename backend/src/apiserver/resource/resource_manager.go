@@ -453,7 +453,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec")
+		return nil, util.Wrap(err, "Failed to generate the ExecutionSpec")
 	}
 	err = executionSpec.Validate(false, false)
 	if err != nil {
@@ -1743,7 +1743,8 @@ func (r *ResourceManager) CheckExperimentBelongsToNamespace(experimentId string,
 		return util.Wrapf(err, "Failed to validate the namespace of experiment %s", experimentId)
 	}
 	if experimentNamespace != "" && experimentNamespace != namespace {
-		return util.NewInternalServerError(util.NewInvalidInputError("Experiment %s belongs to namespace '%s' (claimed a different namespace '%s')", experimentId, experimentNamespace, namespace), "Failed to validate the namespace of experiment %s", experimentId)
+		return util.NewInvalidInputError("Failed to validate the namespace of experiment: experiment %s belongs to namespace '%s' (claimed a different namespace '%s')",
+			experimentId, experimentNamespace, namespace)
 	}
 	return nil
 }
