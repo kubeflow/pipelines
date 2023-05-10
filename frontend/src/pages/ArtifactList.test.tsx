@@ -59,7 +59,7 @@ describe('ArtifactList', () => {
         return Promise.resolve(response);
       });
       getArtifactsSpy.mockImplementation(() => {
-        const artifacts = generateNArtifacts(10);
+        const artifacts = generateNArtifacts(5);
         const response = new GetArtifactsResponse();
         response.setArtifactsList(artifacts);
         return Promise.resolve(response);
@@ -75,7 +75,7 @@ describe('ArtifactList', () => {
       pipelineValue.setStringValue(pipelineName);
       artifact.getPropertiesMap().set('pipeline_name', pipelineValue);
       const artifactValue = new Value();
-      const artifactName = `artifact ${i}`;
+      const artifactName = `test artifact ${i}`;
       artifactValue.setStringValue(artifactName);
       artifact.getPropertiesMap().set('name', artifactValue);
       artifact.setName(artifactName);
@@ -109,13 +109,14 @@ describe('ArtifactList', () => {
         <ArtifactList {...generateProps()} />
       </MemoryRouter>,
     );
-    await TestUtils.flushPromises();
 
-    expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-    expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
+      expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
+    });
 
     screen.getByText('pipeline 1');
-    screen.getByText('artifact 1');
+    screen.getByText('test artifact 1');
   });
 
   it('displays footer with "10" as default value', async () => {
@@ -145,7 +146,7 @@ describe('ArtifactList', () => {
       expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
       expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
     });
-    expect(screen.queryByText('artifact 20')).toBeNull(); // Can not see the 20th artifact initially
+    expect(screen.queryByText('test artifact 20')).toBeNull(); // Can not see the 20th artifact initially
 
     getArtifactsSpy.mockImplementation(() => {
       const artifacts = generateNArtifacts(20);
@@ -163,10 +164,11 @@ describe('ArtifactList', () => {
     getArtifactsRequest.setOptions(listOperationOpts),
       await waitFor(() => {
         // API will be called again if "Rows per page" is changed
+        expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
         expect(getArtifactsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
       });
 
-    screen.getByText('artifact 20'); // The 20th artifacts appears.
+    screen.getByText('test artifact 20'); // The 20th artifacts appears.
   });
 
   it('found no artifact', async () => {

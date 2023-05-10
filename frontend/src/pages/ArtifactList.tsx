@@ -151,12 +151,11 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     this.clearBanner();
     let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
     // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
-    if (flattenedRows) {
-      this.setState({
-        artifacts,
-        rows: flattenedRows,
-      });
-    }
+    this.setState({
+      artifacts,
+      rows: flattenedRows,
+    });
+
     return listOperationOpts.getNextPageToken();
   }
 
