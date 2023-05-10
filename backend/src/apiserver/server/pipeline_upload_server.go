@@ -220,10 +220,6 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error reading pipeline version name"))
 		return
 	}
-	if err := validatePipelineName(pipelineVersionName); err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrapf(err, "failed to upload a pipeline version due to invalid name: %v", pipelineVersionName))
-		return
-	}
 
 	versionDescription := r.URL.Query().Get(DescriptionQueryStringKey)
 

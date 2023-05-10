@@ -582,8 +582,8 @@ func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineI
 // Validates a pipeline version before creating a record in the DB.
 // Requires Name and PipelineId to be non-empty and presence of PipelineSpec or a valid URI to the pipeline spec.
 func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.PipelineVersion) error {
-	if err := validatePipelineName(p.Name); err != nil {
-		return err
+	if p.Name == "" {
+		return util.NewInvalidInputError("pipeline version's name cannot be empty")
 	}
 	if p.PipelineSpec != "" {
 		return nil

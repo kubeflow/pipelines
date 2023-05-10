@@ -661,11 +661,11 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			"Valid - single user",
 			DefaultFakeIdOne,
 			&apiv2.Pipeline{
-				DisplayName: "pipeline 1",
+				DisplayName: "pipeline-1",
 				Namespace:   "namespace1",
 			},
 			&apiv2.Pipeline{
-				DisplayName: "pipeline 1",
+				DisplayName: "pipeline-1",
 				Namespace:   "",
 			},
 			false,
@@ -675,10 +675,10 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			"Valid - empty namespace",
 			DefaultFakeIdTwo,
 			&apiv2.Pipeline{
-				DisplayName: "pipeline 2",
+				DisplayName: "pipeline-2",
 			},
 			&apiv2.Pipeline{
-				DisplayName: "pipeline 2",
+				DisplayName: "pipeline-2",
 				Namespace:   "",
 			},
 			false,
@@ -688,11 +688,11 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			"Invalid - duplicate name",
 			DefaultFakeIdThree,
 			&apiv2.Pipeline{
-				DisplayName: "pipeline 2",
+				DisplayName: "pipeline-2",
 			},
 			nil,
 			true,
-			"The name pipeline 2 already exist. Please specify a new name",
+			"The name pipeline-2 already exist. Please specify a new name",
 		},
 		{
 			"Invalid - missing name",
@@ -702,7 +702,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			},
 			nil,
 			true,
-			"Failed create to a pipeline due to empty name. Please specify a valid name",
+			"pipeline's name cannot be empty",
 		},
 	}
 	for _, tt := range tests {

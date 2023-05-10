@@ -141,7 +141,7 @@ func TestUploadPipeline(t *testing.T) {
 			assert.Equal(t, 1, totalSize)
 			assert.Equal(t, pkgsExpect, pkg)
 
-			opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+			opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
@@ -315,7 +315,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")),
+	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo-bar")),
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
@@ -332,7 +332,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 		{
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 1,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Status:         model.PipelineReady,
 			Namespace:      "",
 		},
@@ -349,7 +349,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 		{
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 2,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -379,7 +379,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"),
+	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo-bar"),
 		url.PathEscape("description of foo bar")),
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
@@ -397,7 +397,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 		{
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 1,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Status:         model.PipelineReady,
 			Description:    "description of foo bar",
 			Namespace:      "",
@@ -416,7 +416,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			Description:    "description of foo bar",
 			CreatedAtInSec: 2,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
