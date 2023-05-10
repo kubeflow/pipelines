@@ -108,8 +108,6 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           reload={this.reload}
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
-          getExpandComponent={this.getExpandedExecutionsRow}
-          toggleExpansion={this.toggleRowExpand}
           emptyMessage='No executions found.'
         />
       </div>
@@ -130,19 +128,19 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     if (request.pageSize) {
       listOperationOpts.setMaxResultSize(request.pageSize);
     }
-    // TOOD(jlyaoyuli): Add more list parameter like sort, filter.
+
     try {
       // TODO: Consider making an Api method for returning and caching types
       if (!this.executionTypesMap || !this.executionTypesMap.size) {
         this.executionTypesMap = await this.getExecutionTypes();
       }
       const executions = await this.getExecutions(listOperationOpts);
-      this.setState({ executions });
       this.clearBanner();
-      const collapsedAndExpandedRows = this.getRowsFromExecutions(request, executions);
+      const flattenedRows = this.getFlattenedRowsFromExecutions(request, executions);
+      // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
       this.setState({
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
+        executions,
+        rows: flattenedRows,
       });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));
@@ -201,6 +199,26 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     );
   };
 
+  private getFlattenedRowsFromExecutions(request: ListRequest, executions: Execution[]): Row[] {
+    return executions
+      .map(execution => {
+        const executionType = this.executionTypesMap!.get(execution.getTypeId());
+        const type = executionType ? executionType.getName() : execution.getTypeId();
+        return {
+          id: `${execution.getId()}`,
+          otherFields: [
+            ExecutionHelpers.getWorkspace(execution) || '[unknown]',
+            ExecutionHelpers.getName(execution) || '[unknown]',
+            ExecutionHelpers.getState(execution),
+            execution.getId(),
+            type,
+          ],
+        } as Row;
+      })
+      .filter(rowFilterFn(request))
+      .sort(rowCompareFn(request, this.state.columns));
+  }
+
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
    * local list of executions until server-side handling is available
@@ -208,30 +226,11 @@ class ExecutionList extends Page<{}, ExecutionListState> {
    * @param request
    * @param executions
    */
-  private getRowsFromExecutions(
+  private getGroupedRowsFromExecutions(
     request: ListRequest,
     executions: Execution[],
   ): CollapsedAndExpandedRows {
-    return groupRows(
-      executions
-        .map(execution => {
-          // Flattens
-          const executionType = this.executionTypesMap!.get(execution.getTypeId());
-          const type = executionType ? executionType.getName() : execution.getTypeId();
-          return {
-            id: `${execution.getId()}`,
-            otherFields: [
-              ExecutionHelpers.getWorkspace(execution) || '[unknown]',
-              ExecutionHelpers.getName(execution) || '[unknown]',
-              ExecutionHelpers.getState(execution),
-              execution.getId(),
-              type,
-            ],
-          };
-        })
-        .filter(rowFilterFn(request))
-        .sort(rowCompareFn(request, this.state.columns)),
-    );
+    return groupRows(this.getFlattenedRowsFromExecutions(request, executions));
   }
 
   /**
