@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { Api } from 'src/mlmd/library';
 import {
   Execution,
   ExecutionType,
+  GetArtifactsRequest,
   GetExecutionsResponse,
   GetExecutionTypesResponse,
   Value,
 } from 'src/third_party/mlmd';
-import { RoutePage } from '../components/Router';
-import TestUtils from '../TestUtils';
-import ExecutionList from './ExecutionList';
-import { PageProps } from './Page';
-
-const pipelineName = 'test_pipeline';
-const executionName = 'test_execution';
-const executionId = 2023;
+import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { RoutePage } from 'src/components/Router';
+import TestUtils from 'src/TestUtils';
+import ExecutionList from 'src/pages/ExecutionList';
+import { PageProps } from 'src/pages/Page';
+import { CommonTestWrapper } from 'src/TestWrapper';
 
 describe('ExecutionList', () => {
   const updateBannerSpy = jest.fn();
@@ -46,31 +45,27 @@ describe('ExecutionList', () => {
     'getExecutionTypes',
   );
 
-  beforeEach(() => {
-    getExecutionTypesSpy.mockImplementation(() => {
-      const executionType = new ExecutionType();
-      executionType.setId(6);
-      executionType.setName('String');
-      const response = new GetExecutionTypesResponse();
-      response.setExecutionTypesList([executionType]);
-      return Promise.resolve(response);
-    });
+  const listOperationOpts = new ListOperationOptions();
+  listOperationOpts.setMaxResultSize(10);
+  const getArtifactsRequest = new GetArtifactsRequest();
+  getArtifactsRequest.setOptions(listOperationOpts),
+    beforeEach(() => {
+      getExecutionTypesSpy.mockImplementation(() => {
+        const executionType = new ExecutionType();
+        executionType.setId(6);
+        executionType.setName('String');
+        const response = new GetExecutionTypesResponse();
+        response.setExecutionTypesList([executionType]);
+        return Promise.resolve(response);
+      });
 
-    getExecutionsSpy.mockImplementation(() => {
-      const execution = new Execution();
-      const pipelineValue = new Value();
-      pipelineValue.setStringValue(pipelineName);
-      execution.getPropertiesMap().set('pipeline_name', pipelineValue);
-      const executionValue = new Value();
-      executionValue.setStringValue(executionName);
-      execution.getPropertiesMap().set('Name', executionValue);
-      execution.setName(executionName);
-      execution.setId(executionId);
-      const response = new GetExecutionsResponse();
-      response.setExecutionsList([execution]);
-      return Promise.resolve(response);
+      getExecutionsSpy.mockImplementation(() => {
+        const executions = mockNExecutions(5);
+        const response = new GetExecutionsResponse();
+        response.setExecutionsList(executions);
+        return Promise.resolve(response);
+      });
     });
-  });
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
@@ -85,45 +80,98 @@ describe('ExecutionList', () => {
     );
   }
 
+  function mockNExecutions(n: number) {
+    let executions: Execution[] = [];
+    for (let i = 1; i <= n; i++) {
+      const execution = new Execution();
+      const pipelineValue = new Value();
+      const pipelineName = `pipeline ${i}`;
+      pipelineValue.setStringValue(pipelineName);
+      execution.getCustomPropertiesMap().set('pipeline_name', pipelineValue);
+      const executionValue = new Value();
+      const executionName = `test execution ${i}`;
+      executionValue.setStringValue(executionName);
+      execution.getPropertiesMap().set('name', executionValue);
+      execution.setName(executionName);
+      execution.setId(i);
+      executions.push(execution);
+    }
+    return executions;
+  }
+
   it('renders one execution', async () => {
-    render(<ExecutionList {...generateProps()} />);
+    getExecutionsSpy.mockImplementation(() => {
+      const executions = mockNExecutions(1);
+      const response = new GetExecutionsResponse();
+      response.setExecutionsList(executions);
+      return Promise.resolve(response);
+    });
+    render(
+      <CommonTestWrapper>
+        <ExecutionList {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
     await waitFor(() => {
       expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
       expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
     });
 
-    await screen.queryByText(executionName);
+    screen.getByText('test execution 1');
   });
 
-  /*
-  it('renders at most 10 execution in one page by default.', async () => {
-    // getExecutionsSpy.mockClear();
-    getExecutionsSpy.mockImplementation(() => {
-      const executionList: Execution[] = [];
-      for (let i = 1; i <= 15; i++) {
-        const execution = new Execution();
-        const pipelineValue = new Value();
-        pipelineValue.setStringValue(pipelineName + '_' + i);
-        execution.getPropertiesMap().set('pipeline_name', pipelineValue);
-        const executionValue = new Value();
-        executionValue.setStringValue(executionName + '_' + i);
-        execution.getPropertiesMap().set('name', executionValue);
-        execution.setName(executionName);
-        executionList.push(execution);
-      }
-      const response = new GetExecutionsResponse();
-        response.setExecutionsList(executionList);
-      return Promise.resolve(response);
-    });
+  it('displays footer with "10" as default value', async () => {
+    render(
+      <CommonTestWrapper>
+        <ExecutionList {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    render(<ExecutionList {...generateProps()} />);
     await waitFor(() => {
+      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
       expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
     });
 
-    screen.getByText(pipelineName);
+    screen.getByText('Rows per page:');
+    screen.getByText('10');
   });
-*/
+
+  it('it able to see the 20th artifact if "Rows per page" is chanegd to 20', async () => {
+    render(
+      <CommonTestWrapper>
+        <ExecutionList {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
+      expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText('test execution 20')).toBeNull(); // Can not see the 20th execution initially
+
+    getExecutionsSpy.mockImplementation(() => {
+      const executions = mockNExecutions(20);
+      const response = new GetExecutionsResponse();
+      response.setExecutionsList(executions);
+      return Promise.resolve(response);
+    });
+
+    const originalRowsPerPage = screen.getByText('10');
+    fireEvent.click(originalRowsPerPage);
+    const newRowsPerPage = screen.getByText('20'); // Change to render 20 rows per page.
+    fireEvent.click(newRowsPerPage);
+
+    listOperationOpts.setMaxResultSize(20);
+    getArtifactsRequest.setOptions(listOperationOpts),
+      await waitFor(() => {
+        // API will be called again if "Rows per page" is changed
+        expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
+        expect(getExecutionsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
+      });
+
+    screen.getByText('test execution 20'); // The 20th artifacts appears.
+  });
+
   it('found no execution', async () => {
     getExecutionsSpy.mockClear();
     getExecutionsSpy.mockImplementation(() => {
@@ -131,8 +179,13 @@ describe('ExecutionList', () => {
       response.setExecutionsList([]);
       return Promise.resolve(response);
     });
-    render(<ExecutionList {...generateProps()} />);
+    render(
+      <CommonTestWrapper>
+        <ExecutionList {...generateProps()} />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => {
+      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
       expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
     });
 
