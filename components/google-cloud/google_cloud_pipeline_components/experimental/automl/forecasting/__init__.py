@@ -13,9 +13,11 @@
 # limitations under the License.
 """Experimental AutoML tabular forecasting components."""
 
-import os
-
-from kfp import components
+from google_cloud_pipeline_components.experimental.automl.forecasting.forecasting_ensemble import automl_forecasting_ensemble as ForecastingEnsembleOp
+from google_cloud_pipeline_components.experimental.automl.forecasting.forecasting_stage_1_tuner import automl_forecasting_stage_1_tuner as ForecastingStage1TunerOp
+from google_cloud_pipeline_components.experimental.automl.forecasting.forecasting_stage_2_tuner import automl_forecasting_stage_2_tuner as ForecastingStage2TunerOp
+from google_cloud_pipeline_components.experimental.automl.forecasting.model_evaluation_forecasting import model_evaluation_forecasting as ModelEvaluationForecastingOp
+from google_cloud_pipeline_components.experimental.automl.forecasting.prophet_trainer import prophet_trainer as ProphetTrainerOp
 
 __all__ = [
     'ForecastingStage1TunerOp',
@@ -24,19 +26,3 @@ __all__ = [
     'ProphetTrainerOp',
     'ModelEvaluationForecastingOp',
 ]
-
-ProphetTrainerOp = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'prophet_trainer.yaml')
-)
-ForecastingStage1TunerOp = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting_stage_1_tuner.yaml')
-)
-ForecastingEnsembleOp = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting_ensemble.yaml')
-)
-ForecastingStage2TunerOp = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting_stage_2_tuner.yaml')
-)
-ModelEvaluationForecastingOp = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'model_evaluation_forecasting.yaml')
-)
