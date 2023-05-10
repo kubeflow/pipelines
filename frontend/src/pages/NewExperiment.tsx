@@ -95,9 +95,10 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
           />
           <Input
             id='experimentDescription'
-            label='Description (optional)'
+            label='Description'
             multiline={true}
             onChange={this.handleChange('description')}
+            required={false}
             value={description}
             variant='outlined'
           />
