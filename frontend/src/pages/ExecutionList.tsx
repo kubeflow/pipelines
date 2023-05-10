@@ -40,7 +40,6 @@ import {
   CollapsedAndExpandedRows,
   getExpandedRow,
   groupRows,
-  rowCompareFn,
   rowFilterFn,
   serviceErrorToString,
 } from 'src/lib/Utils';
