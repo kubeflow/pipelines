@@ -129,6 +129,10 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline due to invalid pipeline name"))
 		return
 	}
+	if err := validatePipelineName(pipelineName); err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrapf(err, "failed to upload a pipeline due to invalid name: %v", pipelineName))
+		return
+	}
 	// We don't set a max length for pipeline description here, since in our DB the description type is longtext.
 	pipelineDescription, err := url.QueryUnescape(r.URL.Query().Get(DescriptionQueryStringKey))
 	if err != nil {
@@ -214,6 +218,10 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	pipelineVersionName, err := buildPipelineName(versionNameQueryString, header.Filename)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error reading pipeline version name"))
+		return
+	}
+	if err := validatePipelineName(pipelineVersionName); err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrapf(err, "failed to upload a pipeline version due to invalid name: %v", pipelineVersionName))
 		return
 	}
 

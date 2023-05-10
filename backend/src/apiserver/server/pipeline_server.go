@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -32,6 +33,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	authorizationv1 "k8s.io/api/authorization/v1"
+)
+
+const (
+	// This regex expresses the following constraints:
+	// * Allows lowercase letters and numbers at the beginning and at the end
+	// * Allows "-" and "." in the middle
+	// Extends the frontend pattern with ^ and $ to enforce full string match in Golang's regexp
+	pipelineNamePattern = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
 )
 
 // Metric variables. Please prefix the metric names with pipeline_server_.
@@ -108,8 +117,8 @@ type PipelineServer struct {
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pipeline) (*model.Pipeline, error) {
 	// Validate the pipeline. Fail fast if this is corrupted.
-	if pipeline.Name == "" {
-		return nil, util.NewInvalidInputError("Failed create to a pipeline due to empty name. Please specify a valid name")
+	if err := validatePipelineName(pipeline.Name); err != nil {
+		return nil, err
 	}
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
 	// Check authorization
@@ -573,8 +582,8 @@ func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineI
 // Validates a pipeline version before creating a record in the DB.
 // Requires Name and PipelineId to be non-empty and presence of PipelineSpec or a valid URI to the pipeline spec.
 func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.PipelineVersion) error {
-	if p.Name == "" {
-		return util.NewInvalidInputError("Pipeline version's name cannot be empty")
+	if err := validatePipelineName(p.Name); err != nil {
+		return err
 	}
 	if p.PipelineSpec != "" {
 		return nil
@@ -590,6 +599,23 @@ func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.Pipeline
 		}
 	}
 	return util.NewInvalidInputError("Pipeline version must have a pipeline spec or a valid source code's URL. PipelineSpec: %s. PipelineSpecURI: %s. CodeSourceUrl: %s. At least one of them must have a valid pipeline spec", p.PipelineSpec, p.PipelineSpecURI, p.CodeSourceUrl)
+}
+
+// Validates a pipeline name to match the requirements. This function matches the constraints in the frontend.
+func validatePipelineName(pipelineName string) error {
+	if pipelineName == "" {
+		return util.NewInvalidInputError("pipeline's name cannot be empty")
+	}
+	if len(pipelineName) > 100 {
+		return util.NewInvalidInputError("pipeline's name must contain no more than 100 characters")
+	}
+	if matched, err := regexp.MatchString(pipelineNamePattern, pipelineName); err != nil {
+		return util.NewInternalServerError(
+			err, "failed to compile pattern '%s'", pipelineNamePattern)
+	} else if !matched {
+		return util.NewInvalidInputError("pipeline's name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters")
+	}
+	return nil
 }
 
 func NewPipelineServer(resourceManager *resource.ResourceManager, options *PipelineServerOptions) *PipelineServer {

@@ -725,3 +725,77 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		})
 	}
 }
+
+func Test_validatePipelineName(t *testing.T) {
+	tests := []struct {
+		name         string
+		pipelineName string
+		wantErr      bool
+		errMsg       string
+	}{
+		{
+			"Valid - starts with letter",
+			"pipeline-name.123",
+			false,
+			"",
+		},
+		{
+			"Valid - starts with number",
+			"2nd-valid.nam3",
+			false,
+			"",
+		},
+		{
+			"Invalid - too long",
+			"this is too looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+			true,
+			"pipeline's name must contain no more than 100 characters",
+		},
+		{
+			"Invalid - empty",
+			"",
+			true,
+			"pipeline's name cannot be empty",
+		},
+		{
+			"Invalid - starts with a capital letter",
+			"Pipeline-name",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters",
+		},
+		{
+			"Invalid - ends with a capital letter",
+			"pipeline-namE",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters",
+		},
+		{
+			"Invalid - special characters",
+			"pipeline-$name",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters",
+		},
+		{
+			"Invalid - starts with dash",
+			"-pipeline-name",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters",
+		},
+		{
+			"Invalid - ends with dash",
+			"pipeline-name-",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validatePipelineName(tt.pipelineName); tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
