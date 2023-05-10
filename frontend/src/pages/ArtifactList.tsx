@@ -43,7 +43,6 @@ import {
   getExpandedRow,
   getStringEnumKey,
   groupRows,
-  rowCompareFn,
   rowFilterFn,
   serviceErrorToString,
 } from 'src/lib/Utils';
