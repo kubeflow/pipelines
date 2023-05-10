@@ -4,7 +4,6 @@ import os
 import utils
 from utils import kfp_client_utils
 from utils import ack_utils
-from utils import sagemaker_utils
 from utils import minio_utils
 
 
@@ -19,7 +18,7 @@ from utils import minio_utils
     ],
 )
 def test_create_v2_monitoring_schedule(
-    kfp_client, experiment_id, test_file_dir, deploy_endpoint, sagemaker_client
+    kfp_client, experiment_id, test_file_dir, deploy_endpoint
 ):
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
     test_params = utils.load_params(
@@ -59,23 +58,33 @@ def test_create_v2_monitoring_schedule(
             test_params["Timeout"],
         )
 
+        # Verify if the job definition CR is created properly
         job_definition_describe = ack_utils._get_resource(
             k8s_client, job_definition_name, "modelbiasjobdefinitions"
         )
+        assert (
+            job_definition_name
+            in job_definition_describe["status"]["ackResourceMetadata"]["arn"]
+        )
+        assert (
+            job_definition_describe["spec"]["modelBiasJobInput"]["endpointInput"][
+                "endpointName"
+            ]
+            == deploy_endpoint
+        )
 
-        # Verify if job definition is created
-        assert job_definition_describe["status"]["ackResourceMetadata"]["arn"] != None
-
-        # Verify if monitoring schedule is created with correct name and endpoint
-        monitoring_schedule_describe = sagemaker_utils.describe_monitoring_schedule(
-            sagemaker_client, monitoring_schedule_name
+        # Verify if monitoring schedule CR is created properly
+        monitoring_schedule_describe = ack_utils._get_resource(
+            k8s_client, monitoring_schedule_name, "monitoringschedules"
         )
         assert (
             monitoring_schedule_name
-            in monitoring_schedule_describe["MonitoringScheduleArn"]
+            in monitoring_schedule_describe["status"]["ackResourceMetadata"]["arn"]
         )
-        assert monitoring_schedule_describe["MonitoringScheduleStatus"] == "Scheduled"
-        assert monitoring_schedule_describe["EndpointName"] == deploy_endpoint
+        assert (
+            monitoring_schedule_describe["status"]["monitoringScheduleStatus"]
+            == "Scheduled"
+        )
 
         # Verify component output
         outputs = {
@@ -139,7 +148,7 @@ def test_create_v2_monitoring_schedule(
     ],
 )
 def test_update_v2_monitoring_schedule(
-    kfp_client, experiment_id, test_file_dir, deploy_endpoint, sagemaker_client
+    kfp_client, experiment_id, test_file_dir, deploy_endpoint
 ):
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
     test_params = utils.load_params(
@@ -184,31 +193,43 @@ def test_update_v2_monitoring_schedule(
             test_params["Timeout"],
         )
 
-        # Verify if monitoring schedule is created with correct name and endpoint
-        monitoring_schedule_describe = sagemaker_utils.describe_monitoring_schedule(
-            sagemaker_client, monitoring_schedule_name
+        # Verify if monitoring schedule CR is created properly
+        monitoring_schedule_describe = ack_utils._get_resource(
+            k8s_client, monitoring_schedule_name, "monitoringschedules"
         )
         assert (
             monitoring_schedule_name
-            in monitoring_schedule_describe["MonitoringScheduleArn"]
+            in monitoring_schedule_describe["status"]["ackResourceMetadata"]["arn"]
         )
-        assert monitoring_schedule_describe["MonitoringScheduleStatus"] == "Scheduled"
-        assert monitoring_schedule_describe["EndpointName"] == deploy_endpoint
         assert (
-            monitoring_schedule_describe["MonitoringScheduleConfig"][
-                "MonitoringJobDefinitionName"
+            monitoring_schedule_describe["status"]["monitoringScheduleStatus"]
+            == "Scheduled"
+        )
+        assert (
+            monitoring_schedule_describe["spec"]["monitoringScheduleConfig"][
+                "monitoringJobDefinitionName"
             ]
             == job_definition_name_1
         )
 
-        # Verify if job definition is created with correct instance type
-        job_definition_1_describe = (
-            sagemaker_utils.describe_data_quality_job_definition(
-                sagemaker_client, job_definition_name_1
-            )
+        # Verify if the job definition CR is created properly
+        job_definition_1_describe = ack_utils._get_resource(
+            k8s_client, job_definition_name_1, "dataqualityjobdefinitions"
         )
         assert (
-            job_definition_1_describe["JobResources"]["ClusterConfig"]["InstanceType"]
+            job_definition_name_1
+            in job_definition_1_describe["status"]["ackResourceMetadata"]["arn"]
+        )
+        assert (
+            job_definition_1_describe["spec"]["dataQualityJobInput"]["endpointInput"][
+                "endpointName"
+            ]
+            == deploy_endpoint
+        )
+        assert (
+            job_definition_1_describe["spec"]["jobResources"]["clusterConfig"][
+                "instanceType"
+            ]
             == "ml.m5.large"
         )
 
@@ -258,26 +279,32 @@ def test_update_v2_monitoring_schedule(
         )
 
         # Verify if monitoring schedule is updated with correct job definition
-        monitoring_schedule_updated_describe = (
-            sagemaker_utils.describe_monitoring_schedule(
-                sagemaker_client, monitoring_schedule_name
-            )
+        monitoring_schedule_updated_describe = ack_utils._get_resource(
+            k8s_client, monitoring_schedule_name, "monitoringschedules"
         )
         assert (
-            monitoring_schedule_updated_describe["MonitoringScheduleConfig"][
-                "MonitoringJobDefinitionName"
+            monitoring_schedule_updated_describe["status"]["monitoringScheduleStatus"]
+            == "Scheduled"
+        )
+        assert (
+            monitoring_schedule_updated_describe["spec"]["monitoringScheduleConfig"][
+                "monitoringJobDefinitionName"
             ]
             == job_definition_name_2
         )
 
-        # Verify if job definition is created with correct instance type
-        job_definition_2_describe = (
-            sagemaker_utils.describe_data_quality_job_definition(
-                sagemaker_client, job_definition_name_2
-            )
+        # Verify if the new job definition CR is created properly
+        job_definition_2_describe = ack_utils._get_resource(
+            k8s_client, job_definition_name_2, "dataqualityjobdefinitions"
         )
         assert (
-            job_definition_2_describe["JobResources"]["ClusterConfig"]["InstanceType"]
+            job_definition_name_2
+            in job_definition_2_describe["status"]["ackResourceMetadata"]["arn"]
+        )
+        assert (
+            job_definition_2_describe["spec"]["jobResources"]["clusterConfig"][
+                "instanceType"
+            ]
             == "ml.m5.xlarge"
         )
 
