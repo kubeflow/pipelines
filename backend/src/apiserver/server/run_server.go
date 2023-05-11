@@ -274,17 +274,10 @@ func (s *RunServer) ListRunsV1(ctx context.Context, r *apiv1beta1.ListRunsReques
 
 // Archives a run.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *RunServer) archiveRun(ctx context.Context, runId string, experimentId string) error {
+func (s *RunServer) archiveRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
-	}
-	run, err := s.getRun(ctx, runId)
-	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run")
-	}
-	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to archive a run")
 	}
 	return s.resourceManager.ArchiveRun(runId)
 }
@@ -295,7 +288,7 @@ func (s *RunServer) ArchiveRunV1(ctx context.Context, request *apiv1beta1.Archiv
 	if s.options.CollectMetrics {
 		archiveRunRequests.Inc()
 	}
-	err := s.archiveRun(ctx, request.GetId(), "")
+	err := s.archiveRun(ctx, request.GetId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to archive a v1beta1 run")
 	}
@@ -304,17 +297,10 @@ func (s *RunServer) ArchiveRunV1(ctx context.Context, request *apiv1beta1.Archiv
 
 // Un-archives a run.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *RunServer) unarchiveRun(ctx context.Context, runId string, experimentId string) error {
+func (s *RunServer) unarchiveRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
-	}
-	run, err := s.getRun(ctx, runId)
-	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run")
-	}
-	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to unarchive a run")
 	}
 	return s.resourceManager.UnarchiveRun(runId)
 }
@@ -325,7 +311,7 @@ func (s *RunServer) UnarchiveRunV1(ctx context.Context, request *apiv1beta1.Unar
 	if s.options.CollectMetrics {
 		unarchiveRunRequests.Inc()
 	}
-	err := s.unarchiveRun(ctx, request.GetId(), "")
+	err := s.unarchiveRun(ctx, request.GetId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to unarchive a v1beta1 run")
 	}
@@ -334,17 +320,10 @@ func (s *RunServer) UnarchiveRunV1(ctx context.Context, request *apiv1beta1.Unar
 
 // Deletes a run.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *RunServer) deleteRun(ctx context.Context, runId string, experimentId string) error {
+func (s *RunServer) deleteRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
-	}
-	run, err := s.getRun(ctx, runId)
-	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run")
-	}
-	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to delete a run")
 	}
 	return s.resourceManager.DeleteRun(ctx, runId)
 }
@@ -355,7 +334,7 @@ func (s *RunServer) DeleteRunV1(ctx context.Context, request *apiv1beta1.DeleteR
 	if s.options.CollectMetrics {
 		deleteRunRequests.Inc()
 	}
-	if err := s.deleteRun(ctx, request.GetId(), ""); err != nil {
+	if err := s.deleteRun(ctx, request.GetId()); err != nil {
 		return nil, util.Wrap(err, "Failed to delete a v1beta1 run")
 	}
 	if s.options.CollectMetrics {
@@ -478,34 +457,20 @@ func (s *RunServer) ReadArtifactV1(ctx context.Context, request *apiv1beta1.Read
 
 // Terminates a run.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *RunServer) terminateRun(ctx context.Context, runId string, experimentId string) error {
+func (s *RunServer) terminateRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
-	}
-	run, err := s.getRun(ctx, runId)
-	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run")
-	}
-	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to terminate a run")
 	}
 	return s.resourceManager.TerminateRun(ctx, runId)
 }
 
 // Retries a run.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *RunServer) retryRun(ctx context.Context, runId string, experimentId string) error {
+func (s *RunServer) retryRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
-	}
-	run, err := s.getRun(ctx, runId)
-	if err != nil {
-		return util.Wrap(err, "Failed to fetch a run")
-	}
-	if experimentId != "" && run.ExperimentId != experimentId && run.ExperimentId != "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("The requested run '%s' belongs to experiment '%s' (requested experiment '%s')", runId, run.ExperimentId, experimentId), "Failed to retry a run")
 	}
 	return s.resourceManager.RetryRun(ctx, runId)
 }
@@ -516,7 +481,7 @@ func (s *RunServer) TerminateRunV1(ctx context.Context, request *apiv1beta1.Term
 	if s.options.CollectMetrics {
 		terminateRunRequests.Inc()
 	}
-	err := s.terminateRun(ctx, request.GetRunId(), "")
+	err := s.terminateRun(ctx, request.GetRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to terminate a v1beta1 run")
 	}
@@ -530,7 +495,7 @@ func (s *RunServer) RetryRunV1(ctx context.Context, request *apiv1beta1.RetryRun
 		retryRunRequests.Inc()
 	}
 
-	err := s.retryRun(ctx, request.GetRunId(), "")
+	err := s.retryRun(ctx, request.GetRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to retry a run")
 	}
@@ -596,11 +561,10 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 // Archives a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		archiveRunRequests.Inc()
 	}
-	err := s.archiveRun(ctx, request.GetRunId(), request.GetExperimentId())
+	err := s.archiveRun(ctx, request.GetRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to archive a run")
 	}
@@ -610,11 +574,10 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveR
 // Un-archives a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.UnarchiveRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		unarchiveRunRequests.Inc()
 	}
-	err := s.unarchiveRun(ctx, request.GetRunId(), request.GetExperimentId())
+	err := s.unarchiveRun(ctx, request.GetRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to unarchive a run")
 	}
@@ -624,11 +587,10 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.Unarch
 // Deletes a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		deleteRunRequests.Inc()
 	}
-	if err := s.deleteRun(ctx, request.GetRunId(), request.GetExperimentId()); err != nil {
+	if err := s.deleteRun(ctx, request.GetRunId()); err != nil {
 		return nil, util.Wrap(err, "Failed to delete a run")
 	}
 	if s.options.CollectMetrics {
@@ -662,11 +624,10 @@ func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadAr
 // Terminates a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.TerminateRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		terminateRunRequests.Inc()
 	}
-	err := s.terminateRun(ctx, request.GetRunId(), request.GetExperimentId())
+	err := s.terminateRun(ctx, request.GetRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to terminate a run")
 	}
@@ -680,7 +641,7 @@ func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRe
 		retryRunRequests.Inc()
 	}
 
-	err := s.retryRun(ctx, request.GetRunId(), request.GetExperimentId())
+	err := s.retryRun(ctx, request.GetRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to retry a run")
 	}

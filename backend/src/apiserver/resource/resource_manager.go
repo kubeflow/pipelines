@@ -524,6 +524,10 @@ func (r *ResourceManager) ListRuns(filterContext *model.FilterContext, opts *lis
 
 // Archives a run with a given id.
 func (r *ResourceManager) ArchiveRun(runId string) error {
+	_, err := r.GetRun(runId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to archive run %v as it failed to be retrieved", runId)
+	}
 	if err := r.runStore.ArchiveRun(runId); err != nil {
 		return util.Wrapf(err, "Failed to archive run %v", runId)
 	}
