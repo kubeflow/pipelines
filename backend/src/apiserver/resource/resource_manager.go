@@ -1793,12 +1793,3 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 	}
 	return task, nil
 }
-
-// Fetches run metric entries for a given run id.
-func (r *ResourceManager) GetRunMetrics(runId string) ([]*model.RunMetric, error) {
-	metrics, err := r.runStore.GetMetrics(runId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to fetch run metrics for run %s", runId)
-	}
-	return metrics, nil
-}
