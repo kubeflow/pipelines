@@ -68,7 +68,7 @@ def model_input(train_image, model_artifact_url):
     }
 
 
-def get_prod_variants(model_name):
+def get_production_variants(model_name):
     return [
     {
         "initialInstanceCount": 1,
@@ -215,7 +215,7 @@ def mnist_classification(role_arn="", bucket_name=""):
     model_name =  Model.outputs["sagemaker_resource_name"]
     EndpointConfig = sagemaker_EndpointConfig_op(
         region=region,
-        production_variants=get_prod_variants(model_name),
+        production_variants=get_production_variants(model_name),
     )
 
     endpoint_config_name = EndpointConfig.outputs["sagemaker_resource_name"]

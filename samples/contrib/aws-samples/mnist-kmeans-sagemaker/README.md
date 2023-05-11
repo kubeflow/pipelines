@@ -48,7 +48,7 @@ You will also have an model endpoint in service. Refer to [Prediction section](#
 ## Prediction
 
 1. Find your endpoint name by:
-    - Checking the `sagemaker_resource_name` output field of the Endpoint component.
+    - Checking the `sagemaker_resource_name` field under Output artifacts of the Endpoint component in the pipeline run.
     ```
       export ENDPOINT_NAME=
     ```
@@ -60,13 +60,16 @@ You will also have an model endpoint in service. Refer to [Prediction section](#
 
 ## Cleaning up the endpoint
 
-You can find the model/endpoint configuration name in the `sagemaker_resource_name` output field of the respective component.
+You can find the model/endpoint configuration name in the `sagemaker_resource_name` field under Output artifacts of the EndpointConfig/Model component in the pipeline run.
 
 ```
 export ENDPOINT_CONFIG_NAME=
 export MODEL_NAME=
 ```
 To delete all the endpoint resources use:
+
+Note: The namespace for the standard kubeflow installation is "kubeflow". For multi-tenant installations the namespace is located at the left in the navigation bar.
+
 ```
 export MY_KUBEFLOW_NAMESPACE=
 
