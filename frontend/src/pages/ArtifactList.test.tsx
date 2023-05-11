@@ -135,7 +135,7 @@ describe('ArtifactList', () => {
     screen.getByText('10');
   });
 
-  it('it able to see the 20th artifact if "Rows per page" is chanegd to 20', async () => {
+  it('shows 20th artifact if page size is 20', async () => {
     render(
       <MemoryRouter>
         <ArtifactList {...generateProps()} />
@@ -171,7 +171,7 @@ describe('ArtifactList', () => {
     screen.getByText('test artifact 20'); // The 20th artifacts appears.
   });
 
-  it('found no artifact', async () => {
+  it('finds no artifact', async () => {
     getArtifactsSpy.mockClear();
     getArtifactsSpy.mockImplementation(() => {
       const response = new GetArtifactsResponse();
