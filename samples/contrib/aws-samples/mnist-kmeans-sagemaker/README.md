@@ -85,7 +85,7 @@ Endpoint Config:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/EndpointConfig/src)
 
 Model:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/Model/src)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/Modelv2/src)
 
 Batch Transformation:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/batch_transform/src)

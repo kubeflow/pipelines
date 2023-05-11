@@ -17,7 +17,7 @@ sagemaker_process_op = components.load_component_from_file(
 sagemaker_train_op = components.load_component_from_file(
     "../../../../components/aws/sagemaker/TrainingJob/component.yaml"
 )
-sagemaker_Model_op = components.load_component_from_file("../../../../components/aws/sagemaker/Model/component.yaml")
+sagemaker_Model_op = components.load_component_from_file("../../../../components/aws/sagemaker/Modelv2/component.yaml")
 sagemaker_EndpointConfig_op = components.load_component_from_file(
     "../../../../components/aws/sagemaker/EndpointConfig/component.yaml"
 )
