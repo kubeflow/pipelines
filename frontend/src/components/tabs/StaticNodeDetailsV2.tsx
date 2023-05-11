@@ -114,9 +114,9 @@ function TaskNodeDetail({
   const componentDag = componentSpec.dag;
 
   const container = WorkflowUtils.getContainer(componentSpec, templateString);
-  const args = container?.['args'];
-  const command = container?.['command'];
-  const image = container?.['image'];
+  const args = container?.args;
+  const command = container?.command;
+  const image = container?.image;
 
   return (
     <div>
@@ -156,13 +156,25 @@ function TaskNodeDetail({
       {command && (
         <div>
           <div className='text-xl font-bold pt-6'>Command</div>
-          <div className='font-mono '>{command}</div>
+          <div className='font-mono '>
+            {command.map((cmd, index) => {
+              return (
+                <div key={index} style={{ whiteSpace: 'pre-wrap' }}>
+                  {cmd}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
       {args && (
         <div>
           <div className='text-xl font-bold pt-6'>Arguments</div>
-          <div className='font-mono '>{args}</div>
+          <div className='font-mono '>
+            {args.map((arg, index) => {
+              return <div key={index}>{arg}</div>;
+            })}
+          </div>
         </div>
       )}
     </div>

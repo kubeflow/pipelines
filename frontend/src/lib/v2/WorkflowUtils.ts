@@ -13,7 +13,13 @@
 // limitations under the License.
 import jsyaml from 'js-yaml';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
-import { ComponentSpec, PipelineSpec, PlatformSpec } from 'src/generated/pipeline_spec';
+import {
+  ComponentSpec,
+  PipelineDeploymentConfig,
+  PipelineDeploymentConfig_ExecutorSpec,
+  PipelineSpec,
+  PlatformSpec,
+} from 'src/generated/pipeline_spec';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -111,12 +117,19 @@ export function isPipelineSpec(templateString: string) {
 export function getContainer(componentSpec: ComponentSpec, templateString: string) {
   const executionLabel = componentSpec?.executorLabel;
 
-  const jsonTemplate = getPipelineDefFromYaml(templateString);
-  const deploymentSpec = jsonTemplate['deploymentSpec'];
-
-  const executorsMap = deploymentSpec['executors'];
-  if (!executorsMap || !executionLabel) {
+  const pipelineSpecYAML = getPipelineDefFromYaml(templateString);
+  const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecYAML);
+  const deploymentSpecObj = pipelineSpec.deploymentSpec;
+  if (!pipelineSpec || !deploymentSpecObj) {
     return null;
   }
-  return executorsMap?.[executionLabel]?.['container'];
+
+  const deploymentSpec = PipelineDeploymentConfig.fromJSON(deploymentSpecObj);
+  const executorsObj = deploymentSpec.executors;
+  if (!executorsObj || !executionLabel) {
+    return null;
+  }
+
+  const executorSpec = PipelineDeploymentConfig_ExecutorSpec.fromJSON(executorsObj[executionLabel]);
+  return executorSpec.container;
 }

@@ -12,4 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export { PipelineJob, PipelineSpec, ComponentSpec, PipelineTaskSpec, PlatformSpec } from './pipeline_spec';
+export {
+  PipelineJob,
+  PipelineSpec,
+  ComponentSpec,
+  PipelineTaskSpec,
+  PlatformSpec,
+  PipelineDeploymentConfig,
+  PipelineDeploymentConfig_ExecutorSpec,
+  PipelineDeploymentConfig_PipelineContainerSpec
+} from './pipeline_spec';
