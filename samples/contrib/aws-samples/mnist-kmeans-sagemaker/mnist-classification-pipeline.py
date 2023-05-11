@@ -68,17 +68,17 @@ def model_input(train_image, model_artifact_url):
     }
 
 
-def endpoint_config_input(model_name):
+def get_prod_variants(model_name):
     return [
-        {
-            "initialInstanceCount": 1,
-            "initialVariantWeight": 1,
-            "instanceType": "ml.t2.medium",
-            "modelName": model_name,
-            "variantName": "mnist-kmeans-sample",
-            "volumeSizeInGB": 5,
-        }
-    ]
+    {
+        "initialInstanceCount": 1,
+        "initialVariantWeight": 1,
+        "instanceType": "ml.t2.medium",
+        "modelName": model_name,
+        "variantName": "mnist-kmeans-sample",
+        "volumeSizeInGB": 5,
+    }
+]
 
 
 @dsl.pipeline(
@@ -207,25 +207,23 @@ def mnist_classification(role_arn="", bucket_name=""):
         training.outputs["model_artifacts"]
     ).output
 
-    model_name = trainingJobName + "-model"
-
     Model = sagemaker_Model_op(
         region=region,
         execution_role_arn=role_arn,
-        model_name=model_name,
         primary_container=model_input(train_image, model_artifact_url),
     )
+    model_name =  Model.outputs["sagemaker_resource_name"]
     EndpointConfig = sagemaker_EndpointConfig_op(
         region=region,
-        endpoint_config_name=f"{model_name}",
-        production_variants=endpoint_config_input(model_name),
-    ).after(Model)
+        production_variants=get_prod_variants(model_name),
+    )
+
+    endpoint_config_name = EndpointConfig.outputs["sagemaker_resource_name"]
 
     Endpoint = sagemaker_Endpoint_op(
         region=region,
-        endpoint_config_name=f"{model_name}",
-        endpoint_name=f"{model_name}",
-    ).after(EndpointConfig)
+        endpoint_config_name=endpoint_config_name,
+    )
 
 
     sagemaker_batch_transform_op(
@@ -237,7 +235,7 @@ def mnist_classification(role_arn="", bucket_name=""):
         content_type="text/csv",
         split_type="Line",
         output_location=f"s3://{bucket_name}/mnist_kmeans_example/output",
-    ).after(Model)
+    )
 
 
 if __name__ == "__main__":

@@ -48,7 +48,7 @@ You will also have an model endpoint in service. Refer to [Prediction section](#
 ## Prediction
 
 1. Find your endpoint name by:
-    - Opening SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints)
+    - Checking the `sagemaker_resource_name` output field of the Endpoint component.
     ```
       export ENDPOINT_NAME=
     ```
@@ -60,13 +60,19 @@ You will also have an model endpoint in service. Refer to [Prediction section](#
 
 ## Cleaning up the endpoint
 
+You can find the model/endpoint configuration name in the `sagemaker_resource_name` output field of the respective component.
+
+```
+export ENDPOINT_CONFIG_NAME=
+export MODEL_NAME=
+```
 To delete all the endpoint resources use:
 ```
 export MY_KUBEFLOW_NAMESPACE=
 
 kubectl delete endpoint $ENDPOINT_NAME -n $MY_KUBEFLOW_NAMESPACE
-kubectl delete endpointconfig $ENDPOINT_NAME -n $MY_KUBEFLOW_NAMESPACE
-kubectl delete model $ENDPOINT_NAME -n $MY_KUBEFLOW_NAMESPACE
+kubectl delete endpointconfig $ENDPOINT_CONFIG_NAME -n $MY_KUBEFLOW_NAMESPACE
+kubectl delete model $MODEL_NAME -n $MY_KUBEFLOW_NAMESPACE
 ```
 
 ## Components source
