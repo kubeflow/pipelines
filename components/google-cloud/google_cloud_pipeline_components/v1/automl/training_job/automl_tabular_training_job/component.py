@@ -279,7 +279,7 @@ def automl_tabular_training_job(
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'AutoMLTabularTrainingJob',
           '--method_name',

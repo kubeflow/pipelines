@@ -93,7 +93,7 @@ def image_dataset_create(
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'ImageDataset',
           '--method_name',

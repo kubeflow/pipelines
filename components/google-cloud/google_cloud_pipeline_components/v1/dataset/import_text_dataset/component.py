@@ -77,7 +77,7 @@ def text_dataset_import(
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'TextDataset',
           '--method_name',
