@@ -1414,7 +1414,7 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
                         print_op(message='Inside second exit handler.')
 
 
-class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
+class TestBooleanInputCompiledCorrectly(unittest.TestCase):
     # test with default = True, may have false test successes due to protocol buffer boolean default of False
     def test_python_component(self):
 
@@ -1546,6 +1546,27 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
         self.assertEqual(
             pipeline_spec.root.input_definitions.parameters['boolean']
             .default_value.bool_value, True)
+
+    def test_constant_passed_to_component(self):
+
+        @dsl.component
+        def comp(boolean1: bool, boolean2: bool) -> bool:
+            return boolean1
+
+        @dsl.pipeline
+        def my_pipeline():
+            comp(boolean1=True, boolean2=False)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(my_pipeline, pipeline_spec_path)
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+        self.assertTrue(
+            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean1']
+            .runtime_value.constant.bool_value)
+        self.assertFalse(
+            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean2']
+            .runtime_value.constant.bool_value)
 
 
 # helper component defintions for the ValidLegalTopologies tests
