@@ -1,4 +1,3 @@
-import json
 import pytest
 import os
 import utils
@@ -77,10 +76,8 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
             workflow_json, outputs, download_dir
         )
 
-        output_ack_resource_metadata = json.loads(
-            utils.read_from_file_in_tar(
-                output_files[step_name]["ack_resource_metadata"]
-            ).replace("'", '"')
+        output_ack_resource_metadata = (
+            kfp_client_utils.get_output_ack_resource_metadata(output_files, step_name)
         )
         output_resource_name = utils.read_from_file_in_tar(
             output_files[step_name]["sagemaker_resource_name"]
