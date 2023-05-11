@@ -29,12 +29,10 @@ def endpoint_delete(
   For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete.
 
   Args:
-      endpoint (google.VertexEndpoint):
-          Required. The endpoint to be deleted.
+      endpoint: The endpoint to be deleted.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the delete endpoint's long running operation.
+      gcp_resources: Serialized gcp_resources proto tracking the delete endpoint's long running operation.
 
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

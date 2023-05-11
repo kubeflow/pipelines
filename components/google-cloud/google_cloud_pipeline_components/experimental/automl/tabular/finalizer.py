@@ -30,14 +30,13 @@ def automl_tabular_finalizer(
   """Finalizer for AutoML Tabular pipelines
 
   Args:
-      project (str): Required. Project to run Cross-validation trainer.
-      location (str): Location for running the Cross-validation trainer.
-      root_dir (str): The Cloud Storage location to store the output.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+      project: Project to run Cross-validation trainer.
+      location: Location for running the Cross-validation trainer.
+      root_dir: The Cloud Storage location to store the output.
+      encryption_spec_key_name: Customer-managed encryption key.
 
   Returns:
-      gcp_resources (str):
-          GCP resources created by this component.
+      gcp_resources: GCP resources created by this component.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
   """

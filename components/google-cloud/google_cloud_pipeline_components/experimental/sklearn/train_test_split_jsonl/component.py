@@ -31,17 +31,12 @@ def train_test_split_jsonl_with_sklearn(
   """
   Split JSONL Data into training and validation data using scikit-learn.
   Args:
-    training_data_path (str):
-        Output path for the training data (JSONL format).
-    validation_data_path (str):
-        Output path for the validation data (JSONL format).
-    input_data_path (str):
-        Input data in JSON lines format.
-    validation_split (Optional[float]):
-        Fraction of data that will make up validation dataset. Default is 0.2 (20% as validation
+    training_data_path: Output path for the training data (JSONL format).
+    validation_data_path: Output path for the validation data (JSONL format).
+    input_data_path: Input data in JSON lines format.
+    validation_split: Fraction of data that will make up validation dataset. Default is 0.2 (20% as validation
         data, the rest as training data).
-    random_seed (Optional[int]):
-      Global random seed to ensure the output is deterministic.
+    random_seed: Global random seed to ensure the output is deterministic.
     """
   # fmt: on
   return dsl.ContainerSpec(

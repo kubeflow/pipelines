@@ -49,48 +49,39 @@ def automl_tabular_ensemble(
   """Ensemble AutoML Tabular models
 
   Args:
-      project (str): Required. Project to run Cross-validation trainer.
-      location (str): Location for running the Cross-validation trainer.
-      root_dir (str): The Cloud Storage location to store the output.
-      transform_output (TransformOutput): The transform output artifact.
-      metadata (TabularExampleGenMetadata): The tabular example gen metadata.
-      dataset_schema (DatasetSchema): The schema of the dataset.
-      tuning_result_input (AutoMLTabularTuningResult): AutoML Tabular tuning
+      project: Project to run Cross-validation trainer.
+      location: Location for running the Cross-validation trainer.
+      root_dir: The Cloud Storage location to store the output.
+      transform_output: The transform output artifact.
+      metadata: The tabular example gen metadata.
+      dataset_schema: The schema of the dataset.
+      tuning_result_input: AutoML Tabular tuning
         result.
-      instance_baseline (AutoMLTabularInstanceBaseline): The instance baseline
+      instance_baseline: The instance baseline
         used to calculate explanations.
-      warmup_data (Dataset): The warm up data. Ensemble component will save the
+      warmup_data: The warm up data. Ensemble component will save the
         warm up data together with the model artifact, used to warm up the model
         when prediction server starts.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
-      export_additional_model_without_custom_ops (Optional[str]): True if export
+      encryption_spec_key_name: Customer-managed encryption key.
+      export_additional_model_without_custom_ops: True if export
         an additional model without custom TF operators to the
         `model_without_custom_ops` output.
 
   Returns:
-      gcp_resources (str):
-          GCP resources created by this component.
+      gcp_resources: GCP resources created by this component.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
-      model_architecture (AutoMLTabularModelArchitecture):
-          The architecture of the output model.
-      model (system.Model):
-          The output model.
-      model_without_custom_ops (system.Model):
-          The output model without custom TF operators, this output will be
+      model_architecture: The architecture of the output model.
+      model: The output model.
+      model_without_custom_ops: The output model without custom TF operators, this output will be
           empty unless
           `export_additional_model_without_custom_ops` is set.
-      model_uri (str):
-          The URI of the output model.
-      instance_schema_uri (str):
-          The URI of the instance schema.
-      prediction_schema_uri (str):
-          The URI of the prediction schema.
-      explanation_metadata (str):
-          The explanation metadata used by Vertex online and batch
+      model_uri: The URI of the output model.
+      instance_schema_uri: The URI of the instance schema.
+      prediction_schema_uri: The URI of the prediction schema.
+      explanation_metadata: The explanation metadata used by Vertex online and batch
           explanations.
-      explanation_metadata (str):
-          The explanation parameters used by Vertex online and batch
+      explanation_metadata: The explanation parameters used by Vertex online and batch
           explanations.
   """
   # fmt: on

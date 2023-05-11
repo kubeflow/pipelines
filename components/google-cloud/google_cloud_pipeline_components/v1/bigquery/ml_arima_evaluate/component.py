@@ -41,41 +41,34 @@ def bigquery_ml_arima_evaluate_job(
   """Launch a BigQuery ML.ARIMA_EVALUATE job and waits for it to finish.
 
   Args:
-      project (str):
-        Required. Project to run BigQuery model evaluation job.
-      location (Optional[str]):
-        Location to run the BigQuery model evaluation
+      project: Project to run BigQuery model evaluation job.
+      location: Location to run the BigQuery model evaluation
         job. If not set, default to `US` multi-region. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model (google.BQMLModel):
-        Required. BigQuery ML model for
+      model: BigQuery ML model for
         ML.ARIMA_EVALUATE. For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-evaluate#model_name
-      show_all_candidate_models (Optional[bool]):
-        You can use
+      show_all_candidate_models: You can use
         show_all_candidate_models to show evaluation metrics or an error
         message for either all candidate models or for only the best model
         with the lowest AIC. The value is type BOOL and is part of the
         settings STRUCT. For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-evaluate#show_all_candidate_models
-      query_parameters (Optional[Sequence]):
-        jobs.query parameters for
+      query_parameters: jobs.query parameters for
         standard SQL queries. If query_parameters are both specified in here
         and in job_configuration_query, the value in here will override the
         other one.
-      job_configuration_query (Optional[dict]):
-        A json formatted string
+      job_configuration_query: A json formatted string
         describing the rest of the job configuration. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
         Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name(Optional[List[str]]):
+      encryption_spec_key_name:
         Describes the Cloud
         KMS encryption key that will be used to protect destination
         BigQuery table. The BigQuery Service Account associated with your
@@ -85,12 +78,10 @@ def bigquery_ml_arima_evaluate_job(
         one.
 
   Returns:
-      arima_evaluation_metrics (system.Artifact):
-        Describes arima metrics.
+      arima_evaluation_metrics: Describes arima metrics.
         For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-evaluate#mlarima_evaluate_output
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the BigQuery job.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

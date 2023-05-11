@@ -43,50 +43,47 @@ def dataset_preprocessor_error_analysis(
   """Preprocesses datasets for Vision Error Analysis pipelines.
 
   Args:
-      project (str): Required. GCP Project ID.
-      location (Optional[str]): GCP Region. If not set, defaulted to
+      project: GCP Project ID.
+      location: GCP Region. If not set, defaulted to
         `us-central1`.
-      root_dir (str): Required. The Google Cloud Storage location where the
+      root_dir: The Google Cloud Storage location where the
         outputs will be saved to.
-      test_dataset (Optional[google.VertexDataset]): Optional. A
+      test_dataset: A
         google.VertexDataset artifact of the test dataset. If
         `test_dataset_storage_source_uris` is also provided, this Vertex Dataset
         argument will override the GCS source.
-      test_dataset_annotation_set_name (Optional[str]): Optional. A string of
+      test_dataset_annotation_set_name: A string of
         the annotation_set resource name containing the ground truth of the test
         datset used for evaluation.
-      training_dataset (Optional[google.VertexDataset]): Optional. A
+      training_dataset: A
         google.VertexDataset artifact of the training dataset. If
         `training_dataset_storage_source_uris` is also provided, this Vertex
         Dataset argument will override the GCS source.
-      training_dataset_annotation_set_name (Optional[str]): Optional. A string
+      training_dataset_annotation_set_name: A string
         of the annotation_set resource name containing the ground truth of the
         test datset used for evaluation.
-      test_dataset_storage_source_uris (Optional[list[str]]): Optional. Google
+      test_dataset_storage_source_uris: Google
         Cloud Storage URI(-s) to unmanaged test datasets.`jsonl` is currently
         the only allowed format. If `test_dataset` is also provided, this field
         will be overriden by the provided Vertex Dataset.
-      training_dataset_storage_source_uris (Optional[list[str]]): Optional.
+      training_dataset_storage_source_uris:
         Google Cloud Storage URI(-s) to unmanaged test datasets.`jsonl` is
         currently the only allowed format. If `training_dataset` is also
         provided, this field will be overriden by the provided Vertex Dataset.
 
   Returns:
-      batch_prediction_storage_source (list[str]):
-        Google Cloud Storage URI to preprocessed dataset instances for Vertex
+      batch_prediction_storage_source: Google Cloud Storage URI to preprocessed dataset instances for Vertex
         Batch Prediction
         component. Target field name is removed.
         For example, this is an input instance:
           {"content":"gs://flowers/roses/001.jpg","mimeType":"image/jpeg"}
-      model_evaluation_storage_source (list[str]):
-        Google Cloud Storage URI to preprocessed dataset instances for Vertex
+      model_evaluation_storage_source: Google Cloud Storage URI to preprocessed dataset instances for Vertex
         Model Evaluation
         component. Target field name is defaulted to "ground_truth".
         For example, this is an input instance:
           {"content":"gs://flowers/roses/001.jpg","mimeType":"image/jpeg",
           "ground_truth": "roses"}
-      test_data_items_storage_source (str):
-        Google Cloud Storage URI to preprocessed test dataset instances for
+      test_data_items_storage_source: Google Cloud Storage URI to preprocessed test dataset instances for
         Evaluated
         Annotation or Vision Error Analysis pipelines. It is the input source
         for Evaluated
@@ -101,14 +98,12 @@ def dataset_preprocessor_error_analysis(
           "annotation_spec_ids": ["123"],
           "annotation_resource_names":
             ["projects/*/locations/*/datasets/*/dataItems/000/annotations/111"]}
-      training_data_items_storage_source (str):
-        Google Cloud Storage URI to preprocessed training dataset instances for
+      training_data_items_storage_source: Google Cloud Storage URI to preprocessed training dataset instances for
         Vision Error
         Analysis pipelines. It is the input source for Feature Extraction
         component. It uses the
         same output format as test_data_items_storage_source.
-      gcp_resources (str):
-        Serialized gcp_resources proto tracking the custom job.
+      gcp_resources: Serialized gcp_resources proto tracking the custom job.
 
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.

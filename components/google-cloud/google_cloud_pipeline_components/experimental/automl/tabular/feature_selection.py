@@ -48,39 +48,36 @@ def tabular_feature_ranking_and_selection(
   """Launch a feature selection task to pick top features.
 
   Args:
-      project (str): Required. Project to run feature selection.
-      location (str): Location for running the feature selection. If not set,
+      project: Project to run feature selection.
+      location: Location for running the feature selection. If not set,
         default to us-central1.
-      root_dir (str): The Cloud Storage location to store the output.
-      dataflow_machine_type (Optional[str]): The machine type used for dataflow
+      root_dir: The Cloud Storage location to store the output.
+      dataflow_machine_type: The machine type used for dataflow
         jobs. If not set, default to n1-standard-16.
-      dataflow_max_num_workers (Optional[int]): The number of workers to run the
+      dataflow_max_num_workers: The number of workers to run the
         dataflow job. If not set, default to 25.
-      dataflow_disk_size_gb (Optional[int]): The disk size, in gigabytes, to use
+      dataflow_disk_size_gb: The disk size, in gigabytes, to use
         on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More
         details:
           https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
+      dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
-      dataflow_service_account (Optional[str]): Custom service account to run
+      dataflow_service_account: Custom service account to run
         dataflow jobs.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+      encryption_spec_key_name: Customer-managed encryption key.
         If this is set, then all resources will be encrypted with the provided
         encryption key. data_source(Dataset): The input dataset artifact which
         references csv, BigQuery, or TF Records. target_column_name(str): Target
         column name of the input dataset.
-      max_selected_features (Optional[int]): number of features to select by the
+      max_selected_features: number of features to select by the
         algorithm. If not set, default to 1000.
 
   Returns:
-      feature_ranking (TabularFeatureRanking):
-          the dictionary of feature names and feature ranking values.
-      selected_features (JsonObject):
-          A json array of selected feature names.
-      gcp_resources (str):
-          GCP resources created by this component.
+      feature_ranking: the dictionary of feature names and feature ranking values.
+      selected_features: A json array of selected feature names.
+      gcp_resources: GCP resources created by this component.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
   """

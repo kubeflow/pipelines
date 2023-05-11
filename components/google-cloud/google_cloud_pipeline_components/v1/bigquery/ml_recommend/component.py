@@ -42,43 +42,34 @@ def bigquery_ml_recommend_job(
   """Launch a BigQuery ML.Recommend job and waits for it to finish.
 
   Args:
-      project (str):
-        Required. Project to run BigQuery ML.Recommend job.
-      location (Optional[str]):
-        Location to run the BigQuery ML.Recommend job.
+      project: Project to run BigQuery ML.Recommend job.
+      location: Location to run the BigQuery ML.Recommend job.
         If not set, default to `US` multi-region. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model (google.BQMLModel):
-        Required. BigQuery ML model for ML.Recoomend.
+      model: BigQuery ML model for ML.Recoomend.
         For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_model_name
-      table_name (Optional[str]):
-        BigQuery table id of the input table that
+      table_name: BigQuery table id of the input table that
         contains the the user and/or item data. For more details, see
       https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_table_name
-      query_statement (Optional[str]):
-        query statement string used to generate
+      query_statement: query statement string used to generate
         the evaluation data. For more details, see
       https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_query_statement
-      query_parameters (Optional[Sequence]):
-        jobs.query parameters for
+      query_parameters: jobs.query parameters for
         standard SQL queries. If query_parameters are both specified in here
         and in job_configuration_query, the value in here will override the
         other one.
-      job_configuration_query (Optional[dict]):
-        A json formatted string
+      job_configuration_query: A json formatted string
         describing the rest of the job configuration. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name (Optional[List[str]]):
-        Describes the Cloud KMS
+      encryption_spec_key_name: Describes the Cloud KMS
         encryption key that will be used to protect destination BigQuery
         table. The BigQuery Service Account associated with your project
         requires access to this encryption key. If encryption_spec_key_name
@@ -86,14 +77,12 @@ def bigquery_ml_recommend_job(
         in here will override the other one.
 
   Returns:
-      destination_table (google.BQTable):
-        Describes the table where the recommendation results should be stored.
+      destination_table: Describes the table where the recommendation results should be stored.
         This property must be set for large results that exceed the maximum
         response size.
         For queries that produce anonymous (cached) results, this field will
         be populated by BigQuery.
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the BigQuery job.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

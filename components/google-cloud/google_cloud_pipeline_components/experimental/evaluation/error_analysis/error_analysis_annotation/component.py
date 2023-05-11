@@ -36,28 +36,26 @@ def error_analysis_annotation(
   """Computes error analysis annotations from image embeddings.
 
   Args:
-      project (str): Required. GCP Project ID.
-      location (Optional[str]): GCP Region. If not set, defaulted to
+      project: GCP Project ID.
+      location: GCP Region. If not set, defaulted to
         `us-central1`.
-      embeddings_dir (str): Required. The GCS directory containing embeddings
+      embeddings_dir: The GCS directory containing embeddings
         output from the embeddings component.
-      root_dir (str): Required. The GCS directory for storing error analysis
+      root_dir: The GCS directory for storing error analysis
         annotation output.
-      machine_type (Optional[str]): The machine type computing error analysis
+      machine_type: The machine type computing error analysis
         annotations. If not set, defaulted to
         `n1-standard-8`. More details:
         https://cloud.google.com/compute/docs/machine-resource
-      num_neighbors (Optional[int]): Number of nearest neighbors to look for. If
+      num_neighbors: Number of nearest neighbors to look for. If
         not set, defaulted to `5`.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key
+      encryption_spec_key_name: Customer-managed encryption key
         options for the CustomJob. If this is set, then all resources created by
         the CustomJob will be encrypted with the provided encryption key.
 
   Returns:
-      error_analysis_output_uri (str):
-        Google Cloud Storage URI to the computed error analysis annotations.
-      gcp_resources (str):
-        Serialized gcp_resources proto tracking the custom job.
+      error_analysis_output_uri: Google Cloud Storage URI to the computed error analysis annotations.
+      gcp_resources: Serialized gcp_resources proto tracking the custom job.
 
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.

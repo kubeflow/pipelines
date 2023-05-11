@@ -37,24 +37,19 @@ def bigquery_export_model_job(
   """Launch a BigQuery export model job and waits for it to finish.
 
   Args:
-      project (str):
-        Required. Project to run BigQuery model export job.
-      location (Optional[str]):
-        Location of the job to export the BigQuery
+      project: Project to run BigQuery model export job.
+      location: Location of the job to export the BigQuery
         model. If not set, default to `US` multi-region.  For more details,
         see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model (google.BQMLModel):
-        Required. BigQuery ML model to export.
-        model_destination_path(str):
-        Required. The gcs bucket to export the
+      model: BigQuery ML model to export.
+        model_destination_path:
+        The gcs bucket to export the
         model to.
-      job_configuration_extract (Optional[dict]):
-        A json formatted string
+      job_configuration_extract: A json formatted string
         describing the rest of the job configuration.  For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
@@ -63,10 +58,8 @@ def bigquery_export_model_job(
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
 
   Returns:
-      exported_model_path (str):
-          The gcs bucket path where you export the model to.
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the BigQuery job.
+      exported_model_path: The gcs bucket path where you export the model to.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

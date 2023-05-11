@@ -45,38 +45,36 @@ def automl_forecasting_stage_1_tuner(
   """AutoML Forecasting stage 1 tuner
 
   Args:
-      project (str): Required. Project to run hyperparameter tuning.
-      location (str): Location for running the hyperparameter tuning.
-      root_dir (str): The Cloud Storage location to store the output.
-      study_spec_parameters_override (JsonArray): JSON study spec. E.g.,
+      project: Project to run hyperparameter tuning.
+      location: Location for running the hyperparameter tuning.
+      root_dir: The Cloud Storage location to store the output.
+      study_spec_parameters_override: JSON study spec. E.g.,
         [{"parameter_id": "activation","categorical_value_spec": {"values":
         ["tanh"]}}]
-      worker_pool_specs_override_json (JsonArray): JSON worker pool specs. E.g.,
+      worker_pool_specs_override_json: JSON worker pool specs. E.g.,
         [{"machine_spec": {"machine_type":
         "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
         "n1-standard-16"}}]
-      reduce_search_space_mode (str): The reduce search space mode. Possible
+      reduce_search_space_mode: The reduce search space mode. Possible
         values: "regular" (default), "minimal", "full".
-      num_selected_trials (int): Number of selected trials. The number of weak
+      num_selected_trials: Number of selected trials. The number of weak
         learners in the final model is 5 * num_selected_trials.
-      deadline_hours (float): Number of hours the hyperparameter tuning should
+      deadline_hours: Number of hours the hyperparameter tuning should
         run.
-      num_parallel_trials (int): Number of parallel training trials.
-      single_run_max_secs (int): Max number of seconds each training trial runs.
-      metadata (TabularExampleGenMetadata): The tabular example gen metadata.
-      transform_output (TransformOutput): The transform output artifact.
-      materialized_train_split (MaterializedSplit): The materialized train
+      num_parallel_trials: Number of parallel training trials.
+      single_run_max_secs: Max number of seconds each training trial runs.
+      metadata: The tabular example gen metadata.
+      transform_output: The transform output artifact.
+      materialized_train_split: The materialized train
         split.
-      materialized_eval_split (MaterializedSplit): The materialized eval split.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+      materialized_eval_split: The materialized eval split.
+      encryption_spec_key_name: Customer-managed encryption key.
 
   Returns:
-      gcp_resources (str):
-          GCP resources created by this component.
+      gcp_resources: GCP resources created by this component.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
-      tuning_result_output (AutoMLTabularTuningResult):
-          The trained model and architectures.
+      tuning_result_output: The trained model and architectures.
   """
   # fmt: on
   return dsl.ContainerSpec(

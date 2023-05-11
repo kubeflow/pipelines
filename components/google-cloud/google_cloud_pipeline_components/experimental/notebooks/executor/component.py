@@ -50,47 +50,46 @@ def notebooks_executor(
   ones for blocking and failing the pipeline.
 
   Args:
-    project (str):
-      Project to run the execution.
-    input_notebook_file: str
+    project: Project to run the execution.
+    input_notebook_file:
       Path to the notebook file to execute.
-    output_notebook_folder: str
+    output_notebook_folder:
       Path to the notebook folder to write to.
-    execution_id: str
+    execution_id:
       Unique identificator for the execution.
-    location: str
+    location:
       Region to run the
-    master_type: str
+    master_type:
       Type of virtual machine to use for training job's master worker.
-    accelerator_type: str
+    accelerator_type:
       Type of accelerator.
-    accelerator_core_count: str
+    accelerator_core_count:
       Count of cores of the accelerator.
-    labels: str
+    labels:
       Labels for execution.
-    container_image_uri: str
+    container_image_uri:
       Container Image URI to a DLVM Example: 'gcr.io/deeplearning-platform-release/base-cu100'.
-    params_yaml_file: str
+    params_yaml_file:
       File with parameters to be overridden in the `inputNotebookFile` during execution.
-    parameters: str
+    parameters:
       Parameters to be overriden in the `inputNotebookFile` notebook.
-    service_account: str
+    service_account:
       Email address of a service account to use when running the execution.
-    job_type: str
+    job_type:
       Type of Job to be used on this execution.
-    kernel_spec: str
+    kernel_spec:
       Name of the kernel spec to use.
-    block_pipeline: bool
+    block_pipeline:
       Whether to block the pipeline until the execution operation is done.
-    fail_pipeline: bool
+    fail_pipeline:
       Whether to fail the pipeline if the execution raises an error.
 
   Returns:
-    state:str
+    state:
       State of the execution. Empty if there is an error.
-    output_notebook_file:str
+    output_notebook_file:
       Path of the executed notebook. Empty if there is an error.
-    error:str
+    error:
       Error message if any.
 
   Raises:

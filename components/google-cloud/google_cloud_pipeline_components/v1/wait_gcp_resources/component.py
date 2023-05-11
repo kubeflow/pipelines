@@ -42,13 +42,11 @@ def wait_gcp_resources(
 
 
   Args:
-    gcp_resources (str):
-        Serialized JSON of gcp_resources proto, indicating the resource to wait on by this component
+    gcp_resources: Serialized JSON of gcp_resources proto, indicating the resource to wait on by this component
         For details, see https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto
 
   Returns:
-    gcp_resources (str):
-        The final result of the gcp resource, including the error information, if exists.
+    gcp_resources: The final result of the gcp resource, including the error information, if exists.
 
   """
   # fmt: on

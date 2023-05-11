@@ -37,28 +37,23 @@ def video_dataset_import(
   """
   Upload data to existing managed dataset.
   Args:
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-      dataset (Dataset):
-          Required. The dataset to be updated.
-      gcs_source (Union[str, Sequence[str]]):
-          Required. Google Cloud Storage URI(-s) to the
+      project: project to retrieve dataset from.
+      location: Optional location to retrieve dataset from.
+      dataset: The dataset to be updated.
+      gcs_source:
+          Google Cloud Storage URI(-s) to the
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
           examples:
               str: "gs://bucket/file.csv"
               Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
-      import_schema_uri (String):
-          Required. Points to a YAML file stored on Google Cloud
+      import_schema_uri: Points to a YAML file stored on Google Cloud
           Storage describing the import format. Validation will be
           done against the schema. The schema is defined as an
           `OpenAPI 3.0.2 Schema
           Object <https://tinyurl.com/y538mdwt>`__.
-      data_item_labels (JsonObject):
-          Labels that will be applied to newly imported DataItems. If
+      data_item_labels: Labels that will be applied to newly imported DataItems. If
           an identical DataItem as one being imported already exists
           in the Dataset, then these labels will be appended to these
           of the already existing one, and if labels with identical
@@ -73,8 +68,7 @@ def video_dataset_import(
           ``import_schema_uri``,
           e.g. jsonl file.
   Returns:
-      dataset (Dataset):
-          Instantiated representation of the managed dataset resource.
+      dataset: Instantiated representation of the managed dataset resource.
 
   """
   # fmt: on

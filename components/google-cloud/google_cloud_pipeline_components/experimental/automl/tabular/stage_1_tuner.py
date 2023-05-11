@@ -51,46 +51,43 @@ def automl_tabular_stage_1_tuner(
   """AutoML Tabular stage 1 tuner
 
   Args:
-      project (str): Required. Project to run Cross-validation trainer.
-      location (str): Location for running the Cross-validation trainer.
-      root_dir (str): The Cloud Storage location to store the output.
-      study_spec_parameters_override (JsonArray): JSON study spec. E.g.,
+      project: Project to run Cross-validation trainer.
+      location: Location for running the Cross-validation trainer.
+      root_dir: The Cloud Storage location to store the output.
+      study_spec_parameters_override: JSON study spec. E.g.,
         [{"parameter_id": "model_type","categorical_value_spec": {"values":
         ["nn"]}}]
-      worker_pool_specs_override_json (JsonArray): JSON worker pool specs. E.g.,
+      worker_pool_specs_override_json: JSON worker pool specs. E.g.,
         [{"machine_spec": {"machine_type":
         "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
         "n1-standard-16"}}]
-      reduce_search_space_mode (str): The reduce search space mode. Possible
+      reduce_search_space_mode: The reduce search space mode. Possible
         values: "regular" (default), "minimal", "full".
-      num_selected_trials (int): Number of selected trials. The number of weak
+      num_selected_trials: Number of selected trials. The number of weak
         learners in the final model is 5 * num_selected_trials.
-      num_selected_features (int): Number of selected features. The number of
+      num_selected_features: Number of selected features. The number of
         features to learn in the NN models.
-      deadline_hours (float): Number of hours the cross-validation trainer
+      deadline_hours: Number of hours the cross-validation trainer
         should run.
-      disable_early_stopping (bool): True if disable early stopping. Default
+      disable_early_stopping: True if disable early stopping. Default
         value is false.
-      num_parallel_trials (int): Number of parallel training trials.
-      single_run_max_secs (int): Max number of seconds each training trial runs.
-      metadata (TabularExampleGenMetadata): The tabular example gen metadata.
-      transform_output (TransformOutput): The transform output artifact.
-      materialized_train_split (MaterializedSplit): The materialized train
+      num_parallel_trials: Number of parallel training trials.
+      single_run_max_secs: Max number of seconds each training trial runs.
+      metadata: The tabular example gen metadata.
+      transform_output: The transform output artifact.
+      materialized_train_split: The materialized train
         split.
-      materialized_eval_split (MaterializedSplit): The materialized eval split.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
-      run_distillation (bool): True if in distillation mode. The default value
+      materialized_eval_split: The materialized eval split.
+      encryption_spec_key_name: Customer-managed encryption key.
+      run_distillation: True if in distillation mode. The default value
         is false.
 
   Returns:
-      gcp_resources (str):
-          GCP resources created by this component.
+      gcp_resources: GCP resources created by this component.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
-      tuning_result_output (AutoMLTabularTuningResult):
-          The trained model and architectures.
-      execution_metrics (JsonObject):
-          Core metrics in dictionary of component execution.
+      tuning_result_output: The trained model and architectures.
+      execution_metrics: Core metrics in dictionary of component execution.
   """
   # fmt: on
 

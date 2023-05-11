@@ -25,12 +25,10 @@ def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
   For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/delete.
 
   Args:
-      model (google.VertexModel):
-          Required. The model to be deleted.
+      model: The model to be deleted.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the delete model's long running operation.
+      gcp_resources: Serialized gcp_resources proto tracking the delete model's long running operation.
 
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

@@ -26,7 +26,7 @@ def automl_tabular_infra_validator(
   """Validates the trained AutoML Tabular model is a valid model.
 
   Args:
-      unmanaged_container_model (str): google.UnmanagedContainerModel for model
+      unmanaged_container_model: google.UnmanagedContainerModel for model
         to be validated.
   """
   # fmt: on

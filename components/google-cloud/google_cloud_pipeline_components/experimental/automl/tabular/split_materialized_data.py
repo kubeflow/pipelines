@@ -40,16 +40,13 @@ def split_materialized_data(
   components.
 
     Args:
-        materialized_data (Dataset): Materialized dataset output by the Feature
+        materialized_data: Materialized dataset output by the Feature
           Transform Engine.
 
     Returns:
-        materialized_train_split (MaterializedSplit):
-            Path patern to materialized train split.
-        materialized_eval_split (MaterializedSplit):
-            Path patern to materialized eval split.
-        materialized_test_split (MaterializedSplit):
-            Path patern to materialized test split.
+        materialized_train_split: Path patern to materialized train split.
+        materialized_eval_split: Path patern to materialized eval split.
+        materialized_test_split: Path patern to materialized test split.
   """
   # fmt: on
 
