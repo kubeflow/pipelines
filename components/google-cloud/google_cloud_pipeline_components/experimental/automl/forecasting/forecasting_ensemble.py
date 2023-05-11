@@ -44,38 +44,33 @@ def automl_forecasting_ensemble(
   """Ensemble AutoML Forecasting models.
 
   Args:
-    project (str): Required. Project to run the job in.
-    location (str): Region to run the job in.
-    root_dir (str): The Cloud Storage path to store the output.
-    transform_output (TransformOutput): The transform output artifact.
-    metadata (TabularExampleGenMetadata): The tabular example gen metadata.
-    tuning_result_input (AutoMLTabularTuningResult): AutoML Tabular tuning
+    project: Project to run the job in.
+    location: Region to run the job in.
+    root_dir: The Cloud Storage path to store the output.
+    transform_output: The transform output artifact.
+    metadata: The tabular example gen metadata.
+    tuning_result_input: AutoML Tabular tuning
       result.
-    instance_baseline (AutoMLTabularInstanceBaseline): The instance baseline
+    instance_baseline: The instance baseline
       used to calculate explanations.
-    instance_schema_path (InstanceSchema): The path to the instance schema,
+    instance_schema_path: The path to the instance schema,
       describing the input data for the tf_model at serving time.
-    encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
-    prediction_image_uri (str): URI of the Docker image to be used as the
+    encryption_spec_key_name: Customer-managed encryption key.
+    prediction_image_uri: URI of the Docker image to be used as the
       container for serving predictions. This URI must identify an image in
       Artifact Registry or Container Registry.
 
   Returns:
-    gcp_resources (str):
-        GCP resources created by this component.
+    gcp_resources: GCP resources created by this component.
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
-    model_architecture (AutoMLTabularModelArchitecture):
-        The architecture of the output model.
-    unmanaged_container_model (google.UnmanagedContainerModel):
-        Model information needed to perform batch prediction.
-    explanation_metadata (JsonObject):
-        The explanation metadata used by Vertex online and batch
+    model_architecture: The architecture of the output model.
+    unmanaged_container_model: Model information needed to perform batch prediction.
+    explanation_metadata: The explanation metadata used by Vertex online and batch
         explanations.
-    explanation_metadata_artifact (Artifact):
-        The explanation metadata used by Vertex online and batch
+    explanation_metadata_artifact: The explanation metadata used by Vertex online and batch
         explanations in the format of a KFP Artifact.
-    explanation_parameters(JsonObject):
+    explanation_parameters:
         The explanation parameters used by Vertex online and batch
         explanations.
   """

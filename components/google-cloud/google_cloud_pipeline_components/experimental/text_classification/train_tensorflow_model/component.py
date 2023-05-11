@@ -35,18 +35,13 @@ def train_tensorflow_text_classification_model(
   """
   Creates a trained text classification TensorFlow model.
   Args:
-    preprocessed_training_data_path (str):
-        Path for the training data for text classification in jsonl format. The data must contain
+    preprocessed_training_data_path: Path for the training data for text classification in jsonl format. The data must contain
         'text' (input) and 'label' (output for a prediction) fields.
-    preprocessed_validation_data_path (str):
-        Path for the validation data (same format as the preprocessed_training_data).
-    trained_model_path (str):
-        Output path for a trained TensorFlow SavedModel compliant with
+    preprocessed_validation_data_path: Path for the validation data (same format as the preprocessed_training_data).
+    trained_model_path: Output path for a trained TensorFlow SavedModel compliant with
         https://github.com/tensorflow/tensorflow/blob/v2.11.0/tensorflow/python/keras/saving/save.py
-    class_names (Sequence[str]):
-        Sequence of strings of categories for classification.
-    model_name (Optional[str]):
-        Name of pre-trained BERT encoder model (https://tfhub.dev/google/collections/bert/1) to be used.
+    class_names: Sequence of strings of categories for classification.
+    model_name: Name of pre-trained BERT encoder model (https://tfhub.dev/google/collections/bert/1) to be used.
         Eligible model_name:
         - bert_en_uncased_L-12_H-768_A-12
         - bert_en_cased_L-12_H-768_A-12
@@ -81,15 +76,12 @@ def train_tensorflow_text_classification_model(
         - experts_pubmed
         - experts_wiki_books
         - talking-heads_base
-    batch_size (Optional[int]):
-        A number of samples processed before the model is updated (must be >= 1 and <= number of
+    batch_size: A number of samples processed before the model is updated (must be >= 1 and <= number of
         samples in the dataset).
-    num_epochs (Optional[int]):
-        Number of training iterations over data.
-    learning_rate (Optional[float]): Learning rate controls how quickly the model is adapted to
+    num_epochs: Number of training iterations over data.
+    learning_rate: Learning rate controls how quickly the model is adapted to
         the problem, often in the range between 0.0 and 1.0.
-    random_seed (Optional[int]):
-        The global random seed to ensure the system gets a unique random sequence that is
+    random_seed: The global random seed to ensure the system gets a unique random sequence that is
         deterministic (https://www.tensorflow.org/api_docs/python/tf/random/set_seed).
   """
   # fmt: on

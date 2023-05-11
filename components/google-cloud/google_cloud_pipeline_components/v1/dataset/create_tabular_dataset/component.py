@@ -35,11 +35,10 @@ def tabular_dataset_create(
   """
   Creates a new tabular dataset.
   Args:
-      display_name (String):
-          Required. The user-defined name of the Dataset.
+      display_name: The user-defined name of the Dataset.
           The name can be up to 128 characters long and can be consist
           of any UTF-8 characters.
-      gcs_source (Union[str, Sequence[str]]):
+      gcs_source:
           Google Cloud Storage URI(-s) to the
           input file(s). May contain wildcards. For more
           information on wildcards, see
@@ -47,16 +46,12 @@ def tabular_dataset_create(
           examples:
               str: "gs://bucket/file.csv"
               Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
-      bq_source (String):
-          BigQuery URI to the input table.
+      bq_source: BigQuery URI to the input table.
           example:
               "bq://project.dataset.table_name"
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-      labels (JsonObject):
-          Optional. Labels with user-defined metadata to organize your Tensorboards.
+      project: project to retrieve dataset from.
+      location: Optional location to retrieve dataset from.
+      labels: Labels with user-defined metadata to organize your Tensorboards.
           Label keys and values can be no longer than 64 characters
           (Unicode codepoints), can only contain lowercase letters, numeric
           characters, underscores and dashes. International characters are allowed.
@@ -65,8 +60,7 @@ def tabular_dataset_create(
           See https://goo.gl/xmQnxf for more information and examples of labels.
           System reserved label keys are prefixed with "aiplatform.googleapis.com/"
           and are immutable.
-      encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
+      encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the dataset. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
@@ -75,8 +69,7 @@ def tabular_dataset_create(
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
   Returns:
-      tabular_dataset (TabularDataset):
-          Instantiated representation of the managed tabular dataset resource.
+      tabular_dataset: Instantiated representation of the managed tabular dataset resource.
 
   """
   # fmt: on

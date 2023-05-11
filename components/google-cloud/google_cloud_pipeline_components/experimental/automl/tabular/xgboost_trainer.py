@@ -30,16 +30,15 @@ def xgboost_trainer(
   """Launch a XGBoost custom training job using Vertex CustomJob API.
 
   Args:
-      project (str): Required. The GCP project that runs the pipeline
+      project: The GCP project that runs the pipeline
         components.
-      location (str): Required. The GCP region that runs the pipeline
+      location: The GCP region that runs the pipeline
         components.
-      worker_pool_specs (JsonArray): The worker pool specs.
-      encryption_spec_key_name (Optional[str]): The KMS key name.
+      worker_pool_specs: The worker pool specs.
+      encryption_spec_key_name: The KMS key name.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the custom training job.
+      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
   """
   # fmt: on
 

@@ -45,6 +45,7 @@ def feature_attribution(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Compute feature attribution on a trained model's batch explanation results.
 
   Creates a dataflow job with Apache Beam and TFMA to compute feature
@@ -52,55 +53,56 @@ def feature_attribution(
   possible, typically possible for AutoML Classification models.
 
   Args:
-      project (str): Project to run feature attribution container.
-      location (Optional[str]): Location running feature attribution. If not
+      project: Project to run feature attribution container.
+      location: Location running feature attribution. If not
         set, defaulted to `us-central1`.
-      root_dir (str): The GCS directory for keeping staging files. A random
+      root_dir: The GCS directory for keeping staging files. A random
         subdirectory will be created under the directory to keep job info for
         resuming the job in case of failure.
-      predictions_format (Optional[str]): The file format for the batch
+      predictions_format: The file format for the batch
         prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
         formats, from Vertex Batch Prediction. If not set, defaulted to `jsonl`.
-      predictions_gcs_source (Optional[system.Artifact]): An artifact with its
+      predictions_gcs_source: An artifact with its
         URI pointing toward a GCS directory with prediction or explanation files
         to be used for this evaluation. For prediction results, the files should
         be named "prediction.results-*" or "predictions_". For explanation
         results, the files should be named "explanation.results-*".
-      predictions_bigquery_source (Optional[google.BQTable]): BigQuery table
+      predictions_bigquery_source: BigQuery table
         with prediction or explanation data to be used for this evaluation. For
         prediction results, the table column should be named "predicted_*".
-      dataflow_service_account (Optional[str]): Service account to run the
+      dataflow_service_account: Service account to run the
         dataflow job. If not set, dataflow will use the default worker service
         account. For more details, see
         https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
-      dataflow_disk_size (Optional[int]): The disk size (in GB) of the machine
+      dataflow_disk_size: The disk size (in GB) of the machine
         executing the evaluation run. If not set, defaulted to `50`.
-      dataflow_machine_type (Optional[str]): The machine type executing the
+      dataflow_machine_type: The machine type executing the
         evaluation run. If not set, defaulted to `n1-standard-4`.
-      dataflow_workers_num (Optional[int]): The number of workers executing the
+      dataflow_workers_num: The number of workers executing the
         evaluation run. If not set, defaulted to `10`.
-      dataflow_max_workers_num (Optional[int]): The max number of workers
+      dataflow_max_workers_num: The max number of workers
         executing the evaluation run. If not set, defaulted to `25`.
-      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More details:
           https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
+      dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key
+      encryption_spec_key_name: Customer-managed encryption key
         for the Dataflow job. If this is set, then all resources created by the
         Dataflow job will be encrypted with the provided encryption key.
 
   Returns:
-      gcs_output_directory (JsonArray): JsonArray of the downsampled dataset GCS
+      gcs_output_directory: JsonArray of the downsampled dataset GCS
         output.
-      bigquery_output_table (str): String of the downsampled dataset BigQuery
+      bigquery_output_table: String of the downsampled dataset BigQuery
         output.
-      gcp_resources (str): Serialized gcp_resources proto tracking the dataflow
+      gcp_resources: Serialized gcp_resources proto tracking the dataflow
         job.
 
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/model-evaluation:v0.9',
       command=[

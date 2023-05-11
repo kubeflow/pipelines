@@ -30,11 +30,9 @@ def get_vertex_dataset(
   """
   Resolves a dataset artifact to an existing Vertex Dataset.
   Args:
-    dataset_resource_name (str):
-      Required. Vertex Dataset resource name in the format of projects/{project}/locations/{location}/datasets/{dataset}
+    dataset_resource_name: Vertex Dataset resource name in the format of projects/{project}/locations/{location}/datasets/{dataset}
   Returns:
-    dataset (Optional[google.VertexDataset]):
-      Vertex Dataset artifact with a resourceName attribute in the format of projects/{project}/locations/{location}/datasets/{dataset}
+    dataset: Vertex Dataset artifact with a resourceName attribute in the format of projects/{project}/locations/{location}/datasets/{dataset}
 
   """
   # fmt: on

@@ -44,41 +44,33 @@ def bigquery_explain_forecast_model_job(
   This function only applies to the time-series ARIMA_PLUS and ARIMA models.
 
     Args:
-      project (str):
-        Required. Project to run the BigQuery job.
-      location (Optional[str]):
-        Location to run the BigQuery job. If not set,
+      project: Project to run the BigQuery job.
+      location: Location to run the BigQuery job. If not set,
         default to `US` multi-region. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model (google.BQMLModel):
-        Required. BigQuery ML model for ML.EXPLAIN_FORECAST.
+      model: BigQuery ML model for ML.EXPLAIN_FORECAST.
         For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-forecast
-      horizon (Optional[int]):
-        Horizon is the number of time points to explain forecast.
+      horizon: Horizon is the number of time points to explain forecast.
         For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-forecast#horizon
-      confidence_level (Optional[float]):
-        The percentage of the future values that fall in the prediction
+      confidence_level: The percentage of the future values that fall in the prediction
         interval. For more details, see
           https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-forecast#confidence_level
-      query_parameters (Optional[Sequence]):
-        Query parameters for standard SQL queries. If query_parameters are both
+      query_parameters: Query parameters for standard SQL queries. If query_parameters are both
         specified in here and in job_configuration_query, the value in here will
         override the other one.
-      job_configuration_query (Optional[dict]):
-        A json formatted string describing the rest of the job configuration.
+      job_configuration_query: A json formatted string describing the rest of the job configuration.
         For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
         Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name(Optional[List[str]]):
+      encryption_spec_key_name:
         Describes the Cloud
         KMS encryption key that will be used to protect destination
         BigQuery table. The BigQuery Service Account associated with your
@@ -88,13 +80,11 @@ def bigquery_explain_forecast_model_job(
         one.
 
     Returns:
-      destination_table (google.BQTable):
-        Describes the table where the model explain forecast results should
+      destination_table: Describes the table where the model explain forecast results should
         be stored.
         For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-forecast#mlexplain_forecast_output
-      gcp_resources (str):
-        Serialized gcp_resources proto tracking the BigQuery job.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

@@ -41,35 +41,33 @@ def feature_extractor_error_analysis(
   """Extracts feature embeddings of a dataset.
 
   Args:
-      project (str): Required. GCP Project ID.
-      location (Optional[str]): GCP Region. If not set, defaulted to
+      project: GCP Project ID.
+      location: GCP Region. If not set, defaulted to
         `us-central1`.
-      root_dir (str): Required. The GCS directory for keeping staging files. A
+      root_dir: The GCS directory for keeping staging files. A
         random subdirectory will be created under the directory to keep job info
         for resuming the job in case of failure.
-      preprocessed_test_dataset_storage_source (str): Required. Google Cloud
+      preprocessed_test_dataset_storage_source: Google Cloud
         Storage URI to preprocessed test dataset for Vision Analysis pipelines.
-      preprocessed_training_dataset_storage_source (str): Required. Google Cloud
+      preprocessed_training_dataset_storage_source: Google Cloud
         Storage URI to preprocessed training dataset for Vision Error Analysis
         pipelines.
-      test_dataset (Optional[google.VertexDataset]): A google.VertexDataset
+      test_dataset: A google.VertexDataset
         artifact of the test dataset.
-      training_dataset (Optional[google.VertexDataset]): A google.VertexDataset
+      training_dataset: A google.VertexDataset
         artifact of the training dataset.
-      feature_extractor_machine_type (Optional[str]): The machine type executing
+      feature_extractor_machine_type: The machine type executing
         the Apache Beam pipeline using DirectRunner. If not set, defaulted to
         `n1-standard-32`. More details:
         https://cloud.google.com/compute/docs/machine-resource
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key
+      encryption_spec_key_name: Customer-managed encryption key
         options for the CustomJob. If this is set, then all resources created by
         the CustomJob will be encrypted with the provided encryption key.
 
   Returns:
-      embeddings_dir (str):
-          Google Cloud Storage URI to computed feature embeddings of the image
+      embeddings_dir: Google Cloud Storage URI to computed feature embeddings of the image
           datasets.
-      gcp_resources (str):
-        Serialized gcp_resources proto tracking the custom job.
+      gcp_resources: Serialized gcp_resources proto tracking the custom job.
 
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.

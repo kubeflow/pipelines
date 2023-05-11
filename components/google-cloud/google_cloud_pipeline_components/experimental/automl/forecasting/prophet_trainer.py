@@ -50,53 +50,51 @@ def prophet_trainer(
   """Launch a Prophet custom training job using Vertex CustomJob API.
 
   Args:
-      project (str): The GCP project that runs the pipeline components.
-      location (str): The GCP region for Vertex AI.
-      root_dir (str): The Cloud Storage location to store the output.
-      time_column (str): Name of the column that identifies time order in the
+      project: The GCP project that runs the pipeline components.
+      location: The GCP region for Vertex AI.
+      root_dir: The Cloud Storage location to store the output.
+      time_column: Name of the column that identifies time order in the
         time series.
-      time_series_identifier_column (str): Name of the column that identifies
+      time_series_identifier_column: Name of the column that identifies
         the time series.
-      target_column (str): Name of the column that the model is to predict
+      target_column: Name of the column that the model is to predict
         values for.
-      forecast_horizon (int): The number of time periods into the future for
+      forecast_horizon: The number of time periods into the future for
         which forecasts will be created. Future periods start after the latest
         timestamp for each time series.
-      optimization_objective (str): Optimization objective for tuning. Supported
+      optimization_objective: Optimization objective for tuning. Supported
         metrics come from Prophet's performance_metrics function. These are mse,
         rmse, mae, mape, mdape, smape, and coverage.
-      data_granularity_unit (str): String representing the units of time for the
+      data_granularity_unit: String representing the units of time for the
         time column.
-      predefined_split_column (str): The predefined_split column name. A string
+      predefined_split_column: The predefined_split column name. A string
         that represents a list of comma separated CSV filenames.
-      source_bigquery_uri (str): The BigQuery table path of format
+      source_bigquery_uri: The BigQuery table path of format
           bq (str)://bq_project.bq_dataset.bq_table
-      window_column (str): Name of the column that should be used to filter
+      window_column: Name of the column that should be used to filter
         input rows.  The column should contain either booleans or string
         booleans; if the value of the row is True, generate a sliding window
         from that row.
-      max_num_trials (Optional[int]): Maximum number of tuning trials to perform
+      max_num_trials: Maximum number of tuning trials to perform
         per time series. There are up to 100 possible combinations to explore
         for each time series. Recommended values to try are 3, 6, and 24.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
-      dataflow_machine_type (Optional[str]): The dataflow machine type used for
+      encryption_spec_key_name: Customer-managed encryption key.
+      dataflow_machine_type: The dataflow machine type used for
         training.
-      dataflow_max_num_workers (Optional[int]): The max number of Dataflow
+      dataflow_max_num_workers: The max number of Dataflow
         workers used for training.
-      dataflow_disk_size_gb (Optional[int]): Dataflow worker's disk size in GB
+      dataflow_disk_size_gb: Dataflow worker's disk size in GB
         during training.
-      dataflow_service_account (Optional[str]): Custom service account to run
+      dataflow_service_account: Custom service account to run
         dataflow jobs.
-      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used.
-      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
+      dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the custom training job.
-      unmanaged_container_model (google.UnmanagedContainerModel):
-          The UnmanagedContainerModel artifact.
+      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
+      unmanaged_container_model: The UnmanagedContainerModel artifact.
   """
   # fmt: on
 

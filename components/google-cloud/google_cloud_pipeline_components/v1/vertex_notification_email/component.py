@@ -31,11 +31,9 @@ def vertex_pipelines_notification_email(
   exception when run on Kubeflow Pipelines.
 
   Args:
-    recipients (List[str]):
-      A list of email addresses to send this notification
+    recipients: A list of email addresses to send this notification
       to.
-    pipeline_task_final_status (PipelineTaskFinalStatus):
-      The task final status
+    pipeline_task_final_status: The task final status
       of the upstream DAG that this component will use in the notification.
   """
   # fmt: on
