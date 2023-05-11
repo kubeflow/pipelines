@@ -156,7 +156,7 @@ function TaskNodeDetail({
       {command && (
         <div>
           <div className='text-xl font-bold pt-6'>Command</div>
-          <div className='font-mono '>
+          <div className='font-mono'>
             {command.map((cmd, index) => {
               return (
                 <div key={index} style={{ whiteSpace: 'pre-wrap' }}>
@@ -170,9 +170,13 @@ function TaskNodeDetail({
       {args && (
         <div>
           <div className='text-xl font-bold pt-6'>Arguments</div>
-          <div className='font-mono '>
+          <div className='font-mono'>
             {args.map((arg, index) => {
-              return <div key={index}>{arg}</div>;
+              return (
+                <div key={index} style={{ whiteSpace: 'pre-wrap' }}>
+                  {arg}
+                </div>
+              );
             })}
           </div>
         </div>

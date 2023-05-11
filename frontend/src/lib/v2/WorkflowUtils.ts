@@ -69,8 +69,8 @@ export function isTemplateV2(templateString: string): boolean {
 
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
-  const pipelineSpecYAML = getPipelineDefFromYaml(template);
-  const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);
+  const pipelineSpecDef = getPipelineDefFromYaml(template);
+  const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecDef);
   if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
   }
@@ -85,8 +85,8 @@ export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
 }
 
 export function convertYamlToPlatformSpec(template: string) {
-  const platformSpecYaml = getPlatformDefFromYaml(template);
-  const platformSpec = PlatformSpec.fromJSON(platformSpecYaml || '');
+  const platformSpecDef = getPlatformDefFromYaml(template);
+  const platformSpec = PlatformSpec.fromJSON(platformSpecDef || '');
   return Object.keys(platformSpec.platforms).length !== 0 ? platformSpec : undefined;
 }
 
@@ -116,20 +116,23 @@ export function isPipelineSpec(templateString: string) {
 // the `container` object for its image, command, arguments, etc.
 export function getContainer(componentSpec: ComponentSpec, templateString: string) {
   const executionLabel = componentSpec?.executorLabel;
+  if (!executionLabel) {
+    return null;
+  }
 
-  const pipelineSpecYAML = getPipelineDefFromYaml(templateString);
-  const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecYAML);
-  const deploymentSpecObj = pipelineSpec.deploymentSpec;
+  const pipelineSpecDef = getPipelineDefFromYaml(templateString);
+  const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
+  const deploymentSpecObj = pipelineSpec?.deploymentSpec;
   if (!pipelineSpec || !deploymentSpecObj) {
     return null;
   }
 
   const deploymentSpec = PipelineDeploymentConfig.fromJSON(deploymentSpecObj);
-  const executorsObj = deploymentSpec.executors;
+  const executorsObj = deploymentSpec?.executors;
   if (!executorsObj || !executionLabel) {
     return null;
   }
 
   const executorSpec = PipelineDeploymentConfig_ExecutorSpec.fromJSON(executorsObj[executionLabel]);
-  return executorSpec.container;
+  return executorSpec ? executorSpec.container : null;
 }

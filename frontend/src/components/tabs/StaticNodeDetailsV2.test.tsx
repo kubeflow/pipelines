@@ -80,6 +80,22 @@ describe('StaticNodeDetailsV2', () => {
 
     screen.getByText('Command');
     expect(screen.getAllByText('sh').length).toEqual(2);
+    // The yaml file we used in this test has command as follow:
+    /* 
+      sh
+      -c
+
+      if ! [ -x "$(command -v pip)" ]; then
+          python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+      fi
+
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.5' && "$0" "$@"
+      sh
+      -ec
+      program_path=$(mktemp -d)
+      ...
+    */
+    // Thus, we can find 2 'sh'
     screen.getByText('-c');
 
     screen.getByText('Arguments');
@@ -119,6 +135,7 @@ describe('StaticNodeDetailsV2', () => {
 
     screen.getByText('Command');
     expect(screen.getAllByText('sh').length).toEqual(2);
+    // See Line 83
     screen.getByText('-c');
 
     screen.getByText('Arguments');
