@@ -991,7 +991,7 @@ func (s *PipelineServer) canAccessPipelineVersion(ctx context.Context, versionId
 }
 
 // Checks if a user can access a pipeline.
-// Adds parent namespace of pipeline id is not empty,
+// Adds parent namespace if pipeline id is not empty,
 // API group, version, and resource type.
 func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if !common.IsMultiUserMode() {
