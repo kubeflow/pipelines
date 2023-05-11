@@ -20,5 +20,4 @@ export {
   PlatformSpec,
   PipelineDeploymentConfig,
   PipelineDeploymentConfig_ExecutorSpec,
-  PipelineDeploymentConfig_PipelineContainerSpec
 } from './pipeline_spec';
