@@ -67,7 +67,7 @@ def tabular_stats_and_example_gen(
     enable_probabilistic_inference: Optional[bool] = False,
 ):
   # fmt: off
-  """Statistics and example gen for tabular data
+  """Statistics and example gen for tabular data.
 
   Args:
       project: Project to run dataset statistics and example

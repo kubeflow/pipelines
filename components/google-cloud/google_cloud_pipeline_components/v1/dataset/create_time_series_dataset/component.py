@@ -32,8 +32,8 @@ def time_series_dataset_create(
     encryption_spec_key_name: Optional[str] = None,
 ):
   # fmt: off
-  """
-  Creates a new time series dataset.
+  """Creates a new time series dataset.
+
   Args:
       display_name: The user-defined name of the Dataset.
           The name can be up to 128 characters long and can be consist
@@ -70,7 +70,6 @@ def time_series_dataset_create(
           Overrides encryption_spec_key_name set in aiplatform.init.
   Returns:
       time_series_dataset: Instantiated representation of the managed time series dataset resource.
-
   """
   # fmt: on
 

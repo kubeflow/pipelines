@@ -37,11 +37,12 @@ __all__ = [
 ModelImportEvaluationOp = components.load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml')
 )
-"""
-Imports a model evaluation artifact to an existing Vertex model with ModelService.ImportModelEvaluation
-For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models.evaluations
-One of the four metrics inputs must be provided, metrics & problem_type, classification_metrics,
-regression_metrics, or forecasting_metrics.
+"""Imports a model evaluation artifact to an existing Vertex model with
+ModelService.ImportModelEvaluation For more details, see
+https://cloud.google.com/vertex-
+ai/docs/reference/rest/v1/projects.locations.models.evaluations One of the four
+metrics inputs must be provided, metrics & problem_type,
+classification_metrics, regression_metrics, or forecasting_metrics.
 
 Args:
   model: Vertex model resource that will be the parent resource of the uploaded evaluation.

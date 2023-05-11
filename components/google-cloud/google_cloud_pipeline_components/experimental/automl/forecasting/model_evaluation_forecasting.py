@@ -53,7 +53,8 @@ def model_evaluation_forecasting(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """Computes a google.ForecastingMetrics Artifact, containing evaluation metrics given a model's prediction results.
+  """Computes a google.ForecastingMetrics Artifact, containing evaluation
+  metrics given a model's prediction results.
 
   Creates a dataflow job with Apache Beam and TFMA to compute evaluation
   metrics.

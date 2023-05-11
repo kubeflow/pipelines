@@ -42,7 +42,7 @@ def automl_forecasting_stage_1_tuner(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """AutoML Forecasting stage 1 tuner
+  """AutoML Forecasting stage 1 tuner.
 
   Args:
       project: Project to run hyperparameter tuning.

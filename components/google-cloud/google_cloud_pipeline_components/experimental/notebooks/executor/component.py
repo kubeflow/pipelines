@@ -43,8 +43,7 @@ def notebooks_executor(
     fail_pipeline: Optional[bool] = True,
 ):
   # fmt: off
-  """
-  Executes a notebook using the Notebooks Executor API.
+  """Executes a notebook using the Notebooks Executor API.
 
   The component uses the same inputs as the Notebooks Executor API and additional
   ones for blocking and failing the pipeline.
@@ -94,7 +93,6 @@ def notebooks_executor(
 
   Raises:
     RuntimeError with the error message.
-
   """
   # fmt: on
 

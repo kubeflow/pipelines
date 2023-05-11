@@ -53,7 +53,8 @@ def model_evaluation_regression(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Computes a google.RegressionMetrics Artifact, containing evaluation metrics given a model's prediction results.
+  """Computes a google.RegressionMetrics Artifact, containing evaluation
+  metrics given a model's prediction results.
 
   Creates a dataflow job with Apache Beam and TFMA to compute evaluation
   metrics.

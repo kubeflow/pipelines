@@ -33,9 +33,9 @@ def text_dataset_create(
     encryption_spec_key_name: Optional[str] = None,
 ):
   # fmt: off
-  """
-  Creates a new text dataset and optionally imports data into dataset
-  when source and import_schema_uri are passed.
+  """Creates a new text dataset and optionally imports data into dataset when
+  source and import_schema_uri are passed.
+
   Args:
       display_name: The user-defined name of the Dataset.
           The name can be up to 128 characters long and can be consist
@@ -88,7 +88,6 @@ def text_dataset_create(
           Overrides encryption_spec_key_name set in aiplatform.init.
   Returns:
       text_dataset: Instantiated representation of the managed text dataset resource.
-
   """
   # fmt: on
 

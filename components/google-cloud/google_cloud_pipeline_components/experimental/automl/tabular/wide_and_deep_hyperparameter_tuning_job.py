@@ -61,7 +61,8 @@ def wide_and_deep_hyperparameter_tuning_job(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """Launch a Wide & Deep hyperparameter tuning job using Vertex HyperparameterTuningJob API.
+  """Launch a Wide & Deep hyperparameter tuning job using Vertex
+  HyperparameterTuningJob API.
 
   Args:
       project: The GCP project that runs the pipeline

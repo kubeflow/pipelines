@@ -59,7 +59,8 @@ def model_batch_predict(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Creates a Google Cloud Vertex BatchPredictionJob and waits for it to complete.
+  """Creates a Google Cloud Vertex BatchPredictionJob and waits for it to
+  complete.
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create.

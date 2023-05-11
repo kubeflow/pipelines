@@ -25,8 +25,7 @@ def forecasting_validation(
     location: Optional[str] = 'US',
 ):
   # fmt: off
-  """
-  Validates BigQuery tables for training or prediction.
+  """Validates BigQuery tables for training or prediction.
 
   Validates BigQuery tables for training or prediction based on predefined
   requirements. For training, a primary table is required. Optionally, you
@@ -40,7 +39,6 @@ def forecasting_validation(
 
   Returns:
     None
-
   """
   # fmt: on
 

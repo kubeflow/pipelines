@@ -23,9 +23,9 @@ def wait_gcp_resources(
     output__gcp_resources: OutputPath(str),
 ):
   # fmt: off
-  """
-  Receives a GCP Resource, polling the resource status and waits for it to finish.
-  Currently this component only support waiting on a DataflowJob resource.
+  """Receives a GCP Resource, polling the resource status and waits for it to
+  finish. Currently this component only support waiting on a DataflowJob
+  resource.
 
   To use this component, first create a component that outputs a JSON formatted gcp_resources proto, then pass it to the wait component.
 
@@ -47,7 +47,6 @@ def wait_gcp_resources(
 
   Returns:
     gcp_resources: The final result of the gcp resource, including the error information, if exists.
-
   """
   # fmt: on
   return dsl.ContainerSpec(

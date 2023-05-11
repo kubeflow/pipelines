@@ -37,7 +37,8 @@ def bigquery_ml_principal_component_info_job(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Launch a BigQuery ML.principal_component_info job and waits for it to finish.
+  """Launch a BigQuery ML.principal_component_info job and waits for it to
+  finish.
 
   Args:
       project: Project to run BigQuery

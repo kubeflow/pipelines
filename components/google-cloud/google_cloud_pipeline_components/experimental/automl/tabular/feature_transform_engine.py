@@ -82,7 +82,8 @@ def feature_transform_engine(
     autodetect_csv_schema: Optional[bool] = False,
 ):
   # fmt: off
-  """Feature Transform Engine (FTE) component to transform raw data to engineered features.
+  """Feature Transform Engine (FTE) component to transform raw data to
+  engineered features.
 
   FTE performs dataset level transformations, data splitting, data statistic
   generation, and

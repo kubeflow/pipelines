@@ -32,8 +32,8 @@ def tabular_dataset_create(
     encryption_spec_key_name: Optional[str] = None,
 ):
   # fmt: off
-  """
-  Creates a new tabular dataset.
+  """Creates a new tabular dataset.
+
   Args:
       display_name: The user-defined name of the Dataset.
           The name can be up to 128 characters long and can be consist
@@ -70,7 +70,6 @@ def tabular_dataset_create(
           Overrides encryption_spec_key_name set in aiplatform.init.
   Returns:
       tabular_dataset: Instantiated representation of the managed tabular dataset resource.
-
   """
   # fmt: on
 

@@ -37,7 +37,8 @@ def bigquery_ml_arima_coefficients(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Launch a BigQuery ML.ARIMA_COEFFICIENTS job and let you see the ARIMA coefficients.
+  """Launch a BigQuery ML.ARIMA_COEFFICIENTS job and let you see the ARIMA
+  coefficients.
 
   This function only applies to the time-series ARIMA_PLUS and ARIMA models.
 

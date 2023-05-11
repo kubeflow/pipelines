@@ -41,7 +41,8 @@ def model_upload(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Uploads a model and returns a Model representing the uploaded Model resource.
+  """Uploads a model and returns a Model representing the uploaded Model
+  resource.
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload.

@@ -27,8 +27,7 @@ def forecasting_preprocessing(
     location: Optional[str] = 'US',
 ):
   # fmt: off
-  """
-  Preprocesses BigQuery tables for training or prediction.
+  """Preprocesses BigQuery tables for training or prediction.
 
   Creates a BigQuery table for training or prediction based on the input tables.
   For training, a primary table is required. Optionally, you can include some
@@ -44,7 +43,6 @@ def forecasting_preprocessing(
 
   Returns:
     preprocess_metadata (JsonObject)
-
   """
   # fmt: on
 

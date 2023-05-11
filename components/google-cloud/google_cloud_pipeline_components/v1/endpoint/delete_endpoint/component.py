@@ -24,9 +24,9 @@ def endpoint_delete(
     gcp_resources: dsl.OutputPath(str),
 ):
   # fmt: off
-  """
-  Deletes a Google Cloud Vertex Endpoint.
-  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete.
+  """Deletes a Google Cloud Vertex Endpoint. For more details, see
+  https://cloud.google.com/vertex-
+  ai/docs/reference/rest/v1/projects.locations.endpoints/delete.
 
   Args:
       endpoint: The endpoint to be deleted.

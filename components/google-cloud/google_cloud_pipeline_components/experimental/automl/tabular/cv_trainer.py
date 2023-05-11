@@ -42,7 +42,7 @@ def automl_tabular_cv_trainer(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """AutoML Tabular cross-validation trainer
+  """AutoML Tabular cross-validation trainer.
 
   Args:
       project: Project to run Cross-validation trainer.

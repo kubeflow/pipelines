@@ -48,7 +48,7 @@ def automl_tabular_stage_1_tuner(
     run_distillation: Optional[bool] = False,
 ):
   # fmt: off
-  """AutoML Tabular stage 1 tuner
+  """AutoML Tabular stage 1 tuner.
 
   Args:
       project: Project to run Cross-validation trainer.

@@ -39,7 +39,8 @@ def bigquery_forecast_model_job(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Launch a BigQuery ML.FORECAST job and let you forecast an ARIMA_PLUS or ARIMA model.
+  """Launch a BigQuery ML.FORECAST job and let you forecast an ARIMA_PLUS or
+  ARIMA model.
 
   This function only applies to the time-series ARIMA_PLUS and ARIMA models.
 
