@@ -34,8 +34,8 @@ def video_dataset_import(
     import_schema_uri: Optional[str] = None,
 ):
   # fmt: off
-  """
-  Upload data to existing managed dataset.
+  """Upload data to existing managed dataset.
+
   Args:
       project: project to retrieve dataset from.
       location: Optional location to retrieve dataset from.
@@ -69,7 +69,6 @@ def video_dataset_import(
           e.g. jsonl file.
   Returns:
       dataset: Instantiated representation of the managed dataset resource.
-
   """
   # fmt: on
 

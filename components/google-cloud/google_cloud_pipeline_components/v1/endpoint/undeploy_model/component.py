@@ -29,9 +29,9 @@ def model_undeploy(
     traffic_split: Dict[str, str] = {},
 ):
   # fmt: off
-  """
-  Undeploys a Google Cloud Vertex DeployedModel within the Endpoint.
-  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
+  """Undeploys a Google Cloud Vertex DeployedModel within the Endpoint. For
+  more details, see https://cloud.google.com/vertex-
+  ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
 
   Args:
       model: The model that was deployed to the Endpoint.

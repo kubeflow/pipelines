@@ -20,9 +20,9 @@ from kfp.dsl import Input
 @dsl.container_component
 def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
   # fmt: off
-  """
-  Deletes a Google Cloud Vertex Model.
-  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/delete.
+  """Deletes a Google Cloud Vertex Model. For more details, see
+  https://cloud.google.com/vertex-
+  ai/docs/reference/rest/v1/projects.locations.models/delete.
 
   Args:
       model: The model to be deleted.

@@ -44,7 +44,8 @@ def model_deploy(
     explanation_parameters: Dict[str, str] = {},
 ):
   # fmt: off
-  """Deploys a Google Cloud Vertex Model to the Endpoint, creating a DeployedModel within it.
+  """Deploys a Google Cloud Vertex Model to the Endpoint, creating a
+  DeployedModel within it.
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel.

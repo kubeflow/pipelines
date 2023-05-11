@@ -46,8 +46,7 @@ def train_tfhub_model(
     test_steps_per_epoch: Optional[int] = -1,
 ):
   # fmt: off
-  """
-    Launch Vertex CustomJob to train a new Cloud natural language TFHub model.
+  """Launch Vertex CustomJob to train a new Cloud natural language TFHub model.
 
   Args:
       project: GCP project to run CustomJob.
@@ -99,7 +98,6 @@ def train_tfhub_model(
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
       model_output: Artifact tracking the batch prediction job output. This is only available if
           gcs_destination_output_uri_prefix is specified.
-
   """
   # fmt: on
 

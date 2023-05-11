@@ -40,7 +40,8 @@ def hyperparameter_tuning_job(
     network: str = '',
 ):
   # fmt: off
-  """Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for it to complete.
+  """Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for
+  it to complete.
 
   For example usage, see
   https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/experimental/hyperparameter_tuning_job/hp_tuning_job_sample.ipynb.

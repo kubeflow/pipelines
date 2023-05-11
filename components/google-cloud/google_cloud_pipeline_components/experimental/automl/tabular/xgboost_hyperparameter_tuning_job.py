@@ -35,7 +35,8 @@ def xgboost_hyperparameter_tuning_job(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """Launch a XGBoost hyperparameter tuning job using Vertex HyperparameterTuningJob API.
+  """Launch a XGBoost hyperparameter tuning job using Vertex
+  HyperparameterTuningJob API.
 
   Args:
       project: The GCP project that runs the pipeline

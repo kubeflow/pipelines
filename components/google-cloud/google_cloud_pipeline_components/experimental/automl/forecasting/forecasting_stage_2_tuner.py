@@ -41,7 +41,7 @@ def automl_forecasting_stage_2_tuner(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """AutoML Forecasting stage 2 tuner
+  """AutoML Forecasting stage 2 tuner.
 
   Args:
       project: Project to run stage 2 tuner.

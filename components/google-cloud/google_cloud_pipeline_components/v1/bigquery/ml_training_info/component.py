@@ -36,7 +36,8 @@ def bigquery_ml_training_info_job(
     labels: Dict[str, str] = {},
 ):
   # fmt: off
-  """Launch a BigQuery ml training info fetching job and waits for it to finish.
+  """Launch a BigQuery ml training info fetching job and waits for it to
+  finish.
 
   Args:
       project: Project to run BigQuery ML training info job.

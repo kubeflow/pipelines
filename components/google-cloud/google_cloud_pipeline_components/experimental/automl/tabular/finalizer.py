@@ -27,7 +27,7 @@ def automl_tabular_finalizer(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """Finalizer for AutoML Tabular pipelines
+  """Finalizer for AutoML Tabular pipelines.
 
   Args:
       project: Project to run Cross-validation trainer.

@@ -46,7 +46,7 @@ def automl_tabular_ensemble(
     export_additional_model_without_custom_ops: Optional[bool] = False,
 ):
   # fmt: off
-  """Ensemble AutoML Tabular models
+  """Ensemble AutoML Tabular models.
 
   Args:
       project: Project to run Cross-validation trainer.

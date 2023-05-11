@@ -47,7 +47,7 @@ def automl_tabular_transform(
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """Transformation raw features to engineered features
+  """Transformation raw features to engineered features.
 
   Args:
       project: Project to run Cross-validation trainer.

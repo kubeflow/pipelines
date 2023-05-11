@@ -219,7 +219,6 @@ def GetWorkerPoolSpecsOp(best_hyperparameters: list,
       List containing an intermediate JSON representation of the
       worker_pool_specs updated with the best hyperparameters as arguments
       in the container_spec.
-
   """
   from google.cloud.aiplatform_v1.types import study
 

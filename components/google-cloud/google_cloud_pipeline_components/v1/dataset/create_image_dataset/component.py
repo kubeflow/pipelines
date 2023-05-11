@@ -31,9 +31,8 @@ def image_dataset_create(
     encryption_spec_key_name: Optional[str] = None,
 ):
   # fmt: off
-  """
-  Creates a new image dataset and optionally imports data into dataset
-  when source and import_schema_uri are passed.
+  """Creates a new image dataset and optionally imports data into dataset when
+  source and import_schema_uri are passed.
 
   Args:
       display_name: The user-defined name of the Dataset.

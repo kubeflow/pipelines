@@ -46,7 +46,8 @@ def feature_attribution(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Compute feature attribution on a trained model's batch explanation results.
+  """Compute feature attribution on a trained model's batch explanation
+  results.
 
   Creates a dataflow job with Apache Beam and TFMA to compute feature
   attributions. Will compute feature attribution for every target label if

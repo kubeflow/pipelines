@@ -29,8 +29,8 @@ def image_dataset_export(
     location: Optional[str] = 'us-central1',
 ):
   # fmt: off
-  """
-  Exports data to output dir to GCS.
+  """Exports data to output dir to GCS.
+
   Args:
       output_dir: The Google Cloud Storage location where the output is to
           be written to. In the given directory a new directory will be
@@ -48,7 +48,6 @@ def image_dataset_export(
       location: Optional location to retrieve dataset from.
   Returns:
       exported_files: All of the files that are exported in this export operation.
-
   """
   # fmt: on
 
