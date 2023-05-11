@@ -31,25 +31,32 @@ import { RoutePage } from 'src/components/Router';
 import TestUtils from 'src/TestUtils';
 import { ArtifactList } from 'src/pages/ArtifactList';
 import { PageProps } from 'src/pages/Page';
+import { testBestPractices } from 'src/TestUtils';
+
+testBestPractices();
 
 describe('ArtifactList', () => {
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
-
-  const getArtifactsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
-  const getArtifactTypesSpy = jest.spyOn(
-    Api.getInstance().metadataStoreService,
-    'getArtifactTypes',
-  );
+  let updateBannerSpy: jest.Mock<{}>;
+  let updateDialogSpy: jest.Mock<{}>;
+  let updateSnackbarSpy: jest.Mock<{}>;
+  let updateToolbarSpy: jest.Mock<{}>;
+  let historyPushSpy: jest.Mock<{}>;
+  let getArtifactsSpy: jest.Mock<{}>;
+  let getArtifactTypesSpy: jest.Mock<{}>;
 
   const listOperationOpts = new ListOperationOptions();
   listOperationOpts.setMaxResultSize(10);
   const getArtifactsRequest = new GetArtifactsRequest();
   getArtifactsRequest.setOptions(listOperationOpts),
     beforeEach(() => {
+      updateBannerSpy = jest.fn();
+      updateDialogSpy = jest.fn();
+      updateSnackbarSpy = jest.fn();
+      updateToolbarSpy = jest.fn();
+      historyPushSpy = jest.fn();
+      getArtifactsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
+      getArtifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
+
       getArtifactTypesSpy.mockImplementation(() => {
         const artifactType = new ArtifactType();
         artifactType.setId(6);
