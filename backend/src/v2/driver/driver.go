@@ -245,32 +245,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return nil, err
 	}
 
-	// When the container image is a dummy image, there is no launcher for this task.
-	// This happens when this task is created to implements a Kubernetes-specific configuration, i.e., there is nothing to run.
-
-	var pvcName string
-	if opts.Container.Image == createPVCImage {
-		k8sClient, err := createK8sClient()
-		if err != nil {
-			return nil, fmt.Errorf("failure creating PVC: cannot generate k8s clientset: %w", err)
-		}
-		pvcName, err = createPVC(k8sClient, inputs, opts.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("failure creating PVC: %w", err)
-		}
-	}
-
-	if opts.Container.Image == deletePVCImage {
-		k8sClient, err := createK8sClient()
-		if err != nil {
-			return nil, fmt.Errorf("failure deleting PVC: cannot generate k8s clientset: %w", err)
-		}
-		err = deletePVC(k8sClient, inputs, opts.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("failure deleting PVC: %w", err)
-		}
-	}
-
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
@@ -339,27 +313,17 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	// Write execution details to mlmd. This is usually done in launcher, but we skip launcher when acting Kubernetes specific actions.
-	// Thus we need to write the execution info in the driver.
+	// When the container image is a dummy image, there is no launcher for this task.
+	// This happens when this task is created to implements a Kubernetes-specific configuration, i.e.,
+	// there is no user container to run.
+	// In this case we also publish execution details to mlmd in driver, which is usually done in launcher.
+	// We also skip creating the podspecpatch in these cases.
 	if opts.Container.Image == createPVCImage {
-		executorOutput := &pipelinespec.ExecutorOutput{
-			ParameterValues: map[string]*structpb.Value{},
-			Artifacts:       map[string]*pipelinespec.ArtifactList{},
-		}
-		executorOutput.ParameterValues["name"] = structpb.NewStringValue(pvcName)
-
-		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), nil, pb.Execution_COMPLETE); err != nil {
-			return execution, fmt.Errorf("failed to publish execution: %w", err)
-		}
-		glog.Infof("Published this execution (createpvc).")
-		return execution, nil
+		return execution, createPVCandPublish(inputs, opts.Namespace, mlmd, ctx, createdExecution)
 	}
+
 	if opts.Container.Image == deletePVCImage {
-		if err := mlmd.PublishExecution(ctx, createdExecution, nil, nil, pb.Execution_COMPLETE); err != nil {
-			return execution, fmt.Errorf("failed to publish execution: %w", err)
-		}
-		glog.Infof("Published this execution (deletepvc).")
-		return execution, nil
+		return execution, deletePVCandPublish(inputs, opts.Namespace, mlmd, ctx, createdExecution)
 	}
 
 	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
@@ -1116,6 +1080,136 @@ var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
 	"ReadOnlyMany":     k8score.ReadOnlyMany,
 	"ReadWriteMany":    k8score.ReadWriteMany,
 	"ReadWriteOncePod": k8score.ReadWriteOncePod,
+}
+
+// createPVCandPublish() creates the PVC and publishes the execution to MLMD, regardless of the
+// creation succeeds or not. However, if we failed to initiate the k8s client, we cannot
+// publish the execution.
+func createPVCandPublish(
+	inputs *pipelinespec.ExecutorInput_Inputs,
+	namespace string,
+	mlmd *metadata.Client,
+	ctx context.Context,
+	execution *metadata.Execution,
+) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to create pvc and publish execution %s: %w", execution.TaskName(), err)
+		}
+	}()
+	// If we cannot create Kubernetes client, we cannot publish this execution
+	k8sClient, err := createK8sClient()
+	if err != nil {
+		return fmt.Errorf("cannot generate k8s clientset: %w", err)
+	}
+
+	var outputParameters map[string]*structpb.Value
+	status := pb.Execution_FAILED
+	defer func() {
+		// We publish the execution regardless of whether PVC creation succeeds or not
+		perr := publishDriverExecution(k8sClient, mlmd, ctx, execution, outputParameters, nil, status)
+		if perr != nil && err != nil {
+			err = fmt.Errorf("failed to publish driver execution: %w. Also failed to create PVC: %w", perr, err)
+		} else if perr != nil {
+			err = fmt.Errorf("failed to publish driver execution: %w", perr)
+		}
+	}()
+
+	pvcName, err := createPVC(k8sClient, inputs, namespace)
+	if err != nil {
+		return err
+	}
+	outputParameters = map[string]*structpb.Value{
+		"name": structpb.NewStringValue(pvcName),
+	}
+	status = pb.Execution_COMPLETE
+	return nil
+}
+
+// deletePVCandPublish() deletes the PVC and publishes the execution to MLMD, regardless of the
+// creation succeeds or not. However, if we failed to initiate the k8s client, we cannot
+// publish the execution.
+func deletePVCandPublish(
+	inputs *pipelinespec.ExecutorInput_Inputs,
+	namespace string,
+	mlmd *metadata.Client,
+	ctx context.Context,
+	execution *metadata.Execution,
+) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to delete pvc and publish execution %s: %w", execution.TaskName(), err)
+		}
+	}()
+	// If we cannot create Kubernetes client, we cannot publish this execution
+	k8sClient, err := createK8sClient()
+	if err != nil {
+		return fmt.Errorf("cannot generate k8s clientset: %w", err)
+	}
+
+	status := pb.Execution_FAILED
+	defer func() {
+		// We publish the execution regardless of whether PVC creation succeeds or not
+		perr := publishDriverExecution(k8sClient, mlmd, ctx, execution, nil, nil, status)
+		if perr != nil && err != nil {
+			err = fmt.Errorf("failed to publish driver execution: %w. Also failed to delete PVC: %w", perr, err)
+		} else if perr != nil {
+			err = fmt.Errorf("failed to publish driver execution: %w", perr)
+		}
+	}()
+
+	err = deletePVC(k8sClient, inputs, namespace)
+	if err != nil {
+		return err
+	}
+	status = pb.Execution_COMPLETE
+	return nil
+}
+
+// Usually we publish the execution in launcher, but for Kubernetes-specific operations,
+// we skip the launcher. So this function is only used in these special cases.
+func publishDriverExecution(
+	k8sClient *kubernetes.Clientset,
+	mlmd *metadata.Client,
+	ctx context.Context,
+	execution *metadata.Execution,
+	outputParameters map[string]*structpb.Value,
+	outputArtifacts []*metadata.OutputArtifact,
+	status pb.Execution_State,
+) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to publish driver execution %s: %w", execution.TaskName(), err)
+		}
+	}()
+	namespace, err := config.InPodNamespace()
+	if err != nil {
+		return fmt.Errorf("error getting namespace: %w", err)
+	}
+
+	podName, err := config.InPodName()
+	if err != nil {
+		return fmt.Errorf("error getting pod name: %w", err)
+	}
+
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error retrieving info for pod %s: %w", podName, err)
+	}
+
+	ecfg := &metadata.ExecutionConfig{
+		PodName:   podName,
+		PodUID:    string(pod.UID),
+		Namespace: namespace,
+	}
+	if _, err := mlmd.PrePublishExecution(ctx, execution, ecfg); err != nil {
+		return fmt.Errorf("failed to prepublish: %w", err)
+	}
+	if err = mlmd.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status); err != nil {
+		return fmt.Errorf("failed to publish: %w", err)
+	}
+	glog.Infof("Published execution of Kubernetes platform task %s.", execution.TaskName())
+	return nil
 }
 
 func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvcName string, err error) {
