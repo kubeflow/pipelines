@@ -27,29 +27,38 @@ import {
 } from 'src/third_party/mlmd';
 import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { RoutePage } from 'src/components/Router';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { testBestPractices } from 'src/TestUtils';
 import ExecutionList from 'src/pages/ExecutionList';
 import { PageProps } from 'src/pages/Page';
 import { CommonTestWrapper } from 'src/TestWrapper';
 
-describe('ExecutionList', () => {
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
+testBestPractices();
 
-  const getExecutionsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
-  const getExecutionTypesSpy = jest.spyOn(
-    Api.getInstance().metadataStoreService,
-    'getExecutionTypes',
-  );
+describe('ExecutionList', () => {
+  let updateBannerSpy: jest.Mock<{}>;
+  let updateDialogSpy: jest.Mock<{}>;
+  let updateSnackbarSpy: jest.Mock<{}>;
+  let updateToolbarSpy: jest.Mock<{}>;
+  let historyPushSpy: jest.Mock<{}>;
+  let getExecutionsSpy: jest.Mock<{}>;
+  let getExecutionTypesSpy: jest.Mock<{}>;
 
   const listOperationOpts = new ListOperationOptions();
   listOperationOpts.setMaxResultSize(10);
   const getExecutionsRequest = new GetExecutionsRequest();
   getExecutionsRequest.setOptions(listOperationOpts),
     beforeEach(() => {
+      updateBannerSpy = jest.fn();
+      updateDialogSpy = jest.fn();
+      updateSnackbarSpy = jest.fn();
+      updateToolbarSpy = jest.fn();
+      historyPushSpy = jest.fn();
+      getExecutionsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
+      getExecutionTypesSpy = jest.spyOn(
+        Api.getInstance().metadataStoreService,
+        'getExecutionTypes',
+      );
+
       getExecutionTypesSpy.mockImplementation(() => {
         const executionType = new ExecutionType();
         executionType.setId(6);
