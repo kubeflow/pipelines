@@ -79,7 +79,8 @@ describe('StaticNodeDetailsV2', () => {
     screen.getByText('python:3.7');
 
     screen.getByText('Command');
-    screen.getByText(/sh-c/);
+    expect(screen.getAllByText('sh').length).toEqual(2);
+    screen.getByText('-c');
 
     screen.getByText('Arguments');
     screen.getByText(/--executor_input/);
@@ -117,7 +118,8 @@ describe('StaticNodeDetailsV2', () => {
     screen.getByText('python:3.7');
 
     screen.getByText('Command');
-    screen.getByText(/sh-c/);
+    expect(screen.getAllByText('sh').length).toEqual(2);
+    screen.getByText('-c');
 
     screen.getByText('Arguments');
     screen.getByText(/--executor_input/);
