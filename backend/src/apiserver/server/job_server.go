@@ -87,7 +87,7 @@ func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, 
 	}
 	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(job.ExperimentId, job.Namespace)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentId and namespace combination")
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to invalid experimentId and namespace combination")
 	}
 	if common.IsMultiUserMode() && namespace == "" {
 		return nil, util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode")
@@ -408,7 +408,7 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 		if job.Namespace == "" {
 			experiment, err := s.resourceManager.GetExperiment(job.ExperimentId)
 			if err != nil {
-				return util.NewInvalidInputError("recurring run %v has an empty namespace and the parent experiment %v could not be fetched: %s", jobID, job.ExperimentId, err.Error())
+				return util.NewInternalServerError(err, "recurring run %v has an empty namespace and the parent experiment %v could not be fetched", jobID, job.ExperimentId)
 			}
 			namespace = experiment.Namespace
 		} else {
