@@ -67,7 +67,7 @@ spec:
       - '{{inputs.parameters.kubernetes-config}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver@sha256:60d6d090937d7de393b3740520f4a08fcf85c3419bbdb10bd266cd446d8fe44a
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:577221911abd8e6be65d7afad1bdb8d5e4544a11822489f9f5edb72d6e7f87de
       name: ""
       resources:
         limits:
@@ -147,7 +147,7 @@ spec:
       - launcher-v2
       - --copy
       - /kfp-launcher/launch
-      image: gcr.io/ml-pipeline/kfp-launcher@sha256:16acfb95f97d21c802164266c359fa78c0de9755a1ac6b7683364106465b4bf4
+      image: gcr.io/ml-pipeline-test/kfp-launcher-v2@sha256:a6a819f06604a270a0713ca98dedf38b75fa3a38f074367d7ccf915e109b10ae
       name: kfp-launcher
       resources:
         limits:
@@ -277,7 +277,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver@sha256:60d6d090937d7de393b3740520f4a08fcf85c3419bbdb10bd266cd446d8fe44a
+      image: gcr.io/ml-pipeline-test/kfp-driver@sha256:577221911abd8e6be65d7afad1bdb8d5e4544a11822489f9f5edb72d6e7f87de
       name: ""
       resources:
         limits:
