@@ -400,7 +400,7 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 		return nil
 	}
 	namespace := ""
-	if len(jobID) > 0 {
+	if jobID != "" {
 		job, err := s.resourceManager.GetJob(jobID)
 		if err != nil {
 			return util.Wrap(err, "failed to authorize with the recurring run ID")
@@ -414,7 +414,7 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 		} else {
 			namespace = job.Namespace
 		}
-		if len(resourceAttributes.Name) == 0 {
+		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = job.DisplayName
 		}
 	}

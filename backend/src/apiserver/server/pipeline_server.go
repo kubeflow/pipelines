@@ -1004,7 +1004,7 @@ func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId strin
 			return util.Wrapf(err, "Failed to access pipeline %s. Check if it exists and have a namespace assigned", pipelineId)
 		}
 		resourceAttributes.Namespace = pipeline.Namespace
-		if len(resourceAttributes.Name) == 0 {
+		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = pipeline.Name
 		}
 	}

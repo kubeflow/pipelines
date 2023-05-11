@@ -329,18 +329,18 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 		return nil
 	}
 	namespace := ""
-	if len(experimentID) > 0 {
+	if experimentID != "" {
 		experiment, err := s.resourceManager.GetExperiment(experimentID)
 		if err != nil {
 			return util.Wrap(err, "Failed to authorize with the experiment ID")
 		}
 		namespace = experiment.Namespace
-		if len(resourceAttributes.Name) == 0 {
+		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = experiment.Name
 		}
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
-		if len(namespace) == 0 {
+		if namespace == "" {
 			return util.NewInvalidInputError("An experiment cannot have an empty namespace in multi-user mode")
 		}
 		resourceAttributes.Namespace = namespace
