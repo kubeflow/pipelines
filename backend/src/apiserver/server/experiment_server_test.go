@@ -341,14 +341,14 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 			"",
 		},
 		{
-			"Invalid - wrong owner type",
+			"Invalid - wrong owner",
 			DefaultFakeIdEight,
 			&apiv1beta1.Experiment{
 				Name:        "exp6",
 				Description: "first experiment",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "ns1"},
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp2"},
 						Relationship: apiv1beta1.Relationship_OWNER,
 					},
 				},
