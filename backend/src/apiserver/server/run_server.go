@@ -454,20 +454,6 @@ func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *apiv1beta1.
 	}, nil
 }
 
-// Fetches run metrics for a given run id.
-// Supports v1beta1 behavior.
-func (s *RunServer) getRunMetrics(ctx context.Context, runId string) ([]*model.RunMetric, error) {
-	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReportMetrics})
-	if err != nil {
-		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to fetch run metrics due to authorization error")
-	}
-	_, err = s.resourceManager.GetRun(runId)
-	if err != nil {
-		return nil, util.Wrapf(err, "CreateJob(job.ToV2())Failed to fetch run metrics. Check if run %s can be fetched", runId)
-	}
-	return s.resourceManager.GetRunMetrics(runId)
-}
-
 // Reads an artifact.
 // Supports v1beta1 behavior.
 func (s *RunServer) ReadArtifactV1(ctx context.Context, request *apiv1beta1.ReadArtifactRequest) (*apiv1beta1.ReadArtifactResponse, error) {
