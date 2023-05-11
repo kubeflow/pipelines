@@ -20,7 +20,7 @@ import { Api } from 'src/mlmd/library';
 import {
   Execution,
   ExecutionType,
-  GetArtifactsRequest,
+  GetExecutionsRequest,
   GetExecutionsResponse,
   GetExecutionTypesResponse,
   Value,
@@ -47,8 +47,8 @@ describe('ExecutionList', () => {
 
   const listOperationOpts = new ListOperationOptions();
   listOperationOpts.setMaxResultSize(10);
-  const getArtifactsRequest = new GetArtifactsRequest();
-  getArtifactsRequest.setOptions(listOperationOpts),
+  const getExecutionsRequest = new GetExecutionsRequest();
+  getExecutionsRequest.setOptions(listOperationOpts),
     beforeEach(() => {
       getExecutionTypesSpy.mockImplementation(() => {
         const executionType = new ExecutionType();
@@ -136,7 +136,7 @@ describe('ExecutionList', () => {
     screen.getByText('10');
   });
 
-  it('it able to see the 20th artifact if "Rows per page" is chanegd to 20', async () => {
+  it('shows 20th execution if page size is 20', async () => {
     render(
       <CommonTestWrapper>
         <ExecutionList {...generateProps()} />
@@ -162,17 +162,17 @@ describe('ExecutionList', () => {
     fireEvent.click(newRowsPerPage);
 
     listOperationOpts.setMaxResultSize(20);
-    getArtifactsRequest.setOptions(listOperationOpts),
+    getExecutionsRequest.setOptions(listOperationOpts),
       await waitFor(() => {
         // API will be called again if "Rows per page" is changed
         expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
-        expect(getExecutionsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
+        expect(getExecutionsSpy).toHaveBeenLastCalledWith(getExecutionsRequest);
       });
 
-    screen.getByText('test execution 20'); // The 20th artifacts appears.
+    screen.getByText('test execution 20'); // The 20th execution appears.
   });
 
-  it('found no execution', async () => {
+  it('finds no execution', async () => {
     getExecutionsSpy.mockClear();
     getExecutionsSpy.mockImplementation(() => {
       const response = new GetExecutionsResponse();
