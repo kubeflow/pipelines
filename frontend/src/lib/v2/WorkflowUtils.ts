@@ -70,11 +70,11 @@ export function isTemplateV2(templateString: string): boolean {
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   const pipelineSpecDef = getPipelineDefFromYaml(template);
-  const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecDef);
-  if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
+  const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
+  if (!pipelineSpec.root || !pipelineSpec.pipelineInfo || !pipelineSpec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
   }
-  return ts_pipelinespec;
+  return pipelineSpec;
 
   // Archive: The following is used by protobuf.js.
   // const message = ml_pipelines.PipelineSpec.fromObject(pipelineJob['pipelineSpec']);
