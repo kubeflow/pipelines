@@ -399,30 +399,26 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-	namespace := ""
 	if jobID != "" {
 		job, err := s.resourceManager.GetJob(jobID)
 		if err != nil {
 			return util.Wrap(err, "failed to authorize with the recurring run ID")
 		}
-		if job.Namespace == "" {
+		if s.resourceManager.IsEmptyNamespace(job.Namespace) {
 			experiment, err := s.resourceManager.GetExperiment(job.ExperimentId)
 			if err != nil {
 				return util.NewInternalServerError(err, "recurring run %v has an empty namespace and the parent experiment %v could not be fetched", jobID, job.ExperimentId)
 			}
-			namespace = experiment.Namespace
+			resourceAttributes.Namespace = experiment.Namespace
 		} else {
-			namespace = job.Namespace
+			resourceAttributes.Namespace = job.Namespace
 		}
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = job.DisplayName
 		}
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
-		if namespace == "" {
-			return util.NewInvalidInputError("a recurring run cannot have an empty namespace in multi-user mode")
-		}
-		resourceAttributes.Namespace = namespace
+		return util.NewInvalidInputError("a recurring run cannot have an empty namespace in multi-user mode")
 	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion

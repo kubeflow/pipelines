@@ -328,22 +328,18 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-	namespace := ""
 	if experimentID != "" {
 		experiment, err := s.resourceManager.GetExperiment(experimentID)
 		if err != nil {
 			return util.Wrap(err, "Failed to authorize with the experiment ID")
 		}
-		namespace = experiment.Namespace
+		resourceAttributes.Namespace = experiment.Namespace
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = experiment.Name
 		}
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
-		if namespace == "" {
-			return util.NewInvalidInputError("An experiment cannot have an empty namespace in multi-user mode")
-		}
-		resourceAttributes.Namespace = namespace
+		return util.NewInvalidInputError("An experiment cannot have an empty namespace in multi-user mode")
 	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion

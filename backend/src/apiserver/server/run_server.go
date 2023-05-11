@@ -643,30 +643,26 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 		// Skip authz if not multi-user mode.
 		return nil
 	}
-	namespace := ""
 	if runId != "" {
-		runDetail, err := s.resourceManager.GetRun(runId)
+		run, err := s.resourceManager.GetRun(runId)
 		if err != nil {
 			return util.Wrapf(err, "Failed to authorize with the run ID %v", runId)
 		}
-		if runDetail.Namespace == "" {
-			experiment, err := s.resourceManager.GetExperiment(runDetail.ExperimentId)
+		if s.resourceManager.IsEmptyNamespace(run.Namespace) {
+			experiment, err := s.resourceManager.GetExperiment(run.ExperimentId)
 			if err != nil {
-				return util.NewInvalidInputError("run %v has an empty namespace and the parent experiment %v could not be fetched: %s", runId, runDetail.ExperimentId, err.Error())
+				return util.NewInvalidInputError("run %v has an empty namespace and the parent experiment %v could not be fetched: %s", runId, run.ExperimentId, err.Error())
 			}
-			namespace = experiment.Namespace
+			resourceAttributes.Namespace = experiment.Namespace
 		} else {
-			namespace = runDetail.Namespace
+			resourceAttributes.Namespace = run.Namespace
 		}
 		if resourceAttributes.Name == "" {
-			resourceAttributes.Name = runDetail.K8SName
+			resourceAttributes.Name = run.K8SName
 		}
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
-		if namespace == "" {
-			return util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
-		}
-		resourceAttributes.Namespace = namespace
+		return util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
 	}
 
 	resourceAttributes.Group = common.RbacPipelinesGroup
