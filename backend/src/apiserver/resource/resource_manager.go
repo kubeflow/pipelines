@@ -308,6 +308,9 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 // Creates a pipeline, but does not create a pipeline version.
 // Call CreatePipelineVersion to create a pipeline version.
 func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
+	if p.Name == "" {
+		return nil, util.NewInvalidInputError("pipeline's name cannot be empty")
+	}
 	// Create a record in KFP DB (only pipelines table)
 	newPipeline, err := r.pipelineStore.CreatePipeline(p)
 	if err != nil {
@@ -340,9 +343,29 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	tmpl, err := template.New(pipelineSpecBytes)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
-	} else if tmpl.IsV2() {
-		tmpl.OverrideV2PipelineName(p.Name, p.Namespace)
 	}
+	// Validate pipeline's name in:
+	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
+	// 2. display name must be non-empty
+	pipelineSpecName := ""
+	if tmpl.IsV2() {
+		pipelineSpecName = tmpl.V2PipelineName()
+		if err := common.ValidatePipelineName(pipelineSpecName); err != nil {
+			return nil, nil, err
+		}
+	}
+	if pv.Name == "" && p.Name == "" {
+		if pipelineSpecName == "" {
+			return nil, nil, util.NewInvalidInputError("pipeline's name cannot be empty")
+		}
+		pv.Name = pipelineSpecName
+		p.Name = pipelineSpecName
+	} else if pv.Name == "" {
+		pv.Name = p.Name
+	} else if p.Name == "" {
+		p.Name = pv.Name
+	}
+	// Parse parameters
 	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to error converting parameters to json")
@@ -1413,13 +1436,23 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}
+	// Validate pipeline's name in:
+	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
+	// 2. display name must be non-empty
+	pipelineSpecName := ""
 	if tmpl.IsV2() {
-		pipeline, err := r.GetPipeline(pipelineId)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a pipeline version as parent pipeline was not found")
+		pipelineSpecName = tmpl.V2PipelineName()
+		if err := common.ValidatePipelineName(pipelineSpecName); err != nil {
+			return nil, err
 		}
-		tmpl.OverrideV2PipelineName(pipeline.Name, pipeline.Namespace)
 	}
+	if pv.Name == "" {
+		if pipelineSpecName == "" {
+			return nil, util.NewInvalidInputError("pipeline version's name cannot be empty")
+		}
+		pv.Name = pipelineSpecName
+	}
+	// Parse parameters
 	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to error converting parameters to json")
