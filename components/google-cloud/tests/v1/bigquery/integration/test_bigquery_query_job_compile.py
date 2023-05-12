@@ -13,11 +13,12 @@
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure they compile correctly."""
 
-import json
 import os
+
 from google_cloud_pipeline_components.v1.bigquery import BigqueryQueryJobOp
+from google_cloud_pipeline_components.tests.v1 import utils
 import kfp
-from kfp import compiler
+
 import unittest
 
 
@@ -32,14 +33,9 @@ class ComponentsCompileTest(unittest.TestCase):
     self._job_configuration_query = {'priority': 'high'}
     self._labels = {'key1': 'val1'}
     self._encryption_spec_key_name = 'fake_encryption_key'
-    self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json'
-    )
 
   def tearDown(self):
     super(ComponentsCompileTest, self).tearDown()
-    if os.path.exists(self._package_path):
-      os.remove(self._package_path)
 
   def test_bigquery_query_job_op_compile(self):
     @kfp.dsl.pipeline(name='bigquery-test')
@@ -53,17 +49,11 @@ class ComponentsCompileTest(unittest.TestCase):
           labels=self._labels,
           encryption_spec_key_name=self._encryption_spec_key_name,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            '../testdata/bigquery_query_job_component_pipeline.json',
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open('testdata/bigquery_query_job_component_pipeline.json') as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json['sdkVersion']
-    del executor_output_json['schemaVersion']
-    self.assertDictEqual(executor_output_json, expected_executor_output_json)
