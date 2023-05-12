@@ -1000,6 +1000,7 @@ class ComponentSpec:
             name_to_for_loop_group={},  # no for loop in single-component pipeline
             platform_spec=pipeline_spec_pb2.PlatformSpec(
             ),  # no PlatformSpec single-component pipeline
+            is_compiled_component=True,
         )
 
         return pipeline_spec
