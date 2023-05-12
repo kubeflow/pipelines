@@ -21,6 +21,7 @@ from kfp.dsl import ContainerSpec
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
+print('trigger test')
 
 @container_component
 def bigquery_create_model_job(
