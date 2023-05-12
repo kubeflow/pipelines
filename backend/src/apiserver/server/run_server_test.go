@@ -969,9 +969,10 @@ func TestListRunsV1_MultiUser(t *testing.T) {
 			},
 		},
 	}
+	// Empty request must fail in multi-user mode
 	listRunsResponse, err := server.ListRunsV1(ctx, &apiv1beta1.ListRunsRequest{})
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(listRunsResponse.Runs))
+	assert.NotNil(t, err)
+	assert.Nil(t, listRunsResponse)
 
 	listRunsResponse2, err := server.ListRunsV1(ctx, &apiv1beta1.ListRunsRequest{
 		ResourceReferenceKey: &apiv1beta1.ResourceKey{
@@ -1091,7 +1092,7 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			expectedRuns,
 		},
 		{
-			"Vailid - filter by namespace - no result",
+			"Valid - filter by namespace - no result",
 			&apiv1beta1.ListRunsRequest{
 				ResourceReferenceKey: &apiv1beta1.ResourceKey{
 					Type: apiv1beta1.ResourceType_NAMESPACE,
@@ -1103,11 +1104,11 @@ func TestListRunsV1_Multiuser(t *testing.T) {
 			expectedRunsEmpty,
 		},
 		{
-			"Valid - no filter",
+			"Invalid - empty request",
 			&apiv1beta1.ListRunsRequest{},
-			false,
-			"",
-			expectedRunsEmpty,
+			true,
+			"A run cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 		{
 			"Invalid - invalid filter type",
@@ -1218,7 +1219,7 @@ func TestReportRunMetricsV1_RunNotFound(t *testing.T) {
 	AssertUserError(t, err, codes.NotFound)
 }
 
-func TestReportRunMetricsV1_Succeed(t *testing.T) {
+func TestReportRunMetricsV1_Succeed_Multiuser(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
@@ -1361,7 +1362,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:runs,Subresource:,Name:workflow-name,})",
+		"User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
@@ -1497,11 +1498,11 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	clientManager, _, run := initWithOneTimeRun(t)
 
 	// make the following request unauthorized
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager)
+	resourceManager := resource.NewResourceManager(clientManager)
 
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &apiv1beta1.ReadArtifactRequest{
@@ -1511,19 +1512,10 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 	}
 	_, err := runServer.ReadArtifactV1(ctx, artifact)
 	assert.NotNil(t, err)
-
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: run.Namespace,
-		Verb:      common.RbacResourceVerbReadArtifact,
-		Group:     common.RbacPipelinesGroup,
-		Version:   common.RbacPipelinesVersion,
-		Resource:  common.RbacResourceTypeRuns,
-		Name:      run.K8SName,
-	}
-	assert.EqualError(
+	assert.Contains(
 		t,
-		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+		err.Error(),
+		"User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
