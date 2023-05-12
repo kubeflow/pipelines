@@ -442,6 +442,17 @@ IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
     'LIST': 'List',
     'STRUCT': 'Dict',
     'BOOLEAN': 'Boolean',
+    'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
+}
+
+IR_TYPE_TO_COMMENT_TYPE_STRING = {
+    'STRING': str.__name__,
+    'NUMBER_INTEGER': int.__name__,
+    'NUMBER_DOUBLE': float.__name__,
+    'LIST': list.__name__,
+    'STRUCT': dict.__name__,
+    'BOOLEAN': bool.__name__,
+    'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
 }
 
 IN_MEMORY_SPEC_TYPE_TO_IR_TYPE = {
