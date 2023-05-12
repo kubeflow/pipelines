@@ -60,6 +60,7 @@ interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
   reducedGraph: dagre.graphlib.Graph | null;
   graphV2: PipelineFlowElement[] | null;
+  graphIsLoading: boolean;
   v1Pipeline: ApiPipeline | null;
   v2Pipeline: V2beta1Pipeline | null;
   selectedNodeInfo: JSX.Element | null;
@@ -89,6 +90,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       graph: null,
       reducedGraph: null,
       graphV2: null,
+      graphIsLoading: true,
       v1Pipeline: null,
       v2Pipeline: null,
       selectedNodeInfo: null,
@@ -178,14 +180,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       }
       const pipelineSpec = convertYamlToV2PipelineSpec(templateString!);
       const newElements = convertSubDagToFlowElements(pipelineSpec!, layers);
-      this.setStateSafe({ graphV2: newElements });
+      this.setStateSafe({ graphV2: newElements, graphIsLoading: false });
     };
 
     const showV2Pipeline =
       isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        {showV2Pipeline && (
+        {this.state.graphIsLoading && <div>Currently loading pipeline information</div>}
+        {!this.state.graphIsLoading && showV2Pipeline && (
           <PipelineDetailsV2
             templateString={templateString}
             pipelineFlowElements={graphV2!}
@@ -196,7 +199,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             handleVersionSelected={this.handleVersionSelectedV2.bind(this)}
           />
         )}
-        {!showV2Pipeline && (
+        {!this.state.graphIsLoading && !showV2Pipeline && (
           <PipelineDetailsV1
             pipeline={v1Pipeline}
             templateString={templateString}
@@ -533,6 +536,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v2Versions,
         graph: undefined,
         graphV2,
+        graphIsLoading: false,
         reducedGraph: undefined,
         templateString,
       });
@@ -546,6 +550,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v2Versions: undefined,
         graph,
         graphV2: undefined,
+        graphIsLoading: false,
         reducedGraph,
         templateString,
       });
@@ -571,6 +576,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graph: undefined,
           reducedGraph: undefined,
           graphV2,
+          graphIsLoading: false,
           v1SelectedVersion: selectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
@@ -579,6 +585,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graph,
           reducedGraph,
           graphV2: undefined,
+          graphIsLoading: false,
           v1SelectedVersion: selectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
@@ -607,6 +614,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graph: undefined,
           reducedGraph: undefined,
           graphV2,
+          graphIsLoading: false,
           v2SelectedVersion: selectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
@@ -615,6 +623,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graph,
           reducedGraph,
           graphV2: undefined,
+          graphIsLoading: false,
           v2SelectedVersion: selectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
