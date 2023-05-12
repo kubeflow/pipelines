@@ -61,11 +61,12 @@ def _add_bigquery_scheme(job_spec):
   if (
       'input_config' in job_spec
       and 'bigquery_source' in job_spec['input_config']
+      and 'input_uri' in job_spec['input_config']['bigquery_source']
   ):
-    uri = job_spec['input_config']['bigquery_source']
+    uri = job_spec['input_config']['bigquery_source']['input_uri']
     match = bq_dataset_pattern.fullmatch(uri)
     if match and match.group('scheme') is None:
-      job_spec['input_config']['bigquery_source'] = 'bq://' + uri
+      job_spec['input_config']['bigquery_source']['input_uri'] = 'bq://' + uri
   if (
       'output_config' in job_spec
       and 'bigquery_destination' in job_spec['output_config']

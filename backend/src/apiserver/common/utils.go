@@ -16,7 +16,18 @@ package common
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+)
+
+const (
+	// This regex expresses the following constraints:
+	// * Allows lowercase letters and numbers at the beginning
+	// * Allows lowercase letters, numbers, and "-" in everywhere else
+	// * Sets max length to be 128 characters
+	pipelineNamePattern = "^[a-z0-9][a-z0-9-]{0,127}$"
 )
 
 // CreateArtifactPath creates artifact resource path.
@@ -88,4 +99,21 @@ func PatchPipelineDefaultParameter(text string) (string, error) {
 		text = strings.Replace(text, key, value, -1)
 	}
 	return text, nil
+}
+
+// Validates a pipeline name to match MLMD requirements.
+func ValidatePipelineName(pipelineName string) error {
+	if pipelineName == "" {
+		return util.NewInvalidInputError("pipeline's name cannot be empty")
+	}
+	if len(pipelineName) > 128 {
+		return util.NewInvalidInputError("pipeline's name must contain no more than 128 characters")
+	}
+	if matched, err := regexp.MatchString(pipelineNamePattern, pipelineName); err != nil {
+		return util.NewInternalServerError(
+			err, "failed to compile pattern '%s'", pipelineNamePattern)
+	} else if !matched {
+		return util.NewInvalidInputError("pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters")
+	}
+	return nil
 }

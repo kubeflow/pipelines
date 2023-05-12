@@ -57,7 +57,9 @@ def model_evaluation_classification(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ):
-  """Computes a google.ClassificationMetrics Artifact, containing evaluation metrics given a model's prediction results.
+  # fmt: off
+  """Computes a google.ClassificationMetrics Artifact, containing evaluation
+  metrics given a model's prediction results.
 
   Creates a dataflow job with Apache Beam and TFMA to compute evaluation
   metrics.
@@ -65,40 +67,40 @@ def model_evaluation_classification(
   text data.
 
   Args:
-      project (str): Project to run evaluation container.
-      location (Optional[str]): Location for running the evaluation. If not set,
+      project: Project to run evaluation container.
+      location: Location for running the evaluation. If not set,
         defaulted to `us-central1`.
-      root_dir (str): The GCS directory for keeping staging files. A random
+      root_dir: The GCS directory for keeping staging files. A random
         subdirectory will be created under the directory to keep job info for
         resuming the job in case of failure.
-      predictions_format (Optional[str]): The file format for the batch
+      predictions_format: The file format for the batch
         prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
         formats, from Vertex Batch Prediction. If not set, defaulted to `jsonl`.
-      predictions_gcs_source (Optional[system.Artifact]): An artifact with its
+      predictions_gcs_source: An artifact with its
         URI pointing toward a GCS directory with prediction or explanation files
         to be used for this evaluation. For prediction results, the files should
         be named "prediction.results-*" or "predictions_". For explanation
         results, the files should be named "explanation.results-*".
-      predictions_bigquery_source (Optional[google.BQTable]): BigQuery table
+      predictions_bigquery_source: BigQuery table
         with prediction or explanation data to be used for this evaluation. For
         prediction results, the table column should be named "predicted_*".
-      ground_truth_format (Optional[str]): Required for custom tabular and non
+      ground_truth_format: Required for custom tabular and non
         tabular data. The file format for the ground truth files. `jsonl`,
         `csv`, and `bigquery` are the allowed formats. If not set, defaulted to
         `jsonl`.
-      ground_truth_gcs_source (Optional[Sequence[str]]): Required for custom
+      ground_truth_gcs_source: Required for custom
         tabular and non tabular data. The GCS uris representing where the ground
         truth is located. Used to provide ground truth for each prediction
         instance when they are not part of the batch prediction jobs prediction
         instance.
-      ground_truth_bigquery_source (Optional[str]): Required for custom tabular.
+      ground_truth_bigquery_source: Required for custom tabular.
         The BigQuery table uri representing where the ground truth is located.
         Used to provide ground truth for each prediction instance when they are
         not part of the batch prediction jobs prediction instance.
-      classification_type (Optional[str]): The type of classification problem,
+      classification_type: The type of classification problem,
         either `multiclass` or `multilabel`. If not set, defaulted to
         `multiclass`.
-      class_labels (Optional[Sequence[str]]): The list of class names for the
+      class_labels: The list of class names for the
         target_field_name, in the same order they appear in the batch
         predictions jobs predictions output file. For instance, if the values of
         target_field_name could be either `1` or `0`, and the predictions output
@@ -106,22 +108,22 @@ def model_evaluation_classification(
         class_labels input will be ["1", "0"]. If not set, defaulted to the
         classes found in the prediction_label_column in the batch prediction
         jobs predictions file.
-      target_field_name (str): The full name path of the features target field
+      target_field_name: The full name path of the features target field
         in the predictions file. Formatted to be able to find nested columns,
         delimited by `.`. Alternatively referred to as the ground truth (or
         ground_truth_column) field.
-      model (Optional[google.VertexModel]): The managed Vertex Model used for
+      model: The managed Vertex Model used for
         predictions job, if using Vertex batch prediction. Must share the same
         location as the provided input argument `location`.
-      prediction_score_column (Optional[str]): The column name of the field
+      prediction_score_column: The column name of the field
         containing batch prediction scores. Formatted to be able to find nested
         columns, delimited by `.`. If not set, defaulted to `prediction.scores`
         for classification.
-      prediction_label_column (Optional[str]): The column name of the field
+      prediction_label_column: The column name of the field
         containing classes the model is scoring. Formatted to be able to find
         nested columns, delimited by `.`. If not set, defaulted to
         `prediction.classes` for classification.
-      slicing_specs (Optional[Sequence[SlicingSpec]]): Optional. List of
+      slicing_specs: List of
         google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec. When
         provided, compute metrics for each defined slice. Below is an example of
         how to format this input.
@@ -141,39 +143,40 @@ def model_evaluation_classification(
           `ModelEvaluationClassificationOp(slicing_specs=slicing_specs)` For
           more details on configuring slices, see
         https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.ModelEvaluationSlice
-      positive_classes (Optional[Sequence[str]]): Optional. The list of class
+      positive_classes: The list of class
         names to create binary classification metrics based on one-vs-rest for
         each value of positive_classes provided.
-      dataflow_service_account (Optional[str]): Optional. Service account to run
+      dataflow_service_account: Service account to run
         the dataflow job. If not set, dataflow will use the default worker
         service account. For more details, see
         https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
-      dataflow_disk_size (Optional[int]): The disk size (in GB) of the machine
+      dataflow_disk_size: The disk size (in GB) of the machine
         executing the evaluation run. If not set, defaulted to `50`.
-      dataflow_machine_type (Optional[str]): The machine type executing the
+      dataflow_machine_type: The machine type executing the
         evaluation run. If not set, defaulted to `n1-standard-4`.
-      dataflow_workers_num (Optional[int]): The number of workers executing the
+      dataflow_workers_num: The number of workers executing the
         evaluation run. If not set, defaulted to `10`.
-      dataflow_max_workers_num (Optional[int]): The max number of workers
+      dataflow_max_workers_num: The max number of workers
         executing the evaluation run. If not set, defaulted to `25`.
-      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More
         details:
           https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
+      dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+      encryption_spec_key_name: Customer-managed encryption key.
 
   Returns:
-      evaluation_metrics (google.ClassificationMetrics): Artifact
+      evaluation_metrics:
         google.ClassificationMetrics representing the classification
         evaluation metrics in GCS.
-      gcp_resources (str): Serialized gcp_resources proto tracking the dataflow
+      gcp_resources: Serialized gcp_resources proto tracking the dataflow
         job.
 
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/model-evaluation:v0.9',
       command=[

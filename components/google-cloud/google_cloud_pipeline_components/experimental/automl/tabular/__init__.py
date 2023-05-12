@@ -13,12 +13,23 @@
 # limitations under the License.
 """Experimental AutoML tabular components."""
 
-import os
-
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.automl.tabular.cv_trainer import automl_tabular_cv_trainer as CvTrainerOp
+from google_cloud_pipeline_components.experimental.automl.tabular.ensemble import automl_tabular_ensemble as EnsembleOp
+from google_cloud_pipeline_components.experimental.automl.tabular.feature_selection import tabular_feature_ranking_and_selection as FeatureSelectionOp
+from google_cloud_pipeline_components.experimental.automl.tabular.feature_transform_engine import feature_transform_engine as FeatureTransformEngineOp
+from google_cloud_pipeline_components.experimental.automl.tabular.finalizer import automl_tabular_finalizer as FinalizerOp
+from google_cloud_pipeline_components.experimental.automl.tabular.infra_validator import automl_tabular_infra_validator as InfraValidatorOp
+from google_cloud_pipeline_components.experimental.automl.tabular.split_materialized_data import split_materialized_data as SplitMaterializedDataOp
+from google_cloud_pipeline_components.experimental.automl.tabular.stage_1_tuner import automl_tabular_stage_1_tuner as Stage1TunerOp
+from google_cloud_pipeline_components.experimental.automl.tabular.stats_and_example_gen import tabular_stats_and_example_gen as StatsAndExampleGenOp
+from google_cloud_pipeline_components.experimental.automl.tabular.tabnet_hyperparameter_tuning_job import tabnet_hyperparameter_tuning_job as TabNetHyperparameterTuningJobOp
+from google_cloud_pipeline_components.experimental.automl.tabular.tabnet_trainer import tabnet_trainer as TabNetTrainerOp
+from google_cloud_pipeline_components.experimental.automl.tabular.training_configurator_and_validator import training_configurator_and_validator as TrainingConfiguratorAndValidatorOp
+from google_cloud_pipeline_components.experimental.automl.tabular.transform import automl_tabular_transform as TransformOp
+from google_cloud_pipeline_components.experimental.automl.tabular.wide_and_deep_hyperparameter_tuning_job import wide_and_deep_hyperparameter_tuning_job as WideAndDeepHyperparameterTuningJobOp
+from google_cloud_pipeline_components.experimental.automl.tabular.wide_and_deep_trainer import wide_and_deep_trainer as WideAndDeepTrainerOp
+from google_cloud_pipeline_components.experimental.automl.tabular.xgboost_hyperparameter_tuning_job import xgboost_hyperparameter_tuning_job as XGBoostHyperparameterTuningJobOp
+from google_cloud_pipeline_components.experimental.automl.tabular.xgboost_trainer import xgboost_trainer as XGBoostTrainerOp
 
 __all__ = [
     'CvTrainerOp',
@@ -36,68 +47,6 @@ __all__ = [
     'FeatureTransformEngineOp',
     'SplitMaterializedDataOp',
     'TrainingConfiguratorAndValidatorOp',
-    'TrainingConfiguratorAndValidatorOp',
     'XGBoostHyperparameterTuningJobOp',
     'XGBoostTrainerOp',
 ]
-
-CvTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'cv_trainer.yaml')
-)
-InfraValidatorOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'infra_validator.yaml')
-)
-Stage1TunerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'stage_1_tuner.yaml')
-)
-EnsembleOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'ensemble.yaml')
-)
-StatsAndExampleGenOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'stats_and_example_gen.yaml')
-)
-FeatureSelectionOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'feature_selection.yaml')
-)
-TransformOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'transform.yaml')
-)
-FeatureTransformEngineOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'feature_transform_engine.yaml')
-)
-SplitMaterializedDataOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'split_materialized_data.yaml')
-)
-FinalizerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'finalizer.yaml')
-)
-WideAndDeepTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'wide_and_deep_trainer.yaml')
-)
-WideAndDeepHyperparameterTuningJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'wide_and_deep_hyperparameter_tuning_job.yaml',
-    )
-)
-TabNetHyperparameterTuningJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'tabnet_hyperparameter_tuning_job.yaml'
-    )
-)
-TabNetTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'tabnet_trainer.yaml')
-)
-TrainingConfiguratorAndValidatorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'training_configurator_and_validator.yaml'
-    )
-)
-XGBoostTrainerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'xgboost_trainer.yaml')
-)
-XGBoostHyperparameterTuningJobOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'xgboost_hyperparameter_tuning_job.yaml'
-    )
-)

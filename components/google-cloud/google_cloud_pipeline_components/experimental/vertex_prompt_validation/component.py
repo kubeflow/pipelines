@@ -33,14 +33,10 @@ def vertex_pipelines_prompt_validation(
   exception when run on Kubeflow Pipelines.
 
   Args:
-    prompt_dataset (str):
-      GCS path to the file containing the prompt tuning data.
-    model_id (str):
-      Large Language Model to tune.
-    rai_validation_enabled (bool):
-      If enabled, validates prompt data for harmful content.
-    fail_on_warning (bool):
-      If enabled, fails the component on warnings.
+    prompt_dataset: GCS path to the file containing the prompt tuning data.
+    model_id: Large Language Model to tune.
+    rai_validation_enabled: If enabled, validates prompt data for harmful content.
+    fail_on_warning: If enabled, fails the component on warnings.
   """
   # fmt: on
   return ContainerSpec(

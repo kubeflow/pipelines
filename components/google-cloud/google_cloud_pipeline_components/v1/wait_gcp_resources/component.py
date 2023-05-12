@@ -23,9 +23,9 @@ def wait_gcp_resources(
     output__gcp_resources: OutputPath(str),
 ):
   # fmt: off
-  """
-  Receives a GCP Resource, polling the resource status and waits for it to finish.
-  Currently this component only support waiting on a DataflowJob resource.
+  """Receives a GCP Resource, polling the resource status and waits for it to
+  finish. Currently this component only support waiting on a DataflowJob
+  resource.
 
   To use this component, first create a component that outputs a JSON formatted gcp_resources proto, then pass it to the wait component.
 
@@ -42,14 +42,11 @@ def wait_gcp_resources(
 
 
   Args:
-    gcp_resources (str):
-        Serialized JSON of gcp_resources proto, indicating the resource to wait on by this component
+    gcp_resources: Serialized JSON of gcp_resources proto, indicating the resource to wait on by this component
         For details, see https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto
 
   Returns:
-    gcp_resources (str):
-        The final result of the gcp resource, including the error information, if exists.
-
+    gcp_resources: The final result of the gcp resource, including the error information, if exists.
   """
   # fmt: on
   return dsl.ContainerSpec(

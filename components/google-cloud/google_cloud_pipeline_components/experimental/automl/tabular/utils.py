@@ -1614,7 +1614,9 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
     distill_batch_predict_starting_replica_count: int = 25,
     distill_batch_predict_max_replica_count: int = 25,
 ) -> Tuple[str, Dict[str, Any]]:
-  """Get the AutoML Tabular training pipeline that distill and skips evaluation.
+  """Get the AutoML Tabular training pipeline that distill and skips.
+
+  evaluation.
 
   Args:
     project: The GCP project that runs the pipeline components.
@@ -3331,7 +3333,9 @@ def _format_tabnet_regression_study_spec_parameters_override(
 
 
 def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
-  """Get study_spec_parameters_override for a Wide & Deep hyperparameter tuning job.
+  """Get study_spec_parameters_override for a Wide & Deep hyperparameter tuning
+
+  job.
 
   Returns:
     List of study_spec_parameters_override.

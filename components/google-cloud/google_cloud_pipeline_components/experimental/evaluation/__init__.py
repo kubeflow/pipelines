@@ -37,31 +37,23 @@ __all__ = [
 ModelImportEvaluationOp = components.load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml')
 )
-"""
-Imports a model evaluation artifact to an existing Vertex model with ModelService.ImportModelEvaluation
-For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models.evaluations
-One of the four metrics inputs must be provided, metrics & problem_type, classification_metrics,
-regression_metrics, or forecasting_metrics.
+"""Imports a model evaluation artifact to an existing Vertex model with
+ModelService.ImportModelEvaluation For more details, see
+https://cloud.google.com/vertex-
+ai/docs/reference/rest/v1/projects.locations.models.evaluations One of the four
+metrics inputs must be provided, metrics & problem_type,
+classification_metrics, regression_metrics, or forecasting_metrics.
 
 Args:
-  model (google.VertexModel):
-    Vertex model resource that will be the parent resource of the uploaded evaluation.
-  metrics (system.Metrics):
-    Path of metrics generated from an evaluation component.
-  problem_type (Optional[str]):
-    The problem type of the metrics being imported to the VertexModel.
+  model: Vertex model resource that will be the parent resource of the uploaded evaluation.
+  metrics: Path of metrics generated from an evaluation component.
+  problem_type: The problem type of the metrics being imported to the VertexModel.
       `classification`, `regression`, and `forecasting` are the currently supported problem types.
       Must be provided when `metrics` is provided.
-  classification_metrics (Optional[google.ClassificationMetrics]):
-    Path of classification metrics generated from the classification evaluation component.
-  forecasting_metrics (Optional[google.ForecastingMetrics]):
-    Path of forecasting metrics generated from the forecasting evaluation component.
-  regression_metrics (Optional[google.RegressionMetrics]):
-    Path of regression metrics generated from the regression evaluation component.
-  explanation (Optional[system.Metrics]):
-    Path for model explanation metrics generated from an evaluation component.
-  feature_attributions (Optional[system.Metrics]):
-    The feature attributions metrics artifact generated from the feature attribution component.
-  display_name (str):
-    The display name for the uploaded model evaluation resource.
+  classification_metrics: Path of classification metrics generated from the classification evaluation component.
+  forecasting_metrics: Path of forecasting metrics generated from the forecasting evaluation component.
+  regression_metrics: Path of regression metrics generated from the regression evaluation component.
+  explanation: Path for model explanation metrics generated from an evaluation component.
+  feature_attributions: The feature attributions metrics artifact generated from the feature attribution component.
+  display_name: The display name for the uploaded model evaluation resource.
 """

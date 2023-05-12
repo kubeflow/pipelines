@@ -474,7 +474,7 @@ function SubDAGNodeDetail({
       <div className={commonCss.page}>
         <div className={padding(20, 'blr')}>
           <Button variant='contained' onClick={onSubDagOpenClick}>
-            Open Workflow
+            Open Sub-DAG
           </Button>
         </div>
         <MD2Tabs

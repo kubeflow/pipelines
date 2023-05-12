@@ -41,29 +41,24 @@ def model_upload(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Uploads a model and returns a Model representing the uploaded Model resource.
+  """Uploads a model and returns a Model representing the uploaded Model
+  resource.
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload.
 
   Args:
-      project (str):
-        Required. Project to upload this model to.
-      location (Optional[str]):
-        Optional location to upload this model to. If
+      project: Project to upload this model to.
+      location: Optional location to upload this model to. If
         not set, default to us-central1.
-      display_name (str):
-        Required. The display name of the Model. The name
+      display_name: The display name of the Model. The name
         can be up to 128 characters long and can be consist of any UTF-8
         characters.
-      description (Optional[str]):
-        The description of the model.
-      parent_model (Optional[google.VertexModel]):
-        An artifact of a model
+      description: The description of the model.
+      parent_model: An artifact of a model
         which to upload a new version to. Only specify this field when
         uploading a new version.
-      unmanaged_container_model (Optional[google.UnmanagedContainerModel]):
-        Optional. The unmanaged container model to be uploaded.  The model can
+      unmanaged_container_model: The unmanaged container model to be uploaded.  The model can
         be passed from an upstream step, or imported via an importer.
         ```
         from kfp.dsl import importer
@@ -79,25 +74,21 @@ def model_upload(
               }
           })
         ```
-      explanation_metadata (Optional[dict]):
-        Metadata describing the Model's
+      explanation_metadata: Metadata describing the Model's
         input and output for explanation. Both `explanation_metadata` and
         `explanation_parameters` must be passed together when used.  For more
         details, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
-      explanation_parameters (Optional[dict]):
-        Parameters to configure
+      explanation_parameters: Parameters to configure
         explaining for Model's predictions.  For more details, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
-      encryption_spec_key_name (Optional[str]):
-        Customer-managed encryption
+      encryption_spec_key_name: Customer-managed encryption
         key spec for a Model. If set, this Model and all sub-resources of this
         Model will be secured by this key.  Has the form:
         ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
         The key needs to be in the same region as where the compute resource
         is created.
-      labels (Optional[dict]):
-        The labels with user-defined metadata to
+      labels: The labels with user-defined metadata to
         organize your model.  Label keys and values can be no longer than 64
         characters (Unicode codepoints), can only contain lowercase letters,
         numeric characters, underscores and dashes. International characters
@@ -105,10 +96,8 @@ def model_upload(
         examples of labels.
 
   Returns:
-      model (google.VertexModel):
-          Artifact tracking the created model.
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the upload model's long
+      model: Artifact tracking the created model.
+      gcp_resources: Serialized gcp_resources proto tracking the upload model's long
           running operation.
 
           For more details, see

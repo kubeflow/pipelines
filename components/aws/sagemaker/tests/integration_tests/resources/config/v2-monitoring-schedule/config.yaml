@@ -1,0 +1,40 @@
+PipelineDefinition: resources/definition/monitoring_schedule_v2_pipeline.py
+TestName: v2-monitoring-schedule
+Timeout: 4000
+ModelImage: ((XGBOOST_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:0.90-1-cpu-py3
+ModelUrl: s3://((DATA_BUCKET))/model-monitor/xgboost-churn-model.tar.gz
+EndpointCapture: s3://((DATA_BUCKET))/model-monitor/endpoint_capture
+Arguments:
+  region: ((REGION))
+  model_bias_app_specification:
+    imageURI: ((MODEL_MONITOR_IMAGE)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-model-monitor-analyzer
+    configURI: s3://((DATA_BUCKET))/model-monitor/baselining/model_bias/analysis_config.json
+  model_bias_job_input:
+    endpointInput:
+      localPath: "/opt/ml/processing/input/endpoint"
+      s3InputMode: File
+      s3DataDistributionType: FullyReplicated
+      probabilityThresholdAttribute: 0.8
+      startTimeOffset: "-PT1H"
+      endTimeOffset: "-PT0H"
+    groundTruthS3Input:
+      s3URI: s3://((DATA_BUCKET))/model-monitor/ground_truth_data
+  model_bias_job_output_config:
+    monitoringOutputs:
+    - s3Output:
+        localPath: /opt/ml/processing/output
+        s3URI: s3://((DATA_BUCKET))/model-monitor/reports/model-bias-job-definition/
+        s3UploadMode: Continuous
+  job_resources:
+    clusterConfig:
+      instanceCount: 1
+      instanceType: ml.m5.large
+      volumeSizeInGB: 30
+  role_arn: ((SAGEMAKER_ROLE_ARN))
+  stopping_condition:
+    maxRuntimeInSeconds: 3600
+  monitoring_schedule_config:
+    monitoringType: ModelBias
+    scheduleConfig:
+      scheduleExpression: "cron(0 12 ? * * *)"
+    

@@ -543,7 +543,6 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 // Archives a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		archiveRunRequests.Inc()
 	}
@@ -557,7 +556,6 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveR
 // Un-archives a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.UnarchiveRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		unarchiveRunRequests.Inc()
 	}
@@ -571,7 +569,6 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.Unarch
 // Deletes a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		deleteRunRequests.Inc()
 	}
@@ -609,7 +606,6 @@ func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadAr
 // Terminates a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.TerminateRunRequest) (*empty.Empty, error) {
-	// TODO(gkcalat): consider validating the experiment id.
 	if s.options.CollectMetrics {
 		terminateRunRequests.Inc()
 	}

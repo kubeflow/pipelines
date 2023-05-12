@@ -107,10 +107,6 @@ type PipelineServer struct {
 // Creates a pipeline. Not exported.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pipeline) (*model.Pipeline, error) {
-	// Validate the pipeline. Fail fast if this is corrupted.
-	if pipeline.Name == "" {
-		return nil, util.NewInvalidInputError("Failed create to a pipeline due to empty name. Please specify a valid name")
-	}
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -145,14 +141,11 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to pipeline conversion error")
 	}
 	// Get pipeline name
-	pipelineName := request.GetPipeline().GetName()
 	pipelineFileName := path.Base(request.GetPipeline().GetUrl().GetPipelineUrl())
-	if pipelineName, err = buildPipelineName(pipelineName, pipelineFileName); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", pipelineName, pipelineFileName)
-	} else if pipelineName == "" {
-		return nil, util.NewInvalidInputError("Pipeline cannot have empty name")
+	if pName, err := buildPipelineName(request.GetPipeline().GetName(), pipelineFileName); err != nil {
+		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", request.GetPipeline().GetName(), pipelineFileName)
 	} else {
-		pipeline.Name = pipelineName
+		pipeline.Name = pName
 	}
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
 	// Check authorization
@@ -189,9 +182,6 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due error reading the pipeline spec")
 	}
 	pipelineVersion.PipelineSpec = string(pipelineFile)
-	if pipelineVersion.Name == "" {
-		pipelineVersion.Name = pipelineFileName
-	}
 
 	// Validate the pipeline version
 	if err := s.validatePipelineVersionBeforeCreating(pipelineVersion); err != nil {
@@ -563,9 +553,6 @@ func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineI
 // Validates a pipeline version before creating a record in the DB.
 // Requires Name and PipelineId to be non-empty and presence of PipelineSpec or a valid URI to the pipeline spec.
 func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.PipelineVersion) error {
-	if p.Name == "" {
-		return util.NewInvalidInputError("Pipeline version's name cannot be empty")
-	}
 	if p.PipelineSpec != "" {
 		return nil
 	}
@@ -1032,9 +1019,6 @@ func buildPipelineName(queryString string, fileName string) (string, error) {
 	}
 	if pipelineName == "" {
 		pipelineName = fileName
-	}
-	if len(pipelineName) > common.MaxFileNameLength {
-		return "", util.NewInvalidInputError("Failed to extract pipeline's name as it is too long. Maximum length is %v", common.MaxFileNameLength)
 	}
 	return pipelineName, nil
 }

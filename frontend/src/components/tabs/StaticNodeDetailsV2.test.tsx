@@ -140,7 +140,7 @@ describe('StaticNodeDetailsV2', () => {
         ></StaticNodeDetailsV2>
       </CommonTestWrapper>,
     );
-    screen.getByText('Open Workflow');
+    screen.getByText('Open Sub-DAG');
 
     screen.getByText('pipelinechannel--flip-coin-op-Output');
     expect(screen.getAllByText('STRING').length).toEqual(2);
@@ -163,7 +163,7 @@ describe('StaticNodeDetailsV2', () => {
         ></StaticNodeDetailsV2>
       </CommonTestWrapper>,
     );
-    screen.getByText('Open Workflow');
+    screen.getByText('Open Sub-DAG');
 
     screen.getByText('pipelinechannel--flip-coin-op-Output');
     expect(screen.getAllByText('STRING').length).toEqual(3);

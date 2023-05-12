@@ -46,82 +46,58 @@ def train_tfhub_model(
     test_steps_per_epoch: Optional[int] = -1,
 ):
   # fmt: off
-  """
-    Launch Vertex CustomJob to train a new Cloud natural language TFHub model.
+  """Launch Vertex CustomJob to train a new Cloud natural language TFHub model.
 
   Args:
-      project (str):
-          Required. GCP project to run CustomJob.
-      location (str):
-          Required. Location of the job. Defaults to `us-central1`.
-      input_data_path (Optional[str]):
-          Required. GCS path to the file where data is stored. Should contain train and validation splits.
+      project: GCP project to run CustomJob.
+      location: Location of the job. Defaults to `us-central1`.
+      input_data_path: GCS path to the file where data is stored. Should contain train and validation splits.
 
           For details on how to format the data, see
           https://cloud.google.com/vertex-ai/docs/text-data/classification/prepare-data.
-      input_format (Optional[str]):
-          Required. Input data format; supports "csv" and "jsonl". Defaults to "jsonl".
+      input_format: Input data format; supports "csv" and "jsonl". Defaults to "jsonl".
 
           For details on how to format the data, see
           https://cloud.google.com/vertex-ai/docs/text-data/classification/prepare-data.
-      machine_type (Optional[str]):
-          Type of machine for running the model training on dedicated resources. Defaults to `n1-highmem-8.`
+      machine_type: Type of machine for running the model training on dedicated resources. Defaults to `n1-highmem-8.`
 
           For more details about the machine spec, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
-      accelerator_type (Optional[str]):
-          Type of accelerator. Defaults to `NVIDIA_TESLA_T4`.
+      accelerator_type: Type of accelerator. Defaults to `NVIDIA_TESLA_T4`.
 
           For more details about the machine spec, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec.
-      accelerator_count (Optional[int]):
-          Number of accelerators. Defaults to `1`.
+      accelerator_count: Number of accelerators. Defaults to `1`.
 
           For more details about the machine spec, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec.
-      natural_language_task_type (Optional[str]):
-          Task type to train the model on.
+      natural_language_task_type: Task type to train the model on.
           Possible values are ["CLASSIFICATION", "MULTILABEL_CLASSIFICATION", "BINARY_CLASSIFICATION"]. Defaults to `CLASSIFICATION`.
-      model_architecture (Optional[str]):
-          Model you wish to train. Possible values are ["MULTILINGUAL_BERT_BASE_CASED", "ENGLISH_BERT_BASE_UNCASED"]. Defaults to `MULTILINGUAL_BERT_BASE_CASED`.
-      train_batch_size (Optional[int]):
-          Batch size to use during training.
+      model_architecture: Model you wish to train. Possible values are ["MULTILINGUAL_BERT_BASE_CASED", "ENGLISH_BERT_BASE_UNCASED"]. Defaults to `MULTILINGUAL_BERT_BASE_CASED`.
+      train_batch_size: Batch size to use during training.
           Note that increasing this when running on GPUs could cause training failures due to insufficient memory. Defaults to `32`.
-      eval_batch_size (Optional[int]):
-          Batch size to use during eval.
+      eval_batch_size: Batch size to use during eval.
           Note that increasing this when running on GPUs could cause training failures due to insufficient memory. Defaults to `32`.
-      num_epochs (Optional[int]):
-          Max number of epochs to train for.
+      num_epochs: Max number of epochs to train for.
           Early stopping may prevent this number from being reached, but the learning rate schedule is influence by this value regardless. Defaults to `30`.
-      dropout (Optional[float]):
-          Dropout rate for dropout layer(s). Defaults to `0.35`.
-      initial_learning_rate (Optional[float]):
-          Starting learning rate for the model. Defaults to `1e-4`.
-      warmup (Optional[float]):
-          Fraction of training steps that we should slowly raise the learning rate for (i.e. first 10 percent of training steps).
+      dropout: Dropout rate for dropout layer(s). Defaults to `0.35`.
+      initial_learning_rate: Starting learning rate for the model. Defaults to `1e-4`.
+      warmup: Fraction of training steps that we should slowly raise the learning rate for (i.e. first 10 percent of training steps).
           Note that the "lamb" optimizer will ignore this value as it has built-in warmup. Defaults to `0.1`.
-      optimizer_type (Optional[str]):
-          Type of optimizer to use. Options are ["lamb", "adamw"]. Defaults to `lamb`.
-      random_seed (Optional[int]):
-          Random seed to use during training; maintain value for reproducibility. Defaults to `0`.
-      train_steps_per_epoch (Optional[int]):
-          Training steps per epoch during diintibuted training.
+      optimizer_type: Type of optimizer to use. Options are ["lamb", "adamw"]. Defaults to `lamb`.
+      random_seed: Random seed to use during training; maintain value for reproducibility. Defaults to `0`.
+      train_steps_per_epoch: Training steps per epoch during diintibuted training.
           Only used when there are multiple GPUs. Defaults to `-1`.
-      validation_steps_per_epoch (Optional[int]):
-          Validation steps per epoch during distributed training.
+      validation_steps_per_epoch: Validation steps per epoch during distributed training.
           Only used when there are multiple GPUs. Defaults to `-1`.
-      test_steps_per_epoch (Optional[str]):
-          Test steps per epoch during distributed training.
+      test_steps_per_epoch: Test steps per epoch during distributed training.
           Only used when there are multiple GPUs. Defaults to `-1`.
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the training job.
+      gcp_resources: Serialized gcp_resources proto tracking the training job.
           For more details on GCP resources proto, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
-      model_output (system.Artifact):
-          Artifact tracking the batch prediction job output. This is only available if
+      model_output: Artifact tracking the batch prediction job output. This is only available if
           gcs_destination_output_uri_prefix is specified.
-
   """
   # fmt: on
 

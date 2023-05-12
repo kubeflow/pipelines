@@ -41,45 +41,36 @@ def bigquery_ml_reconstruction_loss_job(
   """Launch a BigQuery ml reconstruction loss job and waits for it to finish.
 
   Args:
-      project (str):
-        Required. Project to run BigQuery ml reconstruction loss
+      project: Project to run BigQuery ml reconstruction loss
         job.
-      location (Optional[str]):
-        Location to run the BigQuery ml reconstruction
+      location: Location to run the BigQuery ml reconstruction
         loss job. If not set, default to `US` multi-region. For more details,
         see
           https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model (google.BQMLModel):
-        Required. BigQuery ML model. For more details,
+      model: BigQuery ML model. For more details,
         see
           https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-reconstruction-loss#reconstruction_loss_model_name
-      table_name (Optional[str]):
-        BigQuery table id of the input table that
+      table_name: BigQuery table id of the input table that
         contains the input data. For more details, see
           https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-reconstruction-loss#reconstruction_loss_table_name
-      query_statement (Optional[str]):
-        Query statement string used to generate
+      query_statement: Query statement string used to generate
         the input data. For more details, see
           https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-reconstruction-loss#reconstruction_loss_query_statement
-      query_parameters (Optional[Sequence]):
-        jobs.query parameters for
+      query_parameters: jobs.query parameters for
         standard SQL queries. If query_parameters are both specified in here
         and in job_configuration_query, the value in here will override the
         other one.
-      job_configuration_query (Optional[dict]):
-        A json formatted string
+      job_configuration_query: A json formatted string
         describing the rest of the job configuration. For more details, see
           https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name (Optional[List[str]]):
-        Describes the Cloud KMS
+      encryption_spec_key_name: Describes the Cloud KMS
         encryption key that will be used to protect destination BigQuery
         table. The BigQuery Service Account associated with your project
         requires access to this encryption key. If encryption_spec_key_name
@@ -87,13 +78,11 @@ def bigquery_ml_reconstruction_loss_job(
         in here will override the other one.
 
   Returns:
-      destination_table (google.BQTable):
-        Describes the table where the ml reconstruction loss job results
+      destination_table: Describes the table where the ml reconstruction loss job results
         should be stored. This property must be set for large results that
         exceed the maximum response size. For queries that produce anonymous
         (cached) results, this field will be populated by BigQuery.
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the BigQuery job.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

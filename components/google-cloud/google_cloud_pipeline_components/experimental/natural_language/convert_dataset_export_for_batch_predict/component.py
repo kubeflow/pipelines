@@ -25,6 +25,7 @@ def convert_dataset_export_for_batch_predict(
     classification_type: str,
     output_dir: dsl.OutputPath(list),
 ) -> NamedTuple("Outputs", [("output_files", list)]):
+  # fmt: on
   """Converts classification dataset export for batch prediction input.
 
   For each processed data item, there will be a JSON object with two fields: a
@@ -43,6 +44,7 @@ def convert_dataset_export_for_batch_predict(
     Namedtuple of one list under "output_files" key, containing the URIs of the
     JSONL files ready to be consumed by Vertex batch prediction.
   """
+  # fmt: on
   # pylint: disable=g-import-not-at-top
   import collections
   import json

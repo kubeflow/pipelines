@@ -16,30 +16,25 @@ def dataflow_python(
     args: List[str] = [],
 ):
   # fmt: off
-  """Launch a self-executing beam python file on Google Cloud using the DataflowRunner.
+  """Launch a self-executing beam python file on Google Cloud using the
+  DataflowRunner.
 
-    Args:
-        project (str):
-            Required. Project to create the Dataflow job in.
-        location (Optional[str]):
-            Location for creating the Dataflow job. If not set, default to
-            us-central1.
-        python_module_path (str):
-            The GCS path to the python file to run.
-        temp_location (str):
-            A GCS path for Dataflow to stage temporary job
-            files created during the execution of the pipeline.
-        requirements_file_path (Optional[str]):
-            The GCS path to the pip requirements file.
-        args(Optional[List[str]]):
-            The list of args to pass to the python file.
-            Can include additional parameters for the beam runner.
+  Args:
+      project: Project to create the Dataflow job in.
+      location: Location for creating the Dataflow job. If not set, default to
+          us-central1.
+      python_module_path: The GCS path to the python file to run.
+      temp_location: A GCS path for Dataflow to stage temporary job
+          files created during the execution of the pipeline.
+      requirements_file_path: The GCS path to the pip requirements file.
+      args:
+          The list of args to pass to the python file.
+          Can include additional parameters for the beam runner.
 
-    Returns:
-        gcp_resources (str):
-            Serialized gcp_resources proto tracking the Dataflow job.
-            For more details, see
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+  Returns:
+      gcp_resources: Serialized gcp_resources proto tracking the Dataflow job.
+          For more details, see
+          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

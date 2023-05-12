@@ -68,49 +68,41 @@ def automl_image_training_job(
       ``test_filter_split`` must be provided.
       Supported only for unstructured Datasets.
   Args:
-      dataset (datasets.ImageDataset):
-          Required. The dataset within the same Project from which data will be used to train the Model. The
+      dataset: The dataset within the same Project from which data will be used to train the Model. The
           Dataset must use schema compatible with Model being trained,
           and what is compatible should be described in the used
           TrainingPipeline's [training_task_definition]
           [google.cloud.aiplatform.v1beta1.TrainingPipeline.training_task_definition].
           For tabular Datasets, all their data is exported to
           training, to pick and choose from.
-      training_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to train
+      training_fraction_split: The fraction of the input data that is to be used to train
           the Model. This is ignored if Dataset is not provided.
-      validation_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to validate
+      validation_fraction_split: The fraction of the input data that is to be used to validate
           the Model. This is ignored if Dataset is not provided.
-      test_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to evaluate
+      test_fraction_split: The fraction of the input data that is to be used to evaluate
           the Model. This is ignored if Dataset is not provided.
-      training_filter_split (String):
-          Optional. A filter on DataItems of the Dataset. DataItems that match
+      training_filter_split: A filter on DataItems of the Dataset. DataItems that match
           this filter are used to train the Model. A filter with same syntax
           as the one used in DatasetService.ListDataItems may be used. If a
           single DataItem is matched by more than one of the FilterSplit filters,
           then it is assigned to the first set that applies to it in the training,
           validation, test order. This is ignored if Dataset is not provided.
           Example usage: training_filter_split="labels.aiplatform.googleapis.com/ml_use=training".
-      validation_filter_split (String):
-          Optional. A filter on DataItems of the Dataset. DataItems that match
+      validation_filter_split: A filter on DataItems of the Dataset. DataItems that match
           this filter are used to validate the Model. A filter with same syntax
           as the one used in DatasetService.ListDataItems may be used. If a
           single DataItem is matched by more than one of the FilterSplit filters,
           then it is assigned to the first set that applies to it in the training,
           validation, test order. This is ignored if Dataset is not provided.
           Example usage: validation_filter_split= "labels.aiplatform.googleapis.com/ml_use=validation".
-      test_filter_split (String):
-          Optional. A filter on DataItems of the Dataset. DataItems that match
+      test_filter_split: A filter on DataItems of the Dataset. DataItems that match
           this filter are used to test the Model. A filter with same syntax
           as the one used in DatasetService.ListDataItems may be used. If a
           single DataItem is matched by more than one of the FilterSplit filters,
           then it is assigned to the first set that applies to it in the training,
           validation, test order. This is ignored if Dataset is not provided.
           Example usage: test_filter_split= "labels.aiplatform.googleapis.com/ml_use=test".
-      budget_milli_node_hours (Integer):
-          Optional. The train budget of creating this Model, expressed in milli node
+      budget_milli_node_hours: The train budget of creating this Model, expressed in milli node
           hours i.e. 1,000 value in this field means 1 node hour.
           Defaults by `prediction_type`:
               `classification` - For Cloud models the budget must be: 8,000 - 800,000
@@ -126,12 +118,10 @@ def automl_image_training_job(
           any improvements. If the budget is set to a value known to be insufficient to
           train a Model for the given training set, the training won't be attempted and
           will error.
-      model_display_name (String):
-          Optional. The display name of the managed Vertex AI Model. The name
+      model_display_name: The display name of the managed Vertex AI Model. The name
           can be up to 128 characters long and can be consist of any UTF-8
           characters. If not provided upon creation, the job's display_name is used.
-      model_labels (JsonObject):
-          Optional. The labels with user-defined metadata to
+      model_labels: The labels with user-defined metadata to
           organize your Models.
           Label keys and values can be no longer than 64
           characters (Unicode codepoints), can only
@@ -141,15 +131,13 @@ def automl_image_training_job(
           See https://goo.gl/xmQnxf for more information
           and examples of labels.
       disable_early_stopping: bool = False
-          Required. If true, the entire budget is used. This disables the early stopping
+          If true, the entire budget is used. This disables the early stopping
           feature. By default, the early stopping feature is enabled, which means
           that training might stop before the entire training budget has been
           used, if further training does no longer brings significant improvement
           to the model.
-      display_name (String):
-          Required. The user-defined name of this TrainingPipeline.
-      prediction_type (String):
-          The type of prediction the Model is to produce, one of:
+      display_name: The user-defined name of this TrainingPipeline.
+      prediction_type: The type of prediction the Model is to produce, one of:
               "classification" - Predict one out of multiple target values is
                   picked for each row.
               "object_detection" - Predict a value based on its relation to other values.
@@ -157,7 +145,7 @@ def automl_image_training_job(
                   semantically numeric values, i.e. integers or floating
                   point number, even if stored as e.g. strings.
       multi_label: bool = False
-          Required. Default is False.
+          Default is False.
           If false, a single-label (multi-class) Model will be trained
           (i.e. assuming that for each image just up to one annotation may be
           applicable). If true, a multi-label Model will be trained (i.e.
@@ -165,7 +153,7 @@ def automl_image_training_job(
           This is only applicable for the "classification" prediction_type and
           will be ignored otherwise.
       model_type: str = "CLOUD"
-          Required. One of the following:
+          One of the following:
               "CLOUD" - Default for Image Classification.
                   A Model best tailored to be used within Google Cloud, and
                   which cannot be exported.
@@ -192,17 +180,14 @@ def automl_image_training_job(
                   Expected to have a higher latency, but should also have a higher
                   prediction quality than other mobile models.
       base_model: Optional[models.Model] = None
-          Optional. Only permitted for Image Classification models.
+          Only permitted for Image Classification models.
           If it is specified, the new model will be trained based on the `base` model.
           Otherwise, the new model will be trained from scratch. The `base` model
           must be in the same Project and Location as the new Model to train,
           and have the same model_type.
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-      labels (JsonObject):
-          Optional. The labels with user-defined metadata to
+      project: project to retrieve dataset from.
+      location: Optional location to retrieve dataset from.
+      labels: The labels with user-defined metadata to
           organize TrainingPipelines.
           Label keys and values can be no longer than 64
           characters (Unicode codepoints), can only
@@ -211,8 +196,7 @@ def automl_image_training_job(
           are allowed.
           See https://goo.gl/xmQnxf for more information
           and examples of labels.
-      training_encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
+      training_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the training pipeline. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
@@ -222,8 +206,7 @@ def automl_image_training_job(
           Note: Model trained by this TrainingPipeline is also secured
           by this key if ``model_to_upload`` is not set separately.
           Overrides encryption_spec_key_name set in aiplatform.init.
-      model_encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
+      model_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the model. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
@@ -243,7 +226,7 @@ def automl_image_training_job(
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'AutoMLImageTrainingJob',
           '--method_name',

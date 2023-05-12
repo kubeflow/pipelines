@@ -29,16 +29,14 @@ def model_undeploy(
     traffic_split: Dict[str, str] = {},
 ):
   # fmt: off
-  """
-  Undeploys a Google Cloud Vertex DeployedModel within the Endpoint.
-  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
+  """Undeploys a Google Cloud Vertex DeployedModel within the Endpoint. For
+  more details, see https://cloud.google.com/vertex-
+  ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
 
   Args:
-      model (google.VertexModel):
-          Required. The model that was deployed to the Endpoint.
-      endpoint (google.VertexEndpoint):
-          Required. The endpoint for the DeployedModel to be undeployed from.
-      traffic_split (Optional[Dict[str, int]]):
+      model: The model that was deployed to the Endpoint.
+      endpoint: The endpoint for the DeployedModel to be undeployed from.
+      traffic_split:
           If this field is provided, then the Endpoint's trafficSplit will be overwritten with it.
           If last DeployedModel is being undeployed from the Endpoint, the
           [Endpoint.traffic_split] will always end up empty when this call returns.
@@ -46,8 +44,7 @@ def model_undeploy(
           assigned to it when this method executes, or if this field unassigns any traffic to it.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the undeploy model's long running operation.
+      gcp_resources: Serialized gcp_resources proto tracking the undeploy model's long running operation.
 
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """

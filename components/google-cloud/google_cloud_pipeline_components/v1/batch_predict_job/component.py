@@ -59,56 +59,46 @@ def model_batch_predict(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Creates a Google Cloud Vertex BatchPredictionJob and waits for it to complete.
+  """Creates a Google Cloud Vertex BatchPredictionJob and waits for it to
+  complete.
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create.
 
   Args:
-      project (str):
-        Required. Project to create the BatchPredictionJob.
-      job_display_name (str):
-        Required. The user-defined name of this BatchPredictionJob.
-      location (Optional[str]):
-        Location for creating the BatchPredictionJob.
+      project: Project to create the BatchPredictionJob.
+      job_display_name: The user-defined name of this BatchPredictionJob.
+      location: Location for creating the BatchPredictionJob.
         If not set, default to us-central1.
-      instances_format (Optional[str]):
-        The format in which instances are
+      instances_format: The format in which instances are
         given, must be one of the Model's supportedInputStorageFormats. If not
         set, default to "jsonl".  For more details about this input config,
         see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
-      predictions_format (Optional[str]):
-        The format in which Vertex AI gives the predictions. Must be one of the
+      predictions_format: The format in which Vertex AI gives the predictions. Must be one of the
         Model's supportedOutputStorageFormats. If not set, default to "jsonl".
         For more details about this output config, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
-      model (Optional[google.VertexModel]):
-        The Model used to get predictions via this job. Must share the same
+      model: The Model used to get predictions via this job. Must share the same
         ancestor Location. Starting this job has no impact on any existing
         deployments of the Model and their resources. Either this or
         unmanaged_container_model must be specified.
-      unmanaged_container_model (Optional[google.UnmanagedContainerModel]):
-        The unmanaged container model used to get predictions via this job.
+      unmanaged_container_model: The unmanaged container model used to get predictions via this job.
         This should be used for models that are not uploaded to Vertex. Either
         this or model must be specified.
-      gcs_source_uris (Optional[Sequence[str]]):
-        Google Cloud Storage URI(-s) to your instances to run batch prediction
+      gcs_source_uris: Google Cloud Storage URI(-s) to your instances to run batch prediction
         on. They must match `instances_format`. May contain wildcards. For more
         information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
         For more details about this input config, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
-      bigquery_source_input_uri (Optional[str]):
-        BigQuery URI to a table, up to 2000 characters long. For example:
+      bigquery_source_input_uri: BigQuery URI to a table, up to 2000 characters long. For example:
         `projectId.bqDatasetId.bqTableId`  For more details about this input
         config, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
-      model_parameters (Optional[dict]):
-        The parameters that govern the predictions. The schema of the parameters
+      model_parameters: The parameters that govern the predictions. The schema of the parameters
         may be specified via the Model's `parameters_schema_uri`.
-      gcs_destination_output_uri_prefix (Optional[str]):
-        The Google Cloud
+      gcs_destination_output_uri_prefix: The Google Cloud
         Storage location of the directory where the output is to be written
         to. In the given directory a new directory is created. Its name is
         ``prediction-<model-display-name>-<job-create-time>``, where timestamp
@@ -128,8 +118,7 @@ def model_batch_predict(
         value has ``google.rpc.Status`` containing only ``code`` and
         ``message`` fields.  For more details about this output config, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
-      bigquery_destination_output_uri (Optional[str]):
-        The BigQuery project location where the output is to be written to. In
+      bigquery_destination_output_uri: The BigQuery project location where the output is to be written to. In
         the given project a new dataset is created with name
         ``prediction_<model-display-name>_<job-create-time>`` where is made
         BigQuery-dataset-name compatible (for example, most special characters
@@ -146,8 +135,7 @@ def model_batch_predict(
           represented as a STRUCT, and containing only ``code`` and
           ``message``. For more details about this output config, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
-      machine_type (Optional[str]):
-        The type of machine for running batch
+      machine_type: The type of machine for running batch
         prediction on dedicated resources. If the Model supports
         DEDICATED_RESOURCES this config may be provided (and the job will use
         these resources). If the Model doesn't support AUTOMATIC_RESOURCES,
@@ -156,34 +144,28 @@ def model_batch_predict(
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources.
         For more details about the machine spec, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
-      accelerator_type (Optional[str]):
-        The type of accelerator(s) that may be
+      accelerator_type: The type of accelerator(s) that may be
         attached to the machine as per `accelerator_count`. Only used if
         `machine_type` is set.  For more details about the machine spec, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
-      accelerator_count (Optional[int]):
-        The number of accelerators to attach
+      accelerator_count: The number of accelerators to attach
         to the `machine_type`. Only used if `machine_type` is set.  For more
         details about the machine spec, see
           https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
-      starting_replica_count (Optional[int]):
-        The number of machine replicas
+      starting_replica_count: The number of machine replicas
         used at the start of the batch operation. If not set, Vertex AI
         decides starting number, not greater than `max_replica_count`. Only
         used if `machine_type` is set.
-      max_replica_count (Optional[int]):
-        The maximum number of machine replicas the batch operation may be scaled
+      max_replica_count: The maximum number of machine replicas the batch operation may be scaled
         to. Only used if `machine_type` is set. Default is 10.
-      manual_batch_tuning_parameters_batch_size (Optional[int]):
-        The number of
+      manual_batch_tuning_parameters_batch_size: The number of
         the records (e.g. instances) of the operation given in each batch to a
         machine replica. Machine type, and size of a single record should be
         considered when setting this parameter, higher value speeds up the
         batch operation's execution, but too high value will result in a whole
         batch not fitting in a machine's memory, and the whole operation will
         fail. The default value is 4.
-      generate_explanation (Optional[bool]):
-        Generate explanation along with
+      generate_explanation: Generate explanation along with
         the batch prediction results. This will cause the batch prediction
         output to include explanations based on the `prediction_format`: -
         `bigquery`: output includes a column named `explanation`. The value is
@@ -194,8 +176,7 @@ def model_batch_predict(
         Generating explanations for CSV format is not supported.  If this
         field is set to true, either the Model.explanation_spec or
         explanation_metadata and explanation_parameters must be populated.
-      explanation_metadata (Optional[dict]):
-        Explanation metadata
+      explanation_metadata: Explanation metadata
         configuration for this BatchPredictionJob. Can be specified only if
         `generate_explanation` is set to `True`.  This value overrides the
         value of `Model.explanation_metadata`. All fields of
@@ -204,8 +185,7 @@ def model_batch_predict(
         field of the `Model.explanation_metadata` object is inherited.  For
         more details, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
-      explanation_parameters (Optional[dict]):
-        Parameters to configure
+      explanation_parameters: Parameters to configure
         explaining for Model's predictions. Can be specified only if
         `generate_explanation` is set to `True`.  This value overrides the
         value of `Model.explanation_parameters`. All fields of
@@ -214,15 +194,13 @@ def model_batch_predict(
         corresponding field of the `Model.explanation_parameters` object is
         inherited.  For more details, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters.
-      labels (Optional[dict]):
-        The labels with user-defined metadata to
+      labels: The labels with user-defined metadata to
         organize your BatchPredictionJobs.  Label keys and values can be no
         longer than 64 characters (Unicode codepoints), can only contain
         lowercase letters, numeric characters, underscores and dashes.
         International characters are allowed.  See https://goo.gl/xmQnxf for
         more information and examples of labels.
-      encryption_spec_key_name (Optional[str]):
-        Customer-managed encryption
+      encryption_spec_key_name: Customer-managed encryption
         key options for a BatchPredictionJob. If this is set, then all
         resources created by the BatchPredictionJob will be encrypted with the
         provided encryption key.  Has the form:
@@ -231,20 +209,16 @@ def model_batch_predict(
         is created.
 
   Returns:
-      batchpredictionjob (google.VertexBatchPredictionJob):
-          [**Deprecated. Use gcs_output_directory and bigquery_output_table
+      batchpredictionjob: [**Deprecated. Use gcs_output_directory and bigquery_output_table
           instead.**] Artifact
           representation of the created batch prediction job.
-      gcs_output_directory (system.Artifact):
-          Artifact tracking the batch prediction job output. This is only
+      gcs_output_directory: Artifact tracking the batch prediction job output. This is only
           available if
           gcs_destination_output_uri_prefix is specified.
-      bigquery_output_table (google.BQTable):
-          Artifact tracking the batch prediction job output. This is only
+      bigquery_output_table: Artifact tracking the batch prediction job output. This is only
           available if
           bigquery_output_table is specified.
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the batch prediction job.
+      gcp_resources: Serialized gcp_resources proto tracking the batch prediction job.
 
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
