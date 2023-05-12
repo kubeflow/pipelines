@@ -329,13 +329,6 @@ function updateToolBarActions(
 }
 
 function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
-  // check if the run has finished or not. The default value for run.finished_at is
-  // Date(0), when it is not specified.
-  let finishedAt = new Date(0);
-  if (run?.finished_at) {
-    finishedAt = run?.finished_at;
-  }
-
   return [
     ['Run ID', run?.run_id || '-'],
     ['Workflow name', run?.display_name || '-'],
@@ -343,7 +336,7 @@ function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
     ['Description', run?.description || ''],
     ['Created at', run?.created_at ? formatDateString(run.created_at) : '-'],
     ['Started at', formatDateString(run?.scheduled_at)],
-    ['Finished at', finishedAt > new Date(0) ? formatDateString(run?.finished_at) : '-'],
-    ['Duration', finishedAt > new Date(0) ? getRunDurationV2(run) : '-'],
+    ['Finished at', hasFinishedV2(run?.state) ? formatDateString(run?.finished_at) : '-'],
+    ['Duration', hasFinishedV2(run?.state) ? getRunDurationV2(run) : '-'],
   ];
 }
