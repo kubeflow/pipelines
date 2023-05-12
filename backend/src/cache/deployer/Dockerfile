@@ -2,7 +2,6 @@ FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
 
 RUN apk add --update \
     curl \
-    which \
     jq \
     bash \
     openssl
