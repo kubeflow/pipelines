@@ -521,15 +521,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
-    // TBD(jlyaoyuli): If we allow upload v1 version to v2 pipeline or vice versa,
-    // v1 and v2 field should change to "non-exclusive".
+    // TBD(jlyaoyuli): Currently, we allow upload v1 version to v2 pipeline or vice versa,
+    // so v1 and v2 field isa "non-exclusive".
     if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
       this.setStateSafe({
-        v1Pipeline: undefined,
+        v1Pipeline,
         v2Pipeline,
-        v1SelectedVersion: undefined,
+        v1SelectedVersion,
         v2SelectedVersion,
-        v1Versions: undefined,
+        v1Versions,
         v2Versions,
         graph: undefined,
         graphV2,
@@ -539,11 +539,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     } else {
       this.setStateSafe({
         v1Pipeline,
-        v2Pipeline: undefined,
+        v2Pipeline,
         v1SelectedVersion,
-        v2SelectedVersion: undefined,
+        v2SelectedVersion,
         v1Versions,
-        v2Versions: undefined,
+        v2Versions,
         graph,
         graphV2: undefined,
         reducedGraph,
