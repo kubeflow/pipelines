@@ -148,7 +148,7 @@ func TestCreateExperimentV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:create,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
@@ -175,7 +175,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"ermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:create,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"ermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
@@ -279,7 +279,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 			},
 			nil,
 			true,
-			"Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 		{
 			"Invalid - missing name",
@@ -306,7 +306,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 			},
 			nil,
 			true,
-			"Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 		{
 			"Valid - multiple namespaces",
@@ -355,7 +355,7 @@ func TestCreateExperimentV1_Multiuser(t *testing.T) {
 			},
 			nil,
 			true,
-			"Invalid input error: Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 	}
 	for _, tt := range tests {
@@ -417,7 +417,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 			},
 			nil,
 			true,
-			"Namespace cannot be empty",
+			"An experiment cannot have an empty namespace in multi-user mode",
 		},
 		{
 			"Invalid - missing name",
@@ -537,7 +537,7 @@ func TestGetExperimentV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
@@ -559,7 +559,7 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
@@ -729,7 +729,7 @@ func TestListExperimentsV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:list,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:,})",
+		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
@@ -750,7 +750,7 @@ func TestListExperiments_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:list,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:,})",
+		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed",
 	)
 }
 
@@ -833,9 +833,9 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 		{
 			"Missing resource reference key",
 			&apiv1beta1.ListExperimentsRequest{},
-			false,
-			"",
-			[]*apiv1beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 		{
 			"Empty namespace",
@@ -845,9 +845,9 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 					Id:   "",
 				},
 			},
-			false,
-			"",
-			[]*apiv1beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 		{
 			"No namespace",
@@ -857,9 +857,9 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 					Id:   "-",
 				},
 			},
-			false,
-			"",
-			[]*apiv1beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 	}
 
@@ -931,9 +931,9 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 		{
 			"Missing namespace",
 			&apiV2beta1.ListExperimentsRequest{},
-			false,
-			"",
-			[]*apiV2beta1.Experiment{},
+			true,
+			"An experiment cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 	}
 

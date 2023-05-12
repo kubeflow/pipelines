@@ -285,7 +285,7 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 }
 
 func (s *ExperimentServer) deleteExperiment(ctx context.Context, experimentId string) error {
-	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
+	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
@@ -328,26 +328,19 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-
-	if len(experimentID) > 0 {
+	if experimentID != "" {
 		experiment, err := s.resourceManager.GetExperiment(experimentID)
 		if err != nil {
 			return util.Wrap(err, "Failed to authorize with the experiment ID")
 		}
-		if len(resourceAttributes.Namespace) == 0 {
-			if len(experiment.Namespace) == 0 {
-				return util.NewInternalServerError(
-					errors.New("Empty namespace"),
-					"The experiment doesn't have a valid namespace",
-				)
-			}
-			resourceAttributes.Namespace = experiment.Namespace
-		}
-		if len(resourceAttributes.Name) == 0 {
+		resourceAttributes.Namespace = experiment.Namespace
+		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = experiment.Name
 		}
 	}
-
+	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+		return util.NewInvalidInputError("An experiment cannot have an empty namespace in multi-user mode")
+	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
 	resourceAttributes.Resource = common.RbacResourceTypeExperiments
@@ -389,7 +382,7 @@ func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2
 }
 
 func (s *ExperimentServer) unarchiveExperiment(ctx context.Context, experimentId string) error {
-	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
+	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
