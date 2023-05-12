@@ -359,7 +359,7 @@ def _build_component_spec_from_component_spec_structure(
         # Special handling for PipelineTaskFinalStatus first.
         if type_utils.is_task_final_status_type(input_spec.type):
             component_spec.input_definitions.parameters[
-                input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
+                input_name].parameter_type = pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS
             component_spec.input_definitions.parameters[
                 input_name].is_optional = True
             if input_spec.description:
