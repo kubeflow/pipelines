@@ -7,6 +7,8 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Fix compilation of boolean constant passed to component [\#9390](https://github.com/kubeflow/pipelines/pull/9390)
+
 
 ## Documentation updates
 
