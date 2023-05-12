@@ -1377,7 +1377,7 @@ func isVolumeOp(image string, k8sExecCfg *kubernetesplatform.KubernetesExecutorC
 	if image == "argostub/createpvc" || image == "argostub/deletepvc" {
 		return true
 	}
-	if len(k8sExecCfg.GetSecretAsVolume()) > 0 || len(k8sExecCfg.GetPvcMount()) > 0 {
+	if len(k8sExecCfg.GetPvcMount()) > 0 {
 		return true
 	}
 	return false
