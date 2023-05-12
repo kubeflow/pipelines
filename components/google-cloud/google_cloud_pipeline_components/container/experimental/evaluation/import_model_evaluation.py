@@ -178,7 +178,6 @@ def main(argv):
       'metrics': overall_slice['metrics'],
       'metrics_schema_uri': schema_uri,
   }
-  print(f'uploading model evaluation metrics: {model_evaluation}')
 
   if (
       parsed_args.explanation
