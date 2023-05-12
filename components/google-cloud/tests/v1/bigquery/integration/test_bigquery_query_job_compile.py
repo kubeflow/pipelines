@@ -34,9 +34,6 @@ class ComponentsCompileTest(unittest.TestCase):
     self._labels = {'key1': 'val1'}
     self._encryption_spec_key_name = 'fake_encryption_key'
 
-  def tearDown(self):
-    super(ComponentsCompileTest, self).tearDown()
-
   def test_bigquery_query_job_op_compile(self):
     @kfp.dsl.pipeline(name='bigquery-test')
     def pipeline():

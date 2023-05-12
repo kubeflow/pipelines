@@ -16,6 +16,9 @@ import copy
 import json
 from typing import Any, Optional, Set
 
+from kfp import components
+import yaml
+
 from google.protobuf import json_format
 import unittest
 
@@ -38,8 +41,9 @@ def assert_pipeline_equals_golden(
       PipelineSpec.
   """
 
-  with open(comparison_file) as f:
-    expected_pipeline_spec_dict = json.load(f)
+  expected_pipeline_spec_dict = json_format.MessageToDict(
+      components.load_component_from_file(comparison_file).pipeline_spec
+  )
   actual_pipeline_spec_dict = json_format.MessageToDict(
       compilable.pipeline_spec
   )
@@ -80,17 +84,26 @@ def compare_pipeline_spec_dicts(
     ignore_fields: If a field's key is in ignore_fields it will not be used to
       assert equality.
   """
+  is_json = comparison_file.endswith('.json')
   original_actual = copy.deepcopy(actual)
   ignore_fields = ignore_fields or None
 
-  def make_copypaste_message(actual_pipeline_spec_json: dict) -> str:
+  def make_copypaste_message(
+      actual_pipeline_spec_json: dict,
+      is_json: bool = True,
+  ) -> str:
+    if is_json:
+      proposed_file_contents = json.dumps(
+          actual_pipeline_spec_json,
+      )
+    else:
+      proposed_file_contents = yaml.dump(actual_pipeline_spec_json)
+
     return (
         '\n\nTo update the JSON to the new version, copy and paste the'
         f' following into the golden snapshot file {comparison_file or ""}. Be'
         ' sure the change is what you expect.\n'
-        + json.dumps(
-            actual_pipeline_spec_json,
-        )
+        + proposed_file_contents
     )
 
   def compare_json_dicts(
@@ -99,21 +112,22 @@ def compare_pipeline_spec_dicts(
       expected: Any,
   ) -> None:
     if type(actual) is not type(expected):
-      test_case.assertEqual(
-          type(actual),
-          type(expected),
-          f'Types do not match: {type(actual)} != {type(expected)}'
-          + make_copypaste_message(original_actual),
-      )
+      print(make_copypaste_message(original_actual, is_json))
+    test_case.assertEqual(
+        type(actual),
+        type(expected),
+        f'Types do not match: {type(actual)} != {type(expected)}',
+    )
     if isinstance(actual, dict):
       for key in expected:
         if key in ignore_fields:
           continue
+        if key not in actual:
+          print(make_copypaste_message(original_actual, is_json))
         test_case.assertIn(
             key,
             actual,
-            f'Key "{key}" not found in first json object'
-            + make_copypaste_message(original_actual),
+            f'Key "{key}" not found in first json object',
         )
         compare_json_dicts(test_case, actual[key], expected[key])
     elif isinstance(actual, list):
@@ -123,11 +137,12 @@ def compare_pipeline_spec_dicts(
       for i in range(len(actual)):
         compare_json_dicts(test_case, actual[i], expected[i])
     else:
+      if actual != expected:
+        print(make_copypaste_message(original_actual, is_json))
       test_case.assertEqual(
           actual,
           expected,
-          f'Values do not match: {actual} != {expected}'
-          + make_copypaste_message(original_actual),
+          f'Values do not match: {actual} != {expected}',
       )
 
   compare_json_dicts(test_case, actual, expected)
