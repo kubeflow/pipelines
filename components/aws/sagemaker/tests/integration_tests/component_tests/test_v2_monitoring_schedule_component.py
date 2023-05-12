@@ -8,6 +8,37 @@ from utils import minio_utils
 FINAL_STATUS = "Scheduled"
 
 
+def verify_monitoring_schedule_component_outputs(
+    workflow_json, download_dir, monitoring_schedule_name
+):
+    # Verify component outputs
+    outputs = {
+        "sagemaker-monitoringschedule": [
+            "ack_resource_metadata",
+            "monitoring_schedule_status",
+            "sagemaker_resource_name",
+        ]
+    }
+
+    output_files = minio_utils.artifact_download_iterator(
+        workflow_json, outputs, download_dir
+    )
+
+    output_ack_resource_metadata = kfp_client_utils.get_output_ack_resource_metadata(
+        output_files, "sagemaker-monitoringschedule"
+    )
+    output_schedule_status = utils.read_from_file_in_tar(
+        output_files["sagemaker-monitoringschedule"]["monitoring_schedule_status"]
+    )
+    output_schedule_name = utils.read_from_file_in_tar(
+        output_files["sagemaker-monitoringschedule"]["sagemaker_resource_name"]
+    )
+
+    assert monitoring_schedule_name in output_ack_resource_metadata["arn"]
+    assert output_schedule_name == monitoring_schedule_name
+    assert output_schedule_status == FINAL_STATUS
+
+
 # Testing monitoring schedule with model bias job definition
 @pytest.mark.parametrize(
     "test_file_dir",
@@ -87,35 +118,9 @@ def test_create_v2_monitoring_schedule(
             == FINAL_STATUS
         )
 
-        # Verify component output
-        outputs = {
-            "sagemaker-monitoringschedule": [
-                "ack_resource_metadata",
-                "monitoring_schedule_status",
-                "sagemaker_resource_name",
-            ]
-        }
-
-        output_files = minio_utils.artifact_download_iterator(
-            workflow_json, outputs, download_dir
+        verify_monitoring_schedule_component_outputs(
+            workflow_json, download_dir, monitoring_schedule_name
         )
-
-        output_ack_resource_metadata = (
-            kfp_client_utils.get_output_ack_resource_metadata(
-                output_files, "sagemaker-monitoringschedule"
-            )
-        )
-
-        output_schedule_status = utils.read_from_file_in_tar(
-            output_files["sagemaker-monitoringschedule"]["monitoring_schedule_status"]
-        )
-        output_schedule_name = utils.read_from_file_in_tar(
-            output_files["sagemaker-monitoringschedule"]["sagemaker_resource_name"]
-        )
-
-        assert monitoring_schedule_name in output_ack_resource_metadata["arn"]
-        assert output_schedule_name == monitoring_schedule_name
-        assert output_schedule_status == FINAL_STATUS
 
     finally:
         ack_utils._delete_resource(
@@ -235,34 +240,9 @@ def test_update_v2_monitoring_schedule(
             == "ml.m5.large"
         )
 
-        # Verify component output
-        outputs = {
-            "sagemaker-monitoringschedule": [
-                "ack_resource_metadata",
-                "monitoring_schedule_status",
-                "sagemaker_resource_name",
-            ]
-        }
-
-        output_files = minio_utils.artifact_download_iterator(
-            workflow_json, outputs, download_dir
+        verify_monitoring_schedule_component_outputs(
+            workflow_json, download_dir, monitoring_schedule_name
         )
-
-        output_ack_resource_metadata = (
-            kfp_client_utils.get_output_ack_resource_metadata(
-                output_files, "sagemaker-monitoringschedule"
-            )
-        )
-        output_schedule_status = utils.read_from_file_in_tar(
-            output_files["sagemaker-monitoringschedule"]["monitoring_schedule_status"]
-        )
-        output_schedule_name = utils.read_from_file_in_tar(
-            output_files["sagemaker-monitoringschedule"]["sagemaker_resource_name"]
-        )
-
-        assert monitoring_schedule_name in output_ack_resource_metadata["arn"]
-        assert output_schedule_name == monitoring_schedule_name
-        assert output_schedule_status == FINAL_STATUS
 
         # Update monitoring schedule using new job definition
         test_params["Arguments"]["job_definition_name"] = job_definition_name_2
@@ -310,34 +290,9 @@ def test_update_v2_monitoring_schedule(
             == "ml.m5.xlarge"
         )
 
-        # Verify component output
-        outputs = {
-            "sagemaker-monitoringschedule": [
-                "ack_resource_metadata",
-                "monitoring_schedule_status",
-                "sagemaker_resource_name",
-            ]
-        }
-
-        output_files = minio_utils.artifact_download_iterator(
-            workflow_json, outputs, download_dir
+        verify_monitoring_schedule_component_outputs(
+            workflow_json, download_dir, monitoring_schedule_name
         )
-
-        output_ack_resource_metadata = (
-            kfp_client_utils.get_output_ack_resource_metadata(
-                output_files, "sagemaker-monitoringschedule"
-            )
-        )
-        output_schedule_status = utils.read_from_file_in_tar(
-            output_files["sagemaker-monitoringschedule"]["monitoring_schedule_status"]
-        )
-        output_schedule_name = utils.read_from_file_in_tar(
-            output_files["sagemaker-monitoringschedule"]["sagemaker_resource_name"]
-        )
-
-        assert monitoring_schedule_name in output_ack_resource_metadata["arn"]
-        assert output_schedule_name == monitoring_schedule_name
-        assert output_schedule_status == FINAL_STATUS
 
     finally:
         ack_utils._delete_resource(
