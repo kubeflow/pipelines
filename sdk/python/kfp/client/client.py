@@ -1370,8 +1370,8 @@ class Client:
         if isinstance(timeout, datetime.timedelta):
             timeout = timeout.total_seconds()
         is_valid_token = False
-        while (state is None or state.lower()
-               not in ['succeeded', 'failed', 'skipped', 'error']):
+        finish_states = ['succeeded', 'failed', 'skipped', 'error']
+        while True:
             try:
                 get_run_response = self._run_api.get_run(run_id=run_id)
                 is_valid_token = True
@@ -1390,8 +1390,9 @@ class Client:
             logging.info('Waiting for the job to complete...')
             if elapsed_time > timeout:
                 raise TimeoutError('Run timeout')
+            if state is not None and state.lower() in finish_states:
+                return get_run_response
             time.sleep(sleep_duration)
-        return get_run_response
 
     def upload_pipeline(
         self,
