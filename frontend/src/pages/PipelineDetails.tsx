@@ -521,8 +521,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
-    // TBD(jlyaoyuli): Currently, we allow upload v1 version to v2 pipeline or vice versa,
-    // so v1 and v2 field isa "non-exclusive".
+    // Currently, we allow upload v1 version to v2 pipeline or vice versa,
+    // so v1 and v2 field is "non-exclusive".
+    // TODO(jlyaoyuli): If we decide not to support "mix versions",
+    // v1 and v2 should be "exclusive"
     if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
       this.setStateSafe({
         v1Pipeline,
