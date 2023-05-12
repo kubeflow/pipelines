@@ -261,6 +261,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		executorInput.Outputs = provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions())
 	}
 
+	isVolumeOp := isVolumeOp(opts.Container.Image, opts.KubernetesExecutorConfig)
+	if isVolumeOp {
+		glog.Infof("Task {%s} disables cache due to it's volume related operation", opts.Task.GetTaskInfo().GetName())
+	}
+
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return execution, err
@@ -271,7 +276,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
 
-	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
+	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() && !isVolumeOp {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
 		fingerPrint, err := getFingerPrint(opts, executorInput)
 		if err != nil {
@@ -297,7 +302,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 
 	cached := false
 	execution.Cached = &cached
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" && !isVolumeOp {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, executorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return execution, err
@@ -1366,4 +1371,14 @@ func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, dag *metadata
 		volumes = append(volumes, volume)
 	}
 	return volumeMounts, volumes, nil
+}
+
+func isVolumeOp(image string, k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig) bool {
+	if image == "argostub/createpvc" || image == "argostub/deletepvc" {
+		return true
+	}
+	if len(k8sExecCfg.GetSecretAsVolume()) > 0 || len(k8sExecCfg.GetPvcMount()) > 0 {
+		return true
+	}
+	return false
 }
