@@ -85,14 +85,28 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
             output_files["sagemaker-endpoint"]["endpoint_status"]
         )
 
-        output_ack_resource_metadata = json.loads(
-            utils.read_from_file_in_tar(
-                output_files["sagemaker-endpoint"]["ack_resource_metadata"]
-            ).replace("'", '"')
+        output_ack_resource_metadata_endpoint = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-endpoint"
+        )
+
+        output_ack_resource_metadata_endpoint_config = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-endpoint-config"
+        )
+
+        output_ack_resource_metadata_model = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-model"
         )
 
         output_endpoint_name = utils.read_from_file_in_tar(
             output_files["sagemaker-endpoint"]["sagemaker_resource_name"]
+        )
+
+        output_endpoint_config_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-endpoint-config"]["sagemaker_resource_name"]
+        )
+
+        output_model_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-model"]["sagemaker_resource_name"]
         )
 
         assert (
@@ -100,7 +114,9 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
             == output_endpoint_status
             == DESIRED_COMPONENT_STATUS
         )
-        assert output_endpoint_name in output_ack_resource_metadata["arn"]
+        assert output_endpoint_name in output_ack_resource_metadata_endpoint["arn"]
+        assert output_endpoint_config_name in output_ack_resource_metadata_endpoint_config["arn"]
+        assert output_model_name in output_ack_resource_metadata_model["arn"]
 
         # Verify that the update was successful by checking that the endpoint config name is the same as the second one.
         if "ExpectedEndpointConfig" in test_params.keys():
