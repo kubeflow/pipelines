@@ -13,12 +13,11 @@
 # limitations under the License.
 """Test google-cloud-pipeline-components to ensure they compile correctly."""
 
-import json
 import os
 
-import kfp
 from google_cloud_pipeline_components.v1 import dataproc
-from kfp import compiler
+from google_cloud_pipeline_components.tests.v1 import utils
+import kfp
 
 import unittest
 
@@ -56,14 +55,9 @@ class ComponentsCompileTest(unittest.TestCase):
     self._archive_uris = ['test-archive-file-uri-1', 'test-archive-file-uri-2']
     self._query_variables = {'foo': 'bar', 'fizz': 'buzz'}
     self._batch_specific_args = ['test-arg-1', 'test-arg-2']
-    self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json'
-    )
 
   def tearDown(self):
     super(ComponentsCompileTest, self).tearDown()
-    if os.path.exists(self._package_path):
-      os.remove(self._package_path)
 
   def test_dataproc_create_pyspark_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc PySparkBatch component."""
@@ -92,22 +86,14 @@ class ComponentsCompileTest(unittest.TestCase):
           archive_uris=self._archive_uris,
           args=self._batch_specific_args,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            '../testdata/dataproc_create_pyspark_batch_component_pipeline.json',
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open(
-        'testdata/dataproc_create_pyspark_batch_component_pipeline.json'
-    ) as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json['sdkVersion']
-    del executor_output_json['schemaVersion']
-    self.assertDictEqual(executor_output_json, expected_executor_output_json)
 
   def test_dataproc_create_spark_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc SparkBatch component."""
@@ -136,22 +122,14 @@ class ComponentsCompileTest(unittest.TestCase):
           archive_uris=self._archive_uris,
           args=self._batch_specific_args,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            '../testdata/dataproc_create_spark_batch_component_pipeline.json',
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open(
-        'testdata/dataproc_create_spark_batch_component_pipeline.json'
-    ) as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json['sdkVersion']
-    del executor_output_json['schemaVersion']
-    self.assertDictEqual(executor_output_json, expected_executor_output_json)
 
   def test_dataproc_create_spark_r_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc SparkRBatch component."""
@@ -179,21 +157,14 @@ class ComponentsCompileTest(unittest.TestCase):
           args=self._batch_specific_args,
       )
 
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            '../testdata/dataproc_create_spark_r_batch_component_pipeline.json',
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open(
-        'testdata/dataproc_create_spark_r_batch_component_pipeline.json'
-    ) as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json['sdkVersion']
-    del executor_output_json['schemaVersion']
-    self.assertDictEqual(executor_output_json, expected_executor_output_json)
 
   def test_dataproc_create_spark_sql_batch_op_compile(self):
     """Compile a test pipeline using the Dataproc SparkSqlBatch component."""
@@ -219,19 +190,11 @@ class ComponentsCompileTest(unittest.TestCase):
           jar_file_uris=self._jar_file_uris,
           query_variables=self._query_variables,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            '../testdata/dataproc_create_spark_sql_batch_component_pipeline.json',
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open(
-        'testdata/dataproc_create_spark_sql_batch_component_pipeline.json'
-    ) as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json['sdkVersion']
-    del executor_output_json['schemaVersion']
-    self.assertDictEqual(executor_output_json, expected_executor_output_json)

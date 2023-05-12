@@ -13,11 +13,12 @@
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure they compile correctly."""
 
-import json
 import os
+
 from google_cloud_pipeline_components.experimental.notebooks import NotebooksExecutorOp
+from google_cloud_pipeline_components.tests.v1 import utils
 import kfp
-from kfp import compiler
+
 import unittest
 
 
@@ -33,14 +34,9 @@ class ComponentsCompileTest(unittest.TestCase):
     self._location = 'us-central1'
     self._master_type = 'n1-standard-4'
     self._container_image_uri = 'gcr.io/deeplearning-platform-release/base-cpu'
-    self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json'
-    )
 
   def tearDown(self):
     super(ComponentsCompileTest, self).tearDown()
-    if os.path.exists(self._package_path):
-      os.remove(self._package_path)
 
   def test_notebooks_executor_op_compile(self):
     @kfp.dsl.pipeline(name='notebooks-executor-test')
@@ -57,17 +53,11 @@ class ComponentsCompileTest(unittest.TestCase):
               f'PROJECT_ID={self._project},EXECUTION_ID={self._execution_id}'
           ),
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            '../testdata/notebooks_executor_component_pipeline.json',
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open('testdata/notebooks_executor_component_pipeline.json') as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json['sdkVersion']
-    del executor_output_json['schemaVersion']
-    self.assertDictEqual(executor_output_json, expected_executor_output_json)

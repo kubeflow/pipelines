@@ -13,13 +13,12 @@
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure the compile without error."""
 
-import json
 import os
 
 from google_cloud_pipeline_components.v1.custom_job import utils
+from google_cloud_pipeline_components.tests.v1 import testing_utils
 import kfp
 from kfp import components
-from kfp import compiler
 
 import unittest
 
@@ -31,7 +30,6 @@ class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
     self._project = "test_project"
     self._location = "us-central1"
     self._test_input_string = "test_input_string"
-    self._package_path = "pipeline.json"
     self._container_component = components.load_component_from_text(
         "name: Producer\ninputs:\n- {name: input_text, type: String,"
         " description: 'Represents an input parameter.'}\noutputs:\n- {name:"
@@ -46,8 +44,6 @@ class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
 
   def tearDown(self):
     super(CustomTrainingJobWrapperCompileTest, self).tearDown()
-    if os.path.exists(self._package_path):
-      os.remove(self._package_path)
 
   def _create_a_pytnon_based_component(self):
     """Creates a test python based component factory."""
@@ -70,23 +66,11 @@ class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
           project=self._project,
           location=self._location,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
-    )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open(
+    testing_utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
         os.path.join(
             os.path.dirname(__file__),
             "../testdata/custom_training_job_wrapper_pipeline.json",
-        )
-    ) as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparision
-    del executor_output_json["pipelineSpec"]["sdkVersion"]
-    del executor_output_json["pipelineSpec"]["schemaVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
+        ),
+    )

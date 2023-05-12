@@ -13,46 +13,39 @@
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure the compile without error."""
 
-import json
 import os
 
-import kfp
-from google_cloud_pipeline_components.v1.automl.training_job import (
-    AutoMLForecastingTrainingJobRunOp,
-    AutoMLImageTrainingJobRunOp,
-    AutoMLTabularTrainingJobRunOp,
-    AutoMLTextTrainingJobRunOp,
-    AutoMLVideoTrainingJobRunOp,
-)
-from google_cloud_pipeline_components.v1.dataset import (
-    ImageDatasetCreateOp,
-    ImageDatasetExportDataOp,
-    ImageDatasetImportDataOp,
-    TabularDatasetCreateOp,
-    TabularDatasetExportDataOp,
-    TextDatasetCreateOp,
-    TextDatasetExportDataOp,
-    TextDatasetImportDataOp,
-    TimeSeriesDatasetCreateOp,
-    TimeSeriesDatasetExportDataOp,
-    VideoDatasetCreateOp,
-    VideoDatasetExportDataOp,
-    VideoDatasetImportDataOp,
-)
-from google_cloud_pipeline_components.v1.endpoint import (
-    EndpointCreateOp,
-    EndpointDeleteOp,
-    ModelDeployOp,
-    ModelUndeployOp,
-)
-from google_cloud_pipeline_components.v1.model import (
-    ModelDeleteOp,
-    ModelUploadOp,
-    ModelExportOp,
-)
+from google_cloud_pipeline_components.v1.automl.training_job import AutoMLForecastingTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job import AutoMLImageTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job import AutoMLTabularTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job import AutoMLTextTrainingJobRunOp
+from google_cloud_pipeline_components.v1.automl.training_job import AutoMLVideoTrainingJobRunOp
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
+from google_cloud_pipeline_components.v1.dataset import ImageDatasetCreateOp
+from google_cloud_pipeline_components.v1.dataset import ImageDatasetExportDataOp
+from google_cloud_pipeline_components.v1.dataset import ImageDatasetImportDataOp
+from google_cloud_pipeline_components.v1.dataset import TabularDatasetCreateOp
+from google_cloud_pipeline_components.v1.dataset import TabularDatasetExportDataOp
+from google_cloud_pipeline_components.v1.dataset import TextDatasetCreateOp
+from google_cloud_pipeline_components.v1.dataset import TextDatasetExportDataOp
+from google_cloud_pipeline_components.v1.dataset import TextDatasetImportDataOp
+from google_cloud_pipeline_components.v1.dataset import TimeSeriesDatasetCreateOp
+from google_cloud_pipeline_components.v1.dataset import TimeSeriesDatasetExportDataOp
+from google_cloud_pipeline_components.v1.dataset import VideoDatasetCreateOp
+from google_cloud_pipeline_components.v1.dataset import VideoDatasetExportDataOp
+from google_cloud_pipeline_components.v1.dataset import VideoDatasetImportDataOp
+from google_cloud_pipeline_components.v1.endpoint import EndpointCreateOp
+from google_cloud_pipeline_components.v1.endpoint import EndpointDeleteOp
+from google_cloud_pipeline_components.v1.endpoint import ModelDeployOp
+from google_cloud_pipeline_components.v1.endpoint import ModelUndeployOp
+from google_cloud_pipeline_components.v1.model import ModelDeleteOp
+from google_cloud_pipeline_components.v1.model import ModelExportOp
+from google_cloud_pipeline_components.v1.model import ModelUploadOp
+from google_cloud_pipeline_components.tests.v1 import utils
+import kfp
 from kfp import compiler
-from kfp.dsl import Input, Artifact
+from kfp.dsl import Artifact
+from kfp.dsl import Input
 
 import unittest
 from google.cloud import aiplatform
@@ -114,17 +107,13 @@ class ComponentsCompileTest(unittest.TestCase):
           dataset=dataset_create_op.outputs["dataset"],
           import_schema_uri=aiplatform.schema.dataset.ioformat.image.single_label_classification,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__), "testdata/automl_image_pipeline.json"
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/automl_image_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK version during comparison
-    del executor_output_json["sdkVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_automl_tabular_component_compile(self):
     @kfp.dsl.pipeline(name="training-test")
@@ -194,17 +183,13 @@ class ComponentsCompileTest(unittest.TestCase):
           dataset=dataset_create_op.outputs["dataset"],
           import_schema_uri=aiplatform.schema.dataset.ioformat.text.multi_label_classification,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__), "testdata/automl_text_pipeline.json"
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/automl_text_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK version during comparison
-    del executor_output_json["sdkVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_automl_video_component_compile(self):
     @kfp.dsl.pipeline(name="training-test")
@@ -240,16 +225,13 @@ class ComponentsCompileTest(unittest.TestCase):
           import_schema_uri=aiplatform.schema.dataset.ioformat.video.classification,
       )
 
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__), "testdata/automl_video_pipeline.json"
+        ),
     )
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/automl_video_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK version during comparison
-    del executor_output_json["sdkVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_automl_forecasting_component_compile(self):
     @kfp.dsl.pipeline(name="training-test")
@@ -311,19 +293,14 @@ class ComponentsCompileTest(unittest.TestCase):
       _ = ModelDeleteOp(
           model=model_upload_op.outputs["model"],
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            "testdata/model_upload_and_delete_pipeline.json",
+        ),
     )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/model_upload_and_delete_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["sdkVersion"]
-    del executor_output_json["schemaVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_create_endpoint_op_and_delete_endpoint_op_compile(self):
     @kfp.dsl.pipeline(name="delete-endpoint-test")
@@ -342,18 +319,14 @@ class ComponentsCompileTest(unittest.TestCase):
           endpoint=create_endpoint_op.outputs["endpoint"]
       )
 
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            "testdata/create_and_delete_endpoint_pipeline.json",
+        ),
     )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/create_and_delete_endpoint_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["sdkVersion"]
-    del executor_output_json["schemaVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_model_export_op_compile(self):
     @kfp.dsl.pipeline(name="training-test")
@@ -370,19 +343,14 @@ class ComponentsCompileTest(unittest.TestCase):
           artifact_destination="artifact_destination",
           image_destination="image_destination",
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            "testdata/model_export_pipeline.json",
+        ),
     )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/model_export_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["sdkVersion"]
-    del executor_output_json["schemaVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_model_deploy_op_and_model_undeploy_op_compile(self):
     @kfp.dsl.pipeline(name="training-test")
@@ -421,18 +389,14 @@ class ComponentsCompileTest(unittest.TestCase):
           endpoint=create_endpoint_op.outputs["endpoint"],
       ).after(model_deploy_op)
 
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            "testdata/model_deploy_and_undeploy_pipeline.json",
+        ),
     )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/model_deploy_and_undeploy_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["sdkVersion"]
-    del executor_output_json["schemaVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
 
   def test_batch_prediction_op_compile(self):
     @kfp.dsl.pipeline(name="training-test")
@@ -468,14 +432,11 @@ class ComponentsCompileTest(unittest.TestCase):
           labels={"foo": "bar"},
       )
 
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(__file__),
+            "testdata/batch_prediction_pipeline.json",
+        ),
     )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/batch_prediction_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK version during comparison
-    del executor_output_json["sdkVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
