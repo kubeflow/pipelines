@@ -183,9 +183,10 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
     </div>
     <Input
       id="pipelineVersionCodeSource"
-      label="Code Source (optional)"
+      label="Code Source"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />

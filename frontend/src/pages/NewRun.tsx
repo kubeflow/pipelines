@@ -463,9 +463,10 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             variant='outlined'
           />
           <Input
-            label='Description (optional)'
+            label='Description'
             multiline={true}
             onChange={this.handleChange('description')}
+            required={false}
             value={description}
             variant='outlined'
           />
@@ -513,7 +514,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           <Input
             value={serviceAccount}
             onChange={this.handleChange('serviceAccount')}
-            label='Service Account (Optional)'
+            required={false}
+            label='Service Account'
             variant='outlined'
           />
 

@@ -308,9 +308,10 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -369,8 +370,9 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -793,9 +795,10 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -854,8 +857,9 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1278,9 +1282,10 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1339,8 +1344,9 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1781,9 +1787,10 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1842,8 +1849,9 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2266,9 +2274,10 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2327,8 +2336,9 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2749,9 +2759,10 @@ exports[`NewRun renders the new run page 1`] = `
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2810,8 +2821,9 @@ exports[`NewRun renders the new run page 1`] = `
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3234,9 +3246,10 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3295,8 +3308,9 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3737,9 +3751,10 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3798,8 +3813,9 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
