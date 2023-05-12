@@ -424,9 +424,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           {/* Fill pipeline version code source url */}
           <Input
             id='pipelineVersionCodeSource'
-            label='Code Source (optional)'
+            label='Code Source'
             multiline={true}
             onChange={this.handleChange('codeSourceUrl')}
+            required={false}
             value={codeSourceUrl}
             variant='outlined'
           />

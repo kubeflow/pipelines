@@ -509,9 +509,10 @@ function NewRunV2(props: NewRunV2Props) {
           variant='outlined'
         />
         <Input
-          label='Description (optional)'
+          label='Description'
           multiline={true}
           onChange={event => setRunDescription(event.target.value)}
+          required={false}
           value={runDescription}
           variant='outlined'
         />
@@ -575,7 +576,8 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           value={serviceAccount}
           onChange={event => setServiceAccount(event.target.value)}
-          label='Service Account (Optional)'
+          required={false}
+          label='Service Account'
           variant='outlined'
         />
 
