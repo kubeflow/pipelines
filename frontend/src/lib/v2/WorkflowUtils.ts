@@ -123,13 +123,13 @@ export function getContainer(componentSpec: ComponentSpec, templateString: strin
   const pipelineSpecDef = getPipelineDefFromYaml(templateString);
   const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
   const deploymentSpecObj = pipelineSpec?.deploymentSpec;
-  if (!pipelineSpec || !deploymentSpecObj) {
+  if (!deploymentSpecObj) {
     return null;
   }
 
   const deploymentSpec = PipelineDeploymentConfig.fromJSON(deploymentSpecObj);
   const executorsObj = deploymentSpec?.executors;
-  if (!executorsObj || !executionLabel) {
+  if (!executorsObj) {
     return null;
   }
 

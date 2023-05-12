@@ -135,7 +135,7 @@ describe('StaticNodeDetailsV2', () => {
 
     screen.getByText('Command');
     expect(screen.getAllByText('sh').length).toEqual(2);
-    // See Line 83
+    // See the details of 'Render Execution node with outputs' test.
     screen.getByText('-c');
 
     screen.getByText('Arguments');
