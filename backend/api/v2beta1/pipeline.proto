@@ -95,6 +95,14 @@ service PipelineService {
     };
   }
 
+  // Creates a new pipeline and a new pipeline version in a single transaction.
+  rpc CreatePipelineAndVersion(CreatePipelineAndVersionRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/pipelines/create"
+      body: "pipeline"
+    };
+  }
+
   // Adds a pipeline version to the specified pipeline ID.
   rpc CreatePipelineVersion(CreatePipelineVersionRequest)
       returns (PipelineVersion) {
@@ -250,6 +258,14 @@ message GetPipelineByNameRequest {
 message DeletePipelineRequest {
   // Required input. ID of the pipeline to be deleted.
   string pipeline_id = 1;
+}
+
+message CreatePipelineAndVersionRequest {
+  // Required input. Pipeline (parent) to be created.
+  Pipeline pipeline = 1;
+
+  // Required input. Pipeline version (child) to be created.
+  PipelineVersion pipeline_version = 2;
 }
 
 message CreatePipelineVersionRequest {

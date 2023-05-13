@@ -378,6 +378,40 @@
         ]
       }
     },
+    "/apis/v2beta1/pipelines/create": {
+      "post": {
+        "summary": "Creates a new pipeline and a new pipeline version in a single transaction.",
+        "operationId": "CreatePipelineAndVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Pipeline"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Required input. Pipeline (parent) to be created.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1Pipeline"
+            }
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
     "/apis/v2beta1/pipelines/names/{name}": {
       "get": {
         "summary": "Finds a specific pipeline by name and namespace.",
