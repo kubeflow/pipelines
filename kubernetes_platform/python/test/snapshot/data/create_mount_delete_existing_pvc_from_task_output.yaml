@@ -164,7 +164,7 @@ root:
             access_modes:
               runtimeValue:
                 constant:
-                - ReadWriteMany
+                - ReadWriteOnce
             pvc_name:
               taskOutputParameter:
                 outputParameterKey: Output

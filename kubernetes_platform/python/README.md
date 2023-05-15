@@ -77,7 +77,7 @@ def my_pipeline():
     pvc1 = kubernetes.CreatePVC(
         # can also use pvc_name instead of pvc_name_suffix to use a pre-existing PVC
         pvc_name_suffix='-my-pvc',
-        access_modes=['ReadWriteMany'],
+        access_modes=['ReadWriteOnce'],
         size='5Gi',
         storage_class_name='standard',
     )
