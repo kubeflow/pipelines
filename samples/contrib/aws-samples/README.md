@@ -43,5 +43,7 @@ aws iam attach-role-policy --role-name kfp-example-sagemaker-execution-role --po
 aws iam attach-role-policy --role-name kfp-example-sagemaker-execution-role --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
 aws iam get-role --role-name kfp-example-sagemaker-execution-role --output text --query 'Role.Arn'
 
-# note down the Role ARN. 
+# note down the Role ARN or export to env variable.
+export SAGEMAKER_EXECUTION_ROLE_ARN=$(aws iam get-role --role-name kfp-example-sagemaker-execution-role --output text --query 'Role.Arn')
+echo $SAGEMAKER_EXECUTION_ROLE_ARN
 ```
