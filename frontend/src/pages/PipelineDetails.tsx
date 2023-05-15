@@ -561,8 +561,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public async handleVersionSelected(versionId: string): Promise<void> {
     if (this.state.v1Pipeline) {
-      const selectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
-      const pageTitle = this.state.v1Pipeline.name?.concat(' (', selectedVersion?.name!, ')');
+      const selectedVersionV1 = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const selectedVersionV2 = (this.state.v2Versions || []).find(
+        v => v.pipeline_version_id === versionId,
+      );
+      const pageTitle = this.state.v1Pipeline.name?.concat(' (', selectedVersionV1?.name!, ')');
       this.props.updateToolbar({ pageTitle });
 
       const selectedVersionPipelineTemplate = await this._getTemplateString(
@@ -582,7 +585,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph: undefined,
           graphV2,
           graphIsLoading: false,
-          v1SelectedVersion: selectedVersion,
+          v2SelectedVersion: selectedVersionV2,
           templateString: selectedVersionPipelineTemplate,
         });
       } else {
@@ -591,7 +594,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph,
           graphV2: undefined,
           graphIsLoading: false,
-          v1SelectedVersion: selectedVersion,
+          v1SelectedVersion: selectedVersionV1,
           templateString: selectedVersionPipelineTemplate,
         });
       }
@@ -600,12 +603,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public async handleVersionSelectedV2(versionId: string): Promise<void> {
     if (this.state.v2Pipeline) {
-      const selectedVersion = (this.state.v2Versions || []).find(
+      const selectedVersionV1 = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const selectedVersionV2 = (this.state.v2Versions || []).find(
         v => v.pipeline_version_id === versionId,
       );
       const pageTitle = this.state.v2Pipeline.display_name?.concat(
         ' (',
-        selectedVersion?.display_name!,
+        selectedVersionV2?.display_name!,
         ')',
       );
       this.props.updateToolbar({ pageTitle });
@@ -627,7 +631,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph: undefined,
           graphV2,
           graphIsLoading: false,
-          v2SelectedVersion: selectedVersion,
+          v2SelectedVersion: selectedVersionV2,
           templateString: selectedVersionPipelineTemplate,
         });
       } else {
@@ -636,7 +640,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph,
           graphV2: undefined,
           graphIsLoading: false,
-          v2SelectedVersion: selectedVersion,
+          v1SelectedVersion: selectedVersionV1,
           templateString: selectedVersionPipelineTemplate,
         });
       }
