@@ -110,7 +110,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         )
 
         output_endpoint_config_name = utils.read_from_file_in_tar(
-            output_files["sagemaker-endpoint-config"]["sagemaker_resource_name"]
+            output_files["sagemaker-endpointconfig"]["sagemaker_resource_name"]
         )
 
         output_model_name = utils.read_from_file_in_tar(
