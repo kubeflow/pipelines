@@ -1,12 +1,18 @@
 # Host a Model and Create a SageMaker Model Monitor
 
 This sample demonstrates a Kubeflow pipeline that
-- host a machine learning model in Amazon SageMaker
-- monitor a live endpoint for violations against constraints
+- Hosts a machine learning model in Amazon SageMaker
+- Monitors a live endpoint for violations against constraints
 
 ## Prerequisites
 Follow the steps in [Sample AWS SageMaker Kubeflow Pipelines](../README.md#inputs-to-the-pipeline) 
 
+### Install required packages
+Run the following commands to install the script dependencies:
+    
+```
+pip install -r requirements.txt
+```
 ### Create an IAM Role
 Follow [SageMaker execution role](../README.md#inputs-to-the-pipeline) and create an IAM role for SageMaker execution.
 
@@ -15,7 +21,7 @@ To setup an endpoint and create a monitoring schedule, we need an S3 bucket to s
 
 ```
 export SAGEMAKER_REGION=us-east-1
-export S3_BUCKET_NAME="data-bucket-${SAGEMAKER_REGION}-$RANDOM"
+export S3_BUCKET_NAME="kfp-sm-data-bucket-${SAGEMAKER_REGION}-$RANDOM"
 
 if [[ $SAGEMAKER_REGION == "us-east-1" ]]; then
     aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION}

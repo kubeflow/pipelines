@@ -94,7 +94,9 @@ job_resources = {
 stopping_condition = {"maxRuntimeInSeconds": 1800}
 
 
-@dsl.pipeline(name="Hosting", description="SageMaker Hosting")
+@dsl.pipeline(
+    name="Hosting_Model_Monitoring", description="SageMaker Hosting and Model Monitor"
+)
 def Hosting_Model_Monitoring(
     region=SAGEMAKER_REGION,
     execution_role_arn=SAGEMAKER_EXECUTION_ROLE_ARN,
