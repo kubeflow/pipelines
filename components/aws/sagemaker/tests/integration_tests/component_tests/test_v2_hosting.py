@@ -90,7 +90,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         )
 
         output_ack_resource_metadata_endpoint_config = kfp_client_utils.get_output_ack_resource_metadata(
-            output_files, "sagemaker-endpoint-config"
+            output_files, "sagemaker-endpointconfig"
         )
 
         output_ack_resource_metadata_model = kfp_client_utils.get_output_ack_resource_metadata(
