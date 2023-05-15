@@ -71,6 +71,14 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
                 "endpoint_status",
                 "sagemaker_resource_name",
                 "ack_resource_metadata",
+            ],
+            "sagemaker-endpointconfig": [
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
+            ],
+            "sagemaker-model": [
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
             ]
         }
 
