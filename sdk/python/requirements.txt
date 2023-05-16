@@ -45,7 +45,7 @@ importlib-metadata==6.6.0
     # via click
 kfp-pipeline-spec==0.2.2
     # via -r requirements.in
-kfp-server-api==2.0.0b2
+kfp-server-api==2.0.0-rc.1
     # via -r requirements.in
 kubernetes==23.6.0
     # via -r requirements.in
