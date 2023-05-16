@@ -18,10 +18,10 @@ import React, { useState } from 'react';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { classes } from 'typestyle';
-import { PageProps } from './Page';
+import { PageProps } from 'src/pages/Page';
 import ExecutionList from 'src/pages/ExecutionList';
 
-function ExecutionListRouter(props: PageProps) {
+function ExecutionListSwitcher(props: PageProps) {
   const [selectedTab, setSelectedTab] = useState(0);
 
   return (
@@ -35,4 +35,4 @@ function ExecutionListRouter(props: PageProps) {
   );
 }
 
-export default ExecutionListRouter;
+export default ExecutionListSwitcher;
