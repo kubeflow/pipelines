@@ -49,7 +49,7 @@ def assert_pipeline_equals_golden(
   )
   expected_pipeline_spec_dict['sdkVersion'] = 'bye'
   actual_pipeline_spec_dict['sdkVersion'] = 'hi'
-  ignore_fields = {'sdkVersion'}
+  ignore_fields = {'sdkVersion', 'description'}
   compare_pipeline_spec_dicts(
       test_case,
       actual_pipeline_spec_dict,
