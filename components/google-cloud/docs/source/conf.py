@@ -115,6 +115,11 @@ html_theme_options = {
         'toc.follow',
         'toc.sticky',
     ],
+    'palette': [{
+        'media': '(prefers-color-scheme: light)',
+        'scheme': 'default',
+        'primary': 'googleblue',
+    }],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
     'version_info': [
