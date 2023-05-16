@@ -136,9 +136,10 @@ html_theme_options = {
             'title': 'master',
             'aliases': [],
         },
+        # need to use the sdk-, to avoid conflict with the rc.1 BE release in GitHub tags
         {
             'version':
-                'https://kubeflow-pipelines.readthedocs.io/en/2.0.0-rc.1/',
+                'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0-rc.1/',
             'title':
                 'v2.0.0rc1',
             'aliases': [],
