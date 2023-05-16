@@ -1,0 +1,42 @@
+linters-settings:
+  misspell:
+    locale: US
+linters:
+  disable-all: true
+  enable:
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - errcheck
+    - depguard
+    - gci
+    - goimports
+    - gomodguard
+    - importas
+    - gomoddirectives
+    - rowserrcheck
+    - sqlclosecheck
+    - gofmt
+    - gofumpt
+    - asciicheck
+    - containedctx
+    - decorder
+    - dogsled
+    - dupl
+    - errname
+    - stylecheck
+    - unconvert
+    - wastedassign
+    - wsl
+    - exportloopref
+    - dupword
+    - funlen
+    - maligned
+    - noctx
+    - prealloc
+    - misspell
+run:
+  skip-files:
+  - "api\\*.go$"
+  - "backend\\api\\*.go"

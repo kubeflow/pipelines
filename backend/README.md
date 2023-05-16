@@ -3,7 +3,7 @@ Pipelines backend.
 
 ## Building & Testing
 
-To run all unittests for backend: 
+To run all unittests for backend:
 
 ```
 go test -v -cover ./backend/...
@@ -17,17 +17,15 @@ go build -o /tmp/apiserver backend/src/apiserver/*.go
 
 ## Code Style
 
-Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. There is no need to format the swagger generated go clients, so only run the following command in `./backend/src` and `./backend/test` folder.
+Backend codebase follows the [Google's Go Style Guide](https://google.github.io/styleguide/go/). Please, take time to get familiar with the [best practices](https://google.github.io/styleguide/go/best-practices). It is not intended to be exhaustive, but it often helps minimizing guesswork among developers and keep codebase uniform and consistent.
 
-```
-go fmt ./...
-```
+We use [golangci-lint](https://golangci-lint.run/) tool that can catch common mistakes locally (see detailed configuration [here](https://github.com/kubeflow/pipelines/blob/master/.golangci.yaml)). It can be [conveniently integrated](https://golangci-lint.run/usage/integrations/) with multiple popular IDEs such as VS Code or Vim.
 
-For more information, see [this blog](https://go.dev/blog/gofmt).
+Finally, it is advised to install [pre-commit](https://pre-commit.com/) in order to automate linter checks (see configuration [here](https://github.com/kubeflow/pipelines/blob/master/.pre-commit-config.yaml))
 
 ## Building APIServer image locally
 
-The API server image can be built from the root folder of the repo using: 
+The API server image can be built from the root folder of the repo using:
 ```
 export API_SERVER_IMAGE=api_server
 docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
