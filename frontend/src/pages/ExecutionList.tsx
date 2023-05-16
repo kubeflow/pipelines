@@ -45,6 +45,10 @@ import {
 } from 'src/lib/Utils';
 import { Page } from 'src/pages/Page';
 
+interface ExecutionListProps {
+  isGroupped: boolean;
+}
+
 interface ExecutionListState {
   executions: Execution[];
   rows: Row[];
@@ -52,7 +56,7 @@ interface ExecutionListState {
   columns: Column[];
 }
 
-class ExecutionList extends Page<{}, ExecutionListState> {
+class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
   private executionTypesMap: Map<number, ExecutionType>;
@@ -100,11 +104,13 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           ref={this.tableRef}
           columns={columns}
           rows={rows}
-          disablePaging={false}
+          disablePaging={this.props.isGroupped}
           disableSelection={true}
           reload={this.reload}
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
+          getExpandComponent={this.props.isGroupped ? this.getExpandedExecutionsRow : undefined}
+          toggleExpansion={this.props.isGroupped ? this.toggleRowExpand : undefined}
           emptyMessage='No executions found.'
         />
       </div>
@@ -132,13 +138,17 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       if (!this.executionTypesMap || !this.executionTypesMap.size) {
         this.executionTypesMap = await this.getExecutionTypes();
       }
-      const executions = await this.getExecutions(listOperationOpts);
+      const executions = this.props.isGroupped
+        ? await this.getExecutions()
+        : await this.getExecutions(listOperationOpts);
       this.clearBanner();
       const flattenedRows = this.getFlattenedRowsFromExecutions(request, executions);
+      const grouppedRows = this.getGroupedRowsFromExecutions(request, executions);
       // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
       this.setState({
         executions,
-        rows: flattenedRows,
+        expandedRows: this.props.isGroupped ? grouppedRows.expandedRows : new Map(),
+        rows: this.props.isGroupped ? grouppedRows.collapsedRows : flattenedRows,
       });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));
@@ -146,12 +156,12 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     return listOperationOpts.getNextPageToken();
   }
 
-  private async getExecutions(listOperationOpts: ListOperationOptions): Promise<Execution[]> {
+  private async getExecutions(listOperationOpts?: ListOperationOptions): Promise<Execution[]> {
     try {
       const response = await this.api.metadataStoreService.getExecutions(
         new GetExecutionsRequest().setOptions(listOperationOpts),
       );
-      listOperationOpts.setNextPageToken(response.getNextPageToken());
+      listOperationOpts?.setNextPageToken(response.getNextPageToken());
       return response.getExecutionsList();
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
