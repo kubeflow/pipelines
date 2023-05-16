@@ -10,6 +10,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Change `PyYAML` version requirement from `>=5.3,<6` to `>=5.3,<7`  [\#9437](https://github.com/kubeflow/pipelines/pull/9437)
 
 ## Documentation Updates
 # 1.8.21
