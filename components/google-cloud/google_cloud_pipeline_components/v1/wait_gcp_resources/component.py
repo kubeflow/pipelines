@@ -16,7 +16,7 @@ from kfp import dsl
 from kfp.dsl import OutputPath
 
 
-@utils.gcpc_output_name_converter('output__gcp_resources', 'gcp_resources')
+@utils.gcpc_output_name_converter('gcp_resources')
 @dsl.container_component
 def wait_gcp_resources(
     gcp_resources: str,

@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import re
+import typing
+from typing import List
 
+import docstring_parser
 from google_cloud_pipeline_components import utils
 from kfp import components
 from kfp import dsl
@@ -28,6 +32,7 @@ def first_order_passthrough_decorator(func):
 
 
 def second_order_passthrough_decorator(*args, **kwargs):
+
   def decorator(func):
     func._is_component = True
     return func
@@ -197,10 +202,85 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
     return skip
 
 
+def make_docstring_lines_for_param(
+    param_name: str,
+    type_string: str,
+    description: str,
+) -> List[str]:
+  WHITESPACE = '     '
+
+  return [
+      f'{WHITESPACE * 2}``{param_name}: ({type_string})``',
+      f'{WHITESPACE * 4}{description}',
+  ]
+
+
+def get_return_section(component) -> List[str]:
+  """Modifies docstring so that a return section can be treated as an
+
+  args section, then parses the docstring.
+  """
+  docstring = inspect.getdoc(component)
+  type_hints = typing.get_type_hints(component)
+  if docstring is None:
+    return []
+
+  # Returns and Return are the only two keywords docstring_parser uses for returns
+  # use newline to avoid replacements that aren't in the return section header
+  return_keywords = ['Returns:\n', 'Returns\n', 'Return:\n', 'Return\n']
+  for keyword in return_keywords:
+    if keyword in docstring:
+      modified_docstring = docstring.replace(keyword.strip(), 'Args:')
+      returns_docstring = docstring_parser.parse(modified_docstring)
+      new_docstring_lines = []
+      for param in returns_docstring.params:
+        type_string = repr(
+            type_hints.get(
+                param.arg_name,
+                type_hints.get(
+                    param.arg_name.strip(
+                        utils.DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX
+                    ),
+                    'Unknown',
+                ),
+            )
+        )
+        new_docstring_lines.extend(
+            make_docstring_lines_for_param(
+                param_name=param.arg_name,
+                type_string=type_string,
+                description=param.description,
+            )
+        )
+      return new_docstring_lines
+  return []
+
+
+def remove_after_returns_in_place(lines: List[str]) -> bool:
+  for i in range(len(lines)):
+    if lines[i].startswith(':returns:'):
+      del lines[i:]
+      return True
+  return False
+
+
+def process_named_docstring_returns(app, what, name, obj, options, lines):
+  if getattr(obj, '_is_component', False):
+    has_returns_section = remove_after_returns_in_place(lines)
+    if has_returns_section:
+      returns_section = get_return_section(obj)
+      lines.extend([':returns:', ''])
+      lines.extend(returns_section)
+
+
 def setup(app):
   app.connect(
       'autodoc-process-signature',
       modify_signature_for_better_component_rendering,
+  )
+  app.connect(
+      'autodoc-process-docstring',
+      process_named_docstring_returns,
   )
   app.connect('autodocsumm-grouper', example_grouper)
   app.connect('autodoc-skip-member', autodoc_skip_member)
