@@ -46,7 +46,7 @@ import {
 import { Page } from 'src/pages/Page';
 
 interface ExecutionListProps {
-  isGroupped: boolean;
+  isGroupView: boolean;
 }
 
 interface ExecutionListState {
@@ -104,13 +104,13 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
           ref={this.tableRef}
           columns={columns}
           rows={rows}
-          disablePaging={this.props.isGroupped}
+          disablePaging={this.props.isGroupView}
           disableSelection={true}
           reload={this.reload}
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
-          getExpandComponent={this.props.isGroupped ? this.getExpandedExecutionsRow : undefined}
-          toggleExpansion={this.props.isGroupped ? this.toggleRowExpand : undefined}
+          getExpandComponent={this.props.isGroupView ? this.getExpandedExecutionsRow : undefined}
+          toggleExpansion={this.props.isGroupView ? this.toggleRowExpand : undefined}
           emptyMessage='No executions found.'
         />
       </div>
@@ -138,7 +138,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
       if (!this.executionTypesMap || !this.executionTypesMap.size) {
         this.executionTypesMap = await this.getExecutionTypes();
       }
-      const executions = this.props.isGroupped
+      const executions = this.props.isGroupView
         ? await this.getExecutions()
         : await this.getExecutions(listOperationOpts);
       this.clearBanner();
@@ -147,8 +147,8 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
       // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
       this.setState({
         executions,
-        expandedRows: this.props.isGroupped ? grouppedRows.expandedRows : new Map(),
-        rows: this.props.isGroupped ? grouppedRows.collapsedRows : flattenedRows,
+        expandedRows: this.props.isGroupView ? grouppedRows.expandedRows : new Map(),
+        rows: this.props.isGroupView ? grouppedRows.collapsedRows : flattenedRows,
       });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));

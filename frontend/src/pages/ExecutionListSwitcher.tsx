@@ -28,9 +28,9 @@ function ExecutionListSwitcher(props: PageProps) {
     <div className={classes(commonCss.page, padding(20, 't'))}>
       <MD2Tabs tabs={['Flat', 'Group']} selectedTab={selectedTab} onSwitch={setSelectedTab} />
 
-      {selectedTab === 0 && <ExecutionList {...props} isGroupped={false}></ExecutionList>}
+      {selectedTab === 0 && <ExecutionList {...props} isGroupView={false}></ExecutionList>}
 
-      {selectedTab === 1 && <ExecutionList {...props} isGroupped={true}></ExecutionList>}
+      {selectedTab === 1 && <ExecutionList {...props} isGroupView={true}></ExecutionList>}
     </div>
   );
 }
