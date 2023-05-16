@@ -140,7 +140,7 @@ html_theme_options = {
             'version':
                 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0-rc.1/',
             'title':
-                'v2.0.0-rc.1',
+                'v2.0.0rc1',
             'aliases': [],
         },
         {
