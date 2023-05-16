@@ -19,6 +19,7 @@ from kfp.dsl import IfPresentPlaceholder
 from kfp.dsl import Input
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_JOB_ID_PLACEHOLDER
+from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 
 
@@ -30,7 +31,6 @@ def dataset_preprocessor_error_analysis(
     test_data_items_storage_source: OutputPath(str),
     training_data_items_storage_source: OutputPath(str),
     project: str,
-    root_dir: str,
     location: str = 'us-central1',
     test_dataset: Input[VertexDataset] = None,
     test_dataset_annotation_set_name: str = '',
@@ -46,8 +46,6 @@ def dataset_preprocessor_error_analysis(
       project: GCP Project ID.
       location: GCP Region. If not set, defaulted to
         `us-central1`.
-      root_dir: The Google Cloud Storage location where the
-        outputs will be saved to.
       test_dataset: A
         google.VertexDataset artifact of the test dataset. If
         `test_dataset_storage_source_uris` is also provided, this Vertex Dataset
@@ -120,7 +118,7 @@ def dataset_preprocessor_error_analysis(
           '--location',
           location,
           '--root_dir',
-          f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
+          f'{PIPELINE_ROOT_PLACEHOLDER}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
           IfPresentPlaceholder(
               input_name='test_dataset',
               then=[
