@@ -37,6 +37,9 @@ export function getPodLogsHandler(
     minio: MinioConfigs;
     aws: AWSConfigs;
   },
+  pod: {
+    logContainerName: string;
+  },
 ): Handler {
   const { archiveLogs, archiveArtifactory, archiveBucketName, archivePrefix = '' } = argoOptions;
 
@@ -51,7 +54,9 @@ export function getPodLogsHandler(
 
   // get the pod log stream (with fallbacks).
   const getPodLogsStream = composePodLogsStreamHandler(
-    getPodLogsStreamFromK8s,
+    (podName: string, namespace?: string) => {
+      return getPodLogsStreamFromK8s(podName, namespace, pod.logContainerName);
+    },
     // if archive logs flag is set, then final attempt will try to retrieve the artifacts
     // from the bucket and prefix provided in the config. Otherwise, only attempts
     // to read from worflow status if the default handler fails.
