@@ -653,7 +653,7 @@ func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *
 		return nil, util.Wrap(err, "Failed to create a pipeline due to data validation error")
 	}
 
-	// Create both pipeline and pipeline version is a single transaction
+	// Create both pipeline and pipeline version in a single transaction
 	newPipeline, _, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline")
