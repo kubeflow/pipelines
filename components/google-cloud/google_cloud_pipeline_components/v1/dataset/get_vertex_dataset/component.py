@@ -19,7 +19,7 @@ from kfp import dsl
 from kfp.dsl import Output
 
 
-@utils.gcpc_output_name_converter('output__dataset', 'dataset')
+@utils.gcpc_output_name_converter('dataset')
 @dsl.container_component
 def get_vertex_dataset(
     dataset_resource_name: str,

@@ -15,13 +15,12 @@
 
 from typing import Dict, List
 
+import unittest
 from google_cloud_pipeline_components import utils
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input
 from kfp.dsl import Output
-
-import unittest
 
 
 class ComponentsCompileTest(unittest.TestCase):
@@ -219,7 +218,8 @@ class ComponentsCompileTest(unittest.TestCase):
 class TestGCPCOutputNameConverter(unittest.TestCase):
 
   def test_container_component_parameter(self):
-    @utils.gcpc_output_name_converter('output__parameter', 'parameter')
+
+    @utils.gcpc_output_name_converter('parameter', 'output__parameter')
     @dsl.container_component
     def comp(
         parameter: str,
@@ -273,7 +273,58 @@ class TestGCPCOutputNameConverter(unittest.TestCase):
     )
 
   def test_container_component_artifact(self):
-    @utils.gcpc_output_name_converter('output__artifact', 'artifact')
+
+    @utils.gcpc_output_name_converter('artifact', 'output__artifact')
+    @dsl.container_component
+    def comp(
+        artifact: Input[Artifact],
+        output__artifact: Output[Artifact],
+    ):
+      return dsl.ContainerSpec(
+          image='alpine',
+          command=[
+              'echo',
+              output__artifact.path,
+          ],
+          args=[output__artifact.path],
+      )
+
+    # check inner component
+    self.assertIn(
+        'artifact',
+        comp.pipeline_spec.components['comp-comp'].output_definitions.artifacts,
+    )
+    self.assertNotIn(
+        'output__artifact',
+        comp.pipeline_spec.components['comp-comp'].output_definitions.artifacts,
+    )
+
+    # check root
+    self.assertIn(
+        'artifact',
+        comp.pipeline_spec.root.output_definitions.artifacts,
+    )
+    self.assertNotIn(
+        'output__artifact',
+        comp.pipeline_spec.root.output_definitions.artifacts,
+    )
+
+    # check command and args
+    self.assertEqual(
+        "{{$.outputs.artifacts['artifact'].path}}",
+        comp.pipeline_spec.deployment_spec['executors']['exec-comp'][
+            'container'
+        ]['command'][1],
+    )
+    self.assertEqual(
+        "{{$.outputs.artifacts['artifact'].path}}",
+        comp.pipeline_spec.deployment_spec['executors']['exec-comp'][
+            'container'
+        ]['args'][0],
+    )
+
+  def test_omitted_original_name(self):
+    @utils.gcpc_output_name_converter('artifact')
     @dsl.container_component
     def comp(
         artifact: Input[Artifact],
@@ -342,7 +393,7 @@ class TestGCPCOutputNameConverter(unittest.TestCase):
         r' pipeline\.',
     ):
 
-      @utils.gcpc_output_name_converter('output__artifact', 'artifact')
+      @utils.gcpc_output_name_converter('artifact', 'output__artifact')
       @dsl.pipeline
       def pipeline(artifact: Input[Artifact]):
         comp(artifact=artifact)
@@ -355,7 +406,7 @@ class TestGCPCOutputNameConverter(unittest.TestCase):
         r' Python component\.',
     ):
 
-      @utils.gcpc_output_name_converter('output__artifact', 'artifact')
+      @utils.gcpc_output_name_converter('artifact', 'output__artifact')
       @dsl.component
       def comp(
           artifact: Input[Artifact],

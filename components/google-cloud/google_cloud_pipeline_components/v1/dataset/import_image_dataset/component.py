@@ -22,7 +22,7 @@ from kfp.dsl import Input
 from kfp.dsl import Output
 
 
-@utils.gcpc_output_name_converter('output__dataset', 'dataset')
+@utils.gcpc_output_name_converter('dataset')
 @dsl.container_component
 def image_dataset_import(
     project: str,

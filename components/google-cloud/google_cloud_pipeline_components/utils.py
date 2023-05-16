@@ -16,13 +16,15 @@
 import copy
 import json
 import re
-from typing import Any, List
+from typing import Any, List, Optional
 
 from google.protobuf import json_format
 from kfp import components
 # note: this is a slight dependency on KFP SDK implementation details
 # other code should not similarly depend on the stability of kfp.placeholders
 from kfp.components import placeholders
+
+DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX = "output__"
 
 
 def container_component_dumps(obj: Any) -> Any:
@@ -92,7 +94,10 @@ def container_component_dumps(obj: Any) -> Any:
   return unquote_nonstring_placeholders(json_string, string_fields)
 
 
-def gcpc_output_name_converter(original_name: str, new_name: str):
+def gcpc_output_name_converter(
+    new_name: str,
+    original_name: Optional[str] = None,
+):
   """Replace the output with original_name with a new_name in a component decorated with an @dsl.container_component decorator.
 
   Enables authoring components that have an input and output with the same
@@ -113,6 +118,11 @@ def gcpc_output_name_converter(original_name: str, new_name: str):
             args=[output__param],
         )
   """
+  original_name = (
+      original_name
+      if original_name is not None
+      else DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX + new_name
+  )
 
   def converter(comp):
     def get_modified_pipeline_spec(
