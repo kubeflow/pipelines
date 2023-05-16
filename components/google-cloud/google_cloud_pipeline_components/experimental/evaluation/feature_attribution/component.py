@@ -23,6 +23,7 @@ from kfp.dsl import Metrics
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_JOB_ID_PLACEHOLDER
+from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 
 
@@ -31,7 +32,6 @@ def feature_attribution(
     gcp_resources: OutputPath(str),
     feature_attributions: Output[Metrics],
     project: str,
-    root_dir: str,
     location: str = 'us-central1',
     predictions_format: str = 'jsonl',
     predictions_gcs_source: Input[Artifact] = None,
@@ -57,9 +57,6 @@ def feature_attribution(
       project: Project to run feature attribution container.
       location: Location running feature attribution. If not
         set, defaulted to `us-central1`.
-      root_dir: The GCS directory for keeping staging files. A random
-        subdirectory will be created under the directory to keep job info for
-        resuming the job in case of failure.
       predictions_format: The file format for the batch
         prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
         formats, from Vertex Batch Prediction. If not set, defaulted to `jsonl`.
@@ -120,7 +117,7 @@ def feature_attribution(
           '--location',
           location,
           '--root_dir',
-          f'{root_dir}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
+          f'{PIPELINE_ROOT_PLACEHOLDER}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
           '--batch_prediction_format',
           predictions_format,
           IfPresentPlaceholder(
