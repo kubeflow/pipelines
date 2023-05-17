@@ -240,14 +240,18 @@ export function waitForTensorboardInstance(
   });
 }
 
-export function getPodLogs(podName: string, podNamespace?: string): Promise<string> {
+export function getPodLogs(
+  podName: string,
+  podNamespace?: string,
+  containerName: string = 'main',
+): Promise<string> {
   podNamespace = podNamespace || serverNamespace;
   if (!podNamespace) {
     throw new Error(
       `podNamespace is not specified and cannot get namespace from ${namespaceFilePath}.`,
     );
   }
-  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace, 'main') as any).then(
+  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace, containerName) as any).then(
     (response: any) => (response && response.body ? response.body.toString() : ''),
     (error: any) => {
       throw new Error(JSON.stringify(error.body));

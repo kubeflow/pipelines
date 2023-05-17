@@ -83,7 +83,7 @@ describe('workflow-helper', () => {
       mockedGetPodLogs.mockResolvedValueOnce('pod logs');
 
       const stream = await getPodLogsStreamFromK8s('podName', 'namespace');
-      expect(mockedGetPodLogs).toBeCalledWith('podName', 'namespace');
+      expect(mockedGetPodLogs).toBeCalledWith('podName', 'namespace', 'main');
       expect(stream.read().toString()).toBe('pod logs');
     });
   });
