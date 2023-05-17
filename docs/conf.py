@@ -205,9 +205,19 @@ html_theme_options = {
             'aliases': [],
         },
         {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.22/',
+            'title': 'v1.8.22',
+            'aliases': ['stable'],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.21/',
+            'title': 'v1.8.21',
+            'aliases': [],
+        },
+        {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.20/',
             'title': 'v1.8.20',
-            'aliases': ['stable'],
+            'aliases': [],
         },
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.19/',
