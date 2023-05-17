@@ -144,7 +144,7 @@ func (s *PipelineServer) createPipelineAndPipelineVersion(ctx context.Context, p
 		return nil, nil, err
 	}
 
-	// Create a pipeline version
+	// Create a pipeline version with the same name and description
 	pipelineVersion := &model.PipelineVersion{
 		Name:            pipeline.Name,
 		PipelineSpecURI: pipelineUrlStr,

@@ -543,7 +543,7 @@
       "properties": {
         "pipeline_id": {
           "type": "string",
-          "description": "Required input field. Unique ID of the parent pipeline."
+          "description": "Required input field. Unique ID of the parent pipeline.\nThis is ignored in CreatePipelineAndVersion API."
         },
         "pipeline_version_id": {
           "type": "string",
@@ -551,11 +551,11 @@
         },
         "display_name": {
           "type": "string",
-          "description": "Required input field. Pipeline version name provided by user."
+          "description": "Required input field. Pipeline version name provided by user.\nThis is ignored in CreatePipelineAndVersion API."
         },
         "description": {
           "type": "string",
-          "description": "Optional input field. Short description of the pipeline version."
+          "description": "Optional input field. Short description of the pipeline version.\nThis is ignored in CreatePipelineAndVersion API."
         },
         "created_at": {
           "type": "string",
@@ -564,7 +564,7 @@
         },
         "package_url": {
           "$ref": "#/definitions/v2beta1Url",
-          "description": "Input. Required. The URL to the source of the pipeline version.\nThis is required when creating the pipeine version through\nCreatePipelineVersion API."
+          "description": "Input. Required. The URL to the source of the pipeline version.\nThis is required when creating the pipeine version through\nCreatePipelineVersion or CreatePipelineAndVersion API."
         },
         "code_source_url": {
           "type": "string",
