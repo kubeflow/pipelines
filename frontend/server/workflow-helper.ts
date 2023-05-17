@@ -86,7 +86,7 @@ export function composePodLogsStreamHandler<T = Stream>(
 export async function getPodLogsStreamFromK8s(
   podName: string,
   namespace?: string,
-  containerName?: string,
+  containerName: string = 'main',
 ) {
   const stream = new PassThrough();
   stream.end(await getPodLogs(podName, namespace, containerName));
