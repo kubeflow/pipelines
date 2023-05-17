@@ -196,7 +196,7 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod),
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
     );
   }
 
@@ -222,7 +222,7 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod),
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
     );
   }
 
