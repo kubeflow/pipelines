@@ -63,11 +63,8 @@ for the create pipeline and version operation typically these are written to a h
 */
 type CreatePipelineAndVersionParams struct {
 
-	/*Body
-	  Required input. Pipeline (parent) to be created.
-
-	*/
-	Body *pipeline_model.V2beta1Pipeline
+	/*Body*/
+	Body *pipeline_model.V2beta1CreatePipelineAndVersionRequest
 
 	timeout    time.Duration
 	Context    context.Context
@@ -108,13 +105,13 @@ func (o *CreatePipelineAndVersionParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create pipeline and version params
-func (o *CreatePipelineAndVersionParams) WithBody(body *pipeline_model.V2beta1Pipeline) *CreatePipelineAndVersionParams {
+func (o *CreatePipelineAndVersionParams) WithBody(body *pipeline_model.V2beta1CreatePipelineAndVersionRequest) *CreatePipelineAndVersionParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create pipeline and version params
-func (o *CreatePipelineAndVersionParams) SetBody(body *pipeline_model.V2beta1Pipeline) {
+func (o *CreatePipelineAndVersionParams) SetBody(body *pipeline_model.V2beta1CreatePipelineAndVersionRequest) {
 	o.Body = body
 }
 

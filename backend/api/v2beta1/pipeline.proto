@@ -99,7 +99,7 @@ service PipelineService {
   rpc CreatePipelineAndVersion(CreatePipelineAndVersionRequest) returns (Pipeline) {
     option (google.api.http) = {
       post: "/apis/v2beta1/pipelines/create"
-      body: "pipeline"
+      body: "*"
     };
   }
 
