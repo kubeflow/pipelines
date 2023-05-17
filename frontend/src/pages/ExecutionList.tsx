@@ -143,12 +143,12 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
         : await this.getExecutions(listOperationOpts);
       this.clearBanner();
       const flattenedRows = this.getFlattenedRowsFromExecutions(request, executions);
-      const grouppedRows = this.getGroupedRowsFromExecutions(request, executions);
+      const groupedRows = this.getGroupedRowsFromExecutions(request, executions);
       // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
       this.setState({
         executions,
-        expandedRows: this.props.isGroupView ? grouppedRows.expandedRows : new Map(),
-        rows: this.props.isGroupView ? grouppedRows.collapsedRows : flattenedRows,
+        expandedRows: this.props.isGroupView ? groupedRows.expandedRows : new Map(),
+        rows: this.props.isGroupView ? groupedRows.collapsedRows : flattenedRows,
       });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));

@@ -101,8 +101,8 @@ describe('ExecutionListSwitcher', () => {
       </CommonTestWrapper>,
     );
 
-    screen.getByText('Flat');
-    screen.getByText('Group');
+    screen.getByText('Default');
+    screen.getByText('Grouped');
   });
 
   it('disable pagination if switch to "Group" view', async () => {
@@ -112,7 +112,7 @@ describe('ExecutionListSwitcher', () => {
       </CommonTestWrapper>,
     );
 
-    const groupTab = screen.getByText('Group');
+    const groupTab = screen.getByText('Grouped');
     fireEvent.click(groupTab);
 
     // "Group" view will call getExection() without list options
