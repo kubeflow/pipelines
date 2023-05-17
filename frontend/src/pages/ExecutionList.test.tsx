@@ -34,7 +34,7 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 
 testBestPractices();
 
-describe('ExecutionList', () => {
+describe('ExecutionList ("Default" view)', () => {
   let updateBannerSpy: jest.Mock<{}>;
   let updateDialogSpy: jest.Mock<{}>;
   let updateSnackbarSpy: jest.Mock<{}>;
@@ -117,7 +117,7 @@ describe('ExecutionList', () => {
     });
     render(
       <CommonTestWrapper>
-        <ExecutionList {...generateProps()} />
+        <ExecutionList {...generateProps()} isGroupView={false} />
       </CommonTestWrapper>,
     );
 
@@ -132,7 +132,7 @@ describe('ExecutionList', () => {
   it('displays footer with "10" as default value', async () => {
     render(
       <CommonTestWrapper>
-        <ExecutionList {...generateProps()} />
+        <ExecutionList {...generateProps()} isGroupView={false} />
       </CommonTestWrapper>,
     );
 
@@ -148,7 +148,7 @@ describe('ExecutionList', () => {
   it('shows 20th execution if page size is 20', async () => {
     render(
       <CommonTestWrapper>
-        <ExecutionList {...generateProps()} />
+        <ExecutionList {...generateProps()} isGroupView={false} />
       </CommonTestWrapper>,
     );
 
@@ -190,7 +190,7 @@ describe('ExecutionList', () => {
     });
     render(
       <CommonTestWrapper>
-        <ExecutionList {...generateProps()} />
+        <ExecutionList {...generateProps()} isGroupView={false} />
       </CommonTestWrapper>,
     );
     await waitFor(() => {
