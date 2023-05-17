@@ -181,7 +181,7 @@ func TestCreatePipelineV1_InvalidURL(t *testing.T) {
 		},
 	)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to create a pipeline (v1beta1) due to error fetching pipeline spec")
+	assert.Contains(t, err.Error(), "error fetching pipeline spec")
 	assert.Nil(t, createdPipeline)
 }
 
@@ -211,7 +211,7 @@ func TestCreatePipelineV1_MissingUrl(t *testing.T) {
 		},
 	)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to create a pipeline (v1beta1) due to missing pipeline URL")
+	assert.Contains(t, err.Error(), "invalid pipeline spec URL")
 	assert.Nil(t, createdPipeline)
 }
 

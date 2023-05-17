@@ -122,41 +122,26 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pip
 }
 
 // Creates a pipeline and a pipeline version in a single transaction.
-// Supports v1beta1 behavior.
-func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1beta1.CreatePipelineRequest) (*apiv1beta1.Pipeline, error) {
-	if s.options.CollectMetrics {
-		createPipelineRequests.Inc()
-		createPipelineVersionRequests.Inc()
-	}
-
-	// URL is a require input for CreatePipelineV1 API
-	pipelineUrlStr := request.GetPipeline().GetUrl().GetPipelineUrl()
-	if pipelineUrlStr == "" {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline (v1beta1) due to missing pipeline URL")
-	}
-
-	// Convert the input request. Fail fast if either pipeline or pipeline version is corrupted.
-	pipeline, err := toModelPipeline(request.GetPipeline())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to pipeline conversion error")
-	}
-	// Get pipeline name
-	pipelineFileName := path.Base(request.GetPipeline().GetUrl().GetPipelineUrl())
-	if pName, err := buildPipelineName(request.GetPipeline().GetName(), pipelineFileName); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", request.GetPipeline().GetName(), pipelineFileName)
+// Applies common logic on v1beta1 and v2beta1 API.
+func (s *PipelineServer) createPipelineAndPipelineVersion(ctx context.Context, pipeline *model.Pipeline, pipelineUrlStr string) (*model.Pipeline, *model.PipelineVersion, error) {
+	// Resolve name and namespace
+	pipelineFileName := path.Base(pipelineUrlStr)
+	if pName, err := buildPipelineName(pipeline.Name, pipelineFileName); err != nil {
+		return nil, nil, util.Wrapf(err, "invalid name and filename combination (%v, %v)", pipeline.Name, pipelineFileName)
 	} else {
 		pipeline.Name = pName
 	}
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
+
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: pipeline.Namespace,
 		Name:      pipeline.Name,
 		Verb:      common.RbacResourceVerbCreate,
 	}
-	err = s.canAccessPipeline(ctx, "", resourceAttributes)
+	err := s.canAccessPipeline(ctx, "", resourceAttributes)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a pipeline (v1beta1) due to authorization error. Check if you have write permissions to namespace %s", pipeline.Namespace)
+		return nil, nil, err
 	}
 
 	// Create a pipeline version
@@ -166,32 +151,57 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 		Description:     pipeline.Description,
 		Status:          model.PipelineVersionCreating,
 	}
+
+	// Download and parse pipeline spec
 	pipelineUrl, err := url.ParseRequestURI(pipelineUrlStr)
 	if err != nil {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline (v1beta1) due to invalid pipeline spec URL: %v. Please specify a valid URL", pipelineUrlStr)
+		return nil, nil, util.NewInvalidInputError("invalid pipeline spec URL: %v", pipelineUrlStr)
 	}
 	resp, err := s.httpClient.Get(pipelineUrl.String())
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a pipeline (v1beta1) due error downloading the pipeline spec from %v", pipelineUrl.String())
+		return nil, nil, util.NewInternalServerError(err, "error downloading the pipeline spec from %v", pipelineUrl.String())
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline (v1beta1) due to error fetching pipeline spec from %v. Request returned %v", pipelineUrl.String(), resp.Status)
+		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineUrl.String(), resp.Status)
 	}
 	defer resp.Body.Close()
 	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due error reading the pipeline spec")
+		return nil, nil, err
 	}
 	pipelineVersion.PipelineSpec = string(pipelineFile)
 
 	// Validate the pipeline version
 	if err := s.validatePipelineVersionBeforeCreating(pipelineVersion); err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to data validation error")
+		return nil, nil, err
 	}
 
 	// Create both pipeline and pipeline version is a single transaction
-	newPipeline, newPipelineVersion, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
+	return s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
+}
+
+// Creates a pipeline and a pipeline version in a single transaction.
+// Supports v1beta1 behavior.
+func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1beta1.CreatePipelineRequest) (*apiv1beta1.Pipeline, error) {
+	if s.options.CollectMetrics {
+		createPipelineRequests.Inc()
+		createPipelineVersionRequests.Inc()
+	}
+
+	// Convert the input request
+	pipeline, err := toModelPipeline(request.GetPipeline())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to pipeline conversion error")
+	}
+
+	// Create both pipeline and pipeline version is a single transaction
+	newPipeline, newPipelineVersion, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipeline().GetUrl().GetPipelineUrl())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1)")
+	}
+
+	if s.options.CollectMetrics {
+		pipelineCount.Inc()
+		pipelineVersionCount.Inc()
 	}
 	return toApiPipelineV1(newPipeline, newPipelineVersion), nil
 }
@@ -581,82 +591,21 @@ func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *
 		createPipelineVersionRequests.Inc()
 	}
 
-	// URL is a required input for CreatePipelineAndVersion call
-	pipelineUrlStr := request.GetPipelineVersion().GetPackageUrl().GetPipelineUrl()
-	if pipelineUrlStr == "" {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline due to missing pipeline URL")
-	}
-
-	// Get pipeline description
-	description := request.GetPipeline().GetDescription()
-	if description == "" {
-		description = request.GetPipelineVersion().GetDescription()
-	}
-
-	// Convert the input request. Fail fast if either pipeline or pipeline version is corrupted.
+	// Convert the input request
 	pipeline, err := toModelPipeline(request.GetPipeline())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline due to pipeline conversion error")
 	}
-	pipeline.Description = description
-
-	// Get pipeline name
-	displayName := request.GetPipeline().GetDisplayName()
-	if displayName == "" {
-		displayName = request.GetPipelineVersion().GetDisplayName()
-	}
-	pipelineFileName := path.Base(request.GetPipelineVersion().GetPackageUrl().GetPipelineUrl())
-	if pName, err := buildPipelineName(displayName, pipelineFileName); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a new pipeline due to invalid name and filename combination (%v, %v)", displayName, pipelineFileName)
-	} else {
-		pipeline.Name = pName
-	}
-	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
-
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: pipeline.Namespace,
-		Name:      pipeline.Name,
-		Verb:      common.RbacResourceVerbCreate,
-	}
-	err = s.canAccessPipeline(ctx, "", resourceAttributes)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a pipeline due to authorization error. Check if you have write permissions to namespace %s", pipeline.Namespace)
-	}
-
-	// Create a pipeline version
-	pipelineVersion := &model.PipelineVersion{
-		Name:            pipeline.Name,
-		PipelineSpecURI: pipelineUrlStr,
-		Description:     pipeline.Description,
-		Status:          model.PipelineVersionCreating,
-	}
-	pipelineUrl, err := url.ParseRequestURI(pipelineUrlStr)
-	if err != nil {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline due to invalid pipeline spec URL: %v. Please specify a valid URL", pipelineUrlStr)
-	}
-	resp, err := s.httpClient.Get(pipelineUrl.String())
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a pipeline due error downloading the pipeline spec from %v", pipelineUrl.String())
-	} else if resp.StatusCode != http.StatusOK {
-		return nil, util.NewInvalidInputError("Failed to create a pipeline due to error fetching pipeline spec from %v. Request returned %v", pipelineUrl.String(), resp.Status)
-	}
-	defer resp.Body.Close()
-	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline due error reading the pipeline spec")
-	}
-	pipelineVersion.PipelineSpec = string(pipelineFile)
-
-	// Validate the pipeline version
-	if err := s.validatePipelineVersionBeforeCreating(pipelineVersion); err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline due to data validation error")
-	}
 
 	// Create both pipeline and pipeline version in a single transaction
-	newPipeline, _, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
+	newPipeline, _, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipelineVersion().GetPackageUrl().GetPipelineUrl())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline")
+	}
+
+	if s.options.CollectMetrics {
+		pipelineCount.Inc()
+		pipelineVersionCount.Inc()
 	}
 	return toApiPipeline(newPipeline), nil
 }
