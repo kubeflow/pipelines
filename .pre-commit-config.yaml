@@ -46,3 +46,16 @@ repos:
         # docformatter messes up certain sphinx link formatting.
         # The kubernetes_platform/python docstrings are heavy on links, so ignore.
         exclude: (sdk/python/kfp/compiler/compiler_test.py|kubernetes_platform/python/)
+
+  # Golang pre-submit hooks
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.52.2
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        description: Fast linters runner for Go.
+        entry: golangci-lint run --new-from-rev HEAD --fix
+        types: [go]
+        language: golang
+        require_serial: true
+        pass_filenames: false
