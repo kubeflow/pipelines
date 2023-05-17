@@ -35,21 +35,18 @@ import (
 )
 
 func TestBuildPipelineName_QueryStringNotEmpty(t *testing.T) {
-	pipelineName, err := buildPipelineName("pipeline%20one", "file one")
-	assert.Nil(t, err)
+	pipelineName := buildPipelineName("pipeline one", "file one")
 	assert.Equal(t, "pipeline one", pipelineName)
 }
 
 func TestBuildPipelineName(t *testing.T) {
-	pipelineName, err := buildPipelineName("", "file one")
-	assert.Nil(t, err)
+	pipelineName := buildPipelineName("", "file one")
 	assert.Equal(t, "file one", pipelineName)
 }
 
-func TestBuildPipelineName_InvalidQueryString(t *testing.T) {
-	_, err := buildPipelineName("pipeline!$%one", "file one")
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "invalid format")
+func TestBuildPipelineName_empty(t *testing.T) {
+	newName := buildPipelineName("", "")
+	assert.Empty(t, newName)
 }
 
 func TestCreatePipelineV1_YAML(t *testing.T) {

@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -142,11 +141,7 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *apiv1bet
 	}
 	// Get pipeline name
 	pipelineFileName := path.Base(request.GetPipeline().GetUrl().GetPipelineUrl())
-	if pName, err := buildPipelineName(request.GetPipeline().GetName(), pipelineFileName); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a new pipeline (v1beta1) due to invalid name and filename combination (%v, %v)", request.GetPipeline().GetName(), pipelineFileName)
-	} else {
-		pipeline.Name = pName
-	}
+	pipeline.Name = buildPipelineName(request.GetPipeline().GetName(), pipelineFileName)
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -1012,13 +1007,9 @@ func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId strin
 // This method extract the common logic of naming the pipeline.
 // API caller can either explicitly name the pipeline through query string ?name=foobar.
 // or API server can use the file name by default.
-func buildPipelineName(queryString string, fileName string) (string, error) {
-	pipelineName, err := url.QueryUnescape(queryString)
-	if err != nil {
-		return "", util.NewInvalidInputErrorWithDetails(err, fmt.Sprintf("Failed to extract pipeline's name fro the query as it has invalid format: %s", queryString))
-	}
+func buildPipelineName(pipelineName string, fileName string) string {
 	if pipelineName == "" {
 		pipelineName = fileName
 	}
-	return pipelineName, nil
+	return pipelineName
 }
