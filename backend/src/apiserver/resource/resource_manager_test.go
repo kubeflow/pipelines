@@ -4090,6 +4090,6 @@ root:
           name: comp-hello-world
         taskInfo:
           name: hello-world
-schemaVersion: 2.0.0
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
