@@ -14,6 +14,7 @@
 
 from typing import List
 
+from google_cloud_pipeline_components import _image
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import PipelineTaskFinalStatus
@@ -39,7 +40,7 @@ def vertex_pipelines_notification_email(
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

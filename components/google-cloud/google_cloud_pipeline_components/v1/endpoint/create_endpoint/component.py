@@ -14,6 +14,7 @@
 
 from typing import Dict
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -79,7 +80,7 @@ def endpoint_create(
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

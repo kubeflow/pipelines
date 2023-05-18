@@ -15,6 +15,7 @@
 
 from typing import Optional
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
@@ -150,7 +151,7 @@ def automl_video_training_job(
   # fmt`:` on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',

@@ -16,6 +16,7 @@ import copy
 import json
 from typing import Any, Optional, Set
 
+from google_cloud_pipeline_components import _image
 from kfp import components
 import yaml
 
@@ -56,6 +57,17 @@ def assert_pipeline_equals_golden(
       expected_pipeline_spec_dict,
       comparison_file,
       ignore_fields,
+  )
+
+
+def _actual_and_expected_images_have_same_name(
+    actual: Any, expected: Any
+) -> bool:
+  return (
+      isinstance(actual, str)
+      and isinstance(expected, str)
+      and actual.startswith(_image.GCPC_IMAGE_NAME)
+      and expected.startswith(_image.GCPC_IMAGE_NAME)
   )
 
 
@@ -137,12 +149,14 @@ def compare_pipeline_spec_dicts(
       for i in range(len(actual)):
         compare_json_dicts(test_case, actual[i], expected[i])
     else:
-      if actual != expected:
+      if actual != expected and not _actual_and_expected_images_have_same_name(
+          actual, expected
+      ):
         print(make_copypaste_message(original_actual, is_json))
-      test_case.assertEqual(
-          actual,
-          expected,
-          f'Values do not match: {actual} != {expected}',
-      )
+        test_case.assertEqual(
+            actual,
+            expected,
+            f'Values do not match: {actual} != {expected}',
+        )
 
   compare_json_dicts(test_case, actual, expected)

@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
 from typing import Dict, Optional
+
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
+from kfp import dsl
 from kfp.dsl import Output
 
 
@@ -89,7 +91,7 @@ def image_dataset_create(
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',
