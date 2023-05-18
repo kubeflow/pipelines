@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import utils
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
@@ -73,7 +73,7 @@ def text_dataset_import(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',

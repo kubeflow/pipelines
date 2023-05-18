@@ -14,6 +14,7 @@
 
 from typing import Dict, List
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import ConcatPlaceholder
@@ -83,7 +84,7 @@ def bigquery_ml_confusion_matrix_job(
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

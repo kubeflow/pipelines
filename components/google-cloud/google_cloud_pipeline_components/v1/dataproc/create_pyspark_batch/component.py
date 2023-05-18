@@ -14,12 +14,11 @@
 
 from typing import Dict, List
 
-from kfp.dsl import (
-    ConcatPlaceholder,
-    ContainerSpec,
-    OutputPath,
-    container_component,
-)
+from google_cloud_pipeline_components import _image
+from kfp.dsl import ConcatPlaceholder
+from kfp.dsl import container_component
+from kfp.dsl import ContainerSpec
+from kfp.dsl import OutputPath
 
 
 @container_component
@@ -104,7 +103,7 @@ def dataproc_create_pyspark_batch(
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',
