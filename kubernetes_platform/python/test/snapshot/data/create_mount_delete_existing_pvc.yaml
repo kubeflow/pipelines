@@ -130,7 +130,7 @@ root:
             access_modes:
               runtimeValue:
                 constant:
-                - ReadWriteMany
+                - ReadWriteOnce
             pvc_name:
               runtimeValue:
                 constant: static-pvc-name
