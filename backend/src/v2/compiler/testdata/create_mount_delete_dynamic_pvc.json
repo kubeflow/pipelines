@@ -144,7 +144,7 @@
               "parameters": {
                 "access_modes": {
                   "runtimeValue": {
-                    "constant": ["ReadWriteMany"]
+                    "constant": ["ReadWriteOnce"]
                   }
                 },
                 "pvc_name_suffix": {
