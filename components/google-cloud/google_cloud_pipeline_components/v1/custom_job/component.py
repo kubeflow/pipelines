@@ -15,17 +15,15 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
-from kfp.dsl import ConcatPlaceholder
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import OutputPath
+from google_cloud_pipeline_components import utils
+from kfp import dsl
 
 
-@container_component
+@dsl.container_component
 def custom_training_job(
     project: str,
     display_name: str,
-    gcp_resources: OutputPath(str),
+    gcp_resources: dsl.OutputPath(str),
     location: str = 'us-central1',
     worker_pool_specs: List[Dict[str, str]] = [],
     timeout: str = '604800s',
@@ -103,7 +101,7 @@ def custom_training_job(
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
-  return ContainerSpec(
+  return dsl.ContainerSpec(
       image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
@@ -115,49 +113,30 @@ def custom_training_job(
           '--type',
           'CustomJob',
           '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"display_name": "',
-              display_name,
-              '"',
-              ', "job_spec": {',
-              '"worker_pool_specs": ',
-              worker_pool_specs,
-              ', "scheduling": {',
-              '"timeout": "',
-              timeout,
-              '"',
-              ', "restart_job_on_worker_restart": "',
-              restart_job_on_worker_restart,
-              '"',
-              '}',
-              ', "service_account": "',
-              service_account,
-              '"',
-              ', "tensorboard": "',
-              tensorboard,
-              '"',
-              ', "enable_web_access": "',
-              enable_web_access,
-              '"',
-              ', "network": "',
-              network,
-              '"',
-              ', "reserved_ip_ranges": ',
-              reserved_ip_ranges,
-              ', "base_output_directory": {',
-              '"output_uri_prefix": "',
-              base_output_directory,
-              '"',
-              '}',
-              '}',
-              ', "labels": ',
-              labels,
-              ', "encryption_spec": {"kms_key_name":"',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
+          utils.container_component_dumps({
+              'display_name': display_name,
+              'job_spec': {
+                  'worker_pool_specs': worker_pool_specs,
+                  'scheduling': {
+                      'timeout': timeout,
+                      'restart_job_on_worker_restart': (
+                          restart_job_on_worker_restart
+                      ),
+                  },
+                  'service_account': service_account,
+                  'tensorboard': tensorboard,
+                  'enable_web_access': enable_web_access,
+                  'network': network,
+                  'reserved_ip_ranges': reserved_ip_ranges,
+                  'base_output_directory': {
+                      'output_uri_prefix': base_output_directory
+                  },
+              },
+              'labels': labels,
+              'encryption_spec_key_name': {
+                  'kms_key_name': encryption_spec_key_name
+              },
+          }),
           '--project',
           project,
           '--location',
