@@ -562,6 +562,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public async handleVersionSelected(versionId: string): Promise<void> {
     if (this.state.v1Pipeline) {
       const selectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const pageTitle = this.state.v1Pipeline.name?.concat(' (', selectedVersion?.name!, ')');
+      this.props.updateToolbar({ pageTitle });
+
       const selectedVersionPipelineTemplate = await this._getTemplateString(
         this.state.v1Pipeline.id!,
         versionId,
@@ -600,6 +603,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const selectedVersion = (this.state.v2Versions || []).find(
         v => v.pipeline_version_id === versionId,
       );
+      const pageTitle = this.state.v2Pipeline.display_name?.concat(
+        ' (',
+        selectedVersion?.display_name!,
+        ')',
+      );
+      this.props.updateToolbar({ pageTitle });
+
       const selectedVersionPipelineTemplate = await this._getTemplateString(
         this.state.v2Pipeline.pipeline_id!,
         versionId,
