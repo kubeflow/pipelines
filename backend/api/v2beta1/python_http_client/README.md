@@ -106,6 +106,7 @@ Class | Method | HTTP request | Description
 *ExperimentServiceApi* | [**unarchive_experiment**](docs/ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
 *HealthzServiceApi* | [**get_healthz**](docs/HealthzServiceApi.md#get_healthz) | **GET** /apis/v2beta1/healthz | Get healthz data.
 *PipelineServiceApi* | [**create_pipeline**](docs/PipelineServiceApi.md#create_pipeline) | **POST** /apis/v2beta1/pipelines | Creates a pipeline.
+*PipelineServiceApi* | [**create_pipeline_and_version**](docs/PipelineServiceApi.md#create_pipeline_and_version) | **POST** /apis/v2beta1/pipelines/create | Creates a new pipeline and a new pipeline version in a single transaction.
 *PipelineServiceApi* | [**create_pipeline_version**](docs/PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
 *PipelineServiceApi* | [**delete_pipeline**](docs/PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
 *PipelineServiceApi* | [**delete_pipeline_version**](docs/PipelineServiceApi.md#delete_pipeline_version) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.

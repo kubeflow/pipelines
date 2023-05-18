@@ -108,6 +108,39 @@
         ]
       }
     },
+    "/apis/v2beta1/pipelines/create": {
+      "post": {
+        "summary": "Creates a new pipeline and a new pipeline version in a single transaction.",
+        "operationId": "CreatePipelineAndVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Pipeline"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1CreatePipelineAndVersionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
     "/apis/v2beta1/pipelines/names/{name}": {
       "get": {
         "summary": "Finds a specific pipeline by name and namespace.",
@@ -432,6 +465,19 @@
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
+    "v2beta1CreatePipelineAndVersionRequest": {
+      "type": "object",
+      "properties": {
+        "pipeline": {
+          "$ref": "#/definitions/v2beta1Pipeline",
+          "description": "Required input. Pipeline (parent) to be created."
+        },
+        "pipeline_version": {
+          "$ref": "#/definitions/v2beta1PipelineVersion",
+          "description": "Required input. Pipeline version (child) to be created.\nPipeline spec will be downloaded from pipeline_version.package_url."
+        }
+      }
+    },
     "v2beta1ListPipelineVersionsResponse": {
       "type": "object",
       "properties": {
@@ -509,7 +555,7 @@
       "properties": {
         "pipeline_id": {
           "type": "string",
-          "description": "Required input field. Unique ID of the parent pipeline."
+          "description": "Required input field. Unique ID of the parent pipeline.\nThis is ignored in CreatePipelineAndVersion API."
         },
         "pipeline_version_id": {
           "type": "string",
@@ -517,11 +563,11 @@
         },
         "display_name": {
           "type": "string",
-          "description": "Required input field. Pipeline version name provided by user."
+          "description": "Required input field. Pipeline version name provided by user.\nThis is ignored in CreatePipelineAndVersion API."
         },
         "description": {
           "type": "string",
-          "description": "Optional input field. Short description of the pipeline version."
+          "description": "Optional input field. Short description of the pipeline version.\nThis is ignored in CreatePipelineAndVersion API."
         },
         "created_at": {
           "type": "string",
@@ -530,7 +576,7 @@
         },
         "package_url": {
           "$ref": "#/definitions/v2beta1Url",
-          "description": "Input. Required. The URL to the source of the pipeline version.\nThis is required when creating the pipeine version through\nCreatePipelineVersion API."
+          "description": "Input. Required. The URL to the source of the pipeline version.\nThis is required when creating the pipeine version through\nCreatePipelineVersion or CreatePipelineAndVersion API."
         },
         "code_source_url": {
           "type": "string",

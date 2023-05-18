@@ -32,6 +32,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestBuildPipelineName_QueryStringNotEmpty(t *testing.T) {
@@ -180,7 +181,7 @@ func TestCreatePipelineV1_InvalidURL(t *testing.T) {
 		},
 	)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to create a pipeline (v1beta1) due to error fetching pipeline spec")
+	assert.Contains(t, err.Error(), "error fetching pipeline spec")
 	assert.Nil(t, createdPipeline)
 }
 
@@ -210,7 +211,7 @@ func TestCreatePipelineV1_MissingUrl(t *testing.T) {
 		},
 	)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to create a pipeline (v1beta1) due to missing pipeline URL")
+	assert.Contains(t, err.Error(), "invalid pipeline spec URL")
 	assert.Nil(t, createdPipeline)
 }
 
@@ -715,6 +716,164 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 				tt.want.PipelineId = got.GetPipelineId()
 			}
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
+	httpServer := getMockServer(t)
+	defer httpServer.Close()
+	tests := []struct {
+		name    string
+		request *apiv2.CreatePipelineAndVersionRequest
+		want    *apiv2.Pipeline
+		wantPv  *model.PipelineVersion
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"Valid - yaml",
+			&apiv2.CreatePipelineAndVersionRequest{
+				Pipeline: &apiv2.Pipeline{
+					DisplayName: "User's pipeline 1",
+					Description: "Pipeline built by a user",
+					Namespace:   "",
+				},
+				PipelineVersion: &apiv2.PipelineVersion{
+					PackageUrl: &apiv2.Url{
+						PipelineUrl: httpServer.URL + "/arguments-parameters.yaml",
+					},
+				},
+			},
+			&apiv2.Pipeline{
+				PipelineId:  DefaultFakeUUID,
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				DisplayName: "User's pipeline 1",
+				Description: "Pipeline built by a user",
+				Namespace:   "",
+			},
+			&model.PipelineVersion{
+				UUID:           DefaultFakeUUID,
+				CreatedAtInSec: 2,
+				PipelineId:     DefaultFakeUUID,
+				Name:           "User's pipeline 1",
+				Description:    "Pipeline built by a user",
+				Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
+				Status:         model.PipelineVersionReady,
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - large yaml",
+			&apiv2.CreatePipelineAndVersionRequest{
+				Pipeline: &apiv2.Pipeline{
+					DisplayName: "User's pipeline 1",
+					Description: "Pipeline built by a user",
+					Namespace:   "",
+				},
+				PipelineVersion: &apiv2.PipelineVersion{
+					PackageUrl: &apiv2.Url{
+						PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml",
+					},
+				},
+			},
+			&apiv2.Pipeline{
+				PipelineId:  DefaultFakeUUID,
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				DisplayName: "User's pipeline 1",
+				Description: "Pipeline built by a user",
+				Namespace:   "",
+			},
+			&model.PipelineVersion{
+				UUID:           DefaultFakeUUID,
+				CreatedAtInSec: 2,
+				PipelineId:     DefaultFakeUUID,
+				Name:           "User's pipeline 1",
+				Parameters:     "[]",
+				Description:    "Pipeline built by a user",
+				Status:         model.PipelineVersionReady,
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - tarball",
+			&apiv2.CreatePipelineAndVersionRequest{
+				Pipeline: &apiv2.Pipeline{
+					DisplayName: "User's pipeline 1",
+					Description: "Pipeline built by a user",
+					Namespace:   "",
+				},
+				PipelineVersion: &apiv2.PipelineVersion{
+					PackageUrl: &apiv2.Url{
+						PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz",
+					},
+				},
+			},
+			&apiv2.Pipeline{
+				PipelineId:  DefaultFakeUUID,
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				DisplayName: "User's pipeline 1",
+				Description: "Pipeline built by a user",
+				Namespace:   "",
+			},
+			&model.PipelineVersion{
+				UUID:           DefaultFakeUUID,
+				CreatedAtInSec: 2,
+				PipelineId:     DefaultFakeUUID,
+				Name:           "User's pipeline 1",
+				Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
+				Description:    "Pipeline built by a user",
+				Status:         model.PipelineVersionReady,
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid - wrong yaml",
+			&apiv2.CreatePipelineAndVersionRequest{
+				Pipeline: &apiv2.Pipeline{
+					DisplayName: "User's pipeline 1",
+					Description: "Pipeline built by a user",
+					Namespace:   "",
+				},
+				PipelineVersion: &apiv2.PipelineVersion{
+					PackageUrl: &apiv2.Url{
+						PipelineUrl: httpServer.URL + "/invalid-workflow.yaml",
+					},
+				},
+			},
+			nil,
+			nil,
+			true,
+			"pipeline spec is invalid",
+		},
+	}
+	for _, tt := range tests {
+		clientManager := resource.NewFakeClientManagerOrFatal(
+			util.NewFakeTimeForEpoch())
+		resourceManager := resource.NewResourceManager(clientManager)
+		pipelineServer := PipelineServer{
+			resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false},
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := pipelineServer.CreatePipelineAndVersion(context.Background(), tt.request)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, got)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.want, got)
+				pv, err := resourceManager.GetLatestPipelineVersion(got.GetPipelineId())
+				assert.Nil(t, err)
+				assert.NotEmpty(t, pv.PipelineSpec)
+				assert.NotEmpty(t, pv.PipelineSpecURI)
+				tt.wantPv.PipelineSpecURI = pv.PipelineSpecURI
+				tt.wantPv.PipelineSpec = pv.PipelineSpec
+				assert.Equal(t, tt.wantPv, pv)
+			}
 		})
 	}
 }
