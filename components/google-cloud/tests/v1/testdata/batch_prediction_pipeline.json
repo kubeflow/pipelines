@@ -41,42 +41,62 @@
                       "parameterType": "STRING"
                   },
                   "encryption_spec_key_name": {
-                      "defaultValue": "",
-                      "isOptional": true,
-                      "parameterType": "STRING"
+                    "defaultValue": "",
+                    "isOptional": true,
+                    "parameterType": "STRING"
                   },
+                  "excluded_fields": {
+                    "defaultValue": [],
+                    "isOptional": true,
+                    "parameterType": "LIST"
+                   },
                   "explanation_metadata": {
-                      "defaultValue": {},
-                      "isOptional": true,
-                      "parameterType": "STRUCT"
+                    "defaultValue": {},
+                    "isOptional": true,
+                    "parameterType": "STRUCT"
                   },
                   "explanation_parameters": {
-                      "defaultValue": {},
-                      "isOptional": true,
-                      "parameterType": "STRUCT"
+                    "defaultValue": {},
+                    "isOptional": true,
+                    "parameterType": "STRUCT"
                   },
                   "gcs_destination_output_uri_prefix": {
-                      "defaultValue": "",
-                      "isOptional": true,
-                      "parameterType": "STRING"
+                    "defaultValue": "",
+                    "isOptional": true,
+                    "parameterType": "STRING"
                   },
                   "gcs_source_uris": {
-                      "defaultValue": [],
-                      "isOptional": true,
-                      "parameterType": "LIST"
+                    "defaultValue": [],
+                    "isOptional": true,
+                    "parameterType": "LIST"
                   },
                   "generate_explanation": {
-                      "defaultValue": false,
-                      "isOptional": true,
-                      "parameterType": "BOOLEAN"
+                    "defaultValue": false,
+                    "isOptional": true,
+                    "parameterType": "BOOLEAN"
+                  },
+                  "included_fields": {
+                    "defaultValue": [],
+                    "isOptional": true,
+                    "parameterType": "LIST"
+                  },
+                  "instance_type": {
+                    "defaultValue": "",
+                    "isOptional": true,
+                    "parameterType": "STRING"
                   },
                   "instances_format": {
-                      "defaultValue": "jsonl",
-                      "isOptional": true,
-                      "parameterType": "STRING"
+                    "defaultValue": "jsonl",
+                    "isOptional": true,
+                    "parameterType": "STRING"
                   },
                   "job_display_name": {
-                      "parameterType": "STRING"
+                    "parameterType": "STRING"
+                  },
+                  "key_field": {
+                    "defaultValue": "",
+                    "isOptional": true,
+                    "parameterType": "STRING"
                   },
                   "labels": {
                       "defaultValue": {},
@@ -234,7 +254,7 @@
                       "--type",
                       "BatchPredictionJob",
                       "--payload",
-                      "{\"Concat\": [\"{\", \"\\\"display_name\\\": \\\"\", \"{{$.inputs.parameters['job_display_name']}}\", \"\\\", \", {\"IfPresent\": {\"InputName\": \"model\", \"Then\": {\"Concat\": [\"\\\"model\\\": \\\"\", \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"\\\",\"]}}}, \" \\\"input_config\\\": {\", \"\\\"instances_format\\\": \\\"\", \"{{$.inputs.parameters['instances_format']}}\", \"\\\"\", \", \\\"gcs_source\\\": {\", \"\\\"uris\\\":\", \"{{$.inputs.parameters['gcs_source_uris']}}\", \"}\", \", \\\"bigquery_source\\\": {\", \"\\\"input_uri\\\": \\\"\", \"{{$.inputs.parameters['bigquery_source_input_uri']}}\", \"\\\"\", \"}\", \"}\", \", \\\"model_parameters\\\": \", \"{{$.inputs.parameters['model_parameters']}}\", \", \\\"output_config\\\": {\", \"\\\"predictions_format\\\": \\\"\", \"{{$.inputs.parameters['predictions_format']}}\", \"\\\"\", \", \\\"gcs_destination\\\": {\", \"\\\"output_uri_prefix\\\": \\\"\", \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\", \"\\\"\", \"}\", \", \\\"bigquery_destination\\\": {\", \"\\\"output_uri\\\": \\\"\", \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\", \"\\\"\", \"}\", \"}\", \", \\\"dedicated_resources\\\": {\", \"\\\"machine_spec\\\": {\", \"\\\"machine_type\\\": \\\"\", \"{{$.inputs.parameters['machine_type']}}\", \"\\\"\", \", \\\"accelerator_type\\\": \\\"\", \"{{$.inputs.parameters['accelerator_type']}}\", \"\\\"\", \", \\\"accelerator_count\\\": \", \"{{$.inputs.parameters['accelerator_count']}}\", \"}\", \", \\\"starting_replica_count\\\": \", \"{{$.inputs.parameters['starting_replica_count']}}\", \", \\\"max_replica_count\\\": \", \"{{$.inputs.parameters['max_replica_count']}}\", \"}\", \", \\\"manual_batch_tuning_parameters\\\": {\", \"\\\"batch_size\\\": \", \"{{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}\", \"}\", \", \\\"generate_explanation\\\": \", \"{{$.inputs.parameters['generate_explanation']}}\", \", \\\"explanation_spec\\\": {\", \"\\\"parameters\\\": \", \"{{$.inputs.parameters['explanation_parameters']}}\", \", \\\"metadata\\\": \", \"{{$.inputs.parameters['explanation_metadata']}}\", \"}\", \", \\\"labels\\\": \", \"{{$.inputs.parameters['labels']}}\", \", \\\"encryption_spec\\\": {\\\"kms_key_name\\\":\\\"\", \"{{$.inputs.parameters['encryption_spec_key_name']}}\", \"\\\"}\", \"}\"]}",
+                      "{\"Concat\": [\"{\", \"\\\"display_name\\\": \\\"\", \"{{$.inputs.parameters['job_display_name']}}\", \"\\\", \", {\"IfPresent\": {\"InputName\": \"model\", \"Then\": {\"Concat\": [\"\\\"model\\\": \\\"\", \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"\\\",\"]}}}, \" \\\"input_config\\\": {\", \"\\\"instances_format\\\": \\\"\", \"{{$.inputs.parameters['instances_format']}}\", \"\\\"\", \", \\\"gcs_source\\\": {\", \"\\\"uris\\\":\", \"{{$.inputs.parameters['gcs_source_uris']}}\", \"}\", \", \\\"bigquery_source\\\": {\", \"\\\"input_uri\\\": \\\"\", \"{{$.inputs.parameters['bigquery_source_input_uri']}}\", \"\\\"\", \"}\", \"}\", \", \\\"instance_config\\\": {\", \"\\\"instance_type\\\": \\\"\", \"{{$.inputs.parameters['instance_type']}}\", \"\\\"\", \", \\\"key_field\\\": \\\"\", \"{{$.inputs.parameters['key_field']}}\", \"\\\", \", {\"IfPresent\": {\"InputName\": \"included_fields\", \"Then\": {\"Concat\": [\"\\\"included_fields\\\": \", \"{{$.inputs.parameters['included_fields']}}\"]}}}, {\"IfPresent\": {\"InputName\": \"excluded_fields\", \"Then\": {\"Concat\": [\"\\\"excluded_fields\\\": \", \"{{$.inputs.parameters['excluded_fields']}}\"]}}}, \"}\", \", \\\"model_parameters\\\": \", \"{{$.inputs.parameters['model_parameters']}}\", \", \\\"output_config\\\": {\", \"\\\"predictions_format\\\": \\\"\", \"{{$.inputs.parameters['predictions_format']}}\", \"\\\"\", \", \\\"gcs_destination\\\": {\", \"\\\"output_uri_prefix\\\": \\\"\", \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\", \"\\\"\", \"}\", \", \\\"bigquery_destination\\\": {\", \"\\\"output_uri\\\": \\\"\", \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\", \"\\\"\", \"}\", \"}\", \", \\\"dedicated_resources\\\": {\", \"\\\"machine_spec\\\": {\", \"\\\"machine_type\\\": \\\"\", \"{{$.inputs.parameters['machine_type']}}\", \"\\\"\", \", \\\"accelerator_type\\\": \\\"\", \"{{$.inputs.parameters['accelerator_type']}}\", \"\\\"\", \", \\\"accelerator_count\\\": \", \"{{$.inputs.parameters['accelerator_count']}}\", \"}\", \", \\\"starting_replica_count\\\": \", \"{{$.inputs.parameters['starting_replica_count']}}\", \", \\\"max_replica_count\\\": \", \"{{$.inputs.parameters['max_replica_count']}}\", \"}\", \", \\\"manual_batch_tuning_parameters\\\": {\", \"\\\"batch_size\\\": \", \"{{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}\", \"}\", \", \\\"generate_explanation\\\": \", \"{{$.inputs.parameters['generate_explanation']}}\", \", \\\"explanation_spec\\\": {\", \"\\\"parameters\\\": \", \"{{$.inputs.parameters['explanation_parameters']}}\", \", \\\"metadata\\\": \", \"{{$.inputs.parameters['explanation_metadata']}}\", \"}\", \", \\\"labels\\\": \", \"{{$.inputs.parameters['labels']}}\", \", \\\"encryption_spec\\\": {\\\"kms_key_name\\\":\\\"\", \"{{$.inputs.parameters['encryption_spec_key_name']}}\", \"\\\"}\", \"}\"]}",
                       "--project",
                       "{{$.inputs.parameters['project']}}",
                       "--location",
@@ -332,6 +352,11 @@
                                   "constant": "some encryption_spec_key_name"
                               }
                           },
+                          "excluded_fields": {
+                            "runtimeValue": {
+                                "constant": ["field3", "field4"]
+                            }
+                          },
                           "explanation_metadata": {
                               "runtimeValue": {
                                   "constant": {
@@ -363,6 +388,16 @@
                                   "constant": 1.0
                               }
                           },
+                          "included_fields": {
+                            "runtimeValue": {
+                                "constant": ["field1", "field2"]
+                            }
+                          },
+                          "instance_type": {
+                            "runtimeValue": {
+                              "constant": "instance_type"
+                            }
+                          },
                           "instances_format": {
                               "runtimeValue": {
                                   "constant": "instance_format"
@@ -372,6 +407,11 @@
                               "runtimeValue": {
                                   "constant": "test_display_name"
                               }
+                          },
+                          "key_field": {
+                            "runtimeValue": {
+                              "constant": "key_field"
+                            }
                           },
                           "labels": {
                               "runtimeValue": {

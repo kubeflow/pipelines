@@ -46,6 +46,10 @@ components:
           defaultValue: ''
           isOptional: true
           parameterType: STRING
+        excluded_fields:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
         explanation_metadata:
           defaultValue: {}
           isOptional: true
@@ -66,11 +70,23 @@ components:
           defaultValue: false
           isOptional: true
           parameterType: BOOLEAN
+        included_fields:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        instance_type:
+          defaultValue: ""
+          isOptional: true
+          parameterType: STRING
         instances_format:
           defaultValue: jsonl
           isOptional: true
           parameterType: STRING
         job_display_name:
+          parameterType: STRING
+        key_field:
+          defaultValue: ""
+          isOptional: true
           parameterType: STRING
         labels:
           defaultValue: {}
@@ -199,7 +215,11 @@ deploymentSpec:
           " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
           "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
           "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
-          "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
+          "\"", "}", "}", ", \"instance_config\": {", "\"instance_type\": \"", "{{$.inputs.parameters[''instance_type'']}}", "\"", ",
+          \"key_field\": \"", "{{$.inputs.parameters[''key_field'']}}", "\", ",
+          {"IfPresent": {"InputName": "included_fields", "Then": {"Concat": ["\"included_fields\": ", "{{$.inputs.parameters[''included_fields'']}}"]}}},
+          {"IfPresent": {"InputName": "excluded_fields", "Then": {"Concat": ["\"excluded_fields\": ", "{{$.inputs.parameters[''excluded_fields'']}}"]}}},
+          "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
           ", \"output_config\": {", "\"predictions_format\": \"", "{{$.inputs.parameters[''predictions_format'']}}",
           "\"", ", \"gcs_destination\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''gcs_destination_output_uri_prefix'']}}",
           "\"", "}", ", \"bigquery_destination\": {", "\"output_uri\": \"", "{{$.inputs.parameters[''bigquery_destination_output_uri'']}}",
@@ -309,6 +329,9 @@ root:
             encryption_spec_key_name:
               runtimeValue:
                 constant: some encryption_spec_key_name
+            excluded_fields:
+              runtimeValue:
+                constant: [field3, field4]
             explanation_metadata:
               runtimeValue:
                 constant:
@@ -327,12 +350,21 @@ root:
             generate_explanation:
               runtimeValue:
                 constant: 1.0
+            included_fields:
+              runtimeValue:
+                constant: [field1, field2]
+            instance_type:
+              runtimeValue:
+                constant: instance_type
             instances_format:
               runtimeValue:
                 constant: instance_format
             job_display_name:
               runtimeValue:
                 constant: test_display_name
+            key_field:
+              runtimeValue:
+                constant: key_field
             labels:
               runtimeValue:
                 constant:
