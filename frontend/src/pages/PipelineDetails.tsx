@@ -104,20 +104,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     const origin = this.getOrigin();
     const pipelineIdFromParams = this.props.match.params[RouteParams.pipelineId];
     const pipelineVersionIdFromParams = this.props.match.params[RouteParams.pipelineVersionId];
-    buttons
-      .newRunFromPipelineVersion(
-        () => {
-          return pipelineIdFromParams ? pipelineIdFromParams : '';
-        },
-        () => {
-          return pipelineVersionIdFromParams ? pipelineVersionIdFromParams : '';
-        },
-      )
-      .newPipelineVersion('Upload version', () =>
-        pipelineIdFromParams ? pipelineIdFromParams : '',
-      );
 
     if (origin) {
+      const getOriginIdList = () => [origin.isRecurring ? origin.recurringRunId! : origin.runId!];
+      origin.isRecurring
+        ? buttons.cloneRecurringRun(getOriginIdList, true)
+        : buttons.cloneRun(getOriginIdList, true);
+
       return {
         actions: buttons.getToolbarActionMap(),
         breadcrumbs: [
@@ -136,6 +129,17 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     } else {
       // Add buttons for creating experiment and deleting pipeline version
       buttons
+        .newRunFromPipelineVersion(
+          () => {
+            return pipelineIdFromParams ? pipelineIdFromParams : '';
+          },
+          () => {
+            return pipelineVersionIdFromParams ? pipelineVersionIdFromParams : '';
+          },
+        )
+        .newPipelineVersion('Upload version', () =>
+          pipelineIdFromParams ? pipelineIdFromParams : '',
+        )
         .newExperiment(() =>
           this.state.v1Pipeline
             ? this.state.v1Pipeline.id!
