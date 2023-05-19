@@ -596,11 +596,9 @@ describe('PipelineDetails', () => {
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     /* create run and create pipeline version, so 2 */
-    expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(2);
-    const newRunBtn = instance.getInitialToolbarState().actions[
-      (ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION, ButtonKeys.NEW_PIPELINE_VERSION)
-    ];
-    expect(newRunBtn).toBeDefined();
+    expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(1);
+    const cloneRunBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
+    expect(cloneRunBtn).toBeDefined();
   });
 
   it(
@@ -610,13 +608,11 @@ describe('PipelineDetails', () => {
       tree = shallow(<PipelineDetails {...generateProps(true)} />);
       await TestUtils.flushPromises();
       const instance = tree.instance() as PipelineDetails;
-      const newRunBtn = instance.getInitialToolbarState().actions[
-        ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-      ];
-      newRunBtn!.action();
+      const cloneRunBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
+      cloneRunBtn!.action();
       expect(historyPushSpy).toHaveBeenCalledTimes(1);
       expect(historyPushSpy).toHaveBeenLastCalledWith(
-        RoutePage.NEW_RUN + `?${QUERY_PARAMS.fromRunId}=${testV1Run.run!.id}`,
+        RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testV1Run.run!.id}`,
       );
     },
   );
