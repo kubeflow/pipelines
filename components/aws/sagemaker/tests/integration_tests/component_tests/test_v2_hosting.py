@@ -4,6 +4,8 @@ import utils
 from utils import kfp_client_utils
 from utils import ack_utils
 from utils import sagemaker_utils
+from utils import minio_utils
+
 import json
 
 
@@ -23,7 +25,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         utils.replace_placeholders(
             os.path.join(test_file_dir, "config.yaml"),
             os.path.join(download_dir, "config.yaml"),
-            shallow_canary=True
+            shallow_canary=True,
         )
     )
     k8s_client = ack_utils.k8s_client()
@@ -50,7 +52,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         ] = input_model_name
 
     try:
-        _, _, _ = kfp_client_utils.compile_run_monitor_pipeline(
+        _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
             kfp_client,
             experiment_id,
             test_params["PipelineDefinition"],
@@ -64,7 +66,65 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
             k8s_client, input_endpoint_name, "endpoints"
         )
 
-        endpoint_describe["status"]["endpointStatus"] == "InService"
+        outputs = {
+            "sagemaker-endpoint": [
+                "endpoint_status",
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
+            ],
+            "sagemaker-endpointconfig": [
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
+            ],
+            "sagemaker-model": [
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
+            ]
+        }
+
+        DESIRED_COMPONENT_STATUS = "InService"
+
+        # Get output data
+        output_files = minio_utils.artifact_download_iterator(
+            workflow_json, outputs, download_dir
+        )
+
+        output_endpoint_status = utils.read_from_file_in_tar(
+            output_files["sagemaker-endpoint"]["endpoint_status"]
+        )
+
+        output_ack_resource_metadata_endpoint = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-endpoint"
+        )
+
+        output_ack_resource_metadata_endpoint_config = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-endpointconfig"
+        )
+
+        output_ack_resource_metadata_model = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-model"
+        )
+
+        output_endpoint_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-endpoint"]["sagemaker_resource_name"]
+        )
+
+        output_endpoint_config_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-endpointconfig"]["sagemaker_resource_name"]
+        )
+
+        output_model_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-model"]["sagemaker_resource_name"]
+        )
+
+        assert (
+            endpoint_describe["status"]["endpointStatus"]
+            == output_endpoint_status
+            == DESIRED_COMPONENT_STATUS
+        )
+        assert output_endpoint_name in output_ack_resource_metadata_endpoint["arn"]
+        assert output_endpoint_config_name in output_ack_resource_metadata_endpoint_config["arn"]
+        assert output_model_name in output_ack_resource_metadata_model["arn"]
 
         # Verify that the update was successful by checking that the endpoint config name is the same as the second one.
         if "ExpectedEndpointConfig" in test_params.keys():
