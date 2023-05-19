@@ -340,18 +340,18 @@ def model_batch_predict(
               '"',
               ', "key_field": "',
               key_field,
-              '", ',
+              '" ',
               IfPresentPlaceholder(
                   input_name='included_fields',
                   then=ConcatPlaceholder([
-                      '"included_fields": ',
+                      ', "included_fields": ',
                       included_fields,
                   ]),
               ),
               IfPresentPlaceholder(
                   input_name='excluded_fields',
                   then=ConcatPlaceholder([
-                      '"excluded_fields": ',
+                      ', "excluded_fields": ',
                       excluded_fields,
                   ]),
               ),
