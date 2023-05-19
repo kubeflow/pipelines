@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-GCPC_IMAGE_NAME = 'gcr.io/ml-pipeline/google-cloud-pipeline-components'
+from google_cloud_pipeline_components import version
 
-# TODO: consider deriving from __version__, but for now decouple to enable
-# bumping the version but testing on a previous image tag
-GCPC_IMAGE_TAG = f'{GCPC_IMAGE_NAME}:2.0.0b3'
+GCPC_IMAGE_NAME = 'gcr.io/ml-pipeline/google-cloud-pipeline-components'
+GCPC_IMAGE_TAG = f'{GCPC_IMAGE_NAME}:{version.__version__}'
