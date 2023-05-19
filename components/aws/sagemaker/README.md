@@ -16,7 +16,7 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
 
 > **_Note:_**  We encourage users to utilize Version 2 of a SageMaker component wherever it is available. You can find the version of an AWS SageMaker Components in the docker image tag used in the component specification file *component.yaml*.
 
-<details><summary>Ground Truth components</summary>
+<details><summary><b>Ground Truth components</b></summary>
 <p>
 
 * **Ground Truth**
@@ -32,7 +32,7 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
   | [SageMaker create private workteam Kubeflow Pipelines component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/workteam) | X     |
 
 </p></details>
-<details><summary>Data processing components</summary>
+<details><summary><b>Data processing components</b></summary>
 <p>
 
 * **Processing**
@@ -43,7 +43,7 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
 
 </p></details>
 
-<details><summary>Training components</summary>
+<details><summary><b>Training components</b></summary>
 <p>
 
 * **Training**
@@ -66,7 +66,7 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
 
 </p></details>
 
-<details><summary>Inference components</summary>
+<details><summary><b>Inference components</b></summary>
 <p>
 
 * **Hosting Deploy**
@@ -123,7 +123,7 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
   </table>
 
 </p></details>
-<details><summary>RoboMaker components</summary>
+<details><summary><b>RoboMaker components</b></summary>
 <p>
 
 * **Create Simulation Application**
