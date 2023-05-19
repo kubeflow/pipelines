@@ -6,13 +6,19 @@ With Amazon SageMaker Components for Kubeflow Pipelines (KFP), you can create an
 ## Components
 Amazon SageMaker Components for Kubeflow Pipelines offer an alternative to launching compute-intensive jobs in Kubernetes and integrate the orchestration benefits of Kubeflow Pipelines. The following Amazon SageMaker components have been created to integrate key SageMaker features into your ML workflows from preparing data, to building, training, and deploying ML models. You can create a Kubeflow Pipeline built entirely using these components, or integrate individual components into your workflow as needed. The components are available in one or two versions. Each version of a component leverages a different backend. For more information on those versions, see [SageMaker Components for Kubeflow Pipelines versions](https://docs.aws.amazon.com/sagemaker/latest/dg/kubernetes-sagemaker-components-for-kubeflow-pipelines.html#sagemaker-components-versions). 
 
+> **_Note:_**  We encourage users to utilize Version 2 of a SageMaker component wherever it is available. You can find the version of an AWS SageMaker Components in the docker image tag used in the component specification file *component.yaml*.
+
 For an end-to-end tutorial using these components, see [Using Amazon SageMaker Components](https://docs.aws.amazon.com/sagemaker/latest/dg/kubernetes-sagemaker-components-tutorials.html).
 
 For more example pipelines, see [Sample AWS SageMaker Kubeflow Pipelines](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples).
 
 There is no additional charge for using Amazon SageMaker Components for Kubeflow Pipelines. You incur charges for any Amazon SageMaker resources you use through these components.
 
-### Ground Truth components
+## List of Components
+
+<details><summary>Ground Truth components</summary>
+<p>
+
 * **Ground Truth**
   The Ground Truth component enables you to submit SageMaker Ground Truth labeling jobs directly from a Kubeflow Pipelines workflow. 
   | Version 1 of the component    | Version 2 of the component |
@@ -25,14 +31,21 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
   | ----------- | ----------- |
   | [SageMaker create private workteam Kubeflow Pipelines component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/workteam) | X     |
 
-### Data processing components
+</p></details>
+<details><summary>Data processing components</summary>
+<p>
+
 * **Processing**
   The Processing component enables you to submit processing jobs to Amazon SageMaker directly from a Kubeflow Pipelines workflow. 
   | Version 1 of the component    | Version 2 of the component |
   | ----------- | ----------- |
   | [SageMaker Processing Kubeflow Pipeline component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/process) | X     |
 
-### Training components
+</p></details>
+
+<details><summary>Training components</summary>
+<p>
+
 * **Training**
   The Training component allows you to submit Amazon SageMaker Training jobs directly from a Kubeflow Pipelines workflow. 
   | Version 1 of the component    | Version 2 of the component |
@@ -51,7 +64,11 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
   | ----------- | ----------- |
   | [SageMaker RLEstimator Kubeflow Pipelines component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/rlestimator) | X     |
 
-### Inference components
+</p></details>
+
+<details><summary>Inference components</summary>
+<p>
+
 * **Hosting Deploy**
   The Hosting components allow you to deploy a model using SageMaker hosting services from a Kubeflow Pipelines workflow.
   <table>
@@ -105,7 +122,9 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
     </tbody>
   </table>
 
-### RoboMaker components
+</p></details>
+<details><summary>RoboMaker components</summary>
+<p>
 
 * **Create Simulation Application**
   The Create Simulation Application component allows you to create a RoboMaker Simulation Application directly from a Kubeflow Pipelines workflow. 
@@ -130,3 +149,5 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
   | Version 1 of the component    | Version 2 of the component |
   | ----------- | ----------- |
   | [RoboMaker Delete Simulation app Kubeflow Pipelines component version 1](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/delete_simulation_app)|  X  |
+
+</p></details>
