@@ -6,15 +6,15 @@ With Amazon SageMaker Components for Kubeflow Pipelines (KFP), you can create an
 ## Components
 Amazon SageMaker Components for Kubeflow Pipelines offer an alternative to launching compute-intensive jobs in Kubernetes and integrate the orchestration benefits of Kubeflow Pipelines. The following Amazon SageMaker components have been created to integrate key SageMaker features into your ML workflows from preparing data, to building, training, and deploying ML models. You can create a Kubeflow Pipeline built entirely using these components, or integrate individual components into your workflow as needed. The components are available in one or two versions. Each version of a component leverages a different backend. For more information on those versions, see [SageMaker Components for Kubeflow Pipelines versions](https://docs.aws.amazon.com/sagemaker/latest/dg/kubernetes-sagemaker-components-for-kubeflow-pipelines.html#sagemaker-components-versions). 
 
-> **_Note:_**  We encourage users to utilize Version 2 of a SageMaker component wherever it is available. You can find the version of an AWS SageMaker Components in the docker image tag used in the component specification file *component.yaml*.
-
 For an end-to-end tutorial using these components, see [Using Amazon SageMaker Components](https://docs.aws.amazon.com/sagemaker/latest/dg/kubernetes-sagemaker-components-tutorials.html).
 
 For more example pipelines, see [Sample AWS SageMaker Kubeflow Pipelines](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples).
 
 There is no additional charge for using Amazon SageMaker Components for Kubeflow Pipelines. You incur charges for any Amazon SageMaker resources you use through these components.
 
-## List of Components
+### List of Components
+
+> **_Note:_**  We encourage users to utilize Version 2 of a SageMaker component wherever it is available. You can find the version of an AWS SageMaker Components in the docker image tag used in the component specification file *component.yaml*.
 
 <details><summary>Ground Truth components</summary>
 <p>
