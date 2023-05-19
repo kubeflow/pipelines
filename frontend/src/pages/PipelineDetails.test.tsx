@@ -590,7 +590,7 @@ describe('PipelineDetails', () => {
     expect(newExperimentBtn).toBeDefined();
   });
 
-  it("has 'create run' toolbar button if viewing an embedded pipeline", async () => {
+  it("has 'clone run' toolbar button if viewing an embedded pipeline", async () => {
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getPipelineVersionTemplateSpy;
     await TestUtils.flushPromises();
@@ -602,8 +602,8 @@ describe('PipelineDetails', () => {
   });
 
   it(
-    'clicking new run button when viewing embedded pipeline navigates to ' +
-      'the new run page with run ID',
+    'clicking clone run button when viewing embedded pipeline navigates to ' +
+      'the new run page (clone a run) with run ID',
     async () => {
       tree = shallow(<PipelineDetails {...generateProps(true)} />);
       await TestUtils.flushPromises();
