@@ -15,8 +15,11 @@
 package template
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -28,6 +31,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"google.golang.org/protobuf/encoding/protojson"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -58,11 +62,32 @@ func inferTemplateFormat(template []byte) TemplateType {
 		return Unknown
 	case isArgoWorkflow(template):
 		return V1
-	case isPipelineSpec(template):
+	case isV2Spec(template):
 		return V2
 	default:
 		return Unknown
 	}
+}
+
+// isV2Spec returns whether template contains api/v2alpha1/PipelineSpec format.
+func isV2Spec(template []byte) bool {
+	decoder := goyaml.NewDecoder(bytes.NewReader(template))
+	for {
+		var value map[string]interface{}
+
+		err := decoder.Decode(&value)
+		// Break at end of file
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if value == nil {
+			continue
+		}
+		if isPipelineSpec(value) {
+			return true
+		}
+	}
+	return false
 }
 
 // isArgoWorkflow returns whether template is in argo workflow spec format.
@@ -76,13 +101,13 @@ func isArgoWorkflow(template []byte) bool {
 }
 
 // isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
-func isPipelineSpec(template []byte) bool {
-	var spec pipelinespec.PipelineSpec
-	templateJson, err := yaml.YAMLToJSON(template)
+func isPipelineSpec(value map[string]interface{}) bool {
+	jsonData, err := json.Marshal(value)
 	if err != nil {
 		return false
 	}
-	err = protojson.Unmarshal(templateJson, &spec)
+	var spec pipelinespec.PipelineSpec
+	err = protojson.Unmarshal(jsonData, &spec)
 	return err == nil && spec.GetPipelineInfo().GetName() != "" && spec.GetRoot() != nil
 }
 
@@ -109,11 +134,6 @@ type Template interface {
 type RunWorkflowOptions struct {
 	RunId string
 	RunAt int64
-}
-
-func NewFromString(s string) (Template, error) {
-	bytes := []byte(s)
-	return New(bytes)
 }
 
 func New(bytes []byte) (Template, error) {

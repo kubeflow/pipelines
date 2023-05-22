@@ -16,7 +16,10 @@ package template
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -27,7 +30,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
-	goyaml "gopkg.in/yaml.v2"
+	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -125,29 +128,37 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 }
 
 func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
-	var spec pipelinespec.PipelineSpec
 	var v2Spec V2Spec
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
+
+		err := decoder.Decode(&value)
 		// Break at end of file
-		if decoder.Decode(&value) != nil {
+		if errors.Is(err, io.EOF) {
 			break
 		}
-		valueBytes, err := goyaml.Marshal(value)
+		if value == nil {
+			continue
+		}
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to decode yaml document: %s", err.Error()))
+		}
+		valueBytes, err := goyaml.Marshal(&value)
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to marshal this yaml document: %s", err.Error()))
 		}
-		if isPipelineSpec(valueBytes) {
+		if isPipelineSpec(value) {
 			// Pick out the yaml document with pipeline spec
 			if v2Spec.spec != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "multiple pipeline specs provided")
 			}
-			pipelineSpecJson, err := yaml.YAMLToJSON(valueBytes)
+			jsonData, err := json.Marshal(value)
 			if err != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
 			}
-			err = protojson.Unmarshal(pipelineSpecJson, &spec)
+			var spec pipelinespec.PipelineSpec
+			err = protojson.Unmarshal(jsonData, &spec)
 			if err != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
 			}
