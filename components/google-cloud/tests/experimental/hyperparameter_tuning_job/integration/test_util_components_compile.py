@@ -13,23 +13,17 @@
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure the compile without error."""
 
-import json
 import os
-import re
-from typing import Any, Dict
 
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import GetBestHyperparametersOp
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import GetBestTrialOp
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import GetHyperparametersOp
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import GetTrialsOp
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import GetWorkerPoolSpecsOp
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import IsMetricBeyondThresholdOp
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import serialize_metrics
+from google_cloud_pipeline_components.tests.v1 import utils
 import kfp
-import yaml
-from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import (
-    GetBestHyperparametersOp,
-    GetBestTrialOp,
-    GetHyperparametersOp,
-    GetTrialsOp,
-    GetWorkerPoolSpecsOp,
-    IsMetricBeyondThresholdOp,
-    serialize_metrics,
-)
-from kfp import compiler
 
 import unittest
 
@@ -89,17 +83,33 @@ class UtilComponentsCompileTest(unittest.TestCase):
     def pipeline():
       _ = GetTrialsOp(gcp_resources=self._gcp_resources)
 
-    self._test_compilation(pipeline, "../testdata/get_trials_op_pipeline.json")
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "testdata",
+            "get_trials_op_pipeline.json",
+        ),
+    )
 
   def test_get_best_trial_op_compile(self):
+    print("TEST TEST TEST")
+    print(GetBestTrialOp.pipeline_spec)
     @kfp.dsl.pipeline(name="get-best-trial-op-test")
     def pipeline():
       _ = GetBestTrialOp(
           trials=[self._trial], study_spec_metrics=self._metrics_spec
       )
 
-    self._test_compilation(
-        pipeline, "../testdata/get_best_trial_op_pipeline.json"
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "testdata",
+            "get_best_trial_op_pipeline.json",
+        ),
     )
 
   def test_get_best_hyperparameters_op_compile(self):
@@ -109,17 +119,28 @@ class UtilComponentsCompileTest(unittest.TestCase):
           trials=[self._trial], study_spec_metrics=self._metrics_spec
       )
 
-    self._test_compilation(
-        pipeline, "../testdata/get_best_hyperparameters_op_pipeline.json"
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "testdata",
+            "get_best_hyperparameters_op_pipeline.json",
+        ),
     )
 
   def test_get_hyperparameters_op_compile(self):
     @kfp.dsl.pipeline(name="get-hyperparameters-op-test")
     def pipeline():
       _ = GetHyperparametersOp(trial=self._trial)
-
-    self._test_compilation(
-        pipeline, "../testdata/get_hyperparameters_op_pipeline.json"
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "testdata",
+            "get_hyperparameters_op_pipeline.json",
+        ),
     )
 
   def test_get_worker_pool_specs_op_compile(self):
@@ -129,9 +150,14 @@ class UtilComponentsCompileTest(unittest.TestCase):
           best_hyperparameters=self._best_hp,
           worker_pool_specs=self._worker_pool_specs,
       )
-
-    self._test_compilation(
-        pipeline, "../testdata/get_worker_pool_specs_op_pipeline.json"
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "testdata",
+            "get_worker_pool_specs_op_pipeline.json",
+        ),
     )
 
   def test_is_metric_beyond_threshold_op_compile(self):
@@ -142,44 +168,12 @@ class UtilComponentsCompileTest(unittest.TestCase):
           study_spec_metrics=self._metrics_spec,
           threshold=0.5,
       )
-
-    self._test_compilation(
-        pipeline, "../testdata/is_metric_beyond_threshold_pipeline.json"
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
+        os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "testdata",
+            "is_metric_beyond_threshold_pipeline.json",
+        ),
     )
-
-  def _test_compilation(self, pipeline_func: object, test_json_path: str):
-    compiler.Compiler().compile(
-        pipeline_func=pipeline_func, package_path=self._package_path
-    )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open(os.path.join(os.path.dirname(__file__), test_json_path)) as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["sdkVersion"]
-    del executor_output_json["schemaVersion"]
-    executor_output_json = ignore_kfp_version_helper(executor_output_json)
-    expected_executor_output_json = ignore_kfp_version_helper(
-        expected_executor_output_json
-    )
-    self.assertEqual(executor_output_json, expected_executor_output_json)
-
-
-def ignore_kfp_version_helper(pipeline_spec: Dict[str, Any]) -> Dict[str, Any]:
-  """Strips the KFP SDK pip install version number injected at compile time for lightweight Python components."""
-  if "executors" in pipeline_spec["deploymentSpec"]:
-    for executor in pipeline_spec["deploymentSpec"]["executors"]:
-      pipeline_spec["deploymentSpec"]["executors"][executor] = yaml.safe_load(
-          re.sub(
-              r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'",
-              "kfp",
-              yaml.dump(
-                  pipeline_spec["deploymentSpec"]["executors"][executor],
-                  sort_keys=True,
-              ),
-          )
-      )
-  return pipeline_spec

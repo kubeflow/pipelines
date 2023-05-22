@@ -13,19 +13,16 @@
 # limitations under the License.
 """Test google-cloud-pipeline-Components to ensure the compile without error."""
 
-import json
 import os
 
+from google.cloud.aiplatform import hyperparameter_tuning as hpt
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import HyperparameterTuningJobRunOp
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import serialize_metrics
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import serialize_parameters
+from google_cloud_pipeline_components.tests.v1 import utils
 import kfp
-from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import (
-    HyperparameterTuningJobRunOp,
-    serialize_metrics,
-    serialize_parameters,
-)
-from kfp import compiler
 
 import unittest
-from google.cloud.aiplatform import hyperparameter_tuning as hpt
 
 
 class HPTuningJobCompileTest(unittest.TestCase):
@@ -72,23 +69,11 @@ class HPTuningJobCompileTest(unittest.TestCase):
           parallel_trial_count=3,
           base_output_directory=self._base_output_directory,
       )
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path
-    )
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-
-    with open(
+    utils.assert_pipeline_equals_golden(
+        self,
+        pipeline,
         os.path.join(
             os.path.dirname(__file__),
             "../testdata/hyperparameter_tuning_job_pipeline.json",
-        )
-    ) as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["sdkVersion"]
-    del executor_output_json["schemaVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
+        ),
+    )
