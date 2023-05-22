@@ -14,14 +14,14 @@
 """Test Hyperparameter Tuning Job module."""
 
 
-from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import (
-    serialize_metrics, serialize_parameters)
+from google.cloud.aiplatform import hyperparameter_tuning as hpt
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import serialize_metrics
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job import serialize_parameters
 
 import unittest
-from google.cloud.aiplatform import hyperparameter_tuning as hpt
 
 
-class HyperparameterTuningJobTest(unittest.TestCase):
+class UtilityFunctionsTests(unittest.TestCase):
 
   def test_serialize_parameters(self):
     parameters = {
