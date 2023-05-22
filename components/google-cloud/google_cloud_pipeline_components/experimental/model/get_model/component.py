@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -44,7 +45,7 @@ def get_vertex_model(
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

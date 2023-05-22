@@ -42,6 +42,8 @@ const (
 	argoGroup       = "argoproj.io/"
 	argoVersion     = "argoproj.io/v1alpha1"
 	argoK8sResource = "Workflow"
+
+	SCHEMA_VERSION_2_1_0 = "2.1.0"
 )
 
 var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")

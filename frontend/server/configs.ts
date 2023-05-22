@@ -92,6 +92,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_PREFIX = 'logs',
     /** Should use server API for log streaming? */
     STREAM_LOGS_FROM_SERVER_API = 'false',
+    /** The main container name of a pod where logs are retrieved */
+    POD_LOG_CONTAINER_NAME = 'main',
     /** Disables GKE metadata endpoint. */
     DISABLE_GKE_METADATA = 'false',
     /** Enable authorization checks for multi user mode. */
@@ -123,6 +125,9 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       archiveBucketName: ARGO_ARCHIVE_BUCKETNAME,
       archiveLogs: asBool(ARGO_ARCHIVE_LOGS),
       archivePrefix: ARGO_ARCHIVE_PREFIX,
+    },
+    pod: {
+      logContainerName: POD_LOG_CONTAINER_NAME,
     },
     artifacts: {
       aws: {
@@ -269,6 +274,9 @@ export interface UIConfigs {
     http: HttpConfigs;
     proxy: ArtifactsProxyConfig;
     streamLogsFromServerApi: boolean;
+  };
+  pod: {
+    logContainerName: string;
   };
   argo: ArgoConfigs;
   metadata: MetadataConfigs;

@@ -25,7 +25,7 @@ def comp():
 def my_pipeline():
     pvc1 = kubernetes.CreatePVC(
         pvc_name='static-pvc-name',
-        access_modes=['ReadWriteMany'],
+        access_modes=['ReadWriteOnce'],
         size='5Gi',
         storage_class_name='standard',
     )

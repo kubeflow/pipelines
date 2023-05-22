@@ -74,26 +74,6 @@ class ComponentsCompileTest(unittest.TestCase):
         ),
     )
 
-    # compiler.Compiler().compile(
-    #     pipeline_func=pipeline, package_path=self._package_path
-    # )
-
-    # with open(self._package_path) as f:
-    #   executor_output_yaml = yaml.safe_load(f)
-    # with open(
-    #     os.path.join(
-    #         os.path.dirname(__file__),
-    #         "..",
-    #         "testdata",
-    #         "create_endpoint_pipeline.yaml",
-    #     )
-    # ) as ef:
-    #   expected_executor_output_yaml = yaml.safe_load(ef)
-    # # Ignore the kfp SDK & schema version during comparison
-    # del executor_output_yaml["sdkVersion"]
-    # del executor_output_yaml["schemaVersion"]
-    # self.assertEqual(executor_output_yaml, expected_executor_output_yaml)
-
   def test_model_deploy_op_compile(self):
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():

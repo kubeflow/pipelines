@@ -299,6 +299,17 @@ func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
 
+func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
+	template := loadYaml(t, "testdata/hello_world_schema_2_0_0.yaml")
+	expectedSpecJson, _ := yaml.YAMLToJSON([]byte(template))
+	var expectedSpec pipelinespec.PipelineSpec
+	err := protojson.Unmarshal(expectedSpecJson, &expectedSpec)
+	assert.Nil(t, err)
+	_, err = New([]byte(template))
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "KFP only supports schema version 2.1.0")
+}
+
 // Verify that the V2Spec object created from Bytes() method is the same as the original object.
 // The byte slice may be slightly different from the original input during the conversion,
 // so we verify the parsed object.

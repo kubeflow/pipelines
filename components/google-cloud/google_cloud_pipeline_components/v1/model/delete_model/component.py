@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
 from kfp.dsl import Input
@@ -34,7 +35,7 @@ def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

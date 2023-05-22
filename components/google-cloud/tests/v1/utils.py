@@ -14,8 +14,10 @@
 """Utilities for testing."""
 import copy
 import json
-from typing import Any, Optional, Set
+import re
+from typing import Any, Dict, Optional, Set
 
+from google_cloud_pipeline_components import _image
 from kfp import components
 import yaml
 
@@ -47,8 +49,6 @@ def assert_pipeline_equals_golden(
   actual_pipeline_spec_dict = json_format.MessageToDict(
       compilable.pipeline_spec
   )
-  expected_pipeline_spec_dict['sdkVersion'] = 'bye'
-  actual_pipeline_spec_dict['sdkVersion'] = 'hi'
   ignore_fields = {'sdkVersion'}
   compare_pipeline_spec_dicts(
       test_case,
@@ -56,6 +56,17 @@ def assert_pipeline_equals_golden(
       expected_pipeline_spec_dict,
       comparison_file,
       ignore_fields,
+  )
+
+
+def _actual_and_expected_images_have_same_name(
+    actual: Any, expected: Any
+) -> bool:
+  return (
+      isinstance(actual, str)
+      and isinstance(expected, str)
+      and actual.startswith(_image.GCPC_IMAGE_NAME)
+      and expected.startswith(_image.GCPC_IMAGE_NAME)
   )
 
 
@@ -137,12 +148,36 @@ def compare_pipeline_spec_dicts(
       for i in range(len(actual)):
         compare_json_dicts(test_case, actual[i], expected[i])
     else:
-      if actual != expected:
+      if actual != expected and not _actual_and_expected_images_have_same_name(
+          actual, expected
+      ):
         print(make_copypaste_message(original_actual, is_json))
-      test_case.assertEqual(
-          actual,
-          expected,
-          f'Values do not match: {actual} != {expected}',
-      )
+        test_case.assertEqual(
+            actual,
+            expected,
+            f'Values do not match: {actual} != {expected}',
+        )
+  actual_with_stripped_kfp_version = _ignore_kfp_version_helper(actual)
+  expected_with_stripped_kfp_version = _ignore_kfp_version_helper(expected)
+  compare_json_dicts(
+      test_case,
+      actual_with_stripped_kfp_version,
+      expected_with_stripped_kfp_version,
+  )
 
-  compare_json_dicts(test_case, actual, expected)
+
+def _ignore_kfp_version_helper(pipeline_spec: Dict[str, Any]) -> Dict[str, Any]:
+  """Strips the KFP SDK pip install version number injected at compile time for lightweight Python components."""
+  if 'executors' in pipeline_spec['deploymentSpec']:
+    for executor in pipeline_spec['deploymentSpec']['executors']:
+      pipeline_spec['deploymentSpec']['executors'][executor] = yaml.safe_load(
+          re.sub(
+              r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'",
+              'kfp',
+              yaml.dump(
+                  pipeline_spec['deploymentSpec']['executors'][executor],
+                  sort_keys=True,
+              ),
+          )
+      )
+  return pipeline_spec

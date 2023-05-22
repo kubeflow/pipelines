@@ -35,6 +35,13 @@ class TestPipelineServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_create_pipeline_and_version(self):
+        """Test case for create_pipeline_and_version
+
+        Creates a new pipeline and a new pipeline version in a single transaction.  # noqa: E501
+        """
+        pass
+
     def test_create_pipeline_version(self):
         """Test case for create_pipeline_version
 

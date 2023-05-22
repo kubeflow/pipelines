@@ -32,7 +32,7 @@ def my_pipeline():
 
     pvc1 = kubernetes.CreatePVC(
         pvc_name=name_task.output,
-        access_modes=['ReadWriteMany'],
+        access_modes=['ReadWriteOnce'],
         size='5Gi',
         storage_class_name='standard',
     )
