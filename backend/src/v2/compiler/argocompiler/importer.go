@@ -19,7 +19,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/util"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -73,13 +73,13 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		"--run_id", runID(),
 		"--parent_dag_id", inputValue(paramParentDagID),
 		"--pod_name",
-		fmt.Sprintf("$(%s)", component.EnvPodName),
+		fmt.Sprintf("$(%s)", util.EnvPodName),
 		"--pod_uid",
-		fmt.Sprintf("$(%s)", component.EnvPodUID),
+		fmt.Sprintf("$(%s)", util.EnvPodUID),
 		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
+		fmt.Sprintf("$(%s)", util.EnvMetadataHost),
 		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		fmt.Sprintf("$(%s)", util.EnvMetadataPort),
 	}
 	importerTemplate := &wfapi.Template{
 		Name: name,

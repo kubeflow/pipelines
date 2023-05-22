@@ -3,13 +3,17 @@ package component
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/util"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -127,6 +131,9 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	if _, err := l.metadataClient.PrePublishExecution(ctx, createdExecution, ecfg); err != nil {
+		return fmt.Errorf("failed to prepublish importer to MLMD: %w", err)
+	}
 	artifact, err := l.findOrNewArtifactToImport(ctx, createdExecution)
 	if err != nil {
 		return err
@@ -232,13 +239,12 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		Properties:       make(map[string]*pb.Value),
 		CustomProperties: make(map[string]*pb.Value),
 	}
+
 	if l.importer.Metadata != nil {
-		for k, v := range l.importer.Metadata.Fields {
-			value, err := metadata.StructValueToMLMDValue(v)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert structValue : %w", err)
-			}
-			artifact.CustomProperties[k] = value
+		if customProperties, err := l.generateMetadata(ctx); err != nil {
+			return nil, fmt.Errorf("failed to generate artifact metadata : %w", err)
+		} else {
+			artifact.CustomProperties = customProperties
 		}
 	}
 	return artifact, nil
@@ -254,4 +260,61 @@ func (l *ImportLauncher) getOutPutArtifactName() (string, error) {
 	}
 	return outPutNames[0], nil
 
+}
+
+func (l *ImportLauncher) generateMetadata(ctx context.Context) (map[string]*pb.Value, error) {
+	if l.importer.Metadata == nil {
+		return nil, nil
+	}
+
+	// resolve inputs
+	dag, err := l.metadataClient.GetDAG(ctx, l.importerLauncherOptions.ParentDagID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting dag info: %w", err)
+	}
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.importerLauncherOptions.PipelineName, l.importerLauncherOptions.RunID, "", "", "")
+	if err != nil {
+		return nil, err
+	}
+	expr, err := expression.New()
+	if err != nil {
+		return nil, err
+	}
+
+	inputs, err := util.ResolveInputs(ctx, dag, nil, pipeline, l.task, l.component.GetInputDefinitions(), l.metadataClient, expr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve inputs: %w", err)
+	}
+
+	// replace placeholders
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: inputs,
+	}
+	placeholders, err := getPlaceholders(executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create placeholder: %w", err)
+	}
+	metadataJSON, err := l.importer.Metadata.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal metadata: %w", err)
+	}
+	replacedJSON := string(metadataJSON)
+	for placeholder, replacement := range placeholders {
+		replacedJSON = strings.ReplaceAll(replacedJSON, placeholder, replacement)
+	}
+	newMetadata, _ := structpb.NewStruct(nil)
+	err = newMetadata.UnmarshalJSON([]byte(replacedJSON))
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal metadata after replacing placeholders: %w", err)
+	}
+
+	customProperties := make(map[string]*pb.Value)
+	for k, v := range newMetadata.Fields {
+		value, err := metadata.StructValueToMLMDValue(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert structValue : %w", err)
+		}
+		customProperties[k] = value
+	}
+	return customProperties, nil
 }

@@ -245,6 +245,10 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			if err != nil {
 				return nil, err
 			}
+			// iterations belong to a sub-DAG, no need to add dependent tasks
+			if inputs.iterationIndex == "" {
+				importer.Depends = depends(task.GetDependentTasks())
+			}
 			return []wfapi.DAGTask{*importer}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Resolver:
 			return nil, fmt.Errorf("resolver executors not implemented")

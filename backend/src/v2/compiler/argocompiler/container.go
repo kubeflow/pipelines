@@ -17,7 +17,7 @@ package argocompiler
 import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/util"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -227,10 +227,10 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   c.launcherImage,
-				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
+				Command: []string{"launcher-v2", "--copy", util.KFPLauncherPath},
 				VolumeMounts: []k8score.VolumeMount{{
 					Name:      volumeNameKFPLauncher,
-					MountPath: component.VolumePathKFPLauncher,
+					MountPath: util.VolumePathKFPLauncher,
 				}},
 				Resources: launcherResources,
 			},
@@ -246,7 +246,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 			Command: []string{"should-be-overridden-during-runtime"},
 			VolumeMounts: []k8score.VolumeMount{{
 				Name:      volumeNameKFPLauncher,
-				MountPath: component.VolumePathKFPLauncher,
+				MountPath: util.VolumePathKFPLauncher,
 			}},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
 			Env:     commonEnvs,
