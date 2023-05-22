@@ -67,7 +67,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kubectl apply -k .
   popd
 else
-  KFP_LATEST_RELEASE=$(git tag --sort=v:refname | tail -1)
+  KFP_LATEST_RELEASE=$(git tag --sort=v:refname | grep -v "sdk-" | tail -1)
   echo "Deploying KFP release $KFP_LATEST_RELEASE"
 
   # temporarily checkout last release tag
