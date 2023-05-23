@@ -25,7 +25,7 @@ func TestIsPodSucceeded(t *testing.T) {
 	runningPod.Status.Phase = "Running"
 	podIncomplete := isPodSucceeded(fakePod)
 	assert.False(t, podIncomplete)
-	// Assign pod as succeeded
+	// Assign pod as succeeded.
 	completedPod := *fakePod.DeepCopy()
 	completedPod.Status.Phase = "Succeeded"
 	podComplete := isPodSucceeded(&completedPod)
@@ -35,7 +35,7 @@ func TestIsPodSucceeded(t *testing.T) {
 func TestIsCacheWritten(t *testing.T) {
 	cacheNotWritten := isCacheWriten(fakePod.ObjectMeta.Labels)
 	assert.False(t, cacheNotWritten)
-	// Mutate pod with a cache
+	// Mutate pod with a cache.
 	mutatedPod := *fakePod.DeepCopy()
 	mutatedPod.ObjectMeta.Labels[CacheIDLabelKey] = "1234"
 	cacheWritten := isCacheWriten(mutatedPod.ObjectMeta.Labels)
