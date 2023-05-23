@@ -2,7 +2,7 @@
 # proto-message: GalleryMetadata
 
 upload_template_request {
-  tags: "__GCPC_VERSION__"
+  tags: "2.0.0b3"
   vertex_template_gallery_metadata {
     launch_stage: "GA"
     vertex_gallery_categorization {
@@ -20,4 +20,4 @@ upload_template_request {
 component_info {
   component_type: "gcpc-serverless-custom-job-launcher"
 }
-pipeline_func: "google_cloud_pipeline_components.google_cloud_pipeline_components.v1.custom_job.component.custom_training_job"
+pipeline_func: "google_cloud_pipeline_components.v1.custom_job.CustomTrainingJobOp"
