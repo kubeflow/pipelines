@@ -228,7 +228,7 @@ class Executor():
                 accepted_types = (int, float)
             # TODO: relax str-typed return to allow all primitive types?
             else:
-                accepted_types = (origin_type)
+                accepted_types = origin_type
             if not isinstance(return_value, accepted_types):
                 raise ValueError(
                     f'Function `{self._func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
