@@ -36,7 +36,7 @@ import AllExperimentsAndArchive, {
 import AllRecurringRunsList from 'src/pages/AllRecurringRunsList';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from 'src/pages/AllRunsAndArchive';
 import ArtifactDetails from 'src/pages/ArtifactDetails';
-import ArtifactList from 'src/pages/ArtifactList';
+import ArtifactListSwitcher from 'src/pages/ArtifactListSwitcher';
 import ExecutionDetails from 'src/pages/ExecutionDetails';
 import ExecutionListSwitcher from 'src/pages/ExecutionListSwitcher';
 import ExperimentDetails from 'src/pages/ExperimentDetails';
@@ -182,7 +182,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       path: RoutePage.ARCHIVED_EXPERIMENTS,
       view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
-    { path: RoutePage.ARTIFACTS, Component: ArtifactList },
+    { path: RoutePage.ARTIFACTS, Component: ArtifactListSwitcher },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
     { path: RoutePage.EXECUTIONS, Component: ExecutionListSwitcher },
     { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },

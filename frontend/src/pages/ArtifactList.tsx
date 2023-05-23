@@ -48,6 +48,10 @@ import {
 } from 'src/lib/Utils';
 import { Page } from 'src/pages/Page';
 
+interface ArtifactListProps {
+  isGroupView: boolean;
+}
+
 interface ArtifactListState {
   artifacts: Artifact[];
   rows: Row[];
@@ -62,7 +66,7 @@ const NAME_FIELDS = [
   getStringEnumKey(ArtifactCustomProperties, ArtifactCustomProperties.DISPLAY_NAME),
 ];
 
-export class ArtifactList extends Page<{}, ArtifactListState> {
+export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
   private artifactTypesMap: Map<number, ArtifactType>;
@@ -111,11 +115,13 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           ref={this.tableRef}
           columns={columns}
           rows={rows}
-          disablePaging={false}
+          disablePaging={this.props.isGroupView}
           disableSelection={true}
           reload={this.reload}
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
+          getExpandComponent={this.props.isGroupView ? this.getExpandedArtifactsRow : undefined}
+          toggleExpansion={this.props.isGroupView ? this.toggleRowExpand : undefined}
           emptyMessage='No artifacts found.'
         />
       </div>
@@ -145,13 +151,17 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError.bind(this),
       );
     }
-    const artifacts = await this.getArtifacts(listOperationOpts);
+    const artifacts = this.props.isGroupView
+      ? await this.getArtifacts()
+      : await this.getArtifacts(listOperationOpts);
     this.clearBanner();
     let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
+    let groupedRows = await this.getGroupedRowsFromArtifacts(request, artifacts);
     // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
     this.setState({
       artifacts,
-      rows: flattenedRows,
+      expandedRows: this.props.isGroupView ? groupedRows?.expandedRows : new Map(),
+      rows: this.props.isGroupView ? groupedRows?.collapsedRows : flattenedRows,
     });
 
     return listOperationOpts.getNextPageToken();
@@ -175,12 +185,12 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     <ArtifactLink artifactUri={value} />
   );
 
-  private async getArtifacts(listOperationOpts: ListOperationOptions): Promise<Artifact[]> {
+  private async getArtifacts(listOperationOpts?: ListOperationOptions): Promise<Artifact[]> {
     try {
       const response = await this.api.metadataStoreService.getArtifacts(
         new GetArtifactsRequest().setOptions(listOperationOpts),
       );
-      listOperationOpts.setNextPageToken(response.getNextPageToken());
+      listOperationOpts?.setNextPageToken(response.getNextPageToken());
       return response.getArtifactsList();
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
@@ -257,7 +267,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
   private async getGroupedRowsFromArtifacts(
     request: ListRequest,
     artifacts: Artifact[],
-  ): Promise<CollapsedAndExpandedRows | undefined> {
+  ): Promise<CollapsedAndExpandedRows> {
     const flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
     return groupRows(flattenedRows);
   }
