@@ -223,7 +223,13 @@ class Executor():
         if self._is_parameter(annotation_type):
             origin_type = getattr(annotation_type, '__origin__',
                                   None) or annotation_type
-            if not isinstance(return_value, origin_type):
+            # relax float-typed return to allow both int and float.
+            if origin_type == float:
+                accepted_types = (int, float)
+            # TODO: relax str-typed return to allow all primitive types?
+            else:
+                accepted_types = origin_type
+            if not isinstance(return_value, accepted_types):
                 raise ValueError(
                     f'Function `{self._func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
                 )
@@ -232,7 +238,7 @@ class Executor():
             self._write_output_artifact_payload(output_name, return_value)
         else:
             raise RuntimeError(
-                f'Unknown return type: {annotation_type}. Must be one of `str`, `int`, `float`, or a subclass of `Artifact`'
+                f'Unknown return type: {annotation_type}. Must be one of the supported data types: https://www.kubeflow.org/docs/components/pipelines/v2/data-types/'
             )
 
     def _write_executor_output(self, func_output: Optional[Any] = None):

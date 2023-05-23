@@ -7,6 +7,10 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Fix integer value not allowed as float-typed return [\#9481](https://github.com/kubeflow/pipelines/pull/9481)
+
+## Documentation updates
+
 # 2.0.0-rc.1
 
 ## Features
