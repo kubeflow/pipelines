@@ -142,6 +142,8 @@ def compare_pipeline_spec_dicts(
         )
         compare_json_dicts(test_case, actual[key], expected[key])
     elif isinstance(actual, list):
+      if len(actual) != len(expected):
+        print(make_copypaste_message(original_actual, is_json))
       test_case.assertEqual(
           len(actual), len(expected), 'Lists are of different lengths'
       )

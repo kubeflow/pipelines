@@ -8,13 +8,13 @@
       "executors":{
          "exec-sum-numbers":{
             "container":{
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3",
                "command":[
                   "python3",
                   "-u",
                   "-m",
                   "google_cloud_pipeline_components.container.v1.custom_job.launcher"
                ],
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3",
                "args":[
                   "--type",
                   "CustomJob",
@@ -35,80 +35,18 @@
       "comp-sum-numbers":{
          "inputDefinitions":{
             "parameters":{
-               "restart_job_on_worker_restart":{
+               "enable_web_access":{
                   "parameterType":"BOOLEAN",
                   "defaultValue":true,
-                  "isOptional":true
-               },
-               "project":{
-                  "parameterType":"STRING"
-               },
-               "tensorboard":{
-                  "parameterType":"STRING",
-                  "defaultValue":"projects/000000000000/locations/us-central1/tensorboards/000000000000",
-                  "isOptional":true
-               },
-               "base_output_directory":{
-                  "parameterType":"STRING",
-                  "defaultValue":"gs://my-vertex-pipelines-bucket/custom_job_outputs/",
-                  "isOptional":true
-               },
-               "timeout":{
-                  "parameterType":"STRING",
-                  "defaultValue":"1000s",
                   "isOptional":true
                },
                "b":{
                   "parameterType":"NUMBER_INTEGER"
                },
-               "worker_pool_specs":{
-                  "parameterType":"LIST",
-                  "defaultValue":[
-                     {
-                        "machine_spec":{
-                           "accelerator_type":"NVIDIA_TESLA_A100",
-                           "accelerator_count":10.0,
-                           "machine_type":"a2-ultragpu-1g"
-                        },
-                        "container_spec":{
-                           "args":[
-                              "--executor_input",
-                              "{{$.json_escape[1]}}",
-                              "--function_to_execute",
-                              "sum_numbers"
-                           ],
-                           "command":[
-                              "sh",
-                              "-c",
-                              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14' && \"$0\" \"$@\"\n",
-                              "sh",
-                              "-ec",
-                              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-                              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef sum_numbers(a: int, b: int) -> int:\n  return a + b\n\n"
-                           ],
-                           "image_uri":"python:3.7"
-                        },
-                        "replica_count":1.0,
-                        "disk_spec":{
-                           "boot_disk_type":"pd-ssd",
-                           "boot_disk_size_gb":100.0
-                        }
-                     }
-                  ],
-                  "isOptional":true
-               },
-               "network":{
+               "base_output_directory":{
                   "parameterType":"STRING",
-                  "defaultValue":"",
+                  "defaultValue":"gs://my-vertex-pipelines-bucket/custom_job_outputs/",
                   "isOptional":true
-               },
-               "display_name":{
-                  "parameterType":"STRING",
-                  "defaultValue":"job_display_name",
-                  "isOptional":true
-               },
-               "a":{
-                  "parameterType":"NUMBER_INTEGER"
                },
                "labels":{
                   "parameterType":"STRUCT",
@@ -117,7 +55,22 @@
                   },
                   "isOptional":true
                },
-               "enable_web_access":{
+               "a":{
+                  "parameterType":"NUMBER_INTEGER"
+               },
+               "tensorboard":{
+                  "parameterType":"STRING",
+                  "defaultValue":"projects/000000000000/locations/us-central1/tensorboards/000000000000",
+                  "isOptional":true
+               },
+               "reserved_ip_ranges":{
+                  "parameterType":"LIST",
+                  "defaultValue":[
+                     "1.0.0.0"
+                  ],
+                  "isOptional":true
+               },
+               "restart_job_on_worker_restart":{
                   "parameterType":"BOOLEAN",
                   "defaultValue":true,
                   "isOptional":true
@@ -132,27 +85,74 @@
                   "defaultValue":"",
                   "isOptional":true
                },
-               "reserved_ip_ranges":{
-                  "parameterType":"LIST",
-                  "defaultValue":[
-                     "1.0.0.0"
-                  ],
+               "network":{
+                  "parameterType":"STRING",
+                  "defaultValue":"",
+                  "isOptional":true
+               },
+               "display_name":{
+                  "parameterType":"STRING",
+                  "defaultValue":"job_display_name",
                   "isOptional":true
                },
                "service_account":{
                   "parameterType":"STRING",
                   "defaultValue":"my-vertex-service-account@my-project.iam.gserviceaccount.com",
                   "isOptional":true
+               },
+               "project":{
+                  "parameterType":"STRING"
+               },
+               "timeout":{
+                  "parameterType":"STRING",
+                  "defaultValue":"1000s",
+                  "isOptional":true
+               },
+               "worker_pool_specs":{
+                  "parameterType":"LIST",
+                  "defaultValue":[
+                     {
+                        "container_spec":{
+                           "args":[
+                              "--executor_input",
+                              "{{$.json_escape[1]}}",
+                              "--function_to_execute",
+                              "sum_numbers"
+                           ],
+                           "command":[
+                              "sh",
+                              "-c",
+                              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\n",
+                              "sh",
+                              "-ec",
+                              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+                              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef sum_numbers(a: int, b: int) -> int:\n  return a + b\n\n"
+                           ],
+                           "image_uri":"python:3.7"
+                        },
+                        "disk_spec":{
+                           "boot_disk_size_gb":100.0,
+                           "boot_disk_type":"pd-ssd"
+                        },
+                        "replica_count":1.0,
+                        "machine_spec":{
+                           "accelerator_type":"NVIDIA_TESLA_A100",
+                           "accelerator_count":10.0,
+                           "machine_type":"a2-ultragpu-1g"
+                        }
+                     }
+                  ],
+                  "isOptional":true
                }
             }
          },
          "outputDefinitions":{
             "parameters":{
-               "gcp_resources":{
-                  "parameterType":"STRING"
-               },
                "Output":{
                   "parameterType":"NUMBER_INTEGER"
+               },
+               "gcp_resources":{
+                  "parameterType":"STRING"
                }
             }
          },
@@ -178,14 +178,14 @@
                            "constant":2.0
                         }
                      },
-                     "location":{
-                        "runtimeValue":{
-                           "constant":"us-central1"
-                        }
-                     },
                      "a":{
                         "runtimeValue":{
                            "constant":1.0
+                        }
+                     },
+                     "location":{
+                        "runtimeValue":{
+                           "constant":"us-central1"
                         }
                      }
                   }

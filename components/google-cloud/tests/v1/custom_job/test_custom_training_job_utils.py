@@ -56,20 +56,20 @@ class TestCreateCustomTrainingJobFromComponentCompile(unittest.TestCase):
         ),
     )
 
-  def test_compile_converted_custom_job_no_args(self):
+  def test_compile_converted_custom_job_no_args_with_artifacts_and_params(self):
     @dsl.component
     def make_artifact(
         out_artifact: Output[Artifact],
     ):
       ...
 
-    @dsl.component
+    @dsl.container_component
     def dummy_component(
         in_param: int,
         in_artifact: Input[Artifact],
         out_artifact: Output[Artifact],
-    ) -> str:
-      pass
+    ):
+      return dsl.ContainerSpec(image="alpine", command=["echo", in_param])
 
     dummy_component_custom_job = (
         custom_job.create_custom_training_job_from_component(dummy_component)
