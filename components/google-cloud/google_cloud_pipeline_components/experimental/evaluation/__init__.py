@@ -19,6 +19,7 @@ from google_cloud_pipeline_components.experimental.evaluation.data_sampler.compo
 from google_cloud_pipeline_components.experimental.evaluation.feature_attribution.component import feature_attribution as ModelEvaluationFeatureAttributionOp
 from google_cloud_pipeline_components.experimental.evaluation.forecasting.component import model_evaluation_forecasting as ModelEvaluationForecastingOp
 from google_cloud_pipeline_components.experimental.evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
+from google_cloud_pipeline_components.experimental.evaluation.model_bias.component import detect_model_bias as DetectModelBiasOp
 from google_cloud_pipeline_components.experimental.evaluation.regression.component import model_evaluation_regression as ModelEvaluationRegressionOp
 from google_cloud_pipeline_components.experimental.evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
 
@@ -30,5 +31,6 @@ __all__ = [
     'ModelEvaluationRegressionOp',
     'ModelEvaluationForecastingOp',
     'ModelEvaluationFeatureAttributionOp',
+    'DetectModelBiasOp',
     'DetectDataBiasOp',
 ]
