@@ -1,0 +1,82 @@
+# PIPELINE DEFINITION
+# Name: forecasting-validation
+# Description: Validates BigQuery tables for training or prediction.
+#              Validates BigQuery tables for training or prediction based on predefined
+#              requirements. For training, a primary table is required. Optionally, you
+#              can include some attribute tables. For prediction, you need to include all
+#              the tables that were used in the training, plus a plan table.
+# Inputs:
+#    input_tables: list
+#    location: str [Default: 'US']
+#    validation_theme: str
+components:
+  comp-forecasting-validation:
+    executorLabel: exec-forecasting-validation
+    inputDefinitions:
+      parameters:
+        input_tables:
+          description: Serialized Json array that specifies input BigQuery tables
+            and specs.
+          parameterType: LIST
+        location:
+          defaultValue: US
+          description: Optional location for the BigQuery data, default is US.
+          isOptional: true
+          parameterType: STRING
+        validation_theme:
+          description: Theme to use for validating the BigQuery tables. Acceptable
+            values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-forecasting-validation:
+      container:
+        args:
+        - forecasting_validation
+        - --input_table_specs
+        - '{{$.inputs.parameters[''input_tables'']}}'
+        - --validation_theme
+        - '{{$.inputs.parameters[''validation_theme'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        command:
+        - python
+        - /launcher.py
+        image: us-docker.pkg.dev/vertex-ai/time-series-forecasting/forecasting:prod
+pipelineInfo:
+  name: forecasting-validation
+root:
+  dag:
+    tasks:
+      forecasting-validation:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-forecasting-validation
+        inputs:
+          parameters:
+            input_tables:
+              componentInputParameter: input_tables
+            location:
+              componentInputParameter: location
+            validation_theme:
+              componentInputParameter: validation_theme
+        taskInfo:
+          name: forecasting-validation
+  inputDefinitions:
+    parameters:
+      input_tables:
+        description: Serialized Json array that specifies input BigQuery tables and
+          specs.
+        parameterType: LIST
+      location:
+        defaultValue: US
+        description: Optional location for the BigQuery data, default is US.
+        isOptional: true
+        parameterType: STRING
+      validation_theme:
+        description: Theme to use for validating the BigQuery tables. Acceptable values
+          are FORECASTING_TRAINING and FORECASTING_PREDICTION.
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-rc.1
