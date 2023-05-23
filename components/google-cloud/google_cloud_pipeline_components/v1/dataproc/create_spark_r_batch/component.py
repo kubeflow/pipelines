@@ -47,7 +47,7 @@ def dataproc_create_spark_r_batch(
   """Create a Dataproc SparkR batch workload and wait for it to finish.
 
   Args:
-      project: Required: Project to run the Dataproc batch workload.
+      project: Project to run the Dataproc batch workload.
       location: Location of the Dataproc batch workload. If not set, default to
         `us-central1`.
       batch_id: The ID to use for the batch, which will become
@@ -82,8 +82,7 @@ def dataproc_create_spark_r_batch(
       args: The arguments to pass to the driver.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the Dataproc batch workload.
-          For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the Dataproc batch workload. For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

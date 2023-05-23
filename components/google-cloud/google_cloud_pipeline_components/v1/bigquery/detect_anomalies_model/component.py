@@ -61,7 +61,7 @@ def bigquery_detect_anomalies_job(
       contamination: Contamination is the proportion of anomalies in the training dataset
         that are used to create the
         AUTOENCODER, KMEANS, or PCA input models. For more details, see
-          https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-detect-anomalies#contamination
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-detect-anomalies#contamination
       anomaly_prob_threshold: The ARIMA_PLUS model supports the
           anomaly_prob_threshold custom threshold for anomaly detection. The
           value of the anomaly probability at each timestamp is calculated
@@ -100,8 +100,7 @@ def bigquery_detect_anomalies_job(
         response size.
         For queries that produce anonymous (cached) results, this field will
         be populated by BigQuery.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-        For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

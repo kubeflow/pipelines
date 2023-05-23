@@ -662,7 +662,10 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
     model_description: Optional[str] = None,
     run_evaluation: bool = True,
 ) -> Tuple[str, Dict[str, Any]]:
-  """Returns timeseries_dense_encoder_forecasting pipeline and formatted parameters."""
+  # fmt: off
+  """Returns timeseries_dense_encoder_forecasting pipeline and formatted
+  parameters."""
+  # fmt: on
 
   parameter_values = get_base_forecasting_parameters(
       project=project,

@@ -15,7 +15,6 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components import utils
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
@@ -96,12 +95,11 @@ def model_batch_predict(
         on. They must match `instances_format`. May contain wildcards. For more
         information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-        For more details about this input config, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
+        For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
       bigquery_source_input_uri: BigQuery URI to a table, up to 2000 characters long. For example:
         `projectId.bqDatasetId.bqTableId`  For more details about this input
         config, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
       model_parameters: The parameters that govern the predictions. The schema of the parameters
       instance_type (Optional[str]):
         The format of the instance that the Model accepts. Vertex AI will
@@ -188,7 +186,7 @@ def model_batch_predict(
         per their schema, followed by an additional ``error`` field which as
         value has ``google.rpc.Status`` containing only ``code`` and
         ``message`` fields.  For more details about this output config, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
       bigquery_destination_output_uri: The BigQuery project location where the output is to be written to. In
         the given project a new dataset is created with name
         ``prediction_<model-display-name>_<job-create-time>`` where is made
@@ -198,31 +196,31 @@ def model_batch_predict(
         ``predictions``, and ``errors``. If the Model has both ``instance``
         and ``prediction`` schemata defined then the tables have columns as
         follows: The ``predictions`` table contains instances for which the
-          prediction succeeded, it has columns as per a concatenation of the
-          Model's instance and prediction schemata. The ``errors`` table
-          contains rows for which the prediction has failed, it has instance
-          columns, as per the instance schema, followed by a single "errors"
-          column, which as values has ```google.rpc.Status`` <Status>`__
-          represented as a STRUCT, and containing only ``code`` and
-          ``message``. For more details about this output config, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
+        prediction succeeded, it has columns as per a concatenation of the
+        Model's instance and prediction schemata. The ``errors`` table
+        contains rows for which the prediction has failed, it has instance
+        columns, as per the instance schema, followed by a single "errors"
+        column, which as values has ```google.rpc.Status`` <Status>`__
+        represented as a STRUCT, and containing only ``code`` and
+        ``message``. For more details about this output config, see
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
       machine_type: The type of machine for running batch
         prediction on dedicated resources. If the Model supports
         DEDICATED_RESOURCES this config may be provided (and the job will use
         these resources). If the Model doesn't support AUTOMATIC_RESOURCES,
         this config must be provided.  For more details about the
         BatchDedicatedResources, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources.
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources.
         For more details about the machine spec, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
       accelerator_type: The type of accelerator(s) that may be
         attached to the machine as per `accelerator_count`. Only used if
         `machine_type` is set.  For more details about the machine spec, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
       accelerator_count: The number of accelerators to attach
         to the `machine_type`. Only used if `machine_type` is set.  For more
         details about the machine spec, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
       starting_replica_count: The number of machine replicas
         used at the start of the batch operation. If not set, Vertex AI
         decides starting number, not greater than `max_replica_count`. Only

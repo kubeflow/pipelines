@@ -46,14 +46,11 @@ def image_dataset_import(
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          examples:
-              str: "gs://bucket/file.csv"
-              Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
+          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
       import_schema_uri: Points to a YAML file stored on Google Cloud
           Storage describing the import format. Validation will be
           done against the schema. The schema is defined as an
-          `OpenAPI 3.0.2 Schema
-          Object <https://tinyurl.com/y538mdwt>`__.
+          `OpenAPI 3.0.2 Schema Object <https://tinyurl.com/y538mdwt>`__.
       data_item_labels: Labels that will be applied to newly imported DataItems. If
           an identical DataItem as one being imported already exists
           in the Dataset, then these labels will be appended to these
@@ -66,8 +63,8 @@ def image_dataset_import(
           if their content bytes are identical (e.g. image bytes or
           pdf bytes). These labels will be overridden by Annotation
           labels specified inside index file refenced by
-          ``import_schema_uri``,
-          e.g. jsonl file.
+          ``import_schema_uri``, e.g. jsonl file.
+
   Returns:
       dataset: Instantiated representation of the managed dataset resource.
   """

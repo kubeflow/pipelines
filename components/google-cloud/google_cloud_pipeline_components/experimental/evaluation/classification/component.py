@@ -158,7 +158,7 @@ def model_evaluation_classification(
       dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More
         details:
-          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
       dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
       encryption_spec_key_name: Customer-managed encryption key.
@@ -168,9 +168,7 @@ def model_evaluation_classification(
         google.ClassificationMetrics representing the classification
         evaluation metrics in GCS.
       gcp_resources: Serialized gcp_resources proto tracking the dataflow
-        job.
-
-        For more details, see
+        job. For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

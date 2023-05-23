@@ -17,7 +17,11 @@ from google.cloud.aiplatform_v1.types import study
 
 
 def serialize_parameters(parameters: dict) -> list:
+  # fmt: off
   """Serializes the hyperparameter tuning parameter spec to dictionary format.
+
+  Note: The to_dict function is used here instead of the to_json function
+    for compatibility with GAPIC.
 
   Args:
       parameters (Dict[str, hyperparameter_tuning._ParameterSpec]): Dictionary
@@ -33,12 +37,11 @@ def serialize_parameters(parameters: dict) -> list:
         be found in aiplatform.hyperparameter_tuning. These parameter
         specification are currently supported: DoubleParameterSpec,
         IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
-        Note: The to_dict function is used here instead of the to_json function
-          for compatibility with GAPIC.
 
   Returns:
       List containing an intermediate JSON representation of the parameter spec
   """
+  # fmt: on
   return [
       study.StudySpec.ParameterSpec.to_dict(
           parameter._to_parameter_spec(parameter_id=parameter_id)
@@ -48,6 +51,7 @@ def serialize_parameters(parameters: dict) -> list:
 
 
 def serialize_metrics(metric_spec: dict) -> list:
+  # fmt: off
   """Serializes a metric spec to dictionary format.
 
   Args:
@@ -60,6 +64,7 @@ def serialize_metrics(metric_spec: dict) -> list:
   Returns:
       List containing an intermediate JSON representation of the metric spec
   """
+  # fmt: on
   return [
       study.StudySpec.MetricSpec.to_dict(
           study.StudySpec.MetricSpec(

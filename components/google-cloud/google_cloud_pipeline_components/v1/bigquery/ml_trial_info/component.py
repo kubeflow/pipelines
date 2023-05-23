@@ -44,17 +44,17 @@ def bigquery_ml_trial_info_job(
       project: Project to run BigQuery ml trial info job.
       location: Location to run the BigQuery ml trial info
         job. If not set, default to `US` multi-region. For more details, see
-          https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
       model: BigQuery ML model. For more details,
         see
-          https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-trial-info#predict_model_name
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-trial-info#predict_model_name
       query_parameters: Query parameters for
         standard SQL queries. If query_parameters are both specified in here
         and in job_configuration_query, the value in here will override the
         other one.
       job_configuration_query: A json formatted string
         describing the rest of the job configuration. For more details, see
-          https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
       labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
@@ -73,8 +73,7 @@ def bigquery_ml_trial_info_job(
       trial_info: Describes the trial info applicable to the type of model supplied.
         For more details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-trial-info
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

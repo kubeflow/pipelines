@@ -93,12 +93,11 @@ def train_tfhub_model(
           Only used when there are multiple GPUs. Defaults to `-1`.
       test_steps_per_epoch: Test steps per epoch during distributed training.
           Only used when there are multiple GPUs. Defaults to `-1`.
+
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the training job.
-          For more details on GCP resources proto, see
+      gcp_resources: Serialized gcp_resources proto tracking the training job. For more details on GCP resources proto, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
-      model_output: Artifact tracking the batch prediction job output. This is only available if
-          gcs_destination_output_uri_prefix is specified.
+      model_output: Artifact tracking the batch prediction job output. This is only available if gcs_destination_output_uri_prefix is specified.
   """
   # fmt: on
 

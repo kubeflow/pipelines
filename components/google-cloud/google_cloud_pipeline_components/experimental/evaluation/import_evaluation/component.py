@@ -43,7 +43,9 @@ def model_evaluation_import(
     dataset_paths: Optional[list] = [],
     dataset_type: Optional[str] = "",
 ):
-  """Imports a model evaluation artifact to an existing Vertex model with ModelService.ImportModelEvaluation
+  # fmt: off
+  """Imports a model evaluation artifact to an existing Vertex model with
+  ModelService.ImportModelEvaluation.
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models.evaluations
@@ -71,7 +73,6 @@ def model_evaluation_import(
     display_name: The display name for the uploaded model evaluation resource.
   """
   # fmt: on
-
   return dsl.ContainerSpec(
       image="gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3",
       command=[

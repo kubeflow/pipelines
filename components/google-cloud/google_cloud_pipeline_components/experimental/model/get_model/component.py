@@ -40,9 +40,8 @@ def get_vertex_model(
   Returns:
       model: Artifact of the Vertex Model.
       gcp_resources: Serialized gcp_resources proto tracking the Vertex model.
-
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      For more details, see
+      https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   return ContainerSpec(
       image=_image.GCPC_IMAGE_TAG,

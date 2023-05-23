@@ -118,7 +118,7 @@ def tabular_stats_and_example_gen(
       dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More
         details:
-          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
       dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
       dataflow_service_account: Custom service account to run
@@ -137,9 +137,8 @@ def tabular_stats_and_example_gen(
       downsampled_test_split_json: The downsampled test split JSON object.
       instance_baseline: The instance baseline used to calculate explanations.
       metadata: The tabular example gen metadata.
-      gcp_resources: GCP resources created by this component.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see
+        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 

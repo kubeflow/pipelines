@@ -69,8 +69,8 @@ def automl_forecasting_stage_2_tuner(
 
   Returns:
       gcp_resources: GCP resources created by this component.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+        For more details, see
+        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
       tuning_result_output: The trained (private) model artifact paths and their hyperparameters.
   """
   # fmt: on

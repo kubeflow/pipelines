@@ -61,20 +61,22 @@ def model_upload(
         uploading a new version.
       unmanaged_container_model: The unmanaged container model to be uploaded.  The model can
         be passed from an upstream step, or imported via an importer.
-        ```
-        from kfp.dsl import importer
-        from
-        google_cloud_pipeline_components.google_cloud_pipeline_components.types
-        import artifact_types
 
-        importer_spec = importer(
-          artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',
-          artifact_class=artifact_types.UnmanagedContainerModel, metadata={
-            'containerSpec': { 'imageUri':
-              'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'
-              }
-          })
-        ```
+        Examples::
+
+          from kfp.dsl import importer
+          from
+          google_cloud_pipeline_components.google_cloud_pipeline_components.types
+          import artifact_types
+
+          importer_spec = importer(
+            artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',
+            artifact_class=artifact_types.UnmanagedContainerModel, metadata={
+              'containerSpec': { 'imageUri':
+                'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'
+                }
+            })
+
       explanation_metadata: Metadata describing the Model's
         input and output for explanation. Both `explanation_metadata` and
         `explanation_parameters` must be passed together when used.  For more
@@ -99,9 +101,7 @@ def model_upload(
   Returns:
       model: Artifact tracking the created model.
       gcp_resources: Serialized gcp_resources proto tracking the upload model's long
-          running operation.
-
-          For more details, see
+          running operation. For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

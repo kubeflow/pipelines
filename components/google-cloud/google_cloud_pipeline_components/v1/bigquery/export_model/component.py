@@ -60,8 +60,7 @@ def bigquery_export_model_job(
 
   Returns:
       exported_model_path: The gcs bucket path where you export the model to.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

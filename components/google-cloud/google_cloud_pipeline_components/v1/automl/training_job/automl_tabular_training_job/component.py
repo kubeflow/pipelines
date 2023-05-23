@@ -60,25 +60,28 @@ def automl_tabular_training_job(
     export_evaluated_data_items_override_destination: Optional[bool] = None,
 ):
   # fmt: off
-  """
-    Runs the training job and returns a model.
+  """Runs the training job and returns a model.
+
   If training on a Vertex AI dataset, you can use one of the following split configurations:
-      Data fraction splits:
-      Any of ``training_fraction_split``, ``validation_fraction_split`` and
-      ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-      the provided ones sum to less than 1, the remainder is assigned to sets as
-      decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-      of data will be used for training, 10% for validation, and 10% for test.
-      Predefined splits:
-      Assigns input data to training, validation, and test sets based on the value of a provided key.
-      If using predefined splits, ``predefined_split_column_name`` must be provided.
-      Supported only for tabular Datasets.
-      Timestamp splits:
-      Assigns input data to training, validation, and test sets
-      based on a provided timestamps. The youngest data pieces are
-      assigned to training set, next to validation set, and the oldest
-      to the test set.
-      Supported only for tabular Datasets.
+
+  Data fraction splits:
+  Any of ``training_fraction_split``, ``validation_fraction_split`` and
+  ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
+  the provided ones sum to less than 1, the remainder is assigned to sets as
+  decided by Vertex AI. If none of the fractions are set, by default roughly 80%
+  of data will be used for training, 10% for validation, and 10% for test.
+  Predefined splits:
+  Assigns input data to training, validation, and test sets based on the value of a provided key.
+  If using predefined splits, ``predefined_split_column_name`` must be provided.
+  Supported only for tabular Datasets.
+  Timestamp splits:
+  Assigns input data to training, validation, and test sets
+  based on a provided timestamps. The youngest data pieces are
+  assigned to training set, next to validation set, and the oldest
+  to the test set.
+
+  Supported only for tabular Datasets.
+
   Args:
       dataset: The dataset within the same Project from which data will be used to train the Model. The
           Dataset must use schema compatible with Model being trained,
@@ -196,14 +199,11 @@ def automl_tabular_training_job(
           target column (two distint values -> binary, 3 or more distinct values
           -> multi class).
           If the field is not set, the default objective function is used.
-          Classification: "maximize-au-roc" (default) - Maximize the area under the receiver
-                                      operating characteristic (ROC) curve.
+          Classification: "maximize-au-roc" (default) - Maximize the area under the receiver operating characteristic (ROC) curve.
           "minimize-log-loss" - Minimize log loss.
           "maximize-au-prc" - Maximize the area under the precision-recall curve.
-          "maximize-precision-at-recall" - Maximize precision for a specified
-                                          recall value.
-          "maximize-recall-at-precision" - Maximize recall for a specified
-                                          precision value.
+          "maximize-precision-at-recall" - Maximize precision for a specified recall value.
+          "maximize-recall-at-precision" - Maximize recall for a specified precision value.
           Classification (multi class):
           "minimize-log-loss" (default) - Minimize log loss.
           Regression:
@@ -239,7 +239,7 @@ def automl_tabular_training_job(
           picked, represents the precision value at which the optimization is
           done.
           The minimum value is 0 and the maximum is 1.0.
-      project: project to retrieve dataset from.
+      project: Project to retrieve dataset from.
       location: Optional location to retrieve dataset from.
       labels: The labels with user-defined metadata to
           organize TrainingPipelines.
@@ -268,10 +268,10 @@ def automl_tabular_training_job(
           resource is created.
           If set, the trained Model will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
+
   Returns:
       model: The trained Vertex AI Model resource or None if training did not
           produce a Vertex AI Model.
-
   """
   # fmt: on
 

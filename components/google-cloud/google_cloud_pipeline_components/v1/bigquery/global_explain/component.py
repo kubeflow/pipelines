@@ -60,8 +60,7 @@ def bigquery_ml_global_explain_job(
 
   Returns:
       destination_table: Describes the table where the global explain results should be stored.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-        For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

@@ -44,12 +44,8 @@ def tabular_dataset_create(
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          examples:
-              str: "gs://bucket/file.csv"
-              Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
-      bq_source: BigQuery URI to the input table.
-          example:
-              "bq://project.dataset.table_name"
+          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
+      bq_source: BigQuery URI to the input table. For example, "bq://project.dataset.table_name".
       project: project to retrieve dataset from.
       location: Optional location to retrieve dataset from.
       labels: Labels with user-defined metadata to organize your Tensorboards.

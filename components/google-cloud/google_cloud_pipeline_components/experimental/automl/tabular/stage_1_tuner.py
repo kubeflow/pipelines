@@ -83,9 +83,8 @@ def automl_tabular_stage_1_tuner(
         is false.
 
   Returns:
-      gcp_resources: GCP resources created by this component.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see
+        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
       tuning_result_output: The trained model and architectures.
       execution_metrics: Core metrics in dictionary of component execution.
   """

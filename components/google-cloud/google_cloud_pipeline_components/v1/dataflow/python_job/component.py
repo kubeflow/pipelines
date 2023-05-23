@@ -41,13 +41,10 @@ def dataflow_python(
       temp_location: A GCS path for Dataflow to stage temporary job
           files created during the execution of the pipeline.
       requirements_file_path: The GCS path to the pip requirements file.
-      args:
-          The list of args to pass to the python file.
-          Can include additional parameters for the beam runner.
+      args: The list of args to pass to the python file. Can include additional parameters for the beam runner.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the Dataflow job.
-          For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the Dataflow job. For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

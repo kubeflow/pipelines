@@ -43,23 +43,26 @@ def automl_text_training_job(
     model_labels: Optional[dict] = None,
 ):
   # fmt: off
-  """
-    Runs the training job and returns a model.
+  """Runs the training job and returns a model.
+
   If training on a Vertex AI dataset, you can use one of the following split configurations:
-      Data fraction splits:
-      Any of ``training_fraction_split``, ``validation_fraction_split`` and
-      ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-      the provided ones sum to less than 1, the remainder is assigned to sets as
-      decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-      of data will be used for training, 10% for validation, and 10% for test.
-      Data filter splits:
-      Assigns input data to training, validation, and test sets
-      based on the given filters, data pieces not matched by any
-      filter are ignored. Currently only supported for Datasets
-      containing DataItems.
-      If any of the filters in this message are to match nothing, then
-      they can be set as '-' (the minus sign).
-      Supported only for unstructured Datasets.
+
+  Data fraction splits:
+  Any of ``training_fraction_split``, ``validation_fraction_split`` and
+  ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
+  the provided ones sum to less than 1, the remainder is assigned to sets as
+  decided by Vertex AI. If none of the fractions are set, by default roughly 80%
+  of data will be used for training, 10% for validation, and 10% for test.
+  Data filter splits:
+  Assigns input data to training, validation, and test sets
+  based on the given filters, data pieces not matched by any
+  filter are ignored. Currently only supported for Datasets
+  containing DataItems.
+  If any of the filters in this message are to match nothing, then
+  they can be set as '-' (the minus sign).
+
+  Supported only for unstructured Datasets.
+
   Args:
       dataset: The dataset within the same Project from which data will be used to train the Model. The
           Dataset must use schema compatible with Model being trained,
@@ -87,15 +90,10 @@ def automl_text_training_job(
           and examples of labels.
       display_name: The user-defined name of this TrainingPipeline.
       prediction_type: The type of prediction the Model is to produce, one of:
-              "classification" - A classification model analyzes text data and
-                  returns a list of categories that apply to the text found in the data.
+              "classification" - A classification model analyzes text data and returns a list of categories that apply to the text found in the data.
                   Vertex AI offers both single-label and multi-label text classification models.
-              "extraction" - An entity extraction model inspects text data
-                  for known entities referenced in the data and
-                  labels those entities in the text.
-              "sentiment" - A sentiment analysis model inspects text data and identifies the
-                  prevailing emotional opinion within it, especially to determine a writer's attitude
-                  as positive, negative, or neutral.
+              "extraction" - An entity extraction model inspects text data known entities referenced in the data and labels those entities in the text.
+              "sentiment" - A sentiment analysis model inspects text data and identifies the prevailing emotional opinion within it, especially to determine a writer's attitude as positive, negative, or neutral.
       multi_label: Required and only applicable for text classification task. If false, a single-label (multi-class) Model will be trained (i.e.
           assuming that for each text snippet just up to one annotation may be
           applicable). If true, a multi-label Model will be trained (i.e.
@@ -111,7 +109,7 @@ def automl_text_training_job(
           Only the Annotations with this sentimentMax will
           be used for training. sentimentMax value must be
           between 1 and 10 (inclusive).
-      project: project to retrieve dataset from.
+      project: Project to retrieve dataset from.
       location: Optional location to retrieve dataset from.
       labels: The labels with user-defined metadata to
           organize TrainingPipelines.
@@ -140,9 +138,9 @@ def automl_text_training_job(
           resource is created.
           If set, the trained Model will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
+
   Returns:
       model: The trained Vertex AI Model resource.
-
   """
   # fmt: on
 

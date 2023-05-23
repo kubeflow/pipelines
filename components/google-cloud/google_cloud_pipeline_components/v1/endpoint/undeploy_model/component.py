@@ -30,9 +30,9 @@ def model_undeploy(
     traffic_split: Dict[str, str] = {},
 ):
   # fmt: off
-  """Undeploys a Google Cloud Vertex DeployedModel within the Endpoint. For
-  more details, see https://cloud.google.com/vertex-
-  ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
+  """Undeploys a Google Cloud Vertex DeployedModel within the Endpoint.
+
+  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
 
   Args:
       model: The model that was deployed to the Endpoint.
@@ -45,9 +45,7 @@ def model_undeploy(
           assigned to it when this method executes, or if this field unassigns any traffic to it.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the undeploy model's long running operation.
-
-          For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the undeploy model's long running operation. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return dsl.ContainerSpec(

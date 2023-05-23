@@ -61,18 +61,13 @@ def automl_forecasting_ensemble(
       Artifact Registry or Container Registry.
 
   Returns:
-    gcp_resources: GCP resources created by this component.
-        For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+    gcp_resources: GCP resources created by this component. For more details, see
+      https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
     model_architecture: The architecture of the output model.
     unmanaged_container_model: Model information needed to perform batch prediction.
-    explanation_metadata: The explanation metadata used by Vertex online and batch
-        explanations.
-    explanation_metadata_artifact: The explanation metadata used by Vertex online and batch
-        explanations in the format of a KFP Artifact.
-    explanation_parameters:
-        The explanation parameters used by Vertex online and batch
-        explanations.
+    explanation_metadata: The explanation metadata used by Vertex online and batch explanations.
+    explanation_metadata_artifact: The explanation metadata used by Vertex online and batch explanations in the format of a KFP Artifact.
+    explanation_parameters: The explanation parameters used by Vertex online and batch explanations.
   """
   # fmt: on
   return dsl.ContainerSpec(

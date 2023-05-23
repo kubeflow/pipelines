@@ -28,7 +28,9 @@ def evaluated_annotation_import(
     gcp_resources: dsl.OutputPath(str),
     error_analysis_output_uri: Optional[str] = None,
 ):
-  """Imports evaluated annotations to an existing Vertex model with ModelService.BatchImportEvaluatedAnnotations
+  # fmt: off
+  """Imports evaluated annotations to an existing Vertex model with
+  ModelService.BatchImportEvaluatedAnnotations.
 
   Evaluated Annotation inputs must be provided. ErrorAnalysisAnnotation,
   EvaluatedAnnotationExplanation are optional.
@@ -47,7 +49,6 @@ def evaluated_annotation_import(
       item in the test set.
   """
   # fmt: on
-
   return dsl.ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3',
       command=[
