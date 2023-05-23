@@ -113,7 +113,7 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <ArtifactList {...generateProps()} isGroupView={false} />
       </MemoryRouter>,
     );
 
@@ -129,7 +129,7 @@ describe('ArtifactList', () => {
   it('displays footer with "10" as default value', async () => {
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <ArtifactList {...generateProps()} isGroupView={false} />
       </MemoryRouter>,
     );
 
@@ -145,7 +145,7 @@ describe('ArtifactList', () => {
   it('shows 20th artifact if page size is 20', async () => {
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <ArtifactList {...generateProps()} isGroupView={false} />
       </MemoryRouter>,
     );
 
@@ -187,7 +187,7 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <ArtifactList {...generateProps()} isGroupView={false} />
       </MemoryRouter>,
     );
     await TestUtils.flushPromises();
