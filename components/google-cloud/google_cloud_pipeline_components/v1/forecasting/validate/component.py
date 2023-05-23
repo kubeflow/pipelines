@@ -36,9 +36,6 @@ def forecasting_validation(
     input_tables: Serialized Json array that specifies input BigQuery tables and specs.
     validation_theme: Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
     location: Optional location for the BigQuery data, default is US.
-
-  Returns:
-    None
   """
   # fmt: on
 

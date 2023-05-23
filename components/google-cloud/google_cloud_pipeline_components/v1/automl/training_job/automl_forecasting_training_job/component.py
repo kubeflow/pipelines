@@ -76,25 +76,28 @@ def automl_forecasting_training_job(
     additional_experiments: Optional[list] = None,
 ):
   # fmt: off
-  """
-    Runs the training job and returns a model.
+  """Runs the training job and returns a model.
+
   If training on a Vertex AI dataset, you can use one of the following split configurations:
-      Data fraction splits:
-      Any of ``training_fraction_split``, ``validation_fraction_split`` and
-      ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-      the provided ones sum to less than 1, the remainder is assigned to sets as
-      decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-      of data will be used for training, 10% for validation, and 10% for test.
-      Predefined splits:
-      Assigns input data to training, validation, and test sets based on the value of a provided key.
-      If using predefined splits, ``predefined_split_column_name`` must be provided.
-      Supported only for tabular Datasets.
-      Timestamp splits:
-      Assigns input data to training, validation, and test sets
-      based on a provided timestamps. The youngest data pieces are
-      assigned to training set, next to validation set, and the oldest
-      to the test set.
-      Supported only for tabular Datasets.
+
+  Data fraction splits:
+  Any of ``training_fraction_split``, ``validation_fraction_split`` and
+  ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
+  the provided ones sum to less than 1, the remainder is assigned to sets as
+  decided by Vertex AI. If none of the fractions are set, by default roughly 80%
+  of data will be used for training, 10% for validation, and 10% for test.
+  Predefined splits:
+  Assigns input data to training, validation, and test sets based on the value of a provided key.
+  If using predefined splits, ``predefined_split_column_name`` must be provided.
+  Supported only for tabular Datasets.
+  Timestamp splits:
+  Assigns input data to training, validation, and test sets
+  based on a provided timestamps. The youngest data pieces are
+  assigned to training set, next to validation set, and the oldest
+  to the test set.
+
+  Supported only for tabular Datasets.
+
   Args:
       dataset: The dataset within the same Project from which data will be used to train the Model. The
           Dataset must use schema compatible with Model being trained,
@@ -180,8 +183,7 @@ def automl_forecasting_training_job(
           Accepts up to 5 quantiles in the form of a double from 0 to 1, exclusive.
           Each quantile must be unique.
       validation_options: Validation options for the data validation component. The available options are:
-          "fail-pipeline" - (default), will validate against the validation and fail the pipeline
-                            if it fails.
+          "fail-pipeline" - (default), will validate against the validation and fail the pipeline if it fails.
           "ignore-validation" - ignore the results of the validation and continue the pipeline
       budget_milli_node_hours: The train budget of creating this Model, expressed in milli node
           hours i.e. 1,000 value in this field means 1 node hour.
@@ -271,8 +273,7 @@ def automl_forecasting_training_job(
           "minimize-mae" - Minimize mean-absolute error (MAE).
           "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
           "minimize-rmspe" - Minimize root-mean-squared percentage error (RMSPE).
-          "minimize-wape-mae" - Minimize the combination of weighted absolute percentage error (WAPE)
-                                and mean-absolute-error (MAE).
+          "minimize-wape-mae" - Minimize the combination of weighted absolute percentage error (WAPE) and mean-absolute-error (MAE).
           "minimize-quantile-loss" - Minimize the quantile loss at the defined quantiles.
                                      (Set this objective to build quantile forecasts.)
       column_specs: Alternative to column_transformations where the keys of the dict
@@ -297,7 +298,7 @@ def automl_forecasting_training_job(
           no transformations defined on.
           Only one of column_transformations or column_specs should be passed.
           Consider using column_specs as column_transformations will be deprecated eventually.
-      project: project to retrieve dataset from.
+      project: Project to retrieve dataset from.
       location: Optional location to retrieve dataset from.
       labels: The labels with user-defined metadata to
           organize TrainingPipelines.
@@ -327,10 +328,10 @@ def automl_forecasting_training_job(
           If set, the trained Model will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
       additional_experiments: Additional experiment flags for the time series forcasting training.
+
   Returns:
       model: The trained Vertex AI Model resource or None if training did not
           produce a Vertex AI Model.
-
   """
   # fmt: on
 

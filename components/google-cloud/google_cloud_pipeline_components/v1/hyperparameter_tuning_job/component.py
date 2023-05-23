@@ -63,8 +63,8 @@ def hyperparameter_tuning_job(
         AI environment variables will be passed to containers or python
         modules when this field is set: For CustomJob backing a Trial of
         HyperparameterTuningJob: * AIP_MODEL_DIR = `\/\/model\/` *
-          AIP_CHECKPOINT_DIR = `\/\/checkpoints\/` * AIP_TENSORBOARD_LOG_DIR =
-          `\/\/logs\/`
+        AIP_CHECKPOINT_DIR = `\/\/checkpoints\/` * AIP_TENSORBOARD_LOG_DIR =
+        `\/\/logs\/`
       worker_pool_specs: The spec of the worker pools
         including machine type and Docker image. All worker pools except the
         first one are optional and can be skipped by providing an empty value.
@@ -120,16 +120,16 @@ def hyperparameter_tuning_job(
       study_spec_measurement_selection_type: This indicates
         which measurement to use if/when the service automatically selects the
         final measurement from previously reported intermediate measurements.
-          Accepts: 'BEST_MEASUREMENT', 'LAST_MEASUREMENT' Choose this based on
-            two considerations: A) Do you expect your measurements to
-            monotonically improve? If so, choose 'LAST_MEASUREMENT'. On the
-            other hand, if you're in a situation where your system can
-            "over-train" and you expect the performance to get better for a
-            while but then start declining, choose 'BEST_MEASUREMENT'. B) Are
-            your measurements significantly noisy and/or irreproducible? If
-            so, 'BEST_MEASUREMENT' will tend to be over-optimistic, and it may
-            be better to choose 'LAST_MEASUREMENT'. If both or neither of (A)
-            and (B) apply, it doesn't matter which selection type is chosen.
+        Accepts: 'BEST_MEASUREMENT', 'LAST_MEASUREMENT' Choose this based on
+        two considerations: A) Do you expect your measurements to
+        monotonically improve? If so, choose 'LAST_MEASUREMENT'. On the
+        other hand, if you're in a situation where your system can
+        "over-train" and you expect the performance to get better for a
+        while but then start declining, choose 'BEST_MEASUREMENT'. B) Are
+        your measurements significantly noisy and/or irreproducible? If
+        so, 'BEST_MEASUREMENT' will tend to be over-optimistic, and it may
+        be better to choose 'LAST_MEASUREMENT'. If both or neither of (A)
+        and (B) apply, it doesn't matter which selection type is chosen.
       encryption_spec_key_name: Customer-managed encryption
         key options for a HyperparameterTuningJob. If this is set, then all
         resources created by the HyperparameterTuningJob will be encrypted
@@ -147,8 +147,7 @@ def hyperparameter_tuning_job(
         not peered with any network.
 
   Returns:
-      Serialized gcp_resources proto tracking the Hyperparameter Tuning job.
-      For more details, see
+      Serialized gcp_resources proto tracking the Hyperparameter Tuning job. For more details, see
       https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

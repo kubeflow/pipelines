@@ -68,21 +68,16 @@ def automl_tabular_ensemble(
         `model_without_custom_ops` output.
 
   Returns:
-      gcp_resources: GCP resources created by this component.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see
+        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
       model_architecture: The architecture of the output model.
       model: The output model.
-      model_without_custom_ops: The output model without custom TF operators, this output will be
-          empty unless
-          `export_additional_model_without_custom_ops` is set.
+      model_without_custom_ops: The output model without custom TF operators, this output will be empty unless `export_additional_model_without_custom_ops` is set.
       model_uri: The URI of the output model.
       instance_schema_uri: The URI of the instance schema.
       prediction_schema_uri: The URI of the prediction schema.
-      explanation_metadata: The explanation metadata used by Vertex online and batch
-          explanations.
-      explanation_metadata: The explanation parameters used by Vertex online and batch
-          explanations.
+      explanation_metadata: The explanation metadata used by Vertex online and batch explanations.
+      explanation_metadata: The explanation parameters used by Vertex online and batch explanations.
   """
   # fmt: on
 

@@ -101,9 +101,7 @@ def dataset_preprocessor_error_analysis(
         Analysis pipelines. It is the input source for Feature Extraction
         component. It uses the
         same output format as test_data_items_storage_source.
-      gcp_resources: Serialized gcp_resources proto tracking the custom job.
-
-        For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the custom job. For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

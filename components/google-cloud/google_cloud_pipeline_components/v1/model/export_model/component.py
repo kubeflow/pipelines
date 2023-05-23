@@ -58,20 +58,21 @@ def model_export(
       image_destination: The Google Container Registry or
         Artifact Registry URI where the Model container image will be copied
         to. Accepted forms:  -  Google Container Registry path. For example:
-        ``gcr.io/projectId/imageName:tag``.  -  Artifact Registry path. For
-        example:
-          ``us-central1-docker.pkg.dev/projectId/repoName/imageName:tag``.
-          This field should only be set when, in
-          [Model.supported_export_formats], the value for the key given in
-          `export_format_id` contains ``IMAGE``.
+        ``gcr.io/projectId/imageName:tag``.
+        -  Artifact Registry path.
+
+        For example:
+
+        ``us-central1-docker.pkg.dev/projectId/repoName/imageName:tag``.
+        This field should only be set when, in
+        [Model.supported_export_formats], the value for the key given in
+        `export_format_id` contains ``IMAGE``.
 
   Returns:
       output_info: Details of the completed export with output destination paths to
           the artifacts or container image.
       gcp_resources: Serialized gcp_resources proto tracking the export model's long
-          running operation.
-
-          For more details, see
+          running operation. For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

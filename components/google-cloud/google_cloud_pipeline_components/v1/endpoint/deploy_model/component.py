@@ -75,8 +75,8 @@ def model_deploy(
       dedicated_resources_accelerator_type: Hardware
         accelerator type. Must also set accelerator_count if used. See
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
-          for available options.  This field is required if
-          `dedicated_resources_machine_type` is specified.
+        for available options.  This field is required if
+        `dedicated_resources_machine_type` is specified.
       dedicated_resources_accelerator_count: The number of
         accelerators to attach to a worker replica.
       dedicated_resources_min_replica_count: The minimum
@@ -141,11 +141,7 @@ def model_deploy(
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the deploy model's long
-          running operation.
-
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the deploy model's long running operation. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

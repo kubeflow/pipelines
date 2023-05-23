@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
 from typing import Optional
-from kfp.dsl import Output
-from kfp.dsl import Input
+
+from kfp import dsl
 from kfp.dsl import Artifact
+from kfp.dsl import Input
+from kfp.dsl import Output
 
 
 @dsl.container_component
@@ -32,8 +33,8 @@ def train_tensorflow_text_classification_model(
     random_seed: Optional[int] = 0,
 ):
   # fmt: off
-  """
-  Creates a trained text classification TensorFlow model.
+  """Creates a trained text classification TensorFlow model.
+
   Args:
     preprocessed_training_data_path: Path for the training data for text classification in jsonl format. The data must contain
         'text' (input) and 'label' (output for a prediction) fields.

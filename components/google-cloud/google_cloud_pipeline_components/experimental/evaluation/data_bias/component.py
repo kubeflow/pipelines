@@ -38,6 +38,7 @@ def detect_data_bias(
     columns: list = [],
     encryption_spec_key_name: str = '',
 ):
+  # fmt: off
   """Detects data bias metrics in a dataset.
 
   Args:
@@ -74,6 +75,7 @@ def detect_data_bias(
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
       image='gcr.io/ml-pipeline/model-evaluation:v0.9.1',
       command=[

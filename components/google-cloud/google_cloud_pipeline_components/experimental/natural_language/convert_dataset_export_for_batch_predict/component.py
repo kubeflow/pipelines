@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Component for converting classification text dataset for batch prediction."""
+"""Component for converting classification text dataset for batch.
+
+prediction.
+"""
 from typing import List, NamedTuple
+
 from kfp import dsl
 
 
@@ -49,9 +53,10 @@ def convert_dataset_export_for_batch_predict(
   import collections
   import json
   import os
-  import tensorflow as tf
-  # pylint: enable=g-import-not-at-top
 
+  import tensorflow as tf
+
+  # pylint: enable=g-import-not-at-top
   # pylint: disable=invalid-name
   MULTILABEL_TYPE = "multilabel"
   TEXT_KEY = "text"

@@ -46,9 +46,7 @@ def video_dataset_create(
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          examples:
-              str: "gs://bucket/file.csv"
-              Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
+          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
       import_schema_uri: Points to a YAML file stored on Google Cloud
           Storage describing the import format. Validation will be
           done against the schema. The schema is defined as an
@@ -86,6 +84,7 @@ def video_dataset_create(
           resource is created.
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
+
   Returns:
       video_dataset: Instantiated representation of the managed video dataset resource.
   """

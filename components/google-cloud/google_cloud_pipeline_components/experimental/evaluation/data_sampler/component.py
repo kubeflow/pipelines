@@ -50,7 +50,7 @@ def evaluation_data_sampler(
       gcs_source_uris: Google Cloud Storage URI(-s) to your
         instances to run data sampler on. They must match `instances_format`.
         May contain wildcards. For more information on wildcards, see
-          https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
+        https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
       bigquery_source_uri: Google BigQuery Table URI to your
         instances to run data sampler on.
       instances_format: The format in which instances are given,
@@ -64,7 +64,7 @@ def evaluation_data_sampler(
         https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
       dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More details:
-          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
       dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
       encryption_spec_key_name: Customer-managed encryption key
@@ -77,9 +77,7 @@ def evaluation_data_sampler(
       bigquery_output_table: String of the downsampled dataset BigQuery
         output.
       gcp_resources: Serialized gcp_resources proto tracking the dataflow
-        job.
-
-        For more details, see
+        job. For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

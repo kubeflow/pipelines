@@ -86,9 +86,8 @@ def tabnet_hyperparameter_tuning_job(
         samples.
       eval_frequency_secs: Frequency at which evaluation and
         checkpointing will take place.
-      study_spec_metric_id: Metric to optimize, , possible
-        values: [ 'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy',
-          'auc', 'precision', 'recall'].
+      study_spec_metric_id: Metric to optimize, possible
+        values: [ 'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision', 'recall'].
       study_spec_metric_goal: Optimization goal of the metric,
         possible values: "MAXIMIZE", "MINIMIZE".
       study_spec_parameters_override: List of dictionaries

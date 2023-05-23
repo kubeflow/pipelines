@@ -13,17 +13,15 @@
 # limitations under the License.
 
 
-from google_cloud_pipeline_components import utils
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
 from kfp.dsl import Output
 
 
-@utils.gcpc_output_name_converter('dataset')
 @dsl.container_component
 def get_vertex_dataset(
     dataset_resource_name: str,
-    output__dataset: Output[VertexDataset],
+    dataset: Output[VertexDataset],
     gcp_resources: dsl.OutputPath(str),
 ):
   # fmt: off
@@ -31,6 +29,7 @@ def get_vertex_dataset(
 
   Args:
     dataset_resource_name: Vertex Dataset resource name in the format of projects/{project}/locations/{location}/datasets/{dataset}
+
   Returns:
     dataset: Vertex Dataset artifact with a resourceName attribute in the format of projects/{project}/locations/{location}/datasets/{dataset}
   """

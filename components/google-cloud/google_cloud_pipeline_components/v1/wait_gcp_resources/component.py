@@ -30,17 +30,8 @@ def wait_gcp_resources(
 
   To use this component, first create a component that outputs a JSON formatted gcp_resources proto, then pass it to the wait component.
 
-  dataflow_python_op = gcpc.v1.dataflow.LaunchPythonOp(
-      python_file_path = ...
-  )
-
-  dataflow_wait_op = gcpc.v1.wait_gcp_resources.WaitGcp_ResourcesOp(
-      gcp_resources = dataflow_python_op.outputs["gcp_resources"]
-  )
-
   For details on how to create a Json serialized gcp_resources proto as output, see
   https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto
-
 
   Args:
     gcp_resources: Serialized JSON of gcp_resources proto, indicating the resource to wait on by this component
@@ -48,6 +39,16 @@ def wait_gcp_resources(
 
   Returns:
     gcp_resources: The final result of the gcp resource, including the error information, if exists.
+
+  Examples::
+
+    dataflow_python_op = gcpc.v1.dataflow.LaunchPythonOp(
+        python_file_path = ...
+    )
+
+    dataflow_wait_op = gcpc.v1.wait_gcp_resources.WaitGcp_ResourcesOp(
+        gcp_resources = dataflow_python_op.outputs["gcp_resources"]
+    )
   """
   # fmt: on
   return dsl.ContainerSpec(

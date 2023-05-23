@@ -49,7 +49,7 @@ def custom_training_job(
         worker pools including machine type and Docker image. All worker pools
         except the first one are optional and can be skipped by providing an
         empty value.  For more details about the WorkerPoolSpec, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec
       timeout: The maximum job running time. The default is 7
         days. A duration in seconds with up to nine fractional digits,
         terminated by 's', for example: "3.5s".
@@ -86,7 +86,7 @@ def custom_training_job(
       base_output_directory: The Cloud Storage location to store
         the output of this CustomJob or HyperparameterTuningJob. see below for
         more details:
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
       labels:
         The labels with user-defined metadata
         to organize CustomJobs. See https://goo.gl/xmQnxf for more information.
@@ -95,10 +95,7 @@ def custom_training_job(
         the CustomJob will be encrypted with the provided encryption key.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the batch prediction job.
-
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the batch prediction job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return dsl.ContainerSpec(

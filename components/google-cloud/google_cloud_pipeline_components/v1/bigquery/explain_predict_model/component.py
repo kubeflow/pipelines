@@ -62,7 +62,7 @@ def bigquery_explain_predict_model_job(
         feature attribution pairs are generated per row of input data. The
         features are ranked by the absolute values of their attributions. For
         more details, see
-          https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-predict#top_k_features
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-predict#top_k_features
       threshold: A custom threshold for the binary logistic
         regression model used as the cutoff between two labels. Predictions
         above the threshold are treated as positive prediction. Predictions

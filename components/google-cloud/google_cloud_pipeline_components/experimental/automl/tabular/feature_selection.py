@@ -61,7 +61,7 @@ def tabular_feature_ranking_and_selection(
       dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More
         details:
-          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
       dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
       dataflow_service_account: Custom service account to run
@@ -78,8 +78,8 @@ def tabular_feature_ranking_and_selection(
       feature_ranking: the dictionary of feature names and feature ranking values.
       selected_features: A json array of selected feature names.
       gcp_resources: GCP resources created by this component.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
+        For more details, see
+        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 

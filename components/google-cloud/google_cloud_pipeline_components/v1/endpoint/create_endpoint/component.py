@@ -72,11 +72,7 @@ def endpoint_create(
 
   Returns:
       endpoint: Artifact tracking the created endpoint.
-      gcp_resources: Serialized gcp_resources proto tracking the create endpoint's long
-          running operation.
-
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the create endpoint's long running operation. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

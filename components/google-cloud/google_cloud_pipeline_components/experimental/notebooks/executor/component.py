@@ -89,11 +89,6 @@ def notebooks_executor(
       State of the execution. Empty if there is an error.
     output_notebook_file:
       Path of the executed notebook. Empty if there is an error.
-    error:
-      Error message if any.
-
-  Raises:
-    RuntimeError with the error message.
   """
   # fmt: on
 

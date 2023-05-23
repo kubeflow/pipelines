@@ -52,7 +52,7 @@ def bigquery_ml_recommend_job(
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_model_name
       table_name: BigQuery table id of the input table that
         contains the the user and/or item data. For more details, see
-      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_table_name
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_table_name
       query_statement: query statement string used to generate
         the evaluation data. For more details, see
       https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_query_statement
@@ -83,8 +83,7 @@ def bigquery_ml_recommend_job(
         response size.
         For queries that produce anonymous (cached) results, this field will
         be populated by BigQuery.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on

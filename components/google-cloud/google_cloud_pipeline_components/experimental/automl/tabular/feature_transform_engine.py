@@ -554,7 +554,7 @@ def feature_transform_engine(
         on each Dataflow worker instance. If not set, default to 40.
       dataflow_subnetwork: Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More details:
-          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
       dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
       dataflow_service_account: Custom service account to run
@@ -567,25 +567,14 @@ def feature_transform_engine(
       dataset_stats: The stats of the dataset.
       materialized_data: The materialized dataset.
       transform_output: The transform output artifact.
-      split_example_counts: JSON string of data split example counts for train, validate, and test
-          splits.
-      bigquery_test_split_uri: BigQuery URI for the test split to pass to the batch prediction
-          component during
-          evaluation.
-      bigquery_downsampled_test_split_uri: BigQuery URI for the downsampled test split to pass to the batch
-          prediction component
-          during batch explain.
+      split_example_counts: JSON string of data split example counts for train, validate, and test splits.
+      bigquery_test_split_uri: BigQuery URI for the test split to pass to the batch prediction component during evaluation.
+      bigquery_downsampled_test_split_uri: BigQuery URI for the downsampled test split to pass to the batch prediction component during batch explain.
       instance_schema_path: Schema of input data to the tf_model at serving time.
       training_schema_path: Schema of input data to the tf_model at training time.
-      feature_ranking: The ranking of features, all features supported in the dataset will be
-          included.
-
-          for "AMI" algorithm, array features won't be available in the ranking
-          as arrays are not
-          supported yet.
-      gcp_resources: GCP resources created by this component.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      feature_ranking: The ranking of features, all features supported in the dataset will be included. for "AMI" algorithm, array features won't be available in the ranking as arrays are not supported yet.
+      gcp_resources: GCP resources created by this component. For more details, see
+        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 

@@ -41,21 +41,24 @@ def automl_video_training_job(
     model_labels: Optional[dict] = None,
 ):
   # fmt: off
-  """
-    Runs the AutoML Video training job and returns a model.
+  """Runs the AutoML Video training job and returns a model.
+
   If training on a Vertex AI dataset, you can use one of the following split configurations:
-      Data fraction splits:
-      ``training_fraction_split``, and ``test_fraction_split`` may optionally
-      be provided, they must sum to up to 1. If none of the fractions are set,
-      by default roughly 80% of data will be used for training, and 20% for test.
-      Data filter splits:
-      Assigns input data to training, validation, and test sets
-      based on the given filters, data pieces not matched by any
-      filter are ignored. Currently only supported for Datasets
-      containing DataItems.
-      If any of the filters in this message are to match nothing, then
-      they can be set as '-' (the minus sign).
-      Supported only for unstructured Datasets.
+
+  Data fraction splits:
+  ``training_fraction_split``, and ``test_fraction_split`` may optionally
+  be provided, they must sum to up to 1. If none of the fractions are set,
+  by default roughly 80% of data will be used for training, and 20% for test.
+  Data filter splits:
+  Assigns input data to training, validation, and test sets
+  based on the given filters, data pieces not matched by any
+  filter are ignored. Currently only supported for Datasets
+  containing DataItems.
+  If any of the filters in this message are to match nothing, then
+  they can be set as '-' (the minus sign).
+
+  Supported only for unstructured Datasets.
+
   Args:
       dataset: The dataset within the same Project from which data will be used to train the Model. The
           Dataset must use schema compatible with Model being trained,
@@ -82,14 +85,9 @@ def automl_video_training_job(
           and examples of labels.
       display_name: The user-defined name of this TrainingPipeline.
       prediction_type: The type of prediction the Model is to produce, one of:
-              "classification" - A video classification model classifies shots
-                  and segments in your videos according to your own defined labels.
-              "object_tracking" - A video object tracking model detects and tracks
-                  multiple objects in shots and segments. You can use these
-                  models to track objects in your videos according to your
-                  own pre-defined, custom labels.
-              "action_recognition" - A video action reconition model pinpoints
-                  the location of actions with short temporal durations (~1 second).
+              "classification" - A video classification model classifies shots and segments in your videos according to your own defined labels.
+              "object_tracking" - A video object tracking model detects and tracks multiple objects in shots and segments. You can use these models to track objects in your videos according to your own pre-defined, custom labels.
+              "action_recognition" - A video action reconition model pinpoints the location of actions with short temporal durations (~1 second).
       model_type: str = "CLOUD"
           One of the following:
               "CLOUD" - available for "classification", "object_tracking" and "action_recognition"
@@ -114,7 +112,7 @@ def automl_video_training_job(
                   A model that trades off quality for low latency, to be
                   exported (see ModelService.ExportModel) and used on an
                   NVIDIA Jetson device.
-      project: project to retrieve dataset from.
+      project: Project to retrieve dataset from.
       location: Optional location to retrieve dataset from.
       labels: The labels with user-defined metadata to
           organize TrainingPipelines.
@@ -143,10 +141,10 @@ def automl_video_training_job(
           resource is created.
           If set, the trained Model will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
+
   Returns:
       model: The trained Vertex AI Model resource or None if training did not
           produce a Vertex AI Model.
-
   """
   # fmt`:` on
 

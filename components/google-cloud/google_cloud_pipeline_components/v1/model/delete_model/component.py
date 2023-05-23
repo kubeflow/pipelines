@@ -29,9 +29,7 @@ def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
       model: The model to be deleted.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the delete model's long running operation.
-
-          For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the delete model's long running operation. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return dsl.ContainerSpec(

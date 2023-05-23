@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import inspect
+import re
 from typing import List
 
 import docstring_parser
@@ -253,9 +254,7 @@ def get_return_section(component) -> List[str]:
                 type_hints.get(
                     param.arg_name,
                     type_hints.get(
-                        param.arg_name.strip(
-                            utils.DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX
-                        ),
+                        param.arg_name,
                         'Unknown',
                     ),
                 )
@@ -265,13 +264,28 @@ def get_return_section(component) -> List[str]:
         )
         new_docstring_lines.extend(
             make_docstring_lines_for_param(
-                param_name=param.arg_name,
+                param_name=param.arg_name.lstrip(
+                    utils.DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX
+                ),
                 type_string=type_string,
                 description=param.description,
             )
         )
       return new_docstring_lines
   return []
+
+
+def remove__output_prefix_from_signature(
+    app, what, name, obj, options, signature, return_annotation
+):
+  if signature is not None:
+    signature = re.sub(
+        rf'{utils.DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX}(\w+):',
+        r'\1:',
+        signature,
+    )
+  return signature, return_annotation
+
 
 def remove_after_returns_in_place(lines: List[str]) -> bool:
   for i in range(len(lines)):
@@ -290,5 +304,9 @@ def process_named_docstring_returns(app, what, name, obj, options, lines):
 
 def setup(app):
   app.connect('autodoc-process-docstring', process_named_docstring_returns)
+  app.connect(
+      'autodoc-process-signature',
+      remove__output_prefix_from_signature,
+  )
   app.connect('autodocsumm-grouper', component_grouper)
   app.connect('autodoc-skip-member', autodoc_skip_member)

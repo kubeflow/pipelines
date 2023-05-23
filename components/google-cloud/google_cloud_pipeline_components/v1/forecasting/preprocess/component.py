@@ -42,7 +42,7 @@ def forecasting_preprocessing(
     location: Optional location for the BigQuery data, default is US.
 
   Returns:
-    preprocess_metadata (JsonObject)
+    preprocess_metadata
   """
   # fmt: on
 

@@ -37,7 +37,9 @@ def evaluated_annotation(
     dataflow_use_public_ips: Optional[bool] = True,
     encryption_spec_key_name: Optional[str] = '',
 ):
-  """Computes the Evaluated Annotations of a dataset for a model's prediction results.
+  # fmt: off
+  """Computes the Evaluated Annotations of a dataset for a model's prediction
+  results.
 
   Predicted labels are categorized into TruePositive(TP) or FalsePositive(FP) or
   FalseNegative(FN) based on their ground truth annotations.
@@ -80,7 +82,6 @@ def evaluated_annotation(
           String representing the GCS URI of the computed evaluated annotations.
   """
   # fmt: on
-
   return dsl.ContainerSpec(
       image='gcr.io/ml-pipeline/model-evaluation:v0.9',
       command=['python', '/main.py'],

@@ -18,11 +18,12 @@ import json
 import re
 from typing import Any, List, Optional
 
-from google.protobuf import json_format
 from kfp import components
 # note: this is a slight dependency on KFP SDK implementation details
 # other code should not similarly depend on the stability of kfp.placeholders
 from kfp.components import placeholders
+
+from google.protobuf import json_format
 
 DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX = "output__"
 
@@ -261,7 +262,7 @@ def gcpc_output_name_converter(
 
       return pipeline_spec
 
-    return components.load_component_from_text(
+    reloaded_component = components.load_component_from_text(
         json_format.MessageToJson(
             get_modified_pipeline_spec(
                 comp.pipeline_spec,
@@ -270,5 +271,8 @@ def gcpc_output_name_converter(
             )
         )
     )
+    reloaded_component.__doc__ = comp.pipeline_func.__doc__
+    reloaded_component.__annotations__ = comp.pipeline_func.__annotations__
+    return reloaded_component
 
   return converter
