@@ -35,6 +35,7 @@ def evaluation_data_sampler(
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    force_direct_runner: bool = False,
 ):
   # fmt: off
   """Randomly downsamples an input dataset to a specified size.
@@ -70,6 +71,9 @@ def evaluation_data_sampler(
       encryption_spec_key_name: Customer-managed encryption key
         for the Dataflow job. If this is set, then all resources created by the
         Dataflow job will be encrypted with the provided encryption key.
+      force_direct_runner: Flag to use Beam DirectRunner. If set to true,
+        use Apache Beam DirectRunner to execute the task locally instead of
+        launching a Dataflow job.
 
   Returns:
       gcs_output_directory: JsonArray of the downsampled dataset GCS
@@ -116,6 +120,8 @@ def evaluation_data_sampler(
           dataflow_use_public_ips,
           '--kms_key_name',
           encryption_spec_key_name,
+          '--force_direct_runner',
+          force_direct_runner,
           '--gcs_directory_for_gcs_output_uris',
           gcs_output_directory,
           '--gcs_directory_for_bigquery_output_table_uri',
