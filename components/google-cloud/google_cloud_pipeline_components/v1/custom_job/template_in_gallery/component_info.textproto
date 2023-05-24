@@ -17,7 +17,4 @@ upload_template_request {
   # http://google3/third_party/py/google_cloud_pipeline_components/google_cloud_pipeline_components/google/template_in_gallery_test/python/component.py;rcl=529459116.
   description: "Launch a Custom training job using Vertex CustomJob API."
 }
-component_info {
-  component_type: "gcpc-serverless-custom-job-launcher"
-}
 pipeline_func: "google_cloud_pipeline_components.v1.custom_job.CustomTrainingJobOp"
