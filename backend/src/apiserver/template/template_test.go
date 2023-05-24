@@ -15,6 +15,7 @@
 package template
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
+	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -105,7 +107,7 @@ kind: CronWorkflow`,
 	for _, test := range tt {
 		format := inferTemplateFormat([]byte(test.template))
 		if format != test.templateType {
-			t.Errorf("InferSpecFormat(%s)=%q, expect %q", test.template, format, test.templateType)
+			t.Errorf("InferTemplateFormat(%s)=%q, expect %q", test.template, format, test.templateType)
 		}
 	}
 }
@@ -190,7 +192,7 @@ func TestScheduledWorkflow(t *testing.T) {
 			PipelineName:         "pipeline name",
 			PipelineSpecManifest: v2SpecHelloWorldYAML,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters: "{\"text\":\"world\"}",
+				Parameters: "{\"y\":\"world\"}",
 			},
 		},
 	}
@@ -212,7 +214,7 @@ func TestScheduledWorkflow(t *testing.T) {
 				},
 			},
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: []scheduledworkflow.Parameter{{Name: "text", Value: "\"world\""}},
+				Parameters: []scheduledworkflow.Parameter{{Name: "y", Value: "\"world\""}},
 				Spec:       "",
 			},
 			NoCatchup: util.BoolPointer(true),
@@ -267,9 +269,14 @@ func TestIsPlatformSpecWithKubernetesConfig(t *testing.T) {
 
 func TestNewTemplate_V2(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world.yaml")
-	expectedSpecJson, _ := yaml.YAMLToJSON([]byte(template))
+	var yamlData map[string]interface{}
+	err := goyaml.Unmarshal([]byte(template), &yamlData)
+	assert.Nil(t, err)
+	jsonData, err := json.Marshal(yamlData)
+	assert.Nil(t, err)
 	var expectedSpec pipelinespec.PipelineSpec
-	protojson.Unmarshal(expectedSpecJson, &expectedSpec)
+	err = protojson.Unmarshal(jsonData, &expectedSpec)
+	assert.Nil(t, err)
 	expectedTemplate := &V2Spec{
 		spec: &expectedSpec,
 	}
@@ -284,11 +291,19 @@ func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 	var expectedPlatformSpec pipelinespec.PlatformSpec
 
 	splitTemplate := strings.Split(template, "\n---\n")
-	expectedSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
-	protojson.Unmarshal(expectedSpecJson, &expectedPipelineSpec)
+	var pipelineSpecData map[string]interface{}
+	err := goyaml.Unmarshal([]byte(splitTemplate[0]), &pipelineSpecData)
+	assert.Nil(t, err)
+	jsonData, err := json.Marshal(pipelineSpecData)
+	assert.Nil(t, err)
+	protojson.Unmarshal(jsonData, &expectedPipelineSpec)
 
-	expectedPlatformSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[1]))
-	protojson.Unmarshal(expectedPlatformSpecJson, &expectedPlatformSpec)
+	var platformSpecData map[string]interface{}
+	err = goyaml.Unmarshal([]byte(splitTemplate[1]), &platformSpecData)
+	assert.Nil(t, err)
+	jsonData, err = json.Marshal(platformSpecData)
+	assert.Nil(t, err)
+	protojson.Unmarshal(jsonData, &expectedPlatformSpec)
 
 	expectedTemplate := &V2Spec{
 		spec:         &expectedPipelineSpec,
@@ -301,11 +316,7 @@ func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 
 func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world_schema_2_0_0.yaml")
-	expectedSpecJson, _ := yaml.YAMLToJSON([]byte(template))
-	var expectedSpec pipelinespec.PipelineSpec
-	err := protojson.Unmarshal(expectedSpecJson, &expectedSpec)
-	assert.Nil(t, err)
-	_, err = New([]byte(template))
+	_, err := New([]byte(template))
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "KFP only supports schema version 2.1.0")
 }
