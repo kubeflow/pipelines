@@ -152,7 +152,7 @@
                     },
                     "restart_job_on_worker_restart":{
                        "runtimeValue":{
-                          "constant":1.0
+                          "constant":true
                        }
                     },
                     "reserved_ip_ranges":{
@@ -201,7 +201,7 @@
                     },
                     "enable_web_access":{
                        "runtimeValue":{
-                          "constant":1.0
+                          "constant":true
                        }
                     }
                  }

@@ -349,7 +349,7 @@ root:
                 - gs://test_gcs_source
             generate_explanation:
               runtimeValue:
-                constant: 1.0
+                constant: true
             included_fields:
               runtimeValue:
                 constant: [field1, field2]

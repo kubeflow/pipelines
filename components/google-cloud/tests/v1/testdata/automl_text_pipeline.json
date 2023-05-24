@@ -393,7 +393,7 @@
                },
                "multi_label": {
                  "runtimeValue": {
-                   "constant": 1.0
+                   "constant": true
                  }
                },
                "prediction_type": {
