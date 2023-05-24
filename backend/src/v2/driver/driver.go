@@ -1337,11 +1337,13 @@ func createPVC(
 	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
 
 	// Create a cache entry
-	id := createdExecution.GetID()
-	if id == 0 {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
-	}
-	err = createCache(ctx, id, opts, taskStartedTime, fingerPrint, cacheClient)
+	/*
+		id := createdExecution.GetID()
+		if id == 0 {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
+		}
+	*/
+	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for create pvc: %w", err)
 	}
@@ -1443,12 +1445,14 @@ func deletePVC(
 
 	glog.Infof("Deleted PVC %s\n", pvcName)
 
-	// Create a cache entry
-	id := createdExecution.GetID()
-	if id == 0 {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
-	}
-	err = createCache(ctx, id, opts, taskStartedTime, fingerPrint, cacheClient)
+	/*
+		// Create a cache entry
+		id := createdExecution.GetID()
+		if id == 0 {
+			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
+		}
+	*/
+	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for delete pvc: %w", err)
 	}
@@ -1556,12 +1560,16 @@ func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient *cach
 
 func createCache(
 	ctx context.Context,
-	id int64,
+	execution *metadata.Execution,
 	opts *Options,
 	taskStartedTime int64,
 	fingerPrint string,
 	cacheClient *cacheutils.Client,
 ) error {
+	id := execution.GetID()
+	if id == 0 {
+		fmt.Errorf("failed to get id from createdExecution")
+	}
 	task := &api.Task{
 		//TODO how to differentiate between shared pipeline and namespaced pipeline
 		PipelineName:    "pipeline/" + opts.PipelineName,
