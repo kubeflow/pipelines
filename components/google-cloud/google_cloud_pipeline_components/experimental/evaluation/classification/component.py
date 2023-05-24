@@ -56,6 +56,7 @@ def model_evaluation_classification(
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    force_direct_runner: bool = False,
 ):
   # fmt: off
   """Computes a google.ClassificationMetrics Artifact, containing evaluation
@@ -162,6 +163,9 @@ def model_evaluation_classification(
       dataflow_use_public_ips: Specifies whether Dataflow
         workers use public IP addresses.
       encryption_spec_key_name: Customer-managed encryption key.
+      force_direct_runner: Flag to use Beam DirectRunner. If set to true,
+        use Apache Beam DirectRunner to execute the task locally instead of
+        launching a Dataflow job.
 
   Returns:
       evaluation_metrics:
@@ -264,6 +268,8 @@ def model_evaluation_classification(
           dataflow_use_public_ips,
           '--kms_key_name',
           encryption_spec_key_name,
+          '--force_direct_runner',
+          force_direct_runner,
           '--output_metrics_gcs_path',
           evaluation_metrics.path,
           '--gcp_resources',
