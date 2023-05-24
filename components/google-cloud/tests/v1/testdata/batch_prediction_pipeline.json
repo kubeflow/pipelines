@@ -385,7 +385,7 @@
                           },
                           "generate_explanation": {
                               "runtimeValue": {
-                                  "constant": 1.0
+                                  "constant": true
                               }
                           },
                           "included_fields": {

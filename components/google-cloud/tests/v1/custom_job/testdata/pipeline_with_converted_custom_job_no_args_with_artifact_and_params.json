@@ -6,26 +6,6 @@
    "schemaVersion":"2.1.0",
    "deploymentSpec":{
       "executors":{
-         "exec-make-artifact":{
-            "container":{
-               "image":"python:3.7",
-               "args":[
-                  "--executor_input",
-                  "{{$}}",
-                  "--function_to_execute",
-                  "make_artifact"
-               ],
-               "command":[
-                  "sh",
-                  "-c",
-                  "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14' && \"$0\" \"$@\"\n",
-                  "sh",
-                  "-ec",
-                  "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-                  "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef make_artifact(\n    out_artifact: Output[Artifact],\n):\n  ...\n\n"
-               ]
-            }
-         },
          "exec-dummy-component":{
             "container":{
                "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3",
@@ -48,10 +28,43 @@
                   "{{$.outputs.parameters['gcp_resources'].output_file}}"
                ]
             }
+         },
+         "exec-make-artifact":{
+            "container":{
+               "command":[
+                  "sh",
+                  "-c",
+                  "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\n",
+                  "sh",
+                  "-ec",
+                  "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+                  "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef make_artifact(\n    out_artifact: Output[Artifact],\n):\n  ...\n\n"
+               ],
+               "image":"python:3.7",
+               "args":[
+                  "--executor_input",
+                  "{{$}}",
+                  "--function_to_execute",
+                  "make_artifact"
+               ]
+            }
          }
       }
    },
    "components":{
+      "comp-make-artifact":{
+         "outputDefinitions":{
+            "artifacts":{
+               "out_artifact":{
+                  "artifactType":{
+                     "schemaTitle":"system.Artifact",
+                     "schemaVersion":"0.0.1"
+                  }
+               }
+            }
+         },
+         "executorLabel":"exec-make-artifact"
+      },
       "comp-dummy-component":{
          "inputDefinitions":{
             "artifacts":{
@@ -63,69 +76,7 @@
                }
             },
             "parameters":{
-               "enable_web_access":{
-                  "parameterType":"BOOLEAN",
-                  "defaultValue":false,
-                  "isOptional":true
-               },
-               "in_param":{
-                  "parameterType":"NUMBER_INTEGER"
-               },
-               "reserved_ip_ranges":{
-                  "parameterType":"LIST",
-                  "defaultValue":[
-
-                  ],
-                  "isOptional":true
-               },
-               "display_name":{
-                  "parameterType":"STRING",
-                  "defaultValue":"dummy-component",
-                  "isOptional":true
-               },
-               "tensorboard":{
-                  "parameterType":"STRING",
-                  "defaultValue":"",
-                  "isOptional":true
-               },
-               "worker_pool_specs":{
-                  "parameterType":"LIST",
-                  "defaultValue":[
-                     {
-                        "container_spec":{
-                           "command":[
-                              "sh",
-                              "-c",
-                              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14' && \"$0\" \"$@\"\n",
-                              "sh",
-                              "-ec",
-                              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-                              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef dummy_component(\n    in_param: int,\n    in_artifact: Input[Artifact],\n    out_artifact: Output[Artifact],\n) -> str:\n  pass\n\n"
-                           ],
-                           "args":[
-                              "--executor_input",
-                              "{{$.json_escape[1]}}",
-                              "--function_to_execute",
-                              "dummy_component"
-                           ],
-                           "image_uri":"python:3.7"
-                        },
-                        "replica_count":1.0,
-                        "disk_spec":{
-                           "boot_disk_type":"pd-ssd",
-                           "boot_disk_size_gb":100.0
-                        },
-                        "machine_spec":{
-                           "machine_type":"n1-standard-4"
-                        }
-                     }
-                  ],
-                  "isOptional":true
-               },
-               "project":{
-                  "parameterType":"STRING"
-               },
-               "encryption_spec_key_name":{
+               "service_account":{
                   "parameterType":"STRING",
                   "defaultValue":"",
                   "isOptional":true
@@ -140,9 +91,21 @@
                   "defaultValue":false,
                   "isOptional":true
                },
+               "base_output_directory":{
+                  "parameterType":"STRING",
+                  "defaultValue":"",
+                  "isOptional":true
+               },
                "location":{
                   "parameterType":"STRING",
                   "defaultValue":"us-central1",
+                  "isOptional":true
+               },
+               "reserved_ip_ranges":{
+                  "parameterType":"LIST",
+                  "defaultValue":[
+
+                  ],
                   "isOptional":true
                },
                "labels":{
@@ -152,9 +115,9 @@
                   },
                   "isOptional":true
                },
-               "base_output_directory":{
-                  "parameterType":"STRING",
-                  "defaultValue":"",
+               "enable_web_access":{
+                  "parameterType":"BOOLEAN",
+                  "defaultValue":false,
                   "isOptional":true
                },
                "network":{
@@ -162,7 +125,49 @@
                   "defaultValue":"",
                   "isOptional":true
                },
-               "service_account":{
+               "encryption_spec_key_name":{
+                  "parameterType":"STRING",
+                  "defaultValue":"",
+                  "isOptional":true
+               },
+               "project":{
+                  "parameterType":"STRING"
+               },
+               "display_name":{
+                  "parameterType":"STRING",
+                  "defaultValue":"dummy-component",
+                  "isOptional":true
+               },
+               "in_param":{
+                  "parameterType":"NUMBER_INTEGER"
+               },
+               "worker_pool_specs":{
+                  "parameterType":"LIST",
+                  "defaultValue":[
+                     {
+                        "replica_count":1.0,
+                        "container_spec":{
+                           "command":[
+                              "echo",
+                              "{{$.inputs.parameters['in_param']}}"
+                           ],
+                           "image_uri":"alpine",
+                           "args":[
+
+                           ]
+                        },
+                        "disk_spec":{
+                           "boot_disk_size_gb":100.0,
+                           "boot_disk_type":"pd-ssd"
+                        },
+                        "machine_spec":{
+                           "machine_type":"n1-standard-4"
+                        }
+                     }
+                  ],
+                  "isOptional":true
+               },
+               "tensorboard":{
                   "parameterType":"STRING",
                   "defaultValue":"",
                   "isOptional":true
@@ -179,33 +184,28 @@
                }
             },
             "parameters":{
-               "Output":{
-                  "parameterType":"STRING"
-               },
                "gcp_resources":{
                   "parameterType":"STRING"
                }
             }
          },
          "executorLabel":"exec-dummy-component"
-      },
-      "comp-make-artifact":{
-         "outputDefinitions":{
-            "artifacts":{
-               "out_artifact":{
-                  "artifactType":{
-                     "schemaTitle":"system.Artifact",
-                     "schemaVersion":"0.0.1"
-                  }
-               }
-            }
-         },
-         "executorLabel":"exec-make-artifact"
       }
    },
    "root":{
       "dag":{
          "tasks":{
+            "make-artifact":{
+               "taskInfo":{
+                  "name":"make-artifact"
+               },
+               "cachingOptions":{
+                  "enableCache":true
+               },
+               "componentRef":{
+                  "name":"comp-make-artifact"
+               }
+            },
             "dummy-component":{
                "taskInfo":{
                   "name":"dummy-component"
@@ -245,17 +245,6 @@
                },
                "componentRef":{
                   "name":"comp-dummy-component"
-               }
-            },
-            "make-artifact":{
-               "taskInfo":{
-                  "name":"make-artifact"
-               },
-               "cachingOptions":{
-                  "enableCache":true
-               },
-               "componentRef":{
-                  "name":"comp-make-artifact"
                }
             }
          }
