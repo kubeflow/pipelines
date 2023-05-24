@@ -1341,23 +1341,6 @@ func createPVC(
 	if id == 0 {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
 	}
-	/*
-		task := &api.Task{
-			//TODO how to differentiate between shared pipeline and namespaced pipeline
-			PipelineName:    "pipeline/" + opts.PipelineName,
-			Namespace:       opts.Namespace,
-			RunId:           opts.RunID,
-			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       &timestamp.Timestamp{Seconds: taskStartedTime},
-			FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
-			Fingerprint:     fingerPrint,
-		}
-		err = cacheClient.CreateExecutionCache(ctx, task)
-		if err != nil {
-			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for create pvc: %w", err)
-		}
-		glog.Infof("Created cache entry.")
-	*/
 	err = createCache(ctx, id, opts, taskStartedTime, fingerPrint, cacheClient)
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for create pvc: %w", err)
@@ -1465,23 +1448,6 @@ func deletePVC(
 	if id == 0 {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
 	}
-	/*
-		task := &api.Task{
-			//TODO how to differentiate between shared pipeline and namespaced pipeline
-			PipelineName:    "pipeline/" + opts.PipelineName,
-			Namespace:       opts.Namespace,
-			RunId:           opts.RunID,
-			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       &timestamp.Timestamp{Seconds: taskStartedTime},
-			FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
-			Fingerprint:     fingerPrint,
-		}
-		err = cacheClient.CreateExecutionCache(ctx, task)
-		if err != nil {
-			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for delete pvc: %w", err)
-		}
-		glog.Infof("Created cache entry.")
-	*/
 	err = createCache(ctx, id, opts, taskStartedTime, fingerPrint, cacheClient)
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for delete pvc: %w", err)
