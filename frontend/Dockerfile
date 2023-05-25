@@ -23,7 +23,8 @@ RUN mkdir -p ./server/dist && \
 
 # Generate the dependency licenses files (one for the UI and one for the webserver),
 # concatenate them to one file under ./src/server
-RUN ./scripts/yarn-licenses.sh
+# TODO(chensun): temporarily disable license tool, recover before GA.
+# RUN ./scripts/yarn-licenses.sh
 
 FROM node:14.21.3-alpine3.17
 
