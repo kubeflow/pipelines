@@ -938,6 +938,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         {
           pipeline: uploadedPipeline,
           pipelineName: (uploadedPipeline && uploadedPipeline.name) || '',
+          unconfirmedSelectedPipeline: uploadedPipeline,
           pipelineSelectorOpen: false,
           uploadDialogOpen: false,
         },
