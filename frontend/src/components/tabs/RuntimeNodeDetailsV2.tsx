@@ -26,7 +26,7 @@ import {
 import { useQuery } from 'react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
-import { Apis } from 'src/lib/Apis';
+import {Apis, JSONArray, JSONObject} from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage } from 'src/lib/Utils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
@@ -51,11 +51,25 @@ import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputO
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import EventsList from "../EventsList";
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
+
+export type KubernetesEvent = {
+  message: string;
+
+  name: string;
+  lastTimestamp: string;
+  type: string;
+  source: {
+    component: string;
+    host: string;
+  };
+  count: number;
+}
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -149,7 +163,7 @@ function TaskNodeDetail({
   namespace,
 }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>(
-    [execution],
+    [execution, "logs"],
     async () => {
       if (!execution) {
         throw new Error('No execution is found.');
@@ -157,6 +171,17 @@ function TaskNodeDetail({
       return await getLogsInfo(execution, runId);
     },
     { enabled: !!execution },
+  );
+
+  const { data: podEvents } = useQuery<KubernetesEvent[], Error>(
+      [execution, "events"],
+      async () => {
+        if (!execution) {
+          throw new Error('No execution is found.');
+        }
+        return await getPodEvents(execution);
+      },
+      { enabled: !!execution },
   );
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
@@ -168,7 +193,7 @@ function TaskNodeDetail({
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs', 'Events']}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -206,6 +231,17 @@ function TaskNodeDetail({
               </div>
             )}
           </div>
+        )}
+        {/* Events tab */}
+        {selectedTab === 3 && (
+            podEvents?(
+                    <EventsList events={podEvents} />
+            ):
+                (
+                    <React.Fragment>
+                      <Banner message={"banner message"} additionalInfo={"additionalInfo"} />
+                    </React.Fragment>
+                )
         )}
       </div>
     </div>
@@ -329,6 +365,22 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
   }
   return logsInfo;
 }
+
+
+async function getPodEvents(execution: Execution): Promise<KubernetesEvent[]> {
+  let podName = '';
+  let podNameSpace = '';
+  const customPropertiesMap = execution.getCustomPropertiesMap();
+
+  if (execution) {
+    podName = customPropertiesMap.get(KfpExecutionProperties.POD_NAME)?.getStringValue() || '';
+    podNameSpace = customPropertiesMap.get('namespace')?.getStringValue() || '';
+  }
+
+  const podEvents: JSONObject = await Apis.getPodEvents(podName, podNameSpace);
+  return (podEvents["items"] as JSONArray) as KubernetesEvent[]
+}
+
 
 interface ArtifactNodeDetailProps {
   execution?: Execution;
