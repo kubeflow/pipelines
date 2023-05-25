@@ -59,6 +59,7 @@ export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
 
 export type KubernetesEvent = {
+  creationTimestamp: string;
   message: string;
 
   name: string;
