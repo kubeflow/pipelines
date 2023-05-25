@@ -843,9 +843,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         pipelineSelectorOpen: false,
         pipelineVersion,
         pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
-        runName: this._getRunNameFromPipelineVersion(
-          (pipelineVersion && pipelineVersion.name) || '',
-        ),
+        runName: pipelineVersion?.name
+          ? this._getRunNameFromPipelineVersion(pipelineVersion.name)
+          : '',
       },
       () => this._validate(),
     );
