@@ -16,26 +16,26 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import { NewRun } from './NewRun';
-import TestUtils from '../TestUtils';
+import { NewRun } from 'src/pages/NewRun';
+import TestUtils from 'src/TestUtils';
 import { shallow, ShallowWrapper, ReactWrapper, mount } from 'enzyme';
-import { PageProps } from './Page';
-import { Apis } from '../lib/Apis';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ApiExperiment, ApiListExperimentsResponse } from '../apis/experiment';
+import { PageProps } from 'src/pages/Page';
+import { Apis } from 'src/lib/Apis';
+import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
+import { ApiExperiment, ApiListExperimentsResponse } from 'src/apis/experiment';
 import {
   ApiListPipelinesResponse,
   ApiListPipelineVersionsResponse,
   ApiPipeline,
   ApiPipelineVersion,
-} from '../apis/pipeline';
-import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
+} from 'src/apis/pipeline';
+import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from 'src/apis/run';
 import { MemoryRouter } from 'react-router';
-import { logger } from '../lib/Utils';
-import { NamespaceContext } from '../lib/KubeflowClient';
+import { logger } from 'src/lib/Utils';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiExperimentStorageState } from '../apis/experiment';
+import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiJob } from 'src/apis/job';
 
 class TestNewRun extends NewRun {
@@ -598,6 +598,41 @@ describe('NewRun', () => {
       await screen.findByDisplayValue((content, _) =>
         content.startsWith(`Run of ${newPipelineVersion.name}`),
       );
+    });
+
+    it('enables choose button for pipeline version after pipeline is uploaded from selector', async () => {
+      const uploadPipelineSpy = jest
+        .spyOn(Apis, 'uploadPipeline')
+        .mockImplementation(() => MOCK_PIPELINE);
+      render(<NewRun {...(generateProps() as any)} />);
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // Choose button is disabled in the beginning
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+
+      const choosePipelineBtn = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineBtn); // Open pipeline selector
+
+      const uploadPipelineBtn = screen.getByText('Upload pipeline');
+      fireEvent.click(uploadPipelineBtn); // Open upload pipeline dialog
+
+      // mock drop file from local.
+      const uploadFile = await screen.findByText(/File/);
+      const file = new File(['file contents'], 'test-pipeline.yaml', { type: 'text/yaml' });
+      Object.defineProperty(uploadFile, 'files', {
+        value: [file],
+      });
+      fireEvent.drop(uploadFile);
+
+      const uploadBtn = await screen.findByText('Upload');
+      expect(uploadBtn.closest('button')?.disabled).toEqual(false);
+      fireEvent.click(uploadBtn);
+
+      await waitFor(() => {
+        expect(uploadPipelineSpy).toHaveBeenCalled();
+      });
+
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
     });
 
     it('does not set the pipeline from the selector modal when cancelled', async () => {
