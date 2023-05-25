@@ -27,7 +27,7 @@ interface LogViewerProps {
 }
 
 function sortEvent(a: KubernetesEvent, b: KubernetesEvent): number {
-    return new Date(a.creationTimestamp).getTime() - new Date(b.creationTimestamp).getTime();
+    return new Date(b.creationTimestamp).getTime() - new Date(a.creationTimestamp).getTime();
 }
 
 class EventsList extends React.Component<LogViewerProps> {
