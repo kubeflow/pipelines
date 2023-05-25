@@ -129,8 +129,23 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			err = fmt.Errorf("failed to execute component: %w", err)
 		}
 	}()
+	// publish execution regardless the task succeeds or not
+	var execution *metadata.Execution
+	var executorOutput *pipelinespec.ExecutorOutput
+	var outputArtifacts []*metadata.OutputArtifact
+	status := pb.Execution_FAILED
+	defer func() {
+		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
+			if err != nil {
+				err = fmt.Errorf("failed to publish execution with error %w after execution failed: %w", perr, err)
+			} else {
+				err = perr
+			}
+		}
+		glog.Infof("publish success.")
+	}()
 	executedStartedTime := time.Now().Unix()
-	execution, err := l.prePublish(ctx)
+	execution, err = l.prePublish(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,13 +161,11 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err = prepareOutputFolders(l.executorInput); err != nil {
 		return err
 	}
-	executorOutput, outputArtifacts, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient, l.options.Namespace, l.k8sClient)
+	executorOutput, outputArtifacts, err = executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient, l.options.Namespace, l.k8sClient)
 	if err != nil {
 		return err
 	}
-	if err := l.publish(ctx, execution, executorOutput, outputArtifacts); err != nil {
-		return err
-	}
+	status = pb.Execution_COMPLETE
 	// if fingerPrint is not empty, it means this task enables cache but it does not hit cache, we need to create cache entry for this task
 	if fingerPrint != "" {
 		id := execution.GetID()
@@ -227,7 +240,13 @@ func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execut
 }
 
 // TODO(Bobgy): consider passing output artifacts info from executor output.
-func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution, executorOutput *pipelinespec.ExecutorOutput, outputArtifacts []*metadata.OutputArtifact) (err error) {
+func (l *LauncherV2) publish(
+	ctx context.Context,
+	execution *metadata.Execution,
+	executorOutput *pipelinespec.ExecutorOutput,
+	outputArtifacts []*metadata.OutputArtifact,
+	status pb.Execution_State,
+) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to publish results to ML Metadata: %w", err)
@@ -237,7 +256,8 @@ func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution,
 	// TODO(Bobgy): upload output artifacts.
 	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 	// to publish output artifacts to the context too.
-	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
+	// return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
+	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
 }
 
 func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client, namespace string, k8sClient *kubernetes.Clientset) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
