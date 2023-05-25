@@ -18,7 +18,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
@@ -134,6 +134,9 @@ parser.add_argument(
 def main(argv):
   """Calls ModelService.ImportModelEvaluation."""
   parsed_args, _ = parser.parse_known_args(argv)
+
+  if parsed_args.model_name.startswith('publishers'):
+    return
 
   _, project_id, _, location, _, model_id = parsed_args.model_name.split('/')
   api_endpoint = location + '-aiplatform.googleapis.com'
