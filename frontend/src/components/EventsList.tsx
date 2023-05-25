@@ -19,12 +19,20 @@ import {KubernetesEvent} from "./tabs/RuntimeNodeDetailsV2";
 import Banner from "./Banner";
 import {commonCss, padding} from "../Css";
 import DetailsTable from "./DetailsTable";
+import Card from '@material-ui/core/Card';
+import CardContent from '@material-ui/core/CardContent';
 
 interface LogViewerProps {
     events: KubernetesEvent[];
 }
 
+function sortEvent(a: KubernetesEvent, b: KubernetesEvent): number {
+    return new Date(a.creationTimestamp).getTime() - new Date(b.creationTimestamp).getTime();
+}
+
 class EventsList extends React.Component<LogViewerProps> {
+
+
 
     public render(): JSX.Element {
         return (
@@ -34,17 +42,22 @@ class EventsList extends React.Component<LogViewerProps> {
                         (this.props.events.length === 0) && <Banner message='There is no events for this pod.' mode='info' />
                     }
                     {
-                        this.props.events.map((event) => {
+                        this.props.events.sort(sortEvent).map((event) => {
                             return (
-                                <DetailsTable<string>
-                                    key={`input-artifacts-${event.name}`}
-                                    title={event.message}
-                                    fields={Array.of(
-                                        ["Source", `${event.source.host} ${event.source.component}`],
-                                        ["Count", `${event.count}`],
-                                        ["Last seen", `${event.lastTimestamp}`],
-                                    )}
-                                />
+                                <Card
+                                    style={{marginBottom: "1rem"}}
+                                    key={`input-artifacts-${event.name}`}>
+                                    <CardContent>
+                                        <DetailsTable<string>
+                                            title={event.message}
+                                            fields={Array.of(
+                                                ["Source", `${event.source.host} ${event.source.component}`],
+                                                ["Count", `${event.count}`],
+                                                ["Last seen", `${event.lastTimestamp}`],
+                                            )}
+                                        />
+                                    </CardContent>
+                                </Card>
                             )
                         })
                     }
