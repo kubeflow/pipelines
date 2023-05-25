@@ -36,6 +36,7 @@ import StaticNodeDetails from '../components/StaticNodeDetails';
 import { color, commonCss, fonts, fontsize, padding, zIndex } from '../Css';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { formatDateString, logger } from '../lib/Utils';
+import jsyaml from 'js-yaml';
 
 const summaryCardWidth = 500;
 
@@ -260,7 +261,9 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
         )}
         {selectedTab === 1 && !!templateString && (
           <div className={css.containerCss} data-testid={'spec-yaml'}>
-            <PipelineSpecTabContent templateString={templateString || ''} />
+            <PipelineSpecTabContent
+              templateString={jsyaml.safeDump(jsyaml.safeLoad(templateString)) || ''}
+            />
           </div>
         )}
       </div>
