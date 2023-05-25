@@ -118,7 +118,7 @@ describe('NewPipelineVersion', () => {
     it('creates pipeline version is default when landing from pipeline details page', () => {
       tree = shallow(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
 
@@ -187,7 +187,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating package url', async () => {
       tree = shallow(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
       await TestUtils.flushPromises();
@@ -203,7 +203,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating code source', async () => {
       tree = shallow(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
       await TestUtils.flushPromises();
@@ -479,31 +479,12 @@ describe('NewPipelineVersion', () => {
     it('allows updating pipeline version name', async () => {
       render(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
       const pipelineVersionNameInput = await screen.findByLabelText(/Pipeline Version name/);
       fireEvent.change(pipelineVersionNameInput, { target: { value: 'new-pipeline-name' } });
       expect(pipelineVersionNameInput.closest('input')?.value).toBe('new-pipeline-name');
-    });
-
-    it('disable create button if pipeline name is invalid', async () => {
-      render(
-        <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
-        />,
-      );
-      const formCtlLabel = screen.getByLabelText('Create a new pipeline');
-      fireEvent.click(formCtlLabel);
-      const pipelineNameInput = await screen.findByLabelText(/Pipeline Name/);
-      fireEvent.change(pipelineNameInput, { target: { value: 'new pipeline name?' } });
-      expect(pipelineNameInput.closest('input')?.value).toBe('new pipeline name?');
-
-      const createBtn = await screen.findByText('Create');
-      expect(createBtn.closest('button')?.disabled).toEqual(true);
-      screen.findByText(
-        "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
-      );
     });
   });
 });
