@@ -430,7 +430,7 @@ function ArtifactInfo({
       <div>
         <DetailsTable<string>
           key={`artifact-url`}
-          title='Artifact URL'
+          title='Artifact URI'
           fields={getArtifactParamList([linkedArtifact], artifactTypeName)}
           valueComponent={ArtifactPreview}
           valueComponentProps={{
