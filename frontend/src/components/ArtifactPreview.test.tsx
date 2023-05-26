@@ -29,7 +29,7 @@ describe('ArtifactPreview', () => {
         <ArtifactPreview value={undefined} />
       </CommonTestWrapper>,
     );
-    screen.getByText('Can not retrieve storage path from artifact uri: undefined');
+    screen.getByText('No artifact URI is found.');
   });
 
   it('handles null artifact', () => {
@@ -38,17 +38,16 @@ describe('ArtifactPreview', () => {
         <ArtifactPreview value={null as any} />
       </CommonTestWrapper>,
     );
-    screen.getByText('Can not retrieve storage path from artifact uri: null');
+    screen.getByText('No artifact URI is found.');
   });
 
-  it('handles empty artifact', () => {
-    expect(() => {
-      render(
-        <CommonTestWrapper>
-          <ArtifactPreview value={'i am random path'} />
-        </CommonTestWrapper>,
-      );
-    }).toThrow(new Error('Unsupported storage path: i am random path'));
+  it('handles unsupported path artifact', () => {
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview value={'i am random path'} />
+      </CommonTestWrapper>,
+    );
+    screen.getByText('i am random path'); // directly render uri
   });
 
   it('handles invalid artifact: no bucket', async () => {
