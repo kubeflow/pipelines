@@ -1,3 +1,6 @@
+# Release 1.0.44
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
 # Release 1.0.43
 * Patch 5de4d78: unpin google-api-core version
 
