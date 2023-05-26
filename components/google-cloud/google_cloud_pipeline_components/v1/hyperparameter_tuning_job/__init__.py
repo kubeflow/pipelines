@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Hyperparameter tuning component and utilities."""
+"""Create `hyperparameter tuning jobs <https://cloud.google.com/vertex-ai/docs/training/using-hyperparameter-tuning>`_ via a `Vertex AI Custom Training Job <https://cloud.google.com/vertex-ai/docs/training/create-custom-job>`_."""
 
 
 from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.component import hyperparameter_tuning_job as HyperparameterTuningJobRunOp
