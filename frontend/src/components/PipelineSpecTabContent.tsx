@@ -17,7 +17,6 @@
 import jsyaml from 'js-yaml';
 import React from 'react';
 import { isSafari } from 'src/lib/Utils';
-import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
 import Editor from './Editor';
 
 interface PipelineSpecTabContentProps {
