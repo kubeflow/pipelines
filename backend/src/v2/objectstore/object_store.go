@@ -53,7 +53,7 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 	if config.Scheme == "minio://" {
 		cred, err := getMinioCredential(ctx, k8sClient, namespace)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get minio credential: %w", err)	
+			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
 		}
 		sess, err := session.NewSession(&aws.Config{
 			Credentials:      cred,
