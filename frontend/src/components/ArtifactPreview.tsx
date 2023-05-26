@@ -79,7 +79,9 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   );
 
   if (!storage) {
-    return value ? <div>{value}</div> : <div>No artifact URI is found.</div>;
+    return (
+      <Banner message={'Can not retrieve storage path from artifact uri: ' + value} mode='info' />
+    );
   }
 
   const linkText = Apis.buildArtifactLinkText(storage);
