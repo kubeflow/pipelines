@@ -1,8 +1,7 @@
-API Reference
+Namespaces
 ==========================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    v1/index
-   experimental/index
