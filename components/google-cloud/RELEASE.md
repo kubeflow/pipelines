@@ -1,4 +1,12 @@
-## Current Version 2.0.0b4.dev (Still in Development)
+## Current Version 2.0.0b5.dev (Still in Development)
+
+## Release 2.0.0b4.dev
+* GCPC v2 reference documentation improvements
+* Change GCPC base image to `marketplace.gcr.io/google/ubuntu2004`
+* Apply latest GCPC image vulnerability resolutions (base OS and softwares updates)
+* Fix dataset components
+* Fix payload sanitation bug in `google_cloud_pipeline_components.v1.batch_predict_job.ModelBatchPredictOp`
+* Assorted experimental component bug fixes (note: experimental namespace will be removed in a future pre-release)
 
 ## Release 2.0.0b3
 * Support sparse layer masking feature selection for `experimental.automl.tabular` classification/regression components

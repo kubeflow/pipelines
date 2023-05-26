@@ -105,7 +105,7 @@ dsl.Output = Output
 
 # order from earliest to latest
 # start with 2.0.0b3, which is the first time we're using the new theme
-V2_DROPDOWN_VERSIONS = ['2.0.0b3']
+V2_DROPDOWN_VERSIONS = ['2.0.0b3', '2.0.0b4']
 
 # The short X.Y version
 # update for each release
