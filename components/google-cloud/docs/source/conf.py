@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import inspect
+import os
 import re
+import sys
 from typing import List
 
 import docstring_parser
@@ -22,6 +24,19 @@ from kfp import components
 from kfp import dsl
 import yaml
 
+
+# setting this enables the .rst files to use the paths v1.bigquery.Component (etc.) rather than google_cloud_pipeline_components.v1.biquery.Component for shorter, readable representation in docs
+gcpc_root_dir = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        '..',
+        'google_cloud_pipeline_components',
+    )
+)
+
+# keep as append not insert, otherwise there is an issue with other package discovery
+sys.path.append(gcpc_root_dir)
 
 # preserve function docstrings for components by setting component decorators to passthrough decorators
 # also enables autodoc to document the components as functions without using the autodata directive (https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#directive-autodata)
