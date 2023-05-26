@@ -29,16 +29,13 @@ const editorHeightWidth = isSafari() ? '640px' : '100%';
 export function PipelineSpecTabContent(props: PipelineSpecTabContentProps) {
   return (
     <Editor
-      value={
-        isTemplateV2(props.templateString)
-          ? props.templateString || ''
-          : jsyaml.safeDump(jsyaml.safeLoad(props.templateString || ''))
-      }
-      // V2(YAML-formatted):
-      //    Directly use it to render in <PipelineSpecTabContent>
+      value={jsyaml.safeDump(jsyaml.safeLoad(props.templateString || ''))}
+      // Render the yaml-formatted string in <PipelineSpecTabContent>
       // V1(JSON-formatted):
-      //    safeLoad() convert string to object first, and safeDump() changes the object
-      //    to yaml format and then render it in <PipelineSpecTabContent>
+      //    safeLoad() convert templateString to object first,
+      //    safeDump() changes the object to yaml-formatted string
+      // V2(YAML-formatted):
+      //    Still yaml format after safeLoad() and safeDump().
       height={editorHeightWidth}
       width={editorHeightWidth}
       mode='yaml'
