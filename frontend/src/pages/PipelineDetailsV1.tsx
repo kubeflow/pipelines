@@ -36,7 +36,6 @@ import StaticNodeDetails from '../components/StaticNodeDetails';
 import { color, commonCss, fonts, fontsize, padding, zIndex } from '../Css';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { formatDateString, logger } from '../lib/Utils';
-import jsyaml from 'js-yaml';
 
 const summaryCardWidth = 500;
 
@@ -261,14 +260,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
         )}
         {selectedTab === 1 && !!templateString && (
           <div className={css.containerCss} data-testid={'spec-yaml'}>
-            {/* The templateString is from getPipelineTemplated() and it's JSON-formatted.
-              In order to make consistent with v2 pipeline behavior, we decide to render
-              it in yaml format.
-              safeLoad() convert string to object first, and safeDump() changes the object
-              to yaml format which is also acceptable by <PipelineSpecTabContent> */}
-            <PipelineSpecTabContent
-              templateString={jsyaml.safeDump(jsyaml.safeLoad(templateString)) || ''}
-            />
+            <PipelineSpecTabContent templateString={templateString || ''} />
           </div>
         )}
       </div>

@@ -31,9 +31,14 @@ export function PipelineSpecTabContent(props: PipelineSpecTabContentProps) {
     <Editor
       value={
         isTemplateV2(props.templateString)
-          ? jsyaml.safeDump(jsyaml.safeLoad(props.templateString || ''))
-          : props.templateString || ''
-      } // Use safeLoad and then safeDump to make sure the v2 PipelineSpec is in Yaml Form.
+          ? props.templateString || ''
+          : jsyaml.safeDump(jsyaml.safeLoad(props.templateString || ''))
+      }
+      // V2(YAML-formatted):
+      //    Directly use it to render in <PipelineSpecTabContent>
+      // V1(JSON-formatted):
+      //    safeLoad() convert string to object first, and safeDump() changes the object
+      //    to yaml format and then render it in <PipelineSpecTabContent>
       height={editorHeightWidth}
       width={editorHeightWidth}
       mode='yaml'
