@@ -27,6 +27,7 @@ import kfp
 
 import unittest
 
+print('test')
 
 class UtilComponentsCompileTest(unittest.TestCase):
 
