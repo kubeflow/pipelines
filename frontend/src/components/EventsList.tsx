@@ -32,8 +32,6 @@ function sortEvent(a: KubernetesEvent, b: KubernetesEvent): number {
 
 class EventsList extends React.Component<LogViewerProps> {
 
-
-
     public render(): JSX.Element {
         return (
             <div className={commonCss.page}>

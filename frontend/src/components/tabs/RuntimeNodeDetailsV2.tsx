@@ -240,7 +240,7 @@ function TaskNodeDetail({
             ):
                 (
                     <React.Fragment>
-                      <Banner message={"banner message"} additionalInfo={"additionalInfo"} />
+                      <Banner message={"Could not get pod events"} />
                     </React.Fragment>
                 )
         )}
