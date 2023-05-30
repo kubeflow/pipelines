@@ -1,6 +1,6 @@
 ## Current Version 2.0.0b5.dev (Still in Development)
 
-## Release 2.0.0b4.dev
+## Release 2.0.0b4
 * GCPC v2 reference documentation improvements
 * Change GCPC base image to `marketplace.gcr.io/google/ubuntu2004`
 * Apply latest GCPC image vulnerability resolutions (base OS and softwares updates)
