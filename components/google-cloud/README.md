@@ -37,7 +37,7 @@ For details about previous and upcoming releases, please see the [release notes]
 
 ### Install latest release
 
-Use the following command to install Google Cloud Pipeline Components from PyPI.
+Use the following command to install Google Cloud Pipeline Components from [PyPI](https://pypi.org/project/google-cloud-pipeline-components/).
 
 ```shell
 pip install -U google-cloud-pipeline-components
