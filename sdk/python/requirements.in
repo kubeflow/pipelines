@@ -14,7 +14,7 @@ uritemplate>=3.0.1,<4
 # kfp.dsl
 PyYAML>=5.3,<7
 jsonschema>=3.0.1,<5
-kubernetes>=8.0.0,<26
+kubernetes>=8.0.0,<27
 
 # kfp.Client
 kfp-server-api>=1.1.2,<2.0.0
