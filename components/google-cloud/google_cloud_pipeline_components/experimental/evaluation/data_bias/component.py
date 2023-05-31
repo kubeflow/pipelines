@@ -49,9 +49,26 @@ def detect_data_bias(
         in the predictions file. Formatted to be able to find nested columns,
         delimited by `.`. Alternatively referred to as the ground truth (or
         ground_truth_column) field.
-      bias_configs (Sequence[BiasConfig]): A list of BiasConfig protos, with
-        each BiasConfig in the list formatted with json_format.MessageToJson or
-        json_format.MessageToDict.
+      bias_configs (Sequence[BiasConfig]): A list of
+        google.cloud.aiplatform_v1.types.ModelEvaluation.BiasConfig. When
+        provided, compute data bias metrics for each defined slice. Below is an
+        example of how to format this input.
+        1: First, create a BiasConfig. ```from
+          google.cloud.aiplatform_v1.types.ModelEvaluation import BiasConfig
+          from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice
+          import SliceSpec from
+          google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice.SliceSpec
+          import SliceConfig bias_config = BiasConfig(bias_slices=SliceSpec(
+          configs={ 'feature_a': SliceConfig(SliceSpec.Value(string_value=
+          'label_a') ) }))```
+        2: Create a list to store the bias configs into. `bias_configs = []`.
+        3: Format each BiasConfig into a JSON or Dict. `bias_config_json =
+          json_format.MessageToJson(bias_config` or `bias_config_dict =
+          json_format.MessageToDict(bias_config).
+        4: Combine each bias_config JSON into a list.
+          `bias_configs.append(bias_config_json)`.
+        5: Finally, pass bias_configs as an parameter for this component.
+          `DetectDataBiasOp(bias_configs=bias_configs)`
       dataset_format (Optional[str]): The file format for the dataset. `jsonl`,
         `csv`, and `bigquery` are the currently allowed formats. If not set,
         defaulted to `jsonl`.
