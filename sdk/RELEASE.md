@@ -10,6 +10,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Change `kubernetes` version requirement from `kubernetes>=8.0.0,<26` to `kubernetes>=8.0.0,<27`  [\#9544](https://github.com/kubeflow/pipelines/pull/9544)
 
 ## Documentation Updates
 # 1.8.22
