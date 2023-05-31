@@ -150,6 +150,9 @@
     "webpack-bundle-analyzer": "^3.6.1",
     "yaml": "^2.2.2"
   },
+  "resolutions": {
+    "workbox-webpack-plugin": "6.6.0"
+  },
   "homepage": "./",
   "jest": {
     "collectCoverageFrom": [
