@@ -8,6 +8,7 @@
 
 ## Bug fixes and other changes
 * Fix integer value not allowed as float-typed return [\#9481](https://github.com/kubeflow/pipelines/pull/9481)
+* Change `kubernetes` version requirement from `kubernetes>=8.0.0,<24` to `kubernetes>=8.0.0,<27`  [\#9545](https://github.com/kubeflow/pipelines/pull/9545)
 
 ## Documentation updates
 
