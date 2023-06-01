@@ -1,9 +1,9 @@
-## Current Version 2.0.0b5.dev (Still in Development)
+## Current Version 2.0.0b5 (Still in Development)
 
 ## Release 2.0.0b4
 * GCPC v2 reference documentation improvements
 * Change GCPC base image to `marketplace.gcr.io/google/ubuntu2004`
-* Apply latest GCPC image vulnerability resolutions (base OS and softwares updates)
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
 * Fix dataset components
 * Fix payload sanitation bug in `google_cloud_pipeline_components.v1.batch_predict_job.ModelBatchPredictOp`
 * Assorted experimental component bug fixes (note: experimental namespace will be removed in a future pre-release)
@@ -31,7 +31,36 @@
 * Experimental components that are not fully tested (e.g. AutoML, Model Evaluation) are excluded for now, will be added in future releases
 * Even though the GCPC package's version is v2, the components under v1 folder have no interface change, so the those components' version remain as v1, decoupled from package version.
 
+## Release 1.0.44
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 1.0.43
+* Patch 5de4d78: unpin google-api-core version
+
 ## Release 1.0.42
+* Patch cb7d9a8: Update import_model_evaluation so models with 100+ labels will not import confusion matrices at every threshold
+
+## Release 1.0.41
+* Add data-filter-split feature back to the ImageTrainingJob component
+
+## Release 1.0.40
+* Change base image to ubuntu OS
+* Set google-api-core<1.34.0 to avoid 900s timeout
+
+## Release 1.0.39
+* Fix AutoML Table pipeline failing on importing model evaluation metrics
+
+## Release 1.0.38
+* Fix default value issue in bigquery query API
+
+## Release 1.0.36
+* Cherrypick e358dee2f8d5c01580438ee54988f01fc3f16a7c and snap a new release
+
+## Release 1.0.35
+* Fix images for BQML components
+
+## Release 1.0.34
+* Cherrypick d1f1ee9f2bbd09df7ea6ab51b21f07ba5f86c871 and snap a new release
 
 ## Release 1.0.33
 * Fix aiplatform & v1 batch predict job to work with KFP v2
@@ -263,7 +292,7 @@
 ## Release 1.0.2
 * Dataproc Serverless components v1.0 launch.
 * Bump google-cloud-aiplatform version
-* Fix HP Tuning documentation, fixes ##7460
+* Fix HP Tuning documentation, fixes #7460
 * Use feature ranking and selected features in AutoML Tables stage 1 tuning component.
 * Update distill_skip_evaluation_pipeline for performance improvement.
 
@@ -370,4 +399,4 @@
 
 ## First release
 
-*   Initial release of the Python SDK with data and model management operations for Image, Text, Tabular, and Video Data.
+*   Initial release of the Python SDK with data and model managemnet operations for Image, Text, Tabular, and Video Data.
