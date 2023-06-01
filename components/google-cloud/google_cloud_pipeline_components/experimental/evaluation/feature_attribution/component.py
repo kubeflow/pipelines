@@ -32,6 +32,7 @@ def feature_attribution(
     gcp_resources: OutputPath(str),
     feature_attributions: Output[Metrics],
     project: str,
+    problem_type: str,
     location: str = 'us-central1',
     predictions_format: str = 'jsonl',
     predictions_gcs_source: Input[Artifact] = None,
@@ -58,6 +59,8 @@ def feature_attribution(
       project: Project to run feature attribution container.
       location: Location running feature attribution. If not
         set, defaulted to `us-central1`.
+      problem_type: Problem type of the pipeline: one of `classification`,
+      `regression` and `forecasting`.
       predictions_format: The file format for the batch
         prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
         formats, from Vertex Batch Prediction. If not set, defaulted to `jsonl`.
@@ -118,6 +121,8 @@ def feature_attribution(
           project,
           '--location',
           location,
+          '--problem_type',
+          problem_type,
           '--root_dir',
           f'{PIPELINE_ROOT_PLACEHOLDER}/{PIPELINE_JOB_ID_PLACEHOLDER}-{PIPELINE_TASK_ID_PLACEHOLDER}',
           '--batch_prediction_format',
