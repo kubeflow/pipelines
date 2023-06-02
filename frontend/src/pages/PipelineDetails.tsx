@@ -106,8 +106,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     const pipelineVersionIdFromParams = this.props.match.params[RouteParams.pipelineVersionId];
 
     if (origin) {
-      const getRunIdList = () => [origin.runId!];
-      buttons.cloneRun(getRunIdList, true);
+      const getOriginIdList = () => [origin.isRecurring ? origin.recurringRunId! : origin.runId!];
+      origin.isRecurring
+        ? buttons.cloneRecurringRun(getOriginIdList, true)
+        : buttons.cloneRun(getOriginIdList, true);
 
       return {
         actions: buttons.getToolbarActionMap(),
