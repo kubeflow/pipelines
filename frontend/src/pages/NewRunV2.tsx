@@ -335,8 +335,7 @@ function NewRunV2(props: NewRunV2Props) {
             : pipelineVersionRefNew
           : undefined,
       runtime_config: {
-        // TODO(zijianjoy): determine whether to provide pipeline root.
-        pipeline_root: undefined, // pipelineRoot,
+        pipeline_root: pipelineRoot,
         parameters: runtimeParameters,
       },
       service_account: serviceAccount,
