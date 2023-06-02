@@ -20,10 +20,13 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
@@ -271,19 +274,23 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
 
-	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
-		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
-		fingerPrint, err := getFingerPrint(opts, executorInput)
-		if err != nil {
-			return execution, fmt.Errorf("failure while getting fingerPrint: %w", err)
-		}
-		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/"+opts.PipelineName, opts.Namespace)
-		if err != nil {
-			return execution, fmt.Errorf("failure while getting executionCache: %w", err)
-		}
-		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
-		ecfg.FingerPrint = fingerPrint
+	// When the container image is a dummy image, there is no launcher for this task.
+	// This happens when this task is created to implement a Kubernetes-specific configuration, i.e.,
+	// there is no user container to run.
+	// It publishes execution details to mlmd in driver and takes care of caching, which are usually done in launcher.
+	// We also skip creating the podspecpatch in these cases.
+	if _, ok := dummyImages[opts.Container.Image]; ok {
+		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
+
+	// Generate fingerprint and MLMD ID for cache
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
+	if err != nil {
+		return execution, err
+	}
+	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.FingerPrint = fingerPrint
+
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
@@ -295,10 +302,13 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
+	// Use cache and skip launcher if all contions met:
+	// (1) Cache is enabled
+	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
 	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, executorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return execution, err
 		}
@@ -308,18 +318,9 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
 			return execution, fmt.Errorf("failed to publish cached execution: %w", err)
 		}
-		glog.Infof("Cached")
+		glog.Infof("Use cache for task %s", opts.Task.GetTaskInfo().GetName())
 		*execution.Cached = true
 		return execution, nil
-	}
-
-	// When the container image is a dummy image, there is no launcher for this task.
-	// This happens when this task is created to implement a Kubernetes-specific configuration, i.e.,
-	// there is no user container to run.
-	// In this case we also publish execution details to mlmd in driver, which is usually done in launcher.
-	// We also skip creating the podspecpatch in these cases.
-	if _, ok := dummyImages[opts.Container.Image]; ok {
-		return execution, kubernetesPlatformOps(opts.Container.Image, inputs, opts.Namespace, mlmd, ctx, createdExecution)
 	}
 
 	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
@@ -338,7 +339,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 	podSpecPatchBytes, err := json.Marshal(podSpec)
 	if err != nil {
-		return nil, fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+		return execution, fmt.Errorf("JSON marshaling pod spec patch: %w", err)
 	}
 	execution.PodSpecPatch = string(podSpecPatchBytes)
 	return execution, nil
@@ -1082,16 +1083,16 @@ var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
 func kubernetesPlatformOps(
-	image string,
-	inputs *pipelinespec.ExecutorInput_Inputs,
-	namespace string,
-	mlmd *metadata.Client,
 	ctx context.Context,
-	execution *metadata.Execution,
+	mlmd *metadata.Client,
+	cacheClient *cacheutils.Client,
+	execution *Execution,
+	ecfg *metadata.ExecutionConfig,
+	opts *Options,
 ) (err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("failed to %s and publish execution %s: %w", dummyImages[image], execution.TaskName(), err)
+			err = fmt.Errorf("failed to %s and publish execution %s: %w", dummyImages[opts.Container.Image], opts.Task.GetTaskInfo().GetName(), err)
 		}
 	}()
 	// If we cannot create Kubernetes client, we cannot publish this execution
@@ -1101,10 +1102,12 @@ func kubernetesPlatformOps(
 	}
 
 	var outputParameters map[string]*structpb.Value
+	var createdExecution *metadata.Execution
 	status := pb.Execution_FAILED
+	var pvcName string
 	defer func() {
 		// We publish the execution, no matter this operartion succeeds or not
-		perr := publishDriverExecution(k8sClient, mlmd, ctx, execution, outputParameters, nil, status)
+		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
 		if perr != nil && err != nil {
 			err = fmt.Errorf("failed to publish driver execution: %w. Also failed the Kubernetes platform operation: %w", perr, err)
 		} else if perr != nil {
@@ -1112,9 +1115,9 @@ func kubernetesPlatformOps(
 		}
 	}()
 
-	switch image {
+	switch opts.Container.Image {
 	case "argostub/createpvc":
-		pvcName, err := createPVC(k8sClient, inputs, namespace)
+		pvcName, createdExecution, status, err = createPVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg)
 		if err != nil {
 			return err
 		}
@@ -1122,14 +1125,13 @@ func kubernetesPlatformOps(
 			"name": structpb.NewStringValue(pvcName),
 		}
 	case "argostub/deletepvc":
-		if err = deletePVC(k8sClient, inputs, namespace); err != nil {
+		if createdExecution, status, err = deletePVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg); err != nil {
 			return err
 		}
 	default:
-		err = fmt.Errorf("unknown image name %s for Kubernetes-specific operations", image)
+		err = fmt.Errorf("unknown image name %s for Kubernetes-specific operations", opts.Container.Image)
 		return err
 	}
-	status = pb.Execution_COMPLETE
 	return nil
 }
 
@@ -1179,14 +1181,36 @@ func publishDriverExecution(
 	return nil
 }
 
-func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInput_Inputs, namespace string) (pvcName string, err error) {
+// execution is passed by value because we make changes to it to generate  fingerprint
+func createPVC(
+	ctx context.Context,
+	k8sClient kubernetes.Interface,
+	execution Execution,
+	opts *Options,
+	cacheClient *cacheutils.Client,
+	mlmd *metadata.Client,
+	ecfg *metadata.ExecutionConfig,
+) (pvcName string, createdExecution *metadata.Execution, status pb.Execution_State, err error) {
+	// Create execution regardless the operation succeeds or not
+	defer func() {
+		if createdExecution == nil {
+			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+			if err != nil {
+				return
+			}
+			createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+		}
+	}()
 
+	taskStartedTime := time.Now().Unix()
+
+	inputs := execution.ExecutorInput.Inputs
 	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Requied input: access_modes
 	accessModeInput, ok := inputs.ParameterValues["access_modes"]
 	if !ok || accessModeInput == nil {
-		return "", fmt.Errorf("failed to create pvc: parameter access_modes not provided")
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter access_modes not provided")
 	}
 	var accessModes []k8score.PersistentVolumeAccessMode
 	for _, value := range accessModeInput.GetListValue().GetValues() {
@@ -1195,23 +1219,27 @@ func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInpu
 
 	// Optional input: pvc_name and pvc_name_suffix
 	// Can only provide at most one of these two parameters.
-	// If neither is provided, PVC name is a random generated UUID.
+	// If neither is provided, PVC name is a randomly generated UUID.
 	pvcNameSuffixInput := inputs.ParameterValues["pvc_name_suffix"]
 	pvcNameInput := inputs.ParameterValues["pvc_name"]
 	if pvcNameInput.GetStringValue() != "" && pvcNameSuffixInput.GetStringValue() != "" {
-		return "", fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
 	} else if pvcNameSuffixInput.GetStringValue() != "" {
 		pvcName = uuid.NewString() + pvcNameSuffixInput.GetStringValue()
+		// Add pvcName to the executor input for fingerprint generation
+		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
 	} else if pvcNameInput.GetStringValue() != "" {
 		pvcName = pvcNameInput.GetStringValue()
 	} else {
 		pvcName = uuid.NewString()
+		// Add pvcName to the executor input for fingerprint generation
+		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
 	}
 
 	// Required input: size
 	volumeSizeInput, ok := inputs.ParameterValues["size"]
 	if !ok || volumeSizeInput == nil {
-		return "", fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
 	}
 
 	// Optional input: storage_class_name
@@ -1236,6 +1264,53 @@ func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInpu
 	volumeNameInput := inputs.ParameterValues["volume_name"]
 	volumeName := volumeNameInput.GetStringValue()
 
+	// Get execution fingerprint and MLMD ID for caching
+	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
+	// The original execution is not changed.
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, err
+	}
+	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.FingerPrint = fingerPrint
+
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
+	}
+
+	// Create execution in MLMD
+	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
+	}
+	glog.Infof("Created execution: %s", createdExecution)
+	execution.ID = createdExecution.GetID()
+	if !execution.WillTrigger() {
+		return "", createdExecution, pb.Execution_COMPLETE, nil
+	}
+
+	// Use cache and skip createpvc if all conditions met:
+	// (1) Cache is enabled
+	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	cached := false
+	execution.Cached = &cached
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		if err != nil {
+			return "", createdExecution, pb.Execution_FAILED, err
+		}
+		// TODO(Bobgy): upload output artifacts.
+		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
+		// to publish output artifacts to the context too.
+		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to publish cached execution: %w", err)
+		}
+		*execution.Cached = true
+		return pvcName, createdExecution, pb.Execution_CACHED, nil
+	}
+
 	// Create a PersistentVolumeClaim object
 	pvc := &k8score.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1255,36 +1330,134 @@ func createPVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInpu
 	}
 
 	// Create the PVC in the cluster
-	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to create pvc: %w", err)
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: %w", err)
 	}
 	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
-	return createdPVC.ObjectMeta.Name, nil
+
+	// Create a cache entry
+	/*
+		id := createdExecution.GetID()
+		if id == 0 {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
+		}
+	*/
+	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for create pvc: %w", err)
+	}
+
+	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
 }
 
-func deletePVC(k8sClient kubernetes.Interface, inputs *pipelinespec.ExecutorInput_Inputs, namespace string) error {
+func deletePVC(
+	ctx context.Context,
+	k8sClient kubernetes.Interface,
+	execution Execution,
+	opts *Options,
+	cacheClient *cacheutils.Client,
+	mlmd *metadata.Client,
+	ecfg *metadata.ExecutionConfig,
+) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
+
+	// Create execution regardless the operation succeeds or not
+	defer func() {
+		if createdExecution == nil {
+			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+			if err != nil {
+				return
+			}
+			createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+		}
+	}()
+
+	taskStartedTime := time.Now().Unix()
+
+	inputs := execution.ExecutorInput.Inputs
+	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+
 	// Required input: pvc_name
 	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
 	if !ok || pvcNameInput == nil {
-		return fmt.Errorf("failed to delete pvc: required parameter pvc_name not provided")
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc: required parameter pvc_name not provided")
 	}
 	pvcName := pvcNameInput.GetStringValue()
 
-	// Get the PVC you want to delete, verify that it exists.
-	_, err := k8sClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	// Get execution fingerprint and MLMD ID for caching
+	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
+	// The original execution is not changed.
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
 	if err != nil {
-		return fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
+		return createdExecution, pb.Execution_FAILED, err
+	}
+	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.FingerPrint = fingerPrint
+
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
+	}
+
+	// Create execution in MLMD
+	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
+	}
+	glog.Infof("Created execution: %s", createdExecution)
+	execution.ID = createdExecution.GetID()
+	if !execution.WillTrigger() {
+		return createdExecution, pb.Execution_COMPLETE, nil
+	}
+
+	// Use cache and skip createpvc if all conditions met:
+	// (1) Cache is enabled
+	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	cached := false
+	execution.Cached = &cached
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		if err != nil {
+			return createdExecution, pb.Execution_FAILED, err
+		}
+		// TODO(Bobgy): upload output artifacts.
+		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
+		// to publish output artifacts to the context too.
+		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
+			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to publish cached execution: %w", err)
+		}
+		*execution.Cached = true
+		return createdExecution, pb.Execution_CACHED, nil
+	}
+
+	// Get the PVC you want to delete, verify that it exists.
+	_, err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
 	}
 
 	// Delete the PVC.
-	err = k8sClient.CoreV1().PersistentVolumeClaims(namespace).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
+	err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
 	}
 
 	glog.Infof("Deleted PVC %s\n", pvcName)
-	return nil
+
+	/*
+		// Create a cache entry
+		id := createdExecution.GetID()
+		if id == 0 {
+			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
+		}
+	*/
+	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for delete pvc: %w", err)
+	}
+
+	return createdExecution, pb.Execution_COMPLETE, nil
 }
 
 func createK8sClient() (*kubernetes.Clientset, error) {
@@ -1366,4 +1539,51 @@ func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, dag *metadata
 		volumes = append(volumes, volume)
 	}
 	return volumeMounts, volumes, nil
+}
+
+func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient *cacheutils.Client) (string, string, error) {
+	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
+		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
+		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput)
+		if err != nil {
+			return "", "", fmt.Errorf("failure while getting fingerPrint: %w", err)
+		}
+		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/"+opts.PipelineName, opts.Namespace)
+		if err != nil {
+			return "", "", fmt.Errorf("failure while getting executionCache: %w", err)
+		}
+		return fingerPrint, cachedMLMDExecutionID, nil
+	} else {
+		return "", "", nil
+	}
+}
+
+func createCache(
+	ctx context.Context,
+	execution *metadata.Execution,
+	opts *Options,
+	taskStartedTime int64,
+	fingerPrint string,
+	cacheClient *cacheutils.Client,
+) error {
+	id := execution.GetID()
+	if id == 0 {
+		fmt.Errorf("failed to get id from createdExecution")
+	}
+	task := &api.Task{
+		//TODO how to differentiate between shared pipeline and namespaced pipeline
+		PipelineName:    "pipeline/" + opts.PipelineName,
+		Namespace:       opts.Namespace,
+		RunId:           opts.RunID,
+		MlmdExecutionID: strconv.FormatInt(id, 10),
+		CreatedAt:       &timestamp.Timestamp{Seconds: taskStartedTime},
+		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		Fingerprint:     fingerPrint,
+	}
+	err := cacheClient.CreateExecutionCache(ctx, task)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Created cache entry.")
+	return nil
 }
