@@ -33,7 +33,7 @@ type Task struct {
 	Name               string           `gorm:"column:Name; default:null"`
 	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null; size:65535;"`
 	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; size:65535;"`
 	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; size:65535;"`
 	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; size:65535;"`
