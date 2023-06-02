@@ -496,7 +496,7 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: {}, pipeline_root: undefined },
+            runtime_config: { parameters: {}, pipeline_root: 'dummy_root' },
             service_account: '',
           }),
         );
@@ -955,7 +955,7 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
             service_account: '',
           }),
         );
@@ -997,7 +997,7 @@ describe('NewRunV2', () => {
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
             pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
             service_account: '',
           }),
         );
@@ -1044,7 +1044,7 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },
@@ -1096,7 +1096,7 @@ describe('NewRunV2', () => {
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
             pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },
