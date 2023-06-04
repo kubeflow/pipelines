@@ -1,3 +1,5 @@
+"""AutoML Infra Validator component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,21 +20,22 @@ from kfp import dsl
 from kfp.dsl import Input
 
 
+# pylint: disable=dangerous-default-value,g-bare-generic,g-doc-args,unused-argument,g-doc-return-or-yield
 @dsl.container_component
 def automl_tabular_infra_validator(
-    unmanaged_container_model: Input[UnmanagedContainerModel],
+    unmanaged_container_model: Input[UnmanagedContainerModel],  # pylint: disable=unused-argument
 ):
   # fmt: off
   """Validates the trained AutoML Tabular model is a valid model.
 
   Args:
-      unmanaged_container_model: google.UnmanagedContainerModel for model
+      unmanaged_container_model (str): google.UnmanagedContainerModel for model
         to be validated.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230526_0325',
       command=[],
       args=['--executor_input', '{{$}}'],
   )
