@@ -45,7 +45,7 @@ def feature_attribution(
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
-    force_direct_runner: bool = False,
+    force_runner_mode: str = '',
 ):
   # fmt: off
   """Compute feature attribution on a trained model's batch explanation
@@ -92,9 +92,8 @@ def feature_attribution(
       encryption_spec_key_name: Customer-managed encryption key
         for the Dataflow job. If this is set, then all resources created by the
         Dataflow job will be encrypted with the provided encryption key.
-      force_direct_runner: Flag to use Beam DirectRunner. If set to true,
-        use Apache Beam DirectRunner to execute the task locally instead of
-        launching a Dataflow job.
+      force_runner_mode: Flag to choose Beam runner. Valid options are `DirectRunner`
+        and `Dataflow`.
 
   Returns:
       gcs_output_directory: JsonArray of the downsampled dataset GCS
@@ -166,8 +165,8 @@ def feature_attribution(
           dataflow_use_public_ips,
           '--kms_key_name',
           encryption_spec_key_name,
-          '--force_direct_runner',
-          force_direct_runner,
+          '--force_runner_mode',
+          force_runner_mode,
           '--gcs_output_path',
           feature_attributions.path,
           '--gcp_resources',
