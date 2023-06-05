@@ -635,9 +635,11 @@ function NewRunV2(props: NewRunV2Props) {
           pipelineRoot={pipelineRoot}
           handlePipelineRootChange={setPipelineRoot}
           titleMessage={
-            Object.keys(specParameters).length
-              ? 'Specify parameters required by the pipeline'
-              : 'This pipeline has no parameters'
+            existingPipeline || cloneOrigin.isClone
+              ? Object.keys(specParameters).length
+                ? 'Specify parameters required by the pipeline'
+                : 'This pipeline has no parameters'
+              : 'Parameters will appear after you select a pipeline'
           }
           specParameters={specParameters}
           clonedRuntimeConfig={clonedRuntimeConfig}
