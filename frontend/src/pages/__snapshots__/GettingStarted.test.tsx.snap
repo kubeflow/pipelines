@@ -17,48 +17,12 @@ exports[`GettingStarted page initially renders documentation 1`] = `
           Kubeflow Pipelines 
           <a
             class="link"
-            href="https://www.kubeflow.org/docs/pipelines/sdk/"
+            href="https://www.kubeflow.org/docs/pipelines/sdk/v2/"
             rel="noopener"
             target="_blank"
           >
             SDK
           </a>
-          
-
-          <ul>
-            <li>
-              Try out 
-              <a
-                class="link"
-                href="https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/"
-                rel="noopener"
-                target="_blank"
-              >
-                the new Kubeflow Pipelines SDK v2 (Beta)
-              </a>
-            </li>
-          </ul>
-        </li>
-        <li>
-          TensorFlow Extended (TFX) 
-          <a
-            class="link"
-            href="https://www.tensorflow.org/tfx/guide"
-            rel="noopener"
-            target="_blank"
-          >
-            SDK
-          </a>
-           with end-to-end ML Pipeline Template (
-          <a
-            class="link"
-            href="https://console.cloud.google.com/vertex-ai/workbench/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb"
-            rel="noopener"
-            target="_blank"
-          >
-            Open a Vertex AI Workbench on Google Cloud
-          </a>
-          )
         </li>
       </ul>
       <br />
@@ -70,59 +34,6 @@ exports[`GettingStarted page initially renders documentation 1`] = `
       <p>
         This section contains demo and tutorial pipelines.
       </p>
-      <p>
-        <strong>
-          Demos
-        </strong>
-         - Try an end-to-end demonstration pipeline.
-      </p>
-      <ul>
-        <li>
-          <a
-            class="link"
-            href="#/pipelines"
-          >
-            TFX pipeline demo with Estimator
-          </a>
-           
-          <ul>
-            <li>
-              Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. 
-              <a
-                class="link"
-                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss"
-                rel="noopener"
-                target="_blank"
-              >
-                source code
-              </a>
-            </li>
-          </ul>
-        </li>
-        <li>
-          <a
-            class="link"
-            href="#/pipelines"
-          >
-            XGBoost Pipeline demo
-          </a>
-           
-          <ul>
-            <li>
-              An example of end-to-end iterative XGBoost model training. 
-              <a
-                class="link"
-                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good"
-                rel="noopener"
-                target="_blank"
-              >
-                source code
-              </a>
-            </li>
-          </ul>
-        </li>
-      </ul>
-      <br />
       <p>
         <strong>
           Tutorials
@@ -193,20 +104,6 @@ exports[`GettingStarted page initially renders documentation 1`] = `
 
 exports[`GettingStarted page renders documentation with pipeline deep link after querying demo pipelines 1`] = `
 Array [
-  Array [
-    undefined,
-    undefined,
-    10,
-    undefined,
-    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22operation%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20XGBoost%20-%20Iterative%20model%20training%22%7D%5D%7D",
-  ],
-  Array [
-    undefined,
-    undefined,
-    10,
-    undefined,
-    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22operation%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20TFX%20-%20Taxi%20tip%20prediction%20model%20trainer%22%7D%5D%7D",
-  ],
   Array [
     undefined,
     undefined,

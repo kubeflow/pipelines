@@ -84,43 +84,13 @@ describe('GettingStarted page', () => {
       + Received
 
       @@ --- --- @@
-            <h2 id="demonstrations-and-tutorials">Demonstrations and Tutorials</h2>
-            <p>This section contains demo and tutorial pipelines.</p>
-            <p><strong>Demos</strong> - Try an end-to-end demonstration pipeline.</p>
-            <ul>
-              <li>
-      -         <a href="#/pipelines" class="link">TFX pipeline demo with Estimator</a>
-      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
-      +           >TFX pipeline demo with Estimator</a
-      +         >
-                <ul>
-                  <li>
-                    Classification pipeline with model analysis, based on a public
-                    BigQuery dataset of taxicab trips.
-                    <a
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
-      -         <a href="#/pipelines" class="link">XGBoost Pipeline demo</a>
-      +         <a href="#/pipelines/details/pipeline-id-1?" class="link"
-      +           >XGBoost Pipeline demo</a
-      +         >
-                <ul>
-                  <li>
-                    An example of end-to-end iterative XGBoost model training.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good"
-      @@ --- --- @@
               <strong>Tutorials</strong> - Learn pipeline concepts by following a
               tutorial.
             </p>
             <ul>
               <li>
       -         <a href="#/pipelines" class="link">Data passing in Python components</a>
-      +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-1?" class="link"
       +           >Data passing in Python components</a
       +         >
                 <ul>
@@ -135,7 +105,7 @@ describe('GettingStarted page', () => {
               </li>
               <li>
       -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
       +           >DSL - Control structures</a
       +         >
                 <ul>
@@ -153,12 +123,6 @@ describe('GettingStarted page', () => {
         ++count;
         if (count === 1) {
           return Promise.reject(new Error('Mocked error'));
-        } else if (count === 2) {
-          // incomplete data
-          return Promise.resolve({});
-        } else if (count === 3) {
-          // empty data
-          return Promise.resolve({ pipelines: [], total_size: 0 });
         }
         return Promise.resolve({
           pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
@@ -181,7 +145,7 @@ describe('GettingStarted page', () => {
               </li>
               <li>
       -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
       +           >DSL - Control structures</a
       +         >
                 <ul>
