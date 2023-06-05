@@ -135,28 +135,6 @@ function NewRunSwitcher(props: PageProps) {
   // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
   const templateString = pipelineManifest ?? templateStrFromSpec;
 
-  if (isTemplateV2(templateString || '')) {
-    return (
-      <NewRunV2
-        {...props}
-        namespace={namespace}
-        existingRunId={existingRunId}
-        existingRun={v2Run}
-        existingRecurringRunId={originalRecurringRunId}
-        existingRecurringRun={recurringRun}
-        existingPipeline={pipeline}
-        handlePipelineIdChange={setPipelineIdFromPipeline}
-        existingPipelineVersion={pipelineVersion}
-        handlePipelineVersionIdChange={setPipelineVersionIdParam}
-        templateString={templateString}
-        chosenExperiment={experiment}
-      />
-    );
-  }
-
-  // Use experiment ID to create new run
-  // Currently use NewRunV1 as default
-  // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
   if (
     v2RunIsFetching ||
     recurringRunIsFetching ||
@@ -165,14 +143,34 @@ function NewRunSwitcher(props: PageProps) {
   ) {
     return <div>Currently loading pipeline information</div>;
   }
+
+  if (templateString && !isTemplateV2(templateString)) {
+    return (
+      <NewRun
+        {...props}
+        namespace={namespace}
+        existingPipelineId={pipelineIdFromPipeline}
+        handlePipelineIdChange={setPipelineIdFromPipeline}
+        existingPipelineVersionId={pipelineVersionIdParam}
+        handlePipelineVersionIdChange={setPipelineVersionIdParam}
+      />
+    );
+  }
+
   return (
-    <NewRun
+    <NewRunV2
       {...props}
       namespace={namespace}
-      existingPipelineId={pipelineIdFromPipeline}
+      existingRunId={existingRunId}
+      existingRun={v2Run}
+      existingRecurringRunId={originalRecurringRunId}
+      existingRecurringRun={recurringRun}
+      existingPipeline={pipeline}
       handlePipelineIdChange={setPipelineIdFromPipeline}
-      existingPipelineVersionId={pipelineVersionIdParam}
+      existingPipelineVersion={pipelineVersion}
       handlePipelineVersionIdChange={setPipelineVersionIdParam}
+      templateString={templateString}
+      chosenExperiment={experiment}
     />
   );
 }
