@@ -116,7 +116,7 @@ def _get_model(
     api_endpoint = location + '-aiplatform.googleapis.com'
     vertex_uri_prefix = f'https://{api_endpoint}/v1/'
 
-  vertex_model = VertexModel(
+  vertex_model = VertexModel.create(
       'model', vertex_uri_prefix + model_resource_name, model_resource_name
   )
   # TODO(b/266848949): Output Artifact should use correct MLMD artifact.

@@ -16,9 +16,9 @@
 from typing import Optional
 
 from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components.types.artifact_types import _ClassificationMetrics
-from google_cloud_pipeline_components.types.artifact_types import _ForecastingMetrics
-from google_cloud_pipeline_components.types.artifact_types import _RegressionMetrics
+from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
+from google_cloud_pipeline_components.types.artifact_types import ForecastingMetrics
+from google_cloud_pipeline_components.types.artifact_types import RegressionMetrics
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
 from kfp.dsl import Input
@@ -31,9 +31,9 @@ def model_evaluation_import(
     gcp_resources: dsl.OutputPath(str),
     metrics: Optional[Input[Metrics]] = None,
     problem_type: Optional[str] = None,
-    classification_metrics: Optional[Input[_ClassificationMetrics]] = None,
-    forecasting_metrics: Optional[Input[_ForecastingMetrics]] = None,
-    regression_metrics: Optional[Input[_RegressionMetrics]] = None,
+    classification_metrics: Optional[Input[ClassificationMetrics]] = None,
+    forecasting_metrics: Optional[Input[ForecastingMetrics]] = None,
+    regression_metrics: Optional[Input[RegressionMetrics]] = None,
     text_generation_metrics: Optional[Input[Metrics]] = None,
     question_answering_metrics: Optional[Input[Metrics]] = None,
     summarization_metrics: Optional[Input[Metrics]] = None,

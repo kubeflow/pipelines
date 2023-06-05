@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google_cloud_pipeline_components.types.artifact_types import _RegressionMetrics
 from google_cloud_pipeline_components.types.artifact_types import BQTable
+from google_cloud_pipeline_components.types.artifact_types import RegressionMetrics
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp.dsl import Artifact
 from kfp.dsl import ConcatPlaceholder
@@ -31,7 +31,7 @@ from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 @container_component
 def model_evaluation_regression(
     gcp_resources: OutputPath(str),
-    evaluation_metrics: Output[_RegressionMetrics],
+    evaluation_metrics: Output[RegressionMetrics],
     project: str,
     target_field_name: str,
     model: Input[VertexModel] = None,

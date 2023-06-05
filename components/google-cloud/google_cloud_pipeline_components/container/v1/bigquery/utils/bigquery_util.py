@@ -331,5 +331,7 @@ def bigquery_query_job(
     projectId = job['configuration']['query']['destinationTable']['projectId']
     datasetId = job['configuration']['query']['destinationTable']['datasetId']
     tableId = job['configuration']['query']['destinationTable']['tableId']
-    bq_table_artifact = BQTable(artifact_name, projectId, datasetId, tableId)
+    bq_table_artifact = BQTable.create(
+        artifact_name, projectId, datasetId, tableId
+    )
     artifact_util.update_output_artifacts(executor_input, [bq_table_artifact])

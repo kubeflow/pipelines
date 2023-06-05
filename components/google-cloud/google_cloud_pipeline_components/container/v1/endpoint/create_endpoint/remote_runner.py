@@ -51,7 +51,7 @@ def create_endpoint(
   create_endpoint_lro = remote_runner.poll_lro(lro=create_endpoint_lro)
   endpoint_resource_name = create_endpoint_lro['response']['name']
 
-  vertex_endpoint = VertexEndpoint(
+  vertex_endpoint = VertexEndpoint.create(
       'endpoint',
       vertex_uri_prefix + endpoint_resource_name,
       endpoint_resource_name,
