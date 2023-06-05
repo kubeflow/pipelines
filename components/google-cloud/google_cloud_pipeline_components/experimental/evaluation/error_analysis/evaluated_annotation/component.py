@@ -15,6 +15,7 @@
 
 from typing import Optional
 
+from google_cloud_pipeline_components.experimental.evaluation.version import EVAL_IMAGE_TAG
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input
@@ -83,7 +84,7 @@ def evaluated_annotation(
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/model-evaluation:v0.9',
+      image=EVAL_IMAGE_TAG,
       command=['python', '/main.py'],
       args=[
           '--task',
