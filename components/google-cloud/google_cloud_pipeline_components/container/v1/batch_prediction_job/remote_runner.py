@@ -197,7 +197,7 @@ def create_batch_prediction_job(
     )
 
     vertex_uri_prefix = f'https://{location}-aiplatform.googleapis.com/v1/'
-    vertex_batch_predict_job_artifact = VertexBatchPredictionJob(
+    vertex_batch_predict_job_artifact = VertexBatchPredictionJob.create(
         'batchpredictionjob',
         vertex_uri_prefix + get_job_response.name,
         get_job_response.name,
@@ -216,7 +216,7 @@ def create_batch_prediction_job(
       try:
         project = match.group('project')
         dataset = match.group('dataset')
-        bigquery_output_table_artifact = BQTable(
+        bigquery_output_table_artifact = BQTable.create(
             'bigquery_output_table',
             project,
             dataset,

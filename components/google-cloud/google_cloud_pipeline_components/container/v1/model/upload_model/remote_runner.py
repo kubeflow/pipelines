@@ -105,7 +105,7 @@ def upload_model(
           f'@{upload_model_lro["response"]["model_version_id"]}'
       )
 
-    vertex_model = VertexModel(
+    vertex_model = VertexModel.create(
         'model', vertex_uri_prefix + model_resource_name, model_resource_name
     )
     artifact_util.update_output_artifacts(executor_input, [vertex_model])

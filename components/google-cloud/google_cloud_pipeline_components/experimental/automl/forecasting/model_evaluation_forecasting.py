@@ -14,8 +14,8 @@
 
 from typing import Optional
 
-from google_cloud_pipeline_components.types.artifact_types import _ForecastingMetrics
 from google_cloud_pipeline_components.types.artifact_types import BQTable
+from google_cloud_pipeline_components.types.artifact_types import ForecastingMetrics
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
 from kfp.dsl import Artifact
@@ -28,7 +28,7 @@ def model_evaluation_forecasting(
     project: str,
     root_dir: str,
     target_field_name: str,
-    evaluation_metrics: Output[_ForecastingMetrics],
+    evaluation_metrics: Output[ForecastingMetrics],
     gcp_resources: dsl.OutputPath(str),
     location: Optional[str] = 'us-central1',
     predictions_format: Optional[str] = 'jsonl',

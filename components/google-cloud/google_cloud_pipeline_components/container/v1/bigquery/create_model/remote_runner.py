@@ -95,5 +95,5 @@ def bigquery_create_model_job(
   datasetId = query_result['ddlTargetTable']['datasetId']
   # tableId is the model ID
   modelId = query_result['ddlTargetTable']['tableId']
-  bqml_model_artifact = BQMLModel('model', projectId, datasetId, modelId)
+  bqml_model_artifact = BQMLModel.create('model', projectId, datasetId, modelId)
   artifact_util.update_output_artifacts(executor_input, [bqml_model_artifact])
