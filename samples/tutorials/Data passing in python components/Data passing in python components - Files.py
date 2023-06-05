@@ -19,7 +19,7 @@
 #
 # In Kubeflow Pipelines, the pipeline authors compose pipelines by creating component instances (tasks) and connecting them together.
 #
-# Component have inputs and outputs. They can consume and produce arbitrary data.
+# Components have inputs and outputs. They can consume and produce arbitrary data.
 #
 # Pipeline authors establish connections between component tasks by connecting their data inputs and outputs - by passing the output of one task as an argument to another task's input.
 #

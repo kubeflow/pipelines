@@ -94,9 +94,6 @@ def control_flows_pipeline():
                     message=f'{expected_result} and {random_num_head.output} <= 5!'
                 )
 
-        # with dsl.Condition(expected_result == 'tails'):
-        #     fail_op(message="Failing the run to demonstrate that exit handler still gets executed.")
-
 
 if __name__ == '__main__':
     # Compiling the pipeline
