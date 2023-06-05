@@ -1222,8 +1222,18 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
   private _validate(): void {
     // Validate state
-    const { pipelineVersion, workflowFromRun, maxConcurrentRuns, runName, trigger } = this.state;
+    const {
+      pipeline,
+      pipelineVersion,
+      workflowFromRun,
+      maxConcurrentRuns,
+      runName,
+      trigger,
+    } = this.state;
     try {
+      if (!pipeline && !workflowFromRun) {
+        throw new Error('A pipeline must be selected');
+      }
       if (!pipelineVersion && !workflowFromRun) {
         throw new Error('A pipeline version must be selected');
       }

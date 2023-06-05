@@ -920,7 +920,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -1425,7 +1425,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -1912,7 +1912,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -2884,7 +2884,7 @@ exports[`NewRun renders the new run page 1`] = `
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -3389,7 +3389,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -3876,7 +3876,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
