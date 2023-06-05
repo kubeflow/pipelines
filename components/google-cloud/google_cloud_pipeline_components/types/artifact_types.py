@@ -11,17 +11,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes for ML Metadata input/output Artifacts for tracking Google resources."""
+"""Artifact types corresponding to Google Cloud Resources produced and consumed by GCPC components.
+
+These artifact types can be used in your custom KFP SDK components as described
+in the `KFP SDK documentation
+<https://www.kubeflow.org/docs/components/pipelines/v2/data-types/artifacts/>`_.
+"""
+
+
+__all__ = [
+    'VertexModel',
+    'VertexEndpoint',
+    'VertexBatchPredictionJob',
+    'VertexDataset',
+    'BQMLModel',
+    'BQTable',
+    'UnmanagedContainerModel',
+    'ClassificationMetrics',
+    'RegressionMetrics',
+    'ForecastingMetrics',
+]
+
 from typing import Dict, Optional
 from kfp import dsl
+
 
 _RESOURCE_NAME_KEY = 'resourceName'
 
 
 class VertexModel(dsl.Artifact):
-  """An artifact representing a Vertex Model."""
+  """An artifact representing a Vertex AI `Model resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_."""
   schema_title = 'google.VertexModel'
-
   schema_version = '0.0.1'
 
   @classmethod
@@ -30,17 +50,19 @@ class VertexModel(dsl.Artifact):
       name: str,
       uri: str,
       model_resource_name: str,
-  ):
-    """Args: name: The artifact name.
+  ) -> 'VertexModel':
+    """Create a VertexModel artifact instance.
 
-    uri: the Vertex Model resource uri, in a form of https://{service-
-    endpoint}/v1/projects/{project}/locations/{location}/models/{model}, where
-    {service-endpoint} is one of the supported service endpoints at
-    https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
-    model_resource_name: The name of the Model resource, in a form of
-    projects/{project}/locations/{location}/models/{model}. For more details,
-    see https://cloud.google.com/vertex-
-    ai/docs/reference/rest/v1/projects.locations.models/get
+    Args:
+      name: The artifact name.
+      uri: the Vertex Model resource uri, in a form of
+      https://{service-endpoint}/v1/projects/{project}/locations/{location}/models/{model},
+        where {service-endpoint} is one of the supported service endpoints at
+      https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
+      model_resource_name: The name of the Model resource, in a form of
+        projects/{project}/locations/{location}/models/{model}. For more
+        details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/get
     """
     return cls(
         name=name,
@@ -50,9 +72,8 @@ class VertexModel(dsl.Artifact):
 
 
 class VertexEndpoint(dsl.Artifact):
-  """An artifact representing a Vertex Endpoint."""
+  """An artifact representing a Vertex AI `Endpoint resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_."""
   schema_title = 'google.VertexEndpoint'
-
   schema_version = '0.0.1'
 
   @classmethod
@@ -61,17 +82,19 @@ class VertexEndpoint(dsl.Artifact):
       name: str,
       uri: str,
       endpoint_resource_name: str,
-  ):
-    """Args: name: The artifact name.
+  ) -> 'VertexEndpoint':
+    """Create a VertexEndpoint artifact instance.
 
-    uri: the Vertex Endpoint resource uri, in a form of https://{service-
-    endpoint}/v1/projects/{project}/locations/{location}/endpoints/{endpoint},
-    where {service-endpoint} is one of the supported service endpoints at
-    https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
-    endpoint_resource_name: The name of the Endpoint resource, in a form of
-    projects/{project}/locations/{location}/endpoints/{endpoint}. For more
-    details, see https://cloud.google.com/vertex-
-    ai/docs/reference/rest/v1/projects.locations.endpoints/get
+    Args:
+      name: The artifact name.
+      uri: the Vertex Endpoint resource uri, in a form of
+      https://{service-endpoint}/v1/projects/{project}/locations/{location}/endpoints/{endpoint},
+        where {service-endpoint} is one of the supported service endpoints at
+      https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
+      endpoint_resource_name: The name of the Endpoint resource, in a form of
+        projects/{project}/locations/{location}/endpoints/{endpoint}. For more
+        details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/get
     """
     return cls(
         name=name,
@@ -81,9 +104,8 @@ class VertexEndpoint(dsl.Artifact):
 
 
 class VertexBatchPredictionJob(dsl.Artifact):
-  """An artifact representing a Vertex BatchPredictionJob."""
+  """An artifact representing a Vertex AI `BatchPredictionJob resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#resource:-batchpredictionjob>`_."""
   schema_title = 'google.VertexBatchPredictionJob'
-
   schema_version = '0.0.1'
 
   @classmethod
@@ -95,30 +117,32 @@ class VertexBatchPredictionJob(dsl.Artifact):
       bigquery_output_table: Optional[str] = None,
       bigquery_output_dataset: Optional[str] = None,
       gcs_output_directory: Optional[str] = None,
-  ):
-    """Args: name: The artifact name.
+  ) -> 'VertexBatchPredictionJob':
+    """Create a VertexBatchPredictionJob artifact instance.
 
-    uri: the Vertex Batch Prediction resource uri, in a form of
-    https://{service-endpoint}/v1/projects/{project}/locations/{location}/batchP
-    redictionJobs/{batchPredictionJob}, where {service-endpoint} is one of the
-    supported service endpoints at https://cloud.google.com/vertex-
-    ai/docs/reference/rest#rest_endpoints job_resource_name: The name of the
-    batch prediction job resource, in a form of projects/{project}/locations/{lo
-    cation}/batchPredictionJobs/{batchPredictionJob}. For more details, see
-    https://cloud.google.com/vertex-
-    ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/get
-    bigquery_output_table: The name of the BigQuery table created, in
-    predictions_<timestamp> format, into which the prediction output is written.
-    For more details, see https://cloud.google.com/vertex-
-    ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
-    bigquery_output_dataset: The path of the BigQuery dataset created, in
-    bq://projectId.bqDatasetId format, into which the prediction output is
-    written. For more details, see https://cloud.google.com/vertex-
-    ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
-    gcs_output_directory: The full path of the Cloud Storage directory created,
-    into which the prediction output is written. For more details, see
-    https://cloud.google.com/vertex-
-    ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
+    Args:
+      name: The artifact name.
+      uri: the Vertex Batch Prediction resource uri, in a form of
+      https://{service-endpoint}/v1/projects/{project}/locations/{location}/batchPredictionJobs/{batchPredictionJob},
+        where {service-endpoint} is one of the supported service endpoints at
+      https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
+      job_resource_name: The name of the batch prediction job resource, in a
+        form of
+        projects/{project}/locations/{location}/batchPredictionJobs/{batchPredictionJob}.
+        For more details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/get
+      bigquery_output_table: The name of the BigQuery table created, in
+        predictions_<timestamp> format, into which the prediction output is
+        written. For more details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
+      bigquery_output_dataset: The path of the BigQuery dataset created, in
+      bq://projectId.bqDatasetId format, into which the prediction output is
+        written. For more details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
+      gcs_output_directory: The full path of the Cloud Storage directory
+        created, into which the prediction output is written. For more details,
+        see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
     """
     return cls(
         name=name,
@@ -133,9 +157,8 @@ class VertexBatchPredictionJob(dsl.Artifact):
 
 
 class VertexDataset(dsl.Artifact):
-  """An artifact representing a Vertex Dataset."""
+  """An artifact representing a Vertex AI `Dataset resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_."""
   schema_title = 'google.VertexDataset'
-
   schema_version = '0.0.1'
 
   @classmethod
@@ -144,17 +167,19 @@ class VertexDataset(dsl.Artifact):
       name: str,
       uri: str,
       dataset_resource_name: str,
-  ):
-    """Args: name: The artifact name.
+  ) -> 'VertexDataset':
+    """Create a VertexDataset artifact instance.
 
-    uri: the Vertex Dataset resource uri, in a form of https://{service-endpoint
-    }/v1/projects/{project}/locations/{location}/datasets/{datasets_name}, where
-    {service-endpoint} is one of the supported service endpoints at
-    https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
-    dataset_resource_name: The name of the Dataset resource, in a form of
-    projects/{project}/locations/{location}/datasets/{datasets_name}. For more
-    details, see https://cloud.google.com/vertex-
-    ai/docs/reference/rest/v1/projects.locations.datasets/get
+    Args:
+      name: The artifact name.
+      uri: the Vertex Dataset resource uri, in a form of
+      https://{service-endpoint}/v1/projects/{project}/locations/{location}/datasets/{datasets_name},
+        where {service-endpoint} is one of the supported service endpoints at
+      https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
+      dataset_resource_name: The name of the Dataset resource, in a form of
+        projects/{project}/locations/{location}/datasets/{datasets_name}. For
+        more details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets/get
     """
     return cls(
         uri=uri,
@@ -164,9 +189,8 @@ class VertexDataset(dsl.Artifact):
 
 
 class BQMLModel(dsl.Artifact):
-  """An artifact representing a BQML Model."""
+  """An artifact representing a Google Cloud `BQML Model resource <https://cloud.google.com/bigquery/docs/reference/rest/v2/models>`_."""
   schema_title = 'google.BQMLModel'
-
   schema_version = '0.0.1'
 
   @classmethod
@@ -176,13 +200,15 @@ class BQMLModel(dsl.Artifact):
       project_id: str,
       dataset_id: str,
       model_id: str,
-  ):
-    """Args: name: The artifact name.
+  ) -> 'BQMLModel':
+    """Create a BQMLModel artifact instance.
 
-    project_id: The ID of the project containing this model. dataset_id: The ID
-    of the dataset containing this model. model_id: The ID of the model. For
-    more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/m
-    odels#ModelReference
+    Args:
+      name: The artifact name.
+      project_id: The ID of the project containing this model.
+      dataset_id: The ID of the dataset containing this model.
+      model_id: The ID of the model.  For more details, see
+      https://cloud.google.com/bigquery/docs/reference/rest/v2/models#ModelReference
     """
     return cls(
         name=name,
@@ -196,9 +222,8 @@ class BQMLModel(dsl.Artifact):
 
 
 class BQTable(dsl.Artifact):
-  """An artifact representing a BQ Table."""
+  """An artifact representing a Google Cloud `BQ Table resource <https://cloud.google.com/bigquery/docs/reference/rest/v2/tables>`_."""
   schema_title = 'google.BQTable'
-
   schema_version = '0.0.1'
 
   @classmethod
@@ -208,13 +233,15 @@ class BQTable(dsl.Artifact):
       project_id: str,
       dataset_id: str,
       table_id: str,
-  ):
-    """Args: name: The artifact name.
+  ) -> 'BQTable':
+    """Create a BQTable artifact instance.
 
-    project_id: The ID of the project containing this table. dataset_id: The ID
-    of the dataset containing this table. table_id: The ID of the table. For
-    more details, see
-    https://cloud.google.com/bigquery/docs/reference/rest/v2/TableReference
+    Args:
+      name: The artifact name.
+      project_id: The ID of the project containing this table.
+      dataset_id: The ID of the dataset containing this table.
+      table_id: The ID of the table.  For more details, see
+      https://cloud.google.com/bigquery/docs/reference/rest/v2/TableReference
     """
     return cls(
         name=name,
@@ -228,9 +255,8 @@ class BQTable(dsl.Artifact):
 
 
 class UnmanagedContainerModel(dsl.Artifact):
-  """An artifact representing an unmanaged container model."""
+  """An artifact representing a Vertex AI `unmanaged container model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ModelContainerSpec>`_."""
   schema_title = 'google.UnmanagedContainerModel'
-
   schema_version = '0.0.1'
 
   @classmethod
@@ -238,17 +264,18 @@ class UnmanagedContainerModel(dsl.Artifact):
       cls,
       predict_schemata: Dict,
       container_spec: Dict,
-  ):
-    """Args:
+  ) -> 'UnmanagedContainerModel':
+    """Create a UnmanagedContainerModel artifact instance.
 
-    predict_schemata: Contains the schemata used in Model's predictions and
-    explanations via PredictionService.Predict, PredictionService.Explain
-    and BatchPredictionJob. For more details, see
-    https://cloud.google.com/vertex-ai/docs/reference/rest/v1/PredictSchemata
-    container_spec: Specification of a container for serving predictions.
-    Some fields in this message correspond to fields in the Kubernetes
-    Container v1 core specification. For more details, see
-    https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ModelContainerSpec
+    Args:
+      predict_schemata: Contains the schemata used in Model's predictions and
+        explanations via PredictionService.Predict, PredictionService.Explain
+        and BatchPredictionJob. For more details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/PredictSchemata
+      container_spec: Specification of a container for serving predictions. Some
+        fields in this message correspond to fields in the Kubernetes Container
+        v1 core specification. For more details, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ModelContainerSpec
     """
     return cls(
         metadata={
@@ -259,9 +286,9 @@ class UnmanagedContainerModel(dsl.Artifact):
 
 
 class ClassificationMetrics(dsl.Artifact):
-  """An artifact representing evaluation classification metrics."""
-  schema_title = 'google.ClassificationMetrics'
+  """An artifact representing evaluation `classification metrics <https://cloud.google.com/vertex-ai/docs/tabular-data/classification-regression/evaluate-model#classification_1>`_."""
 
+  schema_title = 'google.ClassificationMetrics'
   schema_version = '0.0.1'
 
   @classmethod
@@ -275,16 +302,17 @@ class ClassificationMetrics(dsl.Artifact):
       au_prc: Optional[float] = None,
       au_roc: Optional[float] = None,
       log_loss: Optional[float] = None,
-  ):
-    """Args:
+  ) -> 'ClassificationMetrics':
+    """Create a ClassificationMetrics artifact instance.
 
-    recall: Recall (True Positive Rate) for the given confidence threshold.
-    precision: Precision for the given confidence threshold.
-    f1_score: The harmonic mean of recall and precision.
-    accuracy: Accuracy is the fraction of predictions given the correct label.
-    au_prc: The Area Under Precision-Recall Curve metric.
-    au_roc: The Area Under Receiver Operating Characteristic curve metric.
-    log_loss: The Log Loss metric.
+    Args:
+      recall: Recall (True Positive Rate) for the given confidence threshold.
+      precision: Precision for the given confidence threshold.
+      f1_score: The harmonic mean of recall and precision.
+      accuracy: Accuracy is the fraction of predictions given the correct label.
+      au_prc: The Area Under Precision-Recall Curve metric.
+      au_roc: The Area Under Receiver Operating Characteristic curve metric.
+      log_loss: The Log Loss metric.
     """
     metadata = {}
     if recall is not None:
@@ -308,9 +336,9 @@ class ClassificationMetrics(dsl.Artifact):
 
 
 class RegressionMetrics(dsl.Artifact):
-  """An artifact representing evaluation regression metrics."""
-  schema_title = 'google.RegressionMetrics'
+  """An artifact representing evaluation `regression metrics <https://cloud.google.com/vertex-ai/docs/tabular-data/classification-regression/evaluate-model#regression_1>`_."""
 
+  schema_title = 'google.RegressionMetrics'
   schema_version = '0.0.1'
 
   @classmethod
@@ -322,13 +350,16 @@ class RegressionMetrics(dsl.Artifact):
       mean_absolute_percentage_error: Optional[float] = None,
       r_squared: Optional[float] = None,
       root_mean_squared_log_error: Optional[float] = None,
-  ):
-    """Args: root_mean_squared_error: Root Mean Squared Error (RMSE).
+  ) -> 'RegressionMetrics':
+    """Create a RegressionMetrics artifact instance.
 
-    mean_absolute_error: Mean Absolute Error (MAE).
-    mean_absolute_percentage_error: Mean absolute percentage error. r_squared:
-    Coefficient of determination as Pearson correlation coefficient.
-    root_mean_squared_log_error: Root mean squared log error.
+    Args:
+      root_mean_squared_error: Root Mean Squared Error (RMSE).
+      mean_absolute_error: Mean Absolute Error (MAE).
+      mean_absolute_percentage_error: Mean absolute percentage error.
+      r_squared: Coefficient of determination as Pearson correlation
+        coefficient.
+      root_mean_squared_log_error: Root mean squared log error.
     """
     metadata = {}
     if root_mean_squared_error is not None:
@@ -348,9 +379,9 @@ class RegressionMetrics(dsl.Artifact):
 
 
 class ForecastingMetrics(dsl.Artifact):
-  """An artifact representing evaluation forecasting metrics."""
-  schema_title = 'google.ForecastingMetrics'
+  """An artifact representing evaluation `forecasting metrics <https://cloud.google.com/vertex-ai/docs/tabular-data/forecasting/evaluate-model#metrics>`_."""
 
+  schema_title = 'google.ForecastingMetrics'
   schema_version = '0.0.1'
 
   @classmethod
@@ -365,23 +396,24 @@ class ForecastingMetrics(dsl.Artifact):
       weighted_absolute_percentage_error: Optional[float] = None,
       root_mean_squared_percentage_error: Optional[float] = None,
       symmetric_mean_absolute_percentage_error: Optional[float] = None,
-  ):
-    """Args: root_mean_squared_error: Root Mean Squared Error (RMSE).
+  ) -> 'ForecastingMetrics':
+    """Create a ForecastingMetrics artifact instance.
 
-    mean_absolute_error: Mean Absolute Error (MAE).
-    mean_absolute_percentage_error: Mean absolute percentage error. r_squared:
-    Coefficient of determination as Pearson correlation coefficient.
-    root_mean_squared_log_error: Root mean squared log error.
-    weighted_absolute_percentage_error: Weighted Absolute Percentage Error.
-
-      Does not use weights, this is just what the metric is called.
-      Undefined if actual values sum to zero.
-      Will be very large if actual values sum to a very small number.
-    root_mean_squared_percentage_error: Root Mean Square Percentage Error.
-      Square root of MSPE.
-      Undefined/imaginary when MSPE is negative.
-    symmetric_mean_absolute_percentage_error: Symmetric Mean Absolute Percentage
-      Error.
+    Args:
+      root_mean_squared_error: Root Mean Squared Error (RMSE).
+      mean_absolute_error: Mean Absolute Error (MAE).
+      mean_absolute_percentage_error: Mean absolute percentage error.
+      r_squared: Coefficient of determination as Pearson correlation
+        coefficient.
+      root_mean_squared_log_error: Root mean squared log error.
+      weighted_absolute_percentage_error: Weighted Absolute Percentage Error.
+        Does not use weights, this is just what the metric is called. Undefined
+        if actual values sum to zero. Will be very large if actual values sum to
+        a very small number.
+      root_mean_squared_percentage_error: Root Mean Square Percentage Error.
+        Square root of MSPE. Undefined/imaginary when MSPE is negative.
+      symmetric_mean_absolute_percentage_error: Symmetric Mean Absolute
+        Percentage Error.
     """
     metadata = {}
     if root_mean_squared_error is not None:

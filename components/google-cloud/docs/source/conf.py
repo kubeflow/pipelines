@@ -136,6 +136,7 @@ autodoc_default_options = {
     'imported-members': True,
     'undoc-members': True,
     'show-inheritance': False,
+    'inherited-members': False,
     'autosummary': False,
 }
 
