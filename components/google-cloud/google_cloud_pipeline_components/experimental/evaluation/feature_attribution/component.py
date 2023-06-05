@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from google_cloud_pipeline_components.experimental.evaluation.version import EVAL_IMAGE_TAG
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import Artifact
 from kfp.dsl import ConcatPlaceholder
@@ -106,7 +106,7 @@ def feature_attribution(
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/model-evaluation:v0.9',
+      image=EVAL_IMAGE_TAG,
       command=[
           'python3',
           '/main.py',

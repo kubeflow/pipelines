@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from google_cloud_pipeline_components.experimental.evaluation.version import EVAL_IMAGE_TAG
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import OutputPath
@@ -88,7 +89,7 @@ def target_field_data_remover(
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/model-evaluation:v0.9',
+      image=EVAL_IMAGE_TAG,
       command=[
           'python3',
           '/main.py',
