@@ -33,13 +33,7 @@ const DEMO_PIPELINES_ID_MAP = {
   data: 0,
 };
 
-const PAGE_CONTENT_MD = ({
-  control,
-  data,
-}: {
-  control: string;
-  data: string;
-}) => `
+const PAGE_CONTENT_MD = ({ control, data }: { control: string; data: string }) => `
 <br/>
 
 ## Build your own pipeline with
