@@ -311,6 +311,15 @@ function NewRunV2(props: NewRunV2Props) {
         setErrorMessage('Run name can not be empty.');
         return;
       }
+    } else {
+      if (!existingPipeline) {
+        setErrorMessage('A pipeline must be selected');
+        return;
+      }
+      if (!existingPipelineVersion) {
+        setErrorMessage('A pipeline version must be selected');
+        return;
+      }
     }
   }, [runName, isTemplatePullSuccess]);
 
