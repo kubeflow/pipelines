@@ -1822,6 +1822,64 @@ class TestValidLegalTopologies(unittest.TestCase):
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=package_path)
 
+    def test_inner_parallelfor_can_iter_over_upstream_output(self):
+
+        @dsl.component
+        def str_to_list(string: str) -> List:
+            return [string]
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
+                t1 = str_to_list(string=itema)
+                with dsl.ParallelFor(t1.output) as itemb:
+                    identity(string=itemb)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_permitted_nested_parallelfor_complex(self):
+
+        @dsl.component
+        def str_to_list(string: str) -> List:
+            return [string]
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.pipeline
+        def my_pipeline():
+
+            # for-loop-2
+            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
+                t1 = str_to_list(string=itema)
+                t2 = str_to_list(string=itema)
+
+                sequential_task1 = identity(string=itema)
+                identity(string=sequential_task1.output)
+
+                # for-loop-3
+                with dsl.ParallelFor(t1.output) as itemb:
+                    t3 = str_to_list(string=itema)
+                    with dsl.ParallelFor(t3.output) as itemc:
+                        identity(string=itemc)
+                    with dsl.ParallelFor(t2.output) as itemd:
+                        identity(string=itemd)
+                with dsl.ParallelFor(t2.output) as iteme:
+                    identity(string=iteme)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
     def test_downstream_in_condition_nested_in_a_for_loop(self):
 
         @dsl.pipeline()
