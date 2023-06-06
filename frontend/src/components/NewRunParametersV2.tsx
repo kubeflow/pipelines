@@ -231,10 +231,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       setCustomPipelineRootChecked(true);
       setCustomPipelineRoot(clonedRuntimeConfig.pipeline_root);
     }
-
-    if (handlePipelineRootChange) {
-      handlePipelineRootChange(clonedRuntimeConfig?.pipeline_root);
-    }
   }, [clonedRuntimeConfig]);
 
   return (
