@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
@@ -417,6 +417,17 @@ describe('PipelineDetails', () => {
     expect(tree.state('templateString')).toBe(
       'spec:\n  arguments:\n    parameters:\n      - name: output\n',
     );
+  });
+
+  it('renders "No graph to show" if it is empty pipeline', async () => {
+    TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
+    render(<PipelineDetails {...generateProps()} />);
+
+    await waitFor(() => {
+      expect(getV2PipelineVersionSpy).toHaveBeenCalled();
+    });
+
+    screen.getByText('No graph to show');
   });
 
   it('use pipeline_version_id in recurring run to get pipeline template string (v2)', async () => {
