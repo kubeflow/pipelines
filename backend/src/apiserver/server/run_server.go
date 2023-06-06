@@ -85,8 +85,6 @@ var (
 		Help: "The total number of RetryRun requests",
 	})
 
-	// TODO(jingzhang36): error count and success count.
-
 	runCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "run_server_run_count",
 		Help: "The current number of runs in Kubeflow Pipelines instance",
@@ -332,7 +330,9 @@ func (s *RunServer) DeleteRunV1(ctx context.Context, request *apiv1beta1.DeleteR
 		return nil, util.Wrap(err, "Failed to delete a v1beta1 run")
 	}
 	if s.options.CollectMetrics {
-		runCount.Dec()
+		if util.GetMetricValue(runCount) > 0 {
+			runCount.Dec()
+		}
 	}
 	return &empty.Empty{}, nil
 }
