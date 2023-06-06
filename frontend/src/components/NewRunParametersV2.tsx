@@ -226,6 +226,17 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     }
   }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
 
+  useEffect(() => {
+    if (clonedRuntimeConfig?.pipeline_root) {
+      setCustomPipelineRootChecked(true);
+      setCustomPipelineRoot(clonedRuntimeConfig.pipeline_root);
+    }
+
+    if (handlePipelineRootChange) {
+      handlePipelineRootChange(clonedRuntimeConfig?.pipeline_root);
+    }
+  }, [clonedRuntimeConfig]);
+
   return (
     <div>
       <div className={commonCss.header}>Pipeline Root</div>
