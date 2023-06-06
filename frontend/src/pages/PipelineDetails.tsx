@@ -278,6 +278,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       try {
         return await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version.', err);
         logger.error('Cannot retrieve pipeline version.', err);
         return;
@@ -304,6 +305,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         }
         return undefined;
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version list.', err);
         logger.error('Cannot retrieve pipeline version list.', err);
         return;
@@ -370,6 +372,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                 ? workflowManifestString
                 : JsYaml.safeDump(workflowManifest);
             } catch (err) {
+              this.setStateSafe({ graphIsLoading: false });
               await this.showPageError(
                 `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                   origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
@@ -384,6 +387,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               );
             }
           } catch (err) {
+            this.setStateSafe({ graphIsLoading: false });
             await this.showPageError(
               `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                 origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
@@ -442,6 +446,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         });
         pageTitle = 'Pipeline details';
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
         logger.error(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
         return;
@@ -455,6 +460,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v1Pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
         v2Pipeline = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline details.', err);
         logger.error('Cannot retrieve pipeline details.', err);
         return;
@@ -466,6 +472,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           v1Version = await Apis.pipelineServiceApi.getPipelineVersion(versionId);
         }
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version.', err);
         logger.error('Cannot retrieve pipeline version.', err);
         return;
@@ -511,6 +518,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               )
             ).pipeline_versions || [];
         } catch (err) {
+          this.setStateSafe({ graphIsLoading: false });
           await this.showPageError('Cannot retrieve pipeline versions.', err);
           logger.error('Cannot retrieve pipeline versions.', err);
           return;
@@ -676,6 +684,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         ? templateStrFromSpec
         : templateResponse.template || '';
     } catch (err) {
+      this.setStateSafe({ graphIsLoading: false });
       await this.showPageError('Cannot retrieve pipeline template.', err);
       logger.error('Cannot retrieve pipeline details.', err);
     }
@@ -710,6 +719,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           );
         }
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Error: failed to generate Pipeline graph.', err);
       }
     }
