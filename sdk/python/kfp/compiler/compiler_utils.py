@@ -657,6 +657,7 @@ def get_dependencies(
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
+                print('dependent_group', dependent_group)
 
                 if isinstance(dependent_group,
                               (tasks_group.Condition, tasks_group.ExitHandler)):
@@ -668,26 +669,33 @@ def get_dependencies(
                         f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl.{for_loop.Collected.__name__}. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
                     )
 
-            # ParralelFor Nested Check
-            # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
+            # Check for nested ParallelFor
+            # if there is a ParallelFor group in the upstream parent's tasks and there also exists a ParallelFor in the uncommon_ancestors of downstream, a nested loop exists in the DAG
             # only check when upstream_task is a PipelineTask, since checking
             # for TasksGroup results in catching dsl.Collected cases.
             if isinstance(upstream_task, pipeline_task.PipelineTask):
                 upstream_parent_tasks = task_name_to_parent_groups[
                     upstream_task.name]
 
-                for group in downstream_groups:
+                downstreams_parallelfor_parents = [
+                    group_name_to_group.get(group, None)
+                    for group in downstream_groups
                     if isinstance(
-                            group_name_to_group.get(group, None),
-                            tasks_group.ParallelFor):
-                        for parent_task in upstream_parent_tasks:
-                            if isinstance(
-                                    group_name_to_group.get(parent_task, None),
-                                    tasks_group.ParallelFor):
+                        group_name_to_group.get(group, None),
+                        tasks_group.ParallelFor)
+                ]
 
-                                raise InvalidTopologyException(
-                                    f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
-                                )
+                upstreams_parallelfor_parents = [
+                    parent_group for parent_group in upstream_parent_tasks
+                    if isinstance(
+                        group_name_to_group.get(parent_group, None),
+                        tasks_group.ParallelFor)
+                ]
+
+                if downstreams_parallelfor_parents and upstreams_parallelfor_parents:
+                    raise InvalidTopologyException(
+                        f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {downstreams_parallelfor_parents[0]} is nested in {upstreams_parallelfor_parents[0]}.'
+                    )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
 
