@@ -16,16 +16,61 @@
 import copy
 import json
 import re
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
+from google_cloud_pipeline_components import _image
 from kfp import components
-# note: this is a slight dependency on KFP SDK implementation details
-# other code should not similarly depend on the stability of kfp.placeholders
+from kfp import dsl
 from kfp.components import placeholders
 
 from google.protobuf import json_format
 
+
+# note: this is a slight dependency on KFP SDK implementation details
+# other code should not similarly depend on the stability of kfp.placeholders
 DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX = "output__"
+
+
+def build_serverless_customjob_container_spec(
+    *,
+    project: str,
+    location: str,
+    custom_job_payload: Dict[str, Any],
+    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+) -> dsl.ContainerSpec:
+  """Builds a container spec that launches a custom job.
+
+  Args:
+    project: Project to run the job in.
+    location: Location to run the job in.
+    custom_job_payload: Payload to pass to the custom job. This dictionary is
+      serialized and passed as the custom job ``--payload``.
+    gcp_resources: GCP resources that can be used to track the job.
+
+  Returns:
+    Container spec that launches a custom job with the specified payload.
+  """
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          "python3",
+          "-u",
+          "-m",
+          "google_cloud_pipeline_components.container.v1.custom_job.launcher",
+      ],
+      args=[
+          "--type",
+          "CustomJob",
+          "--payload",
+          container_component_dumps(custom_job_payload),
+          "--project",
+          project,
+          "--location",
+          location,
+          "--gcp_resources",
+          gcp_resources,
+      ],
+  )
 
 
 def container_component_dumps(obj: Any) -> Any:

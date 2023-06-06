@@ -98,47 +98,32 @@ def custom_training_job(
       gcp_resources: Serialized gcp_resources proto tracking the batch prediction job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
-  return dsl.ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.custom_job.launcher',
-      ],
-      args=[
-          '--type',
-          'CustomJob',
-          '--payload',
-          utils.container_component_dumps({
-              'display_name': display_name,
-              'job_spec': {
-                  'worker_pool_specs': worker_pool_specs,
-                  'scheduling': {
-                      'timeout': timeout,
-                      'restart_job_on_worker_restart': (
-                          restart_job_on_worker_restart
-                      ),
-                  },
-                  'service_account': service_account,
-                  'tensorboard': tensorboard,
-                  'enable_web_access': enable_web_access,
-                  'network': network,
-                  'reserved_ip_ranges': reserved_ip_ranges,
-                  'base_output_directory': {
-                      'output_uri_prefix': base_output_directory
-                  },
+  return utils.build_serverless_customjob_container_spec(
+      project=project,
+      location=location,
+      custom_job_payload={
+          'display_name': display_name,
+          'job_spec': {
+              'worker_pool_specs': worker_pool_specs,
+              'scheduling': {
+                  'timeout': timeout,
+                  'restart_job_on_worker_restart': (
+                      restart_job_on_worker_restart
+                  ),
               },
-              'labels': labels,
-              'encryption_spec_key_name': {
-                  'kms_key_name': encryption_spec_key_name
+              'service_account': service_account,
+              'tensorboard': tensorboard,
+              'enable_web_access': enable_web_access,
+              'network': network,
+              'reserved_ip_ranges': reserved_ip_ranges,
+              'base_output_directory': {
+                  'output_uri_prefix': base_output_directory
               },
-          }),
-          '--project',
-          project,
-          '--location',
-          location,
-          '--gcp_resources',
-          gcp_resources,
-      ],
+          },
+          'labels': labels,
+          'encryption_spec_key_name': {
+              'kms_key_name': encryption_spec_key_name
+          },
+      },
+      gcp_resources=gcp_resources,
   )
