@@ -94,7 +94,7 @@ def train(
     # An input parameter of type string.
     message: str,
     # Use Output[T] to get a metadata-rich handle to the output artifact
-    # of type `Dataset`.
+    # of type `Model`.
     model: Output[Model],
     # An input parameter of type bool.
     input_bool: bool,
