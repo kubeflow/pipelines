@@ -238,6 +238,25 @@ describe('NewRunV2', () => {
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
+
+  // For creating new run with no pipeline is selected (enter from run list)
+  function generatePropsNoPipelineDef(): PageProps {
+    return {
+      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      location: {
+        pathname: RoutePage.NEW_RUN,
+        search: `?${QUERY_PARAMS.experimentId}=`,
+      } as any,
+      match: '' as any,
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
+      updateBanner: updateBannerSpy,
+      updateDialog: updateDialogSpy,
+      updateSnackbar: updateSnackbarSpy,
+      updateToolbar: updateToolbarSpy,
+    };
+  }
+
+  // For creating new run with pipeine definition (enter from pipeline details)
   function generatePropsNewRun(
     pid = ORIGINAL_TEST_PIPELINE_ID,
     vid = ORIGINAL_TEST_PIPELINE_VERSION_ID,
@@ -256,6 +275,8 @@ describe('NewRunV2', () => {
       updateToolbar: updateToolbarSpy,
     };
   }
+
+  // For clone run process
   function generatePropsClonedRun(): PageProps {
     return {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
@@ -366,6 +387,17 @@ describe('NewRunV2', () => {
   });
 
   describe('redirect to different new run page', () => {
+    it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...generatePropsNoPipelineDef()} />
+        </CommonTestWrapper>,
+      );
+
+      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      screen.getByText('A pipeline must be selected');
+    });
+
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       jest
         .spyOn(features, 'isFeatureEnabled')
