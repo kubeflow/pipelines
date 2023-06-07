@@ -260,7 +260,23 @@ func (l *LauncherV2) publish(
 	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
 }
 
-func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client, namespace string, k8sClient *kubernetes.Clientset) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+func executeV2(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	component *pipelinespec.ComponentSpec,
+	cmd string,
+	args []string,
+	bucket *blob.Bucket,
+	bucketConfig *objectstore.Config,
+	metadataClient *metadata.Client,
+	namespace string,
+	k8sClient *kubernetes.Clientset,
+) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+
+	// Add parameter default values to executorInput, if there is not already a user input.
+	// This process is done in the launcher because we let the component resolve default values internally.
+	executorInput = addDefaultParams(executorInput, component)
+
 	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, bucketConfig, namespace, k8sClient)
 	if err != nil {
 		return nil, nil, err
@@ -695,4 +711,17 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	}
 
 	return nil
+}
+
+func addDefaultParams(
+	executorInput *pipelinespec.ExecutorInput,
+	component *pipelinespec.ComponentSpec,
+) *pipelinespec.ExecutorInput {
+	for name, value := range component.GetInputDefinitions().GetParameters() {
+		_, hasInput := executorInput.GetInputs().GetParameterValues()[name]
+		if value.GetDefaultValue() != nil && !hasInput {
+			executorInput.GetInputs().GetParameterValues()[name] = value.GetDefaultValue()
+		}
+	}
+	return executorInput
 }
