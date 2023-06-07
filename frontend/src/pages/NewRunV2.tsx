@@ -321,7 +321,7 @@ function NewRunV2(props: NewRunV2Props) {
         return;
       }
     }
-  }, [runName, isTemplatePullSuccess]);
+  }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation((run: V2beta1Run) => {
