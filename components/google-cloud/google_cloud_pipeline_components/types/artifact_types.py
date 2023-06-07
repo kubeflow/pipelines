@@ -13,9 +13,14 @@
 # limitations under the License.
 """Artifact types corresponding to Google Cloud Resources produced and consumed by GCPC components.
 
-These artifact types can be used in your custom KFP SDK components as described
-in the `KFP SDK documentation
+These artifact types can be used in your custom KFP SDK components similarly to
+other `KFP SDK artifacts
 <https://www.kubeflow.org/docs/components/pipelines/v2/data-types/artifacts/>`_.
+If you wish to produce Google artifacts from your own components, it is
+recommended that you use `Containerized Python Components
+<https://www.kubeflow.org/docs/components/pipelines/v2/components/containerized-python-components/>`_.
+You should assign metadata to the Google artifacts according to the artifact's
+schema (provided by each artifact's ``.schema`` attribute).
 """
 
 
@@ -32,9 +37,9 @@ __all__ = [
     'ForecastingMetrics',
 ]
 
+import textwrap
 from typing import Dict, Optional
 from kfp import dsl
-
 
 _RESOURCE_NAME_KEY = 'resourceName'
 
@@ -43,6 +48,12 @@ class VertexModel(dsl.Artifact):
   """An artifact representing a Vertex AI `Model resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_."""
   schema_title = 'google.VertexModel'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.VertexModel
+type: object
+properties:
+  resourceName:
+    type: string""")
 
   @classmethod
   def create(
@@ -75,6 +86,12 @@ class VertexEndpoint(dsl.Artifact):
   """An artifact representing a Vertex AI `Endpoint resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_."""
   schema_title = 'google.VertexEndpoint'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.VertexEndpoint
+type: object
+properties:
+  resourceName:
+    type: string""")
 
   @classmethod
   def create(
@@ -107,6 +124,18 @@ class VertexBatchPredictionJob(dsl.Artifact):
   """An artifact representing a Vertex AI `BatchPredictionJob resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#resource:-batchpredictionjob>`_."""
   schema_title = 'google.VertexBatchPredictionJob'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.VertexBatchPredictionJob
+type: object
+properties:
+  resourceName:
+    type: string
+  bigqueryOutputTable:
+    type: string
+  gcsOutputDirectory:
+    type: string
+  bigqueryOutputDataset:
+    type: string""")
 
   @classmethod
   def create(
@@ -160,6 +189,12 @@ class VertexDataset(dsl.Artifact):
   """An artifact representing a Vertex AI `Dataset resource <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_."""
   schema_title = 'google.VertexDataset'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.VertexDataset
+type: object
+properties:
+  resourceName:
+    type: string""")
 
   @classmethod
   def create(
@@ -192,6 +227,16 @@ class BQMLModel(dsl.Artifact):
   """An artifact representing a Google Cloud `BQML Model resource <https://cloud.google.com/bigquery/docs/reference/rest/v2/models>`_."""
   schema_title = 'google.BQMLModel'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.BQMLModel
+type: object
+properties:
+  projectId:
+    type: string
+  datasetId:
+    type: string
+  modelId:
+    type: string""")
 
   @classmethod
   def create(
@@ -225,6 +270,18 @@ class BQTable(dsl.Artifact):
   """An artifact representing a Google Cloud `BQ Table resource <https://cloud.google.com/bigquery/docs/reference/rest/v2/tables>`_."""
   schema_title = 'google.BQTable'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.BQTable
+type: object
+properties:
+  projectId:
+    type: string
+  datasetId:
+    type: string
+  tableId:
+    type: string
+  expirationTime:
+    type: string""")
 
   @classmethod
   def create(
@@ -258,6 +315,52 @@ class UnmanagedContainerModel(dsl.Artifact):
   """An artifact representing a Vertex AI `unmanaged container model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ModelContainerSpec>`_."""
   schema_title = 'google.UnmanagedContainerModel'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.UnmanagedContainerModel
+type: object
+properties:
+  predictSchemata:
+    type: object
+    properties:
+      instanceSchemaUri:
+        type: string
+      parametersSchemaUri:
+        type: string
+      predictionSchemaUri:
+        type: string
+  containerSpec:
+    type: object
+    properties:
+      imageUri:
+        type: string
+      command:
+        type: array
+        items:
+          type: string
+      args:
+        type: array
+        items:
+          type: string
+      env:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+            value:
+              type: string
+      ports:
+        type: array
+        items:
+          type: object
+          properties:
+            containerPort:
+              type: integer
+      predictRoute:
+        type: string
+      healthRoute:
+        type: string""")
 
   @classmethod
   def create(
@@ -290,6 +393,128 @@ class ClassificationMetrics(dsl.Artifact):
 
   schema_title = 'google.ClassificationMetrics'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.ClassificationMetrics
+type: object
+properties:
+  aggregationType:
+    type: string
+    enum:
+      - AGGREGATION_TYPE_UNSPECIFIED
+      - MACRO_AVERAGE
+      - MICRO_AVERAGE
+  aggregationThreshold:
+    type: number
+    format: float
+  recall:
+    type: number
+    format: float
+  precision:
+    type: number
+    format: float
+  f1_score:
+    type: number
+    format: float
+  accuracy:
+    type: number
+    format: float
+  auPrc:
+    type: number
+    format: float
+  auRoc:
+    type: number
+    format: float
+  logLoss:
+    type: number
+    format: float
+  confusionMatrix:
+    type: object
+    properties:
+      rows:
+        type: array
+        items:
+          type: array
+          items:
+            type: integer
+            format: int64
+      annotationSpecs:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+            displayName:
+              type: string
+  confidenceMetrics:
+    type: array
+    items:
+      type: object
+      properties:
+        confidenceThreshold:
+          type: number
+          format: float
+        recall:
+          type: number
+          format: float
+        precision:
+          type: number
+          format: float
+        f1Score:
+          type: number
+          format: float
+        maxPredictions:
+          type: integer
+          format: int32
+        falsePositiveRate:
+          type: number
+          format: float
+        accuracy:
+          type: number
+          format: float
+        truePositiveCount:
+          type: integer
+          format: int64
+        falsePositiveCount:
+          type: integer
+          format: int64
+        falseNegativeCount:
+          type: integer
+          format: int64
+        trueNegativeCount:
+          type: integer
+          format: int64
+        recallAt1:
+          type: number
+          format: float
+        precisionAt1:
+          type: number
+          format: float
+        falsePositiveRateAt1:
+          type: number
+          format: float
+        f1ScoreAt1:
+          type: number
+          format: float
+        confusionMatrix:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: array
+                items:
+                  type: integer
+                  format: int64
+            annotationSpecs:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  displayName:
+                    type: string""")
 
   @classmethod
   def create(
@@ -340,6 +565,25 @@ class RegressionMetrics(dsl.Artifact):
 
   schema_title = 'google.RegressionMetrics'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.RegressionMetrics
+type: object
+properties:
+  rootMeanSquaredError:
+    type: number
+    format: float
+  meanAbsoluteError:
+    type: number
+    format: float
+  meanAbsolutePercentageError:
+    type: number
+    format: float
+  rSquared:
+    type: number
+    format: float
+  rootMeanSquaredLogError:
+    type: number
+    format: float""")
 
   @classmethod
   def create(
@@ -383,6 +627,48 @@ class ForecastingMetrics(dsl.Artifact):
 
   schema_title = 'google.ForecastingMetrics'
   schema_version = '0.0.1'
+  schema = textwrap.dedent("""\
+title: google.ForecastingMetrics
+type: object
+properties:
+  rootMeanSquaredError:
+    type: number
+    format: float
+  meanAbsoluteError:
+    type: number
+    format: float
+  meanAbsolutePercentageError:
+    type: number
+    format: float
+  rSquared:
+    type: number
+    format: float
+  rootMeanSquaredLogError:
+    type: number
+    format: float
+  weightedAbsolutePercentageError:
+    type: number
+    format: float
+  rootMeanSquaredPercentageError:
+    type: number
+    format: float
+  symmetricMeanAbsolutePercentageError:
+    type: number
+    format: float
+  quantileMetrics:
+    type: array
+    items:
+      type: object
+      properties:
+        quantile:
+          type: number
+          format: double
+        scaledPinballLoss:
+          type: number
+          format: float
+        observedQuantile:
+          type: number
+          format: double""")
 
   @classmethod
   def create(
