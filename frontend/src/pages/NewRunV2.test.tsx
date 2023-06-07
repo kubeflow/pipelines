@@ -113,7 +113,7 @@ describe('NewRunV2', () => {
       pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -129,7 +129,7 @@ describe('NewRunV2', () => {
       pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -142,7 +142,7 @@ describe('NewRunV2', () => {
     run_id: 'test-clone-sdk-run-id',
     display_name: 'Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -155,7 +155,7 @@ describe('NewRunV2', () => {
     run_id: 'test-clone-sdk-run-id',
     display_name: 'Clone of Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -169,7 +169,7 @@ describe('NewRunV2', () => {
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
     recurring_run_id: TEST_RECURRING_RUN_ID,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -185,7 +185,7 @@ describe('NewRunV2', () => {
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
     recurring_run_id: 'test-clone-ui-recurring-run-id',
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -198,7 +198,7 @@ describe('NewRunV2', () => {
     display_name: 'Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
     recurring_run_id: TEST_RECURRING_RUN_ID,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -211,7 +211,7 @@ describe('NewRunV2', () => {
     display_name: 'Clone of Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
     recurring_run_id: 'test-clone-sdk-recurring-run-id',
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -955,7 +955,10 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             service_account: '',
           }),
         );
@@ -997,7 +1000,10 @@ describe('NewRunV2', () => {
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
             pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             service_account: '',
           }),
         );
@@ -1044,7 +1050,10 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },
@@ -1096,7 +1105,10 @@ describe('NewRunV2', () => {
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
             pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'dummy_root' },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },
