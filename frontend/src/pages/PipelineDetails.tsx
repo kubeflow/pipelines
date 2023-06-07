@@ -578,7 +578,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v => v.pipeline_version_id === versionId,
       );
       const pageTitle = this.state.v1Pipeline.name?.concat(' (', selectedVersionV1?.name!, ')');
-      this.props.updateToolbar({ pageTitle });
 
       const selectedVersionPipelineTemplate = await this._getTemplateString(
         this.state.v1Pipeline.id!,
@@ -587,6 +586,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       this.props.history.replace({
         pathname: `/pipelines/details/${this.state.v1Pipeline.id}/version/${versionId}`,
       });
+      this.props.updateToolbar(this.getInitialToolbarState());
+      this.props.updateToolbar({ pageTitle });
 
       const [graph, reducedGraph, graphV2] = await this._createGraph(
         selectedVersionPipelineTemplate,
@@ -624,7 +625,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         selectedVersionV2?.display_name!,
         ')',
       );
-      this.props.updateToolbar({ pageTitle });
 
       const selectedVersionPipelineTemplate = await this._getTemplateString(
         this.state.v2Pipeline.pipeline_id!,
@@ -633,6 +633,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       this.props.history.replace({
         pathname: `/pipelines/details/${this.state.v2Pipeline.pipeline_id}/version/${versionId}`,
       });
+      this.props.updateToolbar(this.getInitialToolbarState());
+      this.props.updateToolbar({ pageTitle });
 
       const [graph, reducedGraph, graphV2] = await this._createGraph(
         selectedVersionPipelineTemplate,
