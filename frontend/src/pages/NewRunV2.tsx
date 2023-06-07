@@ -301,7 +301,6 @@ function NewRunV2(props: NewRunV2Props) {
   }, [templateString, errorMessage, isParameterValid, isMaxConcurrentRunValid]);
 
   // Whenever any input value changes, validate and show error if needed.
-  // TODO(zijianjoy): Validate run name for now, we need to validate others first.
   useEffect(() => {
     if (isTemplatePullSuccess) {
       if (runName) {
