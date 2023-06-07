@@ -301,7 +301,6 @@ function NewRunV2(props: NewRunV2Props) {
   }, [templateString, errorMessage, isParameterValid, isMaxConcurrentRunValid]);
 
   // Whenever any input value changes, validate and show error if needed.
-  // TODO(zijianjoy): Validate run name for now, we need to validate others first.
   useEffect(() => {
     if (isTemplatePullSuccess) {
       if (runName) {
@@ -311,8 +310,17 @@ function NewRunV2(props: NewRunV2Props) {
         setErrorMessage('Run name can not be empty.');
         return;
       }
+    } else {
+      if (!existingPipeline) {
+        setErrorMessage('A pipeline must be selected');
+        return;
+      }
+      if (!existingPipelineVersion) {
+        setErrorMessage('A pipeline version must be selected');
+        return;
+      }
     }
-  }, [runName, isTemplatePullSuccess]);
+  }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation((run: V2beta1Run) => {
@@ -635,9 +643,11 @@ function NewRunV2(props: NewRunV2Props) {
           pipelineRoot={pipelineRoot}
           handlePipelineRootChange={setPipelineRoot}
           titleMessage={
-            Object.keys(specParameters).length
-              ? 'Specify parameters required by the pipeline'
-              : 'This pipeline has no parameters'
+            existingPipeline || cloneOrigin.isClone
+              ? Object.keys(specParameters).length
+                ? 'Specify parameters required by the pipeline'
+                : 'This pipeline has no parameters'
+              : 'Parameters will appear after you select a pipeline'
           }
           specParameters={specParameters}
           clonedRuntimeConfig={clonedRuntimeConfig}
