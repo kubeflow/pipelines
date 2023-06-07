@@ -282,11 +282,14 @@ function NewRunV2(props: NewRunV2Props) {
       setSpecParameters({});
     }
 
-    const root = spec.defaultPipelineRoot;
-    if (root) {
-      setPipelineRoot(root);
+    const defaultRoot = spec.defaultPipelineRoot;
+    const clonedRoot = clonedRuntimeConfig?.pipeline_root;
+    if (clonedRoot) {
+      setPipelineRoot(clonedRoot);
+    } else if (defaultRoot) {
+      setPipelineRoot(defaultRoot);
     }
-  }, [templateString]);
+  }, [templateString, clonedRuntimeConfig]);
 
   // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
