@@ -803,7 +803,7 @@ describe('NewRunParametersV2', () => {
       },
       clonedRuntimeConfig: {
         parameters: { intParam: 123, strParam: 'string_value' },
-        pipeline_root: 'hello/world',
+        pipeline_root: 'gs://dummy_pipeline_root',
       },
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
@@ -811,7 +811,7 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    screen.getByDisplayValue('hello/world');
+    screen.getByDisplayValue('gs://dummy_pipeline_root');
   });
 
   it('shows parameters from cloned RuntimeConfig', () => {
