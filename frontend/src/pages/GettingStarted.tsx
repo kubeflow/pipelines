@@ -29,42 +29,21 @@ import { Page } from './Page';
 
 const DEMO_PIPELINES: string[] = SAMPLE_CONFIG;
 const DEMO_PIPELINES_ID_MAP = {
-  control: 3,
-  data: 2,
-  tfx: 1,
-  xgboost: 0,
+  control: 1,
+  data: 0,
 };
 
-const PAGE_CONTENT_MD = ({
-  control,
-  data,
-  tfx,
-  xgboost,
-}: {
-  control: string;
-  data: string;
-  tfx: string;
-  xgboost: string;
-}) => `
+const PAGE_CONTENT_MD = ({ control, data }: { control: string; data: string }) => `
 <br/>
 
 ## Build your own pipeline with
 
-  * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/)
-    * Try out [the new Kubeflow Pipelines SDK v2 (Beta)](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
-  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open a Vertex AI Workbench on Google Cloud](https://console.cloud.google.com/vertex-ai/workbench/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
+* Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/v2/)
 
 <br/>
 
 ## Demonstrations and Tutorials
 This section contains demo and tutorial pipelines.
-
-**Demos** - Try an end-to-end demonstration pipeline.
-
-  * [TFX pipeline demo with Estimator](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
-  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end iterative XGBoost model training. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good)
-
-<br/>
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
@@ -147,8 +126,6 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           {PAGE_CONTENT_MD({
             control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
-            tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
-            xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
           })}
         </Markdown>
       </div>
