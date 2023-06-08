@@ -22,6 +22,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -390,7 +391,7 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	defer db.Close()
 
 	// Add a filter
-	opts, _ := list.NewOptions(&model.Run{}, 4, "", &api.Filter{
+	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
 				Key: "name",
@@ -402,7 +403,9 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 				},
 			},
 		},
-	})
+	}
+	newFilter, _ := filter.New(filterProto)
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", newFilter)
 	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
@@ -1381,25 +1384,6 @@ func TestParseMetrics(t *testing.T) {
 	parsedMetrics, err := parseMetrics(metricsNullString)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedModelRunMetrics, parsedMetrics)
-}
-
-func TestGetMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
-	defer db.Close()
-
-	metric := &model.RunMetric{
-		RunUUID:     "1",
-		NodeID:      "node1",
-		Name:        "acurracy",
-		NumberValue: 0.77,
-		Format:      "PERCENTAGE",
-	}
-	runStore.CreateMetric(metric)
-
-	metric.Payload = "{\"RunUUID\":\"1\",\"NodeID\":\"node1\",\"Name\":\"acurracy\",\"NumberValue\":0.77,\"Format\":\"PERCENTAGE\",\"Payload\":\"\"}"
-	getMetrics, err := runStore.GetMetrics("1")
-	assert.Nil(t, err)
-	assert.Equal(t, metric, getMetrics[0])
 }
 
 func TestParseRuntimeConfig(t *testing.T) {

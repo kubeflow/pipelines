@@ -17,29 +17,32 @@ import base64
 import json
 import logging
 import os
-import six
 import sys
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from google.cloud import aiplatform
 from google.api_core import gapic_v1
-from google.protobuf.struct_pb2 import Value, Struct, NULL_VALUE, ListValue
+from google.cloud import aiplatform
+from google.cloud.aiplatform_v1.types.model_evaluation_slice import ModelEvaluationSlice
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import six
 
+from google.protobuf.struct_pb2 import ListValue, NULL_VALUE, Struct, Value
 from google.protobuf import json_format
-from typing import Any, Dict
 
 PROBLEM_TYPE_TO_SCHEMA_URI = {
-    'classification':
-        'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml',
-    'regression':
-        'gs://google-cloud-aiplatform/schema/modelevaluation/regression_metrics_1.0.0.yaml',
-    'forecasting':
-        'gs://google-cloud-aiplatform/schema/modelevaluation/forecasting_metrics_1.0.0.yaml',
+    'classification': 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml',
+    'regression': 'gs://google-cloud-aiplatform/schema/modelevaluation/regression_metrics_1.0.0.yaml',
+    'forecasting': 'gs://google-cloud-aiplatform/schema/modelevaluation/forecasting_metrics_1.0.0.yaml',
+    'text-generation': 'gs://google-cloud-aiplatform/schema/modelevaluation/general_text_generation_metrics_1.0.0.yaml',
+    'question-answering': 'gs://google-cloud-aiplatform/schema/modelevaluation/question_answering_metrics_1.0.0.yaml',
+    'summarization': 'gs://google-cloud-aiplatform/schema/modelevaluation/summarization_metrics_1.0.0.yaml',
 }
 
 MODEL_EVALUATION_RESOURCE_TYPE = 'ModelEvaluation'
 MODEL_EVALUATION_SLICE_RESOURCE_TYPE = 'ModelEvaluationSlice'
 SLICE_BATCH_IMPORT_LIMIT = 50
+ULM_TASKS = set(['text-generation', 'question-answering', 'summarization'])
+
 
 def _make_parent_dirs_and_return_path(file_path: str):
   os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -47,72 +50,93 @@ def _make_parent_dirs_and_return_path(file_path: str):
 
 
 parser = argparse.ArgumentParser(
-    prog='Vertex Model Service evaluation importer', description='')
-parser.add_argument(
-    '--metrics',
-    dest='metrics',
-    type=str,
-    default=None)
+    prog='Vertex Model Service evaluation importer', description=''
+)
+parser.add_argument('--metrics', dest='metrics', type=str, default='')
 parser.add_argument(
     '--classification_metrics',
     dest='classification_metrics',
     type=str,
-    default=None)
+    default='',
+)
 parser.add_argument(
-    '--forecasting_metrics',
-    dest='forecasting_metrics',
-    type=str,
-    default=None)
+    '--forecasting_metrics', dest='forecasting_metrics', type=str, default=''
+)
 parser.add_argument(
-    '--regression_metrics',
-    dest='regression_metrics',
+    '--regression_metrics', dest='regression_metrics', type=str, default=''
+)
+parser.add_argument(
+    '--text_generation_metrics',
+    dest='text_generation_metrics',
     type=str,
-    default=None)
+    default='',
+)
+parser.add_argument(
+    '--question_answering_metrics',
+    dest='question_answering_metrics',
+    type=str,
+    default='',
+)
+parser.add_argument(
+    '--summarization_metrics',
+    dest='summarization_metrics',
+    type=str,
+    default='',
+)
 parser.add_argument(
     '--feature_attributions',
     dest='feature_attributions',
     type=str,
-    default=None)
+    default='',
+)
 parser.add_argument(
-    '--metrics_explanation', dest='metrics_explanation', type=str, default=None)
-parser.add_argument('--explanation', dest='explanation', type=str, default=None)
+    '--metrics_explanation', dest='metrics_explanation', type=str, default=''
+)
+parser.add_argument('--explanation', dest='explanation', type=str, default='')
+parser.add_argument('--problem_type', dest='problem_type', type=str, default='')
 parser.add_argument(
-    '--problem_type',
-    dest='problem_type',
-    type=str,
-    default=None)
+    '--display_name', nargs='?', dest='display_name', type=str, default=''
+)
 parser.add_argument(
-    '--display_name', nargs='?', dest='display_name', type=str, default=None)
-parser.add_argument(
-    '--pipeline_job_id', dest='pipeline_job_id', type=str, default=None)
+    '--pipeline_job_id', dest='pipeline_job_id', type=str, default=''
+)
 parser.add_argument(
     '--pipeline_job_resource_name',
     dest='pipeline_job_resource_name',
     type=str,
-    default=None)
+    default=None,
+)
 parser.add_argument(
-    '--dataset_path', nargs='?', dest='dataset_path', type=str, default=None)
+    '--dataset_path', nargs='?', dest='dataset_path', type=str, default=''
+)
 parser.add_argument(
-    '--dataset_paths', nargs='?', dest='dataset_paths', type=str, default='[]')
+    '--dataset_paths', nargs='?', dest='dataset_paths', type=str, default='[]'
+)
 parser.add_argument(
-    '--dataset_type', nargs='?', dest='dataset_type', type=str, default=None)
+    '--dataset_type', nargs='?', dest='dataset_type', type=str, default=''
+)
 parser.add_argument(
     '--model_name',
     dest='model_name',
     type=str,
     required=True,
-    default=argparse.SUPPRESS)
+    default=argparse.SUPPRESS,
+)
 parser.add_argument(
     '--gcp_resources',
     dest='gcp_resources',
     type=_make_parent_dirs_and_return_path,
     required=True,
-    default=argparse.SUPPRESS)
+    default=argparse.SUPPRESS,
+)
 
 
 def main(argv):
   """Calls ModelService.ImportModelEvaluation."""
   parsed_args, _ = parser.parse_known_args(argv)
+
+  if parsed_args.model_name.startswith('publishers'):
+    return
 
   _, project_id, _, location, _, model_id = parsed_args.model_name.split('/')
   api_endpoint = location + '-aiplatform.googleapis.com'
@@ -127,52 +151,81 @@ def main(argv):
   elif parsed_args.regression_metrics:
     metrics_file_path = parsed_args.regression_metrics
     problem_type = 'regression'
+  elif parsed_args.text_generation_metrics:
+    metrics_file_path = parsed_args.text_generation_metrics
+    problem_type = 'text-generation'
+  elif parsed_args.question_answering_metrics:
+    metrics_file_path = parsed_args.question_answering_metrics
+    problem_type = 'question-answering'
+  elif parsed_args.summarization_metrics:
+    metrics_file_path = parsed_args.summarization_metrics
+    problem_type = 'summarization'
   else:
     metrics_file_path = parsed_args.metrics
     problem_type = parsed_args.problem_type
 
-  metrics_file_path = metrics_file_path if not metrics_file_path.startswith(
-      'gs://') else '/gcs' + metrics_file_path[4:]
+  logging.info('metrics_file_path: %s', metrics_file_path)
+  logging.info('problem_type: %s', problem_type)
+  metrics_file_path = (
+      metrics_file_path
+      if not metrics_file_path.startswith('gs://')
+      else '/gcs' + metrics_file_path[4:]
+  )
 
   schema_uri = PROBLEM_TYPE_TO_SCHEMA_URI.get(problem_type)
-  with open(metrics_file_path) as metrics_file:
-    all_sliced_metrics = [{
-        **one_slice, 'metrics':
-            to_value(next(iter(one_slice['metrics'].values())))
-    } for one_slice in json.loads(metrics_file.read())['slicedMetrics']]
-  overall_slice = all_sliced_metrics[0]
-  sliced_metrics = all_sliced_metrics[1:]
+  overall_slice, sliced_metrics = read_metrics_from_file(
+      metrics_file_path, problem_type
+  )
 
   model_evaluation = {
       'metrics': overall_slice['metrics'],
-      'metrics_schema_uri': schema_uri
+      'metrics_schema_uri': schema_uri,
   }
 
-  if parsed_args.explanation and parsed_args.explanation == "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}":
+  if (
+      parsed_args.explanation
+      and parsed_args.explanation
+      == "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}"
+  ):
     # metrics_explanation must contain explanation_gcs_path when provided.
-    logging.error(
-        '"explanation" must contain explanations when provided.')
+    logging.error('"explanation" must contain explanations when provided.')
     sys.exit(13)
   elif parsed_args.feature_attributions:
-    explanation_file_name = parsed_args.feature_attributions if not parsed_args.feature_attributions.startswith(
-        'gs://') else '/gcs' + parsed_args.feature_attributions[4:]
+    explanation_file_name = (
+        parsed_args.feature_attributions
+        if not parsed_args.feature_attributions.startswith('gs://')
+        else '/gcs' + parsed_args.feature_attributions[4:]
+    )
   elif parsed_args.explanation:
-    explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
-        'gs://') else '/gcs' + parsed_args.explanation[4:]
-  elif parsed_args.metrics_explanation and parsed_args.metrics_explanation != "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}":
-    explanation_file_name = parsed_args.metrics_explanation if not parsed_args.metrics_explanation.startswith(
-        'gs://') else '/gcs' + parsed_args.metrics_explanation[4:]
+    explanation_file_name = (
+        parsed_args.explanation
+        if not parsed_args.explanation.startswith('gs://')
+        else '/gcs' + parsed_args.explanation[4:]
+    )
+  elif (
+      parsed_args.metrics_explanation
+      and parsed_args.metrics_explanation
+      != "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}"
+  ):
+    explanation_file_name = (
+        parsed_args.metrics_explanation
+        if not parsed_args.metrics_explanation.startswith('gs://')
+        else '/gcs' + parsed_args.metrics_explanation[4:]
+    )
   else:
     explanation_file_name = None
   if explanation_file_name:
     with open(explanation_file_name) as explanation_file:
       model_evaluation['model_explanation'] = {
-          'mean_attributions': [{
-              'feature_attributions':
-                  to_value(
-                      json.loads(explanation_file.read())['explanation']
-                      ['attributions'][0]['featureAttributions'])
-          }]
+          'mean_attributions': [
+              {
+                  'feature_attributions': to_value(
+                      json.loads(explanation_file.read())['explanation'][
+                          'attributions'
+                      ][0]['featureAttributions']
+                  )
+              }
+          ]
       }
 
   if parsed_args.display_name:
@@ -181,7 +234,8 @@ def main(argv):
   try:
     dataset_paths = json.loads(parsed_args.dataset_paths)
     if not isinstance(dataset_paths, list) or not all(
-        isinstance(el, str) for el in dataset_paths):
+        isinstance(el, str) for el in dataset_paths
+    ):
       dataset_paths = []
   except ValueError:
     dataset_paths = []
@@ -190,22 +244,26 @@ def main(argv):
     dataset_paths.append(parsed_args.dataset_path)
 
   metadata = {
-      key: value for key, value in {
+      key: value
+      for key, value in {
           'pipeline_job_id': parsed_args.pipeline_job_id,
           'pipeline_job_resource_name': parsed_args.pipeline_job_resource_name,
           'evaluation_dataset_type': parsed_args.dataset_type,
           'evaluation_dataset_path': dataset_paths or None,
-      }.items() if value is not None
+      }.items()
+      if value
   }
   if metadata:
     model_evaluation['metadata'] = to_value(metadata)
 
   client = aiplatform.gapic.ModelServiceClient(
       client_info=gapic_v1.client_info.ClientInfo(
-          user_agent='google-cloud-pipeline-components'),
+          user_agent='google-cloud-pipeline-components'
+      ),
       client_options={
           'api_endpoint': api_endpoint,
-      })
+      },
+  )
   import_model_evaluation_response = client.import_model_evaluation(
       parent=parsed_args.model_name,
       model_evaluation=model_evaluation,
@@ -223,19 +281,57 @@ def main(argv):
   # Import model evaluation slices if present.
   if sliced_metrics:
     slice_resource_names = []
+    sliced_feature_attributions = {}
+    if explanation_file_name:
+      sliced_feature_attributions = sliced_explanation_to_dict(
+          explanation_file_name, sliced_feature_attributions
+      )
     # BatchImportModelEvaluationSlices has a size limit of 50 slices.
-    for i in range(0, len(sliced_metrics), SLICE_BATCH_IMPORT_LIMIT):
-      slice_resource_names.extend(client.batch_import_model_evaluation_slices(
-          parent=model_evaluation_name,
-          model_evaluation_slices=[
-              {
-                  'metrics': one_slice['metrics'],
-                  'metrics_schema_uri': schema_uri,
-                  'slice_': to_slice(one_slice['singleOutputSlicingSpec']),
-              }
-              for one_slice in sliced_metrics[i:i+SLICE_BATCH_IMPORT_LIMIT]
-          ],
-      ).imported_model_evaluation_slices)
+    slices = []
+    slices_with_slice_spec = []
+    slices_with_explanations = []
+    for one_slice in sliced_metrics:
+      slice_spec = to_slice(one_slice['singleOutputSlicingSpec'])
+      slice_config = {
+          'metrics': one_slice['metrics'],
+          'metrics_schema_uri': schema_uri,
+          'slice_': slice_spec,
+      }
+      if (
+          sliced_feature_attributions
+          and slice_spec['dimension'] == 'annotationSpec'
+      ):
+        slice_config['model_explanation'] = {
+            'mean_attributions': [
+                {
+                    'feature_attributions': sliced_feature_attributions[
+                        slice_spec['value']
+                    ]
+                }
+            ]
+        }
+        slices_with_explanations.append(slice_config)
+      elif 'slice_spec' in slice_spec:
+        slices_with_slice_spec.append(slice_config)
+      else:
+        slices.append(slice_config)
+
+    def batch_import_slices_list(slices_list) -> Iterable[str]:
+      for i in range(0, len(slices_list), SLICE_BATCH_IMPORT_LIMIT):
+        yield client.batch_import_model_evaluation_slices(
+            parent=model_evaluation_name,
+            model_evaluation_slices=slices_list[
+                i : i + SLICE_BATCH_IMPORT_LIMIT
+            ],
+        ).imported_model_evaluation_slices
+
+    slice_resource_names.extend(batch_import_slices_list(slices))
+    slice_resource_names.extend(
+        batch_import_slices_list(slices_with_slice_spec)
+    )
+    slice_resource_names.extend(
+        batch_import_slices_list(slices_with_explanations)
+    )
 
     for slice_resource in slice_resource_names:
       slice_mlmd_resource = resources.resources.add()
@@ -248,8 +344,106 @@ def main(argv):
     f.write(json_format.MessageToJson(resources))
 
 
+def read_metrics_from_file(
+    metrics_file_path: str, problem_type: str
+) -> Tuple[Dict[str, Any], Optional[List[Dict[str, Any]]]]:
+  """Reads the metrics and sliced metrics from gcs file.
+
+  Args:
+      metrics_file_path: The gcs file with holds the metrics.
+      problem_type: The problem type of the metrics.
+
+  Returns:
+      tuple(dict[str, Any], dict[str, Any]): a tuple of evaluation metrics and
+      the corresponding sliced metrics.
+  """
+  with open(metrics_file_path) as metrics_file:
+    all_metrics = json.loads(metrics_file.read())
+    if problem_type in ULM_TASKS:
+      return {'metrics': to_value(all_metrics)}, None
+    all_metrics = all_metrics['slicedMetrics']
+    all_sliced_metrics = []
+    for slice_idx in range(len(all_metrics)):
+      one_slice = all_metrics[slice_idx]
+      if problem_type == 'classification':
+        if (
+            'metrics' in one_slice
+            and 'classification' in one_slice['metrics']
+            and 'confusionMatrix' in one_slice['metrics']['classification']
+            and 'annotationSpecs'
+            in one_slice['metrics']['classification']['confusionMatrix']
+            and 'confidenceMetrics' in one_slice['metrics']['classification']
+            and len(
+                one_slice['metrics']['classification']['confusionMatrix'][
+                    'annotationSpecs'
+                ]
+            )
+            > 100
+        ):
+          confidence_metrics = one_slice['metrics']['classification'][
+              'confidenceMetrics'
+          ]
+          for idx in range(len(confidence_metrics)):
+            if 'confusionMatrix' in confidence_metrics[idx]:
+              del confidence_metrics[idx]['confusionMatrix']
+          one_slice['metrics']['classification'][
+              'confidenceMetrics'
+          ] = confidence_metrics
+
+      all_sliced_metrics.append({
+          **one_slice,
+          'metrics': to_value(next(iter(one_slice['metrics'].values()))),
+      })
+  overall_slice = all_sliced_metrics[0]
+  sliced_metrics = all_sliced_metrics[1:]
+  return overall_slice, sliced_metrics
+
+
+def sliced_explanation_to_dict(
+    explanation_file_name: str, sliced_feature_attributions: Dict[str, Any]
+):
+  with open(explanation_file_name) as explanation_file:
+    explanations = json.loads(explanation_file.read())
+    for sliced_explanation in explanations['explanation']['attributions'][1:]:
+      sliced_feature_attributions[sliced_explanation['value']] = to_value(
+          sliced_explanation['featureAttributions']
+      )
+  return sliced_feature_attributions
+
+
 def to_slice(slicing_spec: Dict[str, Any]):
+  """Converts a VertexEvaluation OutputSlicingSpec to a Vertex AI Slice.
+
+  Args:
+    slicing_spec: VertexEvaluation OutputSlicingSpec
+
+  Returns:
+    A dictionary with keys 'dimension' and 'value'. Optionally with key
+      'sliceSpec'.
+  """
   value = ''
+  if 'dimension' in slicing_spec and slicing_spec['dimension'] == 'slice':
+    value = slicing_spec['value'] if 'value' in slicing_spec else ''
+    slice_spec = ModelEvaluationSlice.Slice.SliceSpec.from_json(
+        json.dumps(slicing_spec.get('slicingSpec', {}))
+    )
+    slice_ = {
+        'dimension': slicing_spec['dimension'],
+        'value': value,
+    }
+    if slice_spec:
+      slice_['slice_spec'] = slice_spec
+    return slice_
+  elif (
+      'dimension' in slicing_spec
+      and slicing_spec['dimension'] == 'annotationSpec'
+      and 'value' in slicing_spec
+  ):
+    return {
+        'dimension': slicing_spec['dimension'],
+        'value': slicing_spec['value'],
+    }
+
   if 'bytesValue' in slicing_spec:
     value = base64.b64decode(slicing_spec['bytesValue']).decode('utf-8')
   elif 'floatValue' in slicing_spec:
@@ -276,10 +470,12 @@ def to_value(value):
     return Value(string_value=value)
   elif isinstance(value, dict):
     return Value(
-        struct_value=Struct(fields={k: to_value(v) for k, v in value.items()}))
+        struct_value=Struct(fields={k: to_value(v) for k, v in value.items()})
+    )
   elif isinstance(value, list):
     return Value(
-        list_value=ListValue(values=[to_value(item) for item in value]))
+        list_value=ListValue(values=[to_value(item) for item in value])
+    )
   else:
     raise ValueError('Unsupported data type: {}'.format(type(value)))
 

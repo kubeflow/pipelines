@@ -13,11 +13,10 @@
 # limitations under the License.
 """GCP launcher for hyperparameter tuning jobs based on the AI Platform SDK."""
 
-import argparse
 import logging
 import sys
 
-from . import remote_runner
+from google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
 
 
@@ -29,7 +28,8 @@ def _parse_args(args):
       dest='execution_metrics',
       type=str,
       required=False,
-      default=None)
+      default=None,
+  )
 
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
@@ -54,7 +54,8 @@ def main(argv):
   job_type = parsed_args['type']
 
   if job_type not in [
-      'HyperparameterTuningJob', 'HyperparameterTuningJobWithMetrics'
+      'HyperparameterTuningJob',
+      'HyperparameterTuningJobWithMetrics',
   ]:
     raise ValueError('Incorrect job type: ' + job_type)
 

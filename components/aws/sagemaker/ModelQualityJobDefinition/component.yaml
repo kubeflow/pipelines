@@ -1,0 +1,124 @@
+name: "Sagemaker - ModelQualityJobDefinition"
+description: Create ModelQualityJobDefinition
+inputs:
+  - {
+      name: region,
+      type: String,
+      description: "The region to use for the training job",
+    }
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: job_definition_name,
+      type: String,
+      default: '',
+      description: "The name of the monitoring job definition.",
+    }
+  - {
+      name: job_resources,
+      type: JsonObject,
+      default: '{}',
+      description: "Identifies the resources to deploy for a monitoring job.",
+    }
+  - {
+      name: model_quality_app_specification,
+      type: JsonObject,
+      default: '{}',
+      description: "The container that runs the monitoring job.",
+    }
+  - {
+      name: model_quality_baseline_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Specifies the constraints and baselines for the monitoring job.",
+    }
+  - {
+      name: model_quality_job_input,
+      type: JsonObject,
+      default: '{}',
+      description: "A list of the inputs that are monitored.",
+    }
+  - {
+      name: model_quality_job_output_config,
+      type: JsonObject,
+      default: '{}',
+      description: "The output configuration for monitoring jobs.",
+    }
+  - {
+      name: network_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Specifies the network configuration for the monitoring job.",
+    }
+  - {
+      name: role_arn,
+      type: String,
+      default: '',
+      description: "The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on your behalf.",
+    }
+  - {
+      name: stopping_condition,
+      type: JsonObject,
+      default: '{}',
+      description: "A time limit for how long the monitoring job is allowed to run before stopping.",
+    }
+  - {
+      name: tags,
+      type: JsonArray,
+      default: '[]',
+      description: "(Optional) An array of key-value pairs.",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+outputs:
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: ack_resource_metadata,
+      type: JsonObject,
+      description: "All CRs managed by ACK have a common `Status.",
+    }
+  - {
+      name: conditions,
+      type: JsonArray,
+      description: "All CRS managed by ACK have a common `Status.",
+    }
+  - {
+      name: sagemaker_resource_name,
+      type: String,
+      description: "Resource name on Sagemaker",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+implementation:
+  container:
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.3.0
+    command: [python3]
+    args:
+      - ModelQualityJobDefinition/src/ModelQualityJobDefinition_component.py
+      - --region
+      - { inputValue: region }
+      ###########################GENERATED SECTION BELOW############################
+      - --job_definition_name
+      - { inputValue: job_definition_name }
+      - --job_resources
+      - { inputValue: job_resources }
+      - --model_quality_app_specification
+      - { inputValue: model_quality_app_specification }
+      - --model_quality_baseline_config
+      - { inputValue: model_quality_baseline_config }
+      - --model_quality_job_input
+      - { inputValue: model_quality_job_input }
+      - --model_quality_job_output_config
+      - { inputValue: model_quality_job_output_config }
+      - --network_config
+      - { inputValue: network_config }
+      - --role_arn
+      - { inputValue: role_arn }
+      - --stopping_condition
+      - { inputValue: stopping_condition }
+      - --tags
+      - { inputValue: tags }
+      
+      ###########################GENERATED SECTION ABOVE############################
+

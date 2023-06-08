@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
@@ -51,6 +52,7 @@ var (
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
 	containerSpecJson = flag.String("container", "{}", "container spec")
+	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
@@ -126,6 +128,14 @@ func drive() (err error) {
 			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 		}
 	}
+	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+	if *k8sExecConfigJson != "" {
+		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJson))
+		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
+		if err := jsonpb.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
+			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJson)
+		}
+	}
 	namespace, err := config.InPodNamespace()
 	if err != nil {
 		return err
@@ -157,6 +167,7 @@ func drive() (err error) {
 		execution, driverErr = driver.DAG(ctx, options, client)
 	case "CONTAINER":
 		options.Container = containerSpec
+		options.KubernetesExecutorConfig = k8sExecCfg
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
@@ -221,7 +232,7 @@ func prettyPrint(jsonStr string) string {
 	if err != nil {
 		return jsonStr
 	}
-	return string(prettyJSON.Bytes())
+	return prettyJSON.String()
 }
 
 func writeFile(path string, data []byte) (err error) {

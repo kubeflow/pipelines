@@ -14,6 +14,7 @@
 """Pipeline task class and operations."""
 
 import copy
+import inspect
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Union
@@ -25,6 +26,7 @@ from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components import utils
 from kfp.components.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
@@ -102,6 +104,8 @@ class PipelineTask:
         self.container_spec = None
         self.pipeline_spec = None
         self._ignore_upstream_failure_tag = False
+        # platform_config for this primitive task; empty if task is for a graph component
+        self.platform_config = {}
 
         def validate_placeholder_types(
                 component_spec: structures.ComponentSpec) -> None:
@@ -142,6 +146,20 @@ class PipelineTask:
             value for _, value in args.items()
             if not isinstance(value, pipeline_channel.PipelineChannel)
         ])
+
+    @property
+    def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
+        """PlatformSpec for all tasks in the pipeline as task.
+
+        Only for use on tasks created from GraphComponents.
+        """
+        if self.pipeline_spec:
+            return self.component_spec.platform_spec
+
+        # can only create primitive task platform spec at compile-time, since the executor label is not known until then
+        raise ValueError(
+            f'Can only access {".platform_spec"!r} property on a tasks created from pipelines. Use {".platform_config"!r} for tasks created from primitive components.'
+        )
 
     @property
     def name(self) -> str:
@@ -229,24 +247,77 @@ class PipelineTask:
         self._task_spec.enable_caching = enable_caching
         return self
 
-    def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
-        """Sets CPU limit (maximum) for the task.
+    def _ensure_container_spec_exists(self) -> None:
+        """Ensures that the task has a container spec."""
+        caller_method_name = inspect.stack()[1][3]
+
+        if self.container_spec is None:
+            raise ValueError(
+                f'{caller_method_name} can only be used on single-step components, not pipelines used as components, or special components like importers.'
+            )
+
+    def _validate_cpu_request_limit(self, cpu: str) -> float:
+        """Validates cpu request/limit string and converts to its numeric
+        value.
 
         Args:
-            cpu: Maximum CPU requests allowed. This string should be a number or a number followed by an "m" to indicate millicores (1/1000). For more information, see `Specify a CPU Request and a CPU Limit <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+            cpu: CPU requests or limits. This string should be a number or a
+                number followed by an "m" to indicate millicores (1/1000). For
+                more information, see `Specify a CPU Request and a CPU Limit
+                <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+
+        Raises:
+            ValueError if the cpu request/limit string value is invalid.
 
         Returns:
-            Self return to allow chained setting calls.
+            The numeric value (float) of the cpu request/limit.
         """
         if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
             raise ValueError(
                 'Invalid cpu string. Should be float or integer, or integer'
                 ' followed by "m".')
 
-        cpu = float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        return float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
+
+    def set_cpu_request(self, cpu: str) -> 'PipelineTask':
+        """Sets CPU request (minimum) for the task.
+
+        Args:
+            cpu: Minimum CPU requests required. This string should be a number
+                or a number followed by an "m" to indicate millicores (1/1000).
+                For more information, see `Specify a CPU Request and a CPU Limit
+                <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        cpu = self._validate_cpu_request_limit(cpu)
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.cpu_request = cpu
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                cpu_request=cpu)
+
+        return self
+
+    def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
+        """Sets CPU limit (maximum) for the task.
+
+        Args:
+            cpu: Maximum CPU requests allowed. This string should be a number
+                or a number followed by an "m" to indicate millicores (1/1000).
+                For more information, see `Specify a CPU Request and a CPU Limit
+                <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        cpu = self._validate_cpu_request_limit(cpu)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.cpu_limit = cpu
@@ -258,7 +329,7 @@ class PipelineTask:
 
     def set_accelerator_limit(self, limit: int) -> 'PipelineTask':
         """Sets accelerator limit (maximum) for the task. Only applies if
-        accelerator type is also set via .add_node_selector_constraint().
+        accelerator type is also set via .set_accelerator_type().
 
         Args:
             limit: Maximum number of accelerators allowed.
@@ -266,14 +337,12 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
+        self._ensure_container_spec_exists()
+
         if isinstance(limit, str):
             if re.match(r'[1-9]\d*$', limit) is None:
                 raise ValueError(f'{"limit"!r} must be positive integer.')
             limit = int(limit)
-
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
@@ -285,7 +354,7 @@ class PipelineTask:
 
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
         """Sets GPU limit (maximum) for the task. Only applies if accelerator
-        type is also set via .add_node_selector_constraint().
+        type is also set via .add_accelerator_type().
 
         Args:
             gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
@@ -300,14 +369,20 @@ class PipelineTask:
             category=DeprecationWarning)
         return self.set_accelerator_limit(gpu)
 
-    def set_memory_limit(self, memory: str) -> 'PipelineTask':
-        """Sets memory limit (maximum) for the task.
+    def _validate_memory_request_limit(self, memory: str) -> float:
+        """Validates memory request/limit string and converts to its numeric
+        value.
 
         Args:
-            memory: The maximum memory requests allowed. This string should be a number or a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: Memory requests or limits. This string should be a number or
+               a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
+               "Gi", "M", "Mi", "K", or "Ki".
+
+        Raises:
+            ValueError if the memory request/limit string value is invalid.
 
         Returns:
-            Self return to allow chained setting calls.
+            The numeric value (float) of the memory request/limit.
         """
         if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
                     memory) is None:
@@ -344,9 +419,45 @@ class PipelineTask:
             # By default interpret as a plain integer, in the unit of Bytes.
             memory = float(memory) / constants._G
 
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        return memory
+
+    def set_memory_request(self, memory: str) -> 'PipelineTask':
+        """Sets memory request (minimum) for the task.
+
+        Args:
+            memory: The minimum memory requests required. This string should be
+                a number or a number followed by one of "E", "Ei", "P", "Pi",
+                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        memory = self._validate_memory_request_limit(memory)
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.memory_request = memory
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                memory_request=memory)
+
+        return self
+
+    def set_memory_limit(self, memory: str) -> 'PipelineTask':
+        """Sets memory limit (maximum) for the task.
+
+        Args:
+            memory: The maximum memory requests allowed. This string should be
+                a number or a number followed by one of "E", "Ei", "P", "Pi",
+                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        memory = self._validate_memory_request_limit(memory)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.memory_limit = memory
@@ -384,15 +495,26 @@ class PipelineTask:
         """Sets accelerator type to use when executing this task.
 
         Args:
-            value: The name of the accelerator. Available values include
-                ``'NVIDIA_TESLA_K80'`` and ``'TPU_V3'``.
+            accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
 
         Returns:
             Self return to allow chained setting calls.
         """
-        if self.container_spec is None:
-            raise ValueError(
-                'There is no container specified in implementation')
+        warnings.warn(
+            f'{self.add_node_selector_constraint.__name__!r} is deprecated. Please use {self.set_accelerator_type.__name__!r} instead.',
+            category=DeprecationWarning)
+        return self.set_accelerator_type(accelerator)
+
+    def set_accelerator_type(self, accelerator: str) -> 'PipelineTask':
+        """Sets accelerator type to use when executing this task.
+
+        Args:
+            accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_type = accelerator
@@ -426,6 +548,8 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
+        self._ensure_container_spec_exists()
+
         if self.container_spec.env is not None:
             self.container_spec.env[name] = value
         else:

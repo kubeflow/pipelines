@@ -17,7 +17,7 @@ import argparse
 import logging
 import sys
 
-from . import remote_runner
+from google_cloud_pipeline_components.container.v1.endpoint.create_endpoint import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
 
 
@@ -31,7 +31,8 @@ def _parse_args(args):
       type=str,
       # executor_input is only needed for components that emit output artifacts.
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

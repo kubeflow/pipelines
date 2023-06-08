@@ -18,9 +18,6 @@ import logging
 import google.auth
 import google.auth.transport.requests
 from google_cloud_pipeline_components.container.v1.bigquery.utils import bigquery_util
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
-from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-import requests
 
 
 def bigquery_drop_model_job(
@@ -66,16 +63,23 @@ def bigquery_drop_model_job(
       executor_input: A json serialized pipeline executor input.
   """
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json['query'] = ('DROP MODEL %s') % (
-      bigquery_util.back_quoted_if_needed(model_name))
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = 'DROP MODEL %s' % (
+      bigquery_util.back_quoted_if_needed(model_name)
+  )
 
   creds, _ = google.auth.default()
   job_uri = bigquery_util.check_if_job_exists(gcp_resources)
   if job_uri is None:
     job_uri = bigquery_util.create_query_job(
-        project, location, payload,
-        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+        project,
+        location,
+        payload,
+        json.dumps(job_configuration_query_override_json),
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)

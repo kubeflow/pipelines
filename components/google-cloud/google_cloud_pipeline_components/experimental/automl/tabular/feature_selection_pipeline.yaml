@@ -1,0 +1,313 @@
+# PIPELINE DEFINITION
+# Name: feature-selection
+# Description: The feature selection pipeline.
+# Inputs:
+#    algorithm: str [Default: 'AMI']
+#    data_source_bigquery_table_path: str [Default: '']
+#    data_source_csv_filenames: str [Default: '']
+#    dataflow_disk_size_gb: int [Default: 40.0]
+#    dataflow_machine_type: str [Default: 'n1-standard-16']
+#    dataflow_max_num_workers: int [Default: 25.0]
+#    dataflow_service_account: str [Default: '']
+#    dataflow_subnetwork: str [Default: '']
+#    dataflow_use_public_ips: bool [Default: True]
+#    encryption_spec_key_name: str [Default: '']
+#    location: str
+#    max_selected_features: int [Default: 1000.0]
+#    prediction_type: str
+#    project: str
+#    root_dir: str
+#    target_column_name: str
+components:
+  comp-get-data-source-artifact:
+    executorLabel: exec-get-data-source-artifact
+    inputDefinitions:
+      parameters:
+        data_source_bigquery_table_path:
+          parameterType: STRING
+        data_source_csv_filenames:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        data_source_artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-tabular-feature-ranking-and-selection:
+    executorLabel: exec-tabular-feature-ranking-and-selection
+    inputDefinitions:
+      artifacts:
+        data_source:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        algorithm:
+          defaultValue: AMI
+          isOptional: true
+          parameterType: STRING
+        binary_classification:
+          defaultValue: 'false'
+          isOptional: true
+          parameterType: STRING
+        dataflow_disk_size_gb:
+          defaultValue: 40.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_machine_type:
+          defaultValue: n1-standard-16
+          isOptional: true
+          parameterType: STRING
+        dataflow_max_num_workers:
+          defaultValue: 25.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_service_account:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_subnetwork:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_use_public_ips:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        max_selected_features:
+          defaultValue: 1000.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        prediction_type:
+          defaultValue: unknown
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        root_dir:
+          parameterType: STRING
+        target_column_name:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        feature_ranking:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        selected_features:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-get-data-source-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _get_data_source_artifact
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _get_data_source_artifact(\n    data_source_csv_filenames: str,\n\
+          \    data_source_bigquery_table_path: str,\n    data_source_artifact: dsl.OutputPath('Dataset'),\n\
+          ):\n  \"\"\"Compose data source artifact from serialized data source string\
+          \ input.\n\n  Args:\n    data_source_csv_filenames: A string that represents\
+          \ a list of comma\n      separated CSV filenames.\n    data_source_bigquery_table_path:\
+          \ The BigQuery table path of format\n      bq://bq_project.bq_dataset.bq_table\n\
+          \    data_source_artifact: artifact uri for input data source.\n  \"\"\"\
+          \n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  if data_source_csv_filenames:\n    data_source_dict = {\n        'csv_data_source':\
+          \ {\n            'csv_filenames': data_source_csv_filenames.split(',')\n\
+          \        }\n    }\n  elif data_source_bigquery_table_path:\n    data_source_dict\
+          \ = {\n        'big_query_data_source': {\n            'big_query_table_path':\
+          \ data_source_bigquery_table_path\n        }\n    }\n  else:\n    raise\
+          \ ValueError(\n        'One of data_source_csv_filenames and data_source_bigquery_table_path'\n\
+          \        ' must be specified.'\n    )\n  with open(data_source_artifact,\
+          \ 'w') as f:\n    f.write(json.dumps(data_source_dict))\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-tabular-feature-ranking-and-selection:
+      container:
+        args:
+        - --type
+        - CustomJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --payload
+        - '{"Concat": ["{\"display_name\": \"tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
+          {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          \"args\": [\"feature_selection\", \"--data_source=", "{{$.inputs.artifacts[''data_source''].uri}}",
+          "\", \"--target_column=", "{{$.inputs.parameters[''target_column_name'']}}",
+          "\", \"--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}",
+          "\", \"--binary_classification=", "{{$.inputs.parameters[''binary_classification'']}}",
+          "\", \"--algorithm=", "{{$.inputs.parameters[''algorithm'']}}", "\", \"--feature_selection_dir=",
+          "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection/\",
+          \"--job_name=tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+          "\", \"--dataflow_project=", "{{$.inputs.parameters[''project'']}}", "\",
+          \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\",
+          \"--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\",
+          \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
+          \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325",
+          "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
+          "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
+          "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
+          "\", \"--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
+          "\", \"--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}",
+          "\", \"--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\", \"--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}",
+          "\", \"--feature_selection_result_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}",
+          "\", \"--selected_features_path=", "{{$.outputs.artifacts[''selected_features''].uri}}",
+          "\", \"--parse_json=true\"]}}]}}"]}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+pipelineInfo:
+  name: feature-selection
+root:
+  dag:
+    tasks:
+      get-data-source-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-data-source-artifact
+        inputs:
+          parameters:
+            data_source_bigquery_table_path:
+              componentInputParameter: data_source_bigquery_table_path
+            data_source_csv_filenames:
+              componentInputParameter: data_source_csv_filenames
+        taskInfo:
+          name: get-data-source-artifact
+      tabular-feature-ranking-and-selection:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-tabular-feature-ranking-and-selection
+        dependentTasks:
+        - get-data-source-artifact
+        inputs:
+          artifacts:
+            data_source:
+              taskOutputArtifact:
+                outputArtifactKey: data_source_artifact
+                producerTask: get-data-source-artifact
+          parameters:
+            algorithm:
+              componentInputParameter: algorithm
+            dataflow_disk_size_gb:
+              componentInputParameter: dataflow_disk_size_gb
+            dataflow_machine_type:
+              componentInputParameter: dataflow_machine_type
+            dataflow_max_num_workers:
+              componentInputParameter: dataflow_max_num_workers
+            dataflow_service_account:
+              componentInputParameter: dataflow_service_account
+            dataflow_subnetwork:
+              componentInputParameter: dataflow_subnetwork
+            dataflow_use_public_ips:
+              componentInputParameter: dataflow_use_public_ips
+            encryption_spec_key_name:
+              componentInputParameter: encryption_spec_key_name
+            location:
+              componentInputParameter: location
+            max_selected_features:
+              componentInputParameter: max_selected_features
+            prediction_type:
+              componentInputParameter: prediction_type
+            project:
+              componentInputParameter: project
+            root_dir:
+              componentInputParameter: root_dir
+            target_column_name:
+              componentInputParameter: target_column_name
+        taskInfo:
+          name: tabular-feature-ranking-and-selection
+  inputDefinitions:
+    parameters:
+      algorithm:
+        defaultValue: AMI
+        isOptional: true
+        parameterType: STRING
+      data_source_bigquery_table_path:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      data_source_csv_filenames:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      dataflow_disk_size_gb:
+        defaultValue: 40.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      dataflow_machine_type:
+        defaultValue: n1-standard-16
+        isOptional: true
+        parameterType: STRING
+      dataflow_max_num_workers:
+        defaultValue: 25.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      dataflow_service_account:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      dataflow_subnetwork:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      dataflow_use_public_ips:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+      encryption_spec_key_name:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      location:
+        parameterType: STRING
+      max_selected_features:
+        defaultValue: 1000.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      prediction_type:
+        parameterType: STRING
+      project:
+        parameterType: STRING
+      root_dir:
+        parameterType: STRING
+      target_column_name:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

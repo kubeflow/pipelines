@@ -19,12 +19,12 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
-	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
@@ -122,9 +122,10 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
 	workflow.PatchTemplateOutputArtifacts()
 
-	swfParameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	// We assume that v1 Argo template use v1 parameters ignoring runtime config
+	swfParameters, err := stringArrayToCRDParameters(modelJob.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert model parameters to CRD parameters")
+		return nil, util.Wrap(err, "Failed to convert v1 parameters to CRD parameters")
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
@@ -132,6 +133,10 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,

@@ -2,9 +2,7 @@ FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
 
 RUN apk add --update \
     curl \
-    which \
     jq \
-    bash \
     openssl
 
 RUN gcloud components install kubectl
@@ -18,6 +16,6 @@ RUN chmod +x deploy-cache-service.sh
 RUN chmod +x webhook-create-signed-cert.sh
 RUN chmod +x webhook-patch-ca-bundle.sh
 
-COPY third_party/license.txt /bin/license.txt
+COPY third_party/license.txt /third_party/license.txt
 
 ENTRYPOINT ["/bin/sh", "/kfp/cache/deployer/deploy-cache-service.sh"]

@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import uuid
 
 from google.protobuf import json_format
@@ -45,12 +45,14 @@ class InputSpec:
         default (optional): the default value for the input.
         optional: Wether the input is optional. An input is optional when it has an explicit default value.
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
+        description: Input description.
     """
     type: Union[str, dict]
     default: Optional[Any] = None
     optional: bool = False
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
+    description: Optional[str] = None
 
     def __post_init__(self) -> None:
         self._validate_type()
@@ -146,10 +148,12 @@ class OutputSpec:
     Attributes:
         type: The type of the output.
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
+        description: Output description.
     """
     type: Union[str, dict]
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
+    description: Optional[str] = None
 
     def __post_init__(self) -> None:
         self._validate_type()
@@ -228,13 +232,17 @@ class ResourceSpec:
     """The resource requirements of a container execution.
 
     Attributes:
+        cpu_request (optional): the requirement of the number of vCPU cores.
         cpu_limit (optional): the limit of the number of vCPU cores.
+        memory_request (optional): the memory requirement in GB.
         memory_limit (optional): the memory limit in GB.
         accelerator_type (optional): the type of accelerators attached to the
             container.
         accelerator_count (optional): the number of accelerators attached.
     """
+    cpu_request: Optional[float] = None
     cpu_limit: Optional[float] = None
+    memory_request: Optional[float] = None
     memory_limit: Optional[float] = None
     accelerator_type: Optional[str] = None
     accelerator_count: Optional[int] = None
@@ -560,6 +568,8 @@ class ComponentSpec:
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
+    platform_spec: pipeline_spec_pb2.PlatformSpec = dataclasses.field(
+        default_factory=pipeline_spec_pb2.PlatformSpec)
 
     def __post_init__(self) -> None:
         self._transform_name()
@@ -649,6 +659,9 @@ class ComponentSpec:
             default = type_utils.deserialize_v1_component_yaml_default(
                 type_=type_, default=default)
 
+            if isinstance(type_, str):
+                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
+
             if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=type_, optional=True)
@@ -704,6 +717,8 @@ class ComponentSpec:
         outputs = {}
         for spec in component_dict.get('outputs', []):
             type_ = spec.get('type')
+            if isinstance(type_, str):
+                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
 
             if isinstance(type_, str) and type_.lower(
             ) in type_utils._PARAMETER_TYPES_MAPPING:
@@ -749,8 +764,13 @@ class ComponentSpec:
         )
 
     @classmethod
-    def from_pipeline_spec_dict(
-            cls, pipeline_spec_dict: Dict[str, Any]) -> 'ComponentSpec':
+    def from_ir_dicts(
+        cls,
+        pipeline_spec_dict: dict,
+        platform_spec_dict: dict,
+    ) -> 'ComponentSpec':
+        """Creates a ComponentSpec from the PipelineSpec and PlatformSpec
+        messages as dicts."""
         raw_name = pipeline_spec_dict['pipelineInfo']['name']
 
         def inputs_dict_from_component_spec_dict(
@@ -804,36 +824,27 @@ class ComponentSpec:
             implementation.container.command or
             []) if implementation.container else None
 
+        platform_spec = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(platform_spec_dict, platform_spec)
+
         return ComponentSpec(
             name=raw_name,
             implementation=implementation,
             description=description,
             inputs=inputs,
-            outputs=outputs)
+            outputs=outputs,
+            platform_spec=platform_spec,
+        )
 
     @classmethod
-    def from_pipeline_spec_yaml(cls,
-                                pipeline_spec_yaml: str) -> 'ComponentSpec':
-        """Creates a ComponentSpec from a pipeline spec in YAML format.
+    def from_yaml_documents(cls, component_yaml: str) -> 'ComponentSpec':
+        """Loads V1 or V2 component YAML into a ComponentSpec.
 
         Args:
-            component_yaml (str): Component spec in YAML format.
+            component_yaml: PipelineSpec and optionally PlatformSpec YAML documents as a single string.
 
         Returns:
-            ComponentSpec: The component spec object.
-        """
-        return ComponentSpec.from_pipeline_spec_dict(
-            yaml.safe_load(pipeline_spec_yaml))
-
-    @classmethod
-    def load_from_component_yaml(cls, component_yaml: str) -> 'ComponentSpec':
-        """Loads V1 or V2 component yaml into ComponentSpec.
-
-        Args:
-            component_yaml: the component yaml in string format.
-
-        Returns:
-            Component spec in the form of V2 ComponentSpec.
+            ComponentSpec: The ComponentSpec object.
         """
 
         def extract_description(component_yaml: str) -> Union[str, None]:
@@ -856,15 +867,17 @@ class ComponentSpec:
             else:
                 return None
 
-        json_component = yaml.safe_load(component_yaml)
-        is_v1 = 'implementation' in set(json_component.keys())
+        pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
+            component_yaml)
+
+        is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
         if is_v1:
             v1_component = v1_components._load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
         else:
-            component_spec = ComponentSpec.from_pipeline_spec_dict(
-                json_component)
+            component_spec = ComponentSpec.from_ir_dicts(
+                pipeline_spec_dict, platform_spec_dict)
             if not component_spec.description:
                 component_spec.description = extract_description(
                     component_yaml=component_yaml)
@@ -879,7 +892,12 @@ class ComponentSpec:
         from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec = self.to_pipeline_spec()
-        builder.write_pipeline_spec_to_file(pipeline_spec, None, output_file)
+        builder.write_pipeline_spec_to_file(
+            pipeline_spec,
+            None,
+            pipeline_spec_pb2.PlatformSpec(),
+            output_file,
+        )
 
     def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a
@@ -979,7 +997,10 @@ class ComponentSpec:
             rootgroup_name=root_group.name,
             task_name_to_parent_groups=task_name_to_parent_groups,
             group_name_to_parent_groups=group_name_to_parent_groups,
-            name_to_for_loop_group={},  # no for loop for single-component pipeline
+            name_to_for_loop_group={},  # no for loop in single-component pipeline
+            platform_spec=pipeline_spec_pb2.PlatformSpec(
+            ),  # no PlatformSpec single-component pipeline
+            is_compiled_component=True,
         )
 
         return pipeline_spec
@@ -1031,3 +1052,24 @@ def convert_duration_to_seconds(duration: str) -> int:
         raise ValueError(
             f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
     return int(duration[:-1]) * seconds_per_unit[duration[-1]]
+
+
+def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
+    """Loads up to two YAML documents from a YAML string.
+
+    First document must always be present. If second document is
+    present, it is returned as a dict, else an empty dict.
+    """
+    documents = list(yaml.safe_load_all(component_yaml))
+    num_docs = len(documents)
+    if num_docs == 1:
+        pipeline_spec_dict = documents[0]
+        platform_spec_dict = {}
+    elif num_docs == 2:
+        pipeline_spec_dict = documents[0]
+        platform_spec_dict = documents[1]
+    else:
+        raise ValueError(
+            f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
+        )
+    return pipeline_spec_dict, platform_spec_dict

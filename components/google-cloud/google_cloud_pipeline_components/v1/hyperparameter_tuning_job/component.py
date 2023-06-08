@@ -14,6 +14,7 @@
 
 from typing import List
 
+from google_cloud_pipeline_components import _image
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -39,7 +40,9 @@ def hyperparameter_tuning_job(
     service_account: str = '',
     network: str = '',
 ):
-  """Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for it to complete.
+  # fmt: off
+  """Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for
+  it to complete.
 
   For example usage, see
   https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/experimental/hyperparameter_tuning_job/hp_tuning_job_sample.ipynb.
@@ -48,14 +51,11 @@ def hyperparameter_tuning_job(
   https://cloud.google.com/vertex-ai/docs/training/using-hyperparameter-tuning
 
   Args:
-      display_name (str):
-        Required. The user-defined name of the
+      display_name: The user-defined name of the
         HyperparameterTuningJob. The name can be up to 128 characters long and
         can be consist of any UTF-8 characters.
-      project (str):
-        Required. Project to run the HyperparameterTuningJob in.
-      base_output_directory (str):
-        Required. The Cloud Storage location to
+      project: Project to run the HyperparameterTuningJob in.
+      base_output_directory: The Cloud Storage location to
         store the output of this HyperparameterTuningJob. The
         base_output_directory of each child CustomJob backing a Trial is set
         to a subdirectory with name as the trial id under its parent
@@ -63,22 +63,20 @@ def hyperparameter_tuning_job(
         AI environment variables will be passed to containers or python
         modules when this field is set: For CustomJob backing a Trial of
         HyperparameterTuningJob: * AIP_MODEL_DIR = `\/\/model\/` *
-          AIP_CHECKPOINT_DIR = `\/\/checkpoints\/` * AIP_TENSORBOARD_LOG_DIR =
-          `\/\/logs\/`
-      worker_pool_specs (List[Dict]):
-        Required. The spec of the worker pools
+        AIP_CHECKPOINT_DIR = `\/\/checkpoints\/` * AIP_TENSORBOARD_LOG_DIR =
+        `\/\/logs\/`
+      worker_pool_specs: The spec of the worker pools
         including machine type and Docker image. All worker pools except the
         first one are optional and can be skipped by providing an empty value.
-      study_spec_metrics: (List[Dict]):
-        Required. List serialized from
+      study_spec_metrics:
+        List serialized from
         dictionary representing the metrics to optimize. The dictionary key is
         the metric_id, which is reported by your training job, and the
         dictionary value is the optimization goal of the metric ('minimize' or
         'maximize'). example: metrics =
         hyperparameter_tuning_job.serialize_metrics( {'loss': 'minimize',
         'accuracy': 'maximize'})
-      study_spec_parameters (list[str]):
-        Required. List serialized from the
+      study_spec_parameters: List serialized from the
         parameter dictionary. The dictionary represents parameters to
         optimize. The dictionary key is the parameter_id, which is passed into
         your training job as a command line key word argument, and the
@@ -96,21 +94,16 @@ def hyperparameter_tuning_job(
         aiplatform.hyperparameter_tuning. These parameter specification are
         currently supported: DoubleParameterSpec, IntegerParameterSpec,
         CategoricalParameterSpace, DiscreteParameterSpec
-      max_trial_count (int):
-        Required. The desired total number of Trials.
-      parallel_trial_count (int):
-        Required. The desired number of Trials to
+      max_trial_count: The desired total number of Trials.
+      parallel_trial_count: The desired number of Trials to
         run in parallel.
-      max_failed_trial_count (Optional[int]):
-        The number of failed Trials that
+      max_failed_trial_count: The number of failed Trials that
         need to be seen before failing the HyperparameterTuningJob. If set to
         0, Vertex AI decides how many Trials must fail before the whole job
         fails.
-      location (Optional[str]):
-        Location to run the HyperparameterTuningJob
+      location: Location to run the HyperparameterTuningJob
         in, defaults to "us-central1"
-      study_spec_algorithm (Optional[str]):
-        The search algorithm specified for
+      study_spec_algorithm: The search algorithm specified for
         the Study. Accepts one of the following: * `ALGORITHM_UNSPECIFIED` -
         If you do not specify an algorithm, your job uses the default Vertex
         AI algorithm. The default algorithm applies Bayesian optimization to
@@ -124,46 +117,42 @@ def hyperparameter_tuning_job(
         `IntegerParameterSpec`, `CategoricalParameterSpace`, or
         `DiscreteParameterSpec`. * 'RANDOM_SEARCH' - A simple random search
         within the feasible space.
-      study_spec_measurement_selection_type (Optional[str]):
-        This indicates
+      study_spec_measurement_selection_type: This indicates
         which measurement to use if/when the service automatically selects the
         final measurement from previously reported intermediate measurements.
-          Accepts: 'BEST_MEASUREMENT', 'LAST_MEASUREMENT' Choose this based on
-            two considerations: A) Do you expect your measurements to
-            monotonically improve? If so, choose 'LAST_MEASUREMENT'. On the
-            other hand, if you're in a situation where your system can
-            "over-train" and you expect the performance to get better for a
-            while but then start declining, choose 'BEST_MEASUREMENT'. B) Are
-            your measurements significantly noisy and/or irreproducible? If
-            so, 'BEST_MEASUREMENT' will tend to be over-optimistic, and it may
-            be better to choose 'LAST_MEASUREMENT'. If both or neither of (A)
-            and (B) apply, it doesn't matter which selection type is chosen.
-      encryption_spec_key_name (Optional[str]):
-        Customer-managed encryption
+        Accepts: 'BEST_MEASUREMENT', 'LAST_MEASUREMENT' Choose this based on
+        two considerations: A) Do you expect your measurements to
+        monotonically improve? If so, choose 'LAST_MEASUREMENT'. On the
+        other hand, if you're in a situation where your system can
+        "over-train" and you expect the performance to get better for a
+        while but then start declining, choose 'BEST_MEASUREMENT'. B) Are
+        your measurements significantly noisy and/or irreproducible? If
+        so, 'BEST_MEASUREMENT' will tend to be over-optimistic, and it may
+        be better to choose 'LAST_MEASUREMENT'. If both or neither of (A)
+        and (B) apply, it doesn't matter which selection type is chosen.
+      encryption_spec_key_name: Customer-managed encryption
         key options for a HyperparameterTuningJob. If this is set, then all
         resources created by the HyperparameterTuningJob will be encrypted
         with the provided encryption key.  Has the form:
         ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
         The key needs to be in the same region as where the compute resource
         is created.
-      service_account (Optional[str]):
-        Specifies the service account for
+      service_account: Specifies the service account for
         workload run-as account. Users submitting jobs must have act-as
         permission on this run-as account.
-      network (Optional[str]):
-        The full name of the Compute Engine network to
+      network: The full name of the Compute Engine network to
         which the job should be peered. For example,
         projects/12345/global/networks/myVPC. Private services access must
         already be configured for the network. If left unspecified, the job is
         not peered with any network.
 
   Returns:
-      Serialized gcp_resources proto tracking the Hyperparameter Tuning job.
-      For more details, see
+      Serialized gcp_resources proto tracking the Hyperparameter Tuning job. For more details, see
       https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ type Options struct {
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
-func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, error) {
+func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
 	// clone jobArg, because we don't want to change it
 	jobMsg := proto.Clone(jobArg)
 	job, ok := jobMsg.(*pipelinespec.PipelineJob)
@@ -65,14 +65,23 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	}
 	// fill root component default paramters to PipelineJob
 	specParams := spec.GetRoot().GetInputDefinitions().GetParameters()
-	if specParams != nil {
-		for name, param := range specParams {
-			_, ok := job.RuntimeConfig.ParameterValues[name]
-			if !ok && param.GetDefaultValue() != nil {
-				job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
-			}
+	for name, param := range specParams {
+		_, ok := job.RuntimeConfig.ParameterValues[name]
+		if !ok && param.GetDefaultValue() != nil {
+			job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
 		}
 	}
+
+	var kubernetesSpec *pipelinespec.SinglePlatformSpec
+	if kubernetesSpecArg != nil {
+		// clone kubernetesSpecArg, because we don't want to change it
+		kubernetesSpecMsg := proto.Clone(kubernetesSpecArg)
+		kubernetesSpec, ok = kubernetesSpecMsg.(*pipelinespec.SinglePlatformSpec)
+		if !ok {
+			return nil, fmt.Errorf("bug: cloned Kubernetes spec message does not have expected type")
+		}
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -107,8 +116,8 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		driverImage:   "gcr.io/ml-pipeline-test/dev/kfp-driver@sha256:d8f18e6f6cd84a43d45eb339d7e6d2dfed45358e713aaf0ddf7812b06234e9f5",
-		launcherImage: "gcr.io/ml-pipeline-test/dev/kfp-launcher-v2@sha256:98a25728bfdc5a91a54f93f388bd16fa386008164e665ea797a619096a131c1a",
+		driverImage:   "gcr.io/ml-pipeline/kfp-driver@sha256:0ce9bf20ac9cbb21e84ff0762d5ae508d21e9c85fde2b14b51363bd1b8cd7528",
+		launcherImage: "gcr.io/ml-pipeline/kfp-launcher@sha256:2b844d5509a2f8713f677045695e5622b7aab57b8880159e7872c60b57fae0d9",
 		job:           job,
 		spec:          spec,
 		executors:     deploy.GetExecutors(),
@@ -126,7 +135,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	}
 
 	// compile
-	err = compiler.Accept(job, c)
+	err = compiler.Accept(job, kubernetesSpec, c)
 
 	return c.wf, err
 }
@@ -174,8 +183,9 @@ func (c *workflowCompiler) templateName(componentName string) string {
 // WIP: store component spec, task spec and executor spec in annotations
 
 const (
-	annotationComponents = "pipelines.kubeflow.org/components-"
-	annotationContainers = "pipelines.kubeflow.org/implementations-"
+	annotationComponents     = "pipelines.kubeflow.org/components-"
+	annotationContainers     = "pipelines.kubeflow.org/implementations-"
+	annotationKubernetesSpec = "pipelines.kubeflow.org/kubernetes-"
 )
 
 func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
@@ -194,6 +204,14 @@ func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) err
 
 func (c *workflowCompiler) useComponentImpl(name string) (string, error) {
 	return c.annotationPlaceholder(annotationContainers + name)
+}
+
+func (c *workflowCompiler) saveKubernetesSpec(name string, spec *structpb.Struct) error {
+	return c.saveProtoToAnnotation(annotationKubernetesSpec+name, spec)
+}
+
+func (c *workflowCompiler) useKubernetesImpl(name string) (string, error) {
+	return c.annotationPlaceholder(annotationKubernetesSpec + name)
 }
 
 // TODO(Bobgy): sanitize component name
@@ -228,20 +246,21 @@ func (c *workflowCompiler) annotationPlaceholder(name string) (string, error) {
 }
 
 const (
-	paramComponent      = "component"      // component spec
-	paramTask           = "task"           // task spec
-	paramContainer      = "container"      // container spec
-	paramImporter       = "importer"       // importer spec
-	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID    = "parent-dag-id"
-	paramExecutionID    = "execution-id"
-	paramIterationCount = "iteration-count"
-	paramIterationIndex = "iteration-index"
-	paramExecutorInput  = "executor-input"
-	paramDriverType     = "driver-type"
-	paramCachedDecision = "cached-decision" // indicate hit cache or not
-	paramPodSpecPatch   = "pod-spec-patch"  // a strategic patch merged with the pod spec
-	paramCondition      = "condition"       // condition = false -> skip the task
+	paramComponent        = "component"      // component spec
+	paramTask             = "task"           // task spec
+	paramContainer        = "container"      // container spec
+	paramImporter         = "importer"       // importer spec
+	paramRuntimeConfig    = "runtime-config" // job runtime config, pipeline level inputs
+	paramParentDagID      = "parent-dag-id"
+	paramExecutionID      = "execution-id"
+	paramIterationCount   = "iteration-count"
+	paramIterationIndex   = "iteration-index"
+	paramExecutorInput    = "executor-input"
+	paramDriverType       = "driver-type"
+	paramCachedDecision   = "cached-decision"   // indicate hit cache or not
+	paramPodSpecPatch     = "pod-spec-patch"    // a strategic patch merged with the pod spec
+	paramCondition        = "condition"         // condition = false -> skip the task
+	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes config
 )
 
 func runID() string {
@@ -305,3 +324,12 @@ var launcherResources = k8score.ResourceRequirements{
 const (
 	tmplEntrypoint = "entrypoint"
 )
+
+// Here is the collection of all special dummy images that the backend recognizes.
+// User need to avoid these image names for their self-defined components.
+// These values are in sync with the values in SDK to form a contract between BE and SDK.
+// TODO(lingqinggan): clarify these in documentation for KFP V2.
+var dummyImages = map[string]bool{
+	"argostub/createpvc": true,
+	"argostub/deletepvc": true,
+}

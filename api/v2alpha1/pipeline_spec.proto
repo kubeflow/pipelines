@@ -188,6 +188,10 @@ message ComponentInputsSpec {
     // task), or can be missing from the runtimeArtifact (if it's the root
     // component).
     bool is_optional = 3;
+
+    // The description for this input artifact of the component.
+    // Should not exceed 1024 characters.
+    string description = 4;
   }
   // Definition of a parameter input.
   message ParameterSpec {
@@ -211,6 +215,10 @@ message ComponentInputsSpec {
     // if default_value is not provided, the default value of the parameter's
     // type will be used.
     bool is_optional = 4;
+
+    // The description for this input parameter of the component.
+    // Should not exceed 1024 characters.
+    string description = 5;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;
@@ -233,6 +241,10 @@ message ComponentOutputsSpec {
 
     // Indicates whether output is a single artifact or list of artifacts
     bool is_artifact_list = 5;
+
+    // The description for this output artifact of the component.
+    // Should not exceed 1024 characters.
+    string description = 6;
   }
   // Definition of a parameter output.
   message ParameterSpec {
@@ -242,6 +254,10 @@ message ComponentOutputsSpec {
 
     // Specifies an output parameter's type.
     ParameterType.ParameterTypeEnum parameter_type = 2;
+
+    // The description for this output parameter of the component.
+    // Should not exceed 1024 characters.
+    string description = 3;
   }
   // Name to artifact output.
   map<string, ArtifactSpec> artifacts = 1;
@@ -421,6 +437,9 @@ message ParameterType {
     // are serialized to JSON when passed as an input or output of a pipeline
     // step.
     STRUCT = 6;
+    // Indicates that a parameter is a TaskFinalStatus type; these types can only accept inputs
+    // specified by InputParameterSpec.task_final_status
+    TASK_FINAL_STATUS = 7;
   }
 }
 
@@ -478,7 +497,7 @@ message PipelineTaskSpec {
     // The trigger strategy of this task.  The `strategy` and `condition` are
     // in logic "AND", as a task will only be tested for the `condition` when
     // the `strategy` is meet.
-    // Unset or set to default value of TRIGGER_STATEGY_UNDEFINED behaves the
+    // Unset or set to default value of TRIGGER_STRATEGY_UNDEFINED behaves the
     // same as ALL_UPSTREAM_TASKS_SUCCEEDED.
     TriggerStrategy strategy = 2;
   }
@@ -599,6 +618,14 @@ message PipelineInfo {
   // Required field. The name of the pipeline.
   // The name will be used to create or find pipeline context in MLMD.
   string name = 1;
+  
+  // Optional fields. The readable display name for the pipeline template.
+  // Should not exceed 1024 characters.
+  string display_name = 2;
+
+  // Optional fields. The readable description for the pipeline template.
+  // Should not exceed 1024 characters.
+  string description = 3;
 }
 
 // The definition of a artifact type in MLMD.
@@ -701,6 +728,14 @@ message PipelineDeploymentConfig {
       // memory_limit RAM to run.
       double memory_limit = 2;
 
+      // The request of the number of vCPU cores. This container execution
+      // needs at least cpu_request vCPU to run.
+      double cpu_request = 5;
+
+      // The memory request in GB. This container execution needs at least
+      // memory_request RAM to run.
+      double memory_request = 6;
+
       // The specification on the accelerators being attached to this container.
       message AcceleratorConfig {
         // The type of accelerators.
@@ -709,6 +744,8 @@ message PipelineDeploymentConfig {
         int64 count = 2;
       }
       AcceleratorConfig accelerator = 3;
+      
+      reserved 4;
     }
     ResourceSpec resources = 5;
 

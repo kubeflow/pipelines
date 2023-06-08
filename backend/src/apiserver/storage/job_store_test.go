@@ -19,6 +19,7 @@ import (
 	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -188,7 +189,7 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 	defer db.Close()
 
 	// Add a filter
-	opts, _ := list.NewOptions(&model.Job{}, 4, "name", &api.Filter{
+	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
 				Key: "name",
@@ -200,7 +201,9 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 				},
 			},
 		},
-	})
+	}
+	newFilter, _ := filter.New(protoFilter)
+	opts, _ := list.NewOptions(&model.Job{}, 4, "name", newFilter)
 	jobs, total_size, _, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
@@ -471,6 +474,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:   `[{"name":"string1","value":"one"},{"name":"number2","value":"2"}]`,
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -488,6 +492,7 @@ func TestCreateJob(t *testing.T) {
 		K8SName:     "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:   `[{"name":"string1","value":"one"},{"name":"number2","value":"2"}]`,
 			PipelineId:   pipeline.UUID,
 			PipelineName: "p1",
 		},
@@ -498,6 +503,10 @@ func TestCreateJob(t *testing.T) {
 	}
 	jobExpected = jobExpected.ToV1()
 	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
+
+	newJob, err := jobStore.GetJob(job.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, jobExpected, newJob.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
 	resourceReferenceStore := NewResourceReferenceStore(db)
@@ -729,6 +738,10 @@ func TestUpdateJob_Success(t *testing.T) {
 	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "n1",
@@ -862,7 +875,6 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   DefaultFakePipelineIdTwo,
 			PipelineName: "p1",
-			Parameters:   "[]",
 		},
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{

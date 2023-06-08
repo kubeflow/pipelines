@@ -17,7 +17,7 @@ import argparse
 import logging
 import sys
 
-from . import remote_runner
+from google_cloud_pipeline_components.container.v1.dataproc.create_spark_batch import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
 
 
@@ -30,7 +30,8 @@ def _parse_args(args):
       dest='batch_id',
       type=str,
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

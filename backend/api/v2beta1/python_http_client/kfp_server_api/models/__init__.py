@@ -14,15 +14,6 @@
 from __future__ import absolute_import
 
 # import models into model package
-from kfp_server_api.models.api_parameter import ApiParameter
-from kfp_server_api.models.api_pipeline import ApiPipeline
-from kfp_server_api.models.api_pipeline_version import ApiPipelineVersion
-from kfp_server_api.models.api_relationship import ApiRelationship
-from kfp_server_api.models.api_resource_key import ApiResourceKey
-from kfp_server_api.models.api_resource_reference import ApiResourceReference
-from kfp_server_api.models.api_resource_type import ApiResourceType
-from kfp_server_api.models.api_status import ApiStatus
-from kfp_server_api.models.api_url import ApiUrl
 from kfp_server_api.models.authorize_request_resources import AuthorizeRequestResources
 from kfp_server_api.models.authorize_request_verb import AuthorizeRequestVerb
 from kfp_server_api.models.googlerpc_status import GooglerpcStatus
@@ -49,6 +40,7 @@ from kfp_server_api.models.v2beta1_pipeline import V2beta1Pipeline
 from kfp_server_api.models.v2beta1_pipeline_task_detail import V2beta1PipelineTaskDetail
 from kfp_server_api.models.v2beta1_pipeline_task_executor_detail import V2beta1PipelineTaskExecutorDetail
 from kfp_server_api.models.v2beta1_pipeline_version import V2beta1PipelineVersion
+from kfp_server_api.models.v2beta1_pipeline_version_reference import V2beta1PipelineVersionReference
 from kfp_server_api.models.v2beta1_predicate import V2beta1Predicate
 from kfp_server_api.models.v2beta1_predicate_operation import V2beta1PredicateOperation
 from kfp_server_api.models.v2beta1_read_artifact_response import V2beta1ReadArtifactResponse

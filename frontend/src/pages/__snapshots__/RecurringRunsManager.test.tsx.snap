@@ -37,29 +37,29 @@ exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
       Array [
         Object {
           "error": undefined,
-          "id": "job1",
+          "id": "recurringrun1",
           "otherFields": Array [
             "test recurring run name",
             "11/9/2018, 8:07:06 AM",
-            true,
+            "ENABLED",
           ],
         },
         Object {
           "error": undefined,
-          "id": "job2",
+          "id": "recurringrun2",
           "otherFields": Array [
             "test recurring run name2",
             "11/9/2018, 8:07:06 AM",
-            false,
+            "DISABLED",
           ],
         },
         Object {
           "error": undefined,
-          "id": "job3",
+          "id": "recurringrun3",
           "otherFields": Array [
             "test recurring run name3",
             "11/9/2018, 8:07:06 AM",
-            undefined,
+            "STATUS_UNSPECIFIED",
           ],
         },
       ]

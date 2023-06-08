@@ -1,0 +1,106 @@
+name: "Sagemaker - Endpoint"
+description: Create Endpoint
+inputs:
+  - {
+      name: region,
+      type: String,
+      description: "The region to use for the training job",
+    }
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: deployment_config,
+      type: JsonObject,
+      default: '{}',
+      description: "The deployment configuration for an endpoint, which contains the desired deployment strategy and rollback configurations.",
+    }
+  - {
+      name: endpoint_config_name,
+      type: String,
+      default: '',
+      description: "The name of an endpoint configuration.",
+    }
+  - {
+      name: endpoint_name,
+      type: String,
+      default: '',
+      description: "The name of the endpoint.",
+    }
+  - {
+      name: tags,
+      type: JsonArray,
+      default: '[]',
+      description: "An array of key-value pairs.",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+outputs:
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: ack_resource_metadata,
+      type: JsonObject,
+      description: "All CRs managed by ACK have a common `Status.",
+    }
+  - {
+      name: conditions,
+      type: JsonArray,
+      description: "All CRS managed by ACK have a common `Status.",
+    }
+  - {
+      name: creation_time,
+      type: String,
+      description: "A timestamp that shows when the endpoint was created.",
+    }
+  - {
+      name: endpoint_status,
+      type: String,
+      description: "The status of the endpoint.",
+    }
+  - {
+      name: failure_reason,
+      type: String,
+      description: "If the status of the endpoint is Failed, the reason why it failed.",
+    }
+  - {
+      name: last_modified_time,
+      type: String,
+      description: "A timestamp that shows when the endpoint was last modified.",
+    }
+  - {
+      name: pending_deployment_summary,
+      type: JsonObject,
+      description: "Returns the summary of an in-progress deployment.",
+    }
+  - {
+      name: production_variants,
+      type: JsonArray,
+      description: "An array of ProductionVariantSummary objects, one for each model hosted behind this endpoint.",
+    }
+  - {
+      name: sagemaker_resource_name,
+      type: String,
+      description: "Resource name on Sagemaker",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+implementation:
+  container:
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.3.0
+    command: [python3]
+    args:
+      - Endpoint/src/Endpoint_component.py
+      - --region
+      - { inputValue: region }
+      ###########################GENERATED SECTION BELOW############################
+      - --deployment_config
+      - { inputValue: deployment_config }
+      - --endpoint_config_name
+      - { inputValue: endpoint_config_name }
+      - --endpoint_name
+      - { inputValue: endpoint_name }
+      - --tags
+      - { inputValue: tags }
+      
+      ###########################GENERATED SECTION ABOVE############################
+

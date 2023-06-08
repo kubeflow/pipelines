@@ -17,10 +17,8 @@ package server
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -179,22 +177,19 @@ func TestToModelPipeline(t *testing.T) {
 			&apiv1beta1.Pipeline{
 				Name:        "p1",
 				Description: "This is a pipeline1",
-				CreatedAt:   &timestamp.Timestamp{Seconds: 2},
 			},
 			false,
 			"",
 			&model.Pipeline{
-				Name:           "p1",
-				Description:    "This is a pipeline1",
-				Status:         "READY",
-				CreatedAtInSec: 2,
+				Name:        "p1",
+				Description: "This is a pipeline1",
+				Status:      model.PipelineCreating,
 			},
 		},
 		{
 			"Invalid resource reference v1",
 			&apiv1beta1.Pipeline{
 				Name:        "p2",
-				Id:          "123",
 				Description: "This is a pipeline2",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
@@ -206,10 +201,9 @@ func TestToModelPipeline(t *testing.T) {
 			false,
 			"",
 			&model.Pipeline{
-				UUID:        "123",
 				Name:        "p2",
 				Description: "This is a pipeline2",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 			},
 		},
 		{
@@ -229,7 +223,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "p3",
 				Description: "This is a pipeline3",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
 			},
 		},
@@ -250,7 +244,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "p4",
 				Description: "This is a pipeline4",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
 			},
 		},
@@ -271,7 +265,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "p5",
 				Description: "This is a pipeline5",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "",
 			},
 		},
@@ -281,18 +275,14 @@ func TestToModelPipeline(t *testing.T) {
 				DisplayName: "p6",
 				Description: "This is a pipeline6",
 				Namespace:   "",
-				PipelineId:  "222",
-				CreatedAt:   &timestamp.Timestamp{Seconds: 123},
 			},
 			false,
 			"",
 			&model.Pipeline{
-				UUID:           "222",
-				Name:           "p6",
-				Description:    "This is a pipeline6",
-				Status:         "READY",
-				Namespace:      "",
-				CreatedAtInSec: 123,
+				Name:        "p6",
+				Description: "This is a pipeline6",
+				Status:      model.PipelineCreating,
+				Namespace:   "",
 			},
 		},
 		{
@@ -301,16 +291,14 @@ func TestToModelPipeline(t *testing.T) {
 				DisplayName: "p7",
 				Description: "This is a pipeline7",
 				Namespace:   "ns2",
-				PipelineId:  "333",
 				Error:       &status.Status{Message: "test error"},
 			},
 			false,
 			"",
 			&model.Pipeline{
-				UUID:        "333",
 				Name:        "p7",
 				Description: "This is a pipeline7",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns2",
 			},
 		},
@@ -326,7 +314,7 @@ func TestToModelPipeline(t *testing.T) {
 			&model.Pipeline{
 				Name:        "",
 				Description: "This is a pipeline8",
-				Status:      "READY",
+				Status:      model.PipelineCreating,
 				Namespace:   "ns3",
 			},
 		},
@@ -508,6 +496,7 @@ func TestToModelJob(t *testing.T) {
 				DisplayName:  "name1",
 				K8SName:      "name1",
 				Enabled:      true,
+				Conditions:   "ENABLED",
 				ExperimentId: "exp1",
 				Trigger: model.Trigger{
 					CronSchedule: model.CronSchedule{
@@ -523,7 +512,8 @@ func TestToModelJob(t *testing.T) {
 				},
 				ResourceReferences: make([]*model.ResourceReference, 0),
 			},
-		}, {
+		},
+		{
 			name: "v1api v2template",
 			job: &apiv1beta1.Job{
 				Name:           "name1",
@@ -552,6 +542,7 @@ func TestToModelJob(t *testing.T) {
 				K8SName:      "name1",
 				DisplayName:  "name1",
 				Enabled:      true,
+				Conditions:   "ENABLED",
 				ExperimentId: "exp1",
 				Trigger: model.Trigger{
 					CronSchedule: model.CronSchedule{
@@ -680,10 +671,6 @@ func TestToModelRunMetric(t *testing.T) {
 }
 
 func TestToModelPipelineVersion(t *testing.T) {
-	wrongParams := make([]*apiv1beta1.Parameter, 10000)
-	for i := 0; i < 10000; i++ {
-		wrongParams[i] = &apiv1beta1.Parameter{Name: "param2", Value: "world"}
-	}
 	tests := []struct {
 		name                    string
 		pipeline                interface{}
@@ -694,9 +681,9 @@ func TestToModelPipelineVersion(t *testing.T) {
 		{
 			"happy version v1",
 			&apiv1beta1.PipelineVersion{
-				Id:            "pipelineversion1",
-				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-				Parameters:    []*apiv1beta1.Parameter{},
+				PackageUrl: &apiv1beta1.Url{
+					PipelineUrl: "http://package/11111",
+				},
 				CodeSourceUrl: "http://repo/11111",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
@@ -709,22 +696,20 @@ func TestToModelPipelineVersion(t *testing.T) {
 				},
 			},
 			&model.PipelineVersion{
-				UUID:           "pipelineversion1",
-				CreatedAtInSec: 1,
-				Parameters:     "",
-				PipelineId:     "pipeline1",
-				CodeSourceUrl:  "http://repo/11111",
-				Status:         model.PipelineVersionReady,
+				PipelineId:      "pipeline1",
+				PipelineSpecURI: "http://package/11111",
+				CodeSourceUrl:   "http://repo/11111",
+				Status:          model.PipelineVersionCreating,
 			},
 			false,
 			"",
 		},
 		{
-			"wrong parameters v1",
+			"missing pipeline url v1",
 			&apiv1beta1.PipelineVersion{
-				Id:            "pipelineversion1",
-				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-				Parameters:    wrongParams,
+				PackageUrl: &apiv1beta1.Url{
+					PipelineUrl: "",
+				},
 				CodeSourceUrl: "http://repo/11111",
 				ResourceReferences: []*apiv1beta1.ResourceReference{
 					{
@@ -738,124 +723,38 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			nil,
 			true,
-			"Failed to convert v1beta1 API pipeline version to its internal representation due to conversion error of the parameters",
-		},
-		{
-			"happy pipeline v1",
-			&apiv1beta1.Pipeline{
-				Id: "pipeline1",
-				Parameters: []*apiv1beta1.Parameter{
-					{
-						Name:  "param1",
-						Value: "value1",
-					},
-				},
-				Url: &apiv1beta1.Url{PipelineUrl: "http://repo/2222"},
-				DefaultVersion: &apiv1beta1.PipelineVersion{
-					Id:        "pipelineversion1",
-					CreatedAt: &timestamp.Timestamp{Seconds: 1},
-					ResourceReferences: []*apiv1beta1.ResourceReference{
-						{
-							Key: &apiv1beta1.ResourceKey{
-								Id:   "pipeline2",
-								Type: apiv1beta1.ResourceType_PIPELINE,
-							},
-							Relationship: apiv1beta1.Relationship_OWNER,
-						},
-					},
-					Parameters: []*apiv1beta1.Parameter{
-						{
-							Name:  "param2",
-							Value: "value2",
-						},
-					},
-				},
-			},
-			&model.PipelineVersion{
-				UUID:           "pipelineversion1",
-				CreatedAtInSec: 1,
-				Parameters:     `[{"name":"param2","value":"value2"}]`,
-				PipelineId:     "pipeline1",
-				CodeSourceUrl:  "http://repo/2222",
-				Status:         model.PipelineVersionReady,
-			},
-			false,
-			"",
-		},
-		{
-			"happy pipeline v1",
-			&apiv1beta1.Pipeline{
-				Parameters: []*apiv1beta1.Parameter{
-					{
-						Name:  "param1",
-						Value: "value1",
-					},
-				},
-				DefaultVersion: &apiv1beta1.PipelineVersion{
-					Id:         "version2",
-					CreatedAt:  &timestamp.Timestamp{Seconds: 1},
-					PackageUrl: &apiv1beta1.Url{PipelineUrl: "http://repo/11111"},
-					ResourceReferences: []*apiv1beta1.ResourceReference{
-						{
-							Key: &apiv1beta1.ResourceKey{
-								Id:   "pipeline2",
-								Type: apiv1beta1.ResourceType_PIPELINE,
-							},
-							Relationship: apiv1beta1.Relationship_OWNER,
-						},
-					},
-				},
-			},
-			&model.PipelineVersion{
-				UUID:           "version2",
-				CreatedAtInSec: 1,
-				Parameters:     `[{"name":"param1","value":"value1"}]`,
-				PipelineId:     "pipeline2",
-				CodeSourceUrl:  "http://repo/11111",
-				Status:         model.PipelineVersionReady,
-			},
-			false,
-			"",
+			"Invalid input error: Failed to convert v1beta1 API pipeline version to its internal representation due to missing pipeline URL",
 		},
 		{
 			"happy pipeline version v2",
 			&apiv2beta1.PipelineVersion{
-				PipelineVersionId: "pv1",
-				CreatedAt:         &timestamppb.Timestamp{Seconds: 2},
-				DisplayName:       "Version 2 v2beta1",
-				PipelineId:        "pipeline 333",
-				PackageUrl:        &apiv2beta1.Url{PipelineUrl: "http://repo/3333"},
-				Description:       "This is pipeline version 333",
-				PipelineSpec:      &structpb.Struct{Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "PipelineVersion222"}}}},
+				DisplayName:   "Version 2 v2beta1",
+				PipelineId:    "pipeline 333",
+				PackageUrl:    &apiv2beta1.Url{PipelineUrl: "http://package/3333"},
+				CodeSourceUrl: "http://repo/3333",
+				Description:   "This is pipeline version 333",
 			},
 			&model.PipelineVersion{
-				UUID:           "pv1",
-				CreatedAtInSec: 2,
-				Name:           "Version 2 v2beta1",
-				Parameters:     "",
-				PipelineId:     "pipeline 333",
-				CodeSourceUrl:  "http://repo/3333",
-				Description:    "This is pipeline version 333",
-				PipelineSpec:   "name: PipelineVersion222\n",
-				Status:         model.PipelineVersionReady,
+				Name:            "Version 2 v2beta1",
+				PipelineId:      "pipeline 333",
+				PipelineSpecURI: "http://package/3333",
+				CodeSourceUrl:   "http://repo/3333",
+				Description:     "This is pipeline version 333",
+				Status:          model.PipelineVersionCreating,
 			},
 			false,
 			"",
 		},
 		{
-			"happy pipeline version v2",
+			"missing package Url v2",
 			&apiv2beta1.PipelineVersion{
-				PipelineVersionId: "pv1",
-				CreatedAt:         &timestamppb.Timestamp{Seconds: 2},
-				DisplayName:       "Version 2 v2beta1",
-				PipelineId:        "pipeline 333",
-				PackageUrl:        &apiv2beta1.Url{PipelineUrl: "http://repo/3333"},
-				Description:       "This is pipeline version 333",
-				PipelineSpec:      &structpb.Struct{Fields: map[string]*structpb.Value{"name": {Kind: nil}}},
+				DisplayName: "Version 2 v2beta1",
+				PipelineId:  "pipeline 333",
+				Description: "This is pipeline version 333",
 			},
 			nil,
 			true,
-			"Failed to convert API pipeline version to internal pipeline version representation due to pipeline spec conversion error",
+			"Invalid input error: Failed to convert v2beta1 API pipeline version to its internal representation due to missing pipeline URL",
 		},
 	}
 	for _, tt := range tests {
@@ -1265,11 +1164,11 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp123"},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp123"},
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
 					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 				{
@@ -1307,12 +1206,7 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 			Parameters:           `[{"name":"param2","value":"world"}]`,
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "run123", ResourceType: model.RunResourceType, ReferenceUUID: "job123",
-				ReferenceName: "j123", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
-			},
-		},
+		RecurringRunId: "job123",
 	}
 	apiRun := toApiRunDetailV1(modelRun)
 	expectedApiRun := &apiv1beta1.RunDetail{
@@ -1330,13 +1224,12 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
-					Name:         "j123",
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-				{
 					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
 					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 			},
 		},
@@ -1386,13 +1279,8 @@ func TestToApiRunsV1(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: "manifest",
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "job1",
-				ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
-			},
-		},
-		Metrics: []*model.RunMetric{metric1, metric2},
+		RecurringRunId: "job1",
+		Metrics:        []*model.RunMetric{metric1, metric2},
 	}
 	modelRun2 := model.Run{
 		UUID:         "run2",
@@ -1408,13 +1296,8 @@ func TestToApiRunsV1(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: "manifest",
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "run2", ResourceType: model.RunResourceType, ReferenceUUID: "job2",
-				ReferenceName: "j2", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship,
-			},
-		},
-		Metrics: []*model.RunMetric{metric2},
+		RecurringRunId: "job2",
+		Metrics:        []*model.RunMetric{metric2},
 	}
 	apiRuns := toApiRunsV1([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*apiv1beta1.Run{
@@ -1431,12 +1314,12 @@ func TestToApiRunsV1(t *testing.T) {
 			},
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
-					Name: "j1", Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-				{
 					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
 					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 			},
 			Metrics: []*apiv1beta1.RunMetric{apiMetric1, apiMetric2},
@@ -1451,12 +1334,12 @@ func TestToApiRunsV1(t *testing.T) {
 			Status:       "Succeeded",
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job2"},
-					Name: "j2", Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-				{
 					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
 					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job2"},
+					Relationship: apiv1beta1.Relationship_CREATOR,
 				},
 			},
 			PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -1727,7 +1610,7 @@ func TestToApiJob_ErrorParsingField(t *testing.T) {
 
 	apiJob := toApiJobV1(modelJob)
 	assert.Equal(t, "job1", apiJob.Id)
-	assert.Contains(t, apiJob.Error, "Pipeline spec parameters were not parsed correctly")
+	assert.Contains(t, apiJob.Error, "Pipeline v1 parameters were not parsed correctly")
 
 	apiJob2 := toApiJobV1(modelJob2)
 	assert.Equal(t, "job2", apiJob2.Id)
@@ -2172,6 +2055,39 @@ func TestToApiParameters(t *testing.T) {
 	modelParameters := `[{"name":"param2","value":"world"}]`
 	actualApiParameters := toApiParametersV1(modelParameters)
 	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
+	expectedApiParameters = []*apiv1beta1.Parameter{
+		{
+			Name:  "pipeline-root",
+			Value: "gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}",
+		},
+		{
+			Name:  "version",
+			Value: "2",
+		},
+	}
+	modelParameters = `[{"name":"pipeline-root","value":"gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"},{"name":"version","value":"2"}]`
+	actualApiParameters = toApiParametersV1(modelParameters)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
+}
+
+func TestToMapProtoStructParameters(t *testing.T) {
+	expectedApiParameters := map[string]*structpb.Value{
+		"param2": structpb.NewStringValue("world"),
+	}
+	modelParameters := `[{"name":"param2","value":"world"}]`
+	actualApiParameters := toMapProtoStructParameters(modelParameters)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
+	expectedApiParameters = map[string]*structpb.Value{
+		"pipeline-root": structpb.NewStringValue("gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"),
+		"version":       structpb.NewStringValue("2"),
+	}
+	modelParameters = `[{"name":"pipeline-root","value":"gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"},{"name":"version","value":"2"}]`
+	actualApiParameters = toMapProtoStructParameters(modelParameters)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+
 }
 
 func TestToApiRuntimeConfigV1(t *testing.T) {
@@ -2244,7 +2160,6 @@ func TestToApiRecurringRun(t *testing.T) {
 				Cron:      "2 * *",
 			}},
 		},
-		// PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "1"},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
 				"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
@@ -2267,6 +2182,7 @@ func TestToApiRecurringRun(t *testing.T) {
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
+			PipelineId:        "p1",
 			PipelineVersionId: "pv1",
 			PipelineName:      "p1",
 			RuntimeConfig: model.RuntimeConfig{
@@ -2291,7 +2207,12 @@ func TestToApiRecurringRun(t *testing.T) {
 				Cron:      "2 * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionId{PipelineVersionId: "pv1"},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionReference{
+			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+				PipelineId:        "p1",
+				PipelineVersionId: "pv1",
+			},
+		},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
 				"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
@@ -3074,14 +2995,14 @@ func Test_toModelTask(t *testing.T) {
 		},
 		{
 			"argo node status",
-			workflowapi.NodeStatus{
+			util.NodeStatus{
 				ID:          "1",
 				DisplayName: "node_1",
-				Name:        "wrong name",
-				Phase:       workflowapi.NodePhase("Pending"),
+				State:       "Pending",
 				Children:    []string{"node3", "node4"},
-				StartedAt:   v1.Time{Time: time.Unix(4, 0)},
-				FinishedAt:  v1.Time{Time: time.Unix(5, 0)},
+				StartTime:   4,
+				CreateTime:  4,
+				FinishTime:  5,
 			},
 			&model.Task{
 				PodName:           "1",
@@ -3217,7 +3138,9 @@ func Test_toModelTasks_wf(t *testing.T) {
 
 	gotWf, err := toModelTasks(argWf)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedWf, gotWf)
+	if !cmp.Equal(expectedWf, gotWf) {
+		t.Errorf("toModelTasks() diff: %v", cmp.Diff(gotWf, expectedWf))
+	}
 }
 
 func Test_toApiTaskV1(t *testing.T) {
@@ -3724,8 +3647,11 @@ func TestToModelRun(t *testing.T) {
 				DisplayName:  "name1",
 				Description:  "this is a run",
 				StorageState: apiv2beta1.Run_ARCHIVED,
-				PipelineSource: &apiv2beta1.Run_PipelineVersionId{
-					PipelineVersionId: "pv1",
+				PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+					PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+						PipelineId:        "p1",
+						PipelineVersionId: "pv1",
+					},
 				},
 				RuntimeConfig: &apiv2beta1.RuntimeConfig{
 					Parameters: map[string]*structpb.Value{
@@ -3818,6 +3744,7 @@ func TestToModelRun(t *testing.T) {
 					RuntimeConfig: model.RuntimeConfig{
 						Parameters: "{\"param2\":\"world\"}",
 					},
+					PipelineId:        "p1",
 					PipelineVersionId: "pv1",
 					PipelineName:      "pipelines/pv1",
 				},
@@ -4146,6 +4073,7 @@ func Test_toApiRun(t *testing.T) {
 					WorkflowRuntimeManifest: "workflow123",
 				},
 				PipelineSpec: model.PipelineSpec{
+					PipelineId:        "p1",
 					PipelineVersionId: "pv1",
 				},
 				ResourceReferences: []*model.ResourceReference{
@@ -4161,8 +4089,11 @@ func Test_toApiRun(t *testing.T) {
 				Description:    "this is run",
 				ServiceAccount: "sa1",
 				State:          apiv2beta1.RuntimeState_RUNNING,
-				PipelineSource: &apiv2beta1.Run_PipelineVersionId{
-					PipelineVersionId: "pv1",
+				PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+					PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+						PipelineId:        "p1",
+						PipelineVersionId: "pv1",
+					},
 				},
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},

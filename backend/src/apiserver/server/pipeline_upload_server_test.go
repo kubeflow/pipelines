@@ -30,6 +30,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -45,36 +46,65 @@ const (
 func TestUploadPipeline(t *testing.T) {
 	// TODO(v2): when we add a field to distinguish between v1 and v2 template, verify it's in the response
 	tt := []struct {
-		name string
-		spec []byte
+		name        string
+		spec        []byte
+		api_version string
 	}{{
-		name: "upload argo workflow YAML",
-		spec: []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		name:        "upload argo workflow YAML",
+		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		api_version: "v1beta1",
 	}, {
-		name: "upload pipeline v2 job in proto yaml",
-		spec: []byte(v2SpecHelloWorld),
+		name:        "upload argo workflow YAML",
+		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		api_version: "v2beta1",
+	}, {
+		name:        "upload pipeline v2 job in proto yaml",
+		spec:        []byte(v2SpecHelloWorld),
+		api_version: "v1beta1",
+	}, {
+		name:        "upload pipeline v2 job in proto yaml",
+		spec:        []byte(v2SpecHelloWorld),
+		api_version: "v2beta1",
 	}}
 	for _, test := range tt {
 		t.Run(test.name, func(t *testing.T) {
 			clientManager, server := setupClientManagerAndServer()
 			bytesBuffer, writer := setupWriter("")
 			setWriterWithBuffer("uploadfile", "hello-world.yaml", string(test.spec), writer)
-			response := uploadPipeline("/apis/v1beta1/pipelines/upload",
-				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+			var response *httptest.ResponseRecorder
+			if test.api_version == "v1beta1" {
+				response = uploadPipeline("/apis/v1beta1/pipelines/upload",
+					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineV1)
+			} else if test.api_version == "v2beta1" {
+				response = uploadPipeline("/apis/v2beta1/pipelines/upload",
+					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+			}
+
 			if response.Code != 200 {
 				t.Fatalf("Upload response is not 200, message: %s", response.Body.String())
 			}
 
-			// Verify time format is RFC3339.
 			parsedResponse := struct {
-				CreatedAt      string `json:"created_at"`
-				DefaultVersion struct {
-					CreatedAt string `json:"created_at"`
-				} `json:"default_version"`
+				// v1 API only field
+				ID string `json:"id"`
+				// v2 API only field
+				PipelineID string `json:"pipeline_id"`
+				// v1 API and v2 API shared field
+				CreatedAt string `json:"created_at"`
 			}{}
 			json.Unmarshal(response.Body.Bytes(), &parsedResponse)
+
+			// Verify time format is RFC3339.
 			assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
-			assert.Equal(t, "1970-01-01T00:00:02Z", parsedResponse.DefaultVersion.CreatedAt)
+
+			// Verify v1 API returns v1 object while v2 API returns v2 object.
+			if test.api_version == "v1beta1" {
+				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.ID)
+				assert.Equal(t, "", parsedResponse.PipelineID)
+			} else if test.api_version == "v2beta1" {
+				assert.Equal(t, "", parsedResponse.ID)
+				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
+			}
 
 			// Verify stored in object store
 			objStore := clientManager.ObjectStore()
@@ -92,7 +122,7 @@ func TestUploadPipeline(t *testing.T) {
 					CreatedAtInSec: 1,
 					Name:           "hello-world.yaml",
 					Status:         model.PipelineReady,
-					Namespace:      "default",
+					Namespace:      "",
 				},
 			}
 			pkgsExpect2 := []*model.PipelineVersion{
@@ -112,7 +142,7 @@ func TestUploadPipeline(t *testing.T) {
 			assert.Equal(t, 1, totalSize)
 			assert.Equal(t, pkgsExpect, pkg)
 
-			opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+			opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
@@ -171,6 +201,100 @@ func TestUploadPipeline(t *testing.T) {
 	}
 }
 
+func TestUploadPipelineV2_NameValidation(t *testing.T) {
+	v2Template, _ := template.New([]byte(v2SpecHelloWorld))
+	v2spec := string(v2Template.Bytes())
+
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDash))
+	v2specDash := string(v2Template.Bytes())
+
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldCapitalized))
+	invalidV2specCapitalized := string(v2Template.Bytes())
+
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDot))
+	invalidV2specDot := string(v2Template.Bytes())
+
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldLong))
+	invalidV2specLong := string(v2Template.Bytes())
+
+	tt := []struct {
+		name    string
+		spec    []byte
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "valid - original",
+			spec:    []byte(v2spec),
+			wantErr: false,
+			errMsg:  "",
+		},
+		{
+			name:    "valid - dash",
+			spec:    []byte(v2specDash),
+			wantErr: false,
+			errMsg:  "",
+		},
+		{
+			name:    "invalid - capitalized",
+			spec:    []byte(invalidV2specCapitalized),
+			wantErr: true,
+			errMsg:  "pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
+		},
+		{
+			name:    "invalid - dot",
+			spec:    []byte(invalidV2specDot),
+			wantErr: true,
+			errMsg:  "pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
+		},
+		{
+			name:    "invalid - too long",
+			spec:    []byte(invalidV2specLong),
+			wantErr: true,
+			errMsg:  "pipeline's name must contain no more than 128 characters",
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.name, func(t *testing.T) {
+			clientManager, server := setupClientManagerAndServer()
+			bytesBuffer, writer := setupWriter("")
+			setWriterWithBuffer("uploadfile", "hello-world.yaml", string(test.spec), writer)
+			response := uploadPipeline("/apis/v2beta1/pipelines/upload",
+				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+
+			if test.wantErr {
+				assert.NotEqual(t, 200, response.Code)
+				assert.Contains(t, response.Body.String(), test.errMsg)
+			} else {
+				assert.Equal(t, 200, response.Code)
+
+				parsedResponse := struct {
+					// v1 API only field
+					ID string `json:"id"`
+					// v2 API only field
+					PipelineID string `json:"pipeline_id"`
+					// v1 API and v2 API shared field
+					CreatedAt string `json:"created_at"`
+				}{}
+				json.Unmarshal(response.Body.Bytes(), &parsedResponse)
+
+				// Verify time format is RFC3339.
+				assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
+
+				// Verify v1 API returns v1 object while v2 API returns v2 object.
+				assert.Equal(t, "", parsedResponse.ID)
+				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
+
+				// Verify stored in object store
+				objStore := clientManager.ObjectStore()
+				template, err := objStore.GetFile(objStore.GetPipelineKey(DefaultFakeUUID))
+				assert.Nil(t, err)
+				assert.NotNil(t, template)
+			}
+		})
+	}
+}
+
 func TestUploadPipeline_Tarball(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
@@ -197,7 +321,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			CreatedAtInSec: 1,
 			Name:           "arguments.tar.gz",
 			Status:         model.PipelineReady,
-			Namespace:      "default",
+			Namespace:      "",
 		},
 	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
@@ -217,7 +341,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\",\"creationTimestamp\":null},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
-	opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+	opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
@@ -286,7 +410,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")),
+	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo-bar")),
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
@@ -303,9 +427,9 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 		{
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 1,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Status:         model.PipelineReady,
-			Namespace:      "default",
+			Namespace:      "",
 		},
 	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
@@ -320,7 +444,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 		{
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 2,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -334,23 +458,11 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	assert.Equal(t, pkgsExpect2, pkg2)
 }
 
-func TestUploadPipeline_FileNameTooLong(t *testing.T) {
-	_, server := setupClientManagerAndServer()
-	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	encodedName := url.PathEscape(
-		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
-	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName),
-		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
-	assert.Equal(t, 400, response.Code)
-	assert.Contains(t, response.Body.String(), "is too long")
-}
-
 func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"),
+	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo-bar"),
 		url.PathEscape("description of foo bar")),
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
@@ -368,10 +480,10 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 		{
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 1,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Status:         model.PipelineReady,
 			Description:    "description of foo bar",
-			Namespace:      "default",
+			Namespace:      "",
 		},
 	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
@@ -387,7 +499,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			Description:    "description of foo bar",
 			CreatedAtInSec: 2,
-			Name:           "foo bar",
+			Name:           "foo-bar",
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -419,26 +531,6 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, response.Body.String(), "error parsing pipeline spec filename")
-}
-
-func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
-	clientManager, server := setupClientManagerAndServer()
-	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
-		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
-	assert.Equal(t, 200, response.Code)
-
-	// Upload a new version under this pipeline
-
-	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
-	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
-	encodedName := url.PathEscape(
-		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
-	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+encodedName+"&pipelineid="+DefaultFakeUUID,
-		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
-	assert.Equal(t, 400, response.Code)
-	assert.Contains(t, response.Body.String(), "is too long")
 }
 
 func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
@@ -522,14 +614,14 @@ func setupWriter(text string) (*bytes.Buffer, *multipart.Writer) {
 
 func setupClientManagerAndServer() (*resource.FakeClientManager, PipelineUploadServer) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return clientManager, server
 }
 
 func updateClientManager(clientManager *resource.FakeClientManager, uuid util.UUIDGeneratorInterface) PipelineUploadServer {
 	clientManager.UpdateUUID(uuid)
-	resourceManager := resource.NewResourceManager(clientManager, "default")
+	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return server
 }
@@ -548,15 +640,15 @@ var v2SpecHelloWorld = `components:
     executorLabel: exec-hello-world
     inputDefinitions:
       parameters:
-        text:
-          type: STRING
+        param1:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-hello-world:
       container:
         args:
-        - "--text"
-        - "{{$.inputs.parameters['text']}}"
+        - "--param1"
+        - "{{$.inputs.parameters['param1']}}"
         command:
         - sh
         - "-ec"
@@ -565,13 +657,13 @@ deploymentSpec:
           printf "%s" "$0" > "$program_path"
           python3 -u "$program_path" "$@"
         - |
-          def hello_world(text):
-              print(text)
-              return text
+          def hello_world(param1):
+              print(param1)
+              return param1
 
           import argparse
           _parser = argparse.ArgumentParser(prog='Hello world', description='')
-          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
@@ -588,14 +680,179 @@ root:
           name: comp-hello-world
         inputs:
           parameters:
-            text:
-              componentInputParameter: text
+            param1:
+              componentInputParameter: param1
         taskInfo:
           name: hello-world
   inputDefinitions:
     parameters:
-      text:
-        type: STRING
-schemaVersion: 2.0.0
+      param1:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldParams = `components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        param1:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--param1"
+        - "{{$.inputs.parameters['param1']}}"
+        command:
+        - sh
+        - "-ec"
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          python3 -u "$program_path" "$@"
+        - |
+          def hello_world(param1):
+              print(param1)
+              return param1
+
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
+
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.7
+pipelineInfo:
+  name: hello-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            param1:
+              componentInputParameter: param1
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      param1:
+        parameterType: STRING
+      param2:
+        parameterType: BOOLEAN
+      param3:
+        parameterType: LIST
+      param4:
+        parameterType: NUMBER_DOUBLE
+      param5:
+        parameterType: STRUCT
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldDash = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        image: python:3.7
+pipelineInfo:
+  name: hello-world-
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        taskInfo:
+          name: hello-world
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldCapitalized = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        image: python:3.7
+pipelineInfo:
+  name: hEllo-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        taskInfo:
+          name: hello-world
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldLong = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        image: python:3.7
+pipelineInfo:
+  name: more than  128 characters more than  128 characters more than  128 characters more than  128 characters more than  128 characters
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        taskInfo:
+          name: hello-world
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldDot = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        image: python:3.7
+pipelineInfo:
+  name: hello-worl.d
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        taskInfo:
+          name: hello-world
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `

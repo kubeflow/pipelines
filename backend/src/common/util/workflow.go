@@ -28,7 +28,6 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -43,6 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/tools/cache"
+	"sigs.k8s.io/yaml"
 )
 
 // Workflow is a type to help manipulate Workflow objects.
@@ -749,6 +749,26 @@ func (w *Workflow) PatchTemplateOutputArtifacts() {
 			}
 		}
 	}
+}
+
+func (w *Workflow) NodeStatuses() map[string]NodeStatus {
+	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
+	for id, node := range w.Status.Nodes {
+		rev[id] = NodeStatus{
+			ID:          node.ID,
+			DisplayName: node.DisplayName,
+			State:       string(node.Phase),
+			StartTime:   node.StartedAt.Unix(),
+			CreateTime:  node.StartedAt.Unix(),
+			FinishTime:  node.FinishedAt.Unix(),
+			Children:    node.Children,
+		}
+	}
+	return rev
+}
+
+func (w *Workflow) HasNodes() bool {
+	return len(w.Status.Nodes) > 0
 }
 
 // implementation of ExecutionClientInterface

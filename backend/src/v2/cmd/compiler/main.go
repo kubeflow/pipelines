@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,13 +19,13 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -65,7 +65,7 @@ func main() {
 }
 
 func compile(job *pipelinespec.PipelineJob) error {
-	wf, err := argocompiler.Compile(job, &argocompiler.Options{
+	wf, err := argocompiler.Compile(job, nil, &argocompiler.Options{
 		DriverImage:   *driver,
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,

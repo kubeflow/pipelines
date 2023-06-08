@@ -5,11 +5,17 @@ from utils import kfp_client_utils
 from utils import minio_utils
 from utils import ack_utils
 import ast
+import json
 
 
 @pytest.mark.parametrize(
     "test_file_dir",
-    [pytest.param("resources/config/ack-training-job", marks=pytest.mark.canary_test)],
+    [
+        pytest.param(
+            "resources/config/ack-training-job",
+            marks=[pytest.mark.canary_test, pytest.mark.shallow_canary, pytest.mark.v2],
+        )
+    ],
 )
 def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
     k8s_client = ack_utils.k8s_client()
@@ -19,6 +25,7 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
         utils.replace_placeholders(
             os.path.join(test_file_dir, "config.yaml"),
             os.path.join(download_dir, "ack-training-job.yaml"),
+            shallow_canary=True,
         )
     )
     input_job_name = utils.generate_random_string(10) + "-trn-job"
@@ -36,8 +43,12 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
     outputs = {
         "sagemaker-trainingjob": [
             "model_artifacts",
+            "ack_resource_metadata",
+            "training_job_status",
         ]
     }
+
+    DESIRED_COMPONENT_STATUS = "Completed"
 
     # Get output data
     output_files = minio_utils.artifact_download_iterator(
@@ -46,11 +57,24 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
     model_artifact = utils.read_from_file_in_tar(
         output_files["sagemaker-trainingjob"]["model_artifacts"]
     )
+    output_ack_resource_metadata = json.loads(
+        utils.read_from_file_in_tar(
+            output_files["sagemaker-trainingjob"]["ack_resource_metadata"]
+        ).replace("'", '"')
+    )
+    output_training_job_status = utils.read_from_file_in_tar(
+        output_files["sagemaker-trainingjob"]["training_job_status"]
+    )
 
     # Verify Training job was successful on SageMaker
     print(f"training job name: {input_job_name}")
-    train_response = ack_utils.describe_training_job(k8s_client, input_job_name)
-    assert train_response["status"]["trainingJobStatus"] == "Completed"
+    train_response = ack_utils._get_resource(k8s_client, input_job_name, "trainingjobs")
+    assert (
+        train_response["status"]["trainingJobStatus"]
+        == output_training_job_status
+        == DESIRED_COMPONENT_STATUS
+    )
+    assert input_job_name in output_ack_resource_metadata["arn"]
 
     # Verify model artifacts output was generated from this run
     model_uri = ast.literal_eval(model_artifact)["s3ModelArtifacts"]
@@ -61,6 +85,7 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
     utils.remove_dir(download_dir)
 
 
+@pytest.mark.v2
 def test_terminate_trainingjob(kfp_client, experiment_id):
     k8s_client = ack_utils.k8s_client()
     test_file_dir = "resources/config/ack-training-job"

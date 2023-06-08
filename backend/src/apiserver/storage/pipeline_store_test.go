@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -224,7 +225,8 @@ func TestListPipelines_WithFilter(t *testing.T) {
 			},
 		},
 	}
-	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", filterProto)
+	newFilter, _ := filter.New(filterProto)
+	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", newFilter)
 	assert.Nil(t, err)
 
 	pipelines, _, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
@@ -347,6 +349,90 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelinesExpected2, pipelines)
+}
+
+func TestListPipelinesV1_Pagination_NameAsc(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore.CreatePipeline(createPipelineV1("bbb"))
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineId, "pipeline1/v1", "", "", "", ""))
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineId, "pipeline1/v2", "", "", "", ""))
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	pipelineStore.CreatePipeline(createPipelineV1("aaa"))
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFour, nil)
+	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineIdTwo, "pipeline2/v1", "", "", "", ""))
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFive, nil)
+	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineIdTwo, "pipeline2/v2", "", "", "", ""))
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	pipelineStore.CreatePipeline(createPipelineV1("ccc"))
+
+	expectedPipeline1 := &model.Pipeline{
+		UUID:           DefaultFakePipelineId,
+		CreatedAtInSec: 1,
+		Name:           "bbb",
+		Status:         model.PipelineReady,
+	}
+	expectedPipeline2 := &model.Pipeline{
+		UUID:           DefaultFakePipelineIdTwo,
+		CreatedAtInSec: 4,
+		Name:           "aaa",
+		Status:         model.PipelineReady,
+	}
+	pipelinesExpected := []*model.Pipeline{expectedPipeline2, expectedPipeline1}
+
+	expectedPipelineVersion1 := &model.PipelineVersion{
+		PipelineId:     DefaultFakePipelineId,
+		UUID:           DefaultFakePipelineIdThree,
+		CreatedAtInSec: 3,
+		Name:           "pipeline1/v2",
+		Status:         model.PipelineVersionReady,
+		Parameters:     `[{"Name": "param1"}]`,
+	}
+	expectedPipelineVersion2 := &model.PipelineVersion{
+		PipelineId:     DefaultFakePipelineIdTwo,
+		UUID:           DefaultFakePipelineIdFive,
+		CreatedAtInSec: 6,
+		Name:           "pipeline2/v2",
+		Status:         model.PipelineVersionReady,
+		Parameters:     `[{"Name": "param1"}]`,
+	}
+	pipelineVersionsExpected := []*model.PipelineVersion{expectedPipelineVersion2, expectedPipelineVersion1}
+
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name asc", nil)
+	assert.Nil(t, err)
+	pipelines, pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, 3, total_size)
+	assert.Equal(t, pipelinesExpected, pipelines)
+	assert.Equal(t, pipelineVersionsExpected, pipelineVersions)
+
+	expectedPipeline3 := &model.Pipeline{
+		UUID:           DefaultFakePipelineIdThree,
+		CreatedAtInSec: 7,
+		Name:           "ccc",
+		Status:         model.PipelineReady,
+	}
+	pipelinesExpected2 := []*model.Pipeline{expectedPipeline3}
+	pipelineVersionsExpected2 := []*model.PipelineVersion{{}}
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	assert.Nil(t, err)
+	pipelines, pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Empty(t, nextPageToken)
+	assert.Equal(t, 3, total_size)
+	assert.Equal(t, pipelinesExpected2, pipelines)
+	assert.Equal(t, pipelineVersionsExpected2, pipelineVersions)
 }
 
 func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
@@ -513,6 +599,185 @@ func TestGetPipelineByNameAndNamespaceV1_NotFound(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Failed to get pipeline by name and namespace")
+}
+
+func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
+	tests := []struct {
+		name                string
+		p                   *model.Pipeline
+		pv                  *model.PipelineVersion
+		wantPipeline        *model.Pipeline
+		wantPipelineVersion *model.PipelineVersion
+		wantErr             bool
+		errMsg              string
+	}{
+		{
+			"Valid - pipeline v2",
+			&model.Pipeline{
+				Name:        "pipeline v2",
+				Description: "pipeline two",
+				Namespace:   "user1",
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 3,
+				Name:           "pipeline v2",
+				Description:    "pipeline two",
+				Namespace:      "user1",
+				Status:         model.PipelineCreating,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  4,
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Status:          model.PipelineVersionCreating,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - pipeline v1",
+			&model.Pipeline{
+				Name:        "pipeline v1",
+				Description: "pipeline one",
+				Parameters:  `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v1 version 1",
+				Parameters:      `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Description:     "pipeline v1 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    v1SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 3,
+				Name:           "pipeline v1",
+				Description:    "pipeline one",
+				Parameters:     `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Status:         model.PipelineCreating,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  4,
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Name:            "pipeline v1 version 1",
+				Parameters:      `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Description:     "pipeline v1 version description",
+				Status:          model.PipelineVersionCreating,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    v1SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			false,
+			"",
+		},
+		{
+			"Invalid - duplicate pipeline v2",
+			&model.Pipeline{
+				Name:        "default pipeline",
+				Description: "pipeline three",
+				Namespace:   "kubeflow",
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline version three",
+				Description:     "pipeline version three description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			nil,
+			nil,
+			true,
+			"Failed to create a new pipeline. The name default pipeline already exists",
+		},
+		{
+			"Valid - duplicate pipeline version v2",
+			&model.Pipeline{
+				Name:        "pipeline three",
+				Description: "pipeline three",
+				Namespace:   "kubeflow",
+			},
+			&model.PipelineVersion{
+				Name:            "default version",
+				Description:     "default version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 3,
+				Name:           "pipeline three",
+				Description:    "pipeline three",
+				Namespace:      "kubeflow",
+				Status:         model.PipelineCreating,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  4,
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Name:            "default version",
+				Description:     "default version description",
+				Status:          model.PipelineVersionCreating,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := NewFakeDBOrFatal()
+			pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+			// Create a default pipeline
+			pipelineStore.CreatePipeline(
+				&model.Pipeline{
+					Name:      "default pipeline",
+					Namespace: "kubeflow",
+					Status:    model.PipelineReady,
+				})
+			// Create a default version
+			pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil)
+			pipelineStore.CreatePipelineVersion(
+				&model.PipelineVersion{
+					Name:       "default version",
+					Parameters: `[{"Name":"param3","value":"three"}]`,
+					PipelineId: DefaultFakePipelineId,
+					Status:     model.PipelineVersionReady,
+				},
+			)
+			pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+
+			gotPipeline, gotPipelineVersion, err := pipelineStore.CreatePipelineAndPipelineVersion(tt.p, tt.pv)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, gotPipeline)
+				assert.Nil(t, gotPipelineVersion)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.wantPipeline, gotPipeline)
+				assert.Equal(t, tt.wantPipelineVersion, gotPipelineVersion)
+			}
+			db.Close()
+		})
+	}
 }
 
 func TestCreatePipeline(t *testing.T) {
@@ -1524,6 +1789,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 			},
 		},
 	}
+	equalFilter, _ := filter.New(equalFilterProto)
 
 	// Filter for name prefix being pipeline_version
 	prefixFilterProto := &api.Filter{
@@ -1535,9 +1801,10 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 			},
 		},
 	}
+	prefixFilter, _ := filter.New(prefixFilterProto)
 
 	// Only return 1 pipeline version with equal filter.
-	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", equalFilterProto)
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", equalFilter)
 	assert.Nil(t, err)
 	_, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 	assert.Nil(t, err)
@@ -1553,7 +1820,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	assert.Equal(t, 2, totalSize)
 
 	// Return 2 pipeline versions with prefix filter.
-	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", prefixFilterProto)
+	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", prefixFilter)
 	assert.Nil(t, err)
 	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
 	assert.Nil(t, err)
@@ -1636,3 +1903,75 @@ func TestUpdatePipelineVersionStatusError(t *testing.T) {
 		DefaultFakePipelineId, model.PipelineVersionDeleting)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
+
+var v2SpecHelloWorld = `components:
+comp-hello-world:
+  executorLabel: exec-hello-world
+  inputDefinitions:
+	parameters:
+	  param1:
+		parameterType: STRING
+deploymentSpec:
+executors:
+  exec-hello-world:
+	container:
+	  args:
+	  - "--param1"
+	  - "{{$.inputs.parameters['param1']}}"
+	  command:
+	  - sh
+	  - "-ec"
+	  - |
+		program_path=$(mktemp)
+		printf "%s" "$0" > "$program_path"
+		python3 -u "$program_path" "$@"
+	  - |
+		def hello_world(param1):
+			print(param1)
+			return param1
+
+		import argparse
+		_parser = argparse.ArgumentParser(prog='Hello world', description='')
+		_parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+		_parsed_args = vars(_parser.parse_args())
+
+		_outputs = hello_world(**_parsed_args)
+	  image: python:3.7
+pipelineInfo:
+name: hello-world
+root:
+dag:
+  tasks:
+	hello-world:
+	  cachingOptions:
+		enableCache: true
+	  componentRef:
+		name: comp-hello-world
+	  inputs:
+		parameters:
+		  param1:
+			componentInputParameter: param1
+	  taskInfo:
+		name: hello-world
+inputDefinitions:
+  parameters:
+	param1:
+	  parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+var v1SpecHelloWorld = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  templates:
+  - name: whalesay
+    inputs:
+      parameters:
+      - name: dup
+        value: "value1"
+    container:
+      image: docker/whalesay:latest`

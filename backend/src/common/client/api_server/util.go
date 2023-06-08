@@ -8,7 +8,6 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/ghodss/yaml"
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -17,12 +16,13 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/yaml"
 )
 
 const (
+	APIServerDefaultTimeout            = 35 * time.Second
 	apiServerBasePath                  = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/"
 	apiServerKubeflowInClusterBasePath = "ml-pipeline.%s:8888"
-	apiServerDefaultTimeout            = 35 * time.Second
 	saDefaultTokenPath                 = "/var/run/secrets/kubeflow/pipelines/token"
 	saTokenPathEnvVar                  = "KF_PIPELINES_SA_TOKEN_PATH"
 )

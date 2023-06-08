@@ -3,23 +3,20 @@
 [![Python](https://img.shields.io/pypi/pyversions/google_cloud_pipeline_components.svg?style=plastic)](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud)
 [![PyPI](https://badge.fury.io/py/google-cloud-pipeline-components.svg)](https://badge.fury.io/py/google-cloud-pipeline-components.svg)
 
-[Google Cloud Pipeline Components](https://cloud.google.com/vertex-ai/docs/pipelines/build-pipeline?hl=en#google-cloud-components) provides an SDK and a set of components that lets
-you interact with Google Cloud services such as Vertex AI. You can use
-the predefined components in this repository to build your pipeline using the
-Kubeflow Pipelines SDK.
+[Google Cloud Pipeline Components](https://cloud.google.com/vertex-ai/docs/pipelines/build-pipeline?hl=en#google-cloud-components) (GCPC) provides predefined [KFP](https://www.kubeflow.org/docs/components/pipelines/) components that can be run on Google Cloud Vertex AI Pipelines and other KFP-conformant pipeline execution backends. You can compose the components together into pipelines using the [Kubeflow Pipelines SDK](https://pypi.org/project/kfp/).
 
 ## Documentation
 
-### User Documentation
+### User documentation
 
-Please see the [Google_cloud_pipeline_components User Guide](https://cloud.google.com/vertex-ai/docs/pipelines/build-pipeline?hl=en#google-cloud-components).
+Please see the [Google Cloud Pipeline Components user guide](https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction).
 
 ### API documentation
-Please see the [Google_cloud_pipeline_components ReadTheDocs page](https://google-cloud-pipeline-components.readthedocs.io).
+Please see the [Google Cloud Pipeline Components API reference documentation](https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-1.0.41/).
 
-### Release Details
+### Release details
 
-For detailed previous and upcoming changes, please [check here](https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/RELEASE.md)
+For details about previous and upcoming releases, please see the [release notes](https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/RELEASE.md).
 
 ## Examples
 *   [Train an image classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_images.ipynb).
@@ -32,7 +29,7 @@ For detailed previous and upcoming changes, please [check here](https://github.c
 
 ### Requirements
 
--   Python >= 3.6
+-   Python >= 3.7
 -   [A Google Cloud project with the Vertex API enabled.](https://cloud.google.com/vertex-ai/docs/start/cloud-environment)
 -   An
     [authenticated GCP account](https://cloud.google.com/ai-platform/docs/getting-started-keras#authenticate_your_gcp_account)
@@ -40,32 +37,8 @@ For detailed previous and upcoming changes, please [check here](https://github.c
 
 ### Install latest release
 
-Use the following command to install Google Cloud Pipeline Components from PyPI.
+Use the following command to install Google Cloud Pipeline Components from [PyPI](https://pypi.org/project/google-cloud-pipeline-components/).
 
 ```shell
 pip install -U google-cloud-pipeline-components
-```
-
-### Install from source
-
-Use the following commands to install Google Cloud Pipeline Components from GitHub.
-
-```shell
-git clone https://github.com/kubeflow/pipelines.git
-pip install pipelines/components/google-cloud/.
-```
-
-### Build the package from source and install
-
-Use the following commands build Google Cloud Pipeline Components from the source code and install the package.
-
-```shell
-source_root=$(pwd)
-
-git clone https://github.com/kubeflow/pipelines.git
-cd pipelines/components/google-cloud
-python setup.py bdist_wheel clean
-
-WHEEL_FILE=$(find "$source_root/pipelines/components/google-cloud/dist/" -name "google_cloud_pipeline_components*.whl")
-pip3 install --upgrade $WHEEL_FILE
 ```

@@ -12,17 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Component for converting classification text dataset for batch prediction."""
+"""Component for converting classification text dataset for batch.
+
+prediction.
+"""
 from typing import List, NamedTuple
-from kfp.v2 import dsl
+
+from kfp import dsl
 
 
 @dsl.component(
-    base_image="us-docker.pkg.dev/vertex-ai/training/tf-cpu.2-8:latest")
+    base_image="us-docker.pkg.dev/vertex-ai/training/tf-cpu.2-8:latest"
+)
 def convert_dataset_export_for_batch_predict(
-    file_paths: List[str], classification_type: str,
-    output_dir: dsl.OutputPath(list)
+    file_paths: List[str],
+    classification_type: str,
+    output_dir: dsl.OutputPath(list),
 ) -> NamedTuple("Outputs", [("output_files", list)]):
+  # fmt: on
   """Converts classification dataset export for batch prediction input.
 
   For each processed data item, there will be a JSON object with two fields: a
@@ -41,13 +48,15 @@ def convert_dataset_export_for_batch_predict(
     Namedtuple of one list under "output_files" key, containing the URIs of the
     JSONL files ready to be consumed by Vertex batch prediction.
   """
+  # fmt: on
   # pylint: disable=g-import-not-at-top
   import collections
   import json
   import os
-  import tensorflow as tf
-  # pylint: enable=g-import-not-at-top
 
+  import tensorflow as tf
+
+  # pylint: enable=g-import-not-at-top
   # pylint: disable=invalid-name
   MULTILABEL_TYPE = "multilabel"
   TEXT_KEY = "text"
@@ -86,7 +95,8 @@ def convert_dataset_export_for_batch_predict(
             ]
           else:
             result_obj[LABELS_KEY] = json_obj[CLASSIFICATION_ANNOTATION_KEY][
-                DISPLAY_NAME_KEY]
+                DISPLAY_NAME_KEY
+            ]
           results_file.write(json.dumps(result_obj) + "\n")
       # Subsequent components will not understand "/gcs/" prefix. Convert to use
       # "gs://" prefix for compatibility.

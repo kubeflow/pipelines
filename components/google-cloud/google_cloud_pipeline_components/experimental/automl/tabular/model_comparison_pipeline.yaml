@@ -1,0 +1,1049 @@
+# PIPELINE DEFINITION
+# Name: model-comparison
+# Description: Runs multiple training pipelines in parallel and exports results to Vertex Experiments.
+# Inputs:
+#    data_source_bigquery_table_path: str
+#    data_source_csv_filenames: str
+#    evaluation_data_source_bigquery_table_path: str
+#    evaluation_data_source_csv_filenames: str
+#    experiment: str
+#    location: str
+#    network: str
+#    prediction_type: str
+#    project: str
+#    root_dir: str
+#    service_account: str
+#    training_jobs: dict
+components:
+  comp-bigquery-create-dataset:
+    executorLabel: exec-bigquery-create-dataset
+    inputDefinitions:
+      parameters:
+        dataset:
+          parameterType: STRING
+        exists_ok:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        dataset_id:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+  comp-bigquery-delete-dataset-with-prefix:
+    executorLabel: exec-bigquery-delete-dataset-with-prefix
+    inputDefinitions:
+      parameters:
+        dataset_prefix:
+          parameterType: STRING
+        delete_contents:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        project:
+          parameterType: STRING
+  comp-build-jobs-parameters:
+    executorLabel: exec-build-jobs-parameters
+    inputDefinitions:
+      parameters:
+        data_source_bigquery_table_path:
+          parameterType: STRING
+        data_source_csv_filenames:
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        training_jobs:
+          parameterType: STRUCT
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-concatenate-data:
+    executorLabel: exec-concatenate-data
+    inputDefinitions:
+      parameters:
+        data_source_bigquery_table_path:
+          isOptional: true
+          parameterType: STRING
+        data_source_csv_filenames:
+          isOptional: true
+          parameterType: STRING
+        evaluation_data_source_bigquery_table_path:
+          isOptional: true
+          parameterType: STRING
+        evaluation_data_source_csv_filenames:
+          isOptional: true
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        tmp_dataset_name:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        data_source_bigquery_table_path:
+          parameterType: STRING
+        data_source_csv_filenames:
+          parameterType: STRING
+  comp-exit-handler-1:
+    dag:
+      tasks:
+        bigquery-create-dataset:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-create-dataset
+          dependentTasks:
+          - generate-iso8601-underscore-datetime-format
+          - get-table-location
+          inputs:
+            parameters:
+              dataset:
+                runtimeValue:
+                  constant: model_comparison_tmp_{{$.inputs.parameters['pipelinechannel--generate-iso8601-underscore-datetime-format-Output']}}
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--generate-iso8601-underscore-datetime-format-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: generate-iso8601-underscore-datetime-format
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: create-tmp-dataset
+        build-jobs-parameters:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-jobs-parameters
+          dependentTasks:
+          - concatenate-data
+          - validate-inputs
+          inputs:
+            parameters:
+              data_source_bigquery_table_path:
+                taskOutputParameter:
+                  outputParameterKey: data_source_bigquery_table_path
+                  producerTask: concatenate-data
+              data_source_csv_filenames:
+                taskOutputParameter:
+                  outputParameterKey: data_source_csv_filenames
+                  producerTask: concatenate-data
+              location:
+                componentInputParameter: pipelinechannel--location
+              project:
+                componentInputParameter: pipelinechannel--project
+              training_jobs:
+                componentInputParameter: pipelinechannel--training_jobs
+          taskInfo:
+            name: build-jobs-parameters
+        concatenate-data:
+          cachingOptions: {}
+          componentRef:
+            name: comp-concatenate-data
+          dependentTasks:
+          - bigquery-create-dataset
+          - get-table-location
+          - validate-inputs
+          inputs:
+            parameters:
+              data_source_bigquery_table_path:
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
+              data_source_csv_filenames:
+                componentInputParameter: pipelinechannel--data_source_csv_filenames
+              evaluation_data_source_bigquery_table_path:
+                componentInputParameter: pipelinechannel--evaluation_data_source_bigquery_table_path
+              evaluation_data_source_csv_filenames:
+                componentInputParameter: pipelinechannel--evaluation_data_source_csv_filenames
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              project:
+                componentInputParameter: pipelinechannel--project
+              tmp_dataset_name:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset
+          taskInfo:
+            name: concatenate-data
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2
+          dependentTasks:
+          - build-jobs-parameters
+          - get-experiment
+          inputs:
+            parameters:
+              pipelinechannel--build-jobs-parameters-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-jobs-parameters
+              pipelinechannel--get-experiment-experiment_name:
+                taskOutputParameter:
+                  outputParameterKey: experiment_name
+                  producerTask: get-experiment
+              pipelinechannel--location:
+                componentInputParameter: pipelinechannel--location
+              pipelinechannel--network:
+                componentInputParameter: pipelinechannel--network
+              pipelinechannel--project:
+                componentInputParameter: pipelinechannel--project
+              pipelinechannel--root_dir:
+                componentInputParameter: pipelinechannel--root_dir
+              pipelinechannel--service_account:
+                componentInputParameter: pipelinechannel--service_account
+          iteratorPolicy:
+            parallelismLimit: 100
+          parameterIterator:
+            itemInput: pipelinechannel--build-jobs-parameters-Output-loop-item
+            items:
+              inputParameter: pipelinechannel--build-jobs-parameters-Output
+          taskInfo:
+            name: for-loop-2
+        generate-iso8601-underscore-datetime-format:
+          cachingOptions: {}
+          componentRef:
+            name: comp-generate-iso8601-underscore-datetime-format
+          dependentTasks:
+          - validate-inputs
+          inputs:
+            parameters:
+              run_id:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_uuid}}'
+          taskInfo:
+            name: generate-iso8601-underscore-datetime-format
+        get-experiment:
+          cachingOptions: {}
+          componentRef:
+            name: comp-get-experiment
+          dependentTasks:
+          - validate-inputs
+          inputs:
+            parameters:
+              experiment_name:
+                componentInputParameter: pipelinechannel--experiment
+              location:
+                componentInputParameter: pipelinechannel--location
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: get-experiment
+        get-table-location:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-get-table-location
+          inputs:
+            parameters:
+              default_location:
+                componentInputParameter: pipelinechannel--location
+              project:
+                componentInputParameter: pipelinechannel--project
+              table:
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
+          taskInfo:
+            name: get-table-location
+        validate-inputs:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-validate-inputs
+          inputs:
+            parameters:
+              data_source_bigquery_table_path:
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
+              data_source_csv_filenames:
+                componentInputParameter: pipelinechannel--data_source_csv_filenames
+              evaluation_data_source_bigquery_table_path:
+                componentInputParameter: pipelinechannel--evaluation_data_source_bigquery_table_path
+              evaluation_data_source_csv_filenames:
+                componentInputParameter: pipelinechannel--evaluation_data_source_csv_filenames
+              location:
+                componentInputParameter: pipelinechannel--location
+              prediction_type:
+                componentInputParameter: pipelinechannel--prediction_type
+              project:
+                componentInputParameter: pipelinechannel--project
+              training_jobs:
+                componentInputParameter: pipelinechannel--training_jobs
+          taskInfo:
+            name: validate-inputs
+    inputDefinitions:
+      parameters:
+        pipelinechannel--data_source_bigquery_table_path:
+          parameterType: STRING
+        pipelinechannel--data_source_csv_filenames:
+          parameterType: STRING
+        pipelinechannel--evaluation_data_source_bigquery_table_path:
+          parameterType: STRING
+        pipelinechannel--evaluation_data_source_csv_filenames:
+          parameterType: STRING
+        pipelinechannel--experiment:
+          parameterType: STRING
+        pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--network:
+          parameterType: STRING
+        pipelinechannel--prediction_type:
+          parameterType: STRING
+        pipelinechannel--project:
+          parameterType: STRING
+        pipelinechannel--root_dir:
+          parameterType: STRING
+        pipelinechannel--service_account:
+          parameterType: STRING
+        pipelinechannel--training_jobs:
+          parameterType: STRUCT
+  comp-for-loop-2:
+    dag:
+      tasks:
+        run-pipeline:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-run-pipeline
+          inputs:
+            parameters:
+              experiment_name:
+                componentInputParameter: pipelinechannel--get-experiment-experiment_name
+              location:
+                componentInputParameter: pipelinechannel--location
+              model_comparison_job_name:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_name}}'
+              network:
+                componentInputParameter: pipelinechannel--network
+              pipeline_root:
+                componentInputParameter: pipelinechannel--root_dir
+              project:
+                componentInputParameter: pipelinechannel--project
+              service_account:
+                componentInputParameter: pipelinechannel--service_account
+              training_job:
+                componentInputParameter: pipelinechannel--build-jobs-parameters-Output-loop-item
+          taskInfo:
+            name: run-pipeline
+    inputDefinitions:
+      parameters:
+        pipelinechannel--build-jobs-parameters-Output:
+          parameterType: LIST
+        pipelinechannel--build-jobs-parameters-Output-loop-item:
+          parameterType: STRUCT
+        pipelinechannel--get-experiment-experiment_name:
+          parameterType: STRING
+        pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--network:
+          parameterType: STRING
+        pipelinechannel--project:
+          parameterType: STRING
+        pipelinechannel--root_dir:
+          parameterType: STRING
+        pipelinechannel--service_account:
+          parameterType: STRING
+  comp-generate-iso8601-underscore-datetime-format:
+    executorLabel: exec-generate-iso8601-underscore-datetime-format
+    inputDefinitions:
+      parameters:
+        run_id:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-get-experiment:
+    executorLabel: exec-get-experiment
+    inputDefinitions:
+      parameters:
+        experiment_name:
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        experiment:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        experiment_name:
+          parameterType: STRING
+  comp-get-table-location:
+    executorLabel: exec-get-table-location
+    inputDefinitions:
+      parameters:
+        default_location:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        table:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-run-pipeline:
+    executorLabel: exec-run-pipeline
+    inputDefinitions:
+      parameters:
+        experiment_name:
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        model_comparison_job_name:
+          parameterType: STRING
+        network:
+          parameterType: STRING
+        pipeline_root:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        service_account:
+          parameterType: STRING
+        training_job:
+          parameterType: STRUCT
+  comp-validate-inputs:
+    executorLabel: exec-validate-inputs
+    inputDefinitions:
+      parameters:
+        data_source_bigquery_table_path:
+          isOptional: true
+          parameterType: STRING
+        data_source_csv_filenames:
+          isOptional: true
+          parameterType: STRING
+        evaluation_data_source_bigquery_table_path:
+          isOptional: true
+          parameterType: STRING
+        evaluation_data_source_csv_filenames:
+          isOptional: true
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        prediction_type:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        training_jobs:
+          parameterType: STRUCT
+deploymentSpec:
+  executors:
+    exec-bigquery-create-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
+          \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
+          \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
+          \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
+          \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  ref\
+          \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
+          \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
+          \   ref.project, ref.dataset_id)\n\n"
+        image: python:3.7-slim
+    exec-bigquery-delete-dataset-with-prefix:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_delete_dataset_with_prefix
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_delete_dataset_with_prefix(\n    project: str,\n   \
+          \ dataset_prefix: str,\n    delete_contents: bool = False,\n) -> None:\n\
+          \  \"\"\"Deletes all BigQuery datasets matching the given prefix.\"\"\"\n\
+          \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project)\n  for dataset in client.list_datasets(project=project):\n\
+          \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
+          \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
+          \n"
+        image: python:3.7-slim
+    exec-build-jobs-parameters:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_jobs_parameters
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_jobs_parameters(\n    project: str,\n    location: str,\n\
+          \    training_jobs: Dict[str, Dict[str, Any]],\n    data_source_csv_filenames:\
+          \ str,\n    data_source_bigquery_table_path: str,\n) -> List[Dict[str, Dict[str,\
+          \ Any]]]:\n  \"\"\"Prepares a list of dicts with name and parameters for\
+          \ each sub-pipeline.\n\n  Args:\n    project:\n      The GCP project parameter\
+          \ that should be passed to all the jobs.\n    location:\n      The GCP location\
+          \ parameter that should be passed to all the jobs.\n    training_jobs:\n\
+          \      Dictionary of jobs with their parameters.\n    data_source_csv_filenames:\n\
+          \      Data source parameter that should be passed to all the jobs\n   \
+          \ data_source_bigquery_table_path:\n      Data source parameter that should\
+          \ be passed to all the jobs\n\n  Returns:\n    A list of dictionaries with\
+          \ two keys. The keys are 'model_name' - the\n    original key from the training_jobs\
+          \ dictionary and 'job_params' the value\n    associated with that key.\n\
+          \  \"\"\"\n  # Tabular Workflows pipelines expect a schema for BigQuery\
+          \ URIs.\n  if (\n      data_source_bigquery_table_path\n      and not data_source_bigquery_table_path.startswith('bq://')\n\
+          \      and not data_source_bigquery_table_path.startswith('bigquery://')\n\
+          \  ):\n    data_source_bigquery_table_path = f'bq://{data_source_bigquery_table_path}'\n\
+          \n  for job in training_jobs:\n    training_jobs[job]['parameter_values'].update({\n\
+          \        'project': project,\n        'location': location,\n        'data_source_csv_filenames':\
+          \ data_source_csv_filenames,\n        'data_source_bigquery_table_path':\
+          \ data_source_bigquery_table_path\n    })\n\n  return [{'model_name': k,\
+          \ 'job_params': v} for k, v in training_jobs.items()]\n\n"
+        image: python:3.8-slim
+    exec-concatenate-data:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - concatenate_data
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef concatenate_data(\n    project: str,\n    location: str,\n  \
+          \  tmp_dataset_name: str,\n    data_source_csv_filenames: Optional[str]\
+          \ = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n\
+          \    evaluation_data_source_csv_filenames: Optional[str] = None,\n    evaluation_data_source_bigquery_table_path:\
+          \ Optional[str] = None,\n) -> NamedTuple('Outputs', [\n    ('data_source_csv_filenames',\
+          \ str),\n    ('data_source_bigquery_table_path', str),\n]):\n  \"\"\"Concatenate\
+          \ input and evaluation data sources together.\n\n  Args:\n    project: The\
+          \ GCP project that runs the pipeline components.\n    location: The GCP\
+          \ region that runs the BigQuery queries.\n    tmp_dataset_name: The name\
+          \ of the tmp dataset to create the unioned table.\n    data_source_csv_filenames:\
+          \ Comma-separated paths to CSVs stored in GCS to\n      use as the dataset\
+          \ for all training pipelines. This should be None if\n      `data_source_bigquery_table_path`\
+          \ is not None. This should only contain\n      data from the training and\
+          \ validation split and not from the test split.\n    data_source_bigquery_table_path:\
+          \ Path to BigQuery Table to use as the\n      dataset for all training pipelines.\
+          \ This should be None if\n      `data_source_csv_filenames` is not None.\
+          \ This should only contain data\n      from the training and validation\
+          \ split and not from the test split.\n    evaluation_data_source_csv_filenames:\
+          \ Comma-separated paths to CSVs stored\n      in GCS to use as the evaluation\
+          \ dataset for all training pipelines. This\n      should be None if `evaluation_data_source_bigquery_table_path`\
+          \ is not\n      None. This should only contain data from the test split\
+          \ and not from the\n      training and validation split.\n    evaluation_data_source_bigquery_table_path:\
+          \ Path to BigQuery Table to use as\n      the evaluation dataset for all\
+          \ training pipelines. This should be None if\n      `evaluation_data_source_csv_filenames`\
+          \ is not None. This should only\n      contain data from the test split\
+          \ and not from the training and validation\n      split.\n\n  Returns:\n\
+          \    Concatenated csv and bigquery paths.\n  \"\"\"\n\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import collections\n  import uuid\n\n  from google.cloud import bigquery\n\
+          \  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n  if data_source_csv_filenames\
+          \ and evaluation_data_source_csv_filenames:\n    return collections.namedtuple('Outputs',\
+          \ [\n        'data_source_csv_filenames',\n        'data_source_bigquery_table_path',\n\
+          \    ])(\n        data_source_csv_filenames + ',' + evaluation_data_source_csv_filenames,\n\
+          \        '',\n    )\n\n  client = bigquery.Client(project=project, location=location)\n\
+          \  bq_table_names = [\n      data_source_bigquery_table_path,\n      evaluation_data_source_bigquery_table_path\n\
+          \  ]\n  for i in range(len(bq_table_names)):\n    table_uri = bq_table_names[i]\n\
+          \    if table_uri.startswith('bq://'):\n      table_uri = table_uri[len('bq://'):]\n\
+          \    elif table_uri.startswith('bigquery://'):\n      table_uri = table_uri[len('bigquery://'):]\n\
+          \n    bq_table_names[i] = table_uri\n\n  data_source_bigquery_table_path\
+          \ = bq_table_names[0]\n  evaluation_data_source_bigquery_table_path = bq_table_names[1]\n\
+          \n  final_table_id = (f'{project}.{tmp_dataset_name}'\n                \
+          \    f'.model_comparison_unioned_table_{uuid.uuid4().hex[-4:]}')\n\n  union_query\
+          \ = f\"\"\"\n      CREATE TABLE `{final_table_id}` AS (\n        SELECT\
+          \ * FROM `{data_source_bigquery_table_path}`\n        UNION ALL\n      \
+          \  SELECT * FROM `{evaluation_data_source_bigquery_table_path}`\n      )\n\
+          \  \"\"\"\n  client.query(union_query).result()\n\n  return collections.namedtuple('Outputs',\
+          \ [\n      'data_source_csv_filenames',\n      'data_source_bigquery_table_path',\n\
+          \  ])(\n      '',\n      final_table_id,\n  )\n\n"
+        image: python:3.8-slim
+    exec-generate-iso8601-underscore-datetime-format:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - generate_iso8601_underscore_datetime_format
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef generate_iso8601_underscore_datetime_format(run_id: str) -> str:\n\
+          \  \"\"\"Creates a timestamp using the same logic as Vertex Forecasting.\"\
+          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import datetime\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  timestamp = datetime.datetime.now().strftime('%Y_%m_%dT%H_%M_%S_%f')[:23]\n\
+          \  return f'{run_id}_{timestamp}Z'\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-get-experiment:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_experiment
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.18.2'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_experiment(\n    project: str, location: str, experiment_name:\
+          \ Optional[str],\n    experiment: dsl.Output[dsl.Artifact]\n) -> NamedTuple('Outputs',\
+          \ [('experiment_name', str)]):\n  \"\"\"Returns a Vertex AI experiment name\
+          \ under which to run the pipelines.\n\n  Args:\n    project:\n      The\
+          \ GCP project in which the experiment will be created.\n    location:\n\
+          \      The GCP location in which the experiment will be created.\n    experiment_name:\n\
+          \      Dictionary of jobs with their parameters.\n    experiment:\n    \
+          \  Output artifact containing experiment name and cloud console URL.\n\n\
+          \  Returns:\n    A NamedTuple with the name of the created experiment.\n\
+          \n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import datetime\n  import logging\n  import uuid\n  from google.cloud\
+          \ import aiplatform\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  if not experiment_name:\n    experiment_datetime = datetime.datetime.now().strftime('%Y-%m-%d')\n\
+          \    experiment_name = (\n        f'model-comparison-{experiment_datetime}-{uuid.uuid4().hex[-4:]}')\n\
+          \n  aiplatform.Experiment.get_or_create(\n      experiment_name=experiment_name,\
+          \ project=project, location=location)\n\n  experiment_ui_url = f'https://console.cloud.google.com/vertex-ai/locations/{location}/experiments/{experiment_name}?project={project}'\n\
+          \  logging.info(\n      'Using experiment %s. Access it at %s',\n      experiment_name,\
+          \ experiment_ui_url\n  )\n\n  experiment.metadata = {\n      'experiment_name':\
+          \ experiment_name\n  }\n  experiment.uri = experiment_ui_url\n\n  return\
+          \ (experiment_name,)\n\n"
+        image: python:3.8-slim
+    exec-get-table-location:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_table_location
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
+          \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
+          \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
+          \    table: The BigQuery table to get a location for.\n    default_location:\
+          \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
+          \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
+          \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
+          \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
+          \  return client.get_table(table).location\n\n"
+        image: python:3.7-slim
+    exec-run-pipeline:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - run_pipeline
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.18.2'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef run_pipeline(\n    project: str,\n    location: str,\n    training_job:\
+          \ Dict[str, Any],\n    experiment_name: str,\n    model_comparison_job_name:\
+          \ str,\n    pipeline_root: str,\n    service_account: str,\n    network:\
+          \ str,\n) -> None:\n  \"\"\"Starts a pipeline job.\n\n  Args:\n    project:\n\
+          \      The GCP project that runs the pipeline components.\n    location:\n\
+          \      The GCP region that runs the pipeline components.\n    training_job:\
+          \ Dict mapping a model name to its training job parameters.\n    experiment_name:\n\
+          \      Name of the Vertex AI Experiment to which this pipeine job should\
+          \ be\n      bound.\n    model_comparison_job_name:\n      Name of the model\
+          \ comparison job running this component.\n    pipeline_root:\n      The\
+          \ root GCS directory for the pipeline components.\n    service_account:\
+          \ Specifies the service account for the pipeline job.\n    network: The\
+          \ full name of the Compute Engine network to which the\n      pipeline job\
+          \ should be peered.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  import os\n  import datetime\n  import logging\n  import uuid\n\n  from\
+          \ google.cloud import aiplatform\n  from google.cloud.aiplatform.metadata\
+          \ import constants as metadata_constants\n  from google.cloud.aiplatform.metadata\
+          \ import utils as metadata_utils\n  from google.cloud.aiplatform.compat.types\
+          \ import pipeline_state\n  from google.cloud.aiplatform.compat.types import\
+          \ execution\n  # pylint: enable=g-import-not-at-top,i;mport-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  model_name = training_job['model_name']\n  job_params = training_job['job_params']\n\
+          \  states_map = {\n      pipeline_state.PipelineState.PIPELINE_STATE_CANCELLED:\n\
+          \          execution.Execution.State.CANCELLED,\n      pipeline_state.PipelineState.PIPELINE_STATE_FAILED:\n\
+          \          execution.Execution.State.FAILED,\n      pipeline_state.PipelineState.PIPELINE_STATE_PAUSED:\n\
+          \          execution.Execution.State.RUNNING,\n      pipeline_state.PipelineState.PIPELINE_STATE_RUNNING:\n\
+          \          execution.Execution.State.RUNNING,\n      pipeline_state.PipelineState.PIPELINE_STATE_SUCCEEDED:\n\
+          \          execution.Execution.State.COMPLETE\n  }\n\n  aiplatform.init(\n\
+          \      project=project, location=location, experiment=experiment_name)\n\
+          \n  random_string = uuid.uuid4().hex[-4:]\n  job_id = f'{model_comparison_job_name}-{random_string}-{model_name}'\n\
+          \  job = aiplatform.PipelineJob(\n      job_id=job_id,\n      display_name=job_id,\n\
+          \      pipeline_root=os.path.join(pipeline_root, job_id),\n      **job_params,\n\
+          \  )\n  experiment_run = aiplatform.ExperimentRun.create(\n      job_id,\n\
+          \      experiment=experiment_name)\n\n  try:\n    job.submit(\n        service_account=service_account\
+          \ or None,\n        network=network or None)\n    job.wait()\n  except RuntimeError\
+          \ as err:\n    # job.wait() raises a RuntimeError if the job fails. We log\
+          \ the failure\n    # and continue with updating the ExperimentRun accordingly.\n\
+          \    logging.warning('Job with ID %s failed: %s', job_id, err)\n\n  experiment_run.log(pipeline_job=job)\n\
+          \  experiment_run.log_metrics({\n      'duration':\n          datetime.timedelta(\n\
+          \              seconds=int(job.gca_resource.end_time.timestamp() -\n   \
+          \                       job.gca_resource.start_time.timestamp())).__str__(),\n\
+          \  })\n  experiment_run.update_state(\n      state=states_map.get(job.state,\n\
+          \                           execution.Execution.State.STATE_UNSPECIFIED))\n\
+          \  job_metrics = aiplatform.Artifact.list(\n      filter=metadata_utils._make_filter_string(\
+          \  # pylint: disable=protected-access\n          in_context=[job._get_context().resource_name],\
+          \  # pylint: disable=protected-access\n          schema_title=[\n      \
+          \        metadata_constants.SYSTEM_METRICS,\n              metadata_constants.GOOGLE_CLASSIFICATION_METRICS,\n\
+          \              metadata_constants.GOOGLE_REGRESSION_METRICS,\n         \
+          \     metadata_constants.GOOGLE_FORECASTING_METRICS,\n          ],\n   \
+          \   ))\n\n  for metric in job_metrics:\n    experiment_run.log_metrics(metric.metadata)\n\
+          \n"
+        image: python:3.8-slim
+    exec-validate-inputs:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_inputs
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_inputs(\n    project: str,\n    location: str,\n   \
+          \ prediction_type: str,\n    training_jobs: Dict[str, Dict[str, Any]],\n\
+          \    data_source_csv_filenames: Optional[str] = None,\n    data_source_bigquery_table_path:\
+          \ Optional[str] = None,\n    evaluation_data_source_csv_filenames: Optional[str]\
+          \ = None,\n    evaluation_data_source_bigquery_table_path: Optional[str]\
+          \ = None,\n) -> None:\n  \"\"\"Checks training pipeline input parameters\
+          \ are valid.\"\"\"\n\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  bq_prefix = r'(bq\\:\\/\\/)?'\n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
+          \  location_pattern = r'[a-zA-Z0-9-_]+'\n  dataset_pattern = r'\\.[a-zA-Z0-9_]+'\n\
+          \  table_pattern = r'\\.[^\\.\\:`]+'\n  gcs_csv_pattern = r'gs:\\/\\/(.+)\\\
+          /([^\\/]+)([a-zA-Z0-9_]+)\\.csv'\n  resource_pattern = r'[a-z0-9][a-z0-9-]{0,127}'\n\
+          \n  supported_prediction_types = [\n      'regression',\n      'classification',\n\
+          \      'forecasting',\n  ]\n\n  # Validate project id.\n  project_id_pattern\
+          \ = re.compile(project_pattern)\n  if not project_id_pattern.fullmatch(project):\n\
+          \    raise ValueError(f'Invalid project id: {project}.')\n\n  # Validate\
+          \ location.\n  if not re.compile(location_pattern).fullmatch(location):\n\
+          \    raise ValueError(f'Invalid location: {location}.')\n\n  # Validate\
+          \ problem type.\n  if prediction_type.lower() not in supported_prediction_types:\n\
+          \    raise ValueError(\n        f'Invalid prediction type provided: {prediction_type}.\
+          \ Must be one of '\n        f'the following: {supported_prediction_types}.')\n\
+          \n  # Validate training jobs.\n  first_model = True\n  predefined_split_key\
+          \ = None\n  timestamp_split_key = None\n  training_fraction = None\n  validation_fraction\
+          \ = None\n  window_column = None\n  window_stride_length = None\n  window_max_count\
+          \ = None\n\n  # training_jobs is a mapping of model names to job parameters.\n\
+          \  for model_name, job_params in training_jobs.items():\n    # Verify that\
+          \ model_name matches the VertexAI resource name regex. This is\n    # needed\
+          \ because we use it when constructing job ids for sub-pipelines.\n    if\
+          \ not re.compile(resource_pattern).fullmatch(model_name):\n      raise ValueError(\n\
+          \          f'Invalid model name: {model_name}. Name does not match regex\
+          \ '\n          f'pattern of {resource_pattern}')\n\n    # Verify that template_path\
+          \ exists and it points to a json file.\n    if 'template_path' not in job_params:\n\
+          \      raise ValueError(\n          f'Invalid training job provided: {job_params}.\
+          \ No template_path '\n          'present in training job parameters.')\n\
+          \n    template_path = job_params['template_path']\n    if not isinstance(template_path,\
+          \ str):\n      raise ValueError(\n          f'Invalid training job provided:\
+          \ {job_params}. Expecting '\n          f'template_path to be string, got\
+          \ {type(template_path)}')\n\n    if not template_path.endswith(('.json',\
+          \ '.yaml', '.yml')):\n      raise ValueError(\n          f'Invalid training\
+          \ job provided: {job_params}. Expecting '\n          f'template_path to\
+          \ point to a json file, got {template_path}')\n\n    # Verify that parameter_values\
+          \ field exists in training job.\n    if 'parameter_values' not in job_params:\n\
+          \      raise ValueError(\n          f'Invalid training job provided: {job_params}.\
+          \ No parameter_values '\n          f'field provided.')\n\n    parameter_values\
+          \ = job_params['parameter_values']\n    if not isinstance(parameter_values,\
+          \ dict):\n      raise ValueError(\n          f'Invalid training job provided:\
+          \ {job_params}. Expecting '\n          f'parameter_values to be dictionary,\
+          \ got {type(parameter_values)}')\n\n    # Verify that no data_source is\
+          \ specified in parameter_values.\n    if 'data_source' in parameter_values\
+          \ and parameter_values[\n        'data_source'] is not None:\n      raise\
+          \ ValueError(\n          f'Invalid training job provided: {job_params}.\
+          \ No data_source is '\n          f'allowed under parameter_values field.')\n\
+          \n    # Verify that project matches the project value in pipeline.\n   \
+          \ if 'project' in parameter_values:\n      if parameter_values['project']\
+          \ != project:\n        raise ValueError(\n            f'Invalid training\
+          \ job provided: {job_params}. Project '\n            f'value {job_params[\"\
+          project\"]} does not match project value in '\n            f'the model comparison\
+          \ pipeline - {project}.')\n\n    # Verify that location matches the location\
+          \ value in pipeline.\n    if 'location' in parameter_values:\n      if parameter_values['location']\
+          \ != location:\n        raise ValueError(\n            f'Invalid training\
+          \ job provided: {job_params}. Location '\n            f'value {job_params[\"\
+          location\"]} does not match location value in '\n            f'the model\
+          \ comparison pipeline - {location}.')\n\n    # Verify that split_spec and\
+          \ window config are the same across all models.\n    if 'predefined_split_key'\
+          \ in parameter_values:\n      if first_model:\n        predefined_split_key\
+          \ = parameter_values['predefined_split_key']\n      elif predefined_split_key\
+          \ != parameter_values['predefined_split_key']:\n        raise ValueError(\n\
+          \            f'Expecting the same predefined_split_key '\n            f'value\
+          \ {predefined_split_key}, '\n            f'got {parameter_values[\"predefined_split_key\"\
+          ]}')\n\n    if 'timestamp_split_key' in parameter_values:\n      if first_model:\n\
+          \        timestamp_split_key = parameter_values['timestamp_split_key']\n\
+          \      elif timestamp_split_key != parameter_values['timestamp_split_key']:\n\
+          \        raise ValueError(\n            f'Expecting the same timestamp_split_key\
+          \ '\n            f'value {timestamp_split_key}, '\n            f'got {parameter_values[\"\
+          timestamp_split_key\"]}')\n\n    if 'training_fraction' in parameter_values:\n\
+          \      if first_model:\n        training_fraction = parameter_values['training_fraction']\n\
+          \      elif training_fraction != parameter_values['training_fraction']:\n\
+          \        raise ValueError(\n            f'Expecting the same training_fraction\
+          \ value {training_fraction}, '\n            f'got {parameter_values[\"training_fraction\"\
+          ]}')\n\n    if 'validation_fraction' in parameter_values:\n      if first_model:\n\
+          \        validation_fraction = parameter_values['validation_fraction']\n\
+          \      elif validation_fraction != parameter_values['validation_fraction']:\n\
+          \        raise ValueError(\n            'Expecting the same validation_fraction\
+          \ '\n            f'value {validation_fraction}, '\n            f'got {parameter_values[\"\
+          validation_fraction\"]}')\n\n    if 'window_column' in parameter_values:\n\
+          \      if first_model:\n        window_column = parameter_values['window_column']\n\
+          \      elif window_column != parameter_values['window_column']:\n      \
+          \  raise ValueError(\n            f'Expecting the same window_column value\
+          \ {window_column}, '\n            f'got {parameter_values[\"window_column\"\
+          ]}')\n\n    if 'window_stride_length' in parameter_values:\n      if first_model:\n\
+          \        window_stride_length = parameter_values['window_stride_length']\n\
+          \      elif window_stride_length != parameter_values['window_stride_length']:\n\
+          \        raise ValueError(\n            'Expecting the same window_stride_length\
+          \ value '\n            f'{window_stride_length}, '\n            f'got {parameter_values[\"\
+          window_stride_length\"]}')\n\n    if 'window_max_count' in parameter_values:\n\
+          \      if first_model:\n        window_max_count = parameter_values['window_max_count']\n\
+          \      elif window_max_count != parameter_values['window_max_count']:\n\
+          \        raise ValueError(\n            f'Expecting the same window_max_count\
+          \ value {window_max_count}, '\n            f'got {parameter_values[\"window_max_count\"\
+          ]}')\n\n    first_model = False\n\n  if data_source_csv_filenames and data_source_bigquery_table_path:\n\
+          \    raise ValueError(\n        'Both CSV data source and BigQuery data\
+          \ source are provided. '\n        'Only one data source allowed.')\n\n \
+          \ # Validate CSV paths from GCS.\n  if data_source_csv_filenames:\n    gcs_path_pattern\
+          \ = re.compile(gcs_csv_pattern)\n    for gcs_csv in data_source_csv_filenames.split(','):\n\
+          \      if not gcs_path_pattern.fullmatch(gcs_csv.strip()):\n        raise\
+          \ ValueError(\n            f'Invalid GCS CSV file path: {gcs_csv}. Path\
+          \ does not match regex '\n            f'pattern of {gcs_csv_pattern}')\n\
+          \n  # Validate bigquery table path.\n  if data_source_bigquery_table_path:\n\
+          \    table_uri_pattern = re.compile(bq_prefix + project_pattern +\n    \
+          \                               dataset_pattern + table_pattern)\n    if\
+          \ not table_uri_pattern.fullmatch(data_source_bigquery_table_path):\n  \
+          \    raise ValueError(\n          f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
+          \n  # Validate evaluation datasets.\n  evaluation_data_sources = [\n   \
+          \   evaluation_data_source_csv_filenames,\n      evaluation_data_source_bigquery_table_path\n\
+          \  ]\n  if all(evaluation_data_sources) or not any(evaluation_data_sources):\n\
+          \    raise ValueError(\n        'Wrong number of evaluation data sources\
+          \ provided: must provide '\n        'exactly one of evaluation_data_source_csv_filenames\
+          \ and '\n        'evaluation_data_source_bigquery_table_path. Evaluation\
+          \ '\n        f'csv {evaluation_data_source_csv_filenames}, evaluation '\n\
+          \        f'bq {evaluation_data_source_bigquery_table_path}.')\n\n  if (data_source_csv_filenames\
+          \ and evaluation_data_source_bigquery_table_path\n     ) or (data_source_bigquery_table_path\
+          \ and\n           evaluation_data_source_csv_filenames):\n    raise ValueError(\n\
+          \        'Cannot support mismatch input types. Two input sources need to\
+          \ be the '\n        'same type.')\n\n"
+        image: python:3.8-slim
+pipelineInfo:
+  name: model-comparison
+root:
+  dag:
+    tasks:
+      bigquery-delete-dataset-with-prefix:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-bigquery-delete-dataset-with-prefix
+        dependentTasks:
+        - exit-handler-1
+        inputs:
+          parameters:
+            dataset_prefix:
+              runtimeValue:
+                constant: model_comparison_tmp_{{$.pipeline_job_uuid}}
+            delete_contents:
+              runtimeValue:
+                constant: 1.0
+            project:
+              componentInputParameter: project
+        taskInfo:
+          name: delete-tmp-dataset
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
+      exit-handler-1:
+        componentRef:
+          name: comp-exit-handler-1
+        inputs:
+          parameters:
+            pipelinechannel--data_source_bigquery_table_path:
+              componentInputParameter: data_source_bigquery_table_path
+            pipelinechannel--data_source_csv_filenames:
+              componentInputParameter: data_source_csv_filenames
+            pipelinechannel--evaluation_data_source_bigquery_table_path:
+              componentInputParameter: evaluation_data_source_bigquery_table_path
+            pipelinechannel--evaluation_data_source_csv_filenames:
+              componentInputParameter: evaluation_data_source_csv_filenames
+            pipelinechannel--experiment:
+              componentInputParameter: experiment
+            pipelinechannel--location:
+              componentInputParameter: location
+            pipelinechannel--network:
+              componentInputParameter: network
+            pipelinechannel--prediction_type:
+              componentInputParameter: prediction_type
+            pipelinechannel--project:
+              componentInputParameter: project
+            pipelinechannel--root_dir:
+              componentInputParameter: root_dir
+            pipelinechannel--service_account:
+              componentInputParameter: service_account
+            pipelinechannel--training_jobs:
+              componentInputParameter: training_jobs
+        taskInfo:
+          name: exit-handler-1
+  inputDefinitions:
+    parameters:
+      data_source_bigquery_table_path:
+        parameterType: STRING
+      data_source_csv_filenames:
+        parameterType: STRING
+      evaluation_data_source_bigquery_table_path:
+        parameterType: STRING
+      evaluation_data_source_csv_filenames:
+        parameterType: STRING
+      experiment:
+        parameterType: STRING
+      location:
+        parameterType: STRING
+      network:
+        parameterType: STRING
+      prediction_type:
+        parameterType: STRING
+      project:
+        parameterType: STRING
+      root_dir:
+        parameterType: STRING
+      service_account:
+        parameterType: STRING
+      training_jobs:
+        parameterType: STRUCT
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

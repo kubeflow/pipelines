@@ -33,10 +33,11 @@ import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
 import { logger } from '../lib/Utils';
-import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
 import { InputAdornment } from '@material-ui/core';
 import { CustomTableRow } from './CustomTableRow';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { ApiFilter, PredicateOp } from 'src/apis/filter';
 
 export enum ExpandState {
   COLLAPSED,
@@ -190,6 +191,7 @@ interface CustomTableProps {
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
   initialFilterString?: string;
+  isCalledByV1?: boolean;
   setFilterString?: (filterString: string) => void;
   noFilterBox?: boolean;
   reload: (request: ListRequest) => Promise<string>;
@@ -227,9 +229,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.state = {
       currentPage: 0,
       filterString: this.props.initialFilterString || '',
-      filterStringEncoded: this.props.initialFilterString
-        ? this._createAndEncodeFilter(this.props.initialFilterString)
-        : '',
+      filterStringEncoded:
+        this.props.initialFilterString && this.props.isCalledByV1
+          ? this._createAndEncodeFilterV1(this.props.initialFilterString)
+          : this.props.initialFilterString
+          ? this._createAndEncodeFilterV2(this.props.initialFilterString)
+          : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
@@ -521,18 +526,37 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   // Exposed for testing
   protected async _requestFilter(filterString?: string): Promise<void> {
-    const filterStringEncoded = filterString ? this._createAndEncodeFilter(filterString) : '';
+    const filterStringEncoded =
+      filterString && this.props.isCalledByV1
+        ? this._createAndEncodeFilterV1(filterString)
+        : filterString
+        ? this._createAndEncodeFilterV2(filterString)
+        : '';
     this.setStateSafe({ filterStringEncoded });
     this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
   }
 
-  private _createAndEncodeFilter(filterString: string): string {
+  private _createAndEncodeFilterV1(filterString: string): string {
     const filter: ApiFilter = {
       predicates: [
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
           op: PredicateOp.ISSUBSTRING,
+          string_value: filterString,
+        },
+      ],
+    };
+    return encodeURIComponent(JSON.stringify(filter));
+  }
+
+  private _createAndEncodeFilterV2(filterString: string): string {
+    const filter: V2beta1Filter = {
+      predicates: [
+        {
+          // TODO: remove this hardcoding once more sophisticated filtering is supported
+          key: 'name',
+          operation: V2beta1PredicateOperation.ISSUBSTRING,
           string_value: filterString,
         },
       ],

@@ -12,15 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import logging
 
-import google.auth
-import google.auth.transport.requests
 from google_cloud_pipeline_components.container.v1.bigquery.utils import bigquery_util
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
-from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-import requests
 
 
 def bigquery_query_job(
@@ -62,6 +55,12 @@ def bigquery_query_job(
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input: A json serialized pipeline executor input.
   """
-  return bigquery_util.bigquery_query_job(type, project, location, payload,
-                                          job_configuration_query_override,
-                                          gcp_resources, executor_input)
+  return bigquery_util.bigquery_query_job(
+      type,
+      project,
+      location,
+      payload,
+      job_configuration_query_override,
+      gcp_resources,
+      executor_input,
+  )

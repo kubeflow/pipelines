@@ -88,7 +88,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
-            "tooltip": "Archive",
+            "tooltip": "Archive selected run(s)",
           },
           "cloneRun": Object {
             "action": [Function],
@@ -162,7 +162,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {
@@ -352,7 +352,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
-            "tooltip": "Archive",
+            "tooltip": "Archive selected run(s)",
           },
           "cloneRun": Object {
             "action": [Function],
@@ -426,7 +426,7 @@ exports[`ExperimentDetails removes all description text after second newline and
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {
@@ -603,7 +603,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
-            "tooltip": "Archive",
+            "tooltip": "Archive selected run(s)",
           },
           "cloneRun": Object {
             "action": [Function],
@@ -677,7 +677,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {
@@ -852,7 +852,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
-            "tooltip": "Archive",
+            "tooltip": "Archive selected run(s)",
           },
           "cloneRun": Object {
             "action": [Function],
@@ -926,7 +926,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
       onTabSwitch={[Function]}
       refreshCount={1}
       selectedIds={Array []}
-      storageState="STORAGESTATE_AVAILABLE"
+      storageState="AVAILABLE"
       toolbarProps={
         Object {
           "actions": Object {

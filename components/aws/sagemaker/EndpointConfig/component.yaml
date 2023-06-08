@@ -1,0 +1,92 @@
+name: "Sagemaker - EndpointConfig"
+description: Create EndpointConfig
+inputs:
+  - {
+      name: region,
+      type: String,
+      description: "The region to use for the training job",
+    }
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: async_inference_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Specifies configuration for how an endpoint performs asynchronous inference.",
+    }
+  - {
+      name: data_capture_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Configuration to control how SageMaker captures inference data.",
+    }
+  - {
+      name: endpoint_config_name,
+      type: String,
+      default: '',
+      description: "The name of the endpoint configuration.",
+    }
+  - {
+      name: kms_key_id,
+      type: String,
+      default: '',
+      description: "The Amazon Resource Name (ARN) of a Amazon Web Services Key Management Service key that SageMaker uses to encrypt data on the storage volume attached to the ML compute instance that hosts the endpoint.",
+    }
+  - {
+      name: production_variants,
+      type: JsonArray,
+      default: '[]',
+      description: "An array of ProductionVariant objects, one for each model that you want to host at this endpoint.",
+    }
+  - {
+      name: tags,
+      type: JsonArray,
+      default: '[]',
+      description: "An array of key-value pairs.",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+outputs:
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: ack_resource_metadata,
+      type: JsonObject,
+      description: "All CRs managed by ACK have a common `Status.",
+    }
+  - {
+      name: conditions,
+      type: JsonArray,
+      description: "All CRS managed by ACK have a common `Status.",
+    }
+  - {
+      name: sagemaker_resource_name,
+      type: String,
+      description: "Resource name on Sagemaker",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+implementation:
+  container:
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.3.0
+    command: [python3]
+    args:
+      - EndpointConfig/src/EndpointConfig_component.py
+      - --region
+      - { inputValue: region }
+      ###########################GENERATED SECTION BELOW############################
+      - --async_inference_config
+      - { inputValue: async_inference_config }
+      - --data_capture_config
+      - { inputValue: data_capture_config }
+      - --endpoint_config_name
+      - { inputValue: endpoint_config_name }
+      - --kms_key_id
+      - { inputValue: kms_key_id }
+      - --production_variants
+      - { inputValue: production_variants }
+      - --tags
+      - { inputValue: tags }
+      
+      ###########################GENERATED SECTION ABOVE############################
+

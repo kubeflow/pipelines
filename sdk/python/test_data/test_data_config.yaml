@@ -165,6 +165,9 @@ pipelines:
     - module: pipeline_with_task_using_ignore_upstream_failure
       name: my_pipeline
       execute: false
+    - module: pipeline_with_metadata_fields
+      name: dataset_concatenator
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true
@@ -224,6 +227,11 @@ components:
       execute: false
     - module: container_with_placeholder_in_fstring
       name: container_with_placeholder_in_fstring
+      execute: false
+    - module: component_with_metadata_fields
+      name: dataset_joiner
+    - module: component_with_task_final_status
+      name: exit_comp
       execute: false
 v1_components:
   test_data_dir: sdk/python/test_data/v1_component_yaml

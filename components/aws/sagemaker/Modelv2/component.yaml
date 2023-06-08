@@ -1,0 +1,108 @@
+name: "Sagemaker - Model"
+description: Create Model
+inputs:
+  - {
+      name: region,
+      type: String,
+      description: "The region to use for the training job",
+    }
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: containers,
+      type: JsonArray,
+      default: '[]',
+      description: "Specifies the containers in the inference pipeline.",
+    }
+  - {
+      name: enable_network_isolation,
+      type: Bool,
+      default: False,
+      description: "Isolates the model container.",
+    }
+  - {
+      name: execution_role_arn,
+      type: String,
+      default: '',
+      description: "The Amazon Resource Name (ARN) of the IAM role that SageMaker can assume to access model artifacts and docker image for deployment on ML compute instances or for batch transform jobs.",
+    }
+  - {
+      name: inference_execution_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Specifies details of how containers in a multi-container endpoint are called.",
+    }
+  - {
+      name: model_name,
+      type: String,
+      default: '',
+      description: "The name of the new model.",
+    }
+  - {
+      name: primary_container,
+      type: JsonObject,
+      default: '{}',
+      description: "The location of the primary docker image containing inference code, associated artifacts, and custom environment map that the inference code uses when the model is deployed for predictions.",
+    }
+  - {
+      name: tags,
+      type: JsonArray,
+      default: '[]',
+      description: "An array of key-value pairs.",
+    }
+  - {
+      name: vpc_config,
+      type: JsonObject,
+      default: '{}',
+      description: "A VpcConfig object that specifies the VPC that you want your model to connect to.",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+outputs:
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: ack_resource_metadata,
+      type: JsonObject,
+      description: "All CRs managed by ACK have a common `Status.",
+    }
+  - {
+      name: conditions,
+      type: JsonArray,
+      description: "All CRS managed by ACK have a common `Status.",
+    }
+  - {
+      name: sagemaker_resource_name,
+      type: String,
+      description: "Resource name on Sagemaker",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+implementation:
+  container:
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.3.0
+    command: [python3]
+    args:
+      - Modelv2/src/Model_component.py
+      - --region
+      - { inputValue: region }
+      ###########################GENERATED SECTION BELOW############################
+      - --containers
+      - { inputValue: containers }
+      - --enable_network_isolation
+      - { inputValue: enable_network_isolation }
+      - --execution_role_arn
+      - { inputValue: execution_role_arn }
+      - --inference_execution_config
+      - { inputValue: inference_execution_config }
+      - --model_name
+      - { inputValue: model_name }
+      - --primary_container
+      - { inputValue: primary_container }
+      - --tags
+      - { inputValue: tags }
+      - --vpc_config
+      - { inputValue: vpc_config }
+      
+      ###########################GENERATED SECTION ABOVE############################
+

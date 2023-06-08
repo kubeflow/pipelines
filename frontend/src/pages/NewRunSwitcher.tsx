@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
+import * as JsYaml from 'js-yaml';
 import { useQuery } from 'react-query';
 import { QUERY_PARAMS } from 'src/components/Router';
-import { isFeatureEnabled, FeatureKey } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { URLParser } from 'src/lib/URLParser';
@@ -9,10 +9,10 @@ import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRunDetail } from 'src/apis/run';
-import { ApiExperiment } from 'src/apis/experiment';
-import { ApiJob } from 'src/apis/job';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -25,24 +25,28 @@ function NewRunSwitcher(props: PageProps) {
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
   const originalRecurringRunId = urlParser.get(QUERY_PARAMS.cloneFromRecurringRun);
-  const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
+  const [pipelineIdFromPipeline, setPipelineIdFromPipeline] = useState(
+    urlParser.get(QUERY_PARAMS.pipelineId),
+  );
   const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
   const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
     urlParser.get(QUERY_PARAMS.pipelineVersionId),
   );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
+  let pipelineIdFromRunOrRecurringRun;
+  let pipelineVersionIdFromRunOrRecurringRun;
 
-  // Retrieve run details
-  const { isSuccess: getRunSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
-    ApiRunDetail,
+  // Retrieve v2 run details
+  const { isSuccess: getV2RunSuccess, isFetching: v2RunIsFetching, data: v2Run } = useQuery<
+    V2beta1Run,
     Error
   >(
-    ['ApiRun', existingRunId],
+    ['v2_run_details', existingRunId],
     () => {
       if (!existingRunId) {
         throw new Error('Run ID is missing');
       }
-      return Apis.runServiceApi.getRun(existingRunId);
+      return Apis.runServiceApiV2.getRun(existingRunId);
     },
     { enabled: !!existingRunId, staleTime: Infinity },
   );
@@ -51,128 +55,122 @@ function NewRunSwitcher(props: PageProps) {
   const {
     isSuccess: getRecurringRunSuccess,
     isFetching: recurringRunIsFetching,
-    data: apiRecurringRun,
-  } = useQuery<ApiJob, Error>(
-    ['ApiRecurringRun', originalRecurringRunId],
+    data: recurringRun,
+  } = useQuery<V2beta1RecurringRun, Error>(
+    ['recurringRun', originalRecurringRunId],
     () => {
       if (!originalRecurringRunId) {
         throw new Error('Recurring Run ID is missing');
       }
-      return Apis.jobServiceApi.getJob(originalRecurringRunId);
+      return Apis.recurringRunServiceApi.getRecurringRun(originalRecurringRunId);
     },
     { enabled: !!originalRecurringRunId, staleTime: Infinity },
   );
 
-  if (apiRun !== undefined && apiRecurringRun !== undefined) {
+  if (v2Run !== undefined && recurringRun !== undefined) {
     throw new Error('The existence of run and recurring run should be exclusive.');
   }
 
-  // template string from cloned object
-  let pipelineManifest = apiRun?.run?.pipeline_spec?.pipeline_manifest;
-  if (getRecurringRunSuccess && apiRecurringRun) {
-    pipelineManifest = apiRecurringRun.pipeline_spec?.pipeline_manifest;
+  pipelineIdFromRunOrRecurringRun =
+    v2Run?.pipeline_version_reference?.pipeline_id ||
+    recurringRun?.pipeline_version_reference?.pipeline_id;
+  pipelineVersionIdFromRunOrRecurringRun =
+    v2Run?.pipeline_version_reference?.pipeline_version_id ||
+    recurringRun?.pipeline_version_reference?.pipeline_version_id;
+
+  // template string from cloned run / recurring run created by pipeline_spec
+  let pipelineManifest: string | undefined;
+  if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
+    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
   }
 
-  const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
-    ['ApiPipeline', pipelineId],
+  if (getRecurringRunSuccess && recurringRun && recurringRun.pipeline_spec) {
+    pipelineManifest = JsYaml.safeDump(recurringRun.pipeline_spec);
+  }
+
+  const { isFetching: pipelineIsFetching, data: pipeline } = useQuery<V2beta1Pipeline, Error>(
+    ['pipeline', pipelineIdFromPipeline],
     () => {
-      if (!pipelineId) {
+      if (!pipelineIdFromPipeline) {
         throw new Error('Pipeline ID is missing');
       }
-      return Apis.pipelineServiceApi.getPipeline(pipelineId);
+      return Apis.pipelineServiceApiV2.getPipeline(pipelineIdFromPipeline);
     },
-    { enabled: !!pipelineId, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!pipelineIdFromPipeline, staleTime: Infinity, cacheTime: 0 },
   );
 
-  const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
-    ApiPipelineVersion,
+  const pipelineId = pipelineIdFromPipeline || pipelineIdFromRunOrRecurringRun;
+  const pipelineVersionId = pipelineVersionIdParam || pipelineVersionIdFromRunOrRecurringRun;
+
+  const { isFetching: pipelineVersionIsFetching, data: pipelineVersion } = useQuery<
+    V2beta1PipelineVersion,
     Error
   >(
-    ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
+    ['pipelineVersion', pipelineVersionIdParam],
     () => {
-      const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
-      if (!pipelineVersionId) {
-        throw new Error('Pipeline Version ID is missing');
+      if (!(pipelineId && pipelineVersionId)) {
+        throw new Error('Pipeline id or pipeline Version ID is missing');
       }
-      return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
+      return Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, pipelineVersionId);
     },
-    { enabled: !!apiPipeline, staleTime: Infinity, cacheTime: Infinity },
+    { enabled: !!pipelineId && !!pipelineVersionId, staleTime: Infinity, cacheTime: 0 },
   );
 
-  const {
-    isSuccess: isTemplatePullSuccessFromPipeline,
-    isFetching: pipelineTemplateStrIsFetching,
-    data: templateStrFromPipelineId,
-  } = useQuery<string, Error>(
-    ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
-    async () => {
-      const pipelineVersionId = apiPipelineVersion?.id;
-      if (!pipelineVersionId) {
-        return '';
-      }
-      const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
-      return template?.template || '';
-    },
-    { enabled: !!apiPipelineVersion, staleTime: Infinity, cacheTime: Infinity },
-  );
+  const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
+  const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
 
-  const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
+  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['experiment', experimentId],
     async () => {
       if (!experimentId) {
         throw new Error('Experiment ID is missing');
       }
-      return Apis.experimentServiceApi.getExperiment(experimentId);
+      return Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  const templateString = pipelineManifest ? pipelineManifest : templateStrFromPipelineId;
+  // Two possible sources for template string
+  // 1. pipelineManifest: pipeline_spec stored in run or recurring run created by SDK
+  // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
+  const templateString = pipelineManifest ?? templateStrFromSpec;
 
-  if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if (
-      (getRunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) &&
-      isTemplateV2(templateString || '')
-    ) {
-      return (
-        <NewRunV2
-          {...props}
-          namespace={namespace}
-          existingRunId={existingRunId}
-          apiRun={apiRun}
-          originalRecurringRunId={originalRecurringRunId}
-          apiRecurringRun={apiRecurringRun}
-          existingPipeline={apiPipeline}
-          handlePipelineIdChange={setPipelineId}
-          existingPipelineVersion={apiPipelineVersion}
-          handlePipelineVersionIdChange={setPipelineVersionIdParam}
-          templateString={templateString}
-          chosenExperiment={apiExperiment}
-        />
-      );
-    }
-  }
-
-  // Use experiment ID to create new run
-  // Currently use NewRunV1 as default
-  // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
   if (
-    runIsFetching ||
+    v2RunIsFetching ||
     recurringRunIsFetching ||
     pipelineIsFetching ||
-    pipelineVersionIsFetching ||
-    pipelineTemplateStrIsFetching
+    pipelineVersionIsFetching
   ) {
     return <div>Currently loading pipeline information</div>;
   }
+
+  if (templateString && !isTemplateV2(templateString)) {
+    return (
+      <NewRun
+        {...props}
+        namespace={namespace}
+        existingPipelineId={pipelineIdFromPipeline}
+        handlePipelineIdChange={setPipelineIdFromPipeline}
+        existingPipelineVersionId={pipelineVersionIdParam}
+        handlePipelineVersionIdChange={setPipelineVersionIdParam}
+      />
+    );
+  }
+
   return (
-    <NewRun
+    <NewRunV2
       {...props}
       namespace={namespace}
-      existingPipelineId={pipelineId}
-      handlePipelineIdChange={setPipelineId}
-      existingPipelineVersionId={pipelineVersionIdParam}
+      existingRunId={existingRunId}
+      existingRun={v2Run}
+      existingRecurringRunId={originalRecurringRunId}
+      existingRecurringRun={recurringRun}
+      existingPipeline={pipeline}
+      handlePipelineIdChange={setPipelineIdFromPipeline}
+      existingPipelineVersion={pipelineVersion}
       handlePipelineVersionIdChange={setPipelineVersionIdParam}
+      templateString={templateString}
+      chosenExperiment={experiment}
     />
   );
 }

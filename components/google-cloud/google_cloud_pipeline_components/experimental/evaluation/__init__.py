@@ -11,17 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Model Evaluation components."""
+"""Model evaluation components."""
 
-import os
-
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.evaluation.classification.component import model_evaluation_classification as ModelEvaluationClassificationOp
+from google_cloud_pipeline_components.experimental.evaluation.data_bias.component import detect_data_bias as DetectDataBiasOp
+from google_cloud_pipeline_components.experimental.evaluation.data_sampler.component import evaluation_data_sampler as EvaluationDataSamplerOp
+from google_cloud_pipeline_components.experimental.evaluation.feature_attribution.component import feature_attribution as ModelEvaluationFeatureAttributionOp
+from google_cloud_pipeline_components.experimental.evaluation.forecasting.component import model_evaluation_forecasting as ModelEvaluationForecastingOp
+from google_cloud_pipeline_components.experimental.evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
+from google_cloud_pipeline_components.experimental.evaluation.model_bias.component import detect_model_bias as DetectModelBiasOp
+from google_cloud_pipeline_components.experimental.evaluation.regression.component import model_evaluation_regression as ModelEvaluationRegressionOp
+from google_cloud_pipeline_components.experimental.evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
 
 __all__ = [
-    'ModelEvaluationOp',
     'ModelImportEvaluationOp',
     'EvaluationDataSamplerOp',
     'TargetFieldDataRemoverOp',
@@ -29,45 +31,6 @@ __all__ = [
     'ModelEvaluationRegressionOp',
     'ModelEvaluationForecastingOp',
     'ModelEvaluationFeatureAttributionOp',
-    'GetVertexModelOp',
+    'DetectModelBiasOp',
+    'DetectDataBiasOp',
 ]
-
-ModelEvaluationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'component.yaml')
-)
-
-ModelImportEvaluationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'import_evaluation/component.yaml')
-)
-
-EvaluationDataSamplerOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'data_sampler/component.yaml')
-)
-
-TargetFieldDataRemoverOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'target_field_data_remover/component.yaml'
-    )
-)
-
-ModelEvaluationClassificationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'classification/component.yaml')
-)
-
-ModelEvaluationRegressionOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'regression/component.yaml')
-)
-
-ModelEvaluationForecastingOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'forecasting/component.yaml')
-)
-
-ModelEvaluationFeatureAttributionOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'feature_attribution/component.yaml'
-    )
-)
-
-GetVertexModelOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'get_vertex_model.yaml')
-)

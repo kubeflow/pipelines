@@ -15,6 +15,8 @@
 package server
 
 import (
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -23,6 +25,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
 )
 
 func TestValidateExperimentResourceReference(t *testing.T) {
@@ -103,7 +108,7 @@ func TestValidateExperimentResourceReference_UnexpectedRelationship(t *testing.T
 
 func TestValidateExperimentResourceReference_ExperimentNotExist(t *testing.T) {
 	clients := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clients, "default")
+	manager := resource.NewResourceManager(clients)
 	defer clients.Close()
 	err := ValidateExperimentResourceReference(manager, validReference)
 	assert.NotNil(t, err)
@@ -178,7 +183,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *t
 
 func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipelineVersionId(t *testing.T) {
 	clients := initWithExperimentsAndTwoPipelineVersions(t)
-	manager := resource.NewResourceManager(clients, "default")
+	manager := resource.NewResourceManager(clients)
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
 		PipelineId: NonDefaultFakeUUID,
@@ -369,4 +374,102 @@ func TestValidateRunMetric_InvalidNodeIDs(t *testing.T) {
 	metric.NodeID = string(make([]byte, 129))
 	err = validateRunMetric(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
+}
+
+func loadYaml(t *testing.T, path string) string {
+	res, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Error(err)
+	}
+	return string(res)
+}
+
+// Tests both yamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+func TestPipelineSpecStructToYamlString_DirectSpec(t *testing.T) {
+	template := loadYaml(t, "test/pipeline_with_volume.yaml")
+
+	var pipeline structpb.Struct
+
+	splitTemplate := strings.Split(template, "\n---\n")
+	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
+	protojson.Unmarshal(pipelineSpecJson, &pipeline)
+
+	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
+	assert.Nil(t, err)
+
+	actualPipeline, err := yamlStringToPipelineSpecStruct(actualTemplate)
+	assert.Nil(t, err)
+
+	// Compare the marshalled JSON due to flakiness of structpb values
+	// See https://github.com/stretchr/testify/issues/758
+	j1, _ := pipeline.MarshalJSON()
+	j2, _ := actualPipeline.MarshalJSON()
+	assert.Equal(t, j1, j2)
+}
+
+// Tests both yamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+func TestPipelineSpecStructToYamlString_WithPlatform(t *testing.T) {
+	template := loadYaml(t, "test/pipeline_with_volume.yaml")
+
+	var pipelineSpec structpb.Struct
+	var platformSpec structpb.Struct
+
+	splitTemplate := strings.Split(template, "\n---\n")
+	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
+	protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+
+	platformSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[1]))
+	protojson.Unmarshal(platformSpecJson, &platformSpec)
+
+	pipelineSpecValue := structpb.NewStructValue(&pipelineSpec)
+	platformSpecValue := structpb.NewStructValue(&platformSpec)
+
+	pipeline := structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"pipeline_spec": pipelineSpecValue,
+			"platform_spec": platformSpecValue,
+		},
+	}
+	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
+	assert.Nil(t, err)
+
+	actualPipeline, err := yamlStringToPipelineSpecStruct(actualTemplate)
+	assert.Nil(t, err)
+
+	// Compare the marshalled JSON due to flakiness of structpb values
+	// See https://github.com/stretchr/testify/issues/758
+	j1, _ := pipeline.MarshalJSON()
+	j2, _ := actualPipeline.MarshalJSON()
+	assert.Equal(t, j1, j2)
+}
+
+// Tests both yamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+// In this case although the received pipeline spec is nested, because platform spec is empty,
+// we return the pipeline spec directly.
+func TestPipelineSpecStructToYamlString_NestedPipelineSpec(t *testing.T) {
+	template := loadYaml(t, "test/pipeline_with_volume.yaml")
+
+	var pipelineSpec structpb.Struct
+
+	splitTemplate := strings.Split(template, "\n---\n")
+	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
+	protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+	pipelineSpecValue := structpb.NewStructValue(&pipelineSpec)
+
+	pipeline := structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"pipeline_spec": pipelineSpecValue,
+		},
+	}
+	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
+	assert.Nil(t, err)
+
+	actualPipeline, err := yamlStringToPipelineSpecStruct(actualTemplate)
+	assert.Nil(t, err)
+
+	// Compare the marshalled JSON due to flakiness of structpb values
+	// See https://github.com/stretchr/testify/issues/758
+	j1, _ := pipelineSpec.MarshalJSON()
+	j2, _ := actualPipeline.MarshalJSON()
+	assert.Equal(t, j1, j2)
 }

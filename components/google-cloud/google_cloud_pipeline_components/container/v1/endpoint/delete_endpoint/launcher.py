@@ -13,11 +13,10 @@
 # limitations under the License.
 """GCP launcher for Delete Endpoint based on the AI Platform SDK."""
 
-import argparse
 import logging
 import sys
 
-from . import remote_runner
+from google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
 
 

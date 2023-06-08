@@ -12,56 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
+
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
-from kfp.dsl import Artifact
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
+from kfp import dsl
 from kfp.dsl import Input
 from kfp.dsl import Output
 
 
-@container_component
+@dsl.container_component
 def time_series_dataset_export(
     project: str,
     dataset: Input[VertexDataset],
     output_dir: str,
-    exported_dataset: Output[Artifact],
-    location: str = 'us-central1',
+    exported_dataset: Output[VertexDataset],
+    location: Optional[str] = 'us-central1',
 ):
+  # fmt: off
   """Exports data to output dir to GCS.
 
   Args:
-      dataset (google.VertexDataset):
-        Required. The managed time series
-        dataset resource to be exported.
-      output_dir (String):
-        Required. The Google Cloud Storage location
-        where the output is to be written to. In the given directory a new
-        directory will be created with name:
-        ``export-data-<dataset-display-name>-<timestamp-of-export-call>``
-        where timestamp is in YYYYMMDDHHMMSS format. All export output
-        will be written into that directory. Inside that directory,
-        annotations with the same schema will be grouped into sub
-        directories which are named with the corresponding annotations'
-        schema title. Inside these sub directories, a schema.yaml will be
-        created to describe the output format. If the uri doesn't end with
-        '/', a '/' will be automatically appended. The directory is
-        created if it doesn't exist.
-      project (String):
-        Required. project to retrieve dataset from.
-      location (String):
-        Optional location to retrieve dataset from.
+      output_dir: The Google Cloud Storage location where the output is to
+          be written to. In the given directory a new directory will be
+          created with name:
+          ``export-data-<dataset-display-name>-<timestamp-of-export-call>``
+          where timestamp is in YYYYMMDDHHMMSS format. All export
+          output will be written into that directory. Inside that
+          directory, annotations with the same schema will be grouped
+          into sub directories which are named with the corresponding
+          annotations' schema title. Inside these sub directories, a
+          schema.yaml will be created to describe the output format.
+          If the uri doesn't end with '/', a '/' will be automatically
+          appended. The directory is created if it doesn't exist.
+      project: project to retrieve dataset from.
+      location: Optional location to retrieve dataset from.
 
   Returns:
-      exported_dataset (Sequence[str]):
-          All of the files that are exported in this export operation.
+      exported_files: All of the files that are exported in this export operation.
   """
-  return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+  # fmt: on
+
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'TimeSeriesDataset',
           '--method_name',
@@ -69,7 +66,7 @@ def time_series_dataset_export(
       ],
       args=[
           '--init.dataset_name',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           '--init.project',
           project,
           '--init.location',

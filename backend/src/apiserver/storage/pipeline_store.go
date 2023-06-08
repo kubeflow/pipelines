@@ -20,7 +20,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -85,6 +84,7 @@ type PipelineStoreInterface interface {
 	// This supports v1beta1 behavior.
 	GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error)
 	ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error)
+	CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error)
 
 	// `pipelines`
 	CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error)
@@ -194,10 +194,16 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 // total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
 // This supports v1beta1 behavior.
 func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
+	subQuery := sq.Select("t1.pvid, t1.pid").FromSelect(
+		sq.Select("UUID AS pvid, PipelineId AS pid, ROW_NUMBER () OVER (PARTITION BY PipelineId ORDER BY CreatedAtInSec DESC) rn").
+			From("pipeline_versions"), "t1").
+		Where(sq.Or{sq.Eq{"rn": 1}, sq.Eq{"rn": nil}})
+
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
-			LeftJoin("pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId") // this results in total_size reflecting the number of pipeline_versions
-		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
+			JoinClause(subQuery.Prefix("LEFT JOIN (").Suffix(") t2 ON pipelines.UUID = t2.pid")).
+			LeftJoin("pipeline_versions ON t2.pvid = pipeline_versions.UUID")
+		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			query = query.Where(
 				sq.Eq{
 					"pipelines.Namespace": filterContext.ReferenceKey.ID,
@@ -258,7 +264,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
 	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	totalSize, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of counting pipelines")
@@ -274,11 +280,11 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 
 	// Split results on multiple pages, if needed
 	if len(pipelines) <= opts.PageSize {
-		return pipelines, pipelineVersions, total_size, "", nil
+		return pipelines, pipelineVersions, totalSize, "", nil
 	}
 	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
 	// npt2, err2 := opts.NextPageToken(pipelineVersions[opts.PageSize])
-	return pipelines[:opts.PageSize], pipelineVersions[:opts.PageSize], total_size, npt, err
+	return pipelines[:opts.PageSize], pipelineVersions[:opts.PageSize], totalSize, npt, err
 }
 
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
@@ -287,7 +293,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines")
-		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
+		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			query = query.Where(
 				sq.Eq{
 					"pipelines.Namespace": filterContext.ReferenceKey.ID,
@@ -428,7 +434,6 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 				PipelineSpecURI: pipelineSpecURI.String,
 			},
 		)
-		// }
 	}
 	return pipelines, pipelineVersions, nil
 }
@@ -511,6 +516,102 @@ func (s *PipelineStore) DeletePipeline(id string) error {
 		return util.NewInternalServerError(err, "Failed to create query to delete a pipeline with id %v", id)
 	}
 	return s.ExecuteSQL(sql, args, "delete", "pipeline")
+}
+
+// Creates a pipeline and a pipeline version in a single transaction.
+func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
+	newPipeline := *p
+	newPipelineVersion := *pv
+
+	// Set creation time
+	newPipeline.CreatedAtInSec = s.time.Now().Unix()
+	newPipelineVersion.CreatedAtInSec = s.time.Now().Unix()
+
+	// Set ids
+	pID, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create a pipeline UUID")
+	}
+	pvID, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create a pipeline version UUID")
+	}
+	newPipeline.UUID = pID.String()
+	newPipelineVersion.UUID = pvID.String()
+	newPipelineVersion.PipelineId = newPipeline.UUID
+
+	// Set temporal status. This needs to be updated in a follow-up call.
+	newPipeline.Status = model.PipelineCreating
+	newPipelineVersion.Status = model.PipelineVersionCreating
+
+	// Create queries for the KFP DB
+	pipelineSql, pipelineArgs, err := sq.
+		Insert("pipelines").
+		SetMap(
+			sq.Eq{
+				"UUID":           newPipeline.UUID,
+				"CreatedAtInSec": newPipeline.CreatedAtInSec,
+				"Name":           newPipeline.Name,
+				"Description":    newPipeline.Description,
+				"Status":         string(newPipeline.Status),
+				"Namespace":      newPipeline.Namespace,
+				// Parameters and DefaultVersionId are deprecated and set to empty string
+				"DefaultVersionId": "",
+				"Parameters":       "",
+			},
+		).
+		ToSql()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create query to insert a pipeline")
+	}
+	versionSql, versionArgs, err := sq.
+		Insert("pipeline_versions").
+		SetMap(
+			sq.Eq{
+				"UUID":            newPipelineVersion.UUID,
+				"CreatedAtInSec":  newPipelineVersion.CreatedAtInSec,
+				"Name":            newPipelineVersion.Name,
+				"Parameters":      newPipelineVersion.Parameters,
+				"PipelineId":      newPipelineVersion.PipelineId,
+				"Status":          string(newPipelineVersion.Status),
+				"CodeSourceUrl":   newPipelineVersion.CodeSourceUrl,
+				"Description":     newPipelineVersion.Description,
+				"PipelineSpec":    newPipelineVersion.PipelineSpec,
+				"PipelineSpecURI": newPipelineVersion.PipelineSpecURI,
+			},
+		).
+		ToSql()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to create query to insert a pipeline version")
+	}
+
+	// Insert into pipelines table
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to start a transaction to create a new pipeline and a new pipeline version")
+	}
+
+	_, err = tx.Exec(pipelineSql, pipelineArgs...)
+	if err != nil {
+		if s.db.IsDuplicateError(err) {
+			tx.Rollback()
+			return nil, nil, util.NewAlreadyExistError(
+				"Failed to create a new pipeline. The name %v already exists. Please specify a new name", p.Name)
+		}
+		tx.Rollback()
+		return nil, nil, util.NewInternalServerError(err, "Failed to insert a new pipeline")
+	}
+
+	_, err = tx.Exec(versionSql, versionArgs...)
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, util.NewInternalServerError(err, "Failed to insert a new pipeline version")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to update pipelines and pipeline_versions in a transaction")
+	}
+	return &newPipeline, &newPipelineVersion, nil
 }
 
 // Inserts a record into `pipelines` table.

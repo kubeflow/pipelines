@@ -13,14 +13,8 @@
 # limitations under the License.
 
 import json
-import logging
 
-import google.auth
-import google.auth.transport.requests
 from google_cloud_pipeline_components.container.v1.bigquery.utils import bigquery_util
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
-from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-import requests
 
 
 def bigquery_ml_global_explain_job(
@@ -60,12 +54,19 @@ def bigquery_ml_global_explain_job(
       https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
   """
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
+      job_configuration_query_override, strict=False
+  )
   job_configuration_query_override_json['query'] = (
       'SELECT * FROM ML.GLOBAL_EXPLAIN(MODEL %s, STRUCT(TRUE AS '
-      'class_level_explain))') % (
-          bigquery_util.back_quoted_if_needed(model_name))
+      'class_level_explain))'
+      % (bigquery_util.back_quoted_if_needed(model_name))
+  )
   return bigquery_util.bigquery_query_job(
-      type, project, location, payload,
-      json.dumps(job_configuration_query_override_json), gcp_resources,
-      executor_input)
+      type,
+      project,
+      location,
+      payload,
+      json.dumps(job_configuration_query_override_json),
+      gcp_resources,
+      executor_input,
+  )

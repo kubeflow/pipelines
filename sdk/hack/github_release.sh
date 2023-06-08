@@ -22,7 +22,8 @@
 
 set -ex
 
-TAG_NAME=$1
+# Prefix tag name with `sdk-` to distinguish from runtime releases 
+TAG_NAME="sdk-$1"
 TARGET_HASH=$(git rev-parse HEAD)
 
 # substrings indicating pre-release status

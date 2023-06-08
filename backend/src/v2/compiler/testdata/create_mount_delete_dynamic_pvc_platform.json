@@ -1,0 +1,32 @@
+{
+    "platforms": {
+      "kubernetes": {
+        "deploymentSpec": {
+          "executors": {
+            "exec-comp": {
+              "pvcMount": [
+                {
+                  "mountPath": "/data",
+                  "taskOutputParameter": {
+                    "outputParameterKey": "name",
+                    "producerTask": "createpvc"
+                  }
+                }
+              ]
+            },
+            "exec-comp-2": {
+              "pvcMount": [
+                {
+                  "mountPath": "/reused_data",
+                  "taskOutputParameter": {
+                    "outputParameterKey": "name",
+                    "producerTask": "createpvc"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }

@@ -99,6 +99,7 @@ describe('deploy helloworld sample run', () => {
       reverse: true,
     });
 
+    await browser.keys('Tab');
     await browser.keys(runName);
 
     await browser.keys('Tab');
@@ -229,7 +230,6 @@ describe('deploy helloworld sample run', () => {
 
     await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
 
-    await browser.keys('Tab');
     await browser.keys(runWithoutExperimentName);
 
     await browser.keys('Tab');

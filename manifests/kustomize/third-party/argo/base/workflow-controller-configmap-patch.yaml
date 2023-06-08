@@ -4,9 +4,9 @@ metadata:
   name: workflow-controller-configmap
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.10/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.10/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.10/docs/workflow-controller-configmap.yaml
 
   # emissary executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
   containerRuntimeExecutor: emissary
@@ -39,10 +39,3 @@ data:
         key: secretkey
   executor: |
     imagePullPolicy: IfNotPresent
-    resources:
-      requests:
-        cpu: 0.01
-        memory: 32Mi
-      limits:
-        cpu: 0.5
-        memory: 512Mi

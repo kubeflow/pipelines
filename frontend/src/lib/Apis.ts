@@ -13,19 +13,27 @@
 // limitations under the License.
 
 import * as portableFetch from 'portable-fetch';
-import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
-import { ExperimentServiceApi as ExperimentServiceApiV2 } from '../apisv2beta1/experiment';
-import { JobServiceApi } from '../apis/job';
-import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from '../apis/pipeline';
-import { RunServiceApi } from '../apis/run';
-import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { PlotType } from '../components/viewers/Viewer';
+import { ExperimentServiceApi, FetchAPI } from 'src/apis/experiment';
+import { ExperimentServiceApi as ExperimentServiceApiV2 } from 'src/apisv2beta1/experiment';
+import { JobServiceApi } from 'src/apis/job';
+import { RecurringRunServiceApi } from 'src/apisv2beta1/recurringrun';
+import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from 'src/apis/pipeline';
+import {
+  V2beta1Pipeline,
+  V2beta1PipelineVersion,
+  PipelineServiceApi as PipelineServiceApiV2,
+} from 'src/apisv2beta1/pipeline';
+import { RunServiceApi as RunServiceApiV1 } from 'src/apis/run';
+import { RunServiceApi as RunServiceApiV2 } from 'src/apisv2beta1/run';
+import { ApiVisualization, VisualizationServiceApi } from 'src/apis/visualization';
+import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { PlotType } from 'src/components/viewers/Viewer';
 import * as Utils from './Utils';
 import { buildQuery } from './Utils';
 import { StoragePath, StorageService } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
+const v2beta1Prefix = 'apis/v2beta1';
 
 export interface ListRequest {
   filter?: string;
@@ -173,6 +181,17 @@ export class Apis {
     return this._jobServiceApi;
   }
 
+  public static get recurringRunServiceApi(): RecurringRunServiceApi {
+    if (!this._recurringRunServiceApi) {
+      this._recurringRunServiceApi = new RecurringRunServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
+    }
+    return this._recurringRunServiceApi;
+  }
+
   public static get pipelineServiceApi(): PipelineServiceApi {
     if (!this._pipelineServiceApi) {
       this._pipelineServiceApi = new PipelineServiceApi(
@@ -184,15 +203,37 @@ export class Apis {
     return this._pipelineServiceApi;
   }
 
-  public static get runServiceApi(): RunServiceApi {
-    if (!this._runServiceApi) {
-      this._runServiceApi = new RunServiceApi(
+  public static get pipelineServiceApiV2(): PipelineServiceApiV2 {
+    if (!this._pipelineServiceApiV2) {
+      this._pipelineServiceApiV2 = new PipelineServiceApiV2(
         { basePath: this.basePath },
         undefined,
         crossBrowserFetch,
       );
     }
-    return this._runServiceApi;
+    return this._pipelineServiceApiV2;
+  }
+
+  public static get runServiceApi(): RunServiceApiV1 {
+    if (!this._runServiceApiV1) {
+      this._runServiceApiV1 = new RunServiceApiV1(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
+    }
+    return this._runServiceApiV1;
+  }
+
+  public static get runServiceApiV2(): RunServiceApiV2 {
+    if (!this._runServiceApiV2) {
+      this._runServiceApiV2 = new RunServiceApiV2(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
+    }
+    return this._runServiceApiV2;
   }
 
   public static get visualizationServiceApi(): VisualizationServiceApi {
@@ -379,6 +420,50 @@ export class Apis {
     );
   }
 
+  public static async uploadPipelineV2(
+    pipelineName: string,
+    pipelineDescription: string,
+    pipelineData: File,
+    namespace?: string,
+  ): Promise<V2beta1Pipeline> {
+    const fd = new FormData();
+    fd.append('uploadfile', pipelineData, pipelineData.name);
+    let query = `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+      pipelineDescription,
+    )}`;
+
+    if (namespace) {
+      query = `${query}&namespace=${encodeURIComponent(namespace)}`;
+    }
+
+    return await this._fetchAndParse<V2beta1Pipeline>('/pipelines/upload', v2beta1Prefix, query, {
+      body: fd,
+      cache: 'no-cache',
+      method: 'POST',
+    });
+  }
+
+  public static async uploadPipelineVersionV2(
+    versionName: string,
+    pipelineId: string,
+    versionData: File,
+    description?: string,
+  ): Promise<V2beta1PipelineVersion> {
+    const fd = new FormData();
+    fd.append('uploadfile', versionData, versionData.name);
+    return await this._fetchAndParse<V2beta1PipelineVersion>(
+      '/pipelines/upload_version',
+      v2beta1Prefix,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+        (description ? `&description=${encodeURIComponent(description)}` : ''),
+      {
+        body: fd,
+        cache: 'no-cache',
+        method: 'POST',
+      },
+    );
+  }
+
   /*
    * Retrieves the name of the Kubernetes cluster if it is running in GKE, otherwise returns an error.
    */
@@ -396,8 +481,11 @@ export class Apis {
   private static _experimentServiceApi?: ExperimentServiceApi;
   private static _experimentServiceApiV2?: ExperimentServiceApiV2;
   private static _jobServiceApi?: JobServiceApi;
+  private static _recurringRunServiceApi?: RecurringRunServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;
-  private static _runServiceApi?: RunServiceApi;
+  private static _pipelineServiceApiV2?: PipelineServiceApiV2;
+  private static _runServiceApiV1?: RunServiceApiV1;
+  private static _runServiceApiV2?: RunServiceApiV2;
   private static _visualizationServiceApi?: VisualizationServiceApi;
 
   /**

@@ -302,7 +302,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			CreatedAtInSec: createdAtInSec.Int64,
 			UpdatedAtInSec: updatedAtInSec.Int64,
 		}
-		job = job.ToV1().ToV2()
+		job = job.ToV2()
 		jobs = append(jobs, job)
 	}
 	return jobs, nil
@@ -369,7 +369,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"PipelineName":                   j.PipelineSpec.PipelineName,
 			"PipelineSpecManifest":           j.PipelineSpec.PipelineSpecManifest,
 			"WorkflowSpecManifest":           j.PipelineSpec.WorkflowSpecManifest,
-			"Parameters":                     j.Parameters,
+			"Parameters":                     j.PipelineSpec.Parameters,
 			"RuntimeParameters":              j.PipelineSpec.RuntimeConfig.Parameters,
 			"PipelineRoot":                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
 			"ExperimentUUID":                 j.ExperimentId,
@@ -434,8 +434,7 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	if err != nil {
 		return err
 	}
-
-	sql, args, err := sq.
+	updateSql := sq.
 		Update("jobs").
 		SetMap(sq.Eq{
 			"Name": swf.Name,
@@ -445,7 +444,6 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			"Conditions":                     model.StatusState(swf.ConditionSummary()).ToString(),
 			"MaxConcurrency":                 swf.MaxConcurrencyOr0(),
 			"NoCatchup":                      swf.NoCatchupOrFalse(),
-			"Parameters":                     parameters,
 			"UpdatedAtInSec":                 now,
 			"CronScheduleStartTimeInSec":     PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
 			"CronScheduleEndTimeInSec":       PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
@@ -453,9 +451,17 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
 			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
 			"IntervalSecond":                 swf.IntervalSecondOr0(),
-		}).
-		Where(sq.Eq{"UUID": string(swf.UID)}).
-		ToSql()
+		})
+	if len(parameters) > 0 {
+		if swf.GetVersion() == util.SWFv1 {
+			updateSql = updateSql.SetMap(sq.Eq{"Parameters": parameters})
+		} else if swf.GetVersion() == util.SWFv2 {
+			updateSql = updateSql.SetMap(sq.Eq{"RuntimeParameters": parameters})
+		} else {
+			return util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow has an invalid version: %v", swf.GetVersion()), "Failed to update job %v", swf.UID)
+		}
+	}
+	sql, args, err := updateSql.Where(sq.Eq{"UUID": string(swf.UID)}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Error while creating query to update job with scheduled workflow: %v: %+v",

@@ -442,6 +442,17 @@ IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
     'LIST': 'List',
     'STRUCT': 'Dict',
     'BOOLEAN': 'Boolean',
+    'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
+}
+
+IR_TYPE_TO_COMMENT_TYPE_STRING = {
+    'STRING': str.__name__,
+    'NUMBER_INTEGER': int.__name__,
+    'NUMBER_DOUBLE': float.__name__,
+    'LIST': list.__name__,
+    'STRUCT': dict.__name__,
+    'BOOLEAN': bool.__name__,
+    'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
 }
 
 IN_MEMORY_SPEC_TYPE_TO_IR_TYPE = {
@@ -465,10 +476,18 @@ def get_canonical_name_for_outer_generic(type_name: Any) -> str:
     Returns:
         str: The canonical type.
     """
-    if not isinstance(type_name, str) or not type_name.startswith('typing.'):
+    if not isinstance(type_name, str):
         return type_name
 
-    return type_name.lstrip('typing.').split('[')[0]
+    if type_name.startswith('typing.'):
+        type_name = type_name.lstrip('typing.')
+
+    if type_name.lower().startswith('list') or type_name.lower().startswith(
+            'dict'):
+        return type_name.split('[')[0]
+
+    else:
+        return type_name
 
 
 def create_bundled_artifact_type(schema_title: str,

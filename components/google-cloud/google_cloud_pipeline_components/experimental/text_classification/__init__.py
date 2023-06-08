@@ -11,18 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Text Classification components."""
+"""Experimental text classification component."""
 
-import os
+from google_cloud_pipeline_components.experimental.text_classification.train_tensorflow_model.component import train_tensorflow_text_classification_model as TextClassificationTrainingOp
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
-
-__all__ = [
-    'TextClassificationTrainingOp'
-]
-
-TextClassificationTrainingOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'train_tensorflow_model/component.yaml'))
+__all__ = ['TextClassificationTrainingOp']

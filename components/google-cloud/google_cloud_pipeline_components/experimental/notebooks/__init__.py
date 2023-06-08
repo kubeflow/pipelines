@@ -11,19 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Forecasting Components."""
+"""Experimental notebook component."""
 
-import os
-from typing import Optional
-
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.notebooks.executor.component import notebooks_executor as NotebooksExecutorOp
 
 __all__ = [
     'NotebooksExecutorOp',
 ]
-
-NotebooksExecutorOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'executor/component.yaml'))

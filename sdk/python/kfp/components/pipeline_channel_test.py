@@ -16,6 +16,7 @@
 import unittest
 
 from absl.testing import parameterized
+from kfp import dsl
 from kfp.components import pipeline_channel
 
 
@@ -153,6 +154,20 @@ class PipelineChannelTest(parameterized.TestCase):
         ]
         params = pipeline_channel.extract_pipeline_channels_from_any(payload)
         self.assertListEqual([p1, p2, p3], params)
+
+
+class TestCanAccessTask(unittest.TestCase):
+
+    def test(self):
+
+        @dsl.component
+        def comp() -> str:
+            return 'text'
+
+        @dsl.pipeline
+        def my_pipeline():
+            op1 = comp()
+            self.assertEqual(op1.output.task, op1)
 
 
 if __name__ == '__main__':

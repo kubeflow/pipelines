@@ -39,6 +39,7 @@ class V2beta1PipelineVersion(object):
         'description': 'str',
         'created_at': 'datetime',
         'package_url': 'V2beta1Url',
+        'code_source_url': 'str',
         'pipeline_spec': 'object',
         'error': 'GooglerpcStatus'
     }
@@ -50,11 +51,12 @@ class V2beta1PipelineVersion(object):
         'description': 'description',
         'created_at': 'created_at',
         'package_url': 'package_url',
+        'code_source_url': 'code_source_url',
         'pipeline_spec': 'pipeline_spec',
         'error': 'error'
     }
 
-    def __init__(self, pipeline_id=None, pipeline_version_id=None, display_name=None, description=None, created_at=None, package_url=None, pipeline_spec=None, error=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, pipeline_id=None, pipeline_version_id=None, display_name=None, description=None, created_at=None, package_url=None, code_source_url=None, pipeline_spec=None, error=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1PipelineVersion - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -66,6 +68,7 @@ class V2beta1PipelineVersion(object):
         self._description = None
         self._created_at = None
         self._package_url = None
+        self._code_source_url = None
         self._pipeline_spec = None
         self._error = None
         self.discriminator = None
@@ -82,6 +85,8 @@ class V2beta1PipelineVersion(object):
             self.created_at = created_at
         if package_url is not None:
             self.package_url = package_url
+        if code_source_url is not None:
+            self.code_source_url = code_source_url
         if pipeline_spec is not None:
             self.pipeline_spec = pipeline_spec
         if error is not None:
@@ -224,10 +229,33 @@ class V2beta1PipelineVersion(object):
         self._package_url = package_url
 
     @property
+    def code_source_url(self):
+        """Gets the code_source_url of this V2beta1PipelineVersion.  # noqa: E501
+
+        Input. Optional. The URL to the code source of the pipeline version. The code is usually the Python definition of the pipeline and potentially related the component definitions. This allows users to trace back to how the pipeline YAML was created.  # noqa: E501
+
+        :return: The code_source_url of this V2beta1PipelineVersion.  # noqa: E501
+        :rtype: str
+        """
+        return self._code_source_url
+
+    @code_source_url.setter
+    def code_source_url(self, code_source_url):
+        """Sets the code_source_url of this V2beta1PipelineVersion.
+
+        Input. Optional. The URL to the code source of the pipeline version. The code is usually the Python definition of the pipeline and potentially related the component definitions. This allows users to trace back to how the pipeline YAML was created.  # noqa: E501
+
+        :param code_source_url: The code_source_url of this V2beta1PipelineVersion.  # noqa: E501
+        :type code_source_url: str
+        """
+
+        self._code_source_url = code_source_url
+
+    @property
     def pipeline_spec(self):
         """Gets the pipeline_spec of this V2beta1PipelineVersion.  # noqa: E501
 
-        Required input field. Specifies the pipeline spec for the pipeline version.  # noqa: E501
+        Output. The pipeline spec for the pipeline version.  # noqa: E501
 
         :return: The pipeline_spec of this V2beta1PipelineVersion.  # noqa: E501
         :rtype: object
@@ -238,7 +266,7 @@ class V2beta1PipelineVersion(object):
     def pipeline_spec(self, pipeline_spec):
         """Sets the pipeline_spec of this V2beta1PipelineVersion.
 
-        Required input field. Specifies the pipeline spec for the pipeline version.  # noqa: E501
+        Output. The pipeline spec for the pipeline version.  # noqa: E501
 
         :param pipeline_spec: The pipeline_spec of this V2beta1PipelineVersion.  # noqa: E501
         :type pipeline_spec: object

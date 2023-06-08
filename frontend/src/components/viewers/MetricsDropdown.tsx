@@ -319,9 +319,9 @@ function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
 function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   const dropdownItems: DropdownItem[] = [];
   for (const runArtifact of filteredRunArtifacts) {
-    const runName = runArtifact.run.run?.name;
+    const runName = runArtifact.run.display_name;
     if (!runName) {
-      logDisplayNameWarning('run', runArtifact.run.run!.id!);
+      logDisplayNameWarning('run', runArtifact.run.run_id!);
       continue;
     }
 
@@ -342,7 +342,7 @@ function getLinkedArtifactFromSelectedItem(
   selectedItem: SelectedItem,
 ): LinkedArtifact | undefined {
   const filteredRunArtifact = filteredRunArtifacts.find(
-    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
+    runArtifact => runArtifact.run.display_name === selectedItem.itemName,
   );
 
   const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {

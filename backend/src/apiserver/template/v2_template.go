@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,10 +15,14 @@
 package template
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
+	"strings"
 
-	"github.com/ghodss/yaml"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -26,11 +30,14 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
+	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 type V2Spec struct {
-	spec *pipelinespec.PipelineSpec
+	spec         *pipelinespec.PipelineSpec
+	platformSpec *pipelinespec.PlatformSpec
 }
 
 // Converts modelJob to ScheduledWorkflow.
@@ -39,11 +46,11 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
+		return nil, util.NewInternalServerError(err, "Failed marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, util.Wrap(err, "Failed to parse pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
 
 	job.PipelineSpec = spec
@@ -53,8 +60,19 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		return nil, util.Wrap(err, "Failed to convert runtime config")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
+	if err = t.validatePipelineJobInputs(job); err != nil {
+		return nil, util.Wrap(err, "invalid pipeline job inputs")
+	}
 
-	obj, err := argocompiler.Compile(job, nil)
+	// Pick out Kubernetes platform configs
+	var kubernetesSpec *pipelinespec.SinglePlatformSpec
+	if t.platformSpec != nil {
+		if _, ok := t.platformSpec.Platforms["kubernetes"]; ok {
+			kubernetesSpec = t.platformSpec.Platforms["kubernetes"]
+		}
+	}
+
+	obj, err := argocompiler.Compile(job, kubernetesSpec, nil)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
 	}
@@ -63,7 +81,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	// runtime. i.e using ENV var
 	executionSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, obj)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "not Workflow struct")
+		return nil, util.NewInternalServerError(err, "error creating execution spec")
 	}
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {
@@ -76,16 +94,20 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-	parameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	parameters, err := stringMapToCRDParameters(modelJob.RuntimeConfig.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed")
+		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "converting model trigger to crd trigger failed")
 	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,
@@ -106,44 +128,106 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 }
 
 func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
-	var spec pipelinespec.PipelineSpec
-	templateJson, err := yaml.YAMLToJSON(template)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
-	}
-	err = protojson.Unmarshal(templateJson, &spec)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
-	}
-	if spec.GetPipelineInfo().GetName() == "" {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name is empty")
-	}
-	match, _ := regexp.MatchString("[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*", spec.GetPipelineInfo().GetName())
-	if !match {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name should consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character")
-	}
-	if spec.GetRoot() == nil {
-		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
-	}
+	var v2Spec V2Spec
+	decoder := goyaml.NewDecoder(bytes.NewReader(template))
+	for {
+		var value map[string]interface{}
 
-	return &V2Spec{spec: &spec}, nil
+		err := decoder.Decode(&value)
+		// Break at end of file
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if value == nil {
+			continue
+		}
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to decode yaml document: %s", err.Error()))
+		}
+		valueBytes, err := goyaml.Marshal(&value)
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to marshal this yaml document: %s", err.Error()))
+		}
+		if isPipelineSpec(value) {
+			// Pick out the yaml document with pipeline spec
+			if v2Spec.spec != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "multiple pipeline specs provided")
+			}
+			jsonData, err := json.Marshal(value)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
+			}
+			var spec pipelinespec.PipelineSpec
+			err = protojson.Unmarshal(jsonData, &spec)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
+			}
+			if spec.GetSchemaVersion() != SCHEMA_VERSION_2_1_0 {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("KFP only supports schema version 2.1.0, but the pipeline spec has version %s", spec.GetSchemaVersion()))
+			}
+			if spec.GetPipelineInfo().GetName() == "" {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name is empty")
+			}
+			match, _ := regexp.MatchString("[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*", spec.GetPipelineInfo().GetName())
+			if !match {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name should consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character")
+			}
+			if spec.GetRoot() == nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
+			}
+			v2Spec.spec = &spec
+		} else if IsPlatformSpecWithKubernetesConfig(valueBytes) {
+			// Pick out the yaml document with platform spec
+			if v2Spec.platformSpec != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, "multiple platform specs provided")
+			}
+			var platformSpec pipelinespec.PlatformSpec
+			platformSpecJson, err := yaml.YAMLToJSON(valueBytes)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, fmt.Sprintf("cannot convert platform specific configs to json format: %s", err.Error()))
+			}
+			err = protojson.Unmarshal(platformSpecJson, &platformSpec)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPlatformSpec, fmt.Sprintf("cannot unmarshal platform specific configs: %s", err.Error()))
+			}
+			v2Spec.platformSpec = &platformSpec
+		}
+	}
+	if v2Spec.spec == nil {
+		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "no pipeline spec is provided")
+	}
+	return &v2Spec, nil
 }
 
 func (t *V2Spec) Bytes() []byte {
 	if t == nil {
 		return nil
 	}
-	bytes, err := protojson.Marshal(t.spec)
+	bytesSpec, err := protojson.Marshal(t.spec)
 	if err != nil {
 		// this is unexpected, cannot convert proto message to JSON
 		return nil
 	}
-	bytesYAML, err := yaml.JSONToYAML(bytes)
+	bytes, err := yaml.JSONToYAML(bytesSpec)
 	if err != nil {
 		// this is unexpected, cannot convert JSON to YAML
 		return nil
 	}
-	return bytesYAML
+	if t.platformSpec != nil {
+		bytesExecutorConfig, err := protojson.Marshal(t.platformSpec)
+		if err != nil {
+			// this is unexpected, cannot convert proto message to JSON
+			return nil
+		}
+		bytesExecutorConfigYaml, err := yaml.JSONToYAML(bytesExecutorConfig)
+		if err != nil {
+			// this is unexpected, cannot convert JSON to YAML
+			return nil
+		}
+		bytes = append(bytes, []byte("\n---\n")...)
+		bytes = append(bytes, bytesExecutorConfigYaml...)
+	}
+	return bytes
 }
 
 func (t *V2Spec) IsV2() bool {
@@ -178,25 +262,36 @@ func (t *V2Spec) ParametersJSON() (string, error) {
 func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
+		return nil, util.NewInternalServerError(err, "Failed to marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, util.Wrap(err, "Failed to parse pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
 	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelRun.RuntimeConfig)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
+		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
-	obj, err := argocompiler.Compile(job, nil)
+	if err = t.validatePipelineJobInputs(job); err != nil {
+		return nil, util.Wrap(err, "invalid pipeline job inputs")
+	}
+	// Pick out Kubernetes platform configs
+	var kubernetesSpec *pipelinespec.SinglePlatformSpec
+	if t.platformSpec != nil {
+		if _, ok := t.platformSpec.Platforms["kubernetes"]; ok {
+			kubernetesSpec = t.platformSpec.Platforms["kubernetes"]
+		}
+	}
+
+	obj, err := argocompiler.Compile(job, kubernetesSpec, nil)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
 	}
 	executionSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, obj)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "not Workflow struct")
+		return nil, util.Wrap(err, "Error creating execution spec")
 	}
 	// Overwrite namespace from the run object
 	if modelRun.Namespace != "" {
@@ -216,4 +311,105 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	return executionSpec, nil
+}
+
+func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
+	var platformSpec pipelinespec.PlatformSpec
+	templateJson, err := yaml.YAMLToJSON(template)
+	if err != nil {
+		return false
+	}
+	err = protojson.Unmarshal(templateJson, &platformSpec)
+	if err != nil {
+		return false
+	}
+	_, ok := platformSpec.Platforms["kubernetes"]
+	return ok
+}
+
+func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error {
+	// If the pipeline requires no input, t.spec.GetRoot().GetInputDefinitions() will be nil,
+	// but we still need to verify that no extra parameters are provided.
+	requiredParams := make(map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec)
+	if t.spec.GetRoot().GetInputDefinitions() != nil {
+		requiredParams = t.spec.GetRoot().GetInputDefinitions().GetParameters()
+	}
+
+	runtimeConfig := job.GetRuntimeConfig()
+	if runtimeConfig == nil {
+		if len(requiredParams) != 0 {
+			requiredParamNames := make([]string, 0)
+			for name, _ := range requiredParams {
+				requiredParamNames = append(requiredParamNames, name)
+			}
+			return util.NewInvalidInputError(
+				"pipeline requiring input has no paramater(s) provided. Need parameter(s): %s",
+				strings.Join(requiredParamNames, ", "),
+			)
+		} else {
+			// both required parameters and inputs are empty
+			return nil
+		}
+	}
+
+	// Verify that required parameters are provided
+	for name, param := range requiredParams {
+		if input, ok := runtimeConfig.GetParameterValues()[name]; !ok {
+			// If the parameter is optional, or there is a default value, it's ok to not have a user input
+			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
+				return util.NewInvalidInputError("parameter %s is not optional, yet has neither default value "+
+					"nor user provided value", name)
+			}
+		} else {
+			// Verify the parameter type is correct
+			switch param.GetParameterType() {
+			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
+				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s has unspecified type", name))
+			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
+				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
+					return util.NewInvalidInputError("input parameter %s requires type double or integer, "+
+						"but the parameter value is not of number value type", name)
+				}
+			case pipelinespec.ParameterType_STRING:
+				if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
+					return util.NewInvalidInputError("input parameter %s requires type string, but the "+
+						"input parameter is not of string value type", name)
+				}
+			case pipelinespec.ParameterType_BOOLEAN:
+				if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
+					return util.NewInvalidInputError("input parameter %s requires type bool, but the input "+
+						"parameter is not of bool value type", name)
+				}
+			case pipelinespec.ParameterType_LIST:
+				if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
+					return util.NewInvalidInputError("input parameter %s requires type list, but the input "+
+						"parameter is not of list value type", name)
+				}
+			case pipelinespec.ParameterType_STRUCT:
+				if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
+					return util.NewInvalidInputError("input parameter %s requires type struct, but the input "+
+						"parameter is not of struct value type", name)
+				}
+			case pipelinespec.ParameterType_TASK_FINAL_STATUS:
+				return util.NewInvalidInputError("input parameter %s requires type TASK_FINAL_STATUS, which is "+
+					"invalid for root component", name)
+			default:
+				return util.NewInvalidInputError("input parameter %s requires type unknown", name)
+			}
+		}
+	}
+
+	// Verify that only required parameters are provided
+	extraParams := make([]string, 0)
+	for name, _ := range runtimeConfig.GetParameterValues() {
+		if _, ok := requiredParams[name]; !ok {
+			extraParams = append(extraParams, name)
+		}
+	}
+	if len(extraParams) > 0 {
+		return util.NewInvalidInputError("parameter(s) provided are not required by pipeline: %s",
+			strings.Join(extraParams, ", "))
+	}
+
+	return nil
 }

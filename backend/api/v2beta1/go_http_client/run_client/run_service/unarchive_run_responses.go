@@ -58,7 +58,7 @@ type UnarchiveRunOK struct {
 }
 
 func (o *UnarchiveRunOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive][%d] unarchiveRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] unarchiveRunOK  %+v", 200, o.Payload)
 }
 
 func (o *UnarchiveRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ func (o *UnarchiveRunDefault) Code() int {
 }
 
 func (o *UnarchiveRunDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive][%d] UnarchiveRun default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] UnarchiveRun default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *UnarchiveRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

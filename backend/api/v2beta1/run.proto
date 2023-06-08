@@ -64,7 +64,7 @@ service RunService {
   // If experiment ID is not specified, the run is created in the default experiment.
   rpc CreateRun(CreateRunRequest) returns (Run) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs"
+      post: "/apis/v2beta1/runs"
       body: "run"
     };
   }
@@ -72,20 +72,13 @@ service RunService {
   // Finds a specific run by ID.
   rpc GetRun(GetRunRequest) returns (Run) {
     option (google.api.http) = {
-      get: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}"
+      get: "/apis/v2beta1/runs/{run_id}"
     };
   }
 
   // Finds all runs in an experiment given by experiment ID. 
   // If experiment id is not specified, finds all runs across all experiments.
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
-    option (google.api.http) = {
-      get: "/apis/v2beta1/experiments/{experiment_id}/runs"
-    };
-  }
-
-  // Finds all runs in all experiments given optional namespace. 
-  rpc ListAllRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
       get: "/apis/v2beta1/runs"
     };
@@ -94,42 +87,42 @@ service RunService {
   // Archives a run in an experiment given by run ID and experiment ID.
   rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:archive"
+      post: "/apis/v2beta1/runs/{run_id}:archive"
     };
   }
 
   // Restores an archived run in an experiment given by run ID and experiment ID.
   rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive"
+      post: "/apis/v2beta1/runs/{run_id}:unarchive"
     };
   }
 
   // Deletes a run in an experiment given by run ID and experiment ID.
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      delete: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}"
+      delete: "/apis/v2beta1/runs/{run_id}"
     };
   }
 
   // Finds artifact data in a run.
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
-      get: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
+      get: "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
 
   // Terminates an active run.
   rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate"
+      post: "/apis/v2beta1/runs/{run_id}:terminate"
     };
   }
 
   // Re-initiates a failed or terminated run.
  rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
    option (google.api.http) = {
-     post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:retry"
+     post: "/apis/v2beta1/runs/{run_id}:retry"
     };
   }
 
@@ -169,10 +162,13 @@ message Run {
   // run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
     // ID of an existing pipeline version.
-    string pipeline_version_id = 6;
+    string pipeline_version_id = 6 [deprecated = true];
 
     // Pipeline spec.
     google.protobuf.Struct pipeline_spec = 7;
+
+    // Reference to a pipeline version containing pipeline_id and pipeline_version_id.
+    PipelineVersionReference pipeline_version_reference = 18;
   }
  
   // Required input. Runtime config of the run. 
@@ -209,6 +205,15 @@ message Run {
   // Output. A sequence of run statuses. This field keeps a record 
   // of state transitions.
   repeated RuntimeStatus state_history = 17;
+}
+
+// Reference to an existing pipeline version.
+message PipelineVersionReference {
+  // Input. Required. Unique ID of the parent pipeline.
+  string pipeline_id = 1;
+
+  // Input. Required. Unique ID of an existing pipeline version.
+  string pipeline_version_id = 2;
 }
 
 // Describes the runtime state of an entity.
@@ -370,7 +375,7 @@ message ArtifactList {
 
 message CreateRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // Run to be created.
   Run run = 2;
@@ -378,7 +383,7 @@ message CreateRunRequest {
 
 message GetRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be retrieved.
   string run_id = 2;
@@ -412,7 +417,7 @@ message ListRunsRequest {
 
 message TerminateRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be terminated.
   string run_id = 2;
@@ -431,7 +436,7 @@ message ListRunsResponse {
 
 message ArchiveRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be archived.
   string run_id = 2;
@@ -439,7 +444,7 @@ message ArchiveRunRequest {
 
 message UnarchiveRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be restored.
   string run_id = 2;
@@ -447,7 +452,7 @@ message UnarchiveRunRequest {
 
 message DeleteRunRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // The ID of the run to be deleted.
   string run_id = 2;
@@ -455,7 +460,7 @@ message DeleteRunRequest {
 
 message ReadArtifactRequest {
   // The ID of the parent experiment.
-  string experiment_id = 1;
+  string experiment_id = 1 [deprecated = true];
 
   // ID of the run.
   string run_id = 2;
@@ -474,7 +479,7 @@ message ReadArtifactResponse {
 
 message RetryRunRequest {
  // The ID of the parent experiment.
- string experiment_id = 1;
+ string experiment_id = 1 [deprecated = true];
 
  // The ID of the run to be retried.
  string run_id = 2;

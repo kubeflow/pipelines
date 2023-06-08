@@ -15,20 +15,20 @@
  */
 
 import * as React from 'react';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
-import DetailsTable from '../components/DetailsTable';
-import RunUtils from '../lib/RunUtils';
-import { ApiExperiment } from '../apis/experiment';
-import { ApiJob } from '../apis/job';
-import { Apis } from '../lib/Apis';
+import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import DetailsTable from 'src/components/DetailsTable';
+import RunUtils from 'src/lib/RunUtils';
+import { ApiExperiment } from 'src/apis/experiment';
+import { ApiJob } from 'src/apis/job';
+import { Apis } from 'src/lib/Apis';
 import { Page } from './Page';
-import { RoutePage, RouteParams } from '../components/Router';
-import { Breadcrumb, ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams } from 'src/components/Router';
+import { Breadcrumb, ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { KeyValue } from '../lib/StaticGraphParser';
-import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/Utils';
-import { triggerDisplayString } from '../lib/TriggerUtils';
+import { commonCss, padding } from 'src/Css';
+import { KeyValue } from 'src/lib/StaticGraphParser';
+import { formatDateString, enabledDisplayString, errorToMessage } from 'src/lib/Utils';
+import { triggerDisplayString } from 'src/lib/TriggerUtils';
 
 interface RecurringRunConfigState {
   run: ApiJob | null;

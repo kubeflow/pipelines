@@ -17,7 +17,7 @@ Implementation of KFP compiler that compiles KFP pipeline into Pipeline IR:
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import base_component
@@ -48,7 +48,7 @@ class Compiler:
 
     def compile(
         self,
-        pipeline_func: Union[Callable[..., Any], base_component.BaseComponent],
+        pipeline_func: base_component.BaseComponent,
         package_path: str,
         pipeline_name: Optional[str] = None,
         pipeline_parameters: Optional[Dict[str, Any]] = None,
@@ -81,4 +81,6 @@ class Compiler:
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec,
                 pipeline_description=pipeline_func.description,
-                package_path=package_path)
+                platform_spec=pipeline_func.platform_spec,
+                package_path=package_path,
+            )

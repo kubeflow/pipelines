@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# fmt: off
 """Module for supporting Google Vertex AI Hyperparameter Tuning Job Op."""
 
-from google.cloud.aiplatform_v1.types import study
-from kfp.v2 import dsl
+from kfp import dsl
 
 
 @dsl.component(
@@ -27,16 +27,17 @@ def GetTrialsOp(gcp_resources: str) -> list:
   """Retrieves the best trial from the trials.
 
   Args:
-      gcp_resources (str):
-        Proto tracking the hyperparameter tuning job.
+      gcp_resources: Proto tracking the hyperparameter tuning job.
 
   Returns:
       List of strings representing the intermediate JSON representation of the
       trials from the hyperparameter tuning job.
   """
-  from google.cloud import aiplatform
-  from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+  from google_cloud_pipeline_components.proto.gcp_resources_pb2 import \
+      GcpResources
+
   from google.protobuf.json_format import Parse
+  from google.cloud import aiplatform
   from google.cloud.aiplatform_v1.types import study
 
   api_endpoint_suffix = '-aiplatform.googleapis.com'
@@ -61,11 +62,9 @@ def GetBestTrialOp(trials: list, study_spec_metrics: list) -> str:
   """Retrieves the best trial from the trials.
 
   Args:
-      trials (list):
-        Required. List representing the intermediate
+      trials: List representing the intermediate
         JSON representation of the trials from the hyperparameter tuning job.
-      study_spec_metrics (list):
-        Required. List serialized from dictionary representing the metrics to optimize.
+      study_spec_metrics: List serialized from dictionary representing the metrics to optimize.
         The dictionary key is the metric_id, which is reported by your training
         job, and the dictionary value is the optimization goal of the metric
         ('minimize' or 'maximize'). example:
@@ -104,11 +103,9 @@ def GetBestHyperparametersOp(trials: list, study_spec_metrics: list) -> list:
   """Retrieves the best hyperparameters based on the trials.
 
   Args:
-      trials (list):
-        Required. List representing the intermediate
+      trials: List representing the intermediate
         JSON representation of the trials from the hyperparameter tuning job.
-      study_spec_metrics (list):
-        Required. List serialized from dictionary representing the metrics to optimize.
+      study_spec_metrics: List serialized from dictionary representing the metrics to optimize.
         The dictionary key is the metric_id, which is reported by your training
         job, and the dictionary value is the optimization goal of the metric
         ('minimize' or 'maximize'). example:
@@ -148,8 +145,7 @@ def GetHyperparametersOp(trial: str) -> list:
   """Retrieves the hyperparameters from the given trial.
 
   Args:
-      trial (str):
-        Required. The intermediate JSON representation of a
+      trial: The intermediate JSON representation of a
         hyperparameter tuning job trial.
 
   Returns:
@@ -172,17 +168,14 @@ def IsMetricBeyondThresholdOp(trial: str, study_spec_metrics: list,
   """Determines if the metric of the best trial beyond the threshold given.
 
   Args:
-      trial (str):
-        Required. The intermediate JSON representation of a
+      trial: The intermediate JSON representation of a
         hyperparameter tuning job trial.
-      study_spec_metrics (list):
-        Required. List serialized from dictionary representing the metrics to optimize.
+      study_spec_metrics: List serialized from dictionary representing the metrics to optimize.
         The dictionary key is the metric_id, which is reported by your training
         job, and the dictionary value is the optimization goal of the metric
         ('minimize' or 'maximize'). example:
         metrics = hyperparameter_tuning_job.serialize_metrics({'loss': 'minimize', 'accuracy': 'maximize'})
-      threshold (float):
-        Required. Threshold to compare metric against.
+      threshold: Threshold to compare metric against.
 
   Returns:
       "true" if metric is beyond the threshold, otherwise "false"
@@ -215,12 +208,10 @@ def GetWorkerPoolSpecsOp(best_hyperparameters: list,
   """Constructs worker_pool_specs based on the best hyperparameters.
 
   Args:
-      best_hyperparameters (list):
-        Required. List representing the intermediate
+      best_hyperparameters: List representing the intermediate
         JSON representation of the best hyperparameters from the
         hyperparameter tuning job.
-      worker_pool_specs (list):
-        Required. The spec of the worker pools
+      worker_pool_specs: The spec of the worker pools
         including machine type and Docker image. All worker pools except the
         first one are optional and can be skipped by providing an empty value.
 
@@ -228,7 +219,6 @@ def GetWorkerPoolSpecsOp(best_hyperparameters: list,
       List containing an intermediate JSON representation of the
       worker_pool_specs updated with the best hyperparameters as arguments
       in the container_spec.
-
   """
   from google.cloud.aiplatform_v1.types import study
 
@@ -241,57 +231,3 @@ def GetWorkerPoolSpecsOp(best_hyperparameters: list,
           f'--{p.parameter_id}={p.value}')
 
   return worker_pool_specs
-
-
-def serialize_parameters(parameters: dict) -> list:
-  """Serializes the hyperparameter tuning parameter spec to dictionary format.
-
-  Args:
-      parameters (Dict[str, hyperparameter_tuning._ParameterSpec]):
-        Dictionary representing parameters to optimize. The dictionary key is the
-        parameter_id, which is passed into your training job as a command line
-        key word argument, and the dictionary value is the parameter
-        specification of the metric. from google.cloud.aiplatform
-        import hyperparameter_tuning as hpt
-        parameters={
-            'decay': hpt.DoubleParameterSpec(min=1e-7, max=1, scale='linear'),
-            'learning_rate': hpt.DoubleParameterSpec(min=1e-7, max=1, scale='linear')
-            'batch_size': hpt.DiscreteParamterSpec(values=[4, 8, 16, 32, 64, 128], scale='linear') }
-        Supported parameter specifications can be found in aiplatform.hyperparameter_tuning.
-        These parameter specification are currently supported: DoubleParameterSpec, IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
-        Note: The to_dict function is used here instead of the to_json
-        function for compatibility with GAPIC.
-
-  Returns:
-      List containing an intermediate JSON representation of the parameter spec
-
-  """
-  return [
-      study.StudySpec.ParameterSpec.to_dict(
-          parameter._to_parameter_spec(parameter_id=parameter_id))
-      for parameter_id, parameter in parameters.items()
-  ]
-
-
-def serialize_metrics(metric_spec: dict) -> list:
-  """Serializes a metric spec to dictionary format.
-
-  Args:
-      metric_spec (Dict[str, str]):
-        Required. Dictionary representing metrics
-        to optimize. The dictionary key is the metric_id, which is reported by
-        your training job, and the dictionary value is the optimization goal of
-        the metric ('minimize' or 'maximize'). Example:
-        metrics = {'loss': 'minimize', 'accuracy': 'maximize'}
-
-  Returns:
-      List containing an intermediate JSON representation of the metric spec
-
-  """
-  return [
-      study.StudySpec.MetricSpec.to_dict(
-          study.StudySpec.MetricSpec({
-              'metric_id': metric_id,
-              'goal': goal.upper()
-          })) for metric_id, goal in metric_spec.items()
-  ]

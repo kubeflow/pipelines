@@ -17,8 +17,8 @@ import argparse
 import logging
 import sys
 
-from . import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
+from google_cloud_pipeline_components.container.v1.model.upload_model import remote_runner
 
 
 def _parse_args(args):
@@ -30,12 +30,11 @@ def _parse_args(args):
       type=str,
       # executor_input is only needed for components that emit output artifacts.
       required=True,
-      default=argparse.SUPPRESS)
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
-      '--parent_model_name',
-      dest='parent_model_name',
-      type=str,
-      default=None)
+      '--parent_model_name', dest='parent_model_name', type=str, default=None
+  )
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

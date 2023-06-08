@@ -11,53 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Model Evaluation Error Analysis components."""
+"""Model evaluation error analysis components."""
 
-import os
-
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.evaluation.error_analysis.dataset_preprocessor.component import dataset_preprocessor_error_analysis as EvaluationDatasetPreprocessorOp
+from google_cloud_pipeline_components.experimental.evaluation.error_analysis.evaluated_annotation.component import evaluated_annotation as EvaluatedAnnotationOp
+from google_cloud_pipeline_components.experimental.evaluation.error_analysis.import_evaluated_annotation.component import evaluated_annotation_import as ModelImportEvaluatedAnnotationOp
 
 __all__ = [
     'EvaluationDatasetPreprocessorOp',
     'EvaluatedAnnotationOp',
-    'FeatureExtractorOp',
-    'ErrorAnalysisAnnotationOp',
     'ModelImportEvaluatedAnnotationOp',
 ]
-
-EvaluationDatasetPreprocessorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'dataset_preprocessor/component.yaml',
-    )
-)
-
-EvaluatedAnnotationOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'evaluated_annotation/component.yaml',
-    )
-)
-
-FeatureExtractorOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'feature_extractor/component.yaml',
-    )
-)
-
-ErrorAnalysisAnnotationOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'error_analysis_annotation/component.yaml',
-    )
-)
-
-ModelImportEvaluatedAnnotationOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'import_evaluated_annotation/component.yaml'
-    )
-)

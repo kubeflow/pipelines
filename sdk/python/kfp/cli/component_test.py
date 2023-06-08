@@ -265,6 +265,24 @@ class Test(unittest.TestCase):
 
             '''))
 
+    def test_nested_module_imports(self):
+        module_two = 'two = 2'
+        _write_file('module_two.py', module_two)
+
+        module_one = 'from module_two import two\none = 1'
+        _write_file('module_one.py', module_one)
+
+        component = _make_component(
+            func_name='comp', target_image='custom-image')
+        component = 'from module_one import one\n' + component
+        _write_components('component.py', component)
+
+        result = self.runner.invoke(
+            self.cli,
+            ['build', str(self._working_dir)],
+        )
+        self.assertEqual(result.exit_code, 0)
+
     def test_emptry_requirements_txt_file_is_generated(self):
         component = _make_component(
             func_name='train', target_image='custom-image')
@@ -389,7 +407,13 @@ class Test(unittest.TestCase):
         )
         self.assertEqual(result.exit_code, 0)
 
-        self._docker_client.api.build.assert_called_once()
+        self._docker_client.api.build.assert_called_once_with(
+            path=mock.ANY,
+            dockerfile='Dockerfile',
+            tag=mock.ANY,
+            decode=True,
+            platform='linux/amd64',
+        )
         self._docker_client.images.push.assert_called_once_with(
             'custom-image', stream=True, decode=True)
 

@@ -1,6 +1,6 @@
 PipelineDefinition: resources/definition/trainingv2_pipeline.py
 TestName: ack-training-job
-Timeout: 1000
+Timeout: 1500
 ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
 Arguments:
   region: ((REGION))
@@ -22,7 +22,7 @@ Arguments:
       inputMode: File
   resource_config:
     instanceCount: 1
-    instanceType: ml.m4.xlarge
+    instanceType: ml.m5.xlarge
     volumeSizeInGB: 20
   stopping_condition:
     maxRuntimeInSeconds: 3600

@@ -11,18 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline SKLearn components."""
+"""Experimental scikit-learn component."""
 
-import os
+from google_cloud_pipeline_components.experimental.sklearn.train_test_split_jsonl.component import train_test_split_jsonl_with_sklearn as SklearnTrainTestSplitJsonlOp
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
-
-__all__ = [
-    'SklearnTrainTestSplitJsonlOp'
-]
-
-SklearnTrainTestSplitJsonlOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'train_test_split_jsonl/component.yaml'))
+__all__ = ['SklearnTrainTestSplitJsonlOp']

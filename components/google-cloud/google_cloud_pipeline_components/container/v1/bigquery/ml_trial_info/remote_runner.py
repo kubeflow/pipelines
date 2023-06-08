@@ -19,8 +19,6 @@ import google.auth
 import google.auth.transport.requests
 from google_cloud_pipeline_components.container.v1.bigquery.utils import bigquery_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
-from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-import requests
 
 
 def bigquery_ml_trial_info_job(
@@ -66,17 +64,24 @@ def bigquery_ml_trial_info_job(
       executor_input: A json serialized pipeline executor input.
   """
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.TRIAL_INFO(MODEL %s)' % (
-          bigquery_util.back_quoted_if_needed(model_name))
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.TRIAL_INFO(MODEL %s)'
+      % (bigquery_util.back_quoted_if_needed(model_name))
+  )
 
   creds, _ = google.auth.default()
   job_uri = bigquery_util.check_if_job_exists(gcp_resources)
   if job_uri is None:
     job_uri = bigquery_util.create_query_job(
-        project, location, payload,
-        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+        project,
+        location,
+        payload,
+        json.dumps(job_configuration_query_override_json),
+        creds,
+        gcp_resources,
+    )
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
@@ -86,12 +91,19 @@ def bigquery_ml_trial_info_job(
   # For ML Trial Info job, as the returned results only contains num_trials
   # rows, which should be very small. In this case we allow users to directly
   # get the result without writing into a BQ table.
-  query_results = bigquery_util.get_query_results(project, job_id, location,
-                                                  creds)
+  query_results = bigquery_util.get_query_results(
+      project, job_id, location, creds
+  )
   artifact_util.update_output_artifact(
-      executor_input, 'trial_info', '', {
-          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA],
-          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS:
-              query_results[bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS]
-      })
+      executor_input,
+      'trial_info',
+      '',
+      {
+          bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_SCHEMA
+          ],
+          bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS: query_results[
+              bigquery_util.ARTIFACT_PROPERTY_KEY_ROWS
+          ],
+      },
+  )

@@ -61,11 +61,6 @@ for the unarchive run operation typically these are written to a http.Request
 */
 type UnarchiveRunParams struct {
 
-	/*ExperimentID
-	  The ID of the parent experiment.
-
-	*/
-	ExperimentID string
 	/*RunID
 	  The ID of the run to be restored.
 
@@ -110,17 +105,6 @@ func (o *UnarchiveRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithExperimentID adds the experimentID to the unarchive run params
-func (o *UnarchiveRunParams) WithExperimentID(experimentID string) *UnarchiveRunParams {
-	o.SetExperimentID(experimentID)
-	return o
-}
-
-// SetExperimentID adds the experimentId to the unarchive run params
-func (o *UnarchiveRunParams) SetExperimentID(experimentID string) {
-	o.ExperimentID = experimentID
-}
-
 // WithRunID adds the runID to the unarchive run params
 func (o *UnarchiveRunParams) WithRunID(runID string) *UnarchiveRunParams {
 	o.SetRunID(runID)
@@ -139,11 +123,6 @@ func (o *UnarchiveRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
-
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
-	}
 
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {

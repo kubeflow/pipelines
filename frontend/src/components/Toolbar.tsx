@@ -55,6 +55,8 @@ const css = stylesheet({
   actions: {
     display: 'flex',
     marginRight: spacing.units(-2),
+    paddingTop: 25,
+    alignItems: 'center',
   },
   backIcon: {
     fontSize: backIconHeight,

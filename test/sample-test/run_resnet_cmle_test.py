@@ -18,7 +18,7 @@ import json
 import tarfile
 from datetime import datetime
 import utils
-from kfp.deprecated import Client
+from kfp import Client
 
 ###### Input/Output Instruction ######
 # input: yaml

@@ -22,13 +22,13 @@ import {
   V2beta1Experiment,
   V2beta1ExperimentStorageState,
 } from 'src/apisv2beta1/experiment';
-import { errorToMessage } from '../lib/Utils';
+import { errorToMessage } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from './Router';
-import { commonCss } from '../Css';
-import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
-import { ApiRunStorageState } from 'src/apis/run';
-import RunList from '../pages/RunList';
-import { PredicateOp, ApiFilter } from '../apis/filter';
+import { commonCss } from 'src/Css';
+import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import RunList from 'src/pages/RunList';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
 
@@ -93,7 +93,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
           filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          emptyMessage='No archived experiments found.'
         />
       </div>
     );
@@ -130,16 +130,16 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
         // Augment the request filter with the storage state predicate
         const filter = JSON.parse(
           decodeURIComponent(request.filter || '{"predicates": []}'),
-        ) as ApiFilter;
+        ) as V2beta1Filter;
         filter.predicates = (filter.predicates || []).concat([
           {
             key: 'storage_state',
             // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
             // is missing, in which case it should be counted as available.
-            op:
+            operation:
               this.props.storageState === V2beta1ExperimentStorageState.ARCHIVED
-                ? PredicateOp.EQUALS
-                : PredicateOp.NOTEQUALS,
+                ? V2beta1PredicateOperation.EQUALS
+                : V2beta1PredicateOperation.NOTEQUALS,
             string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
           },
         ]);
@@ -158,7 +158,6 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
         request.pageSize,
         request.sortBy,
         request.filter,
-        this.props.namespace ? 'NAMESPACE' : undefined,
         this.props.namespace || undefined,
       );
       nextPageToken = response.next_page_token || '';
@@ -197,8 +196,8 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
         noFilterBox={true}
         storageState={
           this.props.storageState === V2beta1ExperimentStorageState.ARCHIVED
-            ? ApiRunStorageState.ARCHIVED
-            : ApiRunStorageState.AVAILABLE
+            ? V2beta1RunStorageState.ARCHIVED
+            : V2beta1RunStorageState.AVAILABLE
         }
         disableSorting={true}
         disableSelection={true}

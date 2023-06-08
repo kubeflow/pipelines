@@ -3,6 +3,8 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata: # kpt-merge: /workflows.argoproj.io
   name: workflows.argoproj.io
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'apiextensions.k8s.io|CustomResourceDefinition|default|workflows.argoproj.io'
 spec:
   group: argoproj.io
   names:

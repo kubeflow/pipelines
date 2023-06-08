@@ -39,8 +39,9 @@ def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
         training_op(
             examples=ingestor.outputs['examples'],
             optimizer=optimizer,
-            n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit('14Gi')
-        .add_node_selector_constraint('tpu-v3').set_accelerator_limit(1))
+            n_epochs=n_epochs).set_cpu_request('2').set_cpu_limit(
+                '4').set_memory_request('4Gi').set_memory_limit('14Gi')
+        .set_accelerator_type('tpu-v3').set_accelerator_limit(1))
 
 
 if __name__ == '__main__':

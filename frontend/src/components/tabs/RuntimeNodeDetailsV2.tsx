@@ -19,21 +19,43 @@ import * as React from 'react';
 import { useState } from 'react';
 import { FlowElement } from 'react-flow-renderer';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
+import {
+  KubernetesExecutorConfig,
+  PvcMount,
+} from 'src/generated/platform_spec/kubernetes_platform';
 import { useQuery } from 'react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
+import { errorToMessage } from 'src/lib/Utils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
-import { getArtifactTypeName, getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import {
+  EXECUTION_KEY_CACHED_EXECUTION_ID,
+  getArtifactTypeName,
+  getArtifactTypes,
+  KfpExecutionProperties,
+  LinkedArtifact,
+} from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
-import ArtifactPreview from '../ArtifactPreview';
-import DetailsTable from '../DetailsTable';
-import { FlowElementDataBase } from '../graph/Constants';
-import { getResourceStateText, ResourceType } from '../ResourceInfo';
-import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
-import { ArtifactTitle } from './ArtifactTitle';
-import InputOutputTab, { getArtifactParamList } from './InputOutputTab';
+import ArtifactPreview from 'src/components/ArtifactPreview';
+import Banner from 'src/components/Banner';
+import DetailsTable from 'src/components/DetailsTable';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
+import LogViewer from 'src/components/LogViewer';
+import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
+import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
+import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
+import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputOutputTab';
+import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
+import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+
+export const LOGS_DETAILS = 'logs_details';
+export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
+export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
+export const K8S_PLATFORM_KEY = 'kubernetes';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -54,6 +76,8 @@ const NODE_STATE_UNAVAILABLE = (
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
   onLayerChange: (layers: string[]) => void;
+  pipelineJobString?: string;
+  runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
@@ -62,6 +86,8 @@ interface RuntimeNodeDetailsV2Props {
 export function RuntimeNodeDetailsV2({
   layers,
   onLayerChange,
+  pipelineJobString,
+  runId,
   element,
   elementMlmdInfo,
   namespace,
@@ -74,8 +100,11 @@ export function RuntimeNodeDetailsV2({
     if (NodeTypeNames.EXECUTION === element.type) {
       return (
         <TaskNodeDetail
+          pipelineJobString={pipelineJobString}
+          runId={runId}
           element={element}
           execution={elementMlmdInfo?.execution}
+          layers={layers}
           namespace={namespace}
         ></TaskNodeDetail>
       );
@@ -103,17 +132,43 @@ export function RuntimeNodeDetailsV2({
 }
 
 interface TaskNodeDetailProps {
+  pipelineJobString?: string;
+  runId?: string;
   element?: FlowElement<FlowElementDataBase> | null;
   execution?: Execution;
+  layers: string[];
   namespace: string | undefined;
 }
 
-function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) {
+function TaskNodeDetail({
+  pipelineJobString,
+  runId,
+  element,
+  execution,
+  layers,
+  namespace,
+}: TaskNodeDetailProps) {
+  const { data: logsInfo } = useQuery<Map<string, string>, Error>(
+    [execution],
+    async () => {
+      if (!execution) {
+        throw new Error('No execution is found.');
+      }
+      return await getLogsInfo(execution, runId);
+    },
+    { enabled: !!execution },
+  );
+
+  const logsDetails = logsInfo?.get(LOGS_DETAILS);
+  const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
+  const logsBannerAdditionalInfo = logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO);
+
   const [selectedTab, setSelectedTab] = useState(0);
+
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details']}
+        tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -131,6 +186,25 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
         {selectedTab === 1 && (
           <div className={padding(20)}>
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
+            <DetailsTable
+              title='Volume Mounts'
+              fields={getNodeVolumeMounts(layers, pipelineJobString, element)}
+            />
+          </div>
+        )}
+        {/* Logs tab */}
+        {selectedTab === 2 && (
+          <div className={commonCss.page}>
+            {logsBannerMessage && (
+              <React.Fragment>
+                <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
+              </React.Fragment>
+            )}
+            {!logsBannerMessage && (
+              <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
+                <LogViewer logLines={(logsDetails || '').split('\n')} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -182,6 +256,78 @@ function getTaskDetailsFields(
   }
 
   return details;
+}
+
+function getNodeVolumeMounts(
+  layers: string[],
+  pipelineJobString?: string,
+  element?: FlowElement<FlowElementDataBase> | null,
+): Array<KeyValue<string>> {
+  if (!pipelineJobString || !element) {
+    return [];
+  }
+
+  const taskKey = getTaskKeyFromNodeKey(element.id);
+  const pipelineSpec = convertYamlToV2PipelineSpec(pipelineJobString);
+  const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+  const platformSpec = convertYamlToPlatformSpec(pipelineJobString);
+
+  // Currently support kubernetes platform
+  if (!platformSpec || !platformSpec.platforms[K8S_PLATFORM_KEY]) {
+    return [];
+  }
+
+  const k8sDeploymentSpec = PlatformDeploymentConfig.fromJSON(
+    platformSpec.platforms[K8S_PLATFORM_KEY].deploymentSpec,
+  );
+  const matchedExecutorObj = Object.entries(k8sDeploymentSpec.executors).find(
+    ([executorName]) => executorName === componentSpec?.executorLabel,
+  );
+
+  let volumeMounts: Array<KeyValue<string>> = [];
+  if (matchedExecutorObj) {
+    const executor = KubernetesExecutorConfig.fromJSON(matchedExecutorObj[1]);
+    const pvcMounts = Object.values(executor.pvcMount).map(pvcm => PvcMount.fromJSON(pvcm));
+    volumeMounts = pvcMounts.map(pvcm => [pvcm.mountPath, pvcm.taskOutputParameter?.producerTask]);
+  }
+
+  return volumeMounts;
+}
+
+async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<string, string>> {
+  const logsInfo = new Map<string, string>();
+  let podName = '';
+  let podNameSpace = '';
+  let cachedExecutionId = '';
+  let logsDetails = '';
+  let logsBannerMessage = '';
+  let logsBannerAdditionalInfo = '';
+  const customPropertiesMap = execution.getCustomPropertiesMap();
+
+  if (execution) {
+    podName = customPropertiesMap.get(KfpExecutionProperties.POD_NAME)?.getStringValue() || '';
+    podNameSpace = customPropertiesMap.get('namespace')?.getStringValue() || '';
+    cachedExecutionId =
+      customPropertiesMap.get(EXECUTION_KEY_CACHED_EXECUTION_ID)?.getStringValue() || '';
+  }
+
+  // TODO(jlyaoyuli): Consider to link to the cached execution.
+  if (cachedExecutionId) {
+    logsInfo.set(LOGS_DETAILS, 'This step output is taken from cache.');
+    return logsInfo; // Early return if it is from cache.
+  }
+
+  try {
+    logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace);
+    logsInfo.set(LOGS_DETAILS, logsDetails);
+  } catch (err) {
+    let errMsg = await errorToMessage(err);
+    logsBannerMessage = 'Failed to retrieve pod logs.';
+    logsInfo.set(LOGS_BANNER_MESSAGE, logsBannerMessage);
+    logsBannerAdditionalInfo = 'Error response: ' + errMsg;
+    logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
+  }
+  return logsInfo;
 }
 
 interface ArtifactNodeDetailProps {
@@ -284,7 +430,7 @@ function ArtifactInfo({
       <div>
         <DetailsTable<string>
           key={`artifact-url`}
-          title='Artifact URL'
+          title='Artifact URI'
           fields={getArtifactParamList([linkedArtifact], artifactTypeName)}
           valueComponent={ArtifactPreview}
           valueComponentProps={{
@@ -328,7 +474,7 @@ function SubDAGNodeDetail({
       <div className={commonCss.page}>
         <div className={padding(20, 'blr')}>
           <Button variant='contained' onClick={onSubDagOpenClick}>
-            Open Workflow
+            Open Sub-DAG
           </Button>
         </div>
         <MD2Tabs

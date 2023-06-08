@@ -17,6 +17,7 @@ import textwrap
 import unittest
 
 from absl.testing import parameterized
+from kfp import dsl
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
@@ -111,7 +112,7 @@ class PipelineTaskTest(parameterized.TestCase):
         )
 
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
@@ -124,8 +125,8 @@ class PipelineTaskTest(parameterized.TestCase):
                 ValueError,
                 "Component 'component1' got an unexpected input: 'input0'."):
             task = pipeline_task.PipelineTask(
-                component_spec=structures.ComponentSpec
-                .load_from_component_yaml(V2_YAML),
+                component_spec=structures.ComponentSpec.from_yaml_documents(
+                    V2_YAML),
                 args={
                     'input1': 'value',
                     'input0': 'abc',
@@ -134,7 +135,7 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_caching_options(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
@@ -143,30 +144,33 @@ class PipelineTaskTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
-            'cpu_limit': '123',
+            'cpu': '123',
             'expected_cpu_number': 123,
         },
         {
-            'cpu_limit': '123m',
+            'cpu': '123m',
             'expected_cpu_number': 0.123,
         },
         {
-            'cpu_limit': '123.0',
+            'cpu': '123.0',
             'expected_cpu_number': 123,
         },
         {
-            'cpu_limit': '123.0m',
+            'cpu': '123.0m',
             'expected_cpu_number': 0.123,
         },
     )
-    def test_set_valid_cpu_limit(self, cpu_limit: str,
-                                 expected_cpu_number: float):
+    def test_set_valid_cpu_request_limit(self, cpu: str,
+                                         expected_cpu_number: float):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.set_cpu_limit(cpu_limit)
+        task.set_cpu_request(cpu)
+        self.assertEqual(expected_cpu_number,
+                         task.container_spec.resources.cpu_request)
+        task.set_cpu_limit(cpu)
         self.assertEqual(expected_cpu_number,
                          task.container_spec.resources.cpu_limit)
 
@@ -178,7 +182,7 @@ class PipelineTaskTest(parameterized.TestCase):
     def test_set_valid_gpu_limit(self, gpu_limit: str,
                                  expected_gpu_number: int):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
@@ -189,6 +193,20 @@ class PipelineTaskTest(parameterized.TestCase):
             task.set_gpu_limit(gpu_limit)
         self.assertEqual(expected_gpu_number,
                          task.container_spec.resources.accelerator_count)
+
+    def test_add_valid_node_selector_constraint(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertWarnsRegex(
+                DeprecationWarning,
+                "'add_node_selector_constraint' is deprecated. Please use 'set_accelerator_type' instead."
+        ):
+            task.add_node_selector_constraint('TPU_V3')
+        self.assertEqual(task.container_spec.resources.accelerator_type,
+                         'TPU_V3')
 
     @parameterized.parameters(
         {
@@ -202,7 +220,7 @@ class PipelineTaskTest(parameterized.TestCase):
     )
     def test_set_accelerator_limit(self, limit, expected):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
@@ -267,33 +285,36 @@ class PipelineTaskTest(parameterized.TestCase):
     )
     def test_set_memory_limit(self, memory: str, expected_memory_number: int):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
+        task.set_memory_request(memory)
+        self.assertEqual(expected_memory_number,
+                         task.container_spec.resources.memory_request)
         task.set_memory_limit(memory)
         self.assertEqual(expected_memory_number,
                          task.container_spec.resources.memory_limit)
 
-    def test_add_node_selector_constraint_type_only(self):
+    def test_set_accelerator_type_with_type_only(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.add_node_selector_constraint('NVIDIA_TESLA_K80')
+        task.set_accelerator_type('NVIDIA_TESLA_K80')
         self.assertEqual(
             structures.ResourceSpec(
                 accelerator_type='NVIDIA_TESLA_K80', accelerator_count=1),
             task.container_spec.resources)
 
-    def test_add_node_selector_constraint_accelerator_count(self):
+    def test_set_accelerator_type_with_accelerator_count(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.set_gpu_limit('5').add_node_selector_constraint('TPU_V3')
+        task.set_accelerator_limit('5').set_accelerator_type('TPU_V3')
         self.assertEqual(
             structures.ResourceSpec(
                 accelerator_type='TPU_V3', accelerator_count=5),
@@ -301,7 +322,7 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_env_variable(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
@@ -310,12 +331,50 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
         task.set_display_name('test_name')
         self.assertEqual('test_name', task._task_spec.display_name)
+
+    def test_set_cpu_limit_on_pipeline_should_raise(self):
+
+        @dsl.component
+        def comp():
+            print('hello')
+
+        @dsl.pipeline
+        def graph():
+            comp()
+            comp()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'set_cpu_limit can only be used on single-step components'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                graph().set_cpu_limit('1')
+
+
+class TestPlatformSpecificFunctionality(unittest.TestCase):
+
+    def test_platform_config_to_platform_spec(self):
+
+        @dsl.component
+        def comp():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            t = comp()
+            t.platform_config = {'platform1': {'feature': [1, 2, 3]}}
+            with self.assertRaisesRegex(
+                    ValueError,
+                    r"Can only access '\.platform_spec' property on a tasks created from pipelines\. Use '\.platform_config' for tasks created from primitive components\."
+            ):
+                t.platform_spec
 
 
 if __name__ == '__main__':

@@ -26,27 +26,31 @@ import {
   getResourcePropertyViaFallBack,
 } from 'src/mlmd/library';
 import { Artifact, ArtifactType, GetArtifactsRequest } from 'src/third_party/mlmd';
+import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { classes } from 'typestyle';
-import { ArtifactLink } from '../components/ArtifactLink';
+import { ArtifactLink } from 'src/components/ArtifactLink';
 import CustomTable, {
   Column,
   CustomRendererProps,
   ExpandState,
   Row,
-} from '../components/CustomTable';
-import { RoutePageFactory } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { commonCss, padding } from '../Css';
+} from 'src/components/CustomTable';
+import { RoutePageFactory } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
+import { commonCss, padding } from 'src/Css';
 import {
   CollapsedAndExpandedRows,
   getExpandedRow,
   getStringEnumKey,
   groupRows,
-  rowCompareFn,
   rowFilterFn,
   serviceErrorToString,
-} from '../lib/Utils';
-import { Page } from './Page';
+} from 'src/lib/Utils';
+import { Page } from 'src/pages/Page';
+
+interface ArtifactListProps {
+  isGroupView: boolean;
+}
 
 interface ArtifactListState {
   artifacts: Artifact[];
@@ -62,7 +66,7 @@ const NAME_FIELDS = [
   getStringEnumKey(ArtifactCustomProperties, ArtifactCustomProperties.DISPLAY_NAME),
 ];
 
-export class ArtifactList extends Page<{}, ArtifactListState> {
+export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
   private artifactTypesMap: Map<number, ArtifactType>;
@@ -76,18 +80,16 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
           label: 'Pipeline/Workspace',
-          sortKey: 'pipelineName',
         },
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
           label: 'Name',
-          sortKey: 'name',
         },
-        { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
-        { label: 'URI', flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
-        { label: 'Created at', flex: 1, sortKey: 'created_at' },
+        { label: 'ID', flex: 1 },
+        { label: 'Type', flex: 2 },
+        { label: 'URI', flex: 2, customRenderer: this.uriCustomRenderer },
+        { label: 'Created at', flex: 1 },
       ],
       expandedRows: new Map(),
       rows: [],
@@ -113,13 +115,13 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           ref={this.tableRef}
           columns={columns}
           rows={rows}
-          disablePaging={true}
+          disablePaging={this.props.isGroupView}
           disableSelection={true}
           reload={this.reload}
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
-          getExpandComponent={this.getExpandedArtifactsRow}
-          toggleExpansion={this.toggleRowExpand}
+          getExpandComponent={this.props.isGroupView ? this.getExpandedArtifactsRow : undefined}
+          toggleExpansion={this.props.isGroupView ? this.toggleRowExpand : undefined}
           emptyMessage='No artifacts found.'
         />
       </div>
@@ -133,6 +135,15 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
+    const listOperationOpts = new ListOperationOptions();
+    if (request.pageSize) {
+      listOperationOpts.setMaxResultSize(request.pageSize);
+    }
+    if (request.pageToken) {
+      listOperationOpts.setNextPageToken(request.pageToken);
+    }
+    // TODO(jlyaoyuli): Add filter functionality for "entire" artifact list.
+
     // TODO: Consider making an Api method for returning and caching types
     if (!this.artifactTypesMap || !this.artifactTypesMap.size) {
       this.artifactTypesMap = await getArtifactTypes(
@@ -140,19 +151,20 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError.bind(this),
       );
     }
-    if (!this.state.artifacts.length) {
-      const artifacts = await this.getArtifacts();
-      this.clearBanner();
-      const collapsedAndExpandedRows = await this.getRowsFromArtifacts(request, artifacts);
-      if (collapsedAndExpandedRows) {
-        this.setState({
-          artifacts,
-          expandedRows: collapsedAndExpandedRows.expandedRows,
-          rows: collapsedAndExpandedRows.collapsedRows,
-        });
-      }
-    }
-    return '';
+    const artifacts = this.props.isGroupView
+      ? await this.getArtifacts()
+      : await this.getArtifacts(listOperationOpts);
+    this.clearBanner();
+    let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
+    let groupedRows = await this.getGroupedRowsFromArtifacts(request, artifacts);
+    // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
+    this.setState({
+      artifacts,
+      expandedRows: this.props.isGroupView ? groupedRows?.expandedRows : new Map(),
+      rows: this.props.isGroupView ? groupedRows?.collapsedRows : flattenedRows,
+    });
+
+    return listOperationOpts.getNextPageToken();
   }
 
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
@@ -173,9 +185,12 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     <ArtifactLink artifactUri={value} />
   );
 
-  private async getArtifacts(): Promise<Artifact[]> {
+  private async getArtifacts(listOperationOpts?: ListOperationOptions): Promise<Artifact[]> {
     try {
-      const response = await this.api.metadataStoreService.getArtifacts(new GetArtifactsRequest());
+      const response = await this.api.metadataStoreService.getArtifacts(
+        new GetArtifactsRequest().setOptions(listOperationOpts),
+      );
+      listOperationOpts?.setNextPageToken(response.getNextPageToken());
       return response.getArtifactsList();
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
@@ -187,20 +202,11 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     return [];
   }
 
-  /**
-   * Temporary solution to apply sorting, filtering, and pagination to the
-   * local list of artifacts until server-side handling is available
-   * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
-   * @param request
-   * @param artifacts
-   */
-  private async getRowsFromArtifacts(
+  private async getFlattenedRowsFromArtifacts(
     request: ListRequest,
     artifacts: Artifact[],
-  ): Promise<CollapsedAndExpandedRows | undefined> {
+  ): Promise<Row[]> {
     try {
-      // TODO: When backend supports sending creation time back when we list
-      // artifacts, let's use it directly.
       const artifactsWithCreationTimes = await Promise.all(
         artifacts.map(async artifact => {
           const artifactId = artifact.getId();
@@ -215,32 +221,32 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         }),
       );
 
-      return groupRows(
-        artifactsWithCreationTimes
-          .map(({ artifact, creationTime }) => {
-            const typeId = artifact.getTypeId();
-            const artifactType = this.artifactTypesMap!.get(typeId);
-            const type = artifactType ? artifactType.getName() : artifact.getTypeId();
-            return {
-              id: `${artifact.getId()}`,
-              otherFields: [
-                getResourcePropertyViaFallBack(
-                  artifact,
-                  ARTIFACT_PROPERTY_REPOS,
-                  PIPELINE_WORKSPACE_FIELDS,
-                ) || '[unknown]',
-                getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS) ||
-                  '[unknown]',
-                artifact.getId(),
-                type,
-                artifact.getUri(),
-                creationTime || '',
-              ],
-            } as Row;
-          })
-          .filter(rowFilterFn(request))
-          .sort(rowCompareFn(request, this.state.columns)),
-      );
+      const flattenedRows: Row[] = artifactsWithCreationTimes
+        .map(({ artifact, creationTime }) => {
+          const typeId = artifact.getTypeId();
+          const artifactType = this.artifactTypesMap!.get(typeId);
+          const type = artifactType ? artifactType.getName() : artifact.getTypeId();
+          return {
+            id: `${artifact.getId()}`,
+            otherFields: [
+              getResourcePropertyViaFallBack(
+                artifact,
+                ARTIFACT_PROPERTY_REPOS,
+                PIPELINE_WORKSPACE_FIELDS,
+              ) || '[unknown]',
+              getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS) ||
+                '[unknown]',
+              artifact.getId(),
+              type,
+              artifact.getUri(),
+              creationTime || '',
+            ],
+          } as Row;
+        })
+        .filter(rowFilterFn(request));
+      // TODO(jlyaoyuli): Add sort functionality for entire artifact list.
+
+      return flattenedRows;
     } catch (err) {
       if (err.message) {
         this.showPageError(err.message, err);
@@ -248,7 +254,22 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError('Unknown error', err);
       }
     }
-    return;
+    return [];
+  }
+
+  /**
+   * Temporary solution to apply sorting, filtering, and pagination to the
+   * local list of artifacts until server-side handling is available
+   * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
+   * @param request
+   * @param artifacts
+   */
+  private async getGroupedRowsFromArtifacts(
+    request: ListRequest,
+    artifacts: Artifact[],
+  ): Promise<CollapsedAndExpandedRows> {
+    const flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
+    return groupRows(flattenedRows);
   }
 
   /**

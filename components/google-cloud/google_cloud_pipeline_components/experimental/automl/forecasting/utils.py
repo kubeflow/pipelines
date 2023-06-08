@@ -2,7 +2,10 @@
 
 import os
 import pathlib
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+_GCPC_AUTOML_PATH = pathlib.Path(__file__).parent.parent.resolve()
+_GCPC_FORECASTING_PATH = os.path.join(_GCPC_AUTOML_PATH, 'forecasting')
 
 
 def get_bqml_arima_train_pipeline_and_parameters(
@@ -14,17 +17,17 @@ def get_bqml_arima_train_pipeline_and_parameters(
     target_column: str,
     forecast_horizon: int,
     data_granularity_unit: str,
-    predefined_split_key: str = '-',
-    timestamp_split_key: str = '-',
+    predefined_split_key: str = '',
+    timestamp_split_key: str = '',
     training_fraction: float = -1.0,
     validation_fraction: float = -1.0,
     test_fraction: float = -1.0,
-    data_source_csv_filenames: str = '-',
-    data_source_bigquery_table_path: str = '-',
-    window_column: str = '-',
+    data_source_csv_filenames: str = '',
+    data_source_bigquery_table_path: str = '',
+    window_column: str = '',
     window_stride_length: int = -1,
     window_max_count: int = -1,
-    bigquery_destination_uri: str = '-',
+    bigquery_destination_uri: str = '',
     override_destination: bool = False,
     max_order: int = 5,
 ) -> Tuple[str, Dict[str, Any]]:
@@ -99,8 +102,8 @@ def get_bqml_arima_train_pipeline_and_parameters(
       'max_order': max_order,
   }
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(),
-      'bqml_arima_train_pipeline.json')
+      _GCPC_FORECASTING_PATH, 'bqml_arima_train_pipeline.yaml'
+  )
   return pipeline_definition_path, parameter_values
 
 
@@ -108,9 +111,9 @@ def get_bqml_arima_predict_pipeline_and_parameters(
     project: str,
     location: str,
     model_name: str,
-    data_source_csv_filenames: str = '-',
-    data_source_bigquery_table_path: str = '-',
-    bigquery_destination_uri: str = '-',
+    data_source_csv_filenames: str = '',
+    data_source_bigquery_table_path: str = '',
+    bigquery_destination_uri: str = '',
     generate_explanation: bool = False,
 ) -> Tuple[str, Dict[str, Any]]:
   """Get the BQML ARIMA_PLUS prediction pipeline.
@@ -142,8 +145,8 @@ def get_bqml_arima_predict_pipeline_and_parameters(
       'generate_explanation': generate_explanation,
   }
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(),
-      'bqml_arima_predict_pipeline.json')
+      _GCPC_FORECASTING_PATH, 'bqml_arima_predict_pipeline.yaml'
+  )
   return pipeline_definition_path, parameter_values
 
 
@@ -157,27 +160,25 @@ def get_prophet_train_pipeline_and_parameters(
     forecast_horizon: int,
     optimization_objective: str,
     data_granularity_unit: str,
-    predefined_split_key: str = '-',
-    timestamp_split_key: str = '-',
+    predefined_split_key: str = '',
+    timestamp_split_key: str = '',
     training_fraction: float = -1.0,
     validation_fraction: float = -1.0,
     test_fraction: float = -1.0,
-    data_source_csv_filenames: str = '-',
-    data_source_bigquery_table_path: str = '-',
-    window_column: str = '-',
+    data_source_csv_filenames: str = '',
+    data_source_bigquery_table_path: str = '',
+    window_column: str = '',
     window_stride_length: int = -1,
     window_max_count: int = -1,
-    bigquery_destination_uri: str = '-',  # Empty string not supported.
-    max_num_trials: int = 35,
-    trainer_service_account: str = '-',
+    max_num_trials: int = 6,
     trainer_dataflow_machine_type: str = 'n1-standard-1',
-    trainer_dataflow_max_num_workers: int = 200,
+    trainer_dataflow_max_num_workers: int = 10,
     trainer_dataflow_disk_size_gb: int = 40,
     evaluation_dataflow_machine_type: str = 'n1-standard-1',
-    evaluation_dataflow_max_num_workers: int = 200,
+    evaluation_dataflow_max_num_workers: int = 10,
     evaluation_dataflow_disk_size_gb: int = 40,
-    dataflow_service_account: str = '-',
-    dataflow_subnetwork: str = '-',
+    dataflow_service_account: str = '',
+    dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
 ) -> Tuple[str, Dict[str, Any]]:
   """Returns Prophet train pipeline and formatted parameters.
@@ -214,13 +215,7 @@ def get_prophet_train_pipeline_and_parameters(
     window_max_count: Number of rows that should be used to generate input
       examples. If the total row count is larger than this number, the input
       data will be randomly sampled to hit the count.
-    bigquery_destination_uri: URI of the desired destination dataset. If not
-      specified, resources will be created under a new dataset in the project.
-      Unlike in Vertex Forecasting, all resources will be given hardcoded names
-      under this dataset, and the model artifact will also be exported here.
     max_num_trials: Maximum number of tuning trials to perform per time series.
-    trainer_service_account: Service account to use when running the CustomJob
-      to train the models.
     trainer_dataflow_machine_type: The dataflow machine type used for training.
     trainer_dataflow_max_num_workers: The max number of Dataflow workers used
       for training.
@@ -259,9 +254,7 @@ def get_prophet_train_pipeline_and_parameters(
       'window_column': window_column,
       'window_stride_length': window_stride_length,
       'window_max_count': window_max_count,
-      'bigquery_destination_uri': bigquery_destination_uri,
       'max_num_trials': max_num_trials,
-      'trainer_service_account': trainer_service_account,
       'optimization_objective': optimization_objective,
       'data_granularity_unit': data_granularity_unit,
       'trainer_dataflow_machine_type': trainer_dataflow_machine_type,
@@ -269,15 +262,16 @@ def get_prophet_train_pipeline_and_parameters(
       'trainer_dataflow_disk_size_gb': trainer_dataflow_disk_size_gb,
       'evaluation_dataflow_machine_type': evaluation_dataflow_machine_type,
       'evaluation_dataflow_max_num_workers': (
-          evaluation_dataflow_max_num_workers),
+          evaluation_dataflow_max_num_workers
+      ),
       'evaluation_dataflow_disk_size_gb': evaluation_dataflow_disk_size_gb,
       'dataflow_service_account': dataflow_service_account,
       'dataflow_subnetwork': dataflow_subnetwork,
       'dataflow_use_public_ips': dataflow_use_public_ips,
   }
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(),
-      'prophet_trainer_pipeline.json')
+      _GCPC_FORECASTING_PATH, 'prophet_trainer_pipeline.yaml'
+  )
   return pipeline_definition_path, parameter_values
 
 
@@ -288,11 +282,11 @@ def get_prophet_prediction_pipeline_and_parameters(
     time_column: str,
     time_series_identifier_column: str,
     target_column: str,
-    data_source_csv_filenames: str = '-',
-    data_source_bigquery_table_path: str = '-',
-    bigquery_destination_uri: str = '-',  # Empty string not supported.
+    data_source_csv_filenames: str = '',
+    data_source_bigquery_table_path: str = '',
+    bigquery_destination_uri: str = '',
     machine_type: str = 'n1-standard-2',
-    max_num_workers: int = 200,
+    max_num_workers: int = 10,
 ) -> Tuple[str, Dict[str, Any]]:
   """Returns Prophet prediction pipeline and formatted parameters.
 
@@ -317,8 +311,6 @@ def get_prophet_prediction_pipeline_and_parameters(
       bq://bq_project.bq_dataset.bq_table
     bigquery_destination_uri: URI of the desired destination dataset. If not
       specified, resources will be created under a new dataset in the project.
-      Unlike in Vertex Forecasting, all resources will be given hardcoded names
-      under this dataset, and the model artifact will also be exported here.
     machine_type: The machine type used for batch prediction.
     max_num_workers: The max number of workers used for batch prediction.
 
@@ -339,6 +331,400 @@ def get_prophet_prediction_pipeline_and_parameters(
       'max_num_workers': max_num_workers,
   }
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(),
-      'prophet_predict_pipeline.json')
+      _GCPC_FORECASTING_PATH, 'prophet_predict_pipeline.yaml'
+  )
+  return pipeline_definition_path, parameter_values
+
+
+def get_base_forecasting_parameters(
+    *,
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    optimization_objective: str,
+    transformations: str,
+    train_budget_milli_node_hours: float,
+    time_column: str,
+    time_series_identifier_column: str,
+    time_series_attribute_columns: Optional[str] = None,
+    available_at_forecast_columns: Optional[str] = None,
+    unavailable_at_forecast_columns: Optional[str] = None,
+    forecast_horizon: Optional[int] = None,
+    context_window: Optional[int] = None,
+    evaluated_examples_bigquery_path: Optional[str] = None,
+    window_predefined_column: Optional[str] = None,
+    window_stride_length: Optional[int] = None,
+    window_max_count: Optional[int] = None,
+    stage_1_num_parallel_trials: Optional[int] = None,
+    stage_1_tuning_result_artifact_uri: Optional[str] = None,
+    stage_2_num_parallel_trials: Optional[int] = None,
+    num_selected_trials: Optional[int] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    weight_column: Optional[str] = None,
+    dataflow_service_account: Optional[str] = None,
+    dataflow_subnetwork: Optional[str] = None,
+    dataflow_use_public_ips: bool = True,
+    feature_transform_engine_bigquery_staging_full_dataset_id: str = '',
+    feature_transform_engine_dataflow_machine_type: str = 'n1-standard-16',
+    feature_transform_engine_dataflow_max_num_workers: int = 10,
+    feature_transform_engine_dataflow_disk_size_gb: int = 40,
+    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
+    evaluation_batch_predict_starting_replica_count: int = 25,
+    evaluation_batch_predict_max_replica_count: int = 25,
+    evaluation_dataflow_machine_type: str = 'n1-standard-16',
+    evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_disk_size_gb: int = 50,
+    study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
+    stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    stage_2_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    quantiles: Optional[str] = None,
+    encryption_spec_key_name: Optional[str] = None,
+    enable_probabilistic_inference: bool = False,
+    model_display_name: Optional[str] = None,
+    model_description: Optional[str] = None,
+    run_evaluation: bool = True,
+    fields_to_exclude: Set[str] = frozenset(),
+) -> Dict[str, Any]:
+  """Formats a set of parameters common across Vertex forecasting pipelines."""
+  if not study_spec_parameters_override:
+    study_spec_parameters_override = []
+  if not stage_1_tuner_worker_pool_specs_override:
+    stage_1_tuner_worker_pool_specs_override = []
+  if not stage_2_trainer_worker_pool_specs_override:
+    stage_2_trainer_worker_pool_specs_override = []
+
+  parameter_values = {}
+  parameters = {
+      'project': project,
+      'location': location,
+      'root_dir': root_dir,
+      'dataflow_service_account': dataflow_service_account,
+      'evaluated_examples_bigquery_path': evaluated_examples_bigquery_path,
+      'target_column': target_column,
+      'optimization_objective': optimization_objective,
+      'transformations': transformations,
+      'train_budget_milli_node_hours': train_budget_milli_node_hours,
+      'time_column': time_column,
+      'time_series_identifier_column': time_series_identifier_column,
+      'time_series_attribute_columns': time_series_attribute_columns,
+      'available_at_forecast_columns': available_at_forecast_columns,
+      'unavailable_at_forecast_columns': unavailable_at_forecast_columns,
+      'forecast_horizon': forecast_horizon,
+      'context_window': context_window,
+      'window_predefined_column': window_predefined_column,
+      'window_stride_length': window_stride_length,
+      'window_max_count': window_max_count,
+      'stage_1_num_parallel_trials': stage_1_num_parallel_trials,
+      'stage_1_tuning_result_artifact_uri': stage_1_tuning_result_artifact_uri,
+      'stage_2_num_parallel_trials': stage_2_num_parallel_trials,
+      'num_selected_trials': num_selected_trials,
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'predefined_split_key': predefined_split_key,
+      'timestamp_split_key': timestamp_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction,
+      'weight_column': weight_column,
+      'dataflow_subnetwork': dataflow_subnetwork,
+      'feature_transform_engine_dataflow_machine_type': (
+          feature_transform_engine_dataflow_machine_type
+      ),
+      'feature_transform_engine_dataflow_max_num_workers': (
+          feature_transform_engine_dataflow_max_num_workers
+      ),
+      'feature_transform_engine_dataflow_disk_size_gb': (
+          feature_transform_engine_dataflow_disk_size_gb
+      ),
+      'dataflow_use_public_ips': dataflow_use_public_ips,
+      'feature_transform_engine_bigquery_staging_full_dataset_id': (
+          feature_transform_engine_bigquery_staging_full_dataset_id
+      ),
+      'evaluation_batch_predict_machine_type': (
+          evaluation_batch_predict_machine_type
+      ),
+      'evaluation_batch_predict_starting_replica_count': (
+          evaluation_batch_predict_starting_replica_count
+      ),
+      'evaluation_batch_predict_max_replica_count': (
+          evaluation_batch_predict_max_replica_count
+      ),
+      'evaluation_dataflow_machine_type': evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers': (
+          evaluation_dataflow_max_num_workers
+      ),
+      'evaluation_dataflow_disk_size_gb': evaluation_dataflow_disk_size_gb,
+      'study_spec_parameters_override': study_spec_parameters_override,
+      'stage_1_tuner_worker_pool_specs_override': (
+          stage_1_tuner_worker_pool_specs_override
+      ),
+      'stage_2_trainer_worker_pool_specs_override': (
+          stage_2_trainer_worker_pool_specs_override
+      ),
+      'quantiles': quantiles,
+      'encryption_spec_key_name': encryption_spec_key_name,
+      'enable_probabilistic_inference': enable_probabilistic_inference,
+      'model_display_name': model_display_name,
+      'model_description': model_description,
+      'run_evaluation': run_evaluation,
+  }
+
+  # Filter out empty values and those excluded from the particular pipeline.
+  # (example: TFT and Seq2Seq don't support `quantiles`.)
+  parameter_values.update(
+      {
+          param: value
+          for param, value in parameters.items()
+          if value is not None and param not in fields_to_exclude
+      }
+  )
+  return parameter_values
+
+
+def get_learn_to_learn_forecasting_pipeline_and_parameters(
+    *,
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    optimization_objective: str,
+    transformations: str,
+    train_budget_milli_node_hours: float,
+    time_column: str,
+    time_series_identifier_column: str,
+    time_series_attribute_columns: Optional[str] = None,
+    available_at_forecast_columns: Optional[str] = None,
+    unavailable_at_forecast_columns: Optional[str] = None,
+    forecast_horizon: Optional[int] = None,
+    context_window: Optional[int] = None,
+    evaluated_examples_bigquery_path: Optional[str] = None,
+    window_predefined_column: Optional[str] = None,
+    window_stride_length: Optional[int] = None,
+    window_max_count: Optional[int] = None,
+    stage_1_num_parallel_trials: Optional[int] = None,
+    stage_1_tuning_result_artifact_uri: Optional[str] = None,
+    stage_2_num_parallel_trials: Optional[int] = None,
+    num_selected_trials: Optional[int] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    weight_column: Optional[str] = None,
+    dataflow_service_account: Optional[str] = None,
+    dataflow_use_public_ips: bool = True,
+    dataflow_subnetwork: Optional[str] = None,
+    feature_transform_engine_bigquery_staging_full_dataset_id: str = '',
+    feature_transform_engine_dataflow_machine_type: str = 'n1-standard-16',
+    feature_transform_engine_dataflow_max_num_workers: int = 10,
+    feature_transform_engine_dataflow_disk_size_gb: int = 40,
+    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
+    evaluation_batch_predict_starting_replica_count: int = 25,
+    evaluation_batch_predict_max_replica_count: int = 25,
+    evaluation_dataflow_machine_type: str = 'n1-standard-16',
+    evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_disk_size_gb: int = 50,
+    study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
+    stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    stage_2_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    quantiles: Optional[str] = None,
+    encryption_spec_key_name: Optional[str] = None,
+    enable_probabilistic_inference: bool = False,
+    model_display_name: Optional[str] = None,
+    model_description: Optional[str] = None,
+    run_evaluation: bool = True,
+) -> Tuple[str, Dict[str, Any]]:
+  """Returns l2l_forecasting pipeline and formatted parameters."""
+  parameter_values = get_base_forecasting_parameters(
+      project=project,
+      location=location,
+      root_dir=root_dir,
+      target_column=target_column,
+      evaluated_examples_bigquery_path=evaluated_examples_bigquery_path,
+      optimization_objective=optimization_objective,
+      transformations=transformations,
+      train_budget_milli_node_hours=train_budget_milli_node_hours,
+      time_column=time_column,
+      dataflow_service_account=dataflow_service_account,
+      time_series_identifier_column=time_series_identifier_column,
+      time_series_attribute_columns=time_series_attribute_columns,
+      available_at_forecast_columns=available_at_forecast_columns,
+      unavailable_at_forecast_columns=unavailable_at_forecast_columns,
+      forecast_horizon=forecast_horizon,
+      context_window=context_window,
+      window_predefined_column=window_predefined_column,
+      window_stride_length=window_stride_length,
+      window_max_count=window_max_count,
+      stage_1_num_parallel_trials=stage_1_num_parallel_trials,
+      stage_1_tuning_result_artifact_uri=stage_1_tuning_result_artifact_uri,
+      stage_2_num_parallel_trials=stage_2_num_parallel_trials,
+      num_selected_trials=num_selected_trials,
+      data_source_csv_filenames=data_source_csv_filenames,
+      data_source_bigquery_table_path=data_source_bigquery_table_path,
+      predefined_split_key=predefined_split_key,
+      timestamp_split_key=timestamp_split_key,
+      training_fraction=training_fraction,
+      validation_fraction=validation_fraction,
+      test_fraction=test_fraction,
+      weight_column=weight_column,
+      dataflow_use_public_ips=dataflow_use_public_ips,
+      dataflow_subnetwork=dataflow_subnetwork,
+      feature_transform_engine_bigquery_staging_full_dataset_id=feature_transform_engine_bigquery_staging_full_dataset_id,
+      feature_transform_engine_dataflow_machine_type=feature_transform_engine_dataflow_machine_type,
+      feature_transform_engine_dataflow_max_num_workers=feature_transform_engine_dataflow_max_num_workers,
+      feature_transform_engine_dataflow_disk_size_gb=feature_transform_engine_dataflow_disk_size_gb,
+      evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
+      evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
+      evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+      evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+      evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+      evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
+      study_spec_parameters_override=study_spec_parameters_override,
+      stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
+      stage_2_trainer_worker_pool_specs_override=stage_2_trainer_worker_pool_specs_override,
+      quantiles=quantiles,
+      encryption_spec_key_name=encryption_spec_key_name,
+      enable_probabilistic_inference=enable_probabilistic_inference,
+      model_display_name=model_display_name,
+      model_description=model_description,
+      run_evaluation=run_evaluation,
+  )
+
+  pipeline_definition_path = os.path.join(
+      _GCPC_FORECASTING_PATH,
+      'learn_to_learn_forecasting_pipeline.yaml',
+  )
+
+  return pipeline_definition_path, parameter_values
+
+
+def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
+    *,
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    optimization_objective: str,
+    transformations: str,
+    train_budget_milli_node_hours: float,
+    time_column: str,
+    time_series_identifier_column: str,
+    time_series_attribute_columns: Optional[str] = None,
+    available_at_forecast_columns: Optional[str] = None,
+    unavailable_at_forecast_columns: Optional[str] = None,
+    forecast_horizon: Optional[int] = None,
+    context_window: Optional[int] = None,
+    evaluated_examples_bigquery_path: Optional[str] = None,
+    window_predefined_column: Optional[str] = None,
+    window_stride_length: Optional[int] = None,
+    window_max_count: Optional[int] = None,
+    stage_1_num_parallel_trials: Optional[int] = None,
+    stage_1_tuning_result_artifact_uri: Optional[str] = None,
+    stage_2_num_parallel_trials: Optional[int] = None,
+    num_selected_trials: Optional[int] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    weight_column: Optional[str] = None,
+    dataflow_service_account: Optional[str] = None,
+    dataflow_use_public_ips: bool = True,
+    dataflow_subnetwork: Optional[str] = None,
+    feature_transform_engine_bigquery_staging_full_dataset_id: str = '',
+    feature_transform_engine_dataflow_machine_type: str = 'n1-standard-16',
+    feature_transform_engine_dataflow_max_num_workers: int = 10,
+    feature_transform_engine_dataflow_disk_size_gb: int = 40,
+    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
+    evaluation_batch_predict_starting_replica_count: int = 25,
+    evaluation_batch_predict_max_replica_count: int = 25,
+    evaluation_dataflow_machine_type: str = 'n1-standard-16',
+    evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_disk_size_gb: int = 50,
+    study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
+    stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    stage_2_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    quantiles: Optional[str] = None,
+    encryption_spec_key_name: Optional[str] = None,
+    enable_probabilistic_inference: bool = False,
+    model_display_name: Optional[str] = None,
+    model_description: Optional[str] = None,
+    run_evaluation: bool = True,
+) -> Tuple[str, Dict[str, Any]]:
+  # fmt: off
+  """Returns timeseries_dense_encoder_forecasting pipeline and formatted
+  parameters."""
+  # fmt: on
+
+  parameter_values = get_base_forecasting_parameters(
+      project=project,
+      location=location,
+      root_dir=root_dir,
+      target_column=target_column,
+      evaluated_examples_bigquery_path=evaluated_examples_bigquery_path,
+      optimization_objective=optimization_objective,
+      transformations=transformations,
+      train_budget_milli_node_hours=train_budget_milli_node_hours,
+      time_column=time_column,
+      dataflow_service_account=dataflow_service_account,
+      time_series_identifier_column=time_series_identifier_column,
+      time_series_attribute_columns=time_series_attribute_columns,
+      available_at_forecast_columns=available_at_forecast_columns,
+      unavailable_at_forecast_columns=unavailable_at_forecast_columns,
+      forecast_horizon=forecast_horizon,
+      context_window=context_window,
+      window_predefined_column=window_predefined_column,
+      window_stride_length=window_stride_length,
+      window_max_count=window_max_count,
+      stage_1_num_parallel_trials=stage_1_num_parallel_trials,
+      stage_1_tuning_result_artifact_uri=stage_1_tuning_result_artifact_uri,
+      stage_2_num_parallel_trials=stage_2_num_parallel_trials,
+      num_selected_trials=num_selected_trials,
+      data_source_csv_filenames=data_source_csv_filenames,
+      data_source_bigquery_table_path=data_source_bigquery_table_path,
+      predefined_split_key=predefined_split_key,
+      timestamp_split_key=timestamp_split_key,
+      training_fraction=training_fraction,
+      validation_fraction=validation_fraction,
+      test_fraction=test_fraction,
+      weight_column=weight_column,
+      dataflow_use_public_ips=dataflow_use_public_ips,
+      dataflow_subnetwork=dataflow_subnetwork,
+      feature_transform_engine_bigquery_staging_full_dataset_id=feature_transform_engine_bigquery_staging_full_dataset_id,
+      feature_transform_engine_dataflow_machine_type=feature_transform_engine_dataflow_machine_type,
+      feature_transform_engine_dataflow_max_num_workers=feature_transform_engine_dataflow_max_num_workers,
+      feature_transform_engine_dataflow_disk_size_gb=feature_transform_engine_dataflow_disk_size_gb,
+      evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
+      evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
+      evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+      evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+      evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+      evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
+      study_spec_parameters_override=study_spec_parameters_override,
+      stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
+      stage_2_trainer_worker_pool_specs_override=stage_2_trainer_worker_pool_specs_override,
+      quantiles=quantiles,
+      encryption_spec_key_name=encryption_spec_key_name,
+      enable_probabilistic_inference=enable_probabilistic_inference,
+      model_display_name=model_display_name,
+      model_description=model_description,
+      run_evaluation=run_evaluation,
+  )
+
+  pipeline_definition_path = os.path.join(
+      _GCPC_FORECASTING_PATH,
+      'time_series_dense_encoder_forecasting_pipeline.yaml',
+  )
+
   return pipeline_definition_path, parameter_values

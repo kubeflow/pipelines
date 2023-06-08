@@ -1,0 +1,116 @@
+// Copyright 2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package kfp_kubernetes;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform";
+
+message KubernetesExecutorConfig {
+    repeated SecretAsVolume secret_as_volume = 1;
+    repeated SecretAsEnv secret_as_env = 2;
+    repeated PvcMount pvc_mount = 3;
+    NodeSelector node_selector = 4;
+}
+
+message SecretAsVolume {
+    // Name of the Secret.
+    string secret_name = 1;
+    // Container path to mount the Secret data.
+    string mount_path = 2;
+}
+
+message SecretAsEnv {
+    // Name of the Secret.
+    string secret_name = 1;
+
+    message SecretKeyToEnvMap {
+        // Corresponds to a key of the Secret.data field.
+        string secret_key = 1;
+        // Env var to which secret_key's data should be set.
+        string env_var = 2;
+    }
+
+    repeated SecretKeyToEnvMap key_to_env = 2;
+}
+
+// Represents an upstream task's output parameter.
+message TaskOutputParameterSpec {
+    // The name of the upstream task which produces the output parameter that
+    // matches with the `output_parameter_key`.
+    string producer_task = 1;
+
+    // The key of [TaskOutputsSpec.parameters][] map of the producer task.
+    string output_parameter_key = 2;
+}
+
+message PvcMount {
+    // Identifier for the PVC.
+    // Used like TaskInputsSpec.InputParameterSpec.kind.
+    oneof pvc_reference {
+        // Output parameter from an upstream task.
+        TaskOutputParameterSpec task_output_parameter = 1;
+        // A constant value.
+        string constant = 2;
+        // Pass the input parameter from parent component input parameter.
+        string component_input_parameter = 3;
+    }
+    // Container path to which the PVC should be mounted.
+    string mount_path = 4;
+}
+
+message CreatePvc {
+    oneof name {
+        // Name of the PVC, if not dynamically generated.
+        string pvc_name = 1;
+        // Suffix for a dynamically generated PVC name of the form
+        // {{workflow.name}}-<pvc_name_suffix>.
+        string pvc_name_suffix = 2;
+    }
+    // Corresponds to PersistentVolumeClaim.spec.accessMode field.
+    repeated string access_modes = 3;
+    // Corresponds to PersistentVolumeClaim.spec.resources.requests.storage field.
+    string size = 4;
+    // If true, corresponds to omitted PersistentVolumeClaim.spec.storageClassName.
+    bool default_storage_class = 5;
+    // Corresponds to PersistentVolumeClaim.spec.storageClassName string field.
+    // Should only be used if default_storage_class is false.
+    string storage_class_name = 6;
+    // Corresponds to PersistentVolumeClaim.spec.volumeName field.
+    string volume_name = 7;
+    // Corresponds to PersistentVolumeClaim.metadata.annotations field.
+    google.protobuf.Struct annotations = 8;
+}
+
+message DeletePvc {
+    // Identifier for the PVC.
+    // Used like TaskInputsSpec.InputParameterSpec.kind.
+    oneof pvc_reference {
+        // Output parameter from an upstream task.
+        TaskOutputParameterSpec task_output_parameter = 1;
+        // A constant value.
+        string constant = 2;
+        // Pass the input parameter from parent component input parameter.
+        string component_input_parameter = 3;
+    }
+}
+
+message NodeSelector {
+    // map of label key to label value
+    // corresponds to Pod.spec.nodeSelector field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+    map<string, string> labels = 1;
+}

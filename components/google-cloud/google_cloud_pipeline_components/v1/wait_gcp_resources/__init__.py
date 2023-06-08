@@ -11,14 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Wait GCP Resource Components."""
+"""Wait on the completion of GCP resources spawned from an upstream pipeline component."""
 
-import os
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.v1.wait_gcp_resources.component import wait_gcp_resources as WaitGcpResourcesOp
 
 __all__ = [
     'WaitGcpResourcesOp',
 ]
-
-WaitGcpResourcesOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'component.yaml'))

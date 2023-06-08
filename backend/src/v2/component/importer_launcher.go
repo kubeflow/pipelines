@@ -6,6 +6,7 @@ import (
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -182,10 +183,46 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		return nil, fmt.Errorf("failed to get or insert artifact type with schema %s: %w", schema, err)
 	}
 
-	artifactUri := l.importer.GetArtifactUri().GetConstant().GetStringValue()
-	if artifactUri == "" {
-		return nil, fmt.Errorf("failed to get artifactUri from ImporterSpec")
+	// Resolve artifact URI. Can be one of two sources:
+	// 1) Constant
+	// 2) Runtime Parameter
+	var artifactUri string
+	if l.importer.GetArtifactUri().GetConstant() != nil {
+		glog.Infof("Artifact URI as constant: %+v", l.importer.GetArtifactUri().GetConstant())
+		artifactUri = l.importer.GetArtifactUri().GetConstant().GetStringValue()
+		if artifactUri == "" {
+			return nil, fmt.Errorf("empty Artifact URI constant value")
+		}
+	} else if l.importer.GetArtifactUri().GetRuntimeParameter() != "" {
+		// When URI is provided using Runtime Parameter, need to retrieve it from dag execution in MLMD
+		paramName := l.importer.GetArtifactUri().GetRuntimeParameter()
+		taskInput, ok := l.task.GetInputs().GetParameters()[paramName]
+		if !ok {
+			return nil, fmt.Errorf("cannot find parameter %s in task input to fetch artifact uri", paramName)
+		}
+		componentInput := taskInput.GetComponentInputParameter()
+		dag, err := l.metadataClient.GetDAG(ctx, l.importerLauncherOptions.ParentDagID)
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving dag execution for parameter %s: %w", paramName, err)
+		}
+		glog.Infof("parent DAG: %+v", dag.Execution)
+		inputParams, _, err := dag.Execution.GetParameters()
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving input parameters from dag execution for parameter %s: %w", paramName, err)
+		}
+		v, ok := inputParams[componentInput]
+		if !ok {
+			return nil, fmt.Errorf("error resolving artifact URI: parent DAG does not have input parameter %s", componentInput)
+		}
+		artifactUri = v.GetStringValue()
+		glog.Infof("Artifact URI from runtime parameter: %s", artifactUri)
+		if artifactUri == "" {
+			return nil, fmt.Errorf("empty artifact URI runtime value for parameter %s", paramName)
+		}
+	} else {
+		return nil, fmt.Errorf("artifact uri not provided")
 	}
+
 	state := pb.Artifact_LIVE
 
 	artifact = &pb.Artifact{
@@ -205,7 +242,6 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		}
 	}
 	return artifact, nil
-
 }
 
 func (l *ImportLauncher) getOutPutArtifactName() (string, error) {

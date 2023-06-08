@@ -15,6 +15,8 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	pipeline_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 )
 
 // NewCreatePipelineVersionParams creates a new CreatePipelineVersionParams object
@@ -61,6 +63,11 @@ for the create pipeline version operation typically these are written to a http.
 */
 type CreatePipelineVersionParams struct {
 
+	/*Body
+	  Required input. Pipeline version ID to be created.
+
+	*/
+	Body *pipeline_model.V2beta1PipelineVersion
 	/*PipelineID
 	  Required input. ID of the parent pipeline.
 
@@ -105,6 +112,17 @@ func (o *CreatePipelineVersionParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithBody adds the body to the create pipeline version params
+func (o *CreatePipelineVersionParams) WithBody(body *pipeline_model.V2beta1PipelineVersion) *CreatePipelineVersionParams {
+	o.SetBody(body)
+	return o
+}
+
+// SetBody adds the body to the create pipeline version params
+func (o *CreatePipelineVersionParams) SetBody(body *pipeline_model.V2beta1PipelineVersion) {
+	o.Body = body
+}
+
 // WithPipelineID adds the pipelineID to the create pipeline version params
 func (o *CreatePipelineVersionParams) WithPipelineID(pipelineID string) *CreatePipelineVersionParams {
 	o.SetPipelineID(pipelineID)
@@ -123,6 +141,12 @@ func (o *CreatePipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 		return err
 	}
 	var res []error
+
+	if o.Body != nil {
+		if err := r.SetBodyParam(o.Body); err != nil {
+			return err
+		}
+	}
 
 	// path param pipeline_id
 	if err := r.SetPathParam("pipeline_id", o.PipelineID); err != nil {

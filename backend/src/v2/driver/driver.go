@@ -1,3 +1,16 @@
+// Copyright 2021-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package driver
 
 import (
@@ -7,22 +20,33 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
+var dummyImages = map[string]string{
+	"argostub/createpvc": "create PVC",
+	"argostub/deletepvc": "delete PVC",
+}
 
 // TODO(capri-xiyue): Move driver to component package
 // Driver options
@@ -46,6 +70,9 @@ type Options struct {
 
 	// optional, required only by container driver
 	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+
+	// optional, allows to specify kubernetes-specific executor config
+	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 }
 
 // Identifying information used for error messages
@@ -68,6 +95,9 @@ func (o Options) info() string {
 	}
 	if o.Component.GetImplementation() != nil {
 		msg = msg + ", componentSpec" // this only means componentSpec is not empty
+	}
+	if o.KubernetesExecutorConfig != nil {
+		msg = msg + ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
 	}
 	return msg
 }
@@ -217,6 +247,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return nil, err
 	}
+
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
@@ -243,19 +274,23 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
 
-	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
-		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
-		fingerPrint, err := getFingerPrint(opts, executorInput)
-		if err != nil {
-			return execution, fmt.Errorf("failure while getting fingerPrint: %w", err)
-		}
-		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/"+opts.PipelineName, opts.Namespace)
-		if err != nil {
-			return execution, fmt.Errorf("failure while getting executionCache: %w", err)
-		}
-		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
-		ecfg.FingerPrint = fingerPrint
+	// When the container image is a dummy image, there is no launcher for this task.
+	// This happens when this task is created to implement a Kubernetes-specific configuration, i.e.,
+	// there is no user container to run.
+	// It publishes execution details to mlmd in driver and takes care of caching, which are usually done in launcher.
+	// We also skip creating the podspecpatch in these cases.
+	if _, ok := dummyImages[opts.Container.Image]; ok {
+		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
+
+	// Generate fingerprint and MLMD ID for cache
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
+	if err != nil {
+		return execution, err
+	}
+	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.FingerPrint = fingerPrint
+
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
@@ -267,10 +302,13 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
+	// Use cache and skip launcher if all contions met:
+	// (1) Cache is enabled
+	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
 	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, executorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return execution, err
 		}
@@ -280,37 +318,52 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
 			return execution, fmt.Errorf("failed to publish cached execution: %w", err)
 		}
-		glog.Infof("Cached")
+		glog.Infof("Use cache for task %s", opts.Task.GetTaskInfo().GetName())
 		*execution.Cached = true
 		return execution, nil
 	}
 
-	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
 	if err != nil {
 		return execution, err
 	}
+	if opts.KubernetesExecutorConfig != nil {
+		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
+		if err != nil {
+			return execution, err
+		}
+		err = extendPodSpecPatch(podSpec, opts.KubernetesExecutorConfig, dag, dagTasks)
+		if err != nil {
+			return execution, err
+		}
+	}
+	podSpecPatchBytes, err := json.Marshal(podSpec)
+	if err != nil {
+		return execution, fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+	}
+	execution.PodSpecPatch = string(podSpecPatchBytes)
 	return execution, nil
 }
 
-// makePodSpecPatch generates a strategic merge patch for pod spec, it is merged
+// initPodSpecPatch generates a strategic merge patch for pod spec, it is merged
 // to container base template generated in compiler/container.go. Therefore, only
 // dynamic values are patched here. The volume mounts / configmap mounts are
 // defined in compiler, because they are static.
-func makePodSpecPatch(
+func initPodSpecPatch(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
 	executorInput *pipelinespec.ExecutorInput,
 	executionID int64,
 	pipelineName string,
 	runID string,
-) (string, error) {
+) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
-		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
 	componentJSON, err := protojson.Marshal(componentSpec)
 	if err != nil {
-		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
 
 	// Convert environment variables
@@ -344,27 +397,50 @@ func makePodSpecPatch(
 		"--", // separater before user command and args
 	}
 	res := k8score.ResourceRequirements{
-		Limits: map[k8score.ResourceName]k8sres.Quantity{},
+		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
+		Requests: map[k8score.ResourceName]k8sres.Quantity{},
 	}
 	memoryLimit := container.GetResources().GetMemoryLimit()
 	if memoryLimit != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
 		if err != nil {
-			return "", err
+			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 		}
 		res.Limits[k8score.ResourceMemory] = q
+	}
+	memoryRequest := container.GetResources().GetMemoryRequest()
+	if memoryRequest != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryRequest))
+		if err != nil {
+			return nil, err
+		}
+		res.Requests[k8score.ResourceMemory] = q
 	}
 	cpuLimit := container.GetResources().GetCpuLimit()
 	if cpuLimit != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
 		if err != nil {
-			return "", err
+			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 		}
 		res.Limits[k8score.ResourceCPU] = q
 	}
+	cpuRequest := container.GetResources().GetCpuRequest()
+	if cpuRequest != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuRequest))
+		if err != nil {
+			return nil, err
+		}
+		res.Requests[k8score.ResourceCPU] = q
+	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
-		return "", fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
+		if accelerator.GetType() != "" && accelerator.GetCount() > 0 {
+			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
+			if err != nil {
+				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+			}
+			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
+		}
 	}
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
@@ -376,11 +452,69 @@ func makePodSpecPatch(
 			Env:       userEnvVar,
 		}},
 	}
-	podSpecPatchBytes, err := json.Marshal(podSpec)
-	if err != nil {
-		return "", fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+	return podSpec, nil
+}
+
+// Extends the PodSpec to include Kubernetes-specific executor config.
+func extendPodSpecPatch(
+	podSpec *k8score.PodSpec,
+	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
+	dag *metadata.DAG,
+	dagTasks map[string]*metadata.Execution,
+) error {
+	// Return an error if the podSpec has no user container.
+	if len(podSpec.Containers) == 0 {
+		return fmt.Errorf("failed to patch the pod with kubernetes-specific config due to missing user container: %v", podSpec)
 	}
-	return string(podSpecPatchBytes), nil
+	// Get volume mount information
+	if kubernetesExecutorConfig.GetPvcMount() != nil {
+		volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesExecutorConfig.GetPvcMount(), dag, dagTasks)
+		if err != nil {
+			return fmt.Errorf("failed to extract volume mount info: %w", err)
+		}
+		podSpec.Volumes = append(podSpec.Volumes, volumes...)
+		// We assume that the user container always gets executed first within a pod.
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
+	}
+
+	// Get node selector information
+	if kubernetesExecutorConfig.GetNodeSelector() != nil {
+		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
+	}
+
+	// Get secret mount information
+	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
+		secretVolume := k8score.Volume{
+			Name: secretAsVolume.GetSecretName(),
+			VolumeSource: k8score.VolumeSource{
+				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName()},
+			},
+		}
+		secretVolumeMount := k8score.VolumeMount{
+			Name:      secretAsVolume.GetSecretName(),
+			MountPath: secretAsVolume.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, secretVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, secretVolumeMount)
+	}
+
+	// Get secret env information
+	for _, secretAsEnv := range kubernetesExecutorConfig.GetSecretAsEnv() {
+		for _, keyToEnv := range secretAsEnv.GetKeyToEnv() {
+			secretEnvVar := k8score.EnvVar{
+				Name: keyToEnv.GetEnvVar(),
+				ValueFrom: &k8score.EnvVarSource{
+					SecretKeyRef: &k8score.SecretKeySelector{
+						Key: keyToEnv.GetSecretKey(),
+					},
+				},
+			}
+			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretAsEnv.GetSecretName()
+			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+		}
+	}
+
+	return nil
 }
 
 // TODO(Bobgy): merge DAG driver and container driver, because they are very similar.
@@ -680,10 +814,14 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			value, hasValue := inputs.GetParameterValues()[name]
 
 			// Handle when parameter does not have input value
-			if !hasValue && inputsSpec.GetParameters()[name].IsOptional == false {
-				// When parameter is not optional and there is no input value, report error
-				return fmt.Errorf("no value provided for non-optional parameter %q", name)
-			} else if !hasValue && inputsSpec.GetParameters()[name].IsOptional == true {
+			if !hasValue && !inputsSpec.GetParameters()[name].GetIsOptional() {
+				// When parameter is not optional and there is no input value, first check if there is a default value,
+				// if there is a default value, use it as the value of the parameter.
+				// if there is no default value, report error.
+				if inputsSpec.GetParameters()[name].GetDefaultValue() == nil {
+					return fmt.Errorf("neither value nor default value provided for non-optional parameter %q", name)
+				}
+			} else if !hasValue && inputsSpec.GetParameters()[name].GetIsOptional() {
 				// When parameter is optional and there is no input value, value comes from default value.
 				// But we don't pass the default value here. They are resolved internally within the component.
 				// Note: in the past the backend passed the default values into the component. This is a behavior change.
@@ -769,7 +907,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				// input comes from static input
 				itemsInput = task.GetParameterIterator().GetItemInput()
 			} else {
-				return nil, fmt.Errorf("cannot retrieve parameter iterator.")
+				return nil, fmt.Errorf("cannot retrieve parameter iterator")
 			}
 			items, err := getItems(inputs.ParameterValues[itemsInput])
 			if err != nil {
@@ -932,4 +1070,520 @@ func generateOutputURI(root, artifactName string, taskName string) string {
 	// we cannot path.Join(root, taskName, artifactName), because root
 	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
 	return fmt.Sprintf("%s/%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName))
+}
+
+var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
+	"ReadWriteOnce":    k8score.ReadWriteOnce,
+	"ReadOnlyMany":     k8score.ReadOnlyMany,
+	"ReadWriteMany":    k8score.ReadWriteMany,
+	"ReadWriteOncePod": k8score.ReadWriteOncePod,
+}
+
+// kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
+// delete PVC, etc. In these operations we skip the launcher due to there being no user container.
+// It also prepublishes and publishes the execution, which are usually done in the launcher.
+func kubernetesPlatformOps(
+	ctx context.Context,
+	mlmd *metadata.Client,
+	cacheClient *cacheutils.Client,
+	execution *Execution,
+	ecfg *metadata.ExecutionConfig,
+	opts *Options,
+) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to %s and publish execution %s: %w", dummyImages[opts.Container.Image], opts.Task.GetTaskInfo().GetName(), err)
+		}
+	}()
+	// If we cannot create Kubernetes client, we cannot publish this execution
+	k8sClient, err := createK8sClient()
+	if err != nil {
+		return fmt.Errorf("cannot generate k8s clientset: %w", err)
+	}
+
+	var outputParameters map[string]*structpb.Value
+	var createdExecution *metadata.Execution
+	status := pb.Execution_FAILED
+	var pvcName string
+	defer func() {
+		// We publish the execution, no matter this operartion succeeds or not
+		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
+		if perr != nil && err != nil {
+			err = fmt.Errorf("failed to publish driver execution: %w. Also failed the Kubernetes platform operation: %w", perr, err)
+		} else if perr != nil {
+			err = fmt.Errorf("failed to publish driver execution: %w", perr)
+		}
+	}()
+
+	switch opts.Container.Image {
+	case "argostub/createpvc":
+		pvcName, createdExecution, status, err = createPVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg)
+		if err != nil {
+			return err
+		}
+		outputParameters = map[string]*structpb.Value{
+			"name": structpb.NewStringValue(pvcName),
+		}
+	case "argostub/deletepvc":
+		if createdExecution, status, err = deletePVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg); err != nil {
+			return err
+		}
+	default:
+		err = fmt.Errorf("unknown image name %s for Kubernetes-specific operations", opts.Container.Image)
+		return err
+	}
+	return nil
+}
+
+// Usually we publish the execution in launcher, but for Kubernetes-specific operations,
+// we skip the launcher. So this function is only used in these special cases.
+func publishDriverExecution(
+	k8sClient *kubernetes.Clientset,
+	mlmd *metadata.Client,
+	ctx context.Context,
+	execution *metadata.Execution,
+	outputParameters map[string]*structpb.Value,
+	outputArtifacts []*metadata.OutputArtifact,
+	status pb.Execution_State,
+) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to publish driver execution %s: %w", execution.TaskName(), err)
+		}
+	}()
+	namespace, err := config.InPodNamespace()
+	if err != nil {
+		return fmt.Errorf("error getting namespace: %w", err)
+	}
+
+	podName, err := config.InPodName()
+	if err != nil {
+		return fmt.Errorf("error getting pod name: %w", err)
+	}
+
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error retrieving info for pod %s: %w", podName, err)
+	}
+
+	ecfg := &metadata.ExecutionConfig{
+		PodName:   podName,
+		PodUID:    string(pod.UID),
+		Namespace: namespace,
+	}
+	if _, err := mlmd.PrePublishExecution(ctx, execution, ecfg); err != nil {
+		return fmt.Errorf("failed to prepublish: %w", err)
+	}
+	if err = mlmd.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status); err != nil {
+		return fmt.Errorf("failed to publish: %w", err)
+	}
+	glog.Infof("Published execution of Kubernetes platform task %s.", execution.TaskName())
+	return nil
+}
+
+// execution is passed by value because we make changes to it to generate  fingerprint
+func createPVC(
+	ctx context.Context,
+	k8sClient kubernetes.Interface,
+	execution Execution,
+	opts *Options,
+	cacheClient *cacheutils.Client,
+	mlmd *metadata.Client,
+	ecfg *metadata.ExecutionConfig,
+) (pvcName string, createdExecution *metadata.Execution, status pb.Execution_State, err error) {
+	// Create execution regardless the operation succeeds or not
+	defer func() {
+		if createdExecution == nil {
+			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+			if err != nil {
+				return
+			}
+			createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+		}
+	}()
+
+	taskStartedTime := time.Now().Unix()
+
+	inputs := execution.ExecutorInput.Inputs
+	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+
+	// Requied input: access_modes
+	accessModeInput, ok := inputs.ParameterValues["access_modes"]
+	if !ok || accessModeInput == nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter access_modes not provided")
+	}
+	var accessModes []k8score.PersistentVolumeAccessMode
+	for _, value := range accessModeInput.GetListValue().GetValues() {
+		accessModes = append(accessModes, accessModeMap[value.GetStringValue()])
+	}
+
+	// Optional input: pvc_name and pvc_name_suffix
+	// Can only provide at most one of these two parameters.
+	// If neither is provided, PVC name is a randomly generated UUID.
+	pvcNameSuffixInput := inputs.ParameterValues["pvc_name_suffix"]
+	pvcNameInput := inputs.ParameterValues["pvc_name"]
+	if pvcNameInput.GetStringValue() != "" && pvcNameSuffixInput.GetStringValue() != "" {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
+	} else if pvcNameSuffixInput.GetStringValue() != "" {
+		pvcName = uuid.NewString() + pvcNameSuffixInput.GetStringValue()
+		// Add pvcName to the executor input for fingerprint generation
+		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
+	} else if pvcNameInput.GetStringValue() != "" {
+		pvcName = pvcNameInput.GetStringValue()
+	} else {
+		pvcName = uuid.NewString()
+		// Add pvcName to the executor input for fingerprint generation
+		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
+	}
+
+	// Required input: size
+	volumeSizeInput, ok := inputs.ParameterValues["size"]
+	if !ok || volumeSizeInput == nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
+	}
+
+	// Optional input: storage_class_name
+	// When not provided, use default value `standard`
+	storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]
+	var storageClassName string
+	if !ok {
+		storageClassName = "standard"
+	} else {
+		storageClassName = storageClassNameInput.GetStringValue()
+	}
+
+	// Optional input: annotations
+	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
+	pvcAnnotations := make(map[string]string)
+	for key, val := range pvcAnnotationsInput.GetStructValue().AsMap() {
+		typedVal := val.(structpb.Value)
+		pvcAnnotations[key] = typedVal.GetStringValue()
+	}
+
+	// Optional input: volume_name
+	volumeNameInput := inputs.ParameterValues["volume_name"]
+	volumeName := volumeNameInput.GetStringValue()
+
+	// Get execution fingerprint and MLMD ID for caching
+	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
+	// The original execution is not changed.
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, err
+	}
+	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.FingerPrint = fingerPrint
+
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
+	}
+
+	// Create execution in MLMD
+	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
+	}
+	glog.Infof("Created execution: %s", createdExecution)
+	execution.ID = createdExecution.GetID()
+	if !execution.WillTrigger() {
+		return "", createdExecution, pb.Execution_COMPLETE, nil
+	}
+
+	// Use cache and skip createpvc if all conditions met:
+	// (1) Cache is enabled
+	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	cached := false
+	execution.Cached = &cached
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		if err != nil {
+			return "", createdExecution, pb.Execution_FAILED, err
+		}
+		// TODO(Bobgy): upload output artifacts.
+		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
+		// to publish output artifacts to the context too.
+		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to publish cached execution: %w", err)
+		}
+		*execution.Cached = true
+		return pvcName, createdExecution, pb.Execution_CACHED, nil
+	}
+
+	// Create a PersistentVolumeClaim object
+	pvc := &k8score.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        pvcName,
+			Annotations: pvcAnnotations,
+		},
+		Spec: k8score.PersistentVolumeClaimSpec{
+			AccessModes: accessModes,
+			Resources: k8score.ResourceRequirements{
+				Requests: k8score.ResourceList{
+					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
+				},
+			},
+			StorageClassName: &storageClassName,
+			VolumeName:       volumeName,
+		},
+	}
+
+	// Create the PVC in the cluster
+	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: %w", err)
+	}
+	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
+
+	// Create a cache entry
+	/*
+		id := createdExecution.GetID()
+		if id == 0 {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
+		}
+	*/
+	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for create pvc: %w", err)
+	}
+
+	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
+}
+
+func deletePVC(
+	ctx context.Context,
+	k8sClient kubernetes.Interface,
+	execution Execution,
+	opts *Options,
+	cacheClient *cacheutils.Client,
+	mlmd *metadata.Client,
+	ecfg *metadata.ExecutionConfig,
+) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
+
+	// Create execution regardless the operation succeeds or not
+	defer func() {
+		if createdExecution == nil {
+			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+			if err != nil {
+				return
+			}
+			createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+		}
+	}()
+
+	taskStartedTime := time.Now().Unix()
+
+	inputs := execution.ExecutorInput.Inputs
+	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+
+	// Required input: pvc_name
+	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
+	if !ok || pvcNameInput == nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc: required parameter pvc_name not provided")
+	}
+	pvcName := pvcNameInput.GetStringValue()
+
+	// Get execution fingerprint and MLMD ID for caching
+	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
+	// The original execution is not changed.
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, err
+	}
+	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.FingerPrint = fingerPrint
+
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
+	}
+
+	// Create execution in MLMD
+	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
+	}
+	glog.Infof("Created execution: %s", createdExecution)
+	execution.ID = createdExecution.GetID()
+	if !execution.WillTrigger() {
+		return createdExecution, pb.Execution_COMPLETE, nil
+	}
+
+	// Use cache and skip createpvc if all conditions met:
+	// (1) Cache is enabled
+	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	cached := false
+	execution.Cached = &cached
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		if err != nil {
+			return createdExecution, pb.Execution_FAILED, err
+		}
+		// TODO(Bobgy): upload output artifacts.
+		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
+		// to publish output artifacts to the context too.
+		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
+			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to publish cached execution: %w", err)
+		}
+		*execution.Cached = true
+		return createdExecution, pb.Execution_CACHED, nil
+	}
+
+	// Get the PVC you want to delete, verify that it exists.
+	_, err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
+	}
+
+	// Delete the PVC.
+	err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
+	}
+
+	glog.Infof("Deleted PVC %s\n", pvcName)
+
+	/*
+		// Create a cache entry
+		id := createdExecution.GetID()
+		if id == 0 {
+			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
+		}
+	*/
+	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+	if err != nil {
+		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for delete pvc: %w", err)
+	}
+
+	return createdExecution, pb.Execution_COMPLETE, nil
+}
+
+func createK8sClient() (*kubernetes.Clientset, error) {
+	// Initialize Kubernetes client set
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+	}
+	return k8sClient, nil
+}
+
+func makeVolumeMountPatch(pvcMount []*kubernetesplatform.PvcMount, dag *metadata.DAG, dagTasks map[string]*metadata.Execution) ([]k8score.VolumeMount, []k8score.Volume, error) {
+	if pvcMount == nil {
+		return nil, nil, nil
+	}
+	var volumeMounts []k8score.VolumeMount
+	var volumes []k8score.Volume
+	for _, vmc := range pvcMount {
+		// Find mount path
+		if vmc.GetMountPath() == "" {
+			return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume mount path not provided")
+		}
+		volumeMount := k8score.VolumeMount{
+			MountPath: vmc.GetMountPath(),
+		}
+		volume := k8score.Volume{}
+
+		// Volume name may come from three different sources:
+		// 1) A constant
+		// 2) As a task output parameter
+		// 3) As a component input parameter
+		if vmc.GetConstant() != "" {
+			volumeMount.Name = vmc.GetConstant()
+			volume.Name = vmc.GetConstant()
+			volume.PersistentVolumeClaim = &k8score.PersistentVolumeClaimVolumeSource{ClaimName: vmc.GetConstant()}
+		} else if vmc.GetTaskOutputParameter() != nil {
+			if vmc.GetTaskOutputParameter().GetProducerTask() == "" {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: producer task empty")
+			}
+			if vmc.GetTaskOutputParameter().GetOutputParameterKey() == "" {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: OutputParameterKey")
+			}
+			producer, ok := dagTasks[vmc.GetTaskOutputParameter().GetProducerTask()]
+			if !ok {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: cannot find producer task %s", vmc.GetTaskOutputParameter().GetProducerTask())
+			}
+			_, outputs, err := producer.GetParameters()
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: cannot get producer output: %w", err)
+			}
+			pvcName, ok := outputs[vmc.GetTaskOutputParameter().GetOutputParameterKey()]
+			if !ok {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: cannot find output parameter %s from producer task %s", vmc.GetTaskOutputParameter().GetOutputParameterKey(), vmc.GetTaskOutputParameter().GetProducerTask())
+			}
+			volumeMount.Name = pvcName.GetStringValue()
+			volume.Name = pvcName.GetStringValue()
+			volume.PersistentVolumeClaim = &k8score.PersistentVolumeClaimVolumeSource{ClaimName: pvcName.GetStringValue()}
+		} else if vmc.GetComponentInputParameter() != "" {
+			inputParams, _, err := dag.Execution.GetParameters()
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: error getting input parameters")
+			}
+			glog.Infof("parent DAG input parameters %+v", inputParams)
+			pvcName, ok := inputParams[vmc.GetComponentInputParameter()]
+			if !ok {
+				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount:component input parameters %s doesn't exist", vmc.GetComponentInputParameter())
+			}
+			volumeMount.Name = pvcName.GetStringValue()
+			volume.Name = pvcName.GetStringValue()
+			volume.PersistentVolumeClaim = &k8score.PersistentVolumeClaimVolumeSource{ClaimName: pvcName.GetStringValue()}
+		} else {
+			return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume name not provided")
+		}
+		volumeMounts = append(volumeMounts, volumeMount)
+		volumes = append(volumes, volume)
+	}
+	return volumeMounts, volumes, nil
+}
+
+func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient *cacheutils.Client) (string, string, error) {
+	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
+		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
+		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput)
+		if err != nil {
+			return "", "", fmt.Errorf("failure while getting fingerPrint: %w", err)
+		}
+		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/"+opts.PipelineName, opts.Namespace)
+		if err != nil {
+			return "", "", fmt.Errorf("failure while getting executionCache: %w", err)
+		}
+		return fingerPrint, cachedMLMDExecutionID, nil
+	} else {
+		return "", "", nil
+	}
+}
+
+func createCache(
+	ctx context.Context,
+	execution *metadata.Execution,
+	opts *Options,
+	taskStartedTime int64,
+	fingerPrint string,
+	cacheClient *cacheutils.Client,
+) error {
+	id := execution.GetID()
+	if id == 0 {
+		fmt.Errorf("failed to get id from createdExecution")
+	}
+	task := &api.Task{
+		//TODO how to differentiate between shared pipeline and namespaced pipeline
+		PipelineName:    "pipeline/" + opts.PipelineName,
+		Namespace:       opts.Namespace,
+		RunId:           opts.RunID,
+		MlmdExecutionID: strconv.FormatInt(id, 10),
+		CreatedAt:       &timestamp.Timestamp{Seconds: taskStartedTime},
+		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		Fingerprint:     fingerPrint,
+	}
+	err := cacheClient.CreateExecutionCache(ctx, task)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Created cache entry.")
+	return nil
 }

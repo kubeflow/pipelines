@@ -33,9 +33,10 @@ exports[`NewExperiment enables the 'Next' button when an experiment name is ente
     />
     <Input
       id="experimentDescription"
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -97,9 +98,10 @@ exports[`NewExperiment re-disables the 'Next' button when an experiment name is 
     />
     <Input
       id="experimentDescription"
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -163,9 +165,10 @@ exports[`NewExperiment renders the new experiment page 1`] = `
     />
     <Input
       id="experimentDescription"
-      label="Description (optional)"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />

@@ -199,8 +199,7 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     If you see error "docker.sock: connect: permission error", you need to [allow managing docker as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
 
 1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
-in the release branch. The page will look like <https://github.com/kubeflow/pipelines/runs/775788343>.
-Refer to the above screenshot to find the page.
+in the release branch. Refer to the screenshot below to find the page.
 
 1. Wait and make sure the `build-each-commit` cloudbuild job that builds all images
 in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details
@@ -235,7 +234,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     ```bash
     git checkout $BRANCH
     git pull upstream $BRANCH
-    cd backend/api/python_http_client
+    cd backend/api/v2beta1/python_http_client
     rm -r dist
     python3 setup.py --quiet sdist
     python3 -m twine upload --username kubeflow-pipelines dist/*

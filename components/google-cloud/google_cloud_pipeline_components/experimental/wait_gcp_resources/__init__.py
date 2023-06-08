@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,16 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Wait GCP Resource Components."""
+"""Experimental wait on GCP resources component."""
 
-import os
-from typing import Optional
-
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.v1.wait_gcp_resources import WaitGcpResourcesOp
 
 __all__ = [
     'WaitGcpResourcesOp',
 ]
-
-WaitGcpResourcesOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'component.yaml'))

@@ -1,0 +1,3849 @@
+# PIPELINE DEFINITION
+# Name: automl-tabular-bqml-arima-train
+# Description: Trains a BQML ARIMA_PLUS model.
+# Inputs:
+#    bigquery_destination_uri: str [Default: '']
+#    data_granularity_unit: str
+#    data_source_bigquery_table_path: str [Default: '']
+#    data_source_csv_filenames: str [Default: '']
+#    encryption_spec_key_name: str [Default: '']
+#    forecast_horizon: int
+#    location: str
+#    max_order: int [Default: 5.0]
+#    override_destination: bool [Default: False]
+#    predefined_split_key: str [Default: '']
+#    project: str
+#    root_dir: str
+#    target_column: str
+#    test_fraction: float [Default: -1.0]
+#    time_column: str
+#    time_series_identifier_column: str
+#    timestamp_split_key: str [Default: '']
+#    training_fraction: float [Default: -1.0]
+#    validation_fraction: float [Default: -1.0]
+#    window_column: str [Default: '']
+#    window_max_count: int [Default: -1.0]
+#    window_stride_length: int [Default: -1.0]
+# Outputs:
+#    create-metrics-artifact-evaluation_metrics: system.Metrics
+components:
+  comp-bigquery-create-dataset:
+    executorLabel: exec-bigquery-create-dataset
+    inputDefinitions:
+      parameters:
+        dataset:
+          parameterType: STRING
+        exists_ok:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        dataset_id:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+  comp-bigquery-create-dataset-2:
+    executorLabel: exec-bigquery-create-dataset-2
+    inputDefinitions:
+      parameters:
+        dataset:
+          parameterType: STRING
+        exists_ok:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        dataset_id:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+  comp-bigquery-create-model-job:
+    executorLabel: exec-bigquery-create-model-job
+    inputDefinitions:
+      parameters:
+        job_configuration_query:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.BQMLModel
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-bigquery-delete-dataset-with-prefix:
+    executorLabel: exec-bigquery-delete-dataset-with-prefix
+    inputDefinitions:
+      parameters:
+        dataset_prefix:
+          parameterType: STRING
+        delete_contents:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        project:
+          parameterType: STRING
+  comp-bigquery-list-rows:
+    executorLabel: exec-bigquery-list-rows
+    inputDefinitions:
+      artifacts:
+        table:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-bigquery-list-rows-2:
+    executorLabel: exec-bigquery-list-rows-2
+    inputDefinitions:
+      artifacts:
+        table:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-bigquery-query-job:
+    executorLabel: exec-bigquery-query-job
+    inputDefinitions:
+      parameters:
+        encryption_spec_key_name:
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        destination_table:
+          artifactType:
+            schemaTitle: google.BQTable
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-bigquery-query-job-2:
+    executorLabel: exec-bigquery-query-job-2
+    inputDefinitions:
+      parameters:
+        encryption_spec_key_name:
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        destination_table:
+          artifactType:
+            schemaTitle: google.BQTable
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-bigquery-query-job-3:
+    executorLabel: exec-bigquery-query-job-3
+    inputDefinitions:
+      parameters:
+        encryption_spec_key_name:
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        destination_table:
+          artifactType:
+            schemaTitle: google.BQTable
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-bigquery-query-job-4:
+    executorLabel: exec-bigquery-query-job-4
+    inputDefinitions:
+      parameters:
+        encryption_spec_key_name:
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        destination_table:
+          artifactType:
+            schemaTitle: google.BQTable
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-bigquery-query-job-5:
+    executorLabel: exec-bigquery-query-job-5
+    inputDefinitions:
+      parameters:
+        encryption_spec_key_name:
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        destination_table:
+          artifactType:
+            schemaTitle: google.BQTable
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-build-job-configuration-query:
+    executorLabel: exec-build-job-configuration-query
+    inputDefinitions:
+      parameters:
+        dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        priority:
+          defaultValue: INTERACTIVE
+          isOptional: true
+          parameterType: STRING
+        project_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        table_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        write_disposition:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRUCT
+  comp-build-job-configuration-query-2:
+    executorLabel: exec-build-job-configuration-query-2
+    inputDefinitions:
+      parameters:
+        dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        priority:
+          defaultValue: INTERACTIVE
+          isOptional: true
+          parameterType: STRING
+        project_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        table_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        write_disposition:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRUCT
+  comp-build-job-configuration-query-3:
+    executorLabel: exec-build-job-configuration-query-3
+    inputDefinitions:
+      parameters:
+        dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        priority:
+          defaultValue: INTERACTIVE
+          isOptional: true
+          parameterType: STRING
+        project_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        table_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        write_disposition:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRUCT
+  comp-build-job-configuration-query-4:
+    executorLabel: exec-build-job-configuration-query-4
+    inputDefinitions:
+      parameters:
+        dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        priority:
+          defaultValue: INTERACTIVE
+          isOptional: true
+          parameterType: STRING
+        project_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        table_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        write_disposition:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRUCT
+  comp-build-job-configuration-query-5:
+    executorLabel: exec-build-job-configuration-query-5
+    inputDefinitions:
+      parameters:
+        dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        priority:
+          defaultValue: INTERACTIVE
+          isOptional: true
+          parameterType: STRING
+        project_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        table_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        write_disposition:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRUCT
+  comp-build-job-configuration-query-6:
+    executorLabel: exec-build-job-configuration-query-6
+    inputDefinitions:
+      parameters:
+        dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        priority:
+          defaultValue: INTERACTIVE
+          isOptional: true
+          parameterType: STRING
+        project_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        table_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        write_disposition:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRUCT
+  comp-build-serialized-query-parameters:
+    executorLabel: exec-build-serialized-query-parameters
+    inputDefinitions:
+      parameters:
+        data_granularity_unit:
+          isOptional: true
+          parameterType: STRING
+        forecast_horizon:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecast_horizon_off_by_one:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        max_order:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        splits:
+          isOptional: true
+          parameterType: LIST
+        window:
+          isOptional: true
+          parameterType: STRUCT
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-build-serialized-query-parameters-2:
+    executorLabel: exec-build-serialized-query-parameters-2
+    inputDefinitions:
+      parameters:
+        data_granularity_unit:
+          isOptional: true
+          parameterType: STRING
+        forecast_horizon:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecast_horizon_off_by_one:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        max_order:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        splits:
+          isOptional: true
+          parameterType: LIST
+        window:
+          isOptional: true
+          parameterType: STRUCT
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-build-serialized-query-parameters-3:
+    executorLabel: exec-build-serialized-query-parameters-3
+    inputDefinitions:
+      parameters:
+        data_granularity_unit:
+          isOptional: true
+          parameterType: STRING
+        forecast_horizon:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecast_horizon_off_by_one:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        max_order:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        splits:
+          isOptional: true
+          parameterType: LIST
+        window:
+          isOptional: true
+          parameterType: STRUCT
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-cond:
+    executorLabel: exec-cond
+    inputDefinitions:
+      parameters:
+        false_str:
+          parameterType: STRING
+        predicate:
+          parameterType: BOOLEAN
+        true_str:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-create-metrics-artifact:
+    executorLabel: exec-create-metrics-artifact
+    inputDefinitions:
+      parameters:
+        metrics_rows:
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        evaluation_metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-exit-handler-1:
+    dag:
+      outputs:
+        artifacts:
+          create-metrics-artifact-evaluation_metrics:
+            artifactSelectors:
+            - outputArtifactKey: evaluation_metrics
+              producerSubtask: create-metrics-artifact
+      tasks:
+        bigquery-create-dataset:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-create-dataset
+          dependentTasks:
+          - get-table-location
+          - validate-inputs
+          inputs:
+            parameters:
+              dataset:
+                runtimeValue:
+                  constant: tmp_{{$.pipeline_job_uuid}}
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: create-tmp-dataset
+        bigquery-create-dataset-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-create-dataset-2
+          dependentTasks:
+          - get-table-location
+          - maybe-replace-with-default
+          - validate-inputs
+          inputs:
+            parameters:
+              dataset:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: maybe-replace-with-default
+              exists_ok:
+                runtimeValue:
+                  constant: 1.0
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: create-export-dataset
+        bigquery-create-model-job:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-create-model-job
+          dependentTasks:
+          - bigquery-create-dataset-2
+          - build-serialized-query-parameters-3
+          - get-fte-suffix
+          - get-table-location
+          inputs:
+            parameters:
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--get-fte-suffix-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-fte-suffix
+              pipelinechannel--target_column:
+                componentInputParameter: pipelinechannel--target_column
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              pipelinechannel--time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n      CREATE MODEL `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-dataset_id']}}.model_{{$.pipeline_job_uuid}}`\n\
+                    \      OPTIONS (\n          model_type = 'ARIMA_PLUS',\n     \
+                    \     time_series_timestamp_col = '{{$.inputs.parameters['pipelinechannel--time_column']}}',\n\
+                    \          time_series_id_col = '{{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}',\n\
+                    \          time_series_data_col = '{{$.inputs.parameters['pipelinechannel--target_column']}}',\n\
+                    \          horizon = @forecast_horizon,\n          auto_arima\
+                    \ = True,\n          auto_arima_max_order = @max_order,\n    \
+                    \      data_frequency = @data_granularity_unit,\n          holiday_region\
+                    \ = 'GLOBAL',\n          clean_spikes_and_dips = True,\n     \
+                    \     adjust_step_changes = True,\n          decompose_time_series\
+                    \ = True\n      ) AS\n      SELECT\n        {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
+                    \        {{$.inputs.parameters['pipelinechannel--time_column']}},\n\
+                    \        {{$.inputs.parameters['pipelinechannel--target_column']}},\n\
+                    \      FROM `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}`\n\
+                    \      WHERE\n        UPPER(split__{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}})\
+                    \ IN UNNEST(@splits)\n        AND TIMESTAMP({{$.inputs.parameters['pipelinechannel--time_column']}})\
+                    \ < @start_time\n  "
+              query_parameters:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-serialized-query-parameters-3
+          taskInfo:
+            name: create-serving-model
+        bigquery-list-rows:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-list-rows
+          dependentTasks:
+          - bigquery-query-job
+          - get-table-location
+          inputs:
+            artifacts:
+              table:
+                taskOutputArtifact:
+                  outputArtifactKey: destination_table
+                  producerTask: bigquery-query-job
+            parameters:
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: bigquery-list-rows
+        bigquery-list-rows-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-list-rows-2
+          dependentTasks:
+          - bigquery-query-job-4
+          - get-table-location
+          inputs:
+            artifacts:
+              table:
+                taskOutputArtifact:
+                  outputArtifactKey: destination_table
+                  producerTask: bigquery-query-job-4
+            parameters:
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: bigquery-list-rows-2
+        bigquery-query-job:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-query-job
+          dependentTasks:
+          - bigquery-create-dataset-2
+          - build-job-configuration-query
+          - build-serialized-query-parameters
+          - get-fte-suffix
+          - get-table-location
+          inputs:
+            parameters:
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              job_configuration_query:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-job-configuration-query
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--data_granularity_unit:
+                componentInputParameter: pipelinechannel--data_granularity_unit
+              pipelinechannel--get-fte-suffix-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-fte-suffix
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              pipelinechannel--time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n      WITH\n        time_series_windows AS (\n    \
+                    \      SELECT\n             FIRST_VALUE({{$.inputs.parameters['pipelinechannel--time_column']}})\
+                    \ OVER (horizon) AS start_time,\n             COUNT(*) OVER (horizon)\
+                    \ AS count,\n             FIRST_VALUE(window__{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}})\
+                    \ OVER (horizon) AS window__{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}},\n\
+                    \           FROM `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}`\n\
+                    \           WHERE UPPER(split__{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}})\
+                    \ IN UNNEST(@splits)\n           WINDOW horizon AS (\n       \
+                    \      PARTITION BY {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\n\
+                    \             ORDER BY {{$.inputs.parameters['pipelinechannel--time_column']}}\n\
+                    \             ROWS BETWEEN 0 PRECEDING AND @forecast_horizon FOLLOWING)\n\
+                    \        )\n      SELECT\n        start_time,\n        TIMESTAMP(DATETIME_ADD(\n\
+                    \          DATETIME(start_time),\n          INTERVAL @forecast_horizon\
+                    \ {{$.inputs.parameters['pipelinechannel--data_granularity_unit']}}\n\
+                    \        )) AS end_time,\n        SUM(count) AS count,\n     \
+                    \   ROW_NUMBER() OVER () AS window_number,\n      FROM time_series_windows\n\
+                    \      WHERE window__{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}\n\
+                    \      GROUP BY start_time\n  "
+              query_parameters:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-serialized-query-parameters
+          taskInfo:
+            name: create-eval-windows-table
+        bigquery-query-job-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-query-job-2
+          dependentTasks:
+          - bigquery-create-dataset
+          - get-table-location
+          inputs:
+            parameters:
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--bigquery-create-dataset-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--bigquery-create-dataset-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n            CREATE TABLE `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}.metrics`\
+                    \ (\n              predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}}\
+                    \ TIMESTAMP,\n              MAE FLOAT64,\n              MSE FLOAT64,\n\
+                    \              MAPE FLOAT64,\n              prediction_count INT64\n\
+                    \            )\n        "
+          taskInfo:
+            name: create-tmp-metrics-table
+        bigquery-query-job-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-query-job-3
+          dependentTasks:
+          - bigquery-create-dataset
+          - get-table-location
+          inputs:
+            parameters:
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--bigquery-create-dataset-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--bigquery-create-dataset-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--target_column:
+                componentInputParameter: pipelinechannel--target_column
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              pipelinechannel--time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n            CREATE TABLE `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}.evaluated_examples`\
+                    \ (\n              {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\
+                    \ STRING,\n              {{$.inputs.parameters['pipelinechannel--time_column']}}\
+                    \ TIMESTAMP,\n              predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}}\
+                    \ TIMESTAMP,\n              {{$.inputs.parameters['pipelinechannel--target_column']}}\
+                    \ FLOAT64,\n              predicted_{{$.inputs.parameters['pipelinechannel--target_column']}}\
+                    \ STRUCT<value FLOAT64>\n            )\n        "
+          taskInfo:
+            name: create-evaluated-examples-table
+        bigquery-query-job-4:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-query-job-4
+          dependentTasks:
+          - build-job-configuration-query-5
+          - for-loop-2
+          - get-table-location
+          - table-to-uri
+          inputs:
+            parameters:
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              job_configuration_query:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-job-configuration-query-5
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--table-to-uri-uri:
+                taskOutputParameter:
+                  outputParameterKey: uri
+                  producerTask: table-to-uri
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n      SELECT\n        SUM(MAE * prediction_count) /\
+                    \ SUM(prediction_count) AS MAE,\n        SQRT(SUM(MSE * prediction_count)\
+                    \ / SUM(prediction_count)) AS RMSE,\n        SUM(MAPE * prediction_count)\
+                    \ / SUM(prediction_count) AS MAPE,\n      FROM `{{$.inputs.parameters['pipelinechannel--table-to-uri-uri']}}`\n\
+                    \  "
+          taskInfo:
+            name: create-backtest-table
+        bigquery-query-job-5:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bigquery-query-job-5
+          dependentTasks:
+          - build-job-configuration-query-6
+          - for-loop-2
+          - get-table-location
+          - table-to-uri-2
+          inputs:
+            parameters:
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              job_configuration_query:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-job-configuration-query-6
+              location:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--table-to-uri-2-uri:
+                taskOutputParameter:
+                  outputParameterKey: uri
+                  producerTask: table-to-uri-2
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: SELECT * FROM `{{$.inputs.parameters['pipelinechannel--table-to-uri-2-uri']}}`
+          taskInfo:
+            name: export-evaluated-examples-table
+        build-job-configuration-query:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-job-configuration-query
+          dependentTasks:
+          - bigquery-create-dataset
+          inputs:
+            parameters:
+              dataset_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
+              pipelinechannel--bigquery-create-dataset-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--bigquery-create-dataset-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset
+              project_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}'
+              table_id:
+                runtimeValue:
+                  constant: windows
+          taskInfo:
+            name: build-job-configuration-query
+        build-job-configuration-query-5:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-job-configuration-query-5
+          dependentTasks:
+          - bigquery-create-dataset
+          - cond
+          inputs:
+            parameters:
+              dataset_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
+              pipelinechannel--bigquery-create-dataset-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--bigquery-create-dataset-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--cond-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: cond
+              project_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}'
+              table_id:
+                runtimeValue:
+                  constant: final_metrics
+              write_disposition:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--cond-Output'']}}'
+          taskInfo:
+            name: build-job-configuration-query-5
+        build-job-configuration-query-6:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-job-configuration-query-6
+          dependentTasks:
+          - bigquery-create-dataset-2
+          - cond
+          inputs:
+            parameters:
+              dataset_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-dataset_id'']}}'
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--cond-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: cond
+              project_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-project_id'']}}'
+              table_id:
+                runtimeValue:
+                  constant: evaluated_examples
+              write_disposition:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--cond-Output'']}}'
+          taskInfo:
+            name: build-job-configuration-query-6
+        build-serialized-query-parameters:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-serialized-query-parameters
+          inputs:
+            parameters:
+              forecast_horizon:
+                componentInputParameter: pipelinechannel--forecast_horizon
+              forecast_horizon_off_by_one:
+                runtimeValue:
+                  constant: 1.0
+              splits:
+                runtimeValue:
+                  constant:
+                  - TEST
+          taskInfo:
+            name: build-serialized-query-parameters
+        build-serialized-query-parameters-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-serialized-query-parameters-3
+          inputs:
+            parameters:
+              data_granularity_unit:
+                componentInputParameter: pipelinechannel--data_granularity_unit
+              forecast_horizon:
+                componentInputParameter: pipelinechannel--forecast_horizon
+              max_order:
+                componentInputParameter: pipelinechannel--max_order
+              splits:
+                runtimeValue:
+                  constant:
+                  - TRAIN
+                  - VALIDATE
+                  - TEST
+          taskInfo:
+            name: build-serialized-query-parameters-3
+        cond:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-cond
+          inputs:
+            parameters:
+              false_str:
+                runtimeValue:
+                  constant: WRITE_EMPTY
+              predicate:
+                componentInputParameter: pipelinechannel--override_destination
+              true_str:
+                runtimeValue:
+                  constant: WRITE_TRUNCATE
+          taskInfo:
+            name: cond
+        create-metrics-artifact:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-create-metrics-artifact
+          dependentTasks:
+          - bigquery-list-rows-2
+          inputs:
+            parameters:
+              metrics_rows:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: bigquery-list-rows-2
+          taskInfo:
+            name: create-metrics-artifact
+        feature-transform-engine:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-feature-transform-engine
+          dependentTasks:
+          - bigquery-create-dataset-2
+          inputs:
+            parameters:
+              autodetect_csv_schema:
+                runtimeValue:
+                  constant: 1.0
+              bigquery_staging_full_dataset_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-dataset_id'']}}'
+              data_source_bigquery_table_path:
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
+              data_source_csv_filenames:
+                componentInputParameter: pipelinechannel--data_source_csv_filenames
+              forecasting_apply_windowing:
+                runtimeValue:
+                  constant: 0.0
+              forecasting_context_window:
+                runtimeValue:
+                  constant: 0.0
+              forecasting_forecast_horizon:
+                componentInputParameter: pipelinechannel--forecast_horizon
+              forecasting_predefined_window_column:
+                componentInputParameter: pipelinechannel--window_column
+              forecasting_time_column:
+                componentInputParameter: pipelinechannel--time_column
+              forecasting_time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+              forecasting_window_max_count:
+                componentInputParameter: pipelinechannel--window_max_count
+              forecasting_window_stride_length:
+                componentInputParameter: pipelinechannel--window_stride_length
+              location:
+                componentInputParameter: pipelinechannel--location
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset-2
+              predefined_split_key:
+                componentInputParameter: pipelinechannel--predefined_split_key
+              prediction_type:
+                runtimeValue:
+                  constant: time_series
+              project:
+                componentInputParameter: pipelinechannel--project
+              root_dir:
+                componentInputParameter: pipelinechannel--root_dir
+              target_column:
+                componentInputParameter: pipelinechannel--target_column
+              test_fraction:
+                componentInputParameter: pipelinechannel--test_fraction
+              timestamp_split_key:
+                componentInputParameter: pipelinechannel--timestamp_split_key
+              training_fraction:
+                componentInputParameter: pipelinechannel--training_fraction
+              validation_fraction:
+                componentInputParameter: pipelinechannel--validation_fraction
+          taskInfo:
+            name: feature-transform-engine
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2
+          dependentTasks:
+          - bigquery-create-dataset
+          - bigquery-create-dataset-2
+          - bigquery-list-rows
+          - get-fte-suffix
+          - get-table-location
+          - table-to-uri
+          - table-to-uri-2
+          inputs:
+            parameters:
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--bigquery-create-dataset-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset
+              pipelinechannel--bigquery-list-rows-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: bigquery-list-rows
+              pipelinechannel--data_granularity_unit:
+                componentInputParameter: pipelinechannel--data_granularity_unit
+              pipelinechannel--forecast_horizon:
+                componentInputParameter: pipelinechannel--forecast_horizon
+              pipelinechannel--get-fte-suffix-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-fte-suffix
+              pipelinechannel--get-table-location-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-table-location
+              pipelinechannel--max_order:
+                componentInputParameter: pipelinechannel--max_order
+              pipelinechannel--project:
+                componentInputParameter: pipelinechannel--project
+              pipelinechannel--table-to-uri-2-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: table-to-uri-2
+              pipelinechannel--table-to-uri-2-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: table-to-uri-2
+              pipelinechannel--table-to-uri-2-table_id:
+                taskOutputParameter:
+                  outputParameterKey: table_id
+                  producerTask: table-to-uri-2
+              pipelinechannel--table-to-uri-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: table-to-uri
+              pipelinechannel--table-to-uri-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: table-to-uri
+              pipelinechannel--table-to-uri-table_id:
+                taskOutputParameter:
+                  outputParameterKey: table_id
+                  producerTask: table-to-uri
+              pipelinechannel--target_column:
+                componentInputParameter: pipelinechannel--target_column
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              pipelinechannel--time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+          iteratorPolicy:
+            parallelismLimit: 50
+          parameterIterator:
+            itemInput: pipelinechannel--bigquery-list-rows-Output-loop-item
+            items:
+              inputParameter: pipelinechannel--bigquery-list-rows-Output
+          taskInfo:
+            name: for-loop-2
+        get-fte-suffix:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-get-fte-suffix
+          dependentTasks:
+          - bigquery-create-dataset-2
+          - feature-transform-engine
+          inputs:
+            parameters:
+              bigquery_staging_full_dataset_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-dataset_id'']}}'
+              fte_table:
+                runtimeValue:
+                  constant: fte_time_series_output
+              location:
+                componentInputParameter: pipelinechannel--location
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                taskOutputParameter:
+                  outputParameterKey: dataset_id
+                  producerTask: bigquery-create-dataset-2
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                taskOutputParameter:
+                  outputParameterKey: project_id
+                  producerTask: bigquery-create-dataset-2
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: get-fte-suffix
+        get-table-location:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-get-table-location
+          inputs:
+            parameters:
+              default_location:
+                componentInputParameter: pipelinechannel--location
+              project:
+                componentInputParameter: pipelinechannel--project
+              table:
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
+          taskInfo:
+            name: get-table-location
+        maybe-replace-with-default:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-maybe-replace-with-default
+          inputs:
+            parameters:
+              default:
+                runtimeValue:
+                  constant: export_{{$.pipeline_job_uuid}}
+              value:
+                componentInputParameter: pipelinechannel--bigquery_destination_uri
+          taskInfo:
+            name: maybe-replace-with-default
+        table-to-uri:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-table-to-uri
+          dependentTasks:
+          - bigquery-query-job-2
+          inputs:
+            artifacts:
+              table:
+                taskOutputArtifact:
+                  outputArtifactKey: destination_table
+                  producerTask: bigquery-query-job-2
+          taskInfo:
+            name: table-to-uri
+        table-to-uri-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-table-to-uri-2
+          dependentTasks:
+          - bigquery-query-job-3
+          inputs:
+            artifacts:
+              table:
+                taskOutputArtifact:
+                  outputArtifactKey: destination_table
+                  producerTask: bigquery-query-job-3
+          taskInfo:
+            name: table-to-uri-2
+        validate-inputs:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-validate-inputs
+          inputs:
+            parameters:
+              bigquery_destination_uri:
+                componentInputParameter: pipelinechannel--bigquery_destination_uri
+              data_source_bigquery_table_path:
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
+              data_source_csv_filenames:
+                componentInputParameter: pipelinechannel--data_source_csv_filenames
+              predefined_split_key:
+                componentInputParameter: pipelinechannel--predefined_split_key
+              target_column:
+                componentInputParameter: pipelinechannel--target_column
+              test_fraction:
+                componentInputParameter: pipelinechannel--test_fraction
+              time_column:
+                componentInputParameter: pipelinechannel--time_column
+              time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+              timestamp_split_key:
+                componentInputParameter: pipelinechannel--timestamp_split_key
+              training_fraction:
+                componentInputParameter: pipelinechannel--training_fraction
+              validation_fraction:
+                componentInputParameter: pipelinechannel--validation_fraction
+              window_column:
+                componentInputParameter: pipelinechannel--window_column
+              window_max_count:
+                componentInputParameter: pipelinechannel--window_max_count
+              window_stride_length:
+                componentInputParameter: pipelinechannel--window_stride_length
+          taskInfo:
+            name: validate-inputs
+    inputDefinitions:
+      parameters:
+        pipelinechannel--bigquery_destination_uri:
+          parameterType: STRING
+        pipelinechannel--data_granularity_unit:
+          parameterType: STRING
+        pipelinechannel--data_source_bigquery_table_path:
+          parameterType: STRING
+        pipelinechannel--data_source_csv_filenames:
+          parameterType: STRING
+        pipelinechannel--encryption_spec_key_name:
+          parameterType: STRING
+        pipelinechannel--forecast_horizon:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--max_order:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--override_destination:
+          parameterType: BOOLEAN
+        pipelinechannel--predefined_split_key:
+          parameterType: STRING
+        pipelinechannel--project:
+          parameterType: STRING
+        pipelinechannel--root_dir:
+          parameterType: STRING
+        pipelinechannel--target_column:
+          parameterType: STRING
+        pipelinechannel--test_fraction:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--time_column:
+          parameterType: STRING
+        pipelinechannel--time_series_identifier_column:
+          parameterType: STRING
+        pipelinechannel--timestamp_split_key:
+          parameterType: STRING
+        pipelinechannel--training_fraction:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--validation_fraction:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--window_column:
+          parameterType: STRING
+        pipelinechannel--window_max_count:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--window_stride_length:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        create-metrics-artifact-evaluation_metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-feature-transform-engine:
+    executorLabel: exec-feature-transform-engine
+    inputDefinitions:
+      parameters:
+        autodetect_csv_schema:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        bigquery_staging_full_dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        data_source_bigquery_table_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        data_source_csv_filenames:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_disk_size_gb:
+          defaultValue: 40.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_machine_type:
+          defaultValue: n1-standard-16
+          isOptional: true
+          parameterType: STRING
+        dataflow_max_num_workers:
+          defaultValue: 25.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_service_account:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_subnetwork:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_use_public_ips:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        dataset_level_custom_transformation_definitions:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        dataset_level_transformations:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        feature_selection_algorithm:
+          defaultValue: AMI
+          isOptional: true
+          parameterType: STRING
+        forecasting_apply_windowing:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        forecasting_available_at_forecast_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_context_window:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecasting_forecast_horizon:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecasting_predefined_window_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_time_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_time_series_attribute_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_time_series_identifier_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_unavailable_at_forecast_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_window_max_count:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecasting_window_stride_length:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        legacy_transformations_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        materialized_examples_format:
+          defaultValue: tfrecords_gzip
+          isOptional: true
+          parameterType: STRING
+        max_selected_features:
+          defaultValue: 1000.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        model_type:
+          isOptional: true
+          parameterType: STRING
+        predefined_split_key:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        prediction_type:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        root_dir:
+          parameterType: STRING
+        run_distill:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        run_feature_selection:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        stratified_split_key:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        target_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        test_fraction:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        tf_auto_transform_features:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        tf_custom_transformation_definitions:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        tf_transform_execution_engine:
+          defaultValue: dataflow
+          isOptional: true
+          parameterType: STRING
+        tf_transformations_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        timestamp_split_key:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        training_fraction:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        validation_fraction:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        weight_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        dataset_stats:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        feature_ranking:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        instance_schema:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        materialized_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        training_schema:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        transform_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        bigquery_downsampled_test_split_uri:
+          parameterType: STRING
+        bigquery_test_split_uri:
+          parameterType: STRING
+        gcp_resources:
+          parameterType: STRING
+        split_example_counts:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      tasks:
+        build-job-configuration-query-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-job-configuration-query-2
+          dependentTasks:
+          - get-window-query-priority
+          inputs:
+            parameters:
+              pipelinechannel--get-window-query-priority-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-window-query-priority
+              priority:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--get-window-query-priority-Output'']}}'
+          taskInfo:
+            name: build-job-configuration-query-2
+        build-job-configuration-query-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-job-configuration-query-3
+          dependentTasks:
+          - get-window-query-priority
+          inputs:
+            parameters:
+              dataset_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-dataset_id'']}}'
+              pipelinechannel--get-window-query-priority-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-window-query-priority
+              pipelinechannel--table-to-uri-dataset_id:
+                componentInputParameter: pipelinechannel--table-to-uri-dataset_id
+              pipelinechannel--table-to-uri-project_id:
+                componentInputParameter: pipelinechannel--table-to-uri-project_id
+              pipelinechannel--table-to-uri-table_id:
+                componentInputParameter: pipelinechannel--table-to-uri-table_id
+              priority:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--get-window-query-priority-Output'']}}'
+              project_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-project_id'']}}'
+              table_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-table_id'']}}'
+              write_disposition:
+                runtimeValue:
+                  constant: WRITE_APPEND
+          taskInfo:
+            name: build-job-configuration-query-3
+        build-job-configuration-query-4:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-job-configuration-query-4
+          dependentTasks:
+          - get-window-query-priority
+          inputs:
+            parameters:
+              dataset_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-dataset_id'']}}'
+              pipelinechannel--get-window-query-priority-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-window-query-priority
+              pipelinechannel--table-to-uri-2-dataset_id:
+                componentInputParameter: pipelinechannel--table-to-uri-2-dataset_id
+              pipelinechannel--table-to-uri-2-project_id:
+                componentInputParameter: pipelinechannel--table-to-uri-2-project_id
+              pipelinechannel--table-to-uri-2-table_id:
+                componentInputParameter: pipelinechannel--table-to-uri-2-table_id
+              priority:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--get-window-query-priority-Output'']}}'
+              project_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-project_id'']}}'
+              table_id:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-table_id'']}}'
+              write_disposition:
+                runtimeValue:
+                  constant: WRITE_APPEND
+          taskInfo:
+            name: build-job-configuration-query-4
+        build-serialized-query-parameters-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-build-serialized-query-parameters-2
+          inputs:
+            parameters:
+              data_granularity_unit:
+                componentInputParameter: pipelinechannel--data_granularity_unit
+              forecast_horizon:
+                componentInputParameter: pipelinechannel--forecast_horizon
+              max_order:
+                componentInputParameter: pipelinechannel--max_order
+              splits:
+                runtimeValue:
+                  constant:
+                  - TRAIN
+                  - VALIDATE
+                  - TEST
+              window:
+                componentInputParameter: pipelinechannel--bigquery-list-rows-Output-loop-item
+          taskInfo:
+            name: build-serialized-query-parameters-2
+        get-value:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-get-value
+          inputs:
+            parameters:
+              d:
+                componentInputParameter: pipelinechannel--bigquery-list-rows-Output-loop-item
+              key:
+                runtimeValue:
+                  constant: window_number
+          taskInfo:
+            name: get_window_number
+        get-window-query-priority:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-get-window-query-priority
+          inputs:
+            parameters:
+              max_interactive:
+                runtimeValue:
+                  constant: 50.0
+              window:
+                componentInputParameter: pipelinechannel--bigquery-list-rows-Output-loop-item
+          taskInfo:
+            name: get-window-query-priority
+        query-with-retry:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-query-with-retry
+          dependentTasks:
+          - build-job-configuration-query-2
+          - build-serialized-query-parameters-2
+          - get-value
+          inputs:
+            parameters:
+              destination_uri:
+                runtimeValue:
+                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}.model_{{$.inputs.parameters[''pipelinechannel--get-value-Output'']}}'
+              job_configuration_query:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-job-configuration-query-2
+              location:
+                componentInputParameter: pipelinechannel--get-table-location-Output
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-2-dataset_id
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-2-project_id
+              pipelinechannel--bigquery-create-dataset-dataset_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-dataset_id
+              pipelinechannel--bigquery-create-dataset-project_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-project_id
+              pipelinechannel--get-fte-suffix-Output:
+                componentInputParameter: pipelinechannel--get-fte-suffix-Output
+              pipelinechannel--get-value-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-value
+              pipelinechannel--target_column:
+                componentInputParameter: pipelinechannel--target_column
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              pipelinechannel--time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n      CREATE MODEL `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}.model_{{$.inputs.parameters['pipelinechannel--get-value-Output']}}`\n\
+                    \      OPTIONS (\n          model_type = 'ARIMA_PLUS',\n     \
+                    \     time_series_timestamp_col = '{{$.inputs.parameters['pipelinechannel--time_column']}}',\n\
+                    \          time_series_id_col = '{{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}',\n\
+                    \          time_series_data_col = '{{$.inputs.parameters['pipelinechannel--target_column']}}',\n\
+                    \          horizon = @forecast_horizon,\n          auto_arima\
+                    \ = True,\n          auto_arima_max_order = @max_order,\n    \
+                    \      data_frequency = @data_granularity_unit,\n          holiday_region\
+                    \ = 'GLOBAL',\n          clean_spikes_and_dips = True,\n     \
+                    \     adjust_step_changes = True,\n          decompose_time_series\
+                    \ = True\n      ) AS\n      SELECT\n        {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
+                    \        {{$.inputs.parameters['pipelinechannel--time_column']}},\n\
+                    \        {{$.inputs.parameters['pipelinechannel--target_column']}},\n\
+                    \      FROM `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}`\n\
+                    \      WHERE\n        UPPER(split__{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}})\
+                    \ IN UNNEST(@splits)\n        AND TIMESTAMP({{$.inputs.parameters['pipelinechannel--time_column']}})\
+                    \ < @start_time\n  "
+              query_parameters:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-serialized-query-parameters-2
+          taskInfo:
+            name: create-eval-model
+        query-with-retry-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-query-with-retry-2
+          dependentTasks:
+          - build-job-configuration-query-3
+          - build-serialized-query-parameters-2
+          - query-with-retry
+          inputs:
+            parameters:
+              job_configuration_query:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-job-configuration-query-3
+              location:
+                componentInputParameter: pipelinechannel--get-table-location-Output
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-2-dataset_id
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-2-project_id
+              pipelinechannel--forecast_horizon:
+                componentInputParameter: pipelinechannel--forecast_horizon
+              pipelinechannel--get-fte-suffix-Output:
+                componentInputParameter: pipelinechannel--get-fte-suffix-Output
+              pipelinechannel--query-with-retry-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: query-with-retry
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n      SELECT\n        @start_time AS predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}},\n\
+                    \        AVG(mean_absolute_error) AS MAE,\n        AVG(mean_squared_error)\
+                    \ AS MSE,\n        AVG(mean_absolute_percentage_error) AS MAPE,\n\
+                    \        @prediction_count AS prediction_count,\n      FROM ML.EVALUATE(\n\
+                    \        MODEL `{{$.inputs.parameters['pipelinechannel--query-with-retry-Output']}}`,\n\
+                    \        TABLE `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}`,\n\
+                    \        STRUCT(True AS perform_aggregation, {{$.inputs.parameters['pipelinechannel--forecast_horizon']}}\
+                    \ as horizon))\n  "
+              query_parameters:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-serialized-query-parameters-2
+          taskInfo:
+            name: append-evaluation-metrics
+        query-with-retry-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-query-with-retry-3
+          dependentTasks:
+          - build-job-configuration-query-4
+          - build-serialized-query-parameters-2
+          - query-with-retry
+          inputs:
+            parameters:
+              job_configuration_query:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-job-configuration-query-4
+              location:
+                componentInputParameter: pipelinechannel--get-table-location-Output
+              pipelinechannel--bigquery-create-dataset-2-dataset_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-2-dataset_id
+              pipelinechannel--bigquery-create-dataset-2-project_id:
+                componentInputParameter: pipelinechannel--bigquery-create-dataset-2-project_id
+              pipelinechannel--forecast_horizon:
+                componentInputParameter: pipelinechannel--forecast_horizon
+              pipelinechannel--get-fte-suffix-Output:
+                componentInputParameter: pipelinechannel--get-fte-suffix-Output
+              pipelinechannel--query-with-retry-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: query-with-retry
+              pipelinechannel--target_column:
+                componentInputParameter: pipelinechannel--target_column
+              pipelinechannel--time_column:
+                componentInputParameter: pipelinechannel--time_column
+              pipelinechannel--time_series_identifier_column:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+              project:
+                componentInputParameter: pipelinechannel--project
+              query:
+                runtimeValue:
+                  constant: "\n      SELECT\n        CAST(actual.{{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\
+                    \ AS STRING)\n          AS {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
+                    \        TIMESTAMP(actual.{{$.inputs.parameters['pipelinechannel--time_column']}})\
+                    \ AS {{$.inputs.parameters['pipelinechannel--time_column']}},\n\
+                    \        @start_time AS predicted_on_{{$.inputs.parameters['pipelinechannel--time_column']}},\n\
+                    \        CAST(actual.{{$.inputs.parameters['pipelinechannel--target_column']}}\
+                    \ AS FLOAT64) AS {{$.inputs.parameters['pipelinechannel--target_column']}},\n\
+                    \        STRUCT(pred.forecast_value AS value) AS predicted_{{$.inputs.parameters['pipelinechannel--target_column']}},\n\
+                    \      FROM\n        ML.FORECAST(\n          MODEL `{{$.inputs.parameters['pipelinechannel--query-with-retry-Output']}}`,\n\
+                    \          STRUCT({{$.inputs.parameters['pipelinechannel--forecast_horizon']}}\
+                    \ AS horizon)) pred\n      JOIN `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-2-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}`\
+                    \ actual\n         ON\n           pred.forecast_timestamp = TIMESTAMP(actual.{{$.inputs.parameters['pipelinechannel--time_column']}})\n\
+                    \           AND pred.{{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\n\
+                    \             = actual.{{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\n\
+                    \  "
+              query_parameters:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: build-serialized-query-parameters-2
+          taskInfo:
+            name: append-evaluated-examples
+    inputDefinitions:
+      parameters:
+        pipelinechannel--bigquery-create-dataset-2-dataset_id:
+          parameterType: STRING
+        pipelinechannel--bigquery-create-dataset-2-project_id:
+          parameterType: STRING
+        pipelinechannel--bigquery-create-dataset-dataset_id:
+          parameterType: STRING
+        pipelinechannel--bigquery-create-dataset-project_id:
+          parameterType: STRING
+        pipelinechannel--bigquery-list-rows-Output:
+          parameterType: LIST
+        pipelinechannel--bigquery-list-rows-Output-loop-item:
+          parameterType: STRUCT
+        pipelinechannel--data_granularity_unit:
+          parameterType: STRING
+        pipelinechannel--forecast_horizon:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--get-fte-suffix-Output:
+          parameterType: STRING
+        pipelinechannel--get-table-location-Output:
+          parameterType: STRING
+        pipelinechannel--max_order:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--project:
+          parameterType: STRING
+        pipelinechannel--table-to-uri-2-dataset_id:
+          parameterType: STRING
+        pipelinechannel--table-to-uri-2-project_id:
+          parameterType: STRING
+        pipelinechannel--table-to-uri-2-table_id:
+          parameterType: STRING
+        pipelinechannel--table-to-uri-dataset_id:
+          parameterType: STRING
+        pipelinechannel--table-to-uri-project_id:
+          parameterType: STRING
+        pipelinechannel--table-to-uri-table_id:
+          parameterType: STRING
+        pipelinechannel--target_column:
+          parameterType: STRING
+        pipelinechannel--time_column:
+          parameterType: STRING
+        pipelinechannel--time_series_identifier_column:
+          parameterType: STRING
+  comp-get-fte-suffix:
+    executorLabel: exec-get-fte-suffix
+    inputDefinitions:
+      parameters:
+        bigquery_staging_full_dataset_id:
+          parameterType: STRING
+        fte_table:
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-get-table-location:
+    executorLabel: exec-get-table-location
+    inputDefinitions:
+      parameters:
+        default_location:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        table:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-get-value:
+    executorLabel: exec-get-value
+    inputDefinitions:
+      parameters:
+        d:
+          parameterType: STRUCT
+        key:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-get-window-query-priority:
+    executorLabel: exec-get-window-query-priority
+    inputDefinitions:
+      parameters:
+        max_interactive:
+          defaultValue: 100.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        window:
+          parameterType: STRUCT
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-maybe-replace-with-default:
+    executorLabel: exec-maybe-replace-with-default
+    inputDefinitions:
+      parameters:
+        default:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-query-with-retry:
+    executorLabel: exec-query-with-retry
+    inputDefinitions:
+      parameters:
+        destination_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          parameterType: STRING
+        max_retry_count:
+          defaultValue: 5.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          isOptional: true
+          parameterType: LIST
+        retry_wait_seconds:
+          defaultValue: 10.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-query-with-retry-2:
+    executorLabel: exec-query-with-retry-2
+    inputDefinitions:
+      parameters:
+        destination_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          parameterType: STRING
+        max_retry_count:
+          defaultValue: 5.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          isOptional: true
+          parameterType: LIST
+        retry_wait_seconds:
+          defaultValue: 10.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-query-with-retry-3:
+    executorLabel: exec-query-with-retry-3
+    inputDefinitions:
+      parameters:
+        destination_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        job_configuration_query:
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          parameterType: STRING
+        max_retry_count:
+          defaultValue: 5.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        project:
+          parameterType: STRING
+        query:
+          parameterType: STRING
+        query_parameters:
+          isOptional: true
+          parameterType: LIST
+        retry_wait_seconds:
+          defaultValue: 10.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-table-to-uri:
+    executorLabel: exec-table-to-uri
+    inputDefinitions:
+      artifacts:
+        table:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        use_bq_prefix:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+    outputDefinitions:
+      parameters:
+        dataset_id:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+        table_id:
+          parameterType: STRING
+        uri:
+          parameterType: STRING
+  comp-table-to-uri-2:
+    executorLabel: exec-table-to-uri-2
+    inputDefinitions:
+      artifacts:
+        table:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        use_bq_prefix:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+    outputDefinitions:
+      parameters:
+        dataset_id:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+        table_id:
+          parameterType: STRING
+        uri:
+          parameterType: STRING
+  comp-validate-inputs:
+    executorLabel: exec-validate-inputs
+    inputDefinitions:
+      parameters:
+        bigquery_destination_uri:
+          isOptional: true
+          parameterType: STRING
+        data_granularity_unit:
+          isOptional: true
+          parameterType: STRING
+        data_source_bigquery_table_path:
+          isOptional: true
+          parameterType: STRING
+        data_source_csv_filenames:
+          isOptional: true
+          parameterType: STRING
+        optimization_objective:
+          isOptional: true
+          parameterType: STRING
+        predefined_split_key:
+          isOptional: true
+          parameterType: STRING
+        source_model_uri:
+          isOptional: true
+          parameterType: STRING
+        target_column:
+          isOptional: true
+          parameterType: STRING
+        test_fraction:
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        time_column:
+          isOptional: true
+          parameterType: STRING
+        time_series_identifier_column:
+          isOptional: true
+          parameterType: STRING
+        timestamp_split_key:
+          isOptional: true
+          parameterType: STRING
+        training_fraction:
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        validation_fraction:
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        window_column:
+          isOptional: true
+          parameterType: STRING
+        window_max_count:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        window_stride_length:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-bigquery-create-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
+          \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
+          \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
+          \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
+          \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  ref\
+          \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
+          \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
+          \   ref.project, ref.dataset_id)\n\n"
+        image: python:3.7-slim
+    exec-bigquery-create-dataset-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
+          \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
+          \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
+          \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
+          \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  ref\
+          \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
+          \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
+          \   ref.project, ref.dataset_id)\n\n"
+        image: python:3.7-slim
+    exec-bigquery-create-model-job:
+      container:
+        args:
+        - --type
+        - BigqueryCreateModelJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --payload
+        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+        - --job_configuration_query_override
+        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+          "}"]}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.bigquery.create_model.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
+    exec-bigquery-delete-dataset-with-prefix:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_delete_dataset_with_prefix
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_delete_dataset_with_prefix(\n    project: str,\n   \
+          \ dataset_prefix: str,\n    delete_contents: bool = False,\n) -> None:\n\
+          \  \"\"\"Deletes all BigQuery datasets matching the given prefix.\"\"\"\n\
+          \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project)\n  for dataset in client.list_datasets(project=project):\n\
+          \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
+          \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
+          \n"
+        image: python:3.7-slim
+    exec-bigquery-list-rows:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_list_rows
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_list_rows(\n    project: str,\n    location: str,\n\
+          \    table: dsl.Input[dsl.Artifact],\n) -> List[Dict[str, str]]:\n  \"\"\
+          \"Lists the rows of the given BigQuery table.\n\n  Args:\n    project: The\
+          \ GCP project.\n    location: The GCP region.\n    table: A google.BQTable\
+          \ artifact.\n\n  Returns:\n    A list of dicts representing BigQuery rows.\
+          \ Rows are keyed by column, and\n    all values are stored as strings.\n\
+          \  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  metadata\
+          \ = table.metadata\n  rows = client.list_rows('.'.join(\n      [metadata['projectId'],\
+          \ metadata['datasetId'], metadata['tableId']]))\n  result = []\n  for row\
+          \ in rows:\n    result.append({col: str(value) for col, value in dict(row).items()})\n\
+          \  return result\n\n"
+        image: python:3.7-slim
+    exec-bigquery-list-rows-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - bigquery_list_rows
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef bigquery_list_rows(\n    project: str,\n    location: str,\n\
+          \    table: dsl.Input[dsl.Artifact],\n) -> List[Dict[str, str]]:\n  \"\"\
+          \"Lists the rows of the given BigQuery table.\n\n  Args:\n    project: The\
+          \ GCP project.\n    location: The GCP region.\n    table: A google.BQTable\
+          \ artifact.\n\n  Returns:\n    A list of dicts representing BigQuery rows.\
+          \ Rows are keyed by column, and\n    all values are stored as strings.\n\
+          \  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  metadata\
+          \ = table.metadata\n  rows = client.list_rows('.'.join(\n      [metadata['projectId'],\
+          \ metadata['datasetId'], metadata['tableId']]))\n  result = []\n  for row\
+          \ in rows:\n    result.append({col: str(value) for col, value in dict(row).items()})\n\
+          \  return result\n\n"
+        image: python:3.7-slim
+    exec-bigquery-query-job:
+      container:
+        args:
+        - --type
+        - BigqueryQueryJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --payload
+        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+        - --job_configuration_query_override
+        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", "}"]}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
+    exec-bigquery-query-job-2:
+      container:
+        args:
+        - --type
+        - BigqueryQueryJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --payload
+        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+        - --job_configuration_query_override
+        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", "}"]}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
+    exec-bigquery-query-job-3:
+      container:
+        args:
+        - --type
+        - BigqueryQueryJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --payload
+        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+        - --job_configuration_query_override
+        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", "}"]}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
+    exec-bigquery-query-job-4:
+      container:
+        args:
+        - --type
+        - BigqueryQueryJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --payload
+        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+        - --job_configuration_query_override
+        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", "}"]}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
+    exec-bigquery-query-job-5:
+      container:
+        args:
+        - --type
+        - BigqueryQueryJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --payload
+        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+        - --job_configuration_query_override
+        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", "}"]}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.33
+    exec-build-job-configuration-query:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_job_configuration_query
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+          \  return config\n\n"
+        image: python:3.7-slim
+    exec-build-job-configuration-query-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_job_configuration_query
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+          \  return config\n\n"
+        image: python:3.7-slim
+    exec-build-job-configuration-query-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_job_configuration_query
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+          \  return config\n\n"
+        image: python:3.7-slim
+    exec-build-job-configuration-query-4:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_job_configuration_query
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+          \  return config\n\n"
+        image: python:3.7-slim
+    exec-build-job-configuration-query-5:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_job_configuration_query
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+          \  return config\n\n"
+        image: python:3.7-slim
+    exec-build-job-configuration-query-6:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_job_configuration_query
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+          \  return config\n\n"
+        image: python:3.7-slim
+    exec-build-serialized-query-parameters:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_serialized_query_parameters
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_serialized_query_parameters(\n    forecast_horizon: Optional[int]\
+          \ = None,\n    forecast_horizon_off_by_one: bool = False,\n    data_granularity_unit:\
+          \ Optional[str] = None,\n    splits: Optional[List[str]] = None,\n    window:\
+          \ Optional[Dict[str, str]] = None,\n    max_order: Optional[int] = None,\n\
+          ) -> list:  # pylint: disable=g-bare-generic\n  \"\"\"Creates configuration\
+          \ JSON objects for BQML queries.\n\n  All query parameters will be stored\
+          \ in a list of QueryParameter objects:\n  https://cloud.google.com/bigquery/docs/reference/rest/v2/QueryParameter\n\
+          \n  Args:\n    forecast_horizon: The number of time periods into the future\
+          \ for which\n      forecasts will be created. Future periods start after\
+          \ the latest timestamp\n      for each time series.\n    forecast_horizon_off_by_one:\
+          \ If True, subtract 1 from the forecast horizon\n      in the query parameters.\n\
+          \    data_granularity_unit: The data granularity unit. Accepted values are:\n\
+          \      minute, hour, day, week, month, year.\n    splits: Dataset splits\
+          \ to be used to train the model.\n    window: Dict containing information\
+          \ about the forecast window the model\n      should have. If no window is\
+          \ provided, the window will start after the\n      latest period in the\
+          \ available data.\n    max_order: Integer between 1 and 5 representing the\
+          \ size of the parameter\n      search space for ARIMA_PLUS. 5 would result\
+          \ in the highest accuracy model,\n      but also the longest training runtime.\n\
+          \n  Returns:\n    A list of QueryParameters.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import datetime\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  # Maps Vertex Forecasting time units to BQML time units.\n  unit_map\
+          \ = {\n      'minute': 'per_minute',\n      'hour': 'hourly',\n      'day':\
+          \ 'daily',\n      'week': 'weekly',\n      'month': 'monthly',\n      'year':\
+          \ 'yearly',\n  }\n  query_parameters = []\n  if data_granularity_unit is\
+          \ not None:\n    if data_granularity_unit.lower() not in unit_map:\n   \
+          \   raise ValueError(\n          f'{data_granularity_unit} is not a valid\
+          \ time unit. '\n          f'Must be one of: {\", \".join(unit_map.keys())}')\n\
+          \    query_parameters.append({\n        'name': 'data_granularity_unit',\n\
+          \        'parameterType': {\n            'type': 'STRING'\n        },\n\
+          \        'parameterValue': {\n            'value': unit_map[data_granularity_unit.lower()],\n\
+          \        },\n    })\n  if max_order is not None:\n    query_parameters.append({\n\
+          \        'name': 'max_order',\n        'parameterType': {\n            'type':\
+          \ 'INTEGER'\n        },\n        'parameterValue': {\n            'value':\
+          \ str(max_order)\n        },\n    })\n  if forecast_horizon is not None:\n\
+          \    if forecast_horizon_off_by_one:\n      forecast_horizon -= 1\n    query_parameters.append({\n\
+          \        'name': 'forecast_horizon',\n        'parameterType': {\n     \
+          \       'type': 'INTEGER'\n        },\n        'parameterValue': {\n   \
+          \         'value': str(forecast_horizon)\n        },\n    })\n  if splits\
+          \ is not None:\n    query_parameters.append({\n        'name': 'splits',\n\
+          \        'parameterType': {\n            'type': 'ARRAY',\n            'arrayType':\
+          \ {\n                'type': 'STRING'\n            },\n        },\n    \
+          \    'parameterValue': {\n            'arrayValues': [{\n              \
+          \  'value': split\n            } for split in splits],\n        },\n   \
+          \ })\n\n  if window is not None:\n    query_parameters.append({\n      \
+          \  'name': 'prediction_count',\n        'parameterType': {\n           \
+          \ 'type': 'INTEGER'\n        },\n        'parameterValue': {\n         \
+          \   'value': window['count']\n        },\n    })\n\n  start_time = window['start_time']\
+          \ if window else str(datetime.datetime.max)\n  query_parameters.append({\n\
+          \      'name': 'start_time',\n      'parameterType': {\n          'type':\
+          \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
+          \      },\n  })\n  return query_parameters\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-build-serialized-query-parameters-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_serialized_query_parameters
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_serialized_query_parameters(\n    forecast_horizon: Optional[int]\
+          \ = None,\n    forecast_horizon_off_by_one: bool = False,\n    data_granularity_unit:\
+          \ Optional[str] = None,\n    splits: Optional[List[str]] = None,\n    window:\
+          \ Optional[Dict[str, str]] = None,\n    max_order: Optional[int] = None,\n\
+          ) -> list:  # pylint: disable=g-bare-generic\n  \"\"\"Creates configuration\
+          \ JSON objects for BQML queries.\n\n  All query parameters will be stored\
+          \ in a list of QueryParameter objects:\n  https://cloud.google.com/bigquery/docs/reference/rest/v2/QueryParameter\n\
+          \n  Args:\n    forecast_horizon: The number of time periods into the future\
+          \ for which\n      forecasts will be created. Future periods start after\
+          \ the latest timestamp\n      for each time series.\n    forecast_horizon_off_by_one:\
+          \ If True, subtract 1 from the forecast horizon\n      in the query parameters.\n\
+          \    data_granularity_unit: The data granularity unit. Accepted values are:\n\
+          \      minute, hour, day, week, month, year.\n    splits: Dataset splits\
+          \ to be used to train the model.\n    window: Dict containing information\
+          \ about the forecast window the model\n      should have. If no window is\
+          \ provided, the window will start after the\n      latest period in the\
+          \ available data.\n    max_order: Integer between 1 and 5 representing the\
+          \ size of the parameter\n      search space for ARIMA_PLUS. 5 would result\
+          \ in the highest accuracy model,\n      but also the longest training runtime.\n\
+          \n  Returns:\n    A list of QueryParameters.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import datetime\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  # Maps Vertex Forecasting time units to BQML time units.\n  unit_map\
+          \ = {\n      'minute': 'per_minute',\n      'hour': 'hourly',\n      'day':\
+          \ 'daily',\n      'week': 'weekly',\n      'month': 'monthly',\n      'year':\
+          \ 'yearly',\n  }\n  query_parameters = []\n  if data_granularity_unit is\
+          \ not None:\n    if data_granularity_unit.lower() not in unit_map:\n   \
+          \   raise ValueError(\n          f'{data_granularity_unit} is not a valid\
+          \ time unit. '\n          f'Must be one of: {\", \".join(unit_map.keys())}')\n\
+          \    query_parameters.append({\n        'name': 'data_granularity_unit',\n\
+          \        'parameterType': {\n            'type': 'STRING'\n        },\n\
+          \        'parameterValue': {\n            'value': unit_map[data_granularity_unit.lower()],\n\
+          \        },\n    })\n  if max_order is not None:\n    query_parameters.append({\n\
+          \        'name': 'max_order',\n        'parameterType': {\n            'type':\
+          \ 'INTEGER'\n        },\n        'parameterValue': {\n            'value':\
+          \ str(max_order)\n        },\n    })\n  if forecast_horizon is not None:\n\
+          \    if forecast_horizon_off_by_one:\n      forecast_horizon -= 1\n    query_parameters.append({\n\
+          \        'name': 'forecast_horizon',\n        'parameterType': {\n     \
+          \       'type': 'INTEGER'\n        },\n        'parameterValue': {\n   \
+          \         'value': str(forecast_horizon)\n        },\n    })\n  if splits\
+          \ is not None:\n    query_parameters.append({\n        'name': 'splits',\n\
+          \        'parameterType': {\n            'type': 'ARRAY',\n            'arrayType':\
+          \ {\n                'type': 'STRING'\n            },\n        },\n    \
+          \    'parameterValue': {\n            'arrayValues': [{\n              \
+          \  'value': split\n            } for split in splits],\n        },\n   \
+          \ })\n\n  if window is not None:\n    query_parameters.append({\n      \
+          \  'name': 'prediction_count',\n        'parameterType': {\n           \
+          \ 'type': 'INTEGER'\n        },\n        'parameterValue': {\n         \
+          \   'value': window['count']\n        },\n    })\n\n  start_time = window['start_time']\
+          \ if window else str(datetime.datetime.max)\n  query_parameters.append({\n\
+          \      'name': 'start_time',\n      'parameterType': {\n          'type':\
+          \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
+          \      },\n  })\n  return query_parameters\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-build-serialized-query-parameters-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_serialized_query_parameters
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_serialized_query_parameters(\n    forecast_horizon: Optional[int]\
+          \ = None,\n    forecast_horizon_off_by_one: bool = False,\n    data_granularity_unit:\
+          \ Optional[str] = None,\n    splits: Optional[List[str]] = None,\n    window:\
+          \ Optional[Dict[str, str]] = None,\n    max_order: Optional[int] = None,\n\
+          ) -> list:  # pylint: disable=g-bare-generic\n  \"\"\"Creates configuration\
+          \ JSON objects for BQML queries.\n\n  All query parameters will be stored\
+          \ in a list of QueryParameter objects:\n  https://cloud.google.com/bigquery/docs/reference/rest/v2/QueryParameter\n\
+          \n  Args:\n    forecast_horizon: The number of time periods into the future\
+          \ for which\n      forecasts will be created. Future periods start after\
+          \ the latest timestamp\n      for each time series.\n    forecast_horizon_off_by_one:\
+          \ If True, subtract 1 from the forecast horizon\n      in the query parameters.\n\
+          \    data_granularity_unit: The data granularity unit. Accepted values are:\n\
+          \      minute, hour, day, week, month, year.\n    splits: Dataset splits\
+          \ to be used to train the model.\n    window: Dict containing information\
+          \ about the forecast window the model\n      should have. If no window is\
+          \ provided, the window will start after the\n      latest period in the\
+          \ available data.\n    max_order: Integer between 1 and 5 representing the\
+          \ size of the parameter\n      search space for ARIMA_PLUS. 5 would result\
+          \ in the highest accuracy model,\n      but also the longest training runtime.\n\
+          \n  Returns:\n    A list of QueryParameters.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import datetime\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  # Maps Vertex Forecasting time units to BQML time units.\n  unit_map\
+          \ = {\n      'minute': 'per_minute',\n      'hour': 'hourly',\n      'day':\
+          \ 'daily',\n      'week': 'weekly',\n      'month': 'monthly',\n      'year':\
+          \ 'yearly',\n  }\n  query_parameters = []\n  if data_granularity_unit is\
+          \ not None:\n    if data_granularity_unit.lower() not in unit_map:\n   \
+          \   raise ValueError(\n          f'{data_granularity_unit} is not a valid\
+          \ time unit. '\n          f'Must be one of: {\", \".join(unit_map.keys())}')\n\
+          \    query_parameters.append({\n        'name': 'data_granularity_unit',\n\
+          \        'parameterType': {\n            'type': 'STRING'\n        },\n\
+          \        'parameterValue': {\n            'value': unit_map[data_granularity_unit.lower()],\n\
+          \        },\n    })\n  if max_order is not None:\n    query_parameters.append({\n\
+          \        'name': 'max_order',\n        'parameterType': {\n            'type':\
+          \ 'INTEGER'\n        },\n        'parameterValue': {\n            'value':\
+          \ str(max_order)\n        },\n    })\n  if forecast_horizon is not None:\n\
+          \    if forecast_horizon_off_by_one:\n      forecast_horizon -= 1\n    query_parameters.append({\n\
+          \        'name': 'forecast_horizon',\n        'parameterType': {\n     \
+          \       'type': 'INTEGER'\n        },\n        'parameterValue': {\n   \
+          \         'value': str(forecast_horizon)\n        },\n    })\n  if splits\
+          \ is not None:\n    query_parameters.append({\n        'name': 'splits',\n\
+          \        'parameterType': {\n            'type': 'ARRAY',\n            'arrayType':\
+          \ {\n                'type': 'STRING'\n            },\n        },\n    \
+          \    'parameterValue': {\n            'arrayValues': [{\n              \
+          \  'value': split\n            } for split in splits],\n        },\n   \
+          \ })\n\n  if window is not None:\n    query_parameters.append({\n      \
+          \  'name': 'prediction_count',\n        'parameterType': {\n           \
+          \ 'type': 'INTEGER'\n        },\n        'parameterValue': {\n         \
+          \   'value': window['count']\n        },\n    })\n\n  start_time = window['start_time']\
+          \ if window else str(datetime.datetime.max)\n  query_parameters.append({\n\
+          \      'name': 'start_time',\n      'parameterType': {\n          'type':\
+          \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
+          \      },\n  })\n  return query_parameters\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-cond:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - cond
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef cond(predicate: bool, true_str: str, false_str: str) -> str:\n\
+          \  \"\"\"Returns true_str if predicate is true, else false_str.\"\"\"\n\
+          \  return true_str if predicate else false_str\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-create-metrics-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_metrics_artifact
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_metrics_artifact(\n    metrics_rows: List[Dict[str, str]],\n\
+          \    evaluation_metrics: dsl.Output[dsl.Metrics],\n) -> None:\n  \"\"\"\
+          Converts the rows of a metrics table into an Artifact.\"\"\"\n  # Use the\
+          \ Vertex Eval component's Metrics metadata naming from\n  # http://google3/third_party/py/google/cloud/aiplatform/aiplatform/metadata/schema/google/artifact_schema.py?cl=467006447&l=344\n\
+          \  metric_name_map = {\n      'MAE': 'meanAbsoluteError',\n      'RMSE':\
+          \ 'rootMeanSquaredError',\n      'MAPE': 'meanAbsolutePercentageError',\n\
+          \  }\n  metrics = {metric_name_map[k]: v for k, v in dict(metrics_rows[0]).items()}\n\
+          \  evaluation_metrics.metadata = metrics\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-feature-transform-engine:
+      container:
+        args:
+        - feature_transform_engine
+        - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
+        - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
+        - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
+        - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
+        - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
+        - '{"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}'
+        - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
+        - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
+        - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
+        - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
+        - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
+        - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
+        - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
+        - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
+        - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
+        - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
+        - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
+        - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
+        - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
+        - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
+        - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
+        - '{"Concat": ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}'
+        - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
+        - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
+        - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
+        - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
+        - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
+        - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
+        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+        - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
+          "{{$.inputs.parameters[''model_type'']}}"]}}}'
+        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+        - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
+        - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
+        - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
+        - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
+        - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+        - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
+        - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
+        - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
+        - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
+        - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
+        - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
+        - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
+        - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
+        - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
+        - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
+        - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
+        - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
+        - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
+        - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
+        - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+        - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
+        - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
+        - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
+        - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
+        - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
+        - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
+        - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
+        - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
+        - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
+        - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+        - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
+        - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
+    exec-get-fte-suffix:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_fte_suffix
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_fte_suffix(\n    project: str,\n    location: str,\n    bigquery_staging_full_dataset_id:\
+          \ str,\n    fte_table: str,\n) -> str:\n  \"\"\"Infers the FTE suffix from\
+          \ the intermediate FTE table name.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  client = bigquery.Client(project=project, location=location)\n  for\
+          \ table in client.list_tables(bigquery_staging_full_dataset_id):\n    if\
+          \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
+          \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
+          \n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-get-table-location:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_table_location
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
+          \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
+          \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
+          \    table: The BigQuery table to get a location for.\n    default_location:\
+          \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
+          \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
+          \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
+          \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
+          \  return client.get_table(table).location\n\n"
+        image: python:3.7-slim
+    exec-get-value:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_value
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_value(d: Dict[str, str], key: str) -> str:\n  return d[key]\n\
+          \n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-get-window-query-priority:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_window_query_priority
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_window_query_priority(\n    window: Dict[str, str],\n   \
+          \ max_interactive: int = 100,\n) -> str:\n  \"\"\"Returns a query priority\
+          \ depending on the window number.\"\"\"\n  if int(window['window_number'])\
+          \ <= max_interactive:\n    return 'INTERACTIVE'\n  else:\n    return 'BATCH'\n\
+          \n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-maybe-replace-with-default:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - maybe_replace_with_default
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
+          \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
+          \n  return default if not value else value\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-query-with-retry:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - query_with_retry
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef query_with_retry(\n    project: str,\n    location: str,\n  \
+          \  query: str,\n    query_parameters: Optional[list] = None,  # pylint:\
+          \ disable=g-bare-generic\n    job_configuration_query: Optional[dict] =\
+          \ None,  # pylint: disable=g-bare-generic\n    max_retry_count: int = 5,\n\
+          \    retry_wait_seconds: int = 10,  # Waits up to 4 minutes before 5th retry.\n\
+          \    destination_uri: str = '',\n) -> str:\n  \"\"\"Runs a query and retries\
+          \ on failure.\n\n  Args:\n    project: The GCP project.\n    location: The\
+          \ GCP region.\n    query: The query to run.\n    query_parameters: A list\
+          \ of query parameters.\n    job_configuration_query: Additional query job\
+          \ configurations.\n    max_retry_count: Maximum number of times to retry\
+          \ the query.\n    retry_wait_seconds: Approximate initial number of seconds\
+          \ to wait before\n      making another query attempt with exponential backoff.\n\
+          \    destination_uri: Optional BigQuery URI to output if the query succeeds.\n\
+          \n  Returns:\n    The given destination URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import logging\n  import random\n  import time\n\n  from google.api_core\
+          \ import exceptions\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  query_parameters = query_parameters or []\n  job_configuration_query\
+          \ = job_configuration_query or {}\n  client = bigquery.Client(project=project,\
+          \ location=location)\n\n  job_configuration_query['queryParameters'] = query_parameters\n\
+          \  job_config = bigquery.QueryJobConfig.from_api_repr(\n      {'query':\
+          \ job_configuration_query})\n  retry_count = 0\n  while True:\n    try:\n\
+          \      client.query(query, job_config=job_config).result()\n      break\n\
+          \    except exceptions.Forbidden as e:\n      if retry_count >= max_retry_count:\n\
+          \        logging.info('Maximum retries reached.')\n        raise\n     \
+          \ wait_time = (\n          retry_wait_seconds * (2 ** retry_count) * random.uniform(1,\
+          \ 1.5))\n      logging.info(\n          'Query failed with %s. Retrying\
+          \ after %d seconds.', e, wait_time)\n      time.sleep(wait_time)\n     \
+          \ retry_count += 1\n  return destination_uri\n\n"
+        image: python:3.7-slim
+    exec-query-with-retry-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - query_with_retry
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef query_with_retry(\n    project: str,\n    location: str,\n  \
+          \  query: str,\n    query_parameters: Optional[list] = None,  # pylint:\
+          \ disable=g-bare-generic\n    job_configuration_query: Optional[dict] =\
+          \ None,  # pylint: disable=g-bare-generic\n    max_retry_count: int = 5,\n\
+          \    retry_wait_seconds: int = 10,  # Waits up to 4 minutes before 5th retry.\n\
+          \    destination_uri: str = '',\n) -> str:\n  \"\"\"Runs a query and retries\
+          \ on failure.\n\n  Args:\n    project: The GCP project.\n    location: The\
+          \ GCP region.\n    query: The query to run.\n    query_parameters: A list\
+          \ of query parameters.\n    job_configuration_query: Additional query job\
+          \ configurations.\n    max_retry_count: Maximum number of times to retry\
+          \ the query.\n    retry_wait_seconds: Approximate initial number of seconds\
+          \ to wait before\n      making another query attempt with exponential backoff.\n\
+          \    destination_uri: Optional BigQuery URI to output if the query succeeds.\n\
+          \n  Returns:\n    The given destination URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import logging\n  import random\n  import time\n\n  from google.api_core\
+          \ import exceptions\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  query_parameters = query_parameters or []\n  job_configuration_query\
+          \ = job_configuration_query or {}\n  client = bigquery.Client(project=project,\
+          \ location=location)\n\n  job_configuration_query['queryParameters'] = query_parameters\n\
+          \  job_config = bigquery.QueryJobConfig.from_api_repr(\n      {'query':\
+          \ job_configuration_query})\n  retry_count = 0\n  while True:\n    try:\n\
+          \      client.query(query, job_config=job_config).result()\n      break\n\
+          \    except exceptions.Forbidden as e:\n      if retry_count >= max_retry_count:\n\
+          \        logging.info('Maximum retries reached.')\n        raise\n     \
+          \ wait_time = (\n          retry_wait_seconds * (2 ** retry_count) * random.uniform(1,\
+          \ 1.5))\n      logging.info(\n          'Query failed with %s. Retrying\
+          \ after %d seconds.', e, wait_time)\n      time.sleep(wait_time)\n     \
+          \ retry_count += 1\n  return destination_uri\n\n"
+        image: python:3.7-slim
+    exec-query-with-retry-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - query_with_retry
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
+          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef query_with_retry(\n    project: str,\n    location: str,\n  \
+          \  query: str,\n    query_parameters: Optional[list] = None,  # pylint:\
+          \ disable=g-bare-generic\n    job_configuration_query: Optional[dict] =\
+          \ None,  # pylint: disable=g-bare-generic\n    max_retry_count: int = 5,\n\
+          \    retry_wait_seconds: int = 10,  # Waits up to 4 minutes before 5th retry.\n\
+          \    destination_uri: str = '',\n) -> str:\n  \"\"\"Runs a query and retries\
+          \ on failure.\n\n  Args:\n    project: The GCP project.\n    location: The\
+          \ GCP region.\n    query: The query to run.\n    query_parameters: A list\
+          \ of query parameters.\n    job_configuration_query: Additional query job\
+          \ configurations.\n    max_retry_count: Maximum number of times to retry\
+          \ the query.\n    retry_wait_seconds: Approximate initial number of seconds\
+          \ to wait before\n      making another query attempt with exponential backoff.\n\
+          \    destination_uri: Optional BigQuery URI to output if the query succeeds.\n\
+          \n  Returns:\n    The given destination URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import logging\n  import random\n  import time\n\n  from google.api_core\
+          \ import exceptions\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  query_parameters = query_parameters or []\n  job_configuration_query\
+          \ = job_configuration_query or {}\n  client = bigquery.Client(project=project,\
+          \ location=location)\n\n  job_configuration_query['queryParameters'] = query_parameters\n\
+          \  job_config = bigquery.QueryJobConfig.from_api_repr(\n      {'query':\
+          \ job_configuration_query})\n  retry_count = 0\n  while True:\n    try:\n\
+          \      client.query(query, job_config=job_config).result()\n      break\n\
+          \    except exceptions.Forbidden as e:\n      if retry_count >= max_retry_count:\n\
+          \        logging.info('Maximum retries reached.')\n        raise\n     \
+          \ wait_time = (\n          retry_wait_seconds * (2 ** retry_count) * random.uniform(1,\
+          \ 1.5))\n      logging.info(\n          'Query failed with %s. Retrying\
+          \ after %d seconds.', e, wait_time)\n      time.sleep(wait_time)\n     \
+          \ retry_count += 1\n  return destination_uri\n\n"
+        image: python:3.7-slim
+    exec-table-to-uri:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - table_to_uri
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
+          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
+          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
+          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
+          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
+          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
+          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
+          \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
+          \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-table-to-uri-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - table_to_uri
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
+          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
+          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
+          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
+          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
+          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
+          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
+          \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
+          \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-validate-inputs:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_inputs
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n  \
+          \  time_series_identifier_column: Optional[str] = None,\n    target_column:\
+          \ Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str]\
+          \ = None,\n    training_fraction: Optional[float] = None,\n    validation_fraction:\
+          \ Optional[float] = None,\n    test_fraction: Optional[float] = None,\n\
+          \    predefined_split_key: Optional[str] = None,\n    timestamp_split_key:\
+          \ Optional[str] = None,\n    data_source_csv_filenames: Optional[str] =\
+          \ None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri:\
+          \ Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length:\
+          \ Optional[int] = None,\n    window_max_count: Optional[int] = None,\n \
+          \   optimization_objective: Optional[str] = None,\n    data_granularity_unit:\
+          \ Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input\
+          \ parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+          \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+          \n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
+          \  dataset_pattern = r'[a-zA-Z0-9_]+'\n  table_pattern = r'[^\\.\\:`]+'\n\
+          \  dataset_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}')\n\
+          \  table_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}[.:]{table_pattern}')\n\
+          \n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters\
+          \ = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n\
+          \  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n \
+          \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
+          \      raise ValueError(f'Invalid column name: {column}.')\n  if (bigquery_destination_uri\
+          \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
+          \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
+          \  if (source_model_uri and not table_uri_pattern.fullmatch(source_model_uri)):\n\
+          \    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\
+          \n  # Validate data source.\n  data_source_count = sum([bool(source) for\
+          \ source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n\
+          \  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source,\
+          \ found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
+          \      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n\
+          \    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
+          \  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n\
+          \    csv_list = [filename.strip()\n                for filename in data_source_csv_filenames.split(',')]\n\
+          \    for gcs_path in csv_list:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n\
+          \        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\
+          \n  # Validate split spec.\n  fraction_splits = [\n      training_fraction,\n\
+          \      validation_fraction,\n      test_fraction,\n  ]\n  split_count =\
+          \ sum([\n      bool(source)\n      for source in [predefined_split_key,\n\
+          \                     any(fraction_splits)]\n  ])\n  if split_count > 1:\n\
+          \    raise ValueError(f'Expected 1 split type, found {split_count}.')\n\
+          \  if (predefined_split_key and\n      not column_pattern.fullmatch(predefined_split_key)):\n\
+          \    raise ValueError(f'Invalid column name: {predefined_split_key}.')\n\
+          \  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise\
+          \ ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n\
+          \    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction\
+          \ splits must sum to 1. Got: {sum(fraction_splits)}.')\n  if (timestamp_split_key\
+          \ and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise\
+          \ ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key\
+          \ and not all(fraction_splits):\n    raise ValueError('All fractions must\
+          \ be non-zero for timestamp split.')\n\n  # Validate window config.\n  if\
+          \ window_stride_length == -1:\n    window_stride_length = None\n  if window_max_count\
+          \ == -1:\n    window_max_count = None\n  window_configs = [window_column,\
+          \ window_stride_length, window_max_count]\n  window_config_count = sum([bool(config)\
+          \ for config in window_configs])\n  if window_config_count > 1:\n    raise\
+          \ ValueError(f'Expected 1 window config, found {window_config_count}.')\n\
+          \  if window_column and not column_pattern.fullmatch(window_column):\n \
+          \   raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length\
+          \ and (window_stride_length < 1 or\n                               window_stride_length\
+          \ > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got:\
+          \ '\n                     f'{window_stride_length}.')\n  if window_max_count\
+          \ and (window_max_count < 1000 or\n                           window_max_count\
+          \ > int(1e8)):\n    raise ValueError('Max count must be between 1000 and\
+          \ 100000000. Got: '\n                     f'{window_max_count}.')\n\n  #\
+          \ Validate eval metric.\n  valid_optimization_objectives = ['rmse', 'mae',\
+          \ 'rmsle']\n  if optimization_objective:\n    if optimization_objective\
+          \ not in valid_optimization_objectives:\n      raise ValueError(\n     \
+          \     'Optimization objective should be one of the following: '\n      \
+          \    f'{valid_optimization_objectives}, got: {optimization_objective}.')\n\
+          \n  # Validate data granularity unit.\n  valid_data_granularity_units =\
+          \ [\n      'minute', 'hour', 'day', 'week', 'month', 'year']\n  if data_granularity_unit:\n\
+          \    if data_granularity_unit not in valid_data_granularity_units:\n   \
+          \   raise ValueError(\n          'Granularity unit should be one of the\
+          \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
+          \n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+pipelineInfo:
+  name: automl-tabular-bqml-arima-train
+root:
+  dag:
+    outputs:
+      artifacts:
+        create-metrics-artifact-evaluation_metrics:
+          artifactSelectors:
+          - outputArtifactKey: create-metrics-artifact-evaluation_metrics
+            producerSubtask: exit-handler-1
+    tasks:
+      bigquery-delete-dataset-with-prefix:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-bigquery-delete-dataset-with-prefix
+        dependentTasks:
+        - exit-handler-1
+        inputs:
+          parameters:
+            dataset_prefix:
+              runtimeValue:
+                constant: tmp_{{$.pipeline_job_uuid}}
+            delete_contents:
+              runtimeValue:
+                constant: 1.0
+            project:
+              componentInputParameter: project
+        taskInfo:
+          name: delete-tmp-dataset
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
+      exit-handler-1:
+        componentRef:
+          name: comp-exit-handler-1
+        inputs:
+          parameters:
+            pipelinechannel--bigquery_destination_uri:
+              componentInputParameter: bigquery_destination_uri
+            pipelinechannel--data_granularity_unit:
+              componentInputParameter: data_granularity_unit
+            pipelinechannel--data_source_bigquery_table_path:
+              componentInputParameter: data_source_bigquery_table_path
+            pipelinechannel--data_source_csv_filenames:
+              componentInputParameter: data_source_csv_filenames
+            pipelinechannel--encryption_spec_key_name:
+              componentInputParameter: encryption_spec_key_name
+            pipelinechannel--forecast_horizon:
+              componentInputParameter: forecast_horizon
+            pipelinechannel--location:
+              componentInputParameter: location
+            pipelinechannel--max_order:
+              componentInputParameter: max_order
+            pipelinechannel--override_destination:
+              componentInputParameter: override_destination
+            pipelinechannel--predefined_split_key:
+              componentInputParameter: predefined_split_key
+            pipelinechannel--project:
+              componentInputParameter: project
+            pipelinechannel--root_dir:
+              componentInputParameter: root_dir
+            pipelinechannel--target_column:
+              componentInputParameter: target_column
+            pipelinechannel--test_fraction:
+              componentInputParameter: test_fraction
+            pipelinechannel--time_column:
+              componentInputParameter: time_column
+            pipelinechannel--time_series_identifier_column:
+              componentInputParameter: time_series_identifier_column
+            pipelinechannel--timestamp_split_key:
+              componentInputParameter: timestamp_split_key
+            pipelinechannel--training_fraction:
+              componentInputParameter: training_fraction
+            pipelinechannel--validation_fraction:
+              componentInputParameter: validation_fraction
+            pipelinechannel--window_column:
+              componentInputParameter: window_column
+            pipelinechannel--window_max_count:
+              componentInputParameter: window_max_count
+            pipelinechannel--window_stride_length:
+              componentInputParameter: window_stride_length
+        taskInfo:
+          name: exit-handler-1
+  inputDefinitions:
+    parameters:
+      bigquery_destination_uri:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      data_granularity_unit:
+        parameterType: STRING
+      data_source_bigquery_table_path:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      data_source_csv_filenames:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      encryption_spec_key_name:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      forecast_horizon:
+        parameterType: NUMBER_INTEGER
+      location:
+        parameterType: STRING
+      max_order:
+        defaultValue: 5.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      override_destination:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      predefined_split_key:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      project:
+        parameterType: STRING
+      root_dir:
+        parameterType: STRING
+      target_column:
+        parameterType: STRING
+      test_fraction:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      time_column:
+        parameterType: STRING
+      time_series_identifier_column:
+        parameterType: STRING
+      timestamp_split_key:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      training_fraction:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      validation_fraction:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      window_column:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      window_max_count:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      window_stride_length:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    artifacts:
+      create-metrics-artifact-evaluation_metrics:
+        artifactType:
+          schemaTitle: system.Metrics
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

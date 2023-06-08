@@ -45,6 +45,7 @@ class TestV2beta1ListPipelineVersionsResponse(unittest.TestCase):
                         created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         package_url = kfp_server_api.models.v2beta1_url.v2beta1Url(
                             pipeline_url = '0', ), 
+                        code_source_url = '0', 
                         pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
                         error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                             code = 56, 

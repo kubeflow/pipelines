@@ -46,9 +46,11 @@ spec:
       - '{{outputs.parameters.pod-spec-patch.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/dev/kfp-driver@sha256:d8f18e6f6cd84a43d45eb339d7e6d2dfed45358e713aaf0ddf7812b06234e9f5
+      image: gcr.io/ml-pipeline/kfp-driver
       name: ""
       resources:
         limits:
@@ -65,6 +67,8 @@ spec:
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
+      - default: ""
+        name: kubernetes-config
     metadata: {}
     name: system-container-driver
     outputs:
@@ -126,7 +130,7 @@ spec:
       - launcher-v2
       - --copy
       - /kfp-launcher/launch
-      image: gcr.io/ml-pipeline-test/dev/kfp-launcher-v2@sha256:98a25728bfdc5a91a54f93f388bd16fa386008164e665ea797a619096a131c1a
+      image: gcr.io/ml-pipeline/kfp-launcher
       name: kfp-launcher
       resources:
         limits:
@@ -203,7 +207,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline-test/dev/kfp-driver@sha256:d8f18e6f6cd84a43d45eb339d7e6d2dfed45358e713aaf0ddf7812b06234e9f5
+      image: gcr.io/ml-pipeline/kfp-driver
       name: ""
       resources:
         limits:

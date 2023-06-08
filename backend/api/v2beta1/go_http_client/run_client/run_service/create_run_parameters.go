@@ -68,11 +68,6 @@ type CreateRunParams struct {
 
 	*/
 	Body *run_model.V2beta1Run
-	/*ExperimentID
-	  The ID of the parent experiment.
-
-	*/
-	ExperimentID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -123,17 +118,6 @@ func (o *CreateRunParams) SetBody(body *run_model.V2beta1Run) {
 	o.Body = body
 }
 
-// WithExperimentID adds the experimentID to the create run params
-func (o *CreateRunParams) WithExperimentID(experimentID string) *CreateRunParams {
-	o.SetExperimentID(experimentID)
-	return o
-}
-
-// SetExperimentID adds the experimentId to the create run params
-func (o *CreateRunParams) SetExperimentID(experimentID string) {
-	o.ExperimentID = experimentID
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *CreateRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -146,11 +130,6 @@ func (o *CreateRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Reg
 		if err := r.SetBodyParam(o.Body); err != nil {
 			return err
 		}
-	}
-
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
 	}
 
 	if len(res) > 0 {

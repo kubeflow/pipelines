@@ -11,5 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Components root."""
-from .version import __version__
+"""Google Cloud Pipeline Components."""
+from google_cloud_pipeline_components.version import __version__

@@ -16,20 +16,21 @@
 
 import * as React from 'react';
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
-import TestUtils from '../TestUtils';
-import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
-import { V2beta1Experiment, V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
-import { Apis } from '../lib/Apis';
+import TestUtils from 'src/TestUtils';
+import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { range } from 'lodash';
-import { ButtonKeys } from '../lib/Buttons';
+import { ButtonKeys } from 'src/lib/Buttons';
 import { render, screen } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
+import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 describe('ExperimentDetails', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -43,8 +44,8 @@ describe('ExperimentDetails', () => {
   const updateSnackbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-  const listJobsSpy = jest.spyOn(Apis.jobServiceApi, 'listJobs');
-  const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
+  const listRecurringRunsSpy = jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
+  const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
 
   const MOCK_EXPERIMENT = newMockExperiment();
 
@@ -70,21 +71,21 @@ describe('ExperimentDetails', () => {
     );
   }
 
-  async function mockNJobs(n: number): Promise<void> {
-    listJobsSpy.mockImplementation(() => ({
-      jobs: range(n).map(i => ({
-        enabled: true,
-        id: 'test-job-id' + i,
-        name: 'test job name' + i,
+  async function mockNRecurringRuns(n: number): Promise<void> {
+    listRecurringRunsSpy.mockImplementation(() => ({
+      recurringRuns: range(n).map(i => ({
+        display_name: 'test job name' + i,
+        recurring_run_id: 'test-recurringrun-id' + i,
+        status: V2beta1RecurringRunStatus.ENABLED,
       })),
     }));
-    await listJobsSpy;
+    await listRecurringRunsSpy;
     await TestUtils.flushPromises();
   }
 
   async function mockNRuns(n: number): Promise<void> {
     listRunsSpy.mockImplementation(() => ({
-      runs: range(n).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
+      runs: range(n).map(i => ({ run_id: 'test-run-id' + i, display_name: 'test run name' + i })),
     }));
     await listRunsSpy;
     await TestUtils.flushPromises();
@@ -100,12 +101,12 @@ describe('ExperimentDetails', () => {
     updateToolbarSpy.mockReset();
     getExperimentSpy.mockReset();
     historyPushSpy.mockReset();
-    listJobsSpy.mockReset();
+    listRecurringRunsSpy.mockReset();
     listRunsSpy.mockReset();
 
     getExperimentSpy.mockImplementation(() => newMockExperiment());
 
-    await mockNJobs(0);
+    await mockNRecurringRuns(0);
     await mockNRuns(0);
   });
 
@@ -230,18 +231,18 @@ describe('ExperimentDetails', () => {
   });
 
   it('shows a list of available runs', async () => {
-    await mockNJobs(1);
+    await mockNRecurringRuns(1);
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
     expect(tree.find('RunListsRouter').prop('storageState')).toBe(
-      ApiExperimentStorageState.AVAILABLE,
+      V2beta1RunStorageState.AVAILABLE,
       // TODO(jlyaoyuli): Change to v2 storage state after run integration
     );
   });
 
   it('shows a list of archived runs', async () => {
-    await mockNJobs(1);
+    await mockNRecurringRuns(1);
 
     getExperimentSpy.mockImplementation(() => {
       let apiExperiment = newMockExperiment();
@@ -253,23 +254,24 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
 
     expect(tree.find('RunListsRouter').prop('storageState')).toBe(
-      ApiExperimentStorageState.ARCHIVED,
+      V2beta1RunStorageState.ARCHIVED,
       // TODO(jlyaoyuli): Change to v2 storage state after run integration
     );
   });
 
   it("fetches this experiment's recurring runs", async () => {
-    await mockNJobs(1);
+    await mockNRecurringRuns(1);
 
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(listJobsSpy).toHaveBeenCalledTimes(1);
-    expect(listJobsSpy).toHaveBeenLastCalledWith(
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
+    expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       100,
       '',
-      'EXPERIMENT',
+      undefined,
+      undefined,
       MOCK_EXPERIMENT.experiment_id,
     );
     expect(tree.state('activeRecurringRunsCount')).toBe(1);
@@ -277,7 +279,7 @@ describe('ExperimentDetails', () => {
   });
 
   it("shows an error banner if fetching the experiment's recurring runs fails", async () => {
-    TestUtils.makeErrorResponseOnce(listJobsSpy, 'test error');
+    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy, 'test error');
 
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -298,13 +300,25 @@ describe('ExperimentDetails', () => {
   });
 
   it('only counts enabled recurring runs as active', async () => {
-    const jobs = [
-      { id: 'enabled-job-1-id', enabled: true, name: 'enabled-job-1' },
-      { id: 'enabled-job-2-id', enabled: true, name: 'enabled-job-2' },
-      { id: 'disabled-job-1-id', enabled: false, name: 'disabled-job-1' },
+    const recurringRuns = [
+      {
+        recurring_run_id: 'enabled-recurringrun-1-id',
+        status: V2beta1RecurringRunStatus.ENABLED,
+        display_name: 'enabled-recurringrun-1',
+      },
+      {
+        recurring_run_id: 'enabled-recurringrun-2-id',
+        status: V2beta1RecurringRunStatus.ENABLED,
+        display_name: 'enabled-recurringrun-2',
+      },
+      {
+        recurring_run_id: 'disabled-recurringrun-1-id',
+        status: V2beta1RecurringRunStatus.DISABLED,
+        display_name: 'disabled-recurringrun-1',
+      },
     ];
-    listJobsSpy.mockImplementationOnce(() => ({ jobs }));
-    await listJobsSpy;
+    listRecurringRunsSpy.mockImplementationOnce(() => ({ recurringRuns }));
+    await listRecurringRunsSpy;
 
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -313,7 +327,7 @@ describe('ExperimentDetails', () => {
   });
 
   it("opens the recurring run manager modal when 'manage' is clicked", async () => {
-    await mockNJobs(1);
+    await mockNRecurringRuns(1);
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
@@ -328,7 +342,7 @@ describe('ExperimentDetails', () => {
   });
 
   it('closes the recurring run manager modal', async () => {
-    await mockNJobs(1);
+    await mockNRecurringRuns(1);
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
@@ -350,14 +364,14 @@ describe('ExperimentDetails', () => {
   });
 
   it('refreshes the number of active recurring runs when the recurring run manager is closed', async () => {
-    await mockNJobs(1);
+    await mockNRecurringRuns(1);
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
     tree.update();
 
     // Called when the page initially loads to display the number of active recurring runs
-    expect(listJobsSpy).toHaveBeenCalledTimes(1);
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
 
     tree
       .find('#manageExperimentRecurringRunsBtn')
@@ -367,7 +381,7 @@ describe('ExperimentDetails', () => {
     expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
 
     // Called in the recurring run manager to list the recurring runs
-    expect(listJobsSpy).toHaveBeenCalledTimes(2);
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(2);
 
     tree
       .find('#closeExperimentRecurringRunManagerBtn')
@@ -377,7 +391,7 @@ describe('ExperimentDetails', () => {
     expect(tree.state('recurringRunsManagerOpen')).toBeFalsy();
 
     // Called a third time when the manager is closed to update the number of active recurring runs
-    expect(listJobsSpy).toHaveBeenCalledTimes(3);
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(3);
   });
 
   it('clears the error banner on refresh', async () => {
@@ -397,8 +411,8 @@ describe('ExperimentDetails', () => {
 
   it('navigates to the compare runs page', async () => {
     const runs = [
-      { id: 'run-1-id', name: 'run-1' },
-      { id: 'run-2-id', name: 'run-2' },
+      { run_id: 'run-1-id', display_name: 'run-1' },
+      { run_id: 'run-2-id', display_name: 'run-2' },
     ];
     listRunsSpy.mockImplementation(() => ({ runs }));
     await listRunsSpy;
@@ -459,7 +473,7 @@ describe('ExperimentDetails', () => {
   });
 
   it('supports cloning a selected run', async () => {
-    const runs = [{ id: 'run-1-id', name: 'run-1' }];
+    const runs = [{ run_id: 'run-1-id', display_name: 'run-1' }];
     listRunsSpy.mockImplementation(() => ({ runs }));
     await listRunsSpy;
 

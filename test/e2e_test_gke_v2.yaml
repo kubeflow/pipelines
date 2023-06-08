@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,12 +95,28 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: initialization-test-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
+    - - name: run-initialization-tests-v2
+        template: run-initialization-tests-v2
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}/v2"
+          - name: initialization-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
     - - name: run-api-integration-tests
         template: run-api-integration-tests
         arguments:
           parameters:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: api-integration-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+    - - name: run-api-integration-tests-v2
+        template: run-api-integration-tests-v2
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}/v2"
           - name: api-integration-test-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
     - - name: run-frontend-integration-tests
@@ -114,6 +130,7 @@ spec:
         #TODO: Uncomment to disable the test on Minikube
         #TODO: Change the cluster-type to "minikube" once https://github.com/kubeflow/pipelines/pull/1285 and related PRs are merged.
         #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
+        #TODO(gkcalat): Add v2 samples
     - - name: run-basic-sample-tests
         template: run-basic-e2e-tests
         arguments:
@@ -175,6 +192,48 @@ spec:
           - name: api-integration-test-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
 
+  - name: upgrade-test-preparation-v2
+    inputs:
+      parameters:
+      - name: target-image-prefix
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image-suffix
+    steps:
+    - - name: build-api-integration-test-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: docker-file
+            value: test/api-integration-test/Dockerfile
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+    - - name: run-upgrade-tests-preparation-v2
+        template: run-upgrade-tests-preparation-v2
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}/v2"
+          - name: api-integration-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+
+  - name: upgrade-test-verification-v2
+    inputs:
+      parameters:
+      - name: target-image-prefix
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image-suffix
+    steps:
+    - - name: run-upgrade-tests-verification-v2
+        template: run-upgrade-tests-verification-v2
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}/v2"
+          - name: api-integration-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+
   # Build and push image
   - name: build-image
     retryStrategy:
@@ -231,6 +290,20 @@ spec:
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
 
+  - name: run-initialization-tests-v2
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: initialization-test-image
+    container:
+      image: "{{inputs.parameters.initialization-test-image}}"
+      command:
+      - /go/src/github.com/kubeflow/pipelines/test/initialization-test/run_test.sh
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}/v2",
+        "--test_v2_api",
+      ]
+
   - name: run-api-integration-tests
     inputs:
       parameters:
@@ -242,6 +315,20 @@ spec:
       - /go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+
+  - name: run-api-integration-tests-v2
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image
+    container:
+      image: "{{inputs.parameters.api-integration-test-image}}"
+      command:
+      - /go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--test_v2_api",
       ]
 
   - name: run-frontend-integration-tests
@@ -305,3 +392,34 @@ spec:
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--run_upgrade_tests_verification",
       ]
+
+  - name: run-upgrade-tests-preparation-v2
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image
+    container:
+      image: "{{inputs.parameters.api-integration-test-image}}"
+      command:
+      - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--test_v2_api",
+        "--run_upgrade_tests_preparation",
+      ]
+
+  - name: run-upgrade-tests-verification-v2
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image
+    container:
+      image: "{{inputs.parameters.api-integration-test-image}}"
+      command:
+      - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--test_v2_api",
+        "--run_upgrade_tests_verification",
+      ]
+      

@@ -29,6 +29,7 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { getLatestVersion } from './NewRunV2';
 
 interface NewExperimentState {
   description: string;
@@ -95,9 +96,10 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
           />
           <Input
             id='experimentDescription'
-            label='Description (optional)'
+            label='Description'
             multiline={true}
             onChange={this.handleChange('description')}
+            required={false}
             value={description}
             variant='outlined'
           />
@@ -155,9 +157,11 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
         const response = await Apis.experimentServiceApiV2.createExperiment(newExperiment);
         let searchString = '';
         if (this.state.pipelineId) {
+          const latestVersion = await getLatestVersion(this.state.pipelineId);
           searchString = new URLParser(this.props).build({
             [QUERY_PARAMS.experimentId]: response.experiment_id || '',
             [QUERY_PARAMS.pipelineId]: this.state.pipelineId,
+            [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
             [QUERY_PARAMS.firstRunInExperiment]: '1',
           });
         } else {

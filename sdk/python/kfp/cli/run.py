@@ -11,9 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import json
-import shutil
-import subprocess
 import sys
 import time
 from typing import List
@@ -133,21 +130,21 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
 
     experiment = client_obj.create_experiment(experiment_name)
     run = client_obj.run_pipeline(
-        experiment_id=experiment.id,
+        experiment_id=experiment.experiment_id,
         job_name=run_name,
         pipeline_package_path=package_file,
         params=arg_dict,
         pipeline_id=pipeline_id,
         version_id=version)
     if timeout > 0:
-        run_detail = client_obj.wait_for_run_completion(run.id, timeout)
+        run_detail = client_obj.wait_for_run_completion(run.run_id, timeout)
         output.print_output(
-            run_detail.run,
+            run_detail,
             output.ModelType.RUN,
             output_format,
         )
     else:
-        display_run(client_obj, namespace, run.id, watch, output_format)
+        display_run(client_obj, run.run_id, watch, output_format)
 
 
 @run.command()
@@ -175,7 +172,7 @@ def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
         click.echo(
             'The --detail/-d flag is deprecated. Please use --output=json instead.',
             err=True)
-    display_run(client_obj, namespace, run_id, watch, output_format)
+    display_run(client_obj, run_id, watch, output_format)
 
 
 @run.command()
@@ -189,7 +186,7 @@ def archive(ctx: click.Context, run_id: str):
     client_obj.archive_run(run_id=run_id)
     run = client_obj.get_run(run_id=run_id)
     output.print_output(
-        run.run,
+        run,
         output.ModelType.RUN,
         output_format,
     )
@@ -205,7 +202,7 @@ def unarchive(ctx: click.Context, run_id: str):
     client_obj.unarchive_run(run_id=run_id)
     run = client_obj.get_run(run_id=run_id)
     output.print_output(
-        run.run,
+        run,
         output.ModelType.RUN,
         output_format,
     )
@@ -228,9 +225,9 @@ def delete(ctx: click.Context, run_id: str):
     output.print_deleted_text('run', run_id, output_format)
 
 
-def display_run(client: client.Client, namespace: str, run_id: str, watch: bool,
+def display_run(client: client.Client, run_id: str, watch: bool,
                 output_format: str):
-    run = client.get_run(run_id).run
+    run = client.get_run(run_id)
 
     output.print_output(
         run,
@@ -239,32 +236,12 @@ def display_run(client: client.Client, namespace: str, run_id: str, watch: bool,
     )
     if not watch:
         return
-    argo_path = shutil.which('argo')
-    if not argo_path:
-        raise RuntimeError(
-            "argo isn't found in $PATH. It's necessary for watch. "
-            "Please make sure it's installed and available. "
-            'Installation instructions be found here - '
-            'https://github.com/argoproj/argo-workflows/releases')
-
-    argo_workflow_name = None
     while True:
         time.sleep(1)
         run_detail = client.get_run(run_id)
-        run = run_detail.run
-        if run_detail.pipeline_runtime and run_detail.pipeline_runtime.workflow_manifest:
-            manifest = json.loads(run_detail.pipeline_runtime.workflow_manifest)
-            if manifest['metadata'] and manifest['metadata']['name']:
-                argo_workflow_name = manifest['metadata']['name']
-                break
-        if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
-            click.echo(f'Run is finished with status {run_detail.run.status}.')
+        run = run_detail
+        if run_detail.state in [
+                'SUCCEEDED', 'SKIPPED', 'FAILED', 'CANCELED', 'PAUSED'
+        ]:
+            click.echo(f'Run is finished with state {run_detail.state}.')
             return
-    if argo_workflow_name:
-        subprocess.run(
-            [argo_path, 'watch', argo_workflow_name, '-n', namespace])
-        output.print_output(
-            run,
-            output.ModelType.RUN,
-            output_format,
-        )

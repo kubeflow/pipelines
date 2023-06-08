@@ -32,39 +32,39 @@ import {
   NodePhase as ArgoNodePhase,
   NodeStatus,
   Workflow,
-} from '../third_party/mlmd/argo_template';
-import { ApiExperiment } from '../apis/experiment';
-import { ApiRun, ApiRunStorageState } from '../apis/run';
-import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
-import Hr from '../atoms/Hr';
-import MD2Tabs from '../atoms/MD2Tabs';
-import Separator from '../atoms/Separator';
-import Banner, { Mode } from '../components/Banner';
-import CompareTable from '../components/CompareTable';
-import DetailsTable from '../components/DetailsTable';
-import Graph from '../components/Graph';
-import LogViewer from '../components/LogViewer';
-import MinioArtifactPreview from '../components/MinioArtifactPreview';
-import PlotCard from '../components/PlotCard';
-import { PodEvents, PodInfo } from '../components/PodYaml';
-import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
-import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
-import SidePanel from '../components/SidePanel';
-import { ToolbarProps } from '../components/Toolbar';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
-import { componentMap } from '../components/viewers/ViewerContainer';
+} from 'src/third_party/mlmd/argo_template';
+import { ApiExperiment } from 'src/apis/experiment';
+import { ApiRun, ApiRunStorageState } from 'src/apis/run';
+import { ApiVisualization, ApiVisualizationType } from 'src/apis/visualization';
+import Hr from 'src/atoms/Hr';
+import MD2Tabs from 'src/atoms/MD2Tabs';
+import Separator from 'src/atoms/Separator';
+import Banner, { Mode } from 'src/components/Banner';
+import CompareTable from 'src/components/CompareTable';
+import DetailsTable from 'src/components/DetailsTable';
+import Graph from 'src/components/Graph';
+import LogViewer from 'src/components/LogViewer';
+import MinioArtifactPreview from 'src/components/MinioArtifactPreview';
+import PlotCard from 'src/components/PlotCard';
+import { PodEvents, PodInfo } from 'src/components/PodYaml';
+import ReduceGraphSwitch from 'src/components/ReduceGraphSwitch';
+import { RoutePage, RoutePageFactory, RouteParams } from 'src/components/Router';
+import SidePanel from 'src/components/SidePanel';
+import { ToolbarProps } from 'src/components/Toolbar';
+import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { PlotType, ViewerConfig } from 'src/components/viewers/Viewer';
+import { componentMap } from 'src/components/viewers/ViewerContainer';
 import VisualizationCreator, {
   VisualizationCreatorConfig,
-} from '../components/viewers/VisualizationCreator';
-import { color, commonCss, fonts, fontsize, padding } from '../Css';
-import { Apis } from '../lib/Apis';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
-import CompareUtils from '../lib/CompareUtils';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import RunUtils from '../lib/RunUtils';
-import { compareGraphEdges, KeyValue, transitiveReduction } from '../lib/StaticGraphParser';
-import { hasFinished, NodePhase } from '../lib/StatusUtils';
+} from 'src/components/viewers/VisualizationCreator';
+import { color, commonCss, fonts, fontsize, padding } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
+import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import CompareUtils from 'src/lib/CompareUtils';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import RunUtils from 'src/lib/RunUtils';
+import { compareGraphEdges, KeyValue, transitiveReduction } from 'src/lib/StaticGraphParser';
+import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
 import {
   decodeCompressedNodes,
   errorToMessage,
@@ -73,8 +73,8 @@ import {
   getRunDurationFromWorkflow,
   logger,
   serviceErrorToString,
-} from '../lib/Utils';
-import WorkflowParser from '../lib/WorkflowParser';
+} from 'src/lib/Utils';
+import WorkflowParser from 'src/lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';

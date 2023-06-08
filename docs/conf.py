@@ -136,6 +136,34 @@ html_theme_options = {
             'title': 'master',
             'aliases': [],
         },
+        # need to use the sdk-, to avoid conflict with the rc.1 BE release in GitHub tags
+        {
+            'version':
+                'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0-rc.1/',
+            'title':
+                'v2.0.0rc1',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b17/',
+            'title': 'v2.0.0b17',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b16/',
+            'title': 'v2.0.0b16',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b15/',
+            'title': 'v2.0.0b15',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b14/',
+            'title': 'v2.0.0b14',
+            'aliases': [],
+        },
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b13/',
             'title': 'v2.0.0b13',
@@ -177,9 +205,24 @@ html_theme_options = {
             'aliases': [],
         },
         {
-            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.18/',
-            'title': 'v1.8.19',
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.22/',
+            'title': 'v1.8.22',
             'aliases': ['stable'],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.21/',
+            'title': 'v1.8.21',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.20/',
+            'title': 'v1.8.20',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.19/',
+            'title': 'v1.8.19',
+            'aliases': [],
         },
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.18/',

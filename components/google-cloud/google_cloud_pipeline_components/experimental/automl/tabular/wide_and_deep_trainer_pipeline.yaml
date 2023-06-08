@@ -1,0 +1,2462 @@
+# PIPELINE DEFINITION
+# Name: automl-tabular-wide-and-deep-trainer
+# Description: The Wide & Deep training pipeline.
+# Inputs:
+#    batch_size: int [Default: 100.0]
+#    beta_1: float [Default: 0.9]
+#    beta_2: float [Default: 0.999]
+#    bigquery_staging_full_dataset_id: str [Default: '']
+#    cache_data: str [Default: 'auto']
+#    data_source_bigquery_table_path: str [Default: '']
+#    data_source_csv_filenames: str [Default: '']
+#    dataflow_service_account: str [Default: '']
+#    dataflow_subnetwork: str [Default: '']
+#    dataflow_use_public_ips: bool [Default: True]
+#    dataset_level_custom_transformation_definitions: list
+#    dataset_level_transformations: list
+#    dnn_beta_1: float [Default: 0.9]
+#    dnn_beta_2: float [Default: 0.999]
+#    dnn_dropout: float [Default: 0.0]
+#    dnn_l1_regularization_strength: float [Default: 0.0]
+#    dnn_l2_regularization_strength: float [Default: 0.0]
+#    dnn_l2_shrinkage_regularization_strength: float [Default: 0.0]
+#    dnn_learning_rate: float
+#    dnn_optimizer_type: str [Default: 'adam']
+#    embed_categories: bool [Default: True]
+#    enable_profiler: bool [Default: False]
+#    encryption_spec_key_name: str [Default: '']
+#    eval_frequency_secs: int [Default: 600.0]
+#    eval_steps: int [Default: 0.0]
+#    evaluation_batch_predict_machine_type: str [Default: 'n1-highmem-8']
+#    evaluation_batch_predict_max_replica_count: int [Default: 20.0]
+#    evaluation_batch_predict_starting_replica_count: int [Default: 20.0]
+#    evaluation_dataflow_disk_size_gb: int [Default: 50.0]
+#    evaluation_dataflow_machine_type: str [Default: 'n1-standard-4']
+#    evaluation_dataflow_max_num_workers: int [Default: 100.0]
+#    evaluation_dataflow_starting_num_workers: int [Default: 10.0]
+#    feature_selection_algorithm: str [Default: 'AMI']
+#    hidden_units: str [Default: '30,30,30']
+#    l1_regularization_strength: float [Default: 0.0]
+#    l2_regularization_strength: float [Default: 0.0]
+#    l2_shrinkage_regularization_strength: float [Default: 0.0]
+#    learning_rate: float
+#    location: str
+#    materialized_examples_format: str [Default: 'tfrecords_gzip']
+#    max_selected_features: int [Default: -1.0]
+#    max_steps: int [Default: -1.0]
+#    max_train_secs: int [Default: -1.0]
+#    measurement_selection_type: str [Default: 'BEST_MEASUREMENT']
+#    optimization_metric: str [Default: '']
+#    optimizer_type: str [Default: 'adam']
+#    predefined_split_key: str [Default: '']
+#    prediction_type: str
+#    project: str
+#    root_dir: str
+#    run_evaluation: bool [Default: False]
+#    run_feature_selection: bool [Default: False]
+#    seed: int [Default: 1.0]
+#    stratified_split_key: str [Default: '']
+#    target_column: str
+#    test_fraction: float [Default: -1.0]
+#    tf_auto_transform_features: dict
+#    tf_custom_transformation_definitions: list
+#    tf_transform_execution_engine: str [Default: '']
+#    tf_transformations_path: str [Default: '']
+#    training_fraction: float [Default: -1.0]
+#    transform_dataflow_disk_size_gb: int [Default: 40.0]
+#    transform_dataflow_machine_type: str [Default: 'n1-standard-16']
+#    transform_dataflow_max_num_workers: int [Default: 25.0]
+#    use_wide: bool [Default: True]
+#    validation_fraction: float [Default: -1.0]
+#    weight_column: str [Default: '']
+#    worker_pool_specs_override: list
+# Outputs:
+#    model-evaluation-evaluation_metrics: system.Metrics
+components:
+  comp-automl-tabular-finalizer:
+    executorLabel: exec-automl-tabular-finalizer
+    inputDefinitions:
+      parameters:
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        root_dir:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-automl-tabular-infra-validator:
+    executorLabel: exec-automl-tabular-infra-validator
+    inputDefinitions:
+      artifacts:
+        unmanaged_container_model:
+          artifactType:
+            schemaTitle: google.UnmanagedContainerModel
+            schemaVersion: 0.0.1
+  comp-bool-identity:
+    executorLabel: exec-bool-identity
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: BOOLEAN
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-condition-2:
+    dag:
+      outputs:
+        artifacts:
+          model-evaluation-evaluation_metrics:
+            artifactSelectors:
+            - outputArtifactKey: evaluation_metrics
+              producerSubtask: model-evaluation
+      tasks:
+        model-batch-predict:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-model-batch-predict
+          inputs:
+            artifacts:
+              unmanaged_container_model:
+                componentInputArtifact: pipelinechannel--wide-and-deep-trainer-unmanaged_container_model
+            parameters:
+              bigquery_source_input_uri:
+                componentInputParameter: pipelinechannel--feature-transform-engine-bigquery_test_split_uri
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              gcs_destination_output_uri_prefix:
+                componentInputParameter: pipelinechannel--root_dir
+              instances_format:
+                runtimeValue:
+                  constant: bigquery
+              job_display_name:
+                runtimeValue:
+                  constant: batch-predict-evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+              location:
+                componentInputParameter: pipelinechannel--location
+              machine_type:
+                componentInputParameter: pipelinechannel--evaluation_batch_predict_machine_type
+              max_replica_count:
+                componentInputParameter: pipelinechannel--evaluation_batch_predict_max_replica_count
+              predictions_format:
+                runtimeValue:
+                  constant: jsonl
+              project:
+                componentInputParameter: pipelinechannel--project
+              starting_replica_count:
+                componentInputParameter: pipelinechannel--evaluation_batch_predict_starting_replica_count
+          taskInfo:
+            name: model-batch-predict
+        model-evaluation:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-model-evaluation
+          dependentTasks:
+          - model-batch-predict
+          inputs:
+            artifacts:
+              batch_prediction_job:
+                taskOutputArtifact:
+                  outputArtifactKey: batchpredictionjob
+                  producerTask: model-batch-predict
+            parameters:
+              dataflow_disk_size:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_disk_size_gb
+              dataflow_machine_type:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_machine_type
+              dataflow_max_workers_num:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_max_num_workers
+              dataflow_service_account:
+                componentInputParameter: pipelinechannel--dataflow_service_account
+              dataflow_subnetwork:
+                componentInputParameter: pipelinechannel--dataflow_subnetwork
+              dataflow_use_public_ips:
+                componentInputParameter: pipelinechannel--dataflow_use_public_ips
+              dataflow_workers_num:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_starting_num_workers
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              ground_truth_column:
+                componentInputParameter: pipelinechannel--target_column
+              ground_truth_format:
+                runtimeValue:
+                  constant: jsonl
+              location:
+                componentInputParameter: pipelinechannel--location
+              prediction_label_column:
+                runtimeValue:
+                  constant: ''
+              prediction_score_column:
+                runtimeValue:
+                  constant: ''
+              predictions_format:
+                runtimeValue:
+                  constant: jsonl
+              problem_type:
+                componentInputParameter: pipelinechannel--prediction_type
+              project:
+                componentInputParameter: pipelinechannel--project
+              root_dir:
+                componentInputParameter: pipelinechannel--root_dir
+          taskInfo:
+            name: model-evaluation
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--wide-and-deep-trainer-unmanaged_container_model:
+          artifactType:
+            schemaTitle: google.UnmanagedContainerModel
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--bool-identity-Output:
+          parameterType: STRING
+        pipelinechannel--dataflow_service_account:
+          parameterType: STRING
+        pipelinechannel--dataflow_subnetwork:
+          parameterType: STRING
+        pipelinechannel--dataflow_use_public_ips:
+          parameterType: BOOLEAN
+        pipelinechannel--encryption_spec_key_name:
+          parameterType: STRING
+        pipelinechannel--evaluation_batch_predict_machine_type:
+          parameterType: STRING
+        pipelinechannel--evaluation_batch_predict_max_replica_count:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_batch_predict_starting_replica_count:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_dataflow_disk_size_gb:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_dataflow_machine_type:
+          parameterType: STRING
+        pipelinechannel--evaluation_dataflow_max_num_workers:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_dataflow_starting_num_workers:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--feature-transform-engine-bigquery_test_split_uri:
+          parameterType: STRING
+        pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--prediction_type:
+          parameterType: STRING
+        pipelinechannel--project:
+          parameterType: STRING
+        pipelinechannel--root_dir:
+          parameterType: STRING
+        pipelinechannel--target_column:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        model-evaluation-evaluation_metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-exit-handler-1:
+    dag:
+      outputs:
+        artifacts:
+          model-evaluation-evaluation_metrics:
+            artifactSelectors:
+            - outputArtifactKey: model-evaluation-evaluation_metrics
+              producerSubtask: condition-2
+      tasks:
+        automl-tabular-infra-validator:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-automl-tabular-infra-validator
+          dependentTasks:
+          - wide-and-deep-trainer
+          inputs:
+            artifacts:
+              unmanaged_container_model:
+                taskOutputArtifact:
+                  outputArtifactKey: unmanaged_container_model
+                  producerTask: wide-and-deep-trainer
+          taskInfo:
+            name: automl-tabular-infra-validator
+        bool-identity:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-bool-identity
+          inputs:
+            parameters:
+              value:
+                componentInputParameter: pipelinechannel--run_evaluation
+          taskInfo:
+            name: bool-identity
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          dependentTasks:
+          - bool-identity
+          - feature-transform-engine
+          - wide-and-deep-trainer
+          inputs:
+            artifacts:
+              pipelinechannel--wide-and-deep-trainer-unmanaged_container_model:
+                taskOutputArtifact:
+                  outputArtifactKey: unmanaged_container_model
+                  producerTask: wide-and-deep-trainer
+            parameters:
+              pipelinechannel--bool-identity-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: bool-identity
+              pipelinechannel--dataflow_service_account:
+                componentInputParameter: pipelinechannel--dataflow_service_account
+              pipelinechannel--dataflow_subnetwork:
+                componentInputParameter: pipelinechannel--dataflow_subnetwork
+              pipelinechannel--dataflow_use_public_ips:
+                componentInputParameter: pipelinechannel--dataflow_use_public_ips
+              pipelinechannel--encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              pipelinechannel--evaluation_batch_predict_machine_type:
+                componentInputParameter: pipelinechannel--evaluation_batch_predict_machine_type
+              pipelinechannel--evaluation_batch_predict_max_replica_count:
+                componentInputParameter: pipelinechannel--evaluation_batch_predict_max_replica_count
+              pipelinechannel--evaluation_batch_predict_starting_replica_count:
+                componentInputParameter: pipelinechannel--evaluation_batch_predict_starting_replica_count
+              pipelinechannel--evaluation_dataflow_disk_size_gb:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_disk_size_gb
+              pipelinechannel--evaluation_dataflow_machine_type:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_machine_type
+              pipelinechannel--evaluation_dataflow_max_num_workers:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_max_num_workers
+              pipelinechannel--evaluation_dataflow_starting_num_workers:
+                componentInputParameter: pipelinechannel--evaluation_dataflow_starting_num_workers
+              pipelinechannel--feature-transform-engine-bigquery_test_split_uri:
+                taskOutputParameter:
+                  outputParameterKey: bigquery_test_split_uri
+                  producerTask: feature-transform-engine
+              pipelinechannel--location:
+                componentInputParameter: pipelinechannel--location
+              pipelinechannel--prediction_type:
+                componentInputParameter: pipelinechannel--prediction_type
+              pipelinechannel--project:
+                componentInputParameter: pipelinechannel--project
+              pipelinechannel--root_dir:
+                componentInputParameter: pipelinechannel--root_dir
+              pipelinechannel--target_column:
+                componentInputParameter: pipelinechannel--target_column
+          taskInfo:
+            name: run-evaluation
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--bool-identity-Output']
+              == 'true'
+        feature-transform-engine:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-feature-transform-engine
+          inputs:
+            parameters:
+              bigquery_staging_full_dataset_id:
+                componentInputParameter: pipelinechannel--bigquery_staging_full_dataset_id
+              data_source_bigquery_table_path:
+                componentInputParameter: pipelinechannel--data_source_bigquery_table_path
+              data_source_csv_filenames:
+                componentInputParameter: pipelinechannel--data_source_csv_filenames
+              dataflow_disk_size_gb:
+                componentInputParameter: pipelinechannel--transform_dataflow_disk_size_gb
+              dataflow_machine_type:
+                componentInputParameter: pipelinechannel--transform_dataflow_machine_type
+              dataflow_max_num_workers:
+                componentInputParameter: pipelinechannel--transform_dataflow_max_num_workers
+              dataflow_service_account:
+                componentInputParameter: pipelinechannel--dataflow_service_account
+              dataflow_subnetwork:
+                componentInputParameter: pipelinechannel--dataflow_subnetwork
+              dataflow_use_public_ips:
+                componentInputParameter: pipelinechannel--dataflow_use_public_ips
+              dataset_level_custom_transformation_definitions:
+                componentInputParameter: pipelinechannel--dataset_level_custom_transformation_definitions
+              dataset_level_transformations:
+                componentInputParameter: pipelinechannel--dataset_level_transformations
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              feature_selection_algorithm:
+                componentInputParameter: pipelinechannel--feature_selection_algorithm
+              location:
+                componentInputParameter: pipelinechannel--location
+              materialized_examples_format:
+                componentInputParameter: pipelinechannel--materialized_examples_format
+              max_selected_features:
+                componentInputParameter: pipelinechannel--max_selected_features
+              model_type:
+                runtimeValue:
+                  constant: neural_network
+              predefined_split_key:
+                componentInputParameter: pipelinechannel--predefined_split_key
+              prediction_type:
+                componentInputParameter: pipelinechannel--prediction_type
+              project:
+                componentInputParameter: pipelinechannel--project
+              root_dir:
+                componentInputParameter: pipelinechannel--root_dir
+              run_feature_selection:
+                componentInputParameter: pipelinechannel--run_feature_selection
+              stratified_split_key:
+                componentInputParameter: pipelinechannel--stratified_split_key
+              target_column:
+                componentInputParameter: pipelinechannel--target_column
+              test_fraction:
+                componentInputParameter: pipelinechannel--test_fraction
+              tf_auto_transform_features:
+                componentInputParameter: pipelinechannel--tf_auto_transform_features
+              tf_custom_transformation_definitions:
+                componentInputParameter: pipelinechannel--tf_custom_transformation_definitions
+              tf_transform_execution_engine:
+                componentInputParameter: pipelinechannel--tf_transform_execution_engine
+              tf_transformations_path:
+                componentInputParameter: pipelinechannel--tf_transformations_path
+              training_fraction:
+                componentInputParameter: pipelinechannel--training_fraction
+              validation_fraction:
+                componentInputParameter: pipelinechannel--validation_fraction
+              weight_column:
+                componentInputParameter: pipelinechannel--weight_column
+          taskInfo:
+            name: feature-transform-engine
+        model-upload:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-model-upload
+          dependentTasks:
+          - automl-tabular-infra-validator
+          - wide-and-deep-trainer
+          inputs:
+            artifacts:
+              unmanaged_container_model:
+                taskOutputArtifact:
+                  outputArtifactKey: unmanaged_container_model
+                  producerTask: wide-and-deep-trainer
+            parameters:
+              display_name:
+                runtimeValue:
+                  constant: automl-tabular-model-upload-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              location:
+                componentInputParameter: pipelinechannel--location
+              project:
+                componentInputParameter: pipelinechannel--project
+          taskInfo:
+            name: model-upload
+        parse-worker-pool-specs-override:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-parse-worker-pool-specs-override
+          inputs:
+            parameters:
+              worker_pool_specs_override:
+                componentInputParameter: pipelinechannel--worker_pool_specs_override
+          taskInfo:
+            name: parse-worker-pool-specs-override
+        split-materialized-data:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-split-materialized-data
+          dependentTasks:
+          - feature-transform-engine
+          inputs:
+            artifacts:
+              materialized_data:
+                taskOutputArtifact:
+                  outputArtifactKey: materialized_data
+                  producerTask: feature-transform-engine
+          taskInfo:
+            name: split-materialized-data
+        training-configurator-and-validator:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-training-configurator-and-validator
+          dependentTasks:
+          - feature-transform-engine
+          inputs:
+            artifacts:
+              dataset_stats:
+                taskOutputArtifact:
+                  outputArtifactKey: dataset_stats
+                  producerTask: feature-transform-engine
+              instance_schema:
+                taskOutputArtifact:
+                  outputArtifactKey: instance_schema
+                  producerTask: feature-transform-engine
+              training_schema:
+                taskOutputArtifact:
+                  outputArtifactKey: training_schema
+                  producerTask: feature-transform-engine
+            parameters:
+              prediction_type:
+                componentInputParameter: pipelinechannel--prediction_type
+              run_evaluation:
+                componentInputParameter: pipelinechannel--run_evaluation
+              split_example_counts:
+                taskOutputParameter:
+                  outputParameterKey: split_example_counts
+                  producerTask: feature-transform-engine
+              target_column:
+                componentInputParameter: pipelinechannel--target_column
+              weight_column:
+                componentInputParameter: pipelinechannel--weight_column
+          taskInfo:
+            name: training-configurator-and-validator
+        wide-and-deep-trainer:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-wide-and-deep-trainer
+          dependentTasks:
+          - feature-transform-engine
+          - parse-worker-pool-specs-override
+          - split-materialized-data
+          - training-configurator-and-validator
+          inputs:
+            artifacts:
+              instance_baseline:
+                taskOutputArtifact:
+                  outputArtifactKey: instance_baseline
+                  producerTask: training-configurator-and-validator
+              materialized_eval_split:
+                taskOutputArtifact:
+                  outputArtifactKey: materialized_eval_split
+                  producerTask: split-materialized-data
+              materialized_train_split:
+                taskOutputArtifact:
+                  outputArtifactKey: materialized_train_split
+                  producerTask: split-materialized-data
+              metadata:
+                taskOutputArtifact:
+                  outputArtifactKey: metadata
+                  producerTask: training-configurator-and-validator
+              training_schema_uri:
+                taskOutputArtifact:
+                  outputArtifactKey: training_schema
+                  producerTask: feature-transform-engine
+              transform_output:
+                taskOutputArtifact:
+                  outputArtifactKey: transform_output
+                  producerTask: feature-transform-engine
+            parameters:
+              batch_size:
+                componentInputParameter: pipelinechannel--batch_size
+              beta_1:
+                componentInputParameter: pipelinechannel--beta_1
+              beta_2:
+                componentInputParameter: pipelinechannel--beta_2
+              cache_data:
+                componentInputParameter: pipelinechannel--cache_data
+              dnn_beta_1:
+                componentInputParameter: pipelinechannel--dnn_beta_1
+              dnn_beta_2:
+                componentInputParameter: pipelinechannel--dnn_beta_2
+              dnn_dropout:
+                componentInputParameter: pipelinechannel--dnn_dropout
+              dnn_l1_regularization_strength:
+                componentInputParameter: pipelinechannel--dnn_l1_regularization_strength
+              dnn_l2_regularization_strength:
+                componentInputParameter: pipelinechannel--dnn_l2_regularization_strength
+              dnn_l2_shrinkage_regularization_strength:
+                componentInputParameter: pipelinechannel--dnn_l2_shrinkage_regularization_strength
+              dnn_learning_rate:
+                componentInputParameter: pipelinechannel--dnn_learning_rate
+              dnn_optimizer_type:
+                componentInputParameter: pipelinechannel--dnn_optimizer_type
+              embed_categories:
+                componentInputParameter: pipelinechannel--embed_categories
+              enable_profiler:
+                componentInputParameter: pipelinechannel--enable_profiler
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              eval_frequency_secs:
+                componentInputParameter: pipelinechannel--eval_frequency_secs
+              eval_steps:
+                componentInputParameter: pipelinechannel--eval_steps
+              hidden_units:
+                componentInputParameter: pipelinechannel--hidden_units
+              l1_regularization_strength:
+                componentInputParameter: pipelinechannel--l1_regularization_strength
+              l2_regularization_strength:
+                componentInputParameter: pipelinechannel--l2_regularization_strength
+              l2_shrinkage_regularization_strength:
+                componentInputParameter: pipelinechannel--l2_shrinkage_regularization_strength
+              learning_rate:
+                componentInputParameter: pipelinechannel--learning_rate
+              location:
+                componentInputParameter: pipelinechannel--location
+              max_steps:
+                componentInputParameter: pipelinechannel--max_steps
+              max_train_secs:
+                componentInputParameter: pipelinechannel--max_train_secs
+              measurement_selection_type:
+                componentInputParameter: pipelinechannel--measurement_selection_type
+              optimization_metric:
+                componentInputParameter: pipelinechannel--optimization_metric
+              optimizer_type:
+                componentInputParameter: pipelinechannel--optimizer_type
+              prediction_type:
+                componentInputParameter: pipelinechannel--prediction_type
+              project:
+                componentInputParameter: pipelinechannel--project
+              root_dir:
+                componentInputParameter: pipelinechannel--root_dir
+              seed:
+                componentInputParameter: pipelinechannel--seed
+              target_column:
+                componentInputParameter: pipelinechannel--target_column
+              training_disk_spec:
+                taskOutputParameter:
+                  outputParameterKey: training_disk_spec
+                  producerTask: parse-worker-pool-specs-override
+              training_machine_spec:
+                taskOutputParameter:
+                  outputParameterKey: training_machine_spec
+                  producerTask: parse-worker-pool-specs-override
+              use_wide:
+                componentInputParameter: pipelinechannel--use_wide
+              weight_column:
+                componentInputParameter: pipelinechannel--weight_column
+          taskInfo:
+            name: wide-and-deep-trainer
+    inputDefinitions:
+      parameters:
+        pipelinechannel--batch_size:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--beta_1:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--beta_2:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--bigquery_staging_full_dataset_id:
+          parameterType: STRING
+        pipelinechannel--cache_data:
+          parameterType: STRING
+        pipelinechannel--data_source_bigquery_table_path:
+          parameterType: STRING
+        pipelinechannel--data_source_csv_filenames:
+          parameterType: STRING
+        pipelinechannel--dataflow_service_account:
+          parameterType: STRING
+        pipelinechannel--dataflow_subnetwork:
+          parameterType: STRING
+        pipelinechannel--dataflow_use_public_ips:
+          parameterType: BOOLEAN
+        pipelinechannel--dataset_level_custom_transformation_definitions:
+          parameterType: LIST
+        pipelinechannel--dataset_level_transformations:
+          parameterType: LIST
+        pipelinechannel--dnn_beta_1:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--dnn_beta_2:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--dnn_dropout:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--dnn_l1_regularization_strength:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--dnn_l2_regularization_strength:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--dnn_l2_shrinkage_regularization_strength:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--dnn_learning_rate:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--dnn_optimizer_type:
+          parameterType: STRING
+        pipelinechannel--embed_categories:
+          parameterType: BOOLEAN
+        pipelinechannel--enable_profiler:
+          parameterType: BOOLEAN
+        pipelinechannel--encryption_spec_key_name:
+          parameterType: STRING
+        pipelinechannel--eval_frequency_secs:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--eval_steps:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_batch_predict_machine_type:
+          parameterType: STRING
+        pipelinechannel--evaluation_batch_predict_max_replica_count:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_batch_predict_starting_replica_count:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_dataflow_disk_size_gb:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_dataflow_machine_type:
+          parameterType: STRING
+        pipelinechannel--evaluation_dataflow_max_num_workers:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--evaluation_dataflow_starting_num_workers:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--feature_selection_algorithm:
+          parameterType: STRING
+        pipelinechannel--hidden_units:
+          parameterType: STRING
+        pipelinechannel--l1_regularization_strength:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--l2_regularization_strength:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--l2_shrinkage_regularization_strength:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--learning_rate:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--materialized_examples_format:
+          parameterType: STRING
+        pipelinechannel--max_selected_features:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--max_steps:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--max_train_secs:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--measurement_selection_type:
+          parameterType: STRING
+        pipelinechannel--optimization_metric:
+          parameterType: STRING
+        pipelinechannel--optimizer_type:
+          parameterType: STRING
+        pipelinechannel--predefined_split_key:
+          parameterType: STRING
+        pipelinechannel--prediction_type:
+          parameterType: STRING
+        pipelinechannel--project:
+          parameterType: STRING
+        pipelinechannel--root_dir:
+          parameterType: STRING
+        pipelinechannel--run_evaluation:
+          parameterType: BOOLEAN
+        pipelinechannel--run_feature_selection:
+          parameterType: BOOLEAN
+        pipelinechannel--seed:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--stratified_split_key:
+          parameterType: STRING
+        pipelinechannel--target_column:
+          parameterType: STRING
+        pipelinechannel--test_fraction:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--tf_auto_transform_features:
+          parameterType: STRUCT
+        pipelinechannel--tf_custom_transformation_definitions:
+          parameterType: LIST
+        pipelinechannel--tf_transform_execution_engine:
+          parameterType: STRING
+        pipelinechannel--tf_transformations_path:
+          parameterType: STRING
+        pipelinechannel--training_fraction:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--transform_dataflow_disk_size_gb:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--transform_dataflow_machine_type:
+          parameterType: STRING
+        pipelinechannel--transform_dataflow_max_num_workers:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--use_wide:
+          parameterType: BOOLEAN
+        pipelinechannel--validation_fraction:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--weight_column:
+          parameterType: STRING
+        pipelinechannel--worker_pool_specs_override:
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        model-evaluation-evaluation_metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-feature-transform-engine:
+    executorLabel: exec-feature-transform-engine
+    inputDefinitions:
+      parameters:
+        autodetect_csv_schema:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        bigquery_staging_full_dataset_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        data_source_bigquery_table_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        data_source_csv_filenames:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_disk_size_gb:
+          defaultValue: 40.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_machine_type:
+          defaultValue: n1-standard-16
+          isOptional: true
+          parameterType: STRING
+        dataflow_max_num_workers:
+          defaultValue: 25.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_service_account:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_subnetwork:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_use_public_ips:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        dataset_level_custom_transformation_definitions:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        dataset_level_transformations:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        feature_selection_algorithm:
+          defaultValue: AMI
+          isOptional: true
+          parameterType: STRING
+        forecasting_apply_windowing:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        forecasting_available_at_forecast_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_context_window:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecasting_forecast_horizon:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecasting_predefined_window_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_time_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_time_series_attribute_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_time_series_identifier_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_unavailable_at_forecast_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_window_max_count:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecasting_window_stride_length:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        legacy_transformations_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        location:
+          parameterType: STRING
+        materialized_examples_format:
+          defaultValue: tfrecords_gzip
+          isOptional: true
+          parameterType: STRING
+        max_selected_features:
+          defaultValue: 1000.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        model_type:
+          isOptional: true
+          parameterType: STRING
+        predefined_split_key:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        prediction_type:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        root_dir:
+          parameterType: STRING
+        run_distill:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        run_feature_selection:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        stratified_split_key:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        target_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        test_fraction:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        tf_auto_transform_features:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        tf_custom_transformation_definitions:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        tf_transform_execution_engine:
+          defaultValue: dataflow
+          isOptional: true
+          parameterType: STRING
+        tf_transformations_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        timestamp_split_key:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        training_fraction:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        validation_fraction:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        weight_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        dataset_stats:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        feature_ranking:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        instance_schema:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        materialized_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        training_schema:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        transform_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        bigquery_downsampled_test_split_uri:
+          parameterType: STRING
+        bigquery_test_split_uri:
+          parameterType: STRING
+        gcp_resources:
+          parameterType: STRING
+        split_example_counts:
+          parameterType: STRING
+  comp-model-batch-predict:
+    executorLabel: exec-model-batch-predict
+    inputDefinitions:
+      artifacts:
+        unmanaged_container_model:
+          artifactType:
+            schemaTitle: google.UnmanagedContainerModel
+            schemaVersion: 0.0.1
+          isOptional: true
+      parameters:
+        accelerator_count:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        accelerator_type:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        bigquery_destination_output_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        bigquery_source_input_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        explanation_metadata:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        explanation_parameters:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        gcs_destination_output_uri_prefix:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        gcs_source_uris:
+          defaultValue: []
+          isOptional: true
+          parameterType: LIST
+        generate_explanation:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        instances_format:
+          defaultValue: jsonl
+          isOptional: true
+          parameterType: STRING
+        job_display_name:
+          parameterType: STRING
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        machine_type:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        manual_batch_tuning_parameters_batch_size:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        max_replica_count:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        model_parameters:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        predictions_format:
+          defaultValue: jsonl
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        starting_replica_count:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        batchpredictionjob:
+          artifactType:
+            schemaTitle: google.VertexBatchPredictionJob
+            schemaVersion: 0.0.1
+        bigquery_output_table:
+          artifactType:
+            schemaTitle: google.BQTable
+            schemaVersion: 0.0.1
+        gcs_output_directory:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-model-evaluation:
+    executorLabel: exec-model-evaluation
+    inputDefinitions:
+      artifacts:
+        batch_prediction_job:
+          artifactType:
+            schemaTitle: google.VertexBatchPredictionJob
+            schemaVersion: 0.0.1
+      parameters:
+        dataflow_disk_size:
+          defaultValue: 50.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_machine_type:
+          defaultValue: n1-standard-4
+          isOptional: true
+          parameterType: STRING
+        dataflow_max_workers_num:
+          defaultValue: 100.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        dataflow_service_account:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_subnetwork:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dataflow_use_public_ips:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        dataflow_workers_num:
+          defaultValue: 10.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        example_weight_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        ground_truth_column:
+          parameterType: STRING
+        ground_truth_format:
+          defaultValue: jsonl
+          isOptional: true
+          parameterType: STRING
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        prediction_id_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        prediction_label_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        prediction_score_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        predictions_format:
+          defaultValue: jsonl
+          isOptional: true
+          parameterType: STRING
+        problem_type:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        root_dir:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        evaluation_metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-model-upload:
+    executorLabel: exec-model-upload
+    inputDefinitions:
+      artifacts:
+        unmanaged_container_model:
+          artifactType:
+            schemaTitle: google.UnmanagedContainerModel
+            schemaVersion: 0.0.1
+          isOptional: true
+      parameters:
+        description:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        display_name:
+          parameterType: STRING
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        explanation_metadata:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        explanation_parameters:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        labels:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          isOptional: true
+          parameterType: STRING
+        project:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+  comp-parse-worker-pool-specs-override:
+    executorLabel: exec-parse-worker-pool-specs-override
+    inputDefinitions:
+      parameters:
+        worker_pool_specs_override:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        eval_machine_spec:
+          parameterType: STRUCT
+        eval_replica_count:
+          parameterType: NUMBER_INTEGER
+        training_disk_spec:
+          parameterType: STRUCT
+        training_machine_spec:
+          parameterType: STRUCT
+  comp-split-materialized-data:
+    executorLabel: exec-split-materialized-data
+    inputDefinitions:
+      artifacts:
+        materialized_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        materialized_eval_split:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        materialized_test_split:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        materialized_train_split:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-training-configurator-and-validator:
+    executorLabel: exec-training-configurator-and-validator
+    inputDefinitions:
+      artifacts:
+        dataset_stats:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        instance_schema:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        training_schema:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        available_at_forecast_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        context_window:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        enable_probabilistic_inference:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        forecast_horizon:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        forecasting_model_type:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        forecasting_transformations_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        optimization_objective:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        optimization_objective_precision_value:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        optimization_objective_recall_value:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        prediction_type:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        quantiles:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        run_distill:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        run_evaluation:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        split_example_counts:
+          parameterType: STRING
+        stage_1_deadline_hours:
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        stage_2_deadline_hours:
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        target_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        time_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        time_series_attribute_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        time_series_identifier_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        unavailable_at_forecast_columns:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        weight_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        instance_baseline:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        metadata:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-wide-and-deep-trainer:
+    executorLabel: exec-wide-and-deep-trainer
+    inputDefinitions:
+      artifacts:
+        instance_baseline:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        materialized_eval_split:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        materialized_train_split:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        metadata:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        training_schema_uri:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        transform_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        batch_size:
+          defaultValue: 100.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        beta_1:
+          defaultValue: 0.9
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        beta_2:
+          defaultValue: 0.999
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        cache_data:
+          defaultValue: auto
+          isOptional: true
+          parameterType: STRING
+        dnn_beta_1:
+          defaultValue: 0.9
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        dnn_beta_2:
+          defaultValue: 0.999
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        dnn_dropout:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        dnn_l1_regularization_strength:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        dnn_l2_regularization_strength:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        dnn_l2_shrinkage_regularization_strength:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        dnn_learning_rate:
+          parameterType: NUMBER_DOUBLE
+        dnn_optimizer_type:
+          defaultValue: ftrl
+          isOptional: true
+          parameterType: STRING
+        embed_categories:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        enable_profiler:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        encryption_spec_key_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        eval_frequency_secs:
+          defaultValue: 600.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        eval_steps:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        hidden_units:
+          defaultValue: 30,30,30
+          isOptional: true
+          parameterType: STRING
+        l1_regularization_strength:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        l2_regularization_strength:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        l2_shrinkage_regularization_strength:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        learning_rate:
+          parameterType: NUMBER_DOUBLE
+        location:
+          parameterType: STRING
+        max_steps:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        max_train_secs:
+          defaultValue: -1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        measurement_selection_type:
+          defaultValue: BEST_MEASUREMENT
+          isOptional: true
+          parameterType: STRING
+        optimization_metric:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        optimizer_type:
+          defaultValue: adam
+          isOptional: true
+          parameterType: STRING
+        prediction_type:
+          parameterType: STRING
+        project:
+          parameterType: STRING
+        root_dir:
+          parameterType: STRING
+        seed:
+          defaultValue: 1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        target_column:
+          parameterType: STRING
+        training_disk_spec:
+          defaultValue:
+            boot_disk_size_gb: 100.0
+            boot_disk_type: pd-ssd
+          isOptional: true
+          parameterType: STRUCT
+        training_machine_spec:
+          defaultValue:
+            machine_type: c2-standard-16
+          isOptional: true
+          parameterType: STRUCT
+        use_wide:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        weight_column:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        unmanaged_container_model:
+          artifactType:
+            schemaTitle: google.UnmanagedContainerModel
+            schemaVersion: 0.0.1
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-automl-tabular-finalizer:
+      container:
+        args:
+        - --type
+        - CustomJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --payload
+        - '{"Concat": ["{\"display_name\": \"automl-tabular-finalizer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
+          {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
+          "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+    exec-automl-tabular-infra-validator:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325
+        resources:
+          cpuLimit: 8.0
+          memoryLimit: 52.0
+    exec-bool-identity:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _bool_identity
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
+          \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
+          \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-feature-transform-engine:
+      container:
+        args:
+        - feature_transform_engine
+        - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
+        - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
+        - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
+        - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
+        - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
+        - '{"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}'
+        - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
+        - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
+        - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
+        - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
+        - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
+        - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
+        - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
+        - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
+        - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
+        - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
+        - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
+        - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
+        - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
+        - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
+        - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
+        - '{"Concat": ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}'
+        - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
+        - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
+        - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
+        - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
+        - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
+        - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
+        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+        - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
+          "{{$.inputs.parameters[''model_type'']}}"]}}}'
+        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+        - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
+        - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
+        - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
+        - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
+        - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+        - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
+        - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
+        - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
+        - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
+        - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
+        - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
+        - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
+        - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
+        - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
+        - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
+        - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
+        - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
+        - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
+        - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
+        - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+        - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
+        - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
+        - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
+        - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
+        - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
+        - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
+        - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
+        - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
+        - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
+        - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+        - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
+        - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
+        resources:
+          cpuLimit: 8.0
+          memoryLimit: 30.0
+    exec-model-batch-predict:
+      container:
+        args:
+        - --type
+        - BatchPredictionJob
+        - --payload
+        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
+          "\", ", " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+          "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
+          "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
+          "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
+          ", \"output_config\": {", "\"predictions_format\": \"", "{{$.inputs.parameters[''predictions_format'']}}",
+          "\"", ", \"gcs_destination\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''gcs_destination_output_uri_prefix'']}}",
+          "\"", "}", ", \"bigquery_destination\": {", "\"output_uri\": \"", "{{$.inputs.parameters[''bigquery_destination_output_uri'']}}",
+          "\"", "}", "}", ", \"dedicated_resources\": {", "\"machine_spec\": {", "\"machine_type\":
+          \"", "{{$.inputs.parameters[''machine_type'']}}", "\"", ", \"accelerator_type\":
+          \"", "{{$.inputs.parameters[''accelerator_type'']}}", "\"", ", \"accelerator_count\":
+          ", "{{$.inputs.parameters[''accelerator_count'']}}", "}", ", \"starting_replica_count\":
+          ", "{{$.inputs.parameters[''starting_replica_count'']}}", ", \"max_replica_count\":
+          ", "{{$.inputs.parameters[''max_replica_count'']}}", "}", ", \"manual_batch_tuning_parameters\":
+          {", "\"batch_size\": ", "{{$.inputs.parameters[''manual_batch_tuning_parameters_batch_size'']}}",
+          "}", ", \"generate_explanation\": ", "{{$.inputs.parameters[''generate_explanation'']}}",
+          ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
+          ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
+          "}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"encryption_spec\":
+          {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", "}"]}'
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+    exec-model-evaluation:
+      container:
+        args:
+        - --setup_file
+        - /setup.py
+        - --json_mode
+        - 'true'
+        - --project_id
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --problem_type
+        - '{{$.inputs.parameters[''problem_type'']}}'
+        - --batch_prediction_format
+        - '{{$.inputs.parameters[''predictions_format'']}}'
+        - --batch_prediction_gcs_source
+        - '{{$.inputs.artifacts[''batch_prediction_job''].metadata[''gcsOutputDirectory'']}}'
+        - --ground_truth_format
+        - '{{$.inputs.parameters[''ground_truth_format'']}}'
+        - --key_prefix_in_prediction_dataset
+        - instance
+        - --root_dir
+        - '{{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
+        - --classification_type
+        - multiclass
+        - --ground_truth_column
+        - instance.{{$.inputs.parameters['ground_truth_column']}}
+        - --prediction_score_column
+        - '{{$.inputs.parameters[''prediction_score_column'']}}'
+        - --prediction_label_column
+        - '{{$.inputs.parameters[''prediction_label_column'']}}'
+        - --prediction_id_column
+        - ''
+        - --example_weight_column
+        - ''
+        - --generate_feature_attribution
+        - 'false'
+        - --dataflow_job_prefix
+        - evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+        - --dataflow_service_account
+        - '{{$.inputs.parameters[''dataflow_service_account'']}}'
+        - --dataflow_disk_size
+        - '{{$.inputs.parameters[''dataflow_disk_size'']}}'
+        - --dataflow_machine_type
+        - '{{$.inputs.parameters[''dataflow_machine_type'']}}'
+        - --dataflow_workers_num
+        - '{{$.inputs.parameters[''dataflow_workers_num'']}}'
+        - --dataflow_max_workers_num
+        - '{{$.inputs.parameters[''dataflow_max_workers_num'']}}'
+        - --dataflow_subnetwork
+        - '{{$.inputs.parameters[''dataflow_subnetwork'']}}'
+        - --dataflow_use_public_ips
+        - '{{$.inputs.parameters[''dataflow_use_public_ips'']}}'
+        - --kms_key_name
+        - '{{$.inputs.parameters[''encryption_spec_key_name'']}}'
+        - --output_metrics_gcs_path
+        - '{{$.outputs.artifacts[''evaluation_metrics''].uri}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python
+        - /main.py
+        image: gcr.io/ml-pipeline/model-evaluation:v0.4
+    exec-model-upload:
+      container:
+        args:
+        - --type
+        - UploadModel
+        - --payload
+        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''display_name'']}}",
+          "\"", ", \"description\": \"", "{{$.inputs.parameters[''description'']}}",
+          "\"", ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
+          ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
+          "}", ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}"]}'
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --executor_input
+        - '{{$}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - launcher
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.13
+    exec-parse-worker-pool-specs-override:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _parse_worker_pool_specs_override
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _parse_worker_pool_specs_override(\n    worker_pool_specs_override:\
+          \ list,  # pylint:disable=g-bare-generic\n) -> NamedTuple(\n    'Outputs',\n\
+          \    [\n        ('training_machine_spec', dict),  # pylint:disable=g-bare-generic\n\
+          \        ('training_disk_spec', dict),\n        ('eval_machine_spec', dict),\
+          \  # pylint:disable=g-bare-generic\n        ('eval_replica_count', int),\n\
+          \    ],\n):\n  \"\"\"Parses worker_pool_specs_override and returns training\
+          \ and evaluation machine specifications.\n\n  Args:\n    worker_pool_specs_override:\
+          \ The list of dictionaries for overriding training\n      and evaluation\
+          \ worker pool specs.\n\n  Returns:\n      training_machine_spec: The training\
+          \ machine spec.\n      training_disk_spec: The training disk spec.\n   \
+          \   eval_machine_spec: The eval machine spec.\n      eval_replica_count:\
+          \ The replica count for eval.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \n  training_machine_spec = {'machine_type': 'c2-standard-16'}\n  training_disk_spec\
+          \ = {'boot_disk_type': 'pd-ssd', 'boot_disk_size_gb': 100}\n  eval_machine_spec\
+          \ = {'machine_type': 'c2-standard-8'}\n  eval_replica_count = 1\n\n  if\
+          \ worker_pool_specs_override:\n    if len(worker_pool_specs_override) >=\
+          \ 1 and isinstance(\n        worker_pool_specs_override[0], dict\n    ):\n\
+          \      training_machine_spec = worker_pool_specs_override[0].get(\n    \
+          \      'machine_spec', training_machine_spec\n      )\n      training_disk_spec\
+          \ = worker_pool_specs_override[0].get(\n          'disk_spec', training_disk_spec\n\
+          \      )\n    if len(worker_pool_specs_override) == 4 and isinstance(\n\
+          \        worker_pool_specs_override[3], dict\n    ):\n      eval_machine_spec\
+          \ = worker_pool_specs_override[3].get(\n          'machine_spec', eval_machine_spec\n\
+          \      )\n      eval_replica_count = worker_pool_specs_override[3].get(\n\
+          \          'replica_count', eval_replica_count\n      )\n\n  return collections.namedtuple(\n\
+          \      'Outputs',\n      [\n          'training_machine_spec',\n       \
+          \   'training_disk_spec',\n          'eval_machine_spec',\n          'eval_replica_count',\n\
+          \      ],\n  )(\n      training_machine_spec,\n      training_disk_spec,\n\
+          \      eval_machine_spec,\n      eval_replica_count,\n  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+    exec-split-materialized-data:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _split_materialized_data
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing\
+          \ import *\n\ndef _split_materialized_data(\n    materialized_data: Input[Dataset],\n\
+          \    materialized_train_split: OutputPath('MaterializedSplit'),\n    materialized_eval_split:\
+          \ OutputPath('MaterializedSplit'),\n    materialized_test_split: OutputPath('MaterializedSplit')):\n\
+          \  \"\"\"Splits materialized_data into materialized_data test, train, and\
+          \ eval splits.\n\n  Necessary adapter between FTE pipeline and trainer.\n\
+          \n  Args:\n    materialized_data: materialized_data dataset output by FTE.\n\
+          \    materialized_train_split: Path patern to materialized_train_split.\n\
+          \    materialized_eval_split: Path patern to materialized_eval_split.\n\
+          \    materialized_test_split: Path patern to materialized_test_split.\n\
+          \  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import json\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \n  with tf.io.gfile.GFile(materialized_data.path, 'r') as f:\n    artifact_path\
+          \ = f.read()\n\n  # needed to import tf because this is a path in gs://\n\
+          \  with tf.io.gfile.GFile(artifact_path, 'r') as f:\n    materialized_data_json\
+          \ = json.load(f)\n\n  if 'tf_record_data_source' in materialized_data_json:\n\
+          \    file_patterns = materialized_data_json['tf_record_data_source'][\n\
+          \        'file_patterns']\n  elif 'avro_data_source' in materialized_data_json:\n\
+          \    file_patterns = materialized_data_json['avro_data_source'][\n     \
+          \   'file_patterns']\n  elif 'parquet_data_source' in materialized_data_json:\n\
+          \    file_patterns = materialized_data_json['parquet_data_source'][\n  \
+          \      'file_patterns']\n  else:\n    raise ValueError(f'Unsupported training\
+          \ data source: {materialized_data_json}')\n\n  # we map indices to file\
+          \ patterns based on the ordering of insertion order\n  # in our transform_data\
+          \ (see above in _generate_analyze_and_transform_data)\n  with tf.io.gfile.GFile(materialized_train_split,\
+          \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
+          \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
+          \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325
+    exec-training-configurator-and-validator:
+      container:
+        args:
+        - training_configurator_and_validator
+        - '{"Concat": ["--instance_schema_path=", "{{$.inputs.artifacts[''instance_schema''].uri}}"]}'
+        - '{"Concat": ["--training_schema_path=", "{{$.inputs.artifacts[''training_schema''].uri}}"]}'
+        - '{"Concat": ["--dataset_stats_path=", "{{$.inputs.artifacts[''dataset_stats''].uri}}"]}'
+        - '{"Concat": ["--split_example_counts=", "{{$.inputs.parameters[''split_example_counts'']}}"]}'
+        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+        - '{"Concat": ["--optimization_objective=", "{{$.inputs.parameters[''optimization_objective'']}}"]}'
+        - '{"Concat": ["--optimization_objective_recall_value=", "{{$.inputs.parameters[''optimization_objective_recall_value'']}}"]}'
+        - '{"Concat": ["--optimization_objective_precision_value=", "{{$.inputs.parameters[''optimization_objective_precision_value'']}}"]}'
+        - '{"Concat": ["--metadata_path=", "{{$.outputs.artifacts[''metadata''].uri}}"]}'
+        - '{"Concat": ["--instance_baseline_path=", "{{$.outputs.artifacts[''instance_baseline''].uri}}"]}'
+        - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
+        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+        - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
+        - '{"Concat": ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}'
+        - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
+        - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
+        - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
+        - '{"Concat": ["--unavailable_at_forecast_columns=", "{{$.inputs.parameters[''unavailable_at_forecast_columns'']}}"]}'
+        - '{"Concat": ["--quantiles=", "{{$.inputs.parameters[''quantiles'']}}"]}'
+        - '{"Concat": ["--context_window=", "{{$.inputs.parameters[''context_window'']}}"]}'
+        - '{"Concat": ["--forecast_horizon=", "{{$.inputs.parameters[''forecast_horizon'']}}"]}'
+        - '{"Concat": ["--forecasting_model_type=", "{{$.inputs.parameters[''forecasting_model_type'']}}"]}'
+        - '{"Concat": ["--forecasting_transformations_path=", "{{$.inputs.parameters[''forecasting_transformations_path'']}}"]}'
+        - '{"IfPresent": {"InputName": "stage_1_deadline_hours", "Then": {"Concat":
+          ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
+        - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
+          ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325
+    exec-wide-and-deep-trainer:
+      container:
+        args:
+        - --type
+        - CustomJob
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --payload
+        - '{"Concat": ["{\"display_name\": \"wide-and-deep-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"", "1",
+          "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
+          ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
+          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20230424_1325",
+          "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
+          "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
+          "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325",
+          "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
+          "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
+          \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
+          "\", \"--training_schema_path=", "{{$.inputs.artifacts[''training_schema_uri''].uri}}",
+          "\", \"--job_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
+          \"--training_data_path=", "{{$.inputs.artifacts[''materialized_train_split''].uri}}",
+          "\", \"--validation_data_path=", "{{$.inputs.artifacts[''materialized_eval_split''].uri}}",
+          "\", \"--max_steps=", "{{$.inputs.parameters[''max_steps'']}}", "\", \"--max_train_secs=",
+          "{{$.inputs.parameters[''max_train_secs'']}}", "\", \"--learning_rate=",
+          "{{$.inputs.parameters[''learning_rate'']}}", "\", \"--optimizer_type=",
+          "{{$.inputs.parameters[''optimizer_type'']}}", "\", \"--l1_regularization_strength=",
+          "{{$.inputs.parameters[''l1_regularization_strength'']}}", "\", \"--l2_regularization_strength=",
+          "{{$.inputs.parameters[''l2_regularization_strength'']}}", "\", \"--l2_shrinkage_regularization_strength=",
+          "{{$.inputs.parameters[''l2_shrinkage_regularization_strength'']}}", "\",
+          \"--beta_1=", "{{$.inputs.parameters[''beta_1'']}}", "\", \"--beta_2=",
+          "{{$.inputs.parameters[''beta_2'']}}", "\", \"--hidden_units=", "{{$.inputs.parameters[''hidden_units'']}}",
+          "\", \"--use_wide=", "{{$.inputs.parameters[''use_wide'']}}", "\", \"--embed_categories=",
+          "{{$.inputs.parameters[''embed_categories'']}}", "\", \"--dnn_dropout=",
+          "{{$.inputs.parameters[''dnn_dropout'']}}", "\", \"--dnn_learning_rate=",
+          "{{$.inputs.parameters[''dnn_learning_rate'']}}", "\", \"--dnn_optimizer_type=",
+          "{{$.inputs.parameters[''dnn_optimizer_type'']}}", "\", \"--dnn_l1_regularization_strength=",
+          "{{$.inputs.parameters[''dnn_l1_regularization_strength'']}}", "\", \"--dnn_l2_regularization_strength=",
+          "{{$.inputs.parameters[''dnn_l2_regularization_strength'']}}", "\", \"--dnn_l2_shrinkage_regularization_strength=",
+          "{{$.inputs.parameters[''dnn_l2_shrinkage_regularization_strength'']}}",
+          "\", \"--dnn_beta_1=", "{{$.inputs.parameters[''dnn_beta_1'']}}", "\", \"--dnn_beta_2=",
+          "{{$.inputs.parameters[''dnn_beta_2'']}}", "\", \"--enable_profiler=", "{{$.inputs.parameters[''enable_profiler'']}}",
+          "\", \"--cache_data=", "{{$.inputs.parameters[''cache_data'']}}", "\", \"--seed=",
+          "{{$.inputs.parameters[''seed'']}}", "\", \"--eval_steps=", "{{$.inputs.parameters[''eval_steps'']}}",
+          "\", \"--batch_size=", "{{$.inputs.parameters[''batch_size'']}}", "\", \"--measurement_selection_type=",
+          "{{$.inputs.parameters[''measurement_selection_type'']}}", "\", \"--optimization_metric=",
+          "{{$.inputs.parameters[''optimization_metric'']}}", "\", \"--eval_frequency_secs=",
+          "{{$.inputs.parameters[''eval_frequency_secs'']}}", "\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"]}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+pipelineInfo:
+  name: automl-tabular-wide-and-deep-trainer
+root:
+  dag:
+    outputs:
+      artifacts:
+        model-evaluation-evaluation_metrics:
+          artifactSelectors:
+          - outputArtifactKey: model-evaluation-evaluation_metrics
+            producerSubtask: exit-handler-1
+    tasks:
+      automl-tabular-finalizer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-automl-tabular-finalizer
+        dependentTasks:
+        - exit-handler-1
+        inputs:
+          parameters:
+            location:
+              componentInputParameter: location
+            project:
+              componentInputParameter: project
+            root_dir:
+              componentInputParameter: root_dir
+        taskInfo:
+          name: automl-tabular-finalizer
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
+      exit-handler-1:
+        componentRef:
+          name: comp-exit-handler-1
+        inputs:
+          parameters:
+            pipelinechannel--batch_size:
+              componentInputParameter: batch_size
+            pipelinechannel--beta_1:
+              componentInputParameter: beta_1
+            pipelinechannel--beta_2:
+              componentInputParameter: beta_2
+            pipelinechannel--bigquery_staging_full_dataset_id:
+              componentInputParameter: bigquery_staging_full_dataset_id
+            pipelinechannel--cache_data:
+              componentInputParameter: cache_data
+            pipelinechannel--data_source_bigquery_table_path:
+              componentInputParameter: data_source_bigquery_table_path
+            pipelinechannel--data_source_csv_filenames:
+              componentInputParameter: data_source_csv_filenames
+            pipelinechannel--dataflow_service_account:
+              componentInputParameter: dataflow_service_account
+            pipelinechannel--dataflow_subnetwork:
+              componentInputParameter: dataflow_subnetwork
+            pipelinechannel--dataflow_use_public_ips:
+              componentInputParameter: dataflow_use_public_ips
+            pipelinechannel--dataset_level_custom_transformation_definitions:
+              componentInputParameter: dataset_level_custom_transformation_definitions
+            pipelinechannel--dataset_level_transformations:
+              componentInputParameter: dataset_level_transformations
+            pipelinechannel--dnn_beta_1:
+              componentInputParameter: dnn_beta_1
+            pipelinechannel--dnn_beta_2:
+              componentInputParameter: dnn_beta_2
+            pipelinechannel--dnn_dropout:
+              componentInputParameter: dnn_dropout
+            pipelinechannel--dnn_l1_regularization_strength:
+              componentInputParameter: dnn_l1_regularization_strength
+            pipelinechannel--dnn_l2_regularization_strength:
+              componentInputParameter: dnn_l2_regularization_strength
+            pipelinechannel--dnn_l2_shrinkage_regularization_strength:
+              componentInputParameter: dnn_l2_shrinkage_regularization_strength
+            pipelinechannel--dnn_learning_rate:
+              componentInputParameter: dnn_learning_rate
+            pipelinechannel--dnn_optimizer_type:
+              componentInputParameter: dnn_optimizer_type
+            pipelinechannel--embed_categories:
+              componentInputParameter: embed_categories
+            pipelinechannel--enable_profiler:
+              componentInputParameter: enable_profiler
+            pipelinechannel--encryption_spec_key_name:
+              componentInputParameter: encryption_spec_key_name
+            pipelinechannel--eval_frequency_secs:
+              componentInputParameter: eval_frequency_secs
+            pipelinechannel--eval_steps:
+              componentInputParameter: eval_steps
+            pipelinechannel--evaluation_batch_predict_machine_type:
+              componentInputParameter: evaluation_batch_predict_machine_type
+            pipelinechannel--evaluation_batch_predict_max_replica_count:
+              componentInputParameter: evaluation_batch_predict_max_replica_count
+            pipelinechannel--evaluation_batch_predict_starting_replica_count:
+              componentInputParameter: evaluation_batch_predict_starting_replica_count
+            pipelinechannel--evaluation_dataflow_disk_size_gb:
+              componentInputParameter: evaluation_dataflow_disk_size_gb
+            pipelinechannel--evaluation_dataflow_machine_type:
+              componentInputParameter: evaluation_dataflow_machine_type
+            pipelinechannel--evaluation_dataflow_max_num_workers:
+              componentInputParameter: evaluation_dataflow_max_num_workers
+            pipelinechannel--evaluation_dataflow_starting_num_workers:
+              componentInputParameter: evaluation_dataflow_starting_num_workers
+            pipelinechannel--feature_selection_algorithm:
+              componentInputParameter: feature_selection_algorithm
+            pipelinechannel--hidden_units:
+              componentInputParameter: hidden_units
+            pipelinechannel--l1_regularization_strength:
+              componentInputParameter: l1_regularization_strength
+            pipelinechannel--l2_regularization_strength:
+              componentInputParameter: l2_regularization_strength
+            pipelinechannel--l2_shrinkage_regularization_strength:
+              componentInputParameter: l2_shrinkage_regularization_strength
+            pipelinechannel--learning_rate:
+              componentInputParameter: learning_rate
+            pipelinechannel--location:
+              componentInputParameter: location
+            pipelinechannel--materialized_examples_format:
+              componentInputParameter: materialized_examples_format
+            pipelinechannel--max_selected_features:
+              componentInputParameter: max_selected_features
+            pipelinechannel--max_steps:
+              componentInputParameter: max_steps
+            pipelinechannel--max_train_secs:
+              componentInputParameter: max_train_secs
+            pipelinechannel--measurement_selection_type:
+              componentInputParameter: measurement_selection_type
+            pipelinechannel--optimization_metric:
+              componentInputParameter: optimization_metric
+            pipelinechannel--optimizer_type:
+              componentInputParameter: optimizer_type
+            pipelinechannel--predefined_split_key:
+              componentInputParameter: predefined_split_key
+            pipelinechannel--prediction_type:
+              componentInputParameter: prediction_type
+            pipelinechannel--project:
+              componentInputParameter: project
+            pipelinechannel--root_dir:
+              componentInputParameter: root_dir
+            pipelinechannel--run_evaluation:
+              componentInputParameter: run_evaluation
+            pipelinechannel--run_feature_selection:
+              componentInputParameter: run_feature_selection
+            pipelinechannel--seed:
+              componentInputParameter: seed
+            pipelinechannel--stratified_split_key:
+              componentInputParameter: stratified_split_key
+            pipelinechannel--target_column:
+              componentInputParameter: target_column
+            pipelinechannel--test_fraction:
+              componentInputParameter: test_fraction
+            pipelinechannel--tf_auto_transform_features:
+              componentInputParameter: tf_auto_transform_features
+            pipelinechannel--tf_custom_transformation_definitions:
+              componentInputParameter: tf_custom_transformation_definitions
+            pipelinechannel--tf_transform_execution_engine:
+              componentInputParameter: tf_transform_execution_engine
+            pipelinechannel--tf_transformations_path:
+              componentInputParameter: tf_transformations_path
+            pipelinechannel--training_fraction:
+              componentInputParameter: training_fraction
+            pipelinechannel--transform_dataflow_disk_size_gb:
+              componentInputParameter: transform_dataflow_disk_size_gb
+            pipelinechannel--transform_dataflow_machine_type:
+              componentInputParameter: transform_dataflow_machine_type
+            pipelinechannel--transform_dataflow_max_num_workers:
+              componentInputParameter: transform_dataflow_max_num_workers
+            pipelinechannel--use_wide:
+              componentInputParameter: use_wide
+            pipelinechannel--validation_fraction:
+              componentInputParameter: validation_fraction
+            pipelinechannel--weight_column:
+              componentInputParameter: weight_column
+            pipelinechannel--worker_pool_specs_override:
+              componentInputParameter: worker_pool_specs_override
+        taskInfo:
+          name: exit-handler-1
+  inputDefinitions:
+    parameters:
+      batch_size:
+        defaultValue: 100.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      beta_1:
+        defaultValue: 0.9
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      beta_2:
+        defaultValue: 0.999
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      bigquery_staging_full_dataset_id:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      cache_data:
+        defaultValue: auto
+        isOptional: true
+        parameterType: STRING
+      data_source_bigquery_table_path:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      data_source_csv_filenames:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      dataflow_service_account:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      dataflow_subnetwork:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      dataflow_use_public_ips:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+      dataset_level_custom_transformation_definitions:
+        isOptional: true
+        parameterType: LIST
+      dataset_level_transformations:
+        isOptional: true
+        parameterType: LIST
+      dnn_beta_1:
+        defaultValue: 0.9
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      dnn_beta_2:
+        defaultValue: 0.999
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      dnn_dropout:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      dnn_l1_regularization_strength:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      dnn_l2_regularization_strength:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      dnn_l2_shrinkage_regularization_strength:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      dnn_learning_rate:
+        parameterType: NUMBER_DOUBLE
+      dnn_optimizer_type:
+        defaultValue: adam
+        isOptional: true
+        parameterType: STRING
+      embed_categories:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+      enable_profiler:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      encryption_spec_key_name:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      eval_frequency_secs:
+        defaultValue: 600.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      eval_steps:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      evaluation_batch_predict_machine_type:
+        defaultValue: n1-highmem-8
+        isOptional: true
+        parameterType: STRING
+      evaluation_batch_predict_max_replica_count:
+        defaultValue: 20.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      evaluation_batch_predict_starting_replica_count:
+        defaultValue: 20.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      evaluation_dataflow_disk_size_gb:
+        defaultValue: 50.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      evaluation_dataflow_machine_type:
+        defaultValue: n1-standard-4
+        isOptional: true
+        parameterType: STRING
+      evaluation_dataflow_max_num_workers:
+        defaultValue: 100.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      evaluation_dataflow_starting_num_workers:
+        defaultValue: 10.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      feature_selection_algorithm:
+        defaultValue: AMI
+        isOptional: true
+        parameterType: STRING
+      hidden_units:
+        defaultValue: 30,30,30
+        isOptional: true
+        parameterType: STRING
+      l1_regularization_strength:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      l2_regularization_strength:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      l2_shrinkage_regularization_strength:
+        defaultValue: 0.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      learning_rate:
+        parameterType: NUMBER_DOUBLE
+      location:
+        parameterType: STRING
+      materialized_examples_format:
+        defaultValue: tfrecords_gzip
+        isOptional: true
+        parameterType: STRING
+      max_selected_features:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      max_steps:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      max_train_secs:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      measurement_selection_type:
+        defaultValue: BEST_MEASUREMENT
+        isOptional: true
+        parameterType: STRING
+      optimization_metric:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      optimizer_type:
+        defaultValue: adam
+        isOptional: true
+        parameterType: STRING
+      predefined_split_key:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      prediction_type:
+        parameterType: STRING
+      project:
+        parameterType: STRING
+      root_dir:
+        parameterType: STRING
+      run_evaluation:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      run_feature_selection:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      seed:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      stratified_split_key:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      target_column:
+        parameterType: STRING
+      test_fraction:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      tf_auto_transform_features:
+        isOptional: true
+        parameterType: STRUCT
+      tf_custom_transformation_definitions:
+        isOptional: true
+        parameterType: LIST
+      tf_transform_execution_engine:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      tf_transformations_path:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      training_fraction:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      transform_dataflow_disk_size_gb:
+        defaultValue: 40.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      transform_dataflow_machine_type:
+        defaultValue: n1-standard-16
+        isOptional: true
+        parameterType: STRING
+      transform_dataflow_max_num_workers:
+        defaultValue: 25.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      use_wide:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+      validation_fraction:
+        defaultValue: -1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      weight_column:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      worker_pool_specs_override:
+        isOptional: true
+        parameterType: LIST
+  outputDefinitions:
+    artifacts:
+      model-evaluation-evaluation_metrics:
+        artifactType:
+          schemaTitle: system.Metrics
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

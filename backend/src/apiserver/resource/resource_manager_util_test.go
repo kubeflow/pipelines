@@ -17,9 +17,9 @@ package resource
 import (
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/yaml"
 )
 
 func TestRetryWorkflowWith(t *testing.T) {

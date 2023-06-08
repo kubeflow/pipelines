@@ -14,7 +14,7 @@
 """Pipeline as a component (aka graph component)."""
 
 import inspect
-from typing import Callable
+from typing import Callable, Optional
 import uuid
 
 from kfp.compiler import pipeline_spec_builder as builder
@@ -36,11 +36,10 @@ class GraphComponent(base_component.BaseComponent):
         self,
         component_spec: structures.ComponentSpec,
         pipeline_func: Callable,
-        name: str,
+        display_name: Optional[str] = None,
     ):
         super().__init__(component_spec=component_spec)
         self.pipeline_func = pipeline_func
-        self.name = name
 
         args_list = []
         signature = inspect.signature(pipeline_func)
@@ -66,7 +65,7 @@ class GraphComponent(base_component.BaseComponent):
         pipeline_group = dsl_pipeline.groups[0]
         pipeline_group.name = uuid.uuid4().hex
 
-        pipeline_spec = builder.create_pipeline_spec(
+        pipeline_spec, platform_spec = builder.create_pipeline_spec(
             pipeline=dsl_pipeline,
             component_spec=self.component_spec,
             pipeline_outputs=pipeline_outputs,
@@ -75,8 +74,13 @@ class GraphComponent(base_component.BaseComponent):
         pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
         if pipeline_root is not None:
             pipeline_spec.default_pipeline_root = pipeline_root
+        if display_name is not None:
+            pipeline_spec.pipeline_info.display_name = display_name
+        if component_spec.description is not None:
+            pipeline_spec.pipeline_info.description = component_spec.description
 
         self.component_spec.implementation.graph = pipeline_spec
+        self.component_spec.platform_spec = platform_spec
 
     @property
     def pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:

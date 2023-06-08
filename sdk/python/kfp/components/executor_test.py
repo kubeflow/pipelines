@@ -34,7 +34,7 @@ from kfp.dsl import Input
 from kfp.dsl import Output
 
 
-class ExecutorTest(unittest.TestCase):
+class ExecutorTest(parameterized.TestCase):
 
     @classmethod
     def setUp(cls):
@@ -387,25 +387,62 @@ class ExecutorTest(unittest.TestCase):
             },
         })
 
-    def test_function_with_float_output(self):
-        executor_input = """\
-    {
-      "inputs": {
-        "parameterValues": {
-          "first": 0.0,
-          "second": 1.2
-        }
-      },
-      "outputs": {
-        "parameters": {
-          "Output": {
-            "outputFile": "gs://some-bucket/output"
-          }
+    @parameterized.parameters(
+        {
+            'executor_input':
+                """\
+            {
+              "inputs": {
+                "parameterValues": {
+                  "first": 0.0,
+                  "second": 1.2
+                }
+              },
+              "outputs": {
+                "parameters": {
+                  "Output": {
+                    "outputFile": "gs://some-bucket/output"
+                  }
+                },
+                "outputFile": "%(test_dir)s/output_metadata.json"
+              }
+            }
+            """,
+            'expected_output_metadata': {
+                'parameterValues': {
+                    'Output': 1.2
+                },
+            },
         },
-        "outputFile": "%(test_dir)s/output_metadata.json"
-      }
-    }
-    """
+        {
+            'executor_input':
+                """\
+            {
+              "inputs": {
+                "parameterValues": {
+                  "first": 1,
+                  "second": 2
+                }
+              },
+              "outputs": {
+                "parameters": {
+                  "Output": {
+                    "outputFile": "gs://some-bucket/output"
+                  }
+                },
+                "outputFile": "%(test_dir)s/output_metadata.json"
+              }
+            }
+            """,
+            'expected_output_metadata': {
+                'parameterValues': {
+                    'Output': 3
+                },
+            },
+        },
+    )
+    def test_function_with_float_output(self, executor_input,
+                                        expected_output_metadata):
 
         def test_func(first: float, second: float) -> float:
             return first + second
@@ -413,11 +450,7 @@ class ExecutorTest(unittest.TestCase):
         output_metadata = self.execute_and_load_output_metadata(
             test_func, executor_input)
 
-        self.assertDictEqual(output_metadata, {
-            'parameterValues': {
-                'Output': 1.2
-            },
-        })
+        self.assertDictEqual(output_metadata, expected_output_metadata)
 
     def test_function_with_list_output(self):
         executor_input = """\

@@ -16,8 +16,9 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
-__version__ = '2.0.0-beta.13'
+__version__ = '2.0.0-rc.1'
 
 TYPE_CHECK = True
 
+from kfp import dsl
 from kfp.client import Client

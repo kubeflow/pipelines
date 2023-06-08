@@ -11,17 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Core modules for AI Platform Pipeline Components."""
+"""Manage models via `Vertex AI Model Registry <https://cloud.google.com/vertex-ai/docs/model-registry/introduction>`_."""
 
-import os
-
-from .export_model import component as model_export_component
-from .upload_model import component as model_upload_component
+from google_cloud_pipeline_components.v1.model.delete_model.component import model_delete as ModelDeleteOp
+from google_cloud_pipeline_components.v1.model.export_model.component import model_export as ModelExportOp
+from google_cloud_pipeline_components.v1.model.upload_model.component import model_upload as ModelUploadOp
 
 __all__ = [
     'ModelExportOp',
     'ModelUploadOp',
+    'ModelDeleteOp',
 ]
-
-ModelExportOp = model_export_component.model_export
-ModelUploadOp = model_upload_component.model_upload

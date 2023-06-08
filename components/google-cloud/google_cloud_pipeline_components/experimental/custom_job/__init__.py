@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,20 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for supporting Google Vertex AI Custom Training Job Op."""
+"""Experimental custom training job components and utilities."""
 
-import os
-
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.v1.custom_job import (
+    create_custom_training_job_op_from_component,
+    create_custom_training_job_from_component,
+    CustomTrainingJobOp,
+)
 
 __all__ = [
     'CustomTrainingJobOp',
+    'create_custom_training_job_op_from_component',
+    'create_custom_training_job_from_component',
 ]
-
-
-CustomTrainingJobOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'component.yaml'))
-

@@ -61,11 +61,6 @@ for the archive run operation typically these are written to a http.Request
 */
 type ArchiveRunParams struct {
 
-	/*ExperimentID
-	  The ID of the parent experiment.
-
-	*/
-	ExperimentID string
 	/*RunID
 	  The ID of the run to be archived.
 
@@ -110,17 +105,6 @@ func (o *ArchiveRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithExperimentID adds the experimentID to the archive run params
-func (o *ArchiveRunParams) WithExperimentID(experimentID string) *ArchiveRunParams {
-	o.SetExperimentID(experimentID)
-	return o
-}
-
-// SetExperimentID adds the experimentId to the archive run params
-func (o *ArchiveRunParams) SetExperimentID(experimentID string) {
-	o.ExperimentID = experimentID
-}
-
 // WithRunID adds the runID to the archive run params
 func (o *ArchiveRunParams) WithRunID(runID string) *ArchiveRunParams {
 	o.SetRunID(runID)
@@ -139,11 +123,6 @@ func (o *ArchiveRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		return err
 	}
 	var res []error
-
-	// path param experiment_id
-	if err := r.SetPathParam("experiment_id", o.ExperimentID); err != nil {
-		return err
-	}
 
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {

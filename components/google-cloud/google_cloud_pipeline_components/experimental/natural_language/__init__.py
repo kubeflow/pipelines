@@ -11,20 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Natural Language components."""
+"""Experimental natural language components."""
 
-import os
-from .convert_dataset_export_for_batch_predict.component import convert_dataset_export_for_batch_predict as ConvertDatasetExportForBatchPredictOp
+from google_cloud_pipeline_components.experimental.natural_language.convert_dataset_export_for_batch_predict.component import convert_dataset_export_for_batch_predict as ConvertDatasetExportForBatchPredictOp
+from google_cloud_pipeline_components.experimental.natural_language.train_text_classification.component import train_tfhub_model as TrainTextClassificationOp
 
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
 
-__all__ = [
-    'ConvertDatasetExportForBatchPredictOp',
-    'TrainTextClassificationOp'
-]
-
-TrainTextClassificationOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'train_text_classification/component.yaml'))
+__all__ = ['ConvertDatasetExportForBatchPredictOp', 'TrainTextClassificationOp']

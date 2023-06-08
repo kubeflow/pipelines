@@ -16,14 +16,14 @@
 
 import React from 'react';
 import { GettingStarted } from './GettingStarted';
-import TestUtils, { diffHTML } from '../TestUtils';
+import TestUtils, { diffHTML } from 'src/TestUtils';
 import { render } from '@testing-library/react';
 import { PageProps } from './Page';
-import { Apis } from '../lib/Apis';
-import { ApiListPipelinesResponse } from '../apis/pipeline/api';
+import { Apis } from 'src/lib/Apis';
+import { V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 
 const PATH_BACKEND_CONFIG = '../../../backend/src/apiserver/config/sample_config.json';
-const PATH_FRONTEND_CONFIG = '../config/sample_config_from_backend.json';
+const PATH_FRONTEND_CONFIG = 'src/config/sample_config_from_backend.json';
 describe(`${PATH_FRONTEND_CONFIG}`, () => {
   it(`should be in sync with ${PATH_BACKEND_CONFIG}, if not please run "npm run sync-backend-sample-config" to update.`, () => {
     const configBackend = require(PATH_BACKEND_CONFIG);
@@ -36,7 +36,7 @@ describe('GettingStarted page', () => {
   const updateBannerSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
-  const pipelineListSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+  const pipelineListSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
@@ -53,7 +53,7 @@ describe('GettingStarted page', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    const empty: ApiListPipelinesResponse = {
+    const empty: V2beta1ListPipelinesResponse = {
       pipelines: [],
       total_size: 0,
     };
@@ -69,8 +69,8 @@ describe('GettingStarted page', () => {
     let count = 0;
     pipelineListSpy.mockImplementation(() => {
       ++count;
-      const response: ApiListPipelinesResponse = {
-        pipelines: [{ id: `pipeline-id-${count}` }],
+      const response: V2beta1ListPipelinesResponse = {
+        pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
       };
       return Promise.resolve(response);
     });
@@ -84,43 +84,13 @@ describe('GettingStarted page', () => {
       + Received
 
       @@ --- --- @@
-            <h2 id="demonstrations-and-tutorials">Demonstrations and Tutorials</h2>
-            <p>This section contains demo and tutorial pipelines.</p>
-            <p><strong>Demos</strong> - Try an end-to-end demonstration pipeline.</p>
-            <ul>
-              <li>
-      -         <a href="#/pipelines" class="link">TFX pipeline demo with Estimator</a>
-      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
-      +           >TFX pipeline demo with Estimator</a
-      +         >
-                <ul>
-                  <li>
-                    Classification pipeline with model analysis, based on a public
-                    BigQuery dataset of taxicab trips.
-                    <a
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
-      -         <a href="#/pipelines" class="link">XGBoost Pipeline demo</a>
-      +         <a href="#/pipelines/details/pipeline-id-1?" class="link"
-      +           >XGBoost Pipeline demo</a
-      +         >
-                <ul>
-                  <li>
-                    An example of end-to-end iterative XGBoost model training.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good"
-      @@ --- --- @@
               <strong>Tutorials</strong> - Learn pipeline concepts by following a
               tutorial.
             </p>
             <ul>
               <li>
       -         <a href="#/pipelines" class="link">Data passing in Python components</a>
-      +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-1?" class="link"
       +           >Data passing in Python components</a
       +         >
                 <ul>
@@ -135,7 +105,7 @@ describe('GettingStarted page', () => {
               </li>
               <li>
       -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
       +           >DSL - Control structures</a
       +         >
                 <ul>
@@ -149,19 +119,13 @@ describe('GettingStarted page', () => {
   it('fallbacks to show pipeline list page if request failed', async () => {
     let count = 0;
     pipelineListSpy.mockImplementation(
-      (): Promise<ApiListPipelinesResponse> => {
+      (): Promise<V2beta1ListPipelinesResponse> => {
         ++count;
         if (count === 1) {
           return Promise.reject(new Error('Mocked error'));
-        } else if (count === 2) {
-          // incomplete data
-          return Promise.resolve({});
-        } else if (count === 3) {
-          // empty data
-          return Promise.resolve({ pipelines: [], total_size: 0 });
         }
         return Promise.resolve({
-          pipelines: [{ id: `pipeline-id-${count}` }],
+          pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
           total_size: 1,
         });
       },
@@ -181,7 +145,7 @@ describe('GettingStarted page', () => {
               </li>
               <li>
       -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
       +           >DSL - Control structures</a
       +         >
                 <ul>

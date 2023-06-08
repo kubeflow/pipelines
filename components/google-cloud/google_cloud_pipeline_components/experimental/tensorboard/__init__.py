@@ -11,18 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Tensorboard Components."""
+"""Experimental Tensorboard component."""
 
-import os
-
-try:
-  from kfp.v2.components import load_component_from_file
-except ImportError:
-  from kfp.components import load_component_from_file
+from google_cloud_pipeline_components.experimental.tensorboard.tensorboard_experiment_creator.component import tensorboard_experiment_creator as TensorboardExperimentCreatorOp
 
 __all__ = [
     'TensorboardExperimentCreatorOp',
 ]
-
-TensorboardExperimentCreatorOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'tensorboard_experiment_creator.yaml'))

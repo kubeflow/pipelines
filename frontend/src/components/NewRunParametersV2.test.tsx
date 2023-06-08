@@ -789,6 +789,31 @@ describe('NewRunParametersV2', () => {
     screen.getByDisplayValue('{"A":1,"B":2}');
   });
 
+  it('show pipeline root from cloned RuntimeConfig', () => {
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'default pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        },
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+        },
+      },
+      clonedRuntimeConfig: {
+        parameters: { intParam: 123, strParam: 'string_value' },
+        pipeline_root: 'gs://dummy_pipeline_root',
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      setIsValidInput: jest.fn(),
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    screen.getByDisplayValue('gs://dummy_pipeline_root');
+  });
+
   it('shows parameters from cloned RuntimeConfig', () => {
     const props = {
       titleMessage: 'default Title',

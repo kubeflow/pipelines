@@ -35,7 +35,7 @@ from kserve import V1beta1TFServingSpec
 from kserve import V1beta1TorchServeSpec
 from kserve import V1beta1TritonSpec
 from kserve import V1beta1XGBoostSpec
-from kserve.api.kf_serving_watch import isvc_watch
+from kserve.api.watch import isvc_watch
 
 
 AVAILABLE_FRAMEWORKS = {
@@ -160,7 +160,7 @@ def submit_api_request(kserve_client, action, name, isvc, namespace=None,
     in raw InferenceService serialized YAML.
     """
     custom_obj_api = kserve_client.api_instance
-    args = [constants.KSERVE_GROUP,constants.KSERVE_V1BETA1_VERSION,
+    args = [constants.KSERVE_GROUP, constants.KSERVE_V1BETA1_VERSION,
             namespace, constants.KSERVE_PLURAL]
     if action == 'update':
         outputs = custom_obj_api.patch_namespaced_custom_object(*args, name, isvc)
@@ -180,7 +180,7 @@ def submit_api_request(kserve_client, action, name, isvc, namespace=None,
 
 def perform_action(action, model_name, model_uri, canary_traffic_percent, namespace,
                    framework, custom_model_spec, service_account, inferenceservice_yaml,
-                   request_timeout, autoscaling_target=0, enable_istio_sidecar=True, 
+                   request_timeout, autoscaling_target=0, enable_istio_sidecar=True,
                    watch_timeout=300, min_replicas=0, max_replicas=0):
     """
     Perform the specified action. If the action is not 'delete' and `inferenceService_yaml`
@@ -404,12 +404,12 @@ def main():
                 print('Model is timed out, please check the InferenceService events for more details.')
                 sys.exit(1)
         try:
-            print( model_status["status"]["url"] + " is the Knative domain.")
+            print(model_status["status"]["url"] + " is the Knative domain.")
             print("Sample test commands: \n")
             # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
             print("curl -v -X GET %s" % model_status["status"]["url"])
-            print("\nIf the above URL is not accessible, it's recommended to setup Knative with a configured DNS.\n"\
-                "https://knative.dev/docs/install/installing-istio/#configuring-dns")
+            print("\nIf the above URL is not accessible, it's recommended to setup Knative with a configured DNS.\n"
+                  "https://knative.dev/docs/install/installing-istio/#configuring-dns")
         except Exception:
             print("Model is not ready, check the logs for the Knative URL status.")
             sys.exit(1)

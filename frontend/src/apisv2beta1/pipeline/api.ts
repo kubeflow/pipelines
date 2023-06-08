@@ -269,13 +269,19 @@ export interface V2beta1PipelineVersion {
    */
   created_at?: Date;
   /**
-   * Required input field. Pipeline version package url. When calling CreatePipelineVersion, one needs to provide  one package file location.
+   * Input. Required. The URL to the source of the pipeline version. This is required when creating the pipeine version through CreatePipelineVersion API.
    * @type {V2beta1Url}
    * @memberof V2beta1PipelineVersion
    */
   package_url?: V2beta1Url;
   /**
-   * Required input field. Specifies the pipeline spec for the pipeline version.
+   * Input. Optional. The URL to the code source of the pipeline version. The code is usually the Python definition of the pipeline and potentially related the component definitions. This allows users to trace back to how the pipeline YAML was created.
+   * @type {string}
+   * @memberof V2beta1PipelineVersion
+   */
+  code_source_url?: string;
+  /**
+   * Output. The pipeline spec for the pipeline version.
    * @type {any}
    * @memberof V2beta1PipelineVersion
    */
@@ -363,15 +369,27 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      *
      * @summary Adds a pipeline version to the specified pipeline ID.
      * @param {string} pipeline_id Required input. ID of the parent pipeline.
+     * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipelineVersion(pipeline_id: string, options: any = {}): FetchArgs {
+    createPipelineVersion(
+      pipeline_id: string,
+      body: V2beta1PipelineVersion,
+      options: any = {},
+    ): FetchArgs {
       // verify required parameter 'pipeline_id' is not null or undefined
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
           'pipeline_id',
           'Required parameter pipeline_id was null or undefined when calling createPipelineVersion.',
+        );
+      }
+      // verify required parameter 'body' is not null or undefined
+      if (body === null || body === undefined) {
+        throw new RequiredError(
+          'body',
+          'Required parameter body was null or undefined when calling createPipelineVersion.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/{pipeline_id}/versions`.replace(
@@ -392,6 +410,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
       }
 
+      localVarHeaderParameter['Content-Type'] = 'application/json';
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
@@ -401,6 +421,10 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       delete localVarUrlObj.search;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+      const needsSerialization =
+        <any>'V2beta1PipelineVersion' !== 'string' ||
+        localVarRequestOptions.headers['Content-Type'] === 'application/json';
+      localVarRequestOptions.body = needsSerialization ? JSON.stringify(body || {}) : body || '';
 
       return {
         url: url.format(localVarUrlObj),
@@ -856,16 +880,18 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Adds a pipeline version to the specified pipeline ID.
      * @param {string} pipeline_id Required input. ID of the parent pipeline.
+     * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     createPipelineVersion(
       pipeline_id: string,
+      body: V2beta1PipelineVersion,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1PipelineVersion> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
         configuration,
-      ).createPipelineVersion(pipeline_id, options);
+      ).createPipelineVersion(pipeline_id, body, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1100,14 +1126,16 @@ export const PipelineServiceApiFactory = function(
      *
      * @summary Adds a pipeline version to the specified pipeline ID.
      * @param {string} pipeline_id Required input. ID of the parent pipeline.
+     * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipelineVersion(pipeline_id: string, options?: any) {
-      return PipelineServiceApiFp(configuration).createPipelineVersion(pipeline_id, options)(
-        fetch,
-        basePath,
-      );
+    createPipelineVersion(pipeline_id: string, body: V2beta1PipelineVersion, options?: any) {
+      return PipelineServiceApiFp(configuration).createPipelineVersion(
+        pipeline_id,
+        body,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -1262,15 +1290,17 @@ export class PipelineServiceApi extends BaseAPI {
    *
    * @summary Adds a pipeline version to the specified pipeline ID.
    * @param {string} pipeline_id Required input. ID of the parent pipeline.
+   * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public createPipelineVersion(pipeline_id: string, options?: any) {
-    return PipelineServiceApiFp(this.configuration).createPipelineVersion(pipeline_id, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public createPipelineVersion(pipeline_id: string, body: V2beta1PipelineVersion, options?: any) {
+    return PipelineServiceApiFp(this.configuration).createPipelineVersion(
+      pipeline_id,
+      body,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**

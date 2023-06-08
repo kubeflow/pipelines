@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { logger } from '../lib/Utils';
-import { NodeStatus } from '../third_party/mlmd/argo_template';
+import { logger } from 'src/lib/Utils';
+import { NodeStatus } from 'src/third_party/mlmd/argo_template';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
 export const statusBgColors = {
   error: '#fce8e6',
@@ -40,6 +41,18 @@ export enum NodePhase {
   UNKNOWN = 'Unknown',
   OMITTED = 'Omitted',
 }
+
+export const statusProtoMap = new Map<V2beta1RuntimeState, string>([
+  [V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED, 'Unknown'],
+  [V2beta1RuntimeState.PENDING, 'Pending'],
+  [V2beta1RuntimeState.RUNNING, 'Running'],
+  [V2beta1RuntimeState.SUCCEEDED, 'Succeeded'],
+  [V2beta1RuntimeState.SKIPPED, 'Skipped'],
+  [V2beta1RuntimeState.FAILED, 'Failed'],
+  [V2beta1RuntimeState.CANCELING, 'Canceling'],
+  [V2beta1RuntimeState.CANCELED, 'Canceled'],
+  [V2beta1RuntimeState.PAUSED, 'Paused'],
+]);
 
 export function hasFinished(status?: NodePhase): boolean {
   switch (status) {
@@ -115,4 +128,60 @@ function wasNodeCached(node: NodeStatus): boolean {
   return !artifacts || !node.id || node.type !== 'Pod'
     ? false
     : artifacts.some(artifact => artifact.s3 && !artifact.s3.key.includes(node.id));
+}
+
+// separate these helper function for paritial v2 api integration
+export function hasFinishedV2(state?: V2beta1RuntimeState): boolean {
+  switch (state) {
+    case V2beta1RuntimeState.SUCCEEDED: // Fall through
+    case V2beta1RuntimeState.SKIPPED: // Fall through
+    case V2beta1RuntimeState.FAILED: // Fall through
+    case V2beta1RuntimeState.CANCELED:
+      return true;
+    case V2beta1RuntimeState.PENDING: // Fall through
+    case V2beta1RuntimeState.RUNNING: // Fall through
+    case V2beta1RuntimeState.CANCELING: // Fall through
+    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+      return false;
+    default:
+      logger.warn('Unknown state:', state);
+      throw new Error('Unexpected runtime state!');
+  }
+}
+
+export function statusToBgColorV2(state?: V2beta1RuntimeState, nodeMessage?: string): string {
+  state = checkIfTerminatedV2(state, nodeMessage);
+  switch (state) {
+    case V2beta1RuntimeState.FAILED:
+      return statusBgColors.error;
+    case V2beta1RuntimeState.PENDING:
+      return statusBgColors.notStarted;
+    case V2beta1RuntimeState.CANCELING:
+    // fall through
+    case V2beta1RuntimeState.RUNNING:
+      return statusBgColors.running;
+    case V2beta1RuntimeState.SUCCEEDED:
+      return statusBgColors.succeeded;
+    case V2beta1RuntimeState.SKIPPED:
+    // fall through
+    case V2beta1RuntimeState.CANCELED:
+      return statusBgColors.terminatedOrSkipped;
+    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+    // fall through
+    default:
+      logger.verbose('Unknown state:', state);
+      return statusBgColors.notStarted;
+  }
+}
+
+export function checkIfTerminatedV2(
+  state?: V2beta1RuntimeState,
+  nodeMessage?: string,
+): V2beta1RuntimeState | undefined {
+  // Argo considers terminated runs as having "Failed", so we have to examine the failure message to
+  // determine why the run failed.
+  if (state === V2beta1RuntimeState.FAILED && nodeMessage === 'terminated') {
+    state = V2beta1RuntimeState.CANCELED;
+  }
+  return state;
 }

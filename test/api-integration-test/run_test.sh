@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ usage()
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [--run_upgrade_tests_preparation run preparation step of upgrade tests instead]
     [--run_upgrade_tests_verification run verification step of upgrade tests instead]
+    [--test_v2_api    run test using v2 API]
     [-h help]"
 }
 
@@ -37,6 +38,9 @@ while [ "$1" != "" ]; do
                                 ;;
              --namespace )      shift
                                 NAMESPACE=$1
+                                ;;
+             --test_v2_api )
+                                TEST_V2_API=true
                                 ;;
              --run_upgrade_tests_preparation )
                                 UPGRADE_TESTS_PREPARATION=true
@@ -65,7 +69,11 @@ fi
 GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/go/src/github.com/${GITHUB_REPO}
 JUNIT_TEST_RESULT=junit_ApiIntegrationTestOutput.xml
-TEST_DIR=backend/test/integration
+if [ -n "$TEST_V2_API" ]; then
+  TEST_DIR=backend/test/v2/integration
+else
+  TEST_DIR=backend/test/integration
+fi
 
 cd "${BASE_DIR}/${TEST_DIR}"
 

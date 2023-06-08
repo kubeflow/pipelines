@@ -13,14 +13,8 @@
 # limitations under the License.
 
 import json
-import logging
 
-import google.auth
-import google.auth.transport.requests
 from google_cloud_pipeline_components.container.v1.bigquery.utils import bigquery_util
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
-from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-import requests
 
 
 def bigquery_forecast_model_job(
@@ -64,19 +58,30 @@ def bigquery_forecast_model_job(
   if horizon is not None and horizon > 0:
     settings_field_sql_list.append('%s AS horizon' % horizon)
 
-  if confidence_level is not None and confidence_level >= 0.0 and confidence_level < 1.0:
+  if (
+      confidence_level is not None
+      and confidence_level >= 0.0
+      and confidence_level < 1.0
+  ):
     settings_field_sql_list.append('%s AS confidence_level' % confidence_level)
 
   settings_field_sql = ','.join(settings_field_sql_list)
   settings_sql = ', STRUCT(%s)' % settings_field_sql
 
   job_configuration_query_override_json = json.loads(
-      job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.FORECAST(MODEL %s %s)' % (
-          bigquery_util.back_quoted_if_needed(model_name), settings_sql)
+      job_configuration_query_override, strict=False
+  )
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.FORECAST(MODEL %s %s)'
+      % (bigquery_util.back_quoted_if_needed(model_name), settings_sql)
+  )
 
   return bigquery_util.bigquery_query_job(
-      type, project, location, payload,
-      json.dumps(job_configuration_query_override_json), gcp_resources,
-      executor_input)
+      type,
+      project,
+      location,
+      payload,
+      json.dumps(job_configuration_query_override_json),
+      gcp_resources,
+      executor_input,
+  )

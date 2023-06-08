@@ -1,6 +1,7 @@
 /* eslint-disable */
 import Long from 'long';
 import _m0 from 'protobufjs/minimal';
+import { Duration } from './google/protobuf/duration';
 import { Status } from './google/rpc/status';
 import { Struct, Value as Value1 } from './google/protobuf/struct';
 
@@ -223,6 +224,23 @@ export interface ComponentInputsSpec {
 /** Definition of an artifact input. */
 export interface ComponentInputsSpec_ArtifactSpec {
   artifactType: ArtifactTypeSchema | undefined;
+  /** Indicates whether input is a single artifact or list of artifacts */
+  isArtifactList: boolean;
+  /**
+   * Whether this input artifact is optional or not.
+   * - If required, the artifact must be able to resolve to an artifact
+   * at runtime.
+   * - If it's optional, it can be missing from the
+   * PipelineTaskInputsSpec.InputArtifactSpec (if it's instantiated into a
+   * task), or can be missing from the runtimeArtifact (if it's the root
+   * component).
+   */
+  isOptional: boolean;
+  /**
+   * The description for this input artifact of the component.
+   * Should not exceed 1024 characters.
+   */
+  description: string;
 }
 
 /** Definition of a parameter input. */
@@ -238,6 +256,23 @@ export interface ComponentInputsSpec_ParameterSpec {
   parameterType: ParameterType_ParameterTypeEnum;
   /** Optional field. Default value of the input parameter. */
   defaultValue: any | undefined;
+  /**
+   * Whether this input parameter is optional or not.
+   * - If required, the parameter should either have a default value, or have
+   * to be able to resolve to a concrete value at runtime.
+   * - If it's optional, it can be missing from the
+   * PipelineTaskInputsSpec.InputParameterSpec (if it's instantiated into a
+   * task), or can be missing from the runtimeParameter (if it's the root
+   * component). If the value is missing, the default_value will be used. Or
+   * if default_value is not provided, the default value of the parameter's
+   * type will be used.
+   */
+  isOptional: boolean;
+  /**
+   * The description for this input parameter of the component.
+   * Should not exceed 1024 characters.
+   */
+  description: string;
 }
 
 export interface ComponentInputsSpec_ArtifactsEntry {
@@ -275,6 +310,13 @@ export interface ComponentOutputsSpec_ArtifactSpec {
   customProperties: { [key: string]: ValueOrRuntimeParameter };
   /** Properties of the Artifact. */
   metadata: { [key: string]: any } | undefined;
+  /** Indicates whether output is a single artifact or list of artifacts */
+  isArtifactList: boolean;
+  /**
+   * The description for this output artifact of the component.
+   * Should not exceed 1024 characters.
+   */
+  description: string;
 }
 
 export interface ComponentOutputsSpec_ArtifactSpec_PropertiesEntry {
@@ -298,6 +340,11 @@ export interface ComponentOutputsSpec_ParameterSpec {
   type: PrimitiveType_PrimitiveTypeEnum;
   /** Specifies an output parameter's type. */
   parameterType: ParameterType_ParameterTypeEnum;
+  /**
+   * The description for this output parameter of the component.
+   * Should not exceed 1024 characters.
+   */
+  description: string;
 }
 
 export interface ComponentOutputsSpec_ArtifactsEntry {
@@ -580,6 +627,11 @@ export enum ParameterType_ParameterTypeEnum {
    * step.
    */
   STRUCT = 6,
+  /**
+   * TASK_FINAL_STATUS - Indicates that a parameter is a TaskFinalStatus type; these types can only accept inputs
+   * specified by InputParameterSpec.task_final_status
+   */
+  TASK_FINAL_STATUS = 7,
   UNRECOGNIZED = -1,
 }
 
@@ -608,6 +660,9 @@ export function parameterType_ParameterTypeEnumFromJSON(
     case 6:
     case 'STRUCT':
       return ParameterType_ParameterTypeEnum.STRUCT;
+    case 7:
+    case 'TASK_FINAL_STATUS':
+      return ParameterType_ParameterTypeEnum.TASK_FINAL_STATUS;
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -633,6 +688,8 @@ export function parameterType_ParameterTypeEnumToJSON(
       return 'LIST';
     case ParameterType_ParameterTypeEnum.STRUCT:
       return 'STRUCT';
+    case ParameterType_ParameterTypeEnum.TASK_FINAL_STATUS:
+      return 'TASK_FINAL_STATUS';
     default:
       return 'UNKNOWN';
   }
@@ -662,6 +719,13 @@ export interface PipelineTaskSpec {
   artifactIterator: ArtifactIteratorSpec | undefined;
   /** Iterator to iterate over a parameter input. */
   parameterIterator: ParameterIteratorSpec | undefined;
+  /**
+   * User-configured task-level retry.
+   * Applicable only to component tasks.
+   */
+  retryPolicy: PipelineTaskSpec_RetryPolicy | undefined;
+  /** Iterator related settings. */
+  iteratorPolicy: PipelineTaskSpec_IteratorPolicy | undefined;
 }
 
 export interface PipelineTaskSpec_CachingOptions {
@@ -688,7 +752,7 @@ export interface PipelineTaskSpec_TriggerPolicy {
    * The trigger strategy of this task.  The `strategy` and `condition` are
    * in logic "AND", as a task will only be tested for the `condition` when
    * the `strategy` is meet.
-   * Unset or set to default value of TRIGGER_STATEGY_UNDEFINED behaves the
+   * Unset or set to default value of TRIGGER_STRATEGY_UNDEFINED behaves the
    * same as ALL_UPSTREAM_TASKS_SUCCEEDED.
    */
   strategy: PipelineTaskSpec_TriggerPolicy_TriggerStrategy;
@@ -747,6 +811,38 @@ export function pipelineTaskSpec_TriggerPolicy_TriggerStrategyToJSON(
     default:
       return 'UNKNOWN';
   }
+}
+
+/** User-configured task-level retry. */
+export interface PipelineTaskSpec_RetryPolicy {
+  /**
+   * Number of retries before considering a task as failed. Set to 0 or
+   * unspecified to disallow retry."
+   */
+  maxRetryCount: number;
+  /** The time interval between retries. Defaults to zero (an immediate retry). */
+  backoffDuration: Duration | undefined;
+  /**
+   * The exponential backoff factor applied to backoff_duration. If
+   * unspecified, will default to 2.
+   */
+  backoffFactor: number;
+  /**
+   * The maximum duration during which the task will be retried according to
+   * the backoff strategy. Max allowed is 1 hour - higher value will be capped
+   * to this limit. If unspecified, will set to 1 hour.
+   */
+  backoffMaxDuration: Duration | undefined;
+}
+
+/** Iterator related settings. */
+export interface PipelineTaskSpec_IteratorPolicy {
+  /**
+   * The limit for the number of concurrent sub-tasks spawned by an iterator
+   * task. The value should be a non-negative integer. A value of 0 represents
+   * unconstrained parallelism.
+   */
+  parallelismLimit: number;
 }
 
 /**
@@ -815,6 +911,16 @@ export interface PipelineInfo {
    * The name will be used to create or find pipeline context in MLMD.
    */
   name: string;
+  /**
+   * Optional fields. The readable display name for the pipeline template.
+   * Should not exceed 1024 characters.
+   */
+  displayName: string;
+  /**
+   * Optional fields. The readable description for the pipeline template.
+   * Should not exceed 1024 characters.
+   */
+  description: string;
 }
 
 /** The definition of a artifact type in MLMD. */
@@ -949,6 +1055,16 @@ export interface PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec {
    * memory_limit RAM to run.
    */
   memoryLimit: number;
+  /**
+   * The request of the number of vCPU cores. This container execution
+   * needs at least cpu_request vCPU to run.
+   */
+  cpuRequest: number;
+  /**
+   * The memory request in GB. This container execution needs at least
+   * memory_request RAM to run.
+   */
+  memoryRequest: number;
   accelerator:
     | PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig
     | undefined;
@@ -1445,6 +1561,35 @@ export function pipelineStateEnum_PipelineTaskStateToJSON(
     default:
       return 'UNKNOWN';
   }
+}
+
+/** Spec for all platforms; second document in IR */
+export interface PlatformSpec {
+  /** Platform key to full platform config */
+  platforms: { [key: string]: SinglePlatformSpec };
+}
+
+export interface PlatformSpec_PlatformsEntry {
+  key: string;
+  value: SinglePlatformSpec | undefined;
+}
+
+export interface SinglePlatformSpec {
+  /** Mirrors PipelineSpec.deployment_spec structure */
+  deploymentSpec: PlatformDeploymentConfig | undefined;
+}
+
+export interface PlatformDeploymentConfig {
+  /**
+   * Map of executor label to executor-level config
+   * Mirrors PipelineSpec.deployment_spec.executors structure
+   */
+  executors: { [key: string]: { [key: string]: any } | undefined };
+}
+
+export interface PlatformDeploymentConfig_ExecutorsEntry {
+  key: string;
+  value: { [key: string]: any } | undefined;
 }
 
 const basePipelineJob: object = { name: '', displayName: '' };
@@ -3346,7 +3491,11 @@ export const ComponentInputsSpec = {
   },
 };
 
-const baseComponentInputsSpec_ArtifactSpec: object = {};
+const baseComponentInputsSpec_ArtifactSpec: object = {
+  isArtifactList: false,
+  isOptional: false,
+  description: '',
+};
 
 export const ComponentInputsSpec_ArtifactSpec = {
   encode(
@@ -3355,6 +3504,15 @@ export const ComponentInputsSpec_ArtifactSpec = {
   ): _m0.Writer {
     if (message.artifactType !== undefined) {
       ArtifactTypeSchema.encode(message.artifactType, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.isArtifactList === true) {
+      writer.uint32(16).bool(message.isArtifactList);
+    }
+    if (message.isOptional === true) {
+      writer.uint32(24).bool(message.isOptional);
+    }
+    if (message.description !== '') {
+      writer.uint32(34).string(message.description);
     }
     return writer;
   },
@@ -3368,6 +3526,15 @@ export const ComponentInputsSpec_ArtifactSpec = {
       switch (tag >>> 3) {
         case 1:
           message.artifactType = ArtifactTypeSchema.decode(reader, reader.uint32());
+          break;
+        case 2:
+          message.isArtifactList = reader.bool();
+          break;
+        case 3:
+          message.isOptional = reader.bool();
+          break;
+        case 4:
+          message.description = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -3383,6 +3550,18 @@ export const ComponentInputsSpec_ArtifactSpec = {
       object.artifactType !== undefined && object.artifactType !== null
         ? ArtifactTypeSchema.fromJSON(object.artifactType)
         : undefined;
+    message.isArtifactList =
+      object.isArtifactList !== undefined && object.isArtifactList !== null
+        ? Boolean(object.isArtifactList)
+        : false;
+    message.isOptional =
+      object.isOptional !== undefined && object.isOptional !== null
+        ? Boolean(object.isOptional)
+        : false;
+    message.description =
+      object.description !== undefined && object.description !== null
+        ? String(object.description)
+        : '';
     return message;
   },
 
@@ -3392,6 +3571,9 @@ export const ComponentInputsSpec_ArtifactSpec = {
       (obj.artifactType = message.artifactType
         ? ArtifactTypeSchema.toJSON(message.artifactType)
         : undefined);
+    message.isArtifactList !== undefined && (obj.isArtifactList = message.isArtifactList);
+    message.isOptional !== undefined && (obj.isOptional = message.isOptional);
+    message.description !== undefined && (obj.description = message.description);
     return obj;
   },
 
@@ -3403,11 +3585,19 @@ export const ComponentInputsSpec_ArtifactSpec = {
       object.artifactType !== undefined && object.artifactType !== null
         ? ArtifactTypeSchema.fromPartial(object.artifactType)
         : undefined;
+    message.isArtifactList = object.isArtifactList ?? false;
+    message.isOptional = object.isOptional ?? false;
+    message.description = object.description ?? '';
     return message;
   },
 };
 
-const baseComponentInputsSpec_ParameterSpec: object = { type: 0, parameterType: 0 };
+const baseComponentInputsSpec_ParameterSpec: object = {
+  type: 0,
+  parameterType: 0,
+  isOptional: false,
+  description: '',
+};
 
 export const ComponentInputsSpec_ParameterSpec = {
   encode(
@@ -3422,6 +3612,12 @@ export const ComponentInputsSpec_ParameterSpec = {
     }
     if (message.defaultValue !== undefined) {
       Value1.encode(Value1.wrap(message.defaultValue), writer.uint32(26).fork()).ldelim();
+    }
+    if (message.isOptional === true) {
+      writer.uint32(32).bool(message.isOptional);
+    }
+    if (message.description !== '') {
+      writer.uint32(42).string(message.description);
     }
     return writer;
   },
@@ -3444,6 +3640,12 @@ export const ComponentInputsSpec_ParameterSpec = {
         case 3:
           message.defaultValue = Value1.unwrap(Value1.decode(reader, reader.uint32()));
           break;
+        case 4:
+          message.isOptional = reader.bool();
+          break;
+        case 5:
+          message.description = reader.string();
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -3465,6 +3667,14 @@ export const ComponentInputsSpec_ParameterSpec = {
         ? parameterType_ParameterTypeEnumFromJSON(object.parameterType)
         : 0;
     message.defaultValue = object.defaultValue;
+    message.isOptional =
+      object.isOptional !== undefined && object.isOptional !== null
+        ? Boolean(object.isOptional)
+        : false;
+    message.description =
+      object.description !== undefined && object.description !== null
+        ? String(object.description)
+        : '';
     return message;
   },
 
@@ -3474,6 +3684,8 @@ export const ComponentInputsSpec_ParameterSpec = {
     message.parameterType !== undefined &&
       (obj.parameterType = parameterType_ParameterTypeEnumToJSON(message.parameterType));
     message.defaultValue !== undefined && (obj.defaultValue = message.defaultValue);
+    message.isOptional !== undefined && (obj.isOptional = message.isOptional);
+    message.description !== undefined && (obj.description = message.description);
     return obj;
   },
 
@@ -3486,6 +3698,8 @@ export const ComponentInputsSpec_ParameterSpec = {
     message.type = object.type ?? 0;
     message.parameterType = object.parameterType ?? 0;
     message.defaultValue = object.defaultValue ?? undefined;
+    message.isOptional = object.isOptional ?? false;
+    message.description = object.description ?? '';
     return message;
   },
 };
@@ -3748,7 +3962,7 @@ export const ComponentOutputsSpec = {
   },
 };
 
-const baseComponentOutputsSpec_ArtifactSpec: object = {};
+const baseComponentOutputsSpec_ArtifactSpec: object = { isArtifactList: false, description: '' };
 
 export const ComponentOutputsSpec_ArtifactSpec = {
   encode(
@@ -3772,6 +3986,12 @@ export const ComponentOutputsSpec_ArtifactSpec = {
     });
     if (message.metadata !== undefined) {
       Struct.encode(Struct.wrap(message.metadata), writer.uint32(34).fork()).ldelim();
+    }
+    if (message.isArtifactList === true) {
+      writer.uint32(40).bool(message.isArtifactList);
+    }
+    if (message.description !== '') {
+      writer.uint32(50).string(message.description);
     }
     return writer;
   },
@@ -3811,6 +4031,12 @@ export const ComponentOutputsSpec_ArtifactSpec = {
         case 4:
           message.metadata = Struct.unwrap(Struct.decode(reader, reader.uint32()));
           break;
+        case 5:
+          message.isArtifactList = reader.bool();
+          break;
+        case 6:
+          message.description = reader.string();
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -3840,6 +4066,14 @@ export const ComponentOutputsSpec_ArtifactSpec = {
       return acc;
     }, {});
     message.metadata = typeof object.metadata === 'object' ? object.metadata : undefined;
+    message.isArtifactList =
+      object.isArtifactList !== undefined && object.isArtifactList !== null
+        ? Boolean(object.isArtifactList)
+        : false;
+    message.description =
+      object.description !== undefined && object.description !== null
+        ? String(object.description)
+        : '';
     return message;
   },
 
@@ -3862,6 +4096,8 @@ export const ComponentOutputsSpec_ArtifactSpec = {
       });
     }
     message.metadata !== undefined && (obj.metadata = message.metadata);
+    message.isArtifactList !== undefined && (obj.isArtifactList = message.isArtifactList);
+    message.description !== undefined && (obj.description = message.description);
     return obj;
   },
 
@@ -3892,6 +4128,8 @@ export const ComponentOutputsSpec_ArtifactSpec = {
       return acc;
     }, {});
     message.metadata = object.metadata ?? undefined;
+    message.isArtifactList = object.isArtifactList ?? false;
+    message.description = object.description ?? '';
     return message;
   },
 };
@@ -4050,7 +4288,11 @@ export const ComponentOutputsSpec_ArtifactSpec_CustomPropertiesEntry = {
   },
 };
 
-const baseComponentOutputsSpec_ParameterSpec: object = { type: 0, parameterType: 0 };
+const baseComponentOutputsSpec_ParameterSpec: object = {
+  type: 0,
+  parameterType: 0,
+  description: '',
+};
 
 export const ComponentOutputsSpec_ParameterSpec = {
   encode(
@@ -4062,6 +4304,9 @@ export const ComponentOutputsSpec_ParameterSpec = {
     }
     if (message.parameterType !== 0) {
       writer.uint32(16).int32(message.parameterType);
+    }
+    if (message.description !== '') {
+      writer.uint32(26).string(message.description);
     }
     return writer;
   },
@@ -4080,6 +4325,9 @@ export const ComponentOutputsSpec_ParameterSpec = {
           break;
         case 2:
           message.parameterType = reader.int32() as any;
+          break;
+        case 3:
+          message.description = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -4101,6 +4349,10 @@ export const ComponentOutputsSpec_ParameterSpec = {
       object.parameterType !== undefined && object.parameterType !== null
         ? parameterType_ParameterTypeEnumFromJSON(object.parameterType)
         : 0;
+    message.description =
+      object.description !== undefined && object.description !== null
+        ? String(object.description)
+        : '';
     return message;
   },
 
@@ -4109,6 +4361,7 @@ export const ComponentOutputsSpec_ParameterSpec = {
     message.type !== undefined && (obj.type = primitiveType_PrimitiveTypeEnumToJSON(message.type));
     message.parameterType !== undefined &&
       (obj.parameterType = parameterType_ParameterTypeEnumToJSON(message.parameterType));
+    message.description !== undefined && (obj.description = message.description);
     return obj;
   },
 
@@ -4120,6 +4373,7 @@ export const ComponentOutputsSpec_ParameterSpec = {
     } as ComponentOutputsSpec_ParameterSpec;
     message.type = object.type ?? 0;
     message.parameterType = object.parameterType ?? 0;
+    message.description = object.description ?? '';
     return message;
   },
 };
@@ -5682,6 +5936,15 @@ export const PipelineTaskSpec = {
     if (message.parameterIterator !== undefined) {
       ParameterIteratorSpec.encode(message.parameterIterator, writer.uint32(82).fork()).ldelim();
     }
+    if (message.retryPolicy !== undefined) {
+      PipelineTaskSpec_RetryPolicy.encode(message.retryPolicy, writer.uint32(90).fork()).ldelim();
+    }
+    if (message.iteratorPolicy !== undefined) {
+      PipelineTaskSpec_IteratorPolicy.encode(
+        message.iteratorPolicy,
+        writer.uint32(98).fork(),
+      ).ldelim();
+    }
     return writer;
   },
 
@@ -5716,6 +5979,12 @@ export const PipelineTaskSpec = {
           break;
         case 10:
           message.parameterIterator = ParameterIteratorSpec.decode(reader, reader.uint32());
+          break;
+        case 11:
+          message.retryPolicy = PipelineTaskSpec_RetryPolicy.decode(reader, reader.uint32());
+          break;
+        case 12:
+          message.iteratorPolicy = PipelineTaskSpec_IteratorPolicy.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -5756,6 +6025,14 @@ export const PipelineTaskSpec = {
       object.parameterIterator !== undefined && object.parameterIterator !== null
         ? ParameterIteratorSpec.fromJSON(object.parameterIterator)
         : undefined;
+    message.retryPolicy =
+      object.retryPolicy !== undefined && object.retryPolicy !== null
+        ? PipelineTaskSpec_RetryPolicy.fromJSON(object.retryPolicy)
+        : undefined;
+    message.iteratorPolicy =
+      object.iteratorPolicy !== undefined && object.iteratorPolicy !== null
+        ? PipelineTaskSpec_IteratorPolicy.fromJSON(object.iteratorPolicy)
+        : undefined;
     return message;
   },
 
@@ -5790,6 +6067,14 @@ export const PipelineTaskSpec = {
       (obj.parameterIterator = message.parameterIterator
         ? ParameterIteratorSpec.toJSON(message.parameterIterator)
         : undefined);
+    message.retryPolicy !== undefined &&
+      (obj.retryPolicy = message.retryPolicy
+        ? PipelineTaskSpec_RetryPolicy.toJSON(message.retryPolicy)
+        : undefined);
+    message.iteratorPolicy !== undefined &&
+      (obj.iteratorPolicy = message.iteratorPolicy
+        ? PipelineTaskSpec_IteratorPolicy.toJSON(message.iteratorPolicy)
+        : undefined);
     return obj;
   },
 
@@ -5823,6 +6108,14 @@ export const PipelineTaskSpec = {
     message.parameterIterator =
       object.parameterIterator !== undefined && object.parameterIterator !== null
         ? ParameterIteratorSpec.fromPartial(object.parameterIterator)
+        : undefined;
+    message.retryPolicy =
+      object.retryPolicy !== undefined && object.retryPolicy !== null
+        ? PipelineTaskSpec_RetryPolicy.fromPartial(object.retryPolicy)
+        : undefined;
+    message.iteratorPolicy =
+      object.iteratorPolicy !== undefined && object.iteratorPolicy !== null
+        ? PipelineTaskSpec_IteratorPolicy.fromPartial(object.iteratorPolicy)
         : undefined;
     return message;
   },
@@ -5945,6 +6238,165 @@ export const PipelineTaskSpec_TriggerPolicy = {
     const message = { ...basePipelineTaskSpec_TriggerPolicy } as PipelineTaskSpec_TriggerPolicy;
     message.condition = object.condition ?? '';
     message.strategy = object.strategy ?? 0;
+    return message;
+  },
+};
+
+const basePipelineTaskSpec_RetryPolicy: object = { maxRetryCount: 0, backoffFactor: 0 };
+
+export const PipelineTaskSpec_RetryPolicy = {
+  encode(
+    message: PipelineTaskSpec_RetryPolicy,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.maxRetryCount !== 0) {
+      writer.uint32(8).int32(message.maxRetryCount);
+    }
+    if (message.backoffDuration !== undefined) {
+      Duration.encode(message.backoffDuration, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.backoffFactor !== 0) {
+      writer.uint32(25).double(message.backoffFactor);
+    }
+    if (message.backoffMaxDuration !== undefined) {
+      Duration.encode(message.backoffMaxDuration, writer.uint32(34).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PipelineTaskSpec_RetryPolicy {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...basePipelineTaskSpec_RetryPolicy } as PipelineTaskSpec_RetryPolicy;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.maxRetryCount = reader.int32();
+          break;
+        case 2:
+          message.backoffDuration = Duration.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.backoffFactor = reader.double();
+          break;
+        case 4:
+          message.backoffMaxDuration = Duration.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PipelineTaskSpec_RetryPolicy {
+    const message = { ...basePipelineTaskSpec_RetryPolicy } as PipelineTaskSpec_RetryPolicy;
+    message.maxRetryCount =
+      object.maxRetryCount !== undefined && object.maxRetryCount !== null
+        ? Number(object.maxRetryCount)
+        : 0;
+    message.backoffDuration =
+      object.backoffDuration !== undefined && object.backoffDuration !== null
+        ? Duration.fromJSON(object.backoffDuration)
+        : undefined;
+    message.backoffFactor =
+      object.backoffFactor !== undefined && object.backoffFactor !== null
+        ? Number(object.backoffFactor)
+        : 0;
+    message.backoffMaxDuration =
+      object.backoffMaxDuration !== undefined && object.backoffMaxDuration !== null
+        ? Duration.fromJSON(object.backoffMaxDuration)
+        : undefined;
+    return message;
+  },
+
+  toJSON(message: PipelineTaskSpec_RetryPolicy): unknown {
+    const obj: any = {};
+    message.maxRetryCount !== undefined && (obj.maxRetryCount = Math.round(message.maxRetryCount));
+    message.backoffDuration !== undefined &&
+      (obj.backoffDuration = message.backoffDuration
+        ? Duration.toJSON(message.backoffDuration)
+        : undefined);
+    message.backoffFactor !== undefined && (obj.backoffFactor = message.backoffFactor);
+    message.backoffMaxDuration !== undefined &&
+      (obj.backoffMaxDuration = message.backoffMaxDuration
+        ? Duration.toJSON(message.backoffMaxDuration)
+        : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PipelineTaskSpec_RetryPolicy>, I>>(
+    object: I,
+  ): PipelineTaskSpec_RetryPolicy {
+    const message = { ...basePipelineTaskSpec_RetryPolicy } as PipelineTaskSpec_RetryPolicy;
+    message.maxRetryCount = object.maxRetryCount ?? 0;
+    message.backoffDuration =
+      object.backoffDuration !== undefined && object.backoffDuration !== null
+        ? Duration.fromPartial(object.backoffDuration)
+        : undefined;
+    message.backoffFactor = object.backoffFactor ?? 0;
+    message.backoffMaxDuration =
+      object.backoffMaxDuration !== undefined && object.backoffMaxDuration !== null
+        ? Duration.fromPartial(object.backoffMaxDuration)
+        : undefined;
+    return message;
+  },
+};
+
+const basePipelineTaskSpec_IteratorPolicy: object = { parallelismLimit: 0 };
+
+export const PipelineTaskSpec_IteratorPolicy = {
+  encode(
+    message: PipelineTaskSpec_IteratorPolicy,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.parallelismLimit !== 0) {
+      writer.uint32(8).int32(message.parallelismLimit);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PipelineTaskSpec_IteratorPolicy {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...basePipelineTaskSpec_IteratorPolicy } as PipelineTaskSpec_IteratorPolicy;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.parallelismLimit = reader.int32();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PipelineTaskSpec_IteratorPolicy {
+    const message = { ...basePipelineTaskSpec_IteratorPolicy } as PipelineTaskSpec_IteratorPolicy;
+    message.parallelismLimit =
+      object.parallelismLimit !== undefined && object.parallelismLimit !== null
+        ? Number(object.parallelismLimit)
+        : 0;
+    return message;
+  },
+
+  toJSON(message: PipelineTaskSpec_IteratorPolicy): unknown {
+    const obj: any = {};
+    message.parallelismLimit !== undefined &&
+      (obj.parallelismLimit = Math.round(message.parallelismLimit));
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PipelineTaskSpec_IteratorPolicy>, I>>(
+    object: I,
+  ): PipelineTaskSpec_IteratorPolicy {
+    const message = { ...basePipelineTaskSpec_IteratorPolicy } as PipelineTaskSpec_IteratorPolicy;
+    message.parallelismLimit = object.parallelismLimit ?? 0;
     return message;
   },
 };
@@ -6251,12 +6703,18 @@ export const ComponentRef = {
   },
 };
 
-const basePipelineInfo: object = { name: '' };
+const basePipelineInfo: object = { name: '', displayName: '', description: '' };
 
 export const PipelineInfo = {
   encode(message: PipelineInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name);
+    }
+    if (message.displayName !== '') {
+      writer.uint32(18).string(message.displayName);
+    }
+    if (message.description !== '') {
+      writer.uint32(26).string(message.description);
     }
     return writer;
   },
@@ -6271,6 +6729,12 @@ export const PipelineInfo = {
         case 1:
           message.name = reader.string();
           break;
+        case 2:
+          message.displayName = reader.string();
+          break;
+        case 3:
+          message.description = reader.string();
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -6282,18 +6746,30 @@ export const PipelineInfo = {
   fromJSON(object: any): PipelineInfo {
     const message = { ...basePipelineInfo } as PipelineInfo;
     message.name = object.name !== undefined && object.name !== null ? String(object.name) : '';
+    message.displayName =
+      object.displayName !== undefined && object.displayName !== null
+        ? String(object.displayName)
+        : '';
+    message.description =
+      object.description !== undefined && object.description !== null
+        ? String(object.description)
+        : '';
     return message;
   },
 
   toJSON(message: PipelineInfo): unknown {
     const obj: any = {};
     message.name !== undefined && (obj.name = message.name);
+    message.displayName !== undefined && (obj.displayName = message.displayName);
+    message.description !== undefined && (obj.description = message.description);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<PipelineInfo>, I>>(object: I): PipelineInfo {
     const message = { ...basePipelineInfo } as PipelineInfo;
     message.name = object.name ?? '';
+    message.displayName = object.displayName ?? '';
+    message.description = object.description ?? '';
     return message;
   },
 };
@@ -6917,6 +7393,8 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_Lifecycle_Exec = {
 const basePipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec: object = {
   cpuLimit: 0,
   memoryLimit: 0,
+  cpuRequest: 0,
+  memoryRequest: 0,
 };
 
 export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
@@ -6929,6 +7407,12 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
     }
     if (message.memoryLimit !== 0) {
       writer.uint32(17).double(message.memoryLimit);
+    }
+    if (message.cpuRequest !== 0) {
+      writer.uint32(41).double(message.cpuRequest);
+    }
+    if (message.memoryRequest !== 0) {
+      writer.uint32(49).double(message.memoryRequest);
     }
     if (message.accelerator !== undefined) {
       PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.encode(
@@ -6957,6 +7441,12 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
         case 2:
           message.memoryLimit = reader.double();
           break;
+        case 5:
+          message.cpuRequest = reader.double();
+          break;
+        case 6:
+          message.memoryRequest = reader.double();
+          break;
         case 3:
           message.accelerator =
             PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.decode(
@@ -6982,6 +7472,12 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
       object.memoryLimit !== undefined && object.memoryLimit !== null
         ? Number(object.memoryLimit)
         : 0;
+    message.cpuRequest =
+      object.cpuRequest !== undefined && object.cpuRequest !== null ? Number(object.cpuRequest) : 0;
+    message.memoryRequest =
+      object.memoryRequest !== undefined && object.memoryRequest !== null
+        ? Number(object.memoryRequest)
+        : 0;
     message.accelerator =
       object.accelerator !== undefined && object.accelerator !== null
         ? PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.fromJSON(
@@ -6995,6 +7491,8 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
     const obj: any = {};
     message.cpuLimit !== undefined && (obj.cpuLimit = message.cpuLimit);
     message.memoryLimit !== undefined && (obj.memoryLimit = message.memoryLimit);
+    message.cpuRequest !== undefined && (obj.cpuRequest = message.cpuRequest);
+    message.memoryRequest !== undefined && (obj.memoryRequest = message.memoryRequest);
     message.accelerator !== undefined &&
       (obj.accelerator = message.accelerator
         ? PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.toJSON(
@@ -7012,6 +7510,8 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
     } as PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec;
     message.cpuLimit = object.cpuLimit ?? 0;
     message.memoryLimit = object.memoryLimit ?? 0;
+    message.cpuRequest = object.cpuRequest ?? 0;
+    message.memoryRequest = object.memoryRequest ?? 0;
     message.accelerator =
       object.accelerator !== undefined && object.accelerator !== null
         ? PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.fromPartial(
@@ -9697,6 +10197,343 @@ export const PipelineStateEnum = {
 
   fromPartial<I extends Exact<DeepPartial<PipelineStateEnum>, I>>(_: I): PipelineStateEnum {
     const message = { ...basePipelineStateEnum } as PipelineStateEnum;
+    return message;
+  },
+};
+
+const basePlatformSpec: object = {};
+
+export const PlatformSpec = {
+  encode(message: PlatformSpec, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    Object.entries(message.platforms).forEach(([key, value]) => {
+      PlatformSpec_PlatformsEntry.encode(
+        { key: key as any, value },
+        writer.uint32(10).fork(),
+      ).ldelim();
+    });
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PlatformSpec {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...basePlatformSpec } as PlatformSpec;
+    message.platforms = {};
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          const entry1 = PlatformSpec_PlatformsEntry.decode(reader, reader.uint32());
+          if (entry1.value !== undefined) {
+            message.platforms[entry1.key] = entry1.value;
+          }
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PlatformSpec {
+    const message = { ...basePlatformSpec } as PlatformSpec;
+    message.platforms = Object.entries(object.platforms ?? {}).reduce<{
+      [key: string]: SinglePlatformSpec;
+    }>((acc, [key, value]) => {
+      acc[key] = SinglePlatformSpec.fromJSON(value);
+      return acc;
+    }, {});
+    return message;
+  },
+
+  toJSON(message: PlatformSpec): unknown {
+    const obj: any = {};
+    obj.platforms = {};
+    if (message.platforms) {
+      Object.entries(message.platforms).forEach(([k, v]) => {
+        obj.platforms[k] = SinglePlatformSpec.toJSON(v);
+      });
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PlatformSpec>, I>>(object: I): PlatformSpec {
+    const message = { ...basePlatformSpec } as PlatformSpec;
+    message.platforms = Object.entries(object.platforms ?? {}).reduce<{
+      [key: string]: SinglePlatformSpec;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = SinglePlatformSpec.fromPartial(value);
+      }
+      return acc;
+    }, {});
+    return message;
+  },
+};
+
+const basePlatformSpec_PlatformsEntry: object = { key: '' };
+
+export const PlatformSpec_PlatformsEntry = {
+  encode(
+    message: PlatformSpec_PlatformsEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      SinglePlatformSpec.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PlatformSpec_PlatformsEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...basePlatformSpec_PlatformsEntry } as PlatformSpec_PlatformsEntry;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = SinglePlatformSpec.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PlatformSpec_PlatformsEntry {
+    const message = { ...basePlatformSpec_PlatformsEntry } as PlatformSpec_PlatformsEntry;
+    message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? SinglePlatformSpec.fromJSON(object.value)
+        : undefined;
+    return message;
+  },
+
+  toJSON(message: PlatformSpec_PlatformsEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined &&
+      (obj.value = message.value ? SinglePlatformSpec.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PlatformSpec_PlatformsEntry>, I>>(
+    object: I,
+  ): PlatformSpec_PlatformsEntry {
+    const message = { ...basePlatformSpec_PlatformsEntry } as PlatformSpec_PlatformsEntry;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? SinglePlatformSpec.fromPartial(object.value)
+        : undefined;
+    return message;
+  },
+};
+
+const baseSinglePlatformSpec: object = {};
+
+export const SinglePlatformSpec = {
+  encode(message: SinglePlatformSpec, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.deploymentSpec !== undefined) {
+      PlatformDeploymentConfig.encode(message.deploymentSpec, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): SinglePlatformSpec {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...baseSinglePlatformSpec } as SinglePlatformSpec;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.deploymentSpec = PlatformDeploymentConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SinglePlatformSpec {
+    const message = { ...baseSinglePlatformSpec } as SinglePlatformSpec;
+    message.deploymentSpec =
+      object.deploymentSpec !== undefined && object.deploymentSpec !== null
+        ? PlatformDeploymentConfig.fromJSON(object.deploymentSpec)
+        : undefined;
+    return message;
+  },
+
+  toJSON(message: SinglePlatformSpec): unknown {
+    const obj: any = {};
+    message.deploymentSpec !== undefined &&
+      (obj.deploymentSpec = message.deploymentSpec
+        ? PlatformDeploymentConfig.toJSON(message.deploymentSpec)
+        : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<SinglePlatformSpec>, I>>(object: I): SinglePlatformSpec {
+    const message = { ...baseSinglePlatformSpec } as SinglePlatformSpec;
+    message.deploymentSpec =
+      object.deploymentSpec !== undefined && object.deploymentSpec !== null
+        ? PlatformDeploymentConfig.fromPartial(object.deploymentSpec)
+        : undefined;
+    return message;
+  },
+};
+
+const basePlatformDeploymentConfig: object = {};
+
+export const PlatformDeploymentConfig = {
+  encode(message: PlatformDeploymentConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    Object.entries(message.executors).forEach(([key, value]) => {
+      if (value !== undefined) {
+        PlatformDeploymentConfig_ExecutorsEntry.encode(
+          { key: key as any, value },
+          writer.uint32(10).fork(),
+        ).ldelim();
+      }
+    });
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PlatformDeploymentConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...basePlatformDeploymentConfig } as PlatformDeploymentConfig;
+    message.executors = {};
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          const entry1 = PlatformDeploymentConfig_ExecutorsEntry.decode(reader, reader.uint32());
+          if (entry1.value !== undefined) {
+            message.executors[entry1.key] = entry1.value;
+          }
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PlatformDeploymentConfig {
+    const message = { ...basePlatformDeploymentConfig } as PlatformDeploymentConfig;
+    message.executors = Object.entries(object.executors ?? {}).reduce<{
+      [key: string]: { [key: string]: any } | undefined;
+    }>((acc, [key, value]) => {
+      acc[key] = value as { [key: string]: any } | undefined;
+      return acc;
+    }, {});
+    return message;
+  },
+
+  toJSON(message: PlatformDeploymentConfig): unknown {
+    const obj: any = {};
+    obj.executors = {};
+    if (message.executors) {
+      Object.entries(message.executors).forEach(([k, v]) => {
+        obj.executors[k] = v;
+      });
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PlatformDeploymentConfig>, I>>(
+    object: I,
+  ): PlatformDeploymentConfig {
+    const message = { ...basePlatformDeploymentConfig } as PlatformDeploymentConfig;
+    message.executors = Object.entries(object.executors ?? {}).reduce<{
+      [key: string]: { [key: string]: any } | undefined;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+    return message;
+  },
+};
+
+const basePlatformDeploymentConfig_ExecutorsEntry: object = { key: '' };
+
+export const PlatformDeploymentConfig_ExecutorsEntry = {
+  encode(
+    message: PlatformDeploymentConfig_ExecutorsEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      Struct.encode(Struct.wrap(message.value), writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PlatformDeploymentConfig_ExecutorsEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = {
+      ...basePlatformDeploymentConfig_ExecutorsEntry,
+    } as PlatformDeploymentConfig_ExecutorsEntry;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = Struct.unwrap(Struct.decode(reader, reader.uint32()));
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PlatformDeploymentConfig_ExecutorsEntry {
+    const message = {
+      ...basePlatformDeploymentConfig_ExecutorsEntry,
+    } as PlatformDeploymentConfig_ExecutorsEntry;
+    message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+    message.value = typeof object.value === 'object' ? object.value : undefined;
+    return message;
+  },
+
+  toJSON(message: PlatformDeploymentConfig_ExecutorsEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PlatformDeploymentConfig_ExecutorsEntry>, I>>(
+    object: I,
+  ): PlatformDeploymentConfig_ExecutorsEntry {
+    const message = {
+      ...basePlatformDeploymentConfig_ExecutorsEntry,
+    } as PlatformDeploymentConfig_ExecutorsEntry;
+    message.key = object.key ?? '';
+    message.value = object.value ?? undefined;
     return message;
   },
 };

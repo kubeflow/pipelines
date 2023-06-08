@@ -25,11 +25,15 @@ import unittest
 from absl.testing import parameterized
 from click import testing
 from google.protobuf import json_format
+import kfp
 from kfp import components
 from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
+from kfp.components import graph_component
+from kfp.components import pipeline_task
+from kfp.components import yaml_component
 from kfp.components.types import type_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
@@ -59,6 +63,21 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
 
 
 class TestCompilePipeline(parameterized.TestCase):
+
+    def test_can_use_dsl_attribute_on_kfp(self):
+
+        @kfp.dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @kfp.dsl.pipeline
+        def my_pipeline(string: str = 'string'):
+            op1 = identity(string=string)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'))
 
     def test_compile_simple_pipeline(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -263,20 +282,69 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
+        def my_pipeline():
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
-            def my_pipeline():
-                VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+        self.assertEqual(my_pipeline.pipeline_spec.default_pipeline_root,
+                         'gs://path')
 
-            target_json_file = os.path.join(tmpdir, 'result.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_json_file)
+    def test_set_display_name_through_pipeline_decorator(self):
 
-            self.assertTrue(os.path.exists(target_json_file))
-            with open(target_json_file) as f:
-                pipeline_spec = yaml.safe_load(f)
-            self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
+        @dsl.pipeline(display_name='my display name')
+        def my_pipeline():
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.display_name,
+                         'my display name')
+
+    def test_set_name_and_display_name_through_pipeline_decorator(self):
+
+        @dsl.pipeline(
+            name='my-pipeline-name',
+            display_name='my display name',
+        )
+        def my_pipeline():
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.name,
+                         'my-pipeline-name')
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.display_name,
+                         'my display name')
+
+    def test_set_description_through_pipeline_decorator(self):
+
+        @dsl.pipeline(description='Prefer me.')
+        def my_pipeline():
+            """Don't prefer me"""
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
+                         'Prefer me.')
+
+    def test_set_description_through_pipeline_docstring_short(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            """Docstring-specified description."""
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
+                         'Docstring-specified description.')
+
+    def test_set_description_through_pipeline_docstring_long(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            """Docstring-specified description.
+
+            More information about this pipeline."""
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.pipeline_info.description,
+            'Docstring-specified description.\nMore information about this pipeline.'
+        )
 
     def test_passing_string_parameter_to_artifact_should_error(self):
 
@@ -578,6 +646,28 @@ implementation:
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: bool):
                 print_op()
+
+    def test_task_final_status_parameter_type_is_used(self):
+        # previously compiled to STRUCT type, so checking that this is updated
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.component
+        def exit_comp(status: dsl.PipelineTaskFinalStatus):
+            print(status)
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = exit_comp()
+            with dsl.ExitHandler(exit_task=exit_task):
+                identity(string='hi')
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-exit-comp']
+            .input_definitions.parameters['status'].parameter_type,
+            pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS)
 
     def test_compile_parallel_for_with_valid_parallelism(self):
 
@@ -1346,7 +1436,7 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
                         print_op(message='Inside second exit handler.')
 
 
-class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
+class TestBooleanInputCompiledCorrectly(unittest.TestCase):
     # test with default = True, may have false test successes due to protocol buffer boolean default of False
     def test_python_component(self):
 
@@ -1478,6 +1568,27 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
         self.assertEqual(
             pipeline_spec.root.input_definitions.parameters['boolean']
             .default_value.bool_value, True)
+
+    def test_constant_passed_to_component(self):
+
+        @dsl.component
+        def comp(boolean1: bool, boolean2: bool) -> bool:
+            return boolean1
+
+        @dsl.pipeline
+        def my_pipeline():
+            comp(boolean1=True, boolean2=False)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(my_pipeline, pipeline_spec_path)
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+        self.assertTrue(
+            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean1']
+            .runtime_value.constant.bool_value)
+        self.assertFalse(
+            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean2']
+            .runtime_value.constant.bool_value)
 
 
 # helper component defintions for the ValidLegalTopologies tests
@@ -1897,13 +2008,14 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
 
+@dsl.component
+def identity(string: str, model: bool) -> str:
+    return string
+
+
 class TestYamlComments(unittest.TestCase):
 
     def test_comments_include_inputs_and_outputs_and_pipeline_name(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
@@ -1938,15 +2050,11 @@ class TestYamlComments(unittest.TestCase):
 
         self.assertIn(outputs_string, yaml_content)
 
-    def test_comments_include_definition(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
+    def test_no_description(self):
 
         @dsl.pipeline()
-        def pipeline_with_no_definition(sample_input1: bool = True,
-                                        sample_input2: str = 'string') -> str:
+        def pipeline_with_no_description(sample_input1: bool = True,
+                                         sample_input2: str = 'string') -> str:
             op1 = identity(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
@@ -1954,19 +2062,38 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_with_no_definition,
+                pipeline_func=pipeline_with_no_description,
                 package_path=pipeline_spec_path)
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-            description_string = '# Description:'
+            # load and recompile to ensure idempotent description
+            loaded_pipeline = components.load_component_from_file(
+                pipeline_spec_path)
 
-        self.assertNotIn(description_string, yaml_content)
+            compiler.Compiler().compile(
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        comment_description = '# Description:'
+        self.assertNotIn(comment_description, yaml_content)
+        self.assertNotIn(comment_description, reloaded_yaml_content)
+        proto_description = ''
+        self.assertEqual(
+            pipeline_with_no_description.pipeline_spec.pipeline_info
+            .description, proto_description)
+        self.assertEqual(
+            loaded_pipeline.pipeline_spec.pipeline_info.description,
+            proto_description)
+
+    def test_description_from_docstring(self):
 
         @dsl.pipeline()
-        def pipeline_with_definition(sample_input1: bool = True,
-                                     sample_input2: str = 'string') -> str:
-            """This is a definition of this pipeline."""
+        def pipeline_with_description(sample_input1: bool = True,
+                                      sample_input2: str = 'string') -> str:
+            """This is a description of this pipeline."""
             op1 = identity(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
@@ -1974,21 +2101,73 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_with_definition,
+                pipeline_func=pipeline_with_description,
                 package_path=pipeline_spec_path)
-
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-            description_string = '# Description:'
+            # load and recompile to ensure idempotent description
+            loaded_pipeline = components.load_component_from_file(
+                pipeline_spec_path)
 
-        self.assertIn(description_string, yaml_content)
+            compiler.Compiler().compile(
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        comment_description = '# Description: This is a description of this pipeline.'
+        self.assertIn(comment_description, yaml_content)
+        self.assertIn(comment_description, reloaded_yaml_content)
+        proto_description = 'This is a description of this pipeline.'
+        self.assertEqual(
+            pipeline_with_description.pipeline_spec.pipeline_info.description,
+            proto_description)
+        self.assertEqual(
+            loaded_pipeline.pipeline_spec.pipeline_info.description,
+            proto_description)
+
+    def test_description_from_decorator(self):
+
+        @dsl.pipeline(description='Prefer this description.')
+        def pipeline_with_description(sample_input1: bool = True,
+                                      sample_input2: str = 'string') -> str:
+            """Don't prefer this description."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_description,
+                package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+            # load and recompile to ensure idempotent description
+            loaded_pipeline = components.load_component_from_file(
+                pipeline_spec_path)
+
+            compiler.Compiler().compile(
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        comment_description = '# Description: Prefer this description.'
+        self.assertIn(comment_description, yaml_content)
+        self.assertIn(loaded_pipeline.pipeline_spec.pipeline_info.description,
+                      reloaded_yaml_content)
+        proto_description = 'Prefer this description.'
+        self.assertEqual(
+            pipeline_with_description.pipeline_spec.pipeline_info.description,
+            proto_description)
+        self.assertEqual(
+            loaded_pipeline.pipeline_spec.pipeline_info.description,
+            proto_description)
 
     def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def pipeline_with_no_inputs() -> str:
@@ -2028,10 +2207,6 @@ class TestYamlComments(unittest.TestCase):
         self.assertNotIn(outputs_string, yaml_content)
 
     def test_comments_follow_pattern(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
@@ -2165,10 +2340,6 @@ class TestYamlComments(unittest.TestCase):
 
     def test_comments_idempotency(self):
 
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
@@ -2207,10 +2378,6 @@ class TestYamlComments(unittest.TestCase):
         self.assertIn(predicted_comment, reloaded_yaml_content)
 
     def test_comment_with_multiline_docstring(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def pipeline_with_multiline_definition(
@@ -2270,10 +2437,6 @@ class TestYamlComments(unittest.TestCase):
         self.assertIn(description_string, yaml_content)
 
     def test_idempotency_on_comment_with_multiline_docstring(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
@@ -3178,6 +3341,778 @@ class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
         self.assertEqual(
             loaded_component.pipeline_spec.components['comp-python-component']
             .input_definitions.artifacts['input_list'].is_artifact_list, True)
+
+
+def foo_platform_set_bar_feature(task: pipeline_task.PipelineTask,
+                                 val: str) -> pipeline_task.PipelineTask:
+    platform_key = 'platform_foo'
+    feature_key = 'bar'
+
+    platform_struct = task.platform_config.get(platform_key, {})
+    platform_struct[feature_key] = val
+    task.platform_config[platform_key] = platform_struct
+    return task
+
+
+def foo_platform_append_bop_feature(task: pipeline_task.PipelineTask,
+                                    val: str) -> pipeline_task.PipelineTask:
+    platform_key = 'platform_foo'
+    feature_key = 'bop'
+
+    platform_struct = task.platform_config.get(platform_key, {})
+    feature_list = platform_struct.get(feature_key, [])
+    feature_list.append(val)
+    platform_struct[feature_key] = feature_list
+    task.platform_config[platform_key] = platform_struct
+    return task
+
+
+def baz_platform_set_bat_feature(task: pipeline_task.PipelineTask,
+                                 val: str) -> pipeline_task.PipelineTask:
+    platform_key = 'platform_baz'
+    feature_key = 'bat'
+
+    platform_struct = task.platform_config.get(platform_key, {})
+    platform_struct[feature_key] = val
+    task.platform_config[platform_key] = platform_struct
+    return task
+
+
+@dsl.component
+def comp():
+    pass
+
+
+def compile_and_reload(
+        pipeline: graph_component.GraphComponent
+) -> yaml_component.YamlComponent:
+    with tempfile.TemporaryDirectory() as tempdir:
+        output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=output_yaml)
+        return components.load_component_from_file(output_yaml)
+
+
+class TestResourceConfig(unittest.TestCase):
+
+    def test_cpu_memory_optional(self):
+
+        @dsl.component
+        def predict_op() -> str:
+            return 'a'
+
+        @dsl.pipeline
+        def simple_pipeline():
+            predict_op()
+            predict_op().set_cpu_limit('5')
+            predict_op().set_memory_limit('50G')
+            predict_op().set_cpu_request('2').set_cpu_limit(
+                '5').set_memory_request('4G').set_memory_limit('50G')
+
+        dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
+
+        self.assertNotIn(
+            'resources', dict_format['deploymentSpec']['executors']
+            ['exec-predict-op']['container'])
+
+        self.assertEqual(
+            5, dict_format['deploymentSpec']['executors']['exec-predict-op-2']
+            ['container']['resources']['cpuLimit'])
+        self.assertNotIn(
+            'memoryLimit', dict_format['deploymentSpec']['executors']
+            ['exec-predict-op-2']['container']['resources'])
+
+        self.assertEqual(
+            50, dict_format['deploymentSpec']['executors']['exec-predict-op-3']
+            ['container']['resources']['memoryLimit'])
+        self.assertNotIn(
+            'cpuLimit', dict_format['deploymentSpec']['executors']
+            ['exec-predict-op-3']['container']['resources'])
+
+        self.assertEqual(
+            2, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['cpuRequest'])
+        self.assertEqual(
+            5, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['cpuLimit'])
+        self.assertEqual(
+            4, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['memoryRequest'])
+        self.assertEqual(
+            50, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            ['container']['resources']['memoryLimit'])
+
+
+class TestPlatformConfig(unittest.TestCase):
+
+    def test_no_platform_config(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            loaded_comp = components.load_component_from_file(output_yaml)
+
+            with open(output_yaml) as f:
+                raw_docs = list(yaml.safe_load_all(f))
+
+        self.assertEqual(loaded_comp.platform_spec, expected)
+        # also check that it doesn't write an empty second document
+        self.assertEqual(len(raw_docs), 1)
+
+    def test_one_task_one_platform(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            foo_platform_set_bar_feature(task, 12)
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_many_tasks_multiple_platforms(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            foo_platform_set_bar_feature(task, 12)
+            foo_platform_append_bop_feature(task, 'element')
+            baz_platform_set_bat_feature(task, 'hello')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                    'bop': ['element']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_many_tasks_many_platforms(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task1 = comp()
+            foo_platform_set_bar_feature(task1, 12)
+            foo_platform_append_bop_feature(task1, 'a')
+            baz_platform_set_bat_feature(task1, 'hello')
+            task2 = comp()
+            foo_platform_set_bar_feature(task2, 20)
+            foo_platform_append_bop_feature(task2, 'b')
+            foo_platform_append_bop_feature(task2, 'c')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                    'bop': ['a']
+                                },
+                                'exec-comp-2': {
+                                    'bar': 20,
+                                    'bop': ['b', 'c']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_multiple_pipelines_with_inner_tasks(self):
+
+        @dsl.pipeline
+        def pipeline1():
+            task1 = comp()
+            foo_platform_set_bar_feature(task1, 12)
+            foo_platform_append_bop_feature(task1, 'a')
+            baz_platform_set_bat_feature(task1, 'hello')
+
+        pipeline1_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline1_platform_spec.CopyFrom(pipeline1.platform_spec)
+
+        @dsl.pipeline
+        def pipeline2():
+            task2 = comp()
+            foo_platform_set_bar_feature(task2, 20)
+            foo_platform_append_bop_feature(task2, 'b')
+            foo_platform_append_bop_feature(task2, 'c')
+
+        pipeline2_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline2_platform_spec.CopyFrom(pipeline2.platform_spec)
+
+        @dsl.pipeline
+        def my_pipeline():
+            pipeline1()
+            pipeline2()
+            task3 = comp()
+            foo_platform_set_bar_feature(task3, 20)
+            foo_platform_append_bop_feature(task3, 'd')
+            foo_platform_append_bop_feature(task3, 'e')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                    'bop': ['a']
+                                },
+                                'exec-comp-2': {
+                                    'bar': 20,
+                                    'bop': ['b', 'c']
+                                },
+                                'exec-comp-3': {
+                                    'bar': 20,
+                                    'bop': ['d', 'e']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # pipeline1 and pipeline2 platform specs should be unchanged
+        self.assertEqual(pipeline1_platform_spec, pipeline1.platform_spec)
+        self.assertEqual(pipeline2_platform_spec, pipeline2.platform_spec)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_task_with_exit_handler(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = comp()
+            foo_platform_set_bar_feature(exit_task, 12)
+            with dsl.ExitHandler(exit_task):
+                worker_task = comp()
+                foo_platform_append_bop_feature(worker_task, 'a')
+                baz_platform_set_bat_feature(worker_task, 'hello')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 12,
+                                },
+                                'exec-comp-2': {
+                                    'bop': ['a']
+                                }
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp-2': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    },
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_pipeline_as_exit_handler(self):
+
+        @dsl.pipeline
+        def pipeline1():
+            task1 = comp()
+            foo_platform_set_bar_feature(task1, 12)
+            foo_platform_append_bop_feature(task1, 'element')
+            baz_platform_set_bat_feature(task1, 'hello')
+
+        pipeline1_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline1_platform_spec.CopyFrom(pipeline1.platform_spec)
+
+        @dsl.pipeline
+        def pipeline2():
+            task2 = comp()
+            foo_platform_set_bar_feature(task2, 20)
+            foo_platform_append_bop_feature(task2, 'element1')
+            foo_platform_append_bop_feature(task2, 'element2')
+
+        pipeline2_platform_spec = pipeline_spec_pb2.PlatformSpec()
+        pipeline2_platform_spec.CopyFrom(pipeline2.platform_spec)
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = pipeline1()
+            with dsl.ExitHandler(exit_task=exit_task):
+                pipeline2()
+                task3 = comp()
+                foo_platform_set_bar_feature(task3, 20)
+                foo_platform_append_bop_feature(task3, 'element3')
+                foo_platform_append_bop_feature(task3, 'element4')
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'platform_foo': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp': {
+                                    'bar': 20,
+                                    'bop': ['element1', 'element2']
+                                },
+                                'exec-comp-2': {
+                                    'bar': 20,
+                                    'bop': ['element3', 'element4']
+                                },
+                                'exec-comp-3': {
+                                    'bar': 12,
+                                    'bop': ['element']
+                                },
+                            }
+                        }
+                    },
+                    'platform_baz': {
+                        'deployment_spec': {
+                            'executors': {
+                                'exec-comp-3': {
+                                    'bat': 'hello'
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # pipeline1 and pipeline2 platform specs should be unchanged
+        self.assertEqual(pipeline1_platform_spec, pipeline1.platform_spec)
+        self.assertEqual(pipeline2_platform_spec, pipeline2.platform_spec)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_cannot_compile_to_json(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            foo_platform_set_bar_feature(task, 12)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Platform-specific features are only supported when serializing to YAML\. Argument for 'package_path' has file extension '\.json'\."
+        ):
+            with tempfile.TemporaryDirectory() as tempdir:
+                output_yaml = os.path.join(tempdir, 'pipeline.json')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_cannot_set_platform_specific_config_on_in_memory_pipeline_task(
+            self):
+
+        @dsl.pipeline
+        def inner():
+            task = comp()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Platform\-specific features can only be set on primitive components\. Found platform\-specific feature set on a pipeline\.'
+        ):
+
+            @dsl.pipeline
+            def outer():
+                task = inner()
+                foo_platform_set_bar_feature(task, 12)
+
+
+class ExtractInputOutputDescription(unittest.TestCase):
+
+    def test_no_descriptions(self):
+        from kfp import dsl
+
+        @dsl.component
+        def comp(
+            string: str,
+            in_artifact: Input[Artifact],
+            out_artifact: Output[Artifact],
+        ) -> str:
+            return string
+
+        Outputs = NamedTuple(
+            'Outputs',
+            out_str=str,
+            out_artifact=Artifact,
+        )
+
+        @dsl.pipeline
+        def my_pipeline(
+            string: str,
+            in_artifact: Input[Artifact],
+        ) -> Outputs:
+            t = comp(
+                string=string,
+                in_artifact=in_artifact,
+            )
+            return Outputs(
+                out_str=t.outputs['Output'],
+                out_artifact=t.outputs['out_artifact'])
+
+        pipeline_spec = my_pipeline.pipeline_spec
+
+        # test pipeline
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['string']
+            .description, '')
+        self.assertIn('in_artifact',
+                      pipeline_spec.root.input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.artifacts['in_artifact']
+            .description, '')
+        self.assertIn('out_str',
+                      pipeline_spec.root.output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.parameters['out_str']
+            .description, '')
+        self.assertIn('out_artifact',
+                      pipeline_spec.root.output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.artifacts['out_artifact']
+            .description, '')
+
+        # test component
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn(
+            'string',
+            pipeline_spec.components['comp-comp'].input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['string'].description, '')
+        self.assertIn(
+            'in_artifact',
+            pipeline_spec.components['comp-comp'].input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .artifacts['in_artifact'].description, '')
+        self.assertIn(
+            'Output',
+            pipeline_spec.components['comp-comp'].output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .parameters['Output'].description, '')
+        self.assertIn(
+            'out_artifact',
+            pipeline_spec.components['comp-comp'].output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .artifacts['out_artifact'].description, '')
+
+    def test_google_style(self):
+
+        @dsl.component
+        def comp(
+            string: str,
+            in_artifact: Input[Artifact],
+            out_artifact: Output[Artifact],
+        ) -> str:
+            """Component description.
+
+            Args:
+                string: Component input string.
+                in_artifact: Component input artifact.
+
+            Returns:
+                Output: Component output string.
+                out_artifact: Component output artifact.
+            """
+            return string
+
+        Outputs = NamedTuple(
+            'Outputs',
+            out_str=str,
+            out_artifact=Artifact,
+        )
+
+        @dsl.pipeline
+        def my_pipeline(
+            string: str,
+            in_artifact: Input[Artifact],
+        ) -> Outputs:
+            """Pipeline description.
+
+            Args:
+                string: Pipeline input string.
+                in_artifact: Pipeline input artifact.
+
+            Returns:
+                out_str: Pipeline output string.
+                out_artifact: Pipeline output artifact.
+            """
+            t = comp(
+                string=string,
+                in_artifact=in_artifact,
+            )
+            return Outputs(
+                out_str=t.outputs['Output'],
+                out_artifact=t.outputs['out_artifact'])
+
+        pipeline_spec = my_pipeline.pipeline_spec
+
+        # test pipeline
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['string']
+            .description, 'Pipeline input string.')
+        self.assertIn('in_artifact',
+                      pipeline_spec.root.input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.artifacts['in_artifact']
+            .description, 'Pipeline input artifact.')
+        self.assertIn('out_str',
+                      pipeline_spec.root.output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.parameters['out_str']
+            .description, 'Pipeline output string.')
+        self.assertIn('out_artifact',
+                      pipeline_spec.root.output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.artifacts['out_artifact']
+            .description, 'Pipeline output artifact.')
+
+        # test component
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn(
+            'string',
+            pipeline_spec.components['comp-comp'].input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['string'].description, 'Component input string.')
+        self.assertIn(
+            'in_artifact',
+            pipeline_spec.components['comp-comp'].input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .artifacts['in_artifact'].description, 'Component input artifact.')
+        self.assertIn(
+            'Output',
+            pipeline_spec.components['comp-comp'].output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .parameters['Output'].description, 'Component output string.')
+        self.assertIn(
+            'out_artifact',
+            pipeline_spec.components['comp-comp'].output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .artifacts['out_artifact'].description,
+            'Component output artifact.')
+
+    def test_inner_return_keywords_does_not_mess_up_extraction(self):
+        # we do string replacement for Return and Returns, so need to ensure having those words elsewhere plays well with extraction
+        @dsl.component
+        def comp(
+            string: str,
+            in_artifact: Input[Artifact],
+            out_artifact: Output[Artifact],
+        ) -> str:
+            """Return Component Returns description.
+
+            Args:
+                string: Component Return input string.
+                in_artifact: Component Returns input artifact.
+
+            Returns:
+                Output: Component output string.
+                out_artifact: Component output artifact.
+            """
+            return string
+
+        Outputs = NamedTuple(
+            'Outputs',
+            out_str=str,
+            out_artifact=Artifact,
+        )
+
+        @dsl.pipeline
+        def my_pipeline(
+            string: str,
+            in_artifact: Input[Artifact],
+        ) -> Outputs:
+            """Pipeline description. Returns
+
+            Args:
+                string: Return Pipeline input string. Returns
+                in_artifact: Pipeline input Return artifact.
+
+            Returns:
+                out_str: Pipeline output string.
+                out_artifact: Pipeline output artifact.
+            """
+            t = comp(
+                string=string,
+                in_artifact=in_artifact,
+            )
+            return Outputs(
+                out_str=t.outputs['Output'],
+                out_artifact=t.outputs['out_artifact'])
+
+        pipeline_spec = my_pipeline.pipeline_spec
+
+        # test pipeline
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['string']
+            .description, 'Return Pipeline input string. Returns')
+        self.assertIn('in_artifact',
+                      pipeline_spec.root.input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.artifacts['in_artifact']
+            .description, 'Pipeline input Return artifact.')
+        self.assertIn('out_str',
+                      pipeline_spec.root.output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.parameters['out_str']
+            .description, 'Pipeline output string.')
+        self.assertIn('out_artifact',
+                      pipeline_spec.root.output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.artifacts['out_artifact']
+            .description, 'Pipeline output artifact.')
+
+        # test component
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn(
+            'string',
+            pipeline_spec.components['comp-comp'].input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['string'].description, 'Component Return input string.')
+        self.assertIn(
+            'in_artifact',
+            pipeline_spec.components['comp-comp'].input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .artifacts['in_artifact'].description,
+            'Component Returns input artifact.')
+        self.assertIn(
+            'Output',
+            pipeline_spec.components['comp-comp'].output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .parameters['Output'].description, 'Component output string.')
+        self.assertIn(
+            'out_artifact',
+            pipeline_spec.components['comp-comp'].output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .artifacts['out_artifact'].description,
+            'Component output artifact.')
 
 
 if __name__ == '__main__':

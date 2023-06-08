@@ -14,8 +14,8 @@
 
 from typing import Dict, List
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -34,30 +34,25 @@ def bigquery_create_model_job(
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
 ):
+  # fmt: off
   """Launch a BigQuery create model job and waits for it to finish.
 
   Args:
-      project (str):
-        Required. Project to run BigQuery model creation job.
-      location (Optional[str]):
-        Location of the job to create the BigQuery model. If not set, default to
+      project: Project to run BigQuery model creation job.
+      location: Location of the job to create the BigQuery model. If not set, default to
         `US` multi-region.  For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      query (str):
-        Required. SQL query text to execute. Only standard SQL is
+      query: SQL query text to execute. Only standard SQL is
         supported.  If query are both specified in here and in
         job_configuration_query, the value in here will override the other
         one.
-      query_parameters (Optional[Sequence]):
-        Query parameters for standard SQL queries.
+      query_parameters: Query parameters for standard SQL queries.
         If query_parameters are both specified in here and in
         job_configuration_query, the value in here will override the other one.
-      job_configuration_query (Optional[dict]):
-        A json formatted string describing the rest of the job configuration.
+      job_configuration_query: A json formatted string describing the rest of the job configuration.
         For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
@@ -66,15 +61,13 @@ def bigquery_create_model_job(
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
 
   Returns:
-      model (google.BQMLModel):
-        Describes the model which is created.
-      gcp_resources (str):
-        Serialized gcp_resources proto tracking the BigQuery job.
-        For more details, see
+      model: Describes the model which is created.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
+  # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

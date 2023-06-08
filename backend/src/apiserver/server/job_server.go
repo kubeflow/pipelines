@@ -21,10 +21,10 @@ import (
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -81,42 +81,20 @@ type JobServer struct {
 }
 
 func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	pipelineId := job.PipelineSpec.PipelineId
-	pipelineVersionId := job.PipelineSpec.PipelineVersionId
-	if pipelineVersionId != "" {
-		ns, err := s.resourceManager.FetchNamespaceFromPipelineVersionId(pipelineVersionId)
-		if err != nil {
-			ns = ""
-		}
-		job.Namespace = ns
-	} else if pipelineId != "" {
-		ns, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
-		if err != nil {
-			ns = ""
-		}
-		job.Namespace = ns
+	// Validate user inputs
+	if job.DisplayName == "" {
+		return nil, util.NewInvalidInputError("Recurring run name is empty. Please specify a valid name")
 	}
-	if job.ExperimentId == "" {
-		expId, err := s.resourceManager.GetDefaultExperimentId()
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run due to missing parent experiment and default experiment")
-		}
-		job.ExperimentId = expId
+	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(job.ExperimentId, job.Namespace)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to invalid experimentId and namespace combination")
 	}
-	if job.ExperimentId == "" && common.IsMultiUserMode() {
-		return nil, util.NewInvalidInputError("Failed to create a recurring run due to missing parent experiment id")
+	if common.IsMultiUserMode() && namespace == "" {
+		return nil, util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode")
 	}
-	if err := s.resourceManager.ValidateExperimentNamespace(job.ExperimentId, job.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run due to namespace mismatch. Specified namespace %s is different from what the parent experiment %s has", job.Namespace, job.ExperimentId)
-	}
-	if job.Namespace == "" {
-		ns, err := s.resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run due to error fetching namespace of the parent experiment %s", job.ExperimentId)
-		}
-		job.Namespace = ns
-	}
-
+	job.ExperimentId = experimentId
+	job.Namespace = namespace
+	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: job.Namespace,
 		Verb:      common.RbacResourceVerbCreate,
@@ -173,7 +151,7 @@ func (s *JobServer) GetJob(ctx context.Context, request *apiv1beta1.GetJobReques
 	return apiJob, nil
 }
 
-func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int, sortBy string, filter string, namespace string, experimentId string) ([]*model.Job, int, string, error) {
+func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int, sortBy string, opts *list.Options, namespace string, experimentId string) ([]*model.Job, int, string, error) {
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if experimentId != "" {
 		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
@@ -191,16 +169,11 @@ func (s *JobServer) listJobs(ctx context.Context, pageToken string, pageSize int
 		return nil, 0, "", util.Wrapf(err, "Failed to list recurring runs due to authorization error. Check if you have permission to access namespace %s", namespace)
 	}
 
-	opts, err := validatedListOptions(&model.Job{}, pageToken, pageSize, sortBy, filter)
-	if err != nil {
-		return nil, 0, "", util.Wrap(err, "Failed to create list options")
-	}
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
 	}
-
 	if experimentId != "" {
-		if err := s.resourceManager.ValidateExperimentNamespace(experimentId, namespace); err != nil {
+		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentId, namespace); err != nil {
 			return nil, 0, "", util.Wrap(err, "Failed to list recurring runs due to namespace mismatch")
 		}
 		filterContext = &model.FilterContext{
@@ -219,12 +192,13 @@ func (s *JobServer) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsRequest)
 		listJobRequests.Inc()
 	}
 
-	filterContext, err := validateFilterV1(r.ResourceReferenceKey)
+	filterContext, err := validateFilterV1(r.GetResourceReferenceKey())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
 	}
 	namespace := ""
 	experimentId := ""
+
 	if filterContext.ReferenceKey != nil {
 		switch filterContext.ReferenceKey.Type {
 		case model.NamespaceResourceType:
@@ -233,7 +207,13 @@ func (s *JobServer) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsRequest)
 			experimentId = filterContext.ReferenceKey.ID
 		}
 	}
-	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), namespace, experimentId)
+
+	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v1beta1")
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list jobs due to error parsing the listing options")
+	}
+
+	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, namespace, experimentId)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs")
 	}
@@ -260,7 +240,7 @@ func (s *JobServer) EnableJob(ctx context.Context, request *apiv1beta1.EnableJob
 }
 
 func (s *JobServer) disableJob(ctx context.Context, jobId string) error {
-	err := s.canAccessJob(ctx, jobId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
+	err := s.canAccessJob(ctx, jobId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDisable})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
@@ -357,7 +337,12 @@ func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRec
 		listJobRequests.Inc()
 	}
 
-	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), r.GetNamespace(), r.GetExperimentId())
+	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v2beta1")
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list recurring runs due to error parsing the listing options")
+	}
+
+	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs")
 	}
@@ -414,33 +399,34 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-
-	if len(jobID) > 0 {
+	if jobID != "" {
 		job, err := s.resourceManager.GetJob(jobID)
 		if err != nil {
-			return util.Wrap(err, "Failed to authorize with the job ID")
+			return util.Wrap(err, "failed to authorize with the recurring run ID")
 		}
-		if len(resourceAttributes.Namespace) == 0 {
-			if len(job.Namespace) == 0 {
-				return util.NewInternalServerError(
-					errors.New("Empty namespace"),
-					"The job doesn't have a valid namespace",
-				)
+		if s.resourceManager.IsEmptyNamespace(job.Namespace) {
+			experiment, err := s.resourceManager.GetExperiment(job.ExperimentId)
+			if err != nil {
+				return util.NewInternalServerError(err, "recurring run %v has an empty namespace and the parent experiment %v could not be fetched", jobID, job.ExperimentId)
 			}
+			resourceAttributes.Namespace = experiment.Namespace
+		} else {
 			resourceAttributes.Namespace = job.Namespace
 		}
-		if len(resourceAttributes.Name) == 0 {
+		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = job.DisplayName
 		}
 	}
-
+	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+		return util.NewInvalidInputError("a recurring run cannot have an empty namespace in multi-user mode")
+	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
 	resourceAttributes.Resource = common.RbacResourceTypeJobs
 
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API")
+		return util.Wrap(err, "failed to authorize with API")
 	}
 	return nil
 }

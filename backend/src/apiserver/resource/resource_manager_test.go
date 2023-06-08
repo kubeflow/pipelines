@@ -98,9 +98,6 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 	if err != nil {
 		spec = pipelineSpec
 	} else {
-		if tmpl.IsV2() {
-			tmpl.OverrideV2PipelineName(name, namespace)
-		}
 		paramsJSON, _ = tmpl.ParametersJSON()
 		spec = string(tmpl.Bytes())
 	}
@@ -138,7 +135,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	p1 := createPipeline("p1", "", "ns1")
 	p, _ := manager.CreatePipeline(p1)
 	pv1 := createPipelineVersion(
@@ -158,7 +155,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	apiExperiment := &model.Experiment{Name: "e1", Namespace: "ns1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -168,7 +165,7 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	apiExperiment := &model.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -231,7 +228,7 @@ func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.J
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param1\":\"world\"}",
+				Parameters:   "{\"text\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
@@ -264,6 +261,9 @@ func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -434,7 +434,7 @@ func TestCreatePipeline(t *testing.T) {
 			// setup
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
-			manager := NewResourceManager(store, "")
+			manager := NewResourceManager(store)
 			if test.badObjectStore {
 				manager.objectStore = &FakeBadObjectStore{}
 			}
@@ -584,7 +584,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 		t.Run(test.msg, func(t *testing.T) {
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
-			manager := NewResourceManager(store, "")
+			manager := NewResourceManager(store)
 
 			// Create a pipeline before versions.
 			p0 := createPipelineV1("my_pipeline")
@@ -661,12 +661,12 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 		// expected
 		pipelineName string
 	}{
-		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
-		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
-		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
-		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
-		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "pipeline/v2-spec1"},
-		{name: "v2-spec2", namespace: "user", template: v2SpecHelloWorld, pipelineName: "namespace/user/pipeline/v2-spec2"},
+		{name: "v2-compat", namespace: "", pipelineName: "two-step-pipeline"},
+		{name: "pipe3", namespace: "", pipelineName: "two-step-pipeline"},
+		{name: "pipeline2", namespace: "kubeflow", pipelineName: "two-step-pipeline"},
+		{name: "abcd", namespace: "user", pipelineName: "two-step-pipeline"},
+		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "hello-world"},
+		{name: "v2-spec2", namespace: "user", template: v2SpecHelloWorld, pipelineName: "hello-world"},
 	}
 	for _, test := range tests {
 		testClone := test
@@ -674,7 +674,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 		t.Run(fmt.Sprintf("%+v", testClone), func(t *testing.T) {
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
-			manager := NewResourceManager(store, "")
+			manager := NewResourceManager(store)
 
 			if test.template == "" {
 				test.template = strings.TrimSpace(v2compatPipeline)
@@ -715,6 +715,116 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			tmpl, err = template.New(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
+		})
+	}
+}
+
+func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
+	tests := []struct {
+		name         string
+		p            *model.Pipeline
+		pv           *model.PipelineVersion
+		wantPipeline *model.Pipeline
+		wantVersion  *model.PipelineVersion
+		wantErr      bool
+		errorMsg     string
+	}{
+		{
+			"Valid - pipeline v2",
+			&model.Pipeline{
+				Name:        "pipeline v2",
+				Description: "pipeline two",
+				Namespace:   "user1",
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 1,
+				Name:           "pipeline v2",
+				Description:    "pipeline two",
+				Namespace:      "user1",
+				Status:         model.PipelineReady,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  2,
+				Name:            "pipeline v2 version 1",
+				Description:     "pipeline v2 version description",
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Status:          model.PipelineVersionReady,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
+				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpecURI: "pipeline_version_two.yaml",
+				Parameters:      "[]",
+			},
+			false,
+			"",
+		},
+		{
+			"Valid - pipeline v1",
+			&model.Pipeline{
+				Name:        "pipeline v1",
+				Description: "pipeline one",
+				Parameters:  `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+			},
+			&model.PipelineVersion{
+				Name:            "pipeline v1 version 1",
+				Description:     "pipeline v1 version description",
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    complexPipeline,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			&model.Pipeline{
+				UUID:           DefaultFakePipelineIdTwo,
+				CreatedAtInSec: 1,
+				Name:           "pipeline v1",
+				Description:    "pipeline one",
+				Parameters:     `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
+				Status:         model.PipelineReady,
+			},
+			&model.PipelineVersion{
+				UUID:            DefaultFakePipelineIdTwo,
+				CreatedAtInSec:  2,
+				PipelineId:      DefaultFakePipelineIdTwo,
+				Name:            "pipeline v1 version 1",
+				Description:     "pipeline v1 version description",
+				Status:          model.PipelineVersionReady,
+				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
+				PipelineSpec:    complexPipeline,
+				PipelineSpecURI: "pipeline_version_one.yaml",
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := NewFakeClientManagerOrFatalV2()
+			defer store.Close()
+			manager := NewResourceManager(store)
+			pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
+			assert.True(t, ok)
+			pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+
+			gotPipeline, gotVersion, err := manager.CreatePipelineAndPipelineVersion(tt.p, tt.pv)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, gotPipeline)
+				assert.Nil(t, gotVersion)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.wantPipeline, gotPipeline)
+				tt.wantVersion.PipelineSpec = gotVersion.PipelineSpec
+				tt.wantVersion.Parameters = gotVersion.Parameters
+				assert.Equal(t, tt.wantVersion, gotVersion)
+			}
 		})
 	}
 }
@@ -891,7 +1001,7 @@ func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
 	manager.objectStore.AddFile([]byte(testWorkflow.ToStringForStore()), p.UUID)
@@ -913,7 +1023,7 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
 	pv := &model.PipelineVersion{
@@ -941,7 +1051,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
 	pv := &model.PipelineVersion{
@@ -969,7 +1079,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	defer store.Close()
 	template := []byte("workflow: foo")
 	store.objectStore.AddFile(template, store.objectStore.GetPipelineKey(fmt.Sprint(1)))
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	_, err := manager.GetPipelineLatestTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Pipeline 1 not found")
@@ -980,7 +1090,7 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	pipeline, _ := store.PipelineStore().CreatePipeline(createPipelineV1("pipeline1"))
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	_, err := manager.GetPipelineLatestTemplate(pipeline.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -990,7 +1100,7 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 func TestListPipelines(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "kubeflow")
+	manager := NewResourceManager(store)
 
 	// Create a pipeline.
 	p1 := createPipelineV1(
@@ -1027,7 +1137,7 @@ func TestListPipelines(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, nTotal, _, err := manager.ListPipelines(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "kubeflow"}},
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
 	)
 	assert.Nil(t, err)
@@ -1038,7 +1148,7 @@ func TestListPipelines(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelines(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "kubeflow"}},
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
 	)
 	assert.Nil(t, err)
@@ -1049,8 +1159,7 @@ func TestListPipelines(t *testing.T) {
 func TestListPipelinesV1(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default2")
-
+	manager := NewResourceManager(store)
 	// Create a pipeline.
 	p1 := createPipelineV1(
 		"pipeline1",
@@ -1086,7 +1195,7 @@ func TestListPipelinesV1(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, _, nTotal, _, err := manager.ListPipelinesV1(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "default2"}},
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
 	)
 	assert.Nil(t, err)
@@ -1097,7 +1206,7 @@ func TestListPipelinesV1(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, _, nTotal, _, err = manager.ListPipelinesV1(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "default2"}},
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
 	)
 	assert.Nil(t, err)
@@ -1109,7 +1218,7 @@ func TestListPipelineVersions(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	// Create a pipeline.
 	p1 := createPipelineV1(
@@ -1192,7 +1301,7 @@ func TestUpdatePipelineStatus(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
@@ -1262,7 +1371,7 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
@@ -1331,7 +1440,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	// Create a pipeline.
 	p := createPipelineV1(
@@ -1392,7 +1501,7 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	// Create a pipeline.
 	p := createPipelineV1(
@@ -1434,7 +1543,7 @@ func TestDeletePipeline(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	// Create a pipeline.
 	p1 := createPipelineV1(
@@ -1573,19 +1682,19 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		Namespace:      runDetail.Namespace,
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           "123e4567-e89b-12d3-a456-426655440000",
-			PipelineVersionId:    "123e4567-e89b-12d3-a456-426655440000",
-			PipelineName:         "hello-world-3",
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Pending",
 			State:            model.RuntimeStatePending,
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 			},
@@ -1620,24 +1729,20 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           "123e4567-e89b-12d3-a456-426655440000",
-			PipelineVersionId:    "123e4567-e89b-12d3-a456-426655440000",
-			PipelineName:         "run1-3",
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Pending",
 			State:            "PENDING",
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 			},
@@ -1674,16 +1779,15 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Pending",
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 			},
@@ -1694,9 +1798,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
 		},
 	}
-	expectedRunDetail.PipelineSpec.PipelineId = runDetail.PipelineSpec.PipelineId
 	expectedRunDetail.PipelineSpec.PipelineName = runDetail.PipelineSpec.PipelineName
-	expectedRunDetail.PipelineSpec.PipelineVersionId = runDetail.PipelineSpec.PipelineVersionId
 	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
@@ -1727,38 +1829,12 @@ func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
 		},
 	)
 	assert.Nil(t, err)
-	assert.NotEmpty(t, newRun.PipelineVersionId)
-	assert.NotEmpty(t, newRun.PipelineId)
 	assert.Equal(t, "run1", newRun.DisplayName)
-	assert.Equal(t, runDetail.PipelineId, newRun.PipelineId)
-	assert.Equal(t, runDetail.PipelineVersionId, newRun.PipelineVersionId)
+	assert.Empty(t, newRun.PipelineId)
+	assert.Empty(t, newRun.PipelineVersionId)
 	assert.NotEqual(t, runDetail.WorkflowRuntimeManifest, newRun.WorkflowRuntimeManifest)
 	assert.Equal(t, runDetail.WorkflowSpecManifest, newRun.WorkflowSpecManifest)
-	assert.Equal(t, runDetail.PipelineSpecManifest, newRun.PipelineSpecManifest)
-
-	manager.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
-	newRun2, err := manager.CreateRun(
-		context.Background(),
-		&model.Run{
-			DisplayName: "run1",
-			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: v2SpecHelloWorld,
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
-			},
-			ExperimentId: runDetail.ExperimentId,
-		},
-	)
-	assert.Nil(t, err)
-	assert.NotEmpty(t, newRun2.PipelineVersionId)
-	assert.NotEmpty(t, newRun2.PipelineId)
-	assert.Equal(t, "run1", newRun2.DisplayName)
-	assert.Equal(t, newRun.PipelineId, newRun2.PipelineId)
-	assert.NotEqual(t, newRun.PipelineVersionId, newRun2.PipelineVersionId)
-	assert.NotEqual(t, newRun.WorkflowRuntimeManifest, newRun2.WorkflowRuntimeManifest)
-	assert.NotEqual(t, newRun.WorkflowSpecManifest, newRun2.WorkflowSpecManifest)
-	assert.NotEqual(t, newRun.PipelineSpecManifest, newRun2.PipelineSpecManifest)
-	assert.Equal(t, v2SpecHelloWorld, newRun2.PipelineSpecManifest)
+	assert.Empty(t, newRun.PipelineSpecManifest)
 }
 
 func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
@@ -1920,53 +1996,11 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
-func TestCreateRun_NoExperiment(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
-	experiment, _ := manager.GetExperiment(experimentID)
-	assert.Equal(t, experiment.Name, "Default")
-	assert.Equal(t, experiment.Namespace, "default")
-
-	apiRun := &model.Run{
-		DisplayName: "No experiment",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-	}
-	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-	expectedRunDetail := []*model.ResourceReference{
-		{
-			ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
-			ResourceType: model.RunResourceType,
-			// Experiment is now set
-			ReferenceUUID: experiment.UUID,
-			ReferenceType: model.ExperimentResourceType,
-			Relationship:  model.OwnerRelationship,
-		},
-		{
-			ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
-			ResourceType: model.RunResourceType,
-			// Experiment is now set
-			ReferenceUUID: "default",
-			ReferenceType: model.NamespaceResourceType,
-			Relationship:  model.OwnerRelationship,
-		},
-	}
-	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "The CreateRun return has unexpected value")
-	runDetail, err = manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail, runDetail.ResourceReferences, "CreateRun stored invalid data in database")
-}
-
 func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -1976,14 +2010,14 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2000,8 +2034,8 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2018,8 +2052,8 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 func TestCreateRun_OverrideParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2036,8 +2070,8 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2055,8 +2089,8 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	store.DB().Close()
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2085,7 +2119,7 @@ func TestDeleteRun(t *testing.T) {
 func TestDeleteRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	err := manager.DeleteRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2143,7 +2177,7 @@ func TestDeleteExperiment_ClearsDefaultExperiment(t *testing.T) {
 func TestDeleteExperiment_ExperimentNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	err := manager.DeleteExperiment("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2187,7 +2221,7 @@ func TestTerminateRun(t *testing.T) {
 func TestTerminateRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	err := manager.TerminateRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2223,7 +2257,7 @@ func TestRetryRun(t *testing.T) {
 func TestRetryRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	err := manager.RetryRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2266,7 +2300,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error updating the old workflow")
+	assert.Contains(t, err.Error(), "error updating and creating a workflow")
 }
 
 func TestUnarchiveRun_OK(t *testing.T) {
@@ -2308,16 +2342,14 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		ExperimentId:   DefaultFakeUUID,
 		Enabled:        true,
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 5,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 		},
 	}
-	expectedJob.PipelineSpec.PipelineId = job.PipelineSpec.PipelineId
 	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
-	expectedJob.PipelineSpec.PipelineVersionId = job.PipelineSpec.PipelineVersionId
 	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
 }
 
@@ -2332,20 +2364,18 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		ExperimentId:   DefaultFakeUUID,
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 5,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param1\":\"world\"}",
+				Parameters:   "{\"text\":\"world\"}",
 				PipelineRoot: "job-1-root",
 			},
 		},
 	}
-	expectedJob.PipelineSpec.PipelineId = job.PipelineSpec.PipelineId
 	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
-	expectedJob.PipelineSpec.PipelineVersionId = job.PipelineSpec.PipelineVersionId
 	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
 	fetchedJob, err := manager.GetJob(job.UUID)
 	assert.Nil(t, err)
@@ -2519,8 +2549,8 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		DisplayName:  "pp 1",
 		Enabled:      true,
@@ -2531,14 +2561,14 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format: pipeline spec is invalid")
+	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
 }
 
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -2556,8 +2586,8 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	experimentID, _ := manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -2575,7 +2605,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
-	experimentID, _ := manager.CreateDefaultExperiment()
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -2595,7 +2625,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	experimentID, _ := manager.CreateDefaultExperiment()
+	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		K8SName:      "pp1",
 		ExperimentId: experimentID,
@@ -2619,8 +2649,8 @@ func TestEnableJob(t *testing.T) {
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        false,
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 6,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
 		Conditions:     "STATUS_UNSPECIFIED",
 		ExperimentId:   DefaultFakeUUID,
 		PipelineSpec: model.PipelineSpec{
@@ -2637,7 +2667,7 @@ func TestEnableJob(t *testing.T) {
 func TestEnableJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	err := manager.ChangeJobMode(context.Background(), "1", false)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
@@ -2703,7 +2733,7 @@ func TestDeleteJob(t *testing.T) {
 func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	err := manager.DeleteJob(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
@@ -2769,20 +2799,19 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
-		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			CreatedAtInSec:   5,
-			ScheduledAtInSec: 5,
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			Conditions:       "Running",
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStatePending,
 				},
 				{
-					UpdateTimeInSec: 7,
+					UpdateTimeInSec: 4,
 					State:           model.RuntimeStateRunning,
 				},
 			},
@@ -2792,8 +2821,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
-	expectedRun.PipelineSpec.PipelineId = run.PipelineSpec.PipelineId
-	expectedRun.PipelineSpec.PipelineVersionId = run.PipelineSpec.PipelineVersionId
 	expectedRun.PipelineSpec.PipelineName = run.PipelineSpec.PipelineName
 	expectedRun.RunDetails.WorkflowRuntimeManifest = run.RunDetails.WorkflowRuntimeManifest
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
@@ -2849,79 +2876,8 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			State:                   model.RuntimeStateUnspecified,
 			StateHistory: []*model.RuntimeStatus{
 				{
-					UpdateTimeInSec: 6,
+					UpdateTimeInSec: 3,
 					State:           model.RuntimeStateUnspecified,
-				},
-			},
-		},
-	}
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())
-}
-
-func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	manager.CreateDefaultExperiment()
-	job := &model.Job{
-		DisplayName:  "j1",
-		Enabled:      true,
-		PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: testWorkflow.ToStringForStore()},
-		// no experiment reference
-	}
-	newJob, _ := manager.CreateJob(context.Background(), job)
-
-	// report workflow
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-			UID:       "WORKFLOW_1",
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(newJob.UUID),
-			}},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Phase: v1alpha1.WorkflowPending,
-		},
-	})
-
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	runDetail, err := manager.GetRun("WORKFLOW_1")
-	assert.Nil(t, err)
-
-	expectedRunDetail := &model.Run{
-		UUID:           "WORKFLOW_1",
-		ExperimentId:   DefaultFakeUUID,
-		DisplayName:    "MY_NAME",
-		StorageState:   model.StorageStateAvailable,
-		K8SName:        "MY_NAME",
-		Namespace:      newJob.Namespace,
-		RecurringRunId: newJob.UUID,
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
-			PipelineSpecManifest: newJob.PipelineSpec.PipelineSpecManifest,
-			PipelineId:           newJob.PipelineSpec.PipelineId,
-			PipelineName:         newJob.PipelineSpec.PipelineName,
-			PipelineVersionId:    newJob.PipelineSpec.PipelineVersionId,
-		},
-		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: workflow.ToStringForStore(),
-			CreatedAtInSec:          11,
-			ScheduledAtInSec:        11,
-			Conditions:              "Pending",
-			State:                   model.RuntimeStatePending,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 6,
-					State:           model.RuntimeStatePending,
 				},
 			},
 		},
@@ -2944,7 +2900,7 @@ func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 
 func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 	ctx := context.Background()
 	defer store.Close()
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -3091,14 +3047,135 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		},
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[]",
 			PipelineSpecManifest: actualJob.PipelineSpec.PipelineSpecManifest,
-			PipelineId:           actualJob.PipelineSpec.PipelineId,
 			PipelineName:         actualJob.PipelineSpec.PipelineName,
-			PipelineVersionId:    actualJob.PipelineSpec.PipelineVersionId,
 		},
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 6,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
+	}
+	expectedJob.Conditions = "STATUS_UNSPECIFIED"
+	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+}
+
+func TestReportScheduledWorkflowResource_Success_withParamsV1(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	// report scheduled workflow
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       types.UID(job.UUID),
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{
+						Name:  "param_v1",
+						Value: "value_v1",
+					},
+				},
+			},
+		},
+	})
+	err := manager.ReportScheduledWorkflowResource(swf)
+	assert.Nil(t, err)
+
+	actualJob, err := manager.GetJob(job.UUID)
+	assert.Nil(t, err)
+
+	expectedJob := &model.Job{
+		K8SName:        "MY_NAME",
+		DisplayName:    "j1",
+		Namespace:      actualJob.Namespace,
+		ExperimentId:   actualJob.ExperimentId,
+		ServiceAccount: "pipeline-runner",
+		Enabled:        false,
+		UUID:           actualJob.UUID,
+		Conditions:     "STATUS_UNSPECIFIED",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				Cron: util.StringPointer(""),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				IntervalSecond: util.Int64Pointer(0),
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			Parameters:           `[{"name":"param_v1","value":"value_v1"}]`,
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			PipelineSpecManifest: actualJob.PipelineSpec.PipelineSpecManifest,
+			PipelineName:         actualJob.PipelineSpec.PipelineName,
+		},
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
+	}
+	expectedJob.Conditions = "STATUS_UNSPECIFIED"
+	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+}
+
+func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.T) {
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+	// report scheduled workflow
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "updated_name",
+			Namespace: "ns1",
+			UID:       types.UID(job.UUID),
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{
+						Name:  "param1",
+						Value: "\"world-updated\"",
+					},
+				},
+			},
+		},
+	})
+	err := manager.ReportScheduledWorkflowResource(swf)
+	assert.Nil(t, err)
+
+	actualJob, err := manager.GetJob(job.UUID)
+	assert.Nil(t, err)
+
+	expectedJob := &model.Job{
+		K8SName:        "updated_name",
+		DisplayName:    "j1",
+		Namespace:      "ns1",
+		ExperimentId:   job.ExperimentId,
+		ServiceAccount: "pipeline-runner",
+		Enabled:        false,
+		UUID:           actualJob.UUID,
+		Conditions:     "STATUS_UNSPECIFIED",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				Cron: util.StringPointer(""),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				IntervalSecond: util.Int64Pointer(0),
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: v2SpecHelloWorld,
+			PipelineName:         actualJob.PipelineSpec.PipelineName,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `{"param1":"world-updated"}`,
+				PipelineRoot: "job-1-root",
+			},
+		},
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
 	}
 	expectedJob.Conditions = "STATUS_UNSPECIFIED"
 	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
@@ -3107,8 +3184,8 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
-	manager.CreateDefaultExperiment()
+	manager := NewResourceManager(store)
+	manager.CreateDefaultExperiment("")
 	// Create pipeline
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
@@ -3247,7 +3324,7 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 func TestReadArtifact_NoRun_NotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "")
+	manager := NewResourceManager(store)
 
 	_, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
@@ -3499,7 +3576,7 @@ spec:
   arguments:
     parameters:
     - {name: pipeline-root, value: ''}
-    - {name: pipeline-name, value: pipeline/two_step_pipeline}
+    - {name: pipeline-name, value: two-step-pipeline}
   serviceAccountName: pipeline-runner
 `
 
@@ -3861,9 +3938,9 @@ spec:
 func TestCreateDefaultExperiment(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
+	manager := NewResourceManager(store)
 
-	experimentID, err := manager.CreateDefaultExperiment()
+	experimentID, err := manager.CreateDefaultExperiment("")
 	assert.Nil(t, err)
 	experiment, err := manager.GetExperiment(experimentID)
 	assert.Nil(t, err)
@@ -3873,7 +3950,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
-		Namespace:      "default",
+		Namespace:      "",
 		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
@@ -3885,9 +3962,9 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, "default")
+	manager := NewResourceManager(store)
 
-	experimentID, err := manager.CreateDefaultExperiment()
+	experimentID, err := manager.CreateDefaultExperiment("multi-user")
 	assert.Nil(t, err)
 	experiment, err := manager.GetExperiment(experimentID)
 	assert.Nil(t, err)
@@ -3897,7 +3974,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
-		Namespace:      "default",
+		Namespace:      "multi-user",
 		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
@@ -3941,7 +4018,7 @@ components:
     inputDefinitions:
       parameters:
         text:
-          type: STRING
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-hello-world:
@@ -3987,7 +4064,32 @@ root:
   inputDefinitions:
     parameters:
       text:
-        type: STRING
-schemaVersion: 2.0.0
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldMutated = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        image: python:3.7
+pipelineInfo:
+  name: pipelines/p1/versions/v1
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        taskInfo:
+          name: hello-world
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `

@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"strconv"
 
 	"github.com/cenkalti/backoff"
@@ -95,10 +96,9 @@ type ResourceManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
-	defaultNamespace          string
 }
 
-func NewResourceManager(clientManager ClientManagerInterface, defaultNamespace string) *ResourceManager {
+func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
 		experimentStore:           clientManager.ExperimentStore(),
 		pipelineStore:             clientManager.PipelineStore(),
@@ -118,7 +118,6 @@ func NewResourceManager(clientManager ClientManagerInterface, defaultNamespace s
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
 		authenticators:            clientManager.Authenticators(),
-		defaultNamespace:          defaultNamespace,
 	}
 }
 
@@ -152,16 +151,15 @@ func (r *ResourceManager) ListExperiments(filterContext *model.FilterContext, op
 
 // Deletes the experiment with the given id.
 func (r *ResourceManager) DeleteExperiment(experimentId string) error {
-	_, err := r.experimentStore.GetExperiment(experimentId)
-	if err != nil {
-		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching it", experimentId)
-	}
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching the default experiment id", experimentId)
 	}
 	if defaultExperimentId != "" && experimentId == defaultExperimentId {
 		return util.NewBadRequestError(util.NewInvalidInputError("Experiment id cannot be equal to the default id %v", defaultExperimentId), "Failed to delete experiment %v. The default experiment cannot be deleted", experimentId)
+	}
+	if _, err := r.experimentStore.GetExperiment(experimentId); err != nil {
+		return util.Wrapf(err, "Failed to delete experiment %v due to error fetching it", experimentId)
 	}
 	return r.experimentStore.DeleteExperiment(experimentId)
 }
@@ -310,11 +308,9 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 // Creates a pipeline, but does not create a pipeline version.
 // Call CreatePipelineVersion to create a pipeline version.
 func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
-	// Assign the default namespace if it is empty
-	if p.Namespace == "" {
-		p.Namespace = r.GetDefaultNamespace()
+	if p.Name == "" {
+		return nil, util.NewInvalidInputError("pipeline's name cannot be empty")
 	}
-
 	// Create a record in KFP DB (only pipelines table)
 	newPipeline, err := r.pipelineStore.CreatePipeline(p)
 	if err != nil {
@@ -330,6 +326,83 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 		return nil, util.Wrap(err, "Failed to update status of a pipeline after creation")
 	}
 	return newPipeline, nil
+}
+
+// Creates a pipeline and a pipeline version.
+// This is used when two resources need to be created in a single DB transaction.
+func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
+	// Fetch pipeline spec, verify it, and parse parameters
+	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version as template is broken")
+	}
+	pv.PipelineSpec = string(pipelineSpecBytes)
+	if pipelineSpecURI != "" {
+		pv.PipelineSpecURI = pipelineSpecURI
+	}
+	tmpl, err := template.New(pipelineSpecBytes)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
+	}
+	// Validate pipeline's name in:
+	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
+	// 2. display name must be non-empty
+	pipelineSpecName := ""
+	if tmpl.IsV2() {
+		pipelineSpecName = tmpl.V2PipelineName()
+		if err := common.ValidatePipelineName(pipelineSpecName); err != nil {
+			return nil, nil, err
+		}
+	}
+	if pv.Name == "" && p.Name == "" {
+		if pipelineSpecName == "" {
+			return nil, nil, util.NewInvalidInputError("pipeline's name cannot be empty")
+		}
+		pv.Name = pipelineSpecName
+		p.Name = pipelineSpecName
+	} else if pv.Name == "" {
+		pv.Name = p.Name
+	} else if p.Name == "" {
+		p.Name = pv.Name
+	}
+	// Parse parameters
+	paramsJSON, err := tmpl.ParametersJSON()
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to error converting parameters to json")
+	}
+	pv.Parameters = paramsJSON
+	pv.PipelineSpec = string(tmpl.Bytes())
+
+	// Create records in KFP DB (both pipelines and pipeline_versions tables)
+	newPipeline, newVersion, err := r.pipelineStore.CreatePipelineAndPipelineVersion(p, pv)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version")
+	}
+
+	// TODO(gkcalat): consider removing this after v2beta1 GA if we adopt storing PipelineSpec in DB.
+	// Store the pipeline file
+	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(newVersion.UUID))
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to error saving PipelineSpec to ObjectStore")
+	}
+
+	newPipeline.Status = model.PipelineReady
+	err = r.pipelineStore.UpdatePipelineStatus(
+		newPipeline.UUID,
+		newPipeline.Status,
+	)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline after creation")
+	}
+	newVersion.Status = model.PipelineVersionReady
+	err = r.pipelineStore.UpdatePipelineVersionStatus(
+		newVersion.UUID,
+		newVersion.Status,
+	)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline version after creation")
+	}
+	return newPipeline, newVersion, nil
 }
 
 // Updates the status of a pipeline.
@@ -373,69 +446,16 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 }
 
 // Creates a run and schedule a workflow CR.
-// Note: when creating a run from a manifest, this triggers creation of
-// a new pipeline and pipeline version that share the name, description, and namespace.
-// If run.ExperimentId is not specified, it is set to the default experiment.
-// If run.Namespace  is no specified, it gets inferred from the parent experiment.
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
-	expNs, expId, err := r.validateExperimentNamespace(run.Namespace, run.ExperimentId)
+	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+	// Update the run.PipelineSpec if an existing pipeline version is used.
+	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run. Specify a valid experiment id and namespace combination")
+		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
 	}
-	run.ExperimentId = expId
-	run.Namespace = expNs
 
-	// Fetch pipeline version based on pipeline spec (do not create anything yet)
-	var wfTemplate *template.Template
-	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(run.PipelineSpec, run.DisplayName, run.Description, run.Namespace)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run. Specify a valid pipeline spec")
-	}
-	manifest := run.PipelineSpec.PipelineSpecManifest
-	if manifest == "" {
-		manifest = run.PipelineSpec.WorkflowSpecManifest
-	}
-	// If pipeline version does not exist, create it
-	if pipelineVersion == nil {
-		pipelineVersion, wfTemplate, err = r.createPipelineFromSpecIfNoExisting(manifest, run.Namespace, run.DisplayName, run.Description)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a run due to error fetching pipeline version from pipeline spec")
-		}
-	}
-	run.PipelineSpec.PipelineId = pipelineVersion.PipelineId
-	run.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
-	run.PipelineSpec.PipelineName = pipelineVersion.Name
-	if manifest == "" {
-		manifest = pipelineVersion.PipelineSpec
-	}
-	// Get manifest from either of the two places:
-	// (1) raw manifest in pipeline_spec
-	// (2) pipeline version in resource_references
-	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
-	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	var tmpl template.Template
-	if wfTemplate == nil {
-		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a run with an empty pipeline spec manifest")
-		}
-		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
-		if manifest == "" {
-			manifest = string(tempBytes)
-		}
-		// Prevent creating runs with inconsistent manifests
-		if string(tempBytes) != manifest {
-			return nil, util.NewInvalidInputError("Failed to create a run due to mismatch in the provided manifest and pipeline version. You need to create a new parent pipeline version. Or submit a run with an empty pipeline spec manifest (or matching one with the parent pipeline version)")
-		}
-		tmpl, err = template.New(tempBytes)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a run with an invalid pipeline spec manifest")
-		}
-	} else {
-		tmpl = *wfTemplate
-	}
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Proposed flow:
 	// 1. Create an entry and assign creation timestamp and uuid.
@@ -456,7 +476,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec")
+		return nil, util.Wrap(err, "Failed to generate the ExecutionSpec")
 	}
 	err = executionSpec.Validate(false, false)
 	if err != nil {
@@ -473,6 +493,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return nil, util.NewUnavailableServerError(err, "Failed to create a workflow for (%s) - try again later", executionSpec.ExecutionName())
+		}
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
 	}
 	// Update the run with the new scheduled workflow
@@ -524,6 +547,9 @@ func (r *ResourceManager) ListRuns(filterContext *model.FilterContext, opts *lis
 
 // Archives a run with a given id.
 func (r *ResourceManager) ArchiveRun(runId string) error {
+	if _, err := r.GetRun(runId); err != nil {
+		return util.Wrapf(err, "Failed to archive run %v as it failed to be retrieved", runId)
+	}
 	if err := r.runStore.ArchiveRun(runId); err != nil {
 		return util.Wrapf(err, "Failed to archive run %v", runId)
 	}
@@ -617,7 +643,7 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunId)
 		}
 	}
-	if err := r.ValidateExperimentNamespace(run.ExperimentId, t.Namespace); err != nil {
+	if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
 	}
 
@@ -745,10 +771,10 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newExecSpec.SetVersion("")
 		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newExecSpec, v1.CreateOptions{})
 		if createError != nil {
-			return util.Wrap(
-				util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating the old workflow", runId),
-				util.NewInternalServerError(createError, "Failed to retry run %s due to error creating a new workflow", runId).Error(),
-			)
+			if createError, ok := createError.(net.Error); ok && createError.Timeout() {
+				return util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runId, updateError.Error())
+			}
+			return util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runId, updateError.Error())
 		}
 		newExecSpec = newCreatedWorkflow
 	}
@@ -849,254 +875,58 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 // 1. Pipeline version with the given pipeline version id
 // 2. The latest pipeline version with given pipeline id
 // 3. Repeats 1 and 2 for pipeline version id and pipeline id parsed from the pipeline name
-func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec model.PipelineSpec, displayName string, description string, namespace string) (*model.PipelineVersion, error) {
+func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec model.PipelineSpec) (*model.PipelineVersion, error) {
 	// Fetch or create a pipeline version
-	var pipelineVersion *model.PipelineVersion
 	if pipelineSpec.PipelineVersionId != "" {
-		pv, err := r.GetPipelineVersion(pipelineSpec.PipelineVersionId)
+		pipelineVersion, err := r.GetPipelineVersion(pipelineSpec.PipelineVersionId)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline version %v", pipelineSpec.PipelineVersionId)
 		}
-		pipelineVersion = pv
+		// Requests in v1beta1 may have empty pipeline ID. Therefore, we only catch
+		// v2beta1 calls to create a run or recurring run with inconsistent pipeline ID.
+		if pipelineVersion.PipelineId != "" && pipelineSpec.PipelineId != "" && pipelineVersion.PipelineId != pipelineSpec.PipelineId {
+			return nil, util.NewInvalidInputError("Pipeline version %v belongs to pipeline %v (not %v)", pipelineSpec.PipelineVersionId, pipelineVersion.PipelineId, pipelineSpec.PipelineId)
+		}
+		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineId != "" {
-		pv, err := r.GetLatestPipelineVersion(pipelineSpec.PipelineId)
+		pipelineVersion, err := r.GetLatestPipelineVersion(pipelineSpec.PipelineId)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v", pipelineSpec.PipelineId)
 		}
-		pipelineVersion = pv
+		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineName != "" {
 		resourceNames := common.ParseResourceIdsFromFullName(pipelineSpec.PipelineName)
 		if resourceNames["PipelineVersionId"] == "" && resourceNames["PipelineId"] == "" {
 			return nil, util.Wrapf(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to fetch a pipeline version and its manifest due to an empty pipeline spec source: %v", pipelineSpec.PipelineName)
 		}
 		if resourceNames["PipelineVersionId"] != "" {
-			pv, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
+			pipelineVersion, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline version %v exists", pipelineSpec.PipelineName, resourceNames["PipelineVersionId"])
 			}
-			pipelineVersion = pv
+			return pipelineVersion, nil
 		} else {
-			pv, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
+			pipelineVersion, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline %v exists", pipelineSpec.PipelineName, resourceNames["PipelineId"])
 			}
-			pipelineVersion = pv
-		}
-	} else {
-		return nil, nil
-	}
-	return pipelineVersion, nil
-}
-
-// Creates a pipeline and pipeline version with the following priority if does not exists.
-// Returns a pipeline version and a workflow template.
-//  1. Uses an existing pipeline version with the same name, namespace, and manifest (checks the last 10 pipeline version)
-//  2. Creates a new pipeline version under an existing pipeline with the same name, namespace
-//  3. Creates a new pipeline and a new pipeline version
-func (r ResourceManager) createPipelineFromSpecIfNoExisting(manifest string, namespace string, displayName string, description string) (*model.PipelineVersion, *template.Template, error) {
-	// Read manifest and extract name and IDs
-	tmpl, err := template.New([]byte(manifest))
-	if err != nil {
-		return nil, nil, err
-	}
-	wfName := tmpl.V2PipelineName()
-	resourceNames := common.ParseResourceIdsFromFullName(wfName)
-	pipelineVersionId := resourceNames["PipelineVersionId"]
-	pipelineId := resourceNames["PipelineId"]
-	pipelineName := ""
-	if pipelineId == "" && pipelineVersionId == "" {
-		pipelineName = wfName
-	}
-	if pipelineName == "" && displayName != "" {
-		pipelineName = displayName
-	}
-
-	fetchingError := ""
-	// Quickly return if a pipeline version exists
-	if pipelineVersionId != "" {
-		pv, err := r.GetPipelineVersion(pipelineVersionId)
-		if err != nil {
-			fetchingError = fmt.Sprintf("%v: Failed to fetch a pipeline version with id %v: %v", fetchingError, pipelineVersionId, err.Error())
-		} else {
-			return pv, &tmpl, nil
+			return pipelineVersion, nil
 		}
 	}
-	// Try fetching an existing pipeline by ID
-	var existingPipeline *model.Pipeline
-	var newPipeline *model.Pipeline
-	if pipelineId != "" {
-		existingPipeline, err = r.GetPipeline(pipelineId)
-		if err != nil {
-			fetchingError = fmt.Sprintf("%v: Failed to fetch a pipeline with id %v: %v", fetchingError, pipelineId, err.Error())
-		}
-	}
-	// Try fetching an existing pipeline by name and namespace
-	if pipelineName != "" {
-		existingPipeline, err = r.GetPipelineByNameAndNamespace(pipelineName, namespace)
-		if err != nil {
-			fetchingError = fmt.Sprintf("%v: Failed to fetch a pipeline with name %v and namespace %v: %v", fetchingError, pipelineName, namespace, err.Error())
-			if pipelineName != displayName && displayName != "" {
-				existingPipeline, err = r.GetPipelineByNameAndNamespace(displayName, namespace)
-				if err != nil {
-					fetchingError = fmt.Sprintf("%v: Failed to fetch a pipeline with name %v and namespace %v: %v", fetchingError, displayName, namespace, err.Error())
-				}
-			}
-		}
-	}
-	// Create a new pipeline if not found
-	if existingPipeline == nil {
-		newPipeline = &model.Pipeline{
-			Name:        pipelineName,
-			Description: description,
-			Namespace:   namespace,
-		}
-		newPipeline, err = r.CreatePipeline(newPipeline)
-		if err != nil {
-			return nil, nil, util.Wrap(util.Wrap(err, fetchingError), "Failed to fetch a pipeline version and its manifest due to error creating a new pipeline")
-		}
-	}
-	// Try fetching existing pipeline versions
-	var pipelineVersion *model.PipelineVersion
-	if existingPipeline != nil {
-		opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "created_at DESC", nil)
-		if err != nil {
-			fetchingError = fmt.Sprintf("%v: Failed to prepare pipeline version listing request: %v", fetchingError, err.Error())
-		}
-		existingVersions, _, _, err := r.ListPipelineVersions(existingPipeline.UUID, opts)
-		if err != nil {
-			fetchingError = fmt.Sprintf("%v: Failed to list pipeline versions for pipeline %v: %v", fetchingError, existingPipeline.UUID, err.Error())
-		}
-		for _, version := range existingVersions {
-			if version.PipelineSpec == manifest {
-				pipelineVersion = version
-				break
-			}
-		}
-	}
-	// Create a new pipeline version
-	if pipelineVersion == nil {
-		pId := ""
-		if existingPipeline != nil {
-			pId = existingPipeline.UUID
-		} else {
-			pId = newPipeline.UUID
-		}
-		pipelineVersion = &model.PipelineVersion{
-			PipelineId:   pId,
-			Name:         fmt.Sprintf("%v-%v", pipelineName, r.time.Now().Unix()),
-			PipelineSpec: manifest,
-			Description:  description,
-		}
-		pipelineVersion, err = r.CreatePipelineVersion(pipelineVersion)
-		if err != nil {
-			return nil, nil, util.Wrap(util.Wrap(err, fetchingError), "Failed to fetch a pipeline version and its manifest due to error creating a new pipeline version")
-		}
-	}
-	return pipelineVersion, &tmpl, nil
-}
-
-// Checks if experiment exists and whether it belongs to the specified namespace.
-// Returns a valid namespace/experiment combination.
-// If experiment id is missing, a default experiment id is assumed.
-// If the default experiment does not exist, creates it.
-// If namespace is empty, experiment's namespace is used.
-func (r ResourceManager) validateExperimentNamespace(namespace string, experimentId string) (string, string, error) {
-	if experimentId == "" {
-		defExpId, err := r.GetDefaultExperimentId()
-		if err != nil {
-			return "", "", util.Wrapf(err, "Failed to create a resource with empty experiment id. Specify experiment id for the run or check if the default experiment table exists")
-		}
-		// Create the default experiment if it is missing
-		if defExpId == "" {
-			defExpId, err = r.CreateDefaultExperiment()
-			if err != nil {
-				return "", "", util.Wrapf(err, "Failed to create a resource with empty experiment id due to error creating the default experiment")
-			}
-		}
-		experimentId = defExpId
-	}
-	// Validate namespace
-	if namespace == "" {
-		ns, err := r.GetNamespaceFromExperimentId(experimentId)
-		if err != nil {
-			return "", "", util.Wrapf(err, "Failed to create a resource due to error fetching namespace for experiment %v", experimentId)
-		}
-		namespace = ns
-	}
-	if common.IsMultiUserMode() {
-		if namespace == "" {
-			return "", "", util.NewInternalServerError(util.NewInvalidInputError("Resource cannot have an empty namespace in multi-user mode"), "Failed to create a resource")
-		}
-	}
-	if err := r.ValidateExperimentNamespace(experimentId, namespace); err != nil {
-		return "", "", util.Wrapf(err, "Failed to create a resource due to invalid namespace %v and experiment %v combination", namespace, experimentId)
-	}
-	return namespace, experimentId, nil
+	return nil, nil
 }
 
 // Creates a recurring run.
-// Note: when creating a recurring run from a manifest, this triggers creation of
-// a new pipeline and pipeline version that share the name, description, and namespace.
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	expNs, expId, err := r.validateExperimentNamespace(job.Namespace, job.ExperimentId)
+	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+	// Update the job.PipelineSpec if an existing pipeline version is used.
+	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run. Specify a valid experiment id and namespace combination")
+		return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 	}
-	job.ExperimentId = expId
-	job.Namespace = expNs
 
-	// Fetch pipeline version based on pipeline spec (do not create anything yet)
-	var wfTemplate *template.Template
-	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(job.PipelineSpec, job.DisplayName, job.Description, job.Namespace)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run. Specify a valid pipeline spec")
-	}
-	manifest := job.PipelineSpec.PipelineSpecManifest
-	if manifest == "" {
-		manifest = job.PipelineSpec.WorkflowSpecManifest
-	}
-	// If pipeline version does not exist, create it
-	if pipelineVersion == nil {
-		pipelineVersion, wfTemplate, err = r.createPipelineFromSpecIfNoExisting(manifest, job.Namespace, job.DisplayName, job.Description)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run due to error fetching pipeline version from pipeline spec")
-		}
-	}
-	job.PipelineSpec.PipelineId = pipelineVersion.PipelineId
-	job.PipelineSpec.PipelineVersionId = pipelineVersion.UUID
-	job.PipelineSpec.PipelineName = pipelineVersion.Name
-	if manifest == "" {
-		manifest = pipelineVersion.PipelineSpec
-	}
-	// Get manifest from either of the two places:
-	// (1) raw manifest in pipeline_spec
-	// (2) pipeline version in resource_references
-	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
-	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	var tmpl template.Template
-	// This should only happen when creating a run from an existing pipeline or pipeline version
-	if wfTemplate == nil {
-		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run with an empty pipeline spec manifest")
-		}
-		// If manifest is empty in the existing pipeline version (KFP 2.0.0-alpha.6 and prior to that)
-		if manifest == "" {
-			manifest = string(tempBytes)
-		}
-		// Prevent creating runs with inconsistent manifests
-		if string(tempBytes) != manifest {
-			return nil, util.NewInvalidInputError("Failed to create a recurring run due to mismatch in the provided manifest and pipeline version. You need to create a new parent pipeline version. Or submit a run with an empty pipeline spec manifest (or matching one with the parent pipeline version)")
-		}
-		tmpl, err = template.New(tempBytes)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
-		}
-	} else {
-		tmpl = *wfTemplate
-	}
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Convert modelJob into scheduledWorkflow.
 	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
@@ -1113,6 +943,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	}
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return nil, util.NewUnavailableServerError(err, "Failed to create a recurring run during scheduling a workflow - try again later")
+		}
 		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
 	}
 	// Complete modelJob with info coming back from ScheduledWorkflow client.
@@ -1333,11 +1166,9 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			namespace = execSpec.ExecutionNamespace()
 		}
 		// Scheduled time equals created time if it is not specified
-		var scheduledTimeInSec int64
-		if execSpec.ScheduledAtInSecOr0() == 0 {
+		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
+		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
-		} else {
-			scheduledTimeInSec = execSpec.ScheduledAtInSecOr0()
 		}
 		run = &model.Run{
 			UUID:           runId,
@@ -1415,53 +1246,41 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 	return r.jobStore.UpdateJob(swf)
 }
 
-// Fetches PipelineSpec's manifest as []byte array.
-// It attempts to fetch PipelineSpec manifest in the following order:
-//  1. Directly read from PipelineSpec's PipelineSpecManifest field.
-//  2. Directly read from PipelineSpec's WorkflowSpecManifest field.
-//  3. Fetch pipeline spec manifest from the pipeline version for PipelineSpec's PipelineVersionId field.
-//  4. Fetch pipeline spec manifest from the latest pipeline version for PipelineSpec's PipelineId field.
-func (r *ResourceManager) fetchTemplateFromPipelineSpec(p *model.PipelineSpec) ([]byte, error) {
-	if p == nil {
-		return nil, util.NewInvalidInputError("Failed to read pipeline spec manifest from nil")
-	}
-	if len(p.PipelineSpecManifest) != 0 {
-		return []byte(p.PipelineSpecManifest), nil
-	}
-	if len(p.WorkflowSpecManifest) != 0 {
-		return []byte(p.WorkflowSpecManifest), nil
-	}
-	var errPv, errP error
-	if p.PipelineVersionId != "" {
-		pv, errPv1 := r.GetPipelineVersion(p.PipelineVersionId)
-		if errPv1 == nil {
-			bytes, _, errPv2 := r.fetchTemplateFromPipelineVersion(pv)
-			if errPv2 == nil {
-				return bytes, nil
-			} else {
-				errPv = errPv2
-			}
-		} else {
-			errPv = errPv1
+// Returns a workflow template based on the manifest in the following priority:
+// 1. Pipeline spec manifest from an existing pipeline version,
+// 2. Pipeline spec manifest or workflow spec manifest provided by a user.
+// If an existing pipeline version is found, the referenced pipeline and pipeline version are updated.
+func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.PipelineSpec) (template.Template, string, error) {
+	manifest := ""
+	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(*pipelineSpec)
+	if err != nil {
+		return nil, "", util.Wrapf(err, "Failed to fetch a template due to error retrieving pipeline version")
+	} else if pipelineVersion != nil {
+		// Update references to the existing pipeline version
+		pipelineSpec.PipelineId = pipelineVersion.PipelineId
+		pipelineSpec.PipelineVersionId = pipelineVersion.UUID
+		pipelineSpec.PipelineName = pipelineVersion.Name
+		// Fetch the template from PipelineSpec field or the corresponding YAML file
+		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
+		if err != nil {
+			return nil, "", util.Wrapf(err, "Failed to fetch a template due invalid manifest in pipeline version %v", pipelineSpec.PipelineVersionId)
+		}
+		manifest = string(tempBytes)
+	} else {
+		// Read the provided manifest and fail if it is empty
+		manifest = pipelineSpec.PipelineSpecManifest
+		if manifest == "" {
+			manifest = pipelineSpec.WorkflowSpecManifest
+		}
+		if manifest == "" {
+			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
-	if p.PipelineId != "" {
-		pv, errP1 := r.GetLatestPipelineVersion(p.PipelineId)
-		if errP1 == nil {
-			bytes, _, errP2 := r.fetchTemplateFromPipelineVersion(pv)
-			if errP2 == nil {
-				return bytes, nil
-			} else {
-				errP = errP2
-			}
-		} else {
-			errP = errP1
-		}
+	tmpl, err := template.New([]byte(manifest))
+	if err != nil {
+		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
-	return nil, util.Wrap(
-		util.Wrapf(errPv, "Failed to read pipeline spec for pipeline version id %v", p.PipelineVersionId),
-		util.Wrapf(errP, "Failed to read pipeline spec for pipeline id %v", p.PipelineId).Error(),
-	)
+	return tmpl, manifest, nil
 }
 
 // Fetches PipelineSpec as []byte array and a new URI of PipelineSpec.
@@ -1503,7 +1322,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 }
 
 // Creates the default experiment entry.
-func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
+func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, error) {
 	// First check that we don't already have a default experiment ID in the DB.
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
@@ -1515,15 +1334,14 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 		return defaultExperimentId, nil
 	}
 
-	// TODO(gkcalat): consider moving the default namespace and experiment to server config.
-	// Check if an experiment named Default exists
-	defaultExperiment, err := r.experimentStore.GetExperimentByName("Default")
+	// Check if an experiment named Default already exists
+	defaultExperiment, err := r.experimentStore.GetExperimentByNameNamespace("Default", namespace)
 	if err != nil || defaultExperiment == nil {
-		// Create default experiment
+		// Create the default experiment
 		defaultExperiment = &model.Experiment{
 			Name:         "Default",
 			Description:  "All runs created without specifying an experiment will be grouped here.",
-			Namespace:    r.GetDefaultNamespace(),
+			Namespace:    namespace,
 			StorageState: model.StorageStateAvailable,
 		}
 		defaultExperiment, err = r.CreateExperiment(defaultExperiment)
@@ -1621,13 +1439,23 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}
+	// Validate pipeline's name in:
+	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
+	// 2. display name must be non-empty
+	pipelineSpecName := ""
 	if tmpl.IsV2() {
-		pipeline, err := r.GetPipeline(pipelineId)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a pipeline version as parent pipeline was not found")
+		pipelineSpecName = tmpl.V2PipelineName()
+		if err := common.ValidatePipelineName(pipelineSpecName); err != nil {
+			return nil, err
 		}
-		tmpl.OverrideV2PipelineName(pipeline.Name, pipeline.Namespace)
 	}
+	if pv.Name == "" {
+		if pipelineSpecName == "" {
+			return nil, util.NewInvalidInputError("pipeline version's name cannot be empty")
+		}
+		pv.Name = pipelineSpecName
+	}
+	// Parse parameters
 	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to error converting parameters to json")
@@ -1839,14 +1667,25 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 		v1.CreateOptions{},
 	)
 	if err != nil {
-		err = util.NewInternalServerError(
-			err,
-			"Failed to create SubjectAccessReview for user '%s' (request: %+v)",
-			userIdentity,
-			resourceAttributes,
-		)
-		glog.Info(err.Error())
-		return err
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			reportErr := util.NewUnavailableServerError(
+				err,
+				"Failed to create SubjectAccessReview for user '%s' (request: %+v) - try again later",
+				userIdentity,
+				resourceAttributes,
+			)
+			glog.Info(reportErr.Error())
+			return reportErr
+		} else {
+			reportErr := util.NewInternalServerError(
+				err,
+				"Failed to create SubjectAccessReview for user '%s' (request: %+v)",
+				userIdentity,
+				resourceAttributes,
+			)
+			glog.Info(reportErr.Error())
+			return reportErr
+		}
 	}
 	if !result.Status.Allowed {
 		err := util.NewPermissionDeniedError(
@@ -1867,7 +1706,7 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 // Fetches namespace that an experiment belongs to.
 func (r *ResourceManager) GetNamespaceFromExperimentId(experimentId string) (string, error) {
 	if experimentId == "" {
-		return r.GetDefaultNamespace(), nil
+		return "", nil
 	}
 	experiment, err := r.GetExperiment(experimentId)
 	if err != nil {
@@ -1884,7 +1723,7 @@ func (r *ResourceManager) GetNamespaceFromExperimentId(experimentId string) (str
 			}
 			experiment.Namespace = namespaceRef.ReferenceUUID
 		} else {
-			experiment.Namespace = r.GetDefaultNamespace()
+			experiment.Namespace = ""
 		}
 	}
 	return experiment.Namespace, nil
@@ -1921,17 +1760,9 @@ func (r *ResourceManager) FetchNamespaceFromPipelineVersionId(versionId string) 
 	return r.FetchNamespaceFromPipelineId(pipelineVersion.PipelineId)
 }
 
-// Fetches the default namespace for resources.
-func (r *ResourceManager) GetDefaultNamespace() string {
-	return r.defaultNamespace
-}
-
-// Checks if the namespace is empty or equal to one of {`-`, `POD_NAMESPACE`, or the default value}.
-func (r *ResourceManager) IsDefaultNamespace(namespace string) bool {
+// Checks if the namespace is empty or equal to `-`.
+func (r *ResourceManager) IsEmptyNamespace(namespace string) bool {
 	if namespace == "" || namespace == model.NoNamespace {
-		return true
-	}
-	if namespace == r.GetDefaultNamespace() {
 		return true
 	}
 	return false
@@ -1942,13 +1773,17 @@ func (r *ResourceManager) ReplaceNamespace(namespace string) string {
 	if common.IsMultiUserMode() {
 		return namespace
 	} else {
-		return r.GetDefaultNamespace()
+		return ""
 	}
 }
 
 // Validates that the provided experiment belongs to the namespace. Returns error otherwise.
-func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, namespace string) error {
-	if experimentId == "" || r.IsDefaultNamespace(namespace) {
+// Returns an error in multi-user mode when experimentId and namespace are both empty.
+func (r *ResourceManager) CheckExperimentBelongsToNamespace(experimentId string, namespace string) error {
+	if experimentId == "" || r.IsEmptyNamespace(namespace) {
+		if common.IsMultiUserMode() {
+			return util.NewInvalidInputError("Resource cannot have an empty namespace and experiment id in multi-user mode")
+		}
 		return nil
 	}
 	experimentNamespace, err := r.GetNamespaceFromExperimentId(experimentId)
@@ -1956,9 +1791,46 @@ func (r *ResourceManager) ValidateExperimentNamespace(experimentId string, names
 		return util.Wrapf(err, "Failed to validate the namespace of experiment %s", experimentId)
 	}
 	if experimentNamespace != "" && experimentNamespace != namespace {
-		return util.NewInternalServerError(util.NewInvalidInputError("Experiment %s belongs to namespace '%s' (claimed a different namespace '%s')", experimentId, experimentNamespace, namespace), "Failed to validate the namespace of experiment %s", experimentId)
+		return util.NewInvalidInputError("Failed to validate the namespace of experiment: experiment %s belongs to namespace '%s' (claimed a different namespace '%s')",
+			experimentId, experimentNamespace, namespace)
 	}
 	return nil
+}
+
+// Validates the provided experimentId and namespace. Returns valid values if the provided ones are empty.
+// For multi-user more at least one of the input must be non-empty, otherwise, returns an error.
+//  1. Validates that given experimentId belongs to namespace if both are not empty
+//  2. If experimentId is empty, replaces it with the default experimentId from the given namespace.
+//     Creates the default experiment in the given namespace (could be empty in single-user mode) if it is missing.
+//  3. Replaces empty namespace with the parent namespace of the given experimentId.
+func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, namespace string) (string, string, error) {
+	if common.IsMultiUserMode() && experimentId == "" {
+		return "", "", util.NewInvalidInputError("Experiment id can not be empty in multi-user mode")
+	}
+	if experimentId != "" {
+		ns, err := r.GetNamespaceFromExperimentId(experimentId)
+		if err != nil {
+			return "", "", util.Wrapf(err, "Failed to fetch namespace for experiment %v", experimentId)
+		}
+		if namespace != "" && namespace != ns {
+			return "", "", util.NewInvalidInputError("Experiment %v belongs to namespace '%v' instead of '%v'", experimentId, ns, namespace)
+		}
+		namespace = ns
+	} else {
+		defExpId, err := r.GetDefaultExperimentId()
+		if err != nil {
+			return "", "", util.Wrapf(err, "Specify experiment id or check if the default experiment exists in namespace %v", namespace)
+		}
+		// Create the default experiment if it is missing
+		if defExpId == "" {
+			defExpId, err = r.CreateDefaultExperiment(namespace)
+			if err != nil {
+				return "", "", util.Wrapf(err, "Experiment id is empty. Failed to create a new default experiment in namespace %v", namespace)
+			}
+		}
+		experimentId = defExpId
+	}
+	return experimentId, namespace, nil
 }
 
 // Fetches a task entry.
@@ -1968,13 +1840,4 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
-}
-
-// Fetches run metric entries for a given run id.
-func (r *ResourceManager) GetRunMetrics(runId string) ([]*model.RunMetric, error) {
-	metrics, err := r.runStore.GetMetrics(runId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to fetch run metrics for run %s", runId)
-	}
-	return metrics, nil
 }

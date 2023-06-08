@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Pin to a specific version of invert proxy agent
-FROM gcr.io/inverting-proxy/agent@sha256:c875588c1be53b1bc0c7183653347acf7887ab32a299a2e9b292bd6188a4e26b
+FROM gcr.io/inverting-proxy/agent@sha256:694d6c1bf299585b530c923c3728cd2c45083f3b396ec83ff799cef1c9dc7474
 
 # We need --allow-releaseinfo-change, because of https://github.com/kubeflow/pipelines/issues/6311#issuecomment-899224137.
 RUN apt update --allow-releaseinfo-change && apt-get install -y curl jq python3-pip
