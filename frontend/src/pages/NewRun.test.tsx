@@ -669,6 +669,32 @@ describe('NewRun', () => {
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
       await TestUtils.flushPromises();
     });
+
+    it('enables choose button for pipeline version after clicking cancel in selector', async () => {
+      tree = shallow(<TestNewRun {...generateProps()} />);
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${
+        QUERY_PARAMS.pipelineVersionId
+      }=${MOCK_PIPELINE.default_version!.id}`;
+      render(<NewRun {...props} />);
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // Choose button is enabled in the beginning
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
+
+      const choosePipelineBtn = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineBtn); // Open pipeline selector
+
+      const cancelBtn = screen.getAllByText('Cancel')[0];
+      fireEvent.click(cancelBtn);
+
+      // Choose button is still enabled after clicking Cancel in selector
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
+    });
   });
 
   describe('choosing a pipeline version', () => {
