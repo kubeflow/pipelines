@@ -99,7 +99,9 @@ def prophet_trainer(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',
@@ -127,15 +129,15 @@ def prophet_trainer(
                   '"machine_spec": {"machine_type": "n1-standard-4"}, ',
                   (
                       '"container_spec":'
-                      ' {"image_uri":"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", '
+                      ' {"image_uri":"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", '
                   ),
                   '"args": ["prophet_trainer", "',
                   f'--job_name={dsl.PIPELINE_JOB_NAME_PLACEHOLDER}", "',
                   (
-                      '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325", "'
+                      '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125", "'
                   ),
                   (
-                      '--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230424_1325", "'
+                      '--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230605_0125", "'
                   ),
                   '--artifacts_dir=',
                   root_dir,

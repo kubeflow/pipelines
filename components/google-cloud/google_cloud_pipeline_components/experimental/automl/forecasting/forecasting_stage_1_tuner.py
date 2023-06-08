@@ -78,7 +78,9 @@ def automl_forecasting_stage_1_tuner(
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',
@@ -108,14 +110,14 @@ def automl_forecasting_stage_1_tuner(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230605_0125',
                   '", "args": ["forecasting_mp_l2l_stage_1_tuner',
                   '", "--region=',
                   location,
                   '", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230605_0125',
                   '", "--reduce_search_space_mode=',
                   reduce_search_space_mode,
                   f'", "--component_id={dsl.PIPELINE_TASK_ID_PLACEHOLDER}',

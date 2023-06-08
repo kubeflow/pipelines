@@ -1,3 +1,5 @@
+"""AutoML Stats and Example Generation component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,21 +72,21 @@ def tabular_stats_and_example_gen(
   """Statistics and example gen for tabular data.
 
   Args:
-      project: Project to run dataset statistics and example
+      project (str): Required. Project to run dataset statistics and example
         generation.
-      location: Location for running dataset statistics and example
+      location (str): Location for running dataset statistics and example
         generation.
-      root_dir: The Cloud Storage location to store the output.
-      target_column_name: The target column name.
-      weight_column_name: The weight column name.
-      prediction_type: The prediction type. Supported values:
+      root_dir (str): The Cloud Storage location to store the output.
+      target_column_name (str): The target column name.
+      weight_column_name (str): The weight column name.
+      prediction_type (str): The prediction type. Supported values:
         "classification", "regression".
-      optimization_objective: Objective function the model is optimizing
+      optimization_objective (str): Objective function the model is optimizing
         towards. The training process creates a model that maximizes/minimizes
         the value of the objective function over the validation set. The
         supported optimization objectives depend on the prediction type. If the
         field is not set, a default objective function is used.
-          classification: "maximize-au-roc" (default) - Maximize the
+          classification (binary): "maximize-au-roc" (default) - Maximize the
             area under the receiver operating characteristic (ROC) curve.
             "minimize-log-loss" - Minimize log loss. "maximize-au-prc" -
             Maximize the area under the precision-recall curve.
@@ -96,54 +98,67 @@ def tabular_stats_and_example_gen(
           regression: "minimize-rmse" (default) - Minimize root-mean-squared
             error (RMSE). "minimize-mae" - Minimize mean-absolute error (MAE).
             "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
-      optimization_objective_recall_value: Required when
+      optimization_objective_recall_value (str): Required when
         optimization_objective is "maximize-precision-at-recall". Must be
         between 0 and 1, inclusive.
-      optimization_objective_precision_value: Required when
+      optimization_objective_precision_value (str): Required when
         optimization_objective is "maximize-recall-at-precision". Must be
         between 0 and 1, inclusive.
-      transformations: Quote escaped JSON string for transformations. Each
+      transformations (str): Quote escaped JSON string for transformations. Each
         transformation will apply transform function to given input column. And
         the result will be used for training. When creating transformation for
         BigQuery Struct column, the column should be flattened using "." as the
         delimiter.
-      transformations_path: Path to a GCS file containing JSON
+      transformations_path (Optional[str]): Path to a GCS file containing JSON
         string for transformations.
-      dataflow_machine_type: The machine type used for dataflow
+      dataflow_machine_type (Optional[str]): The machine type used for dataflow
         jobs. If not set, default to n1-standard-16.
-      dataflow_max_num_workers: The number of workers to run the
+      dataflow_max_num_workers (Optional[int]): The number of workers to run the
         dataflow job. If not set, default to 25.
-      dataflow_disk_size_gb: The disk size, in gigabytes, to use
+      dataflow_disk_size_gb (Optional[int]): The disk size, in gigabytes, to use
         on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork
+      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More
         details:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips: Specifies whether Dataflow
+          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
         workers use public IP addresses.
-      dataflow_service_account: Custom service account to run
+      dataflow_service_account (Optional[str]): Custom service account to run
         dataflow jobs.
-      encryption_spec_key_name: Customer-managed encryption key.
-      run_distillation: True if in distillation mode. The default value
+      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+      run_distillation (bool): True if in distillation mode. The default value
         is false.
 
   Returns:
-      dataset_schema: The schema of the dataset.
-      dataset_stats: The stats of the dataset.
-      train_split: The train split.
-      eval_split: The eval split.
-      test_split: The test split.
-      test_split_json: The test split JSON object.
-      downsampled_test_split_json: The downsampled test split JSON object.
-      instance_baseline: The instance baseline used to calculate explanations.
-      metadata: The tabular example gen metadata.
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
+      dataset_schema (DatasetSchema):
+          The schema of the dataset.
+      dataset_stats (AutoMLTabularDatasetStats):
+          The stats of the dataset.
+      train_split (Dataset):
+          The train split.
+      eval_split (Dataset):
+          The eval split.
+      test_split (Dataset):
+          The test split.
+      test_split_json (JsonObject):
+          The test split JSON object.
+      downsampled_test_split_json (JsonObject):
+          The downsampled test split JSON object.
+      instance_baseline (AutoMLTabularInstanceBaseline):
+          The instance baseline used to calculate explanations.
+      metadata (TabularExampleGenMetadata):
+          The tabular example gen metadata.
+      gcp_resources (str):
+          GCP resources created by this component.
+          For more details, see
+          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',
@@ -173,7 +188,7 @@ def tabular_stats_and_example_gen(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125',
                   '", "args": ["stats_generator",',
                   '"--train_spec={\\"prediction_type\\": \\"',
                   prediction_type,
@@ -252,7 +267,7 @@ def tabular_stats_and_example_gen(
                   ),
                   dataflow_max_num_workers,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125',
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_disk_size_gb=',

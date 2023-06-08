@@ -1,6 +1,6 @@
 # PIPELINE DEFINITION
-# Name: time-series-dense-encoder-forecasting
-# Description: The Timeseries Dense Encoder (TiDE) Forecasting pipeline.
+# Name: temporal-fusion-transformer-forecasting
+# Description: The Temporal Fusion Transformer (TFT) Forecasting pipeline.
 # Inputs:
 #    available_at_forecast_columns: list
 #    context_window: int [Default: 0.0]
@@ -9,7 +9,6 @@
 #    dataflow_service_account: str [Default: '']
 #    dataflow_subnetwork: str [Default: '']
 #    dataflow_use_public_ips: bool [Default: True]
-#    enable_probabilistic_inference: bool [Default: False]
 #    encryption_spec_key_name: str [Default: '']
 #    evaluated_examples_bigquery_path: str [Default: '']
 #    evaluation_batch_explain_machine_type: str [Default: 'n1-highmem-8']
@@ -34,11 +33,9 @@
 #    location: str
 #    model_description: str [Default: '']
 #    model_display_name: str [Default: 'automl-forecasting-model-upload-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}']
-#    num_selected_trials: int [Default: 10.0]
 #    optimization_objective: str
 #    predefined_split_key: str [Default: '']
 #    project: str
-#    quantiles: list
 #    root_dir: str
 #    run_evaluation: bool [Default: False]
 #    stage_1_num_parallel_trials: int [Default: 35.0]
@@ -628,7 +625,8 @@ components:
               num_parallel_trials:
                 componentInputParameter: pipelinechannel--stage_2_num_parallel_trials
               num_selected_trials:
-                componentInputParameter: pipelinechannel--num_selected_trials
+                runtimeValue:
+                  constant: 1.0
               project:
                 componentInputParameter: pipelinechannel--project
               root_dir:
@@ -654,7 +652,8 @@ components:
                 runtimeValue:
                   constant: 1.0
               selected_trials:
-                componentInputParameter: pipelinechannel--num_selected_trials
+                runtimeValue:
+                  constant: 1.0
               stage_1_num_parallel_trials:
                 componentInputParameter: pipelinechannel--stage_1_num_parallel_trials
               stage_2_num_parallel_trials:
@@ -726,8 +725,6 @@ components:
                 componentInputParameter: pipelinechannel--location
               pipelinechannel--project:
                 componentInputParameter: pipelinechannel--project
-              pipelinechannel--quantiles:
-                componentInputParameter: pipelinechannel--quantiles
               pipelinechannel--root_dir:
                 componentInputParameter: pipelinechannel--root_dir
               pipelinechannel--run_evaluation:
@@ -765,7 +762,7 @@ components:
             parameters:
               model_type:
                 runtimeValue:
-                  constant: tide
+                  constant: tft
           taskInfo:
             name: get-prediction-image-uri
         importer:
@@ -885,12 +882,8 @@ components:
           parameterType: STRING
         pipelinechannel--model_display_name:
           parameterType: STRING
-        pipelinechannel--num_selected_trials:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--project:
           parameterType: STRING
-        pipelinechannel--quantiles:
-          parameterType: LIST
         pipelinechannel--root_dir:
           parameterType: STRING
         pipelinechannel--run_evaluation:
@@ -973,7 +966,8 @@ components:
           inputs:
             parameters:
               quantiles:
-                componentInputParameter: pipelinechannel--quantiles
+                runtimeValue:
+                  constant: []
           taskInfo:
             name: finalize-eval-quantile-parameters
         get-predictions-column:
@@ -1254,8 +1248,6 @@ components:
           parameterType: STRING
         pipelinechannel--project:
           parameterType: STRING
-        pipelinechannel--quantiles:
-          parameterType: LIST
         pipelinechannel--root_dir:
           parameterType: STRING
         pipelinechannel--run_evaluation:
@@ -1345,7 +1337,8 @@ components:
               num_parallel_trials:
                 componentInputParameter: pipelinechannel--stage_1_num_parallel_trials
               num_selected_trials:
-                componentInputParameter: pipelinechannel--num_selected_trials
+                runtimeValue:
+                  constant: 1.0
               project:
                 componentInputParameter: pipelinechannel--project
               root_dir:
@@ -1373,7 +1366,8 @@ components:
                 runtimeValue:
                   constant: 0.0
               selected_trials:
-                componentInputParameter: pipelinechannel--num_selected_trials
+                runtimeValue:
+                  constant: 1.0
               stage_1_num_parallel_trials:
                 componentInputParameter: pipelinechannel--stage_1_num_parallel_trials
               stage_2_num_parallel_trials:
@@ -1445,8 +1439,6 @@ components:
                 componentInputParameter: pipelinechannel--location
               pipelinechannel--project:
                 componentInputParameter: pipelinechannel--project
-              pipelinechannel--quantiles:
-                componentInputParameter: pipelinechannel--quantiles
               pipelinechannel--root_dir:
                 componentInputParameter: pipelinechannel--root_dir
               pipelinechannel--run_evaluation:
@@ -1484,7 +1476,7 @@ components:
             parameters:
               model_type:
                 runtimeValue:
-                  constant: tide
+                  constant: tft
           taskInfo:
             name: get-prediction-image-uri-2
         model-upload-2:
@@ -1593,12 +1585,8 @@ components:
           parameterType: STRING
         pipelinechannel--model_display_name:
           parameterType: STRING
-        pipelinechannel--num_selected_trials:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--project:
           parameterType: STRING
-        pipelinechannel--quantiles:
-          parameterType: LIST
         pipelinechannel--root_dir:
           parameterType: STRING
         pipelinechannel--run_evaluation:
@@ -1681,7 +1669,8 @@ components:
           inputs:
             parameters:
               quantiles:
-                componentInputParameter: pipelinechannel--quantiles
+                runtimeValue:
+                  constant: []
           taskInfo:
             name: finalize-eval-quantile-parameters-2
         get-predictions-column-2:
@@ -1962,8 +1951,6 @@ components:
           parameterType: STRING
         pipelinechannel--project:
           parameterType: STRING
-        pipelinechannel--quantiles:
-          parameterType: LIST
         pipelinechannel--root_dir:
           parameterType: STRING
         pipelinechannel--run_evaluation:
@@ -2072,12 +2059,8 @@ components:
                 componentInputParameter: pipelinechannel--model_description
               pipelinechannel--model_display_name:
                 componentInputParameter: pipelinechannel--model_display_name
-              pipelinechannel--num_selected_trials:
-                componentInputParameter: pipelinechannel--num_selected_trials
               pipelinechannel--project:
                 componentInputParameter: pipelinechannel--project
-              pipelinechannel--quantiles:
-                componentInputParameter: pipelinechannel--quantiles
               pipelinechannel--root_dir:
                 componentInputParameter: pipelinechannel--root_dir
               pipelinechannel--run_evaluation:
@@ -2184,12 +2167,8 @@ components:
                 componentInputParameter: pipelinechannel--model_description
               pipelinechannel--model_display_name:
                 componentInputParameter: pipelinechannel--model_display_name
-              pipelinechannel--num_selected_trials:
-                componentInputParameter: pipelinechannel--num_selected_trials
               pipelinechannel--project:
                 componentInputParameter: pipelinechannel--project
-              pipelinechannel--quantiles:
-                componentInputParameter: pipelinechannel--quantiles
               pipelinechannel--root_dir:
                 componentInputParameter: pipelinechannel--root_dir
               pipelinechannel--run_evaluation:
@@ -2272,7 +2251,7 @@ components:
                 componentInputParameter: pipelinechannel--location
               model_type:
                 runtimeValue:
-                  constant: tide
+                  constant: tft
               predefined_split_key:
                 componentInputParameter: pipelinechannel--predefined_split_key
               prediction_type:
@@ -2353,12 +2332,13 @@ components:
               context_window:
                 componentInputParameter: pipelinechannel--context_window
               enable_probabilistic_inference:
-                componentInputParameter: pipelinechannel--enable_probabilistic_inference
+                runtimeValue:
+                  constant: 0.0
               forecast_horizon:
                 componentInputParameter: pipelinechannel--forecast_horizon
               forecasting_model_type:
                 runtimeValue:
-                  constant: tide
+                  constant: tft
               forecasting_transformations:
                 componentInputParameter: pipelinechannel--transformations
               group_columns:
@@ -2373,7 +2353,8 @@ components:
                 runtimeValue:
                   constant: time_series
               quantiles:
-                componentInputParameter: pipelinechannel--quantiles
+                runtimeValue:
+                  constant: []
               split_example_counts:
                 taskOutputParameter:
                   outputParameterKey: split_example_counts
@@ -2405,8 +2386,6 @@ components:
         pipelinechannel--dataflow_subnetwork:
           parameterType: STRING
         pipelinechannel--dataflow_use_public_ips:
-          parameterType: BOOLEAN
-        pipelinechannel--enable_probabilistic_inference:
           parameterType: BOOLEAN
         pipelinechannel--encryption_spec_key_name:
           parameterType: STRING
@@ -2456,16 +2435,12 @@ components:
           parameterType: STRING
         pipelinechannel--model_display_name:
           parameterType: STRING
-        pipelinechannel--num_selected_trials:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--optimization_objective:
           parameterType: STRING
         pipelinechannel--predefined_split_key:
           parameterType: STRING
         pipelinechannel--project:
           parameterType: STRING
-        pipelinechannel--quantiles:
-          parameterType: LIST
         pipelinechannel--root_dir:
           parameterType: STRING
         pipelinechannel--run_evaluation:
@@ -6459,8 +6434,8 @@ deploymentSpec:
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230605_0125
 pipelineInfo:
-  description: The Timeseries Dense Encoder (TiDE) Forecasting pipeline.
-  name: time-series-dense-encoder-forecasting
+  description: The Temporal Fusion Transformer (TFT) Forecasting pipeline.
+  name: temporal-fusion-transformer-forecasting
 root:
   dag:
     outputs:
@@ -6510,8 +6485,6 @@ root:
               componentInputParameter: dataflow_subnetwork
             pipelinechannel--dataflow_use_public_ips:
               componentInputParameter: dataflow_use_public_ips
-            pipelinechannel--enable_probabilistic_inference:
-              componentInputParameter: enable_probabilistic_inference
             pipelinechannel--encryption_spec_key_name:
               componentInputParameter: encryption_spec_key_name
             pipelinechannel--evaluated_examples_bigquery_path:
@@ -6560,16 +6533,12 @@ root:
               componentInputParameter: model_description
             pipelinechannel--model_display_name:
               componentInputParameter: model_display_name
-            pipelinechannel--num_selected_trials:
-              componentInputParameter: num_selected_trials
             pipelinechannel--optimization_objective:
               componentInputParameter: optimization_objective
             pipelinechannel--predefined_split_key:
               componentInputParameter: predefined_split_key
             pipelinechannel--project:
               componentInputParameter: project
-            pipelinechannel--quantiles:
-              componentInputParameter: quantiles
             pipelinechannel--root_dir:
               componentInputParameter: root_dir
             pipelinechannel--run_evaluation:
@@ -6696,17 +6665,6 @@ root:
       dataflow_use_public_ips:
         defaultValue: true
         description: '`True` to enable dataflow public IPs.'
-        isOptional: true
-        parameterType: BOOLEAN
-      enable_probabilistic_inference:
-        defaultValue: false
-        description: 'If probabilistic inference is enabled, the
-
-          model will fit a distribution that captures the uncertainty of a
-
-          prediction. If quantiles are specified, then the quantiles of the
-
-          distribution are also returned.'
         isOptional: true
         parameterType: BOOLEAN
       encryption_spec_key_name:
@@ -6862,11 +6820,6 @@ root:
         description: Optional display name for model.
         isOptional: true
         parameterType: STRING
-      num_selected_trials:
-        defaultValue: 10.0
-        description: Number of selected trails.
-        isOptional: true
-        parameterType: NUMBER_INTEGER
       optimization_objective:
         description: '"minimize-rmse", "minimize-mae", "minimize-rmsle",
 
@@ -6882,14 +6835,6 @@ root:
       project:
         description: The GCP project that runs the pipeline components.
         parameterType: STRING
-      quantiles:
-        description: 'Quantiles to use for probabilistic inference. Up to 5 quantiles
-
-          are allowed of values between 0 and 1, exclusive. Represents the quantiles
-
-          to use for that objective. Quantiles must be unique.'
-        isOptional: true
-        parameterType: LIST
       root_dir:
         description: The root GCS directory for the pipeline components.
         parameterType: STRING

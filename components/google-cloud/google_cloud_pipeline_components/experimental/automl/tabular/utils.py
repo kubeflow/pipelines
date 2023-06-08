@@ -5,6 +5,7 @@ import math
 import os
 import pathlib
 from typing import Any, Dict, List, Optional, Tuple, Union
+import uuid
 import warnings
 
 _DEFAULT_NUM_PARALLEL_TRAILS = 35
@@ -29,6 +30,15 @@ def _update_parameters(
   parameter_values.update(
       {param: value for param, value in new_params.items() if value is not None}
   )
+
+
+def _generate_model_display_name() -> str:
+  """Automatically generates a model_display_name.
+
+  Returns:
+    model_display_name.
+  """
+  return f'tabular-workflow-model-{uuid.uuid4()}'
 
 
 # TODO(b/277393122): Once we finish L2L+FTE integration, add use_fte flag
@@ -92,8 +102,9 @@ def _get_default_pipeline_params(
     quantiles: Optional[List[float]] = None,
     enable_probabilistic_inference: bool = False,
     num_selected_features: Optional[int] = None,
+    model_display_name: str = '',
+    model_description: str = '',
 ) -> Dict[str, Any]:
-  # fmt: off
   """Get the AutoML Tabular v1 default training pipeline.
 
   Args:
@@ -205,17 +216,20 @@ def _get_default_pipeline_params(
     num_selected_features: Number of selected features for feature selection,
       defaults to None, in which case all features are used. If specified,
       enable_probabilistic_inference and run_distillation cannot be enabled.
+    model_display_name: The display name of the uploaded Vertex model.
+    model_description: The description for the uploaded model.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   if not study_spec_parameters_override:
     study_spec_parameters_override = []
   if not stage_1_tuner_worker_pool_specs_override:
     stage_1_tuner_worker_pool_specs_override = []
   if not cv_trainer_worker_pool_specs_override:
     cv_trainer_worker_pool_specs_override = []
+  if not quantiles:
+    quantiles = []
 
   parameter_values = {}
   parameters = {
@@ -260,6 +274,10 @@ def _get_default_pipeline_params(
       'encryption_spec_key_name': encryption_spec_key_name,
       'max_selected_features': max_selected_features,
       'stage_1_tuning_result_artifact_uri': stage_1_tuning_result_artifact_uri,
+      'quantiles': quantiles,
+      'enable_probabilistic_inference': enable_probabilistic_inference,
+      'model_display_name': model_display_name,
+      'model_description': model_description,
   }
   parameter_values.update(
       {param: value for param, value in parameters.items() if value is not None}
@@ -307,8 +325,6 @@ def _get_default_pipeline_params(
   if num_selected_features is None:
     if not additional_experiments:
       additional_experiments = {}
-    if not quantiles:
-      quantiles = []
 
     parameters = {
         'transformations': transformations,
@@ -327,8 +343,6 @@ def _get_default_pipeline_params(
         ),
         'transform_dataflow_disk_size_gb': transform_dataflow_disk_size_gb,
         'additional_experiments': additional_experiments,
-        'quantiles': quantiles,
-        'enable_probabilistic_inference': enable_probabilistic_inference,
     }
     parameter_values.update(
         {
@@ -366,9 +380,9 @@ def _get_default_pipeline_params(
 
   # V2 pipeline (with FTE)
   else:
-    if run_distillation or enable_probabilistic_inference:
+    if run_distillation:
       raise ValueError(
-          'Distillation and probabilistic inference are currently not supported'
+          'Distillation is currently not supported'
           ' when num_selected_features is specified.'
       )
 
@@ -457,8 +471,9 @@ def get_automl_tabular_pipeline_and_parameters(
     quantiles: Optional[List[float]] = None,
     enable_probabilistic_inference: bool = False,
     num_selected_features: Optional[int] = None,
+    model_display_name: str = '',
+    model_description: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the AutoML Tabular v1 default training pipeline.
 
   Args:
@@ -567,11 +582,12 @@ def get_automl_tabular_pipeline_and_parameters(
       distribution are also returned.
     num_selected_features: Number of selected features for feature selection,
       defaults to None, in which case all features are used.
+    model_display_name: The display name of the uploaded Vertex model.
+    model_description: The description for the uploaded model.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   parameter_values = _get_default_pipeline_params(
       project=project,
       location=location,
@@ -629,6 +645,8 @@ def get_automl_tabular_pipeline_and_parameters(
       quantiles=quantiles,
       enable_probabilistic_inference=enable_probabilistic_inference,
       num_selected_features=num_selected_features,
+      model_display_name=model_display_name,
+      model_description=model_description,
   )
 
   # V1 pipeline without FTE
@@ -702,8 +720,9 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
     distill_batch_predict_machine_type: Optional[str] = None,
     distill_batch_predict_starting_replica_count: Optional[int] = None,
     distill_batch_predict_max_replica_count: Optional[int] = None,
+    model_display_name: str = '',
+    model_description: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the AutoML Tabular v1 default training pipeline.
 
   Args:
@@ -800,11 +819,18 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
       prediction server for batch predict component in the model distillation.
     distill_batch_predict_max_replica_count: The max number of prediction server
       for batch predict component in the model distillation.
+    model_display_name: The display name of the uploaded Vertex model.
+    model_description: The description for the uploaded model.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
+  model_display_name = (
+      model_display_name
+      if model_display_name
+      else _generate_model_display_name()
+  )
+
   parameter_values = _get_default_pipeline_params(
       project=project,
       location=location,
@@ -860,6 +886,8 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
       distill_batch_predict_machine_type=distill_batch_predict_machine_type,
       distill_batch_predict_starting_replica_count=distill_batch_predict_starting_replica_count,
       distill_batch_predict_max_replica_count=distill_batch_predict_max_replica_count,
+      model_display_name=model_display_name,
+      model_description=model_description,
   )
 
   pipeline_definition_path = os.path.join(
@@ -870,7 +898,6 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
 
 
 def input_dictionary_to_parameter(input_dict: Optional[Dict[str, Any]]) -> str:
-  # fmt: off
   """Convert json input dict to encoded parameter string.
 
   This function is required due to the limitation on YAML component definition
@@ -883,7 +910,6 @@ def input_dictionary_to_parameter(input_dict: Optional[Dict[str, Any]]) -> str:
   Returns:
     The encoded string used for parameter.
   """
-  # fmt: on
   if not input_dict:
     return ''
   out = json.dumps(json.dumps(input_dict))
@@ -922,7 +948,6 @@ def get_skip_evaluation_pipeline_and_parameters(
     encryption_spec_key_name: str = '',
     additional_experiments: Optional[Dict[str, Any]] = None,
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
   Args:
@@ -985,7 +1010,6 @@ def get_skip_evaluation_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   return get_default_pipeline_and_parameters(
       project=project,
       location=location,
@@ -1066,7 +1090,6 @@ def get_default_pipeline_and_parameters(
     distill_batch_predict_starting_replica_count: int = 25,
     distill_batch_predict_max_replica_count: int = 25,
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the AutoML Tabular default training pipeline.
 
   Args:
@@ -1150,7 +1173,6 @@ def get_default_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   warnings.warn(
       'This method is deprecated,'
       ' please use get_automl_tabular_pipeline_and_parameters instead.'
@@ -1333,7 +1355,6 @@ def get_feature_selection_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     dataflow_service_account: str = '',
 ):
-  # fmt: off
   """Get the feature selection pipeline that generates feature ranking and selected features.
 
   Args:
@@ -1364,7 +1385,7 @@ def get_feature_selection_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
-  # fmt: on
+
   parameter_values = {}
   data_source_parameters = {
       'project': project,
@@ -1447,7 +1468,6 @@ def get_skip_architecture_search_pipeline_and_parameters(
     evaluation_dataflow_max_num_workers: Optional[int] = None,
     evaluation_dataflow_disk_size_gb: Optional[int] = None,
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the AutoML Tabular training pipeline that skips architecture search.
 
   Args:
@@ -1533,7 +1553,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
+
   return get_automl_tabular_pipeline_and_parameters(
       project=project,
       location=location,
@@ -1628,7 +1648,6 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
     distill_batch_predict_starting_replica_count: int = 25,
     distill_batch_predict_max_replica_count: int = 25,
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the AutoML Tabular training pipeline that distill and skips evaluation.
 
   Args:
@@ -1697,7 +1716,6 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   warnings.warn(
       'Depreciated. Please use get_automl_tabular_pipeline_and_parameters.'
   )
@@ -1816,7 +1834,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the Wide & Deep training pipeline.
 
   Args:
@@ -1938,7 +1955,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
-  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -2137,7 +2153,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the built-in algorithm HyperparameterTuningJob pipeline.
 
   Args:
@@ -2232,7 +2247,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   warnings.warn(
       'This method is deprecated. Please use'
       ' get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters or'
@@ -2411,7 +2425,6 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the TabNet HyperparameterTuningJob pipeline.
 
   Args:
@@ -2511,7 +2524,6 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -2695,7 +2707,6 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the Wide & Deep algorithm HyperparameterTuningJob pipeline.
 
   Args:
@@ -2795,7 +2806,6 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -2996,7 +3006,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Get the TabNet training pipeline.
 
   Args:
@@ -3126,7 +3135,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -3269,7 +3277,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
 def get_tabnet_study_spec_parameters_override(
     dataset_size_bucket: str, prediction_type: str, training_budget_bucket: str
 ) -> List[Dict[str, Any]]:
-  # fmt: off
   """Get study_spec_parameters_override for a TabNet hyperparameter tuning job.
 
   Args:
@@ -3285,7 +3292,7 @@ def get_tabnet_study_spec_parameters_override(
   Returns:
     List of study_spec_parameters_override.
   """
-  # fmt: on
+
   if dataset_size_bucket not in ['small', 'medium', 'large']:
     raise ValueError(
         'Invalid dataset_size_bucket provided. Supported values '
@@ -3315,7 +3322,6 @@ def get_tabnet_study_spec_parameters_override(
 def _format_tabnet_regression_study_spec_parameters_override(
     params: List[Dict[str, Any]], training_budget_bucket: str
 ) -> List[Dict[str, Any]]:
-  # fmt: off
   """Get regression study_spec_parameters_override for a TabNet hyperparameter tuning job.
 
   Args:
@@ -3331,7 +3337,7 @@ def _format_tabnet_regression_study_spec_parameters_override(
   Returns:
     List of study_spec_parameters_override for regression.
   """
-  # fmt: on
+
   # To get regression study_spec_parameters, we need to set
   # `loss_function_type` to ‘mae’ (‘mae’ and ‘mse’ for "large" search space),
   # remove the `alpha_focal_loss`, `gamma_focal_loss`
@@ -3359,14 +3365,11 @@ def _format_tabnet_regression_study_spec_parameters_override(
 
 
 def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
-  # fmt: off
-  """Get study_spec_parameters_override for a Wide & Deep hyperparameter tuning
-  job.
+  """Get study_spec_parameters_override for a Wide & Deep hyperparameter tuning job.
 
   Returns:
     List of study_spec_parameters_override.
   """
-  # fmt: on
   param_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'configs/wide_and_deep_params.json',
@@ -3379,13 +3382,11 @@ def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
 
 
 def get_xgboost_study_spec_parameters_override() -> List[Dict[str, Any]]:
-  # fmt: off
   """Get study_spec_parameters_override for an XGBoost hyperparameter tuning job.
 
   Returns:
     List of study_spec_parameters_override.
   """
-  # fmt: on
   param_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'configs/xgboost_params.json'
   )
@@ -3410,7 +3411,6 @@ def get_model_comparison_pipeline_and_parameters(
     service_account: str = '',
     network: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
-  # fmt: off
   """Returns a compiled model comparison pipeline and formatted parameters.
 
   Args:
@@ -3448,7 +3448,6 @@ def get_model_comparison_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  # fmt: on
   parameter_values = {
       'project': project,
       'location': location,
@@ -3561,7 +3560,6 @@ def get_xgboost_trainer_pipeline_and_parameters(
     dataflow_use_public_ips: Optional[bool] = None,
     encryption_spec_key_name: Optional[str] = None,
 ):
-  # fmt: off
   """Get the XGBoost training pipeline.
 
   Args:
@@ -3696,7 +3694,6 @@ def get_xgboost_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
-  # fmt: on
   parameter_values = {}
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
@@ -3883,7 +3880,6 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_use_public_ips: Optional[bool] = None,
     encryption_spec_key_name: Optional[str] = None,
 ):
-  # fmt: off
   """Get the XGBoost HyperparameterTuningJob pipeline.
 
   Args:
@@ -3979,7 +3975,6 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
-  # fmt: on
   parameter_values = {}
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}

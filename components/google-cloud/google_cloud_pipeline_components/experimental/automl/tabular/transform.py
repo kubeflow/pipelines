@@ -1,3 +1,5 @@
+"""AutoML Transform component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,42 +52,52 @@ def automl_tabular_transform(
   """Transformation raw features to engineered features.
 
   Args:
-      project: Project to run Cross-validation trainer.
-      location: Location for running the Cross-validation trainer.
-      root_dir: The Cloud Storage location to store the output.
-      metadata: The tabular example gen metadata.
-      dataset_schema: The schema of the dataset.
-      train_split: The train split.
-      eval_split: The eval split.
-      test_split: The test split.
-      dataflow_machine_type: The machine type used for dataflow
+      project (str): Required. Project to run Cross-validation trainer.
+      location (str): Location for running the Cross-validation trainer.
+      root_dir (str): The Cloud Storage location to store the output.
+      metadata (TabularExampleGenMetadata): The tabular example gen metadata.
+      dataset_schema (DatasetSchema): The schema of the dataset.
+      train_split (Dataset): The train split.
+      eval_split (Dataset): The eval split.
+      test_split (Dataset): The test split.
+      dataflow_machine_type (Optional[str]): The machine type used for dataflow
         jobs. If not set, default to n1-standard-16.
-      dataflow_max_num_workers: The number of workers to run the
+      dataflow_max_num_workers (Optional[int]): The number of workers to run the
         dataflow job. If not set, default to 25.
-      dataflow_disk_size_gb: The disk size, in gigabytes, to use
+      dataflow_disk_size_gb (Optional[int]): The disk size, in gigabytes, to use
         on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork
+      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More
-        details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips: Specifies whether Dataflow
+        details:
+          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
         workers use public IP addresses.
-      dataflow_service_account: Custom service account to run
+      dataflow_service_account (Optional[str]): Custom service account to run
         dataflow jobs.
-      encryption_spec_key_name: Customer-managed encryption key.
+      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
 
   Returns:
-      materialized_train_split: The materialized train split.
-      materialized_eval_split: The materialized eval split.
-      materialized_eval_split: The materialized test split.
-      training_schema_uri: The training schema.
-      transform_output: The transform output artifact.
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
+      materialized_train_split (MaterializedSplit):
+          The materialized train split.
+      materialized_eval_split (MaterializedSplit):
+          The materialized eval split.
+      materialized_eval_split (MaterializedSplit):
+          The materialized test split.
+      training_schema_uri (TrainingSchema):
+          The training schema.
+      transform_output (TransformOutput):
+          The transform output artifact.
+      gcp_resources (str):
+          GCP resources created by this component.
+          For more details, see
+          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',
@@ -115,7 +127,7 @@ def automl_tabular_transform(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125',
                   (
                       '", "args": ["transform", "--is_mp=true",'
                       ' "--transform_output_artifact_path='
@@ -174,7 +186,7 @@ def automl_tabular_transform(
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125',
                   '", "--dataflow_disk_size_gb=',
                   dataflow_disk_size_gb,
                   '", "--dataflow_subnetwork_fully_qualified=',

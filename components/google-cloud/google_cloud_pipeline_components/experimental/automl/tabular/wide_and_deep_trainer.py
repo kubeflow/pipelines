@@ -1,3 +1,5 @@
+"""AutoML Wide and Deep Trainer component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +40,7 @@ def wide_and_deep_trainer(
     transform_output: Input[Artifact],
     training_schema_uri: Input[Artifact],
     gcp_resources: dsl.OutputPath(str),
-    unmanaged_container_model: Output[UnmanagedContainerModel],
+    unmanaged_container_model: Output[UnmanagedContainerModel],  # pylint: disable=unused-argument
     weight_column: Optional[str] = '',
     max_steps: Optional[int] = -1,
     max_train_secs: Optional[int] = -1,
@@ -77,96 +79,100 @@ def wide_and_deep_trainer(
   """Launch a Wide & Deep custom training job using Vertex CustomJob API.
 
   Args:
-      project: The GCP project that runs the pipeline
+      project (str): Required. The GCP project that runs the pipeline
         components.
-      location: The GCP region that runs the pipeline
+      location (str): Required. The GCP region that runs the pipeline
         components.
-      root_dir: The root GCS directory for the pipeline
+      root_dir (str): Required. The root GCS directory for the pipeline
         components.
-      target_column: The target column name.
-      prediction_type: The type of prediction the model is to
+      target_column (str): Required. The target column name.
+      prediction_type (str): Required. The type of prediction the model is to
         produce. "classification" or "regression".
-      weight_column: The weight column name.
-      max_steps: Number of steps to run the trainer for.
-      max_train_secs: Amount of time in seconds to run the
+      weight_column (Optional[str]): The weight column name.
+      max_steps (Optional[int]): Number of steps to run the trainer for.
+      max_train_secs (Optional[int]): Amount of time in seconds to run the
         trainer for.
-      learning_rate: The learning rate used by the linear optimizer.
-      optimizer_type: The type of optimizer to use. Choices are
+      learning_rate (float): The learning rate used by the linear optimizer.
+      optimizer_type (Optional[str]): The type of optimizer to use. Choices are
         "adam", "ftrl" and "sgd" for the Adam, FTRL, and Gradient Descent
         Optimizers, respectively.
-      l1_regularization_strength: L1 regularization strength
+      l1_regularization_strength (Optional[float]): L1 regularization strength
         for optimizer_type="ftrl".
-      l2_regularization_strength: L2 regularization strength
+      l2_regularization_strength (Optional[float]): L2 regularization strength
         for optimizer_type="ftrl"
-      l2_shrinkage_regularization_strength: L2 shrinkage
+      l2_shrinkage_regularization_strength (Optional[float]): L2 shrinkage
         regularization strength for optimizer_type="ftrl".
-      beta_1: Beta 1 value for optimizer_type="adam".
-      beta_2: Beta 2 value for optimizer_type="adam".
-      hidden_units: Hidden layer sizes to use for DNN feature
+      beta_1 (Optional[float]): Beta 1 value for optimizer_type="adam".
+      beta_2 (Optional[float]): Beta 2 value for optimizer_type="adam".
+      hidden_units (Optional[str]): Hidden layer sizes to use for DNN feature
         columns, provided in comma-separated layers.
-      use_wide: If set to true, the categorical columns will be
+      use_wide (Optional[bool]): If set to true, the categorical columns will be
         used in the wide part of the DNN model.
-      embed_categories: If set to true, the categorical columns
+      embed_categories (Optional[bool]): If set to true, the categorical columns
         will be used embedded and used in the deep part of the model. Embedding
         size is the square root of the column cardinality.
-      dnn_dropout: The probability we will drop out a given
+      dnn_dropout (Optional[float]): The probability we will drop out a given
         coordinate.
-      dnn_learning_rate: The learning rate for training the
+      dnn_learning_rate (Optional[float]): The learning rate for training the
         deep part of the model.
-      dnn_optimizer_type: The type of optimizer to use for the
+      dnn_optimizer_type (Optional[str]): The type of optimizer to use for the
         deep part of the model. Choices are "adam", "ftrl" and "sgd". for the
         Adam, FTRL, and Gradient Descent Optimizers, respectively.
-      dnn_l1_regularization_strength: L1 regularization
+      dnn_l1_regularization_strength (Optional[float]): L1 regularization
         strength for dnn_optimizer_type="ftrl".
-      dnn_l2_regularization_strength: L2 regularization
+      dnn_l2_regularization_strength (Optional[float]): L2 regularization
         strength for dnn_optimizer_type="ftrl".
-      dnn_l2_shrinkage_regularization_strength: L2 shrinkage
+      dnn_l2_shrinkage_regularization_strength (Optional[float]): L2 shrinkage
         regularization strength for dnn_optimizer_type="ftrl".
-      dnn_beta_1: Beta 1 value for dnn_optimizer_type="adam".
-      dnn_beta_2: Beta 2 value for dnn_optimizer_type="adam".
-      enable_profiler: Enables profiling and saves a trace
+      dnn_beta_1 (Optional[float]): Beta 1 value for dnn_optimizer_type="adam".
+      dnn_beta_2 (Optional[float]): Beta 2 value for dnn_optimizer_type="adam".
+      enable_profiler (Optional[bool]): Enables profiling and saves a trace
         during evaluation.
-      cache_data: Whether to cache data or not. If set to
+      cache_data (Optional[str]): Whether to cache data or not. If set to
         'auto', caching is determined based on the dataset size.
-      seed: Seed to be used for this run.
-      eval_steps: Number of steps to run evaluation for. If not
+      seed (Optional[int]): Seed to be used for this run.
+      eval_steps (Optional[int]): Number of steps to run evaluation for. If not
         specified or negative, it means run evaluation on the whole validation
         dataset. If set to 0, it means run evaluation for a fixed number of
         samples.
-      batch_size: Batch size for training.
-      measurement_selection_type: Which measurement to use
+      batch_size (Optional[int]): Batch size for training.
+      measurement_selection_type (Optional[str]): Which measurement to use
         if/when the service automatically selects the final measurement from
         previously reported intermediate measurements. One of "BEST_MEASUREMENT"
         or "LAST_MEASUREMENT".
-      optimization_metric: Optimization metric used for
+      optimization_metric (Optional[str]): Optimization metric used for
         `measurement_selection_type`. Default is "rmse" for regression and "auc"
         for classification.
-      eval_frequency_secs: Frequency at which evaluation and
+      eval_frequency_secs (Optional[int]): Frequency at which evaluation and
         checkpointing will take place.
-      training_machine_spec: The training machine
+      training_machine_spec (Optional[Dict[str, Any]]): The training machine
         spec. See https://cloud.google.com/compute/docs/machine-types for
         options.
-      training_disk_spec: The training disk spec.
-      instance_baseline: The path to a JSON file
+      training_disk_spec (Optional[Dict[str, Any]]): The training disk spec.
+      instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file
         for baseline values.
-      metadata: Amount of time in seconds to run the
+      metadata (TabularExampleGenMetadata): Amount of time in seconds to run the
         trainer for.
-      materialized_train_split: The path to the materialized
+      materialized_train_split (MaterializedSplit): The path to the materialized
         train split.
-      materialized_eval_split: The path to the materialized
+      materialized_eval_split (MaterializedSplit): The path to the materialized
         validation split.
-      transform_output: The path to transform output.
-      training_schema_uri: The path to the training schema.
-      encryption_spec_key_name: The KMS key name.
+      transform_output (TransformOutput): The path to transform output.
+      training_schema_uri (TrainingSchema): The path to the training schema.
+      encryption_spec_key_name (Optional[str]): The KMS key name.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
-      unmanaged_container_model: The UnmanagedContainerModel artifact.
+      gcp_resources (str):
+          Serialized gcp_resources proto tracking the custom training job.
+      unmanaged_container_model (google.UnmanagedContainerModel):
+          The UnmanagedContainerModel artifact.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',
@@ -198,7 +204,7 @@ def wide_and_deep_trainer(
                   ', "disk_spec": ',
                   training_disk_spec,
                   ', "container_spec": {"image_uri":"',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20230605_0125',
                   '", "args": ["--target_column=',
                   target_column,
                   '", "--weight_column=',
@@ -206,7 +212,7 @@ def wide_and_deep_trainer(
                   '", "--model_type=',
                   prediction_type,
                   '", "--prediction_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125',
                   '", "--baseline_path=',
                   instance_baseline.uri,
                   '", "--metadata_path=',

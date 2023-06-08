@@ -1,3 +1,5 @@
+"""AutoML XGBoost Trainer component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,20 +32,23 @@ def xgboost_trainer(
   """Launch a XGBoost custom training job using Vertex CustomJob API.
 
   Args:
-      project: The GCP project that runs the pipeline
+      project (str): Required. The GCP project that runs the pipeline
         components.
-      location: The GCP region that runs the pipeline
+      location (str): Required. The GCP region that runs the pipeline
         components.
-      worker_pool_specs: The worker pool specs.
-      encryption_spec_key_name: The KMS key name.
+      worker_pool_specs (JsonArray): The worker pool specs.
+      encryption_spec_key_name (Optional[str]): The KMS key name.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
+      gcp_resources (str):
+          Serialized gcp_resources proto tracking the custom training job.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',

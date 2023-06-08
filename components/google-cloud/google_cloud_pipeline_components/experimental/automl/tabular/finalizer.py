@@ -1,3 +1,5 @@
+"""AutoML Pipeline Finalizer component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,19 +32,23 @@ def automl_tabular_finalizer(
   """Finalizer for AutoML Tabular pipelines.
 
   Args:
-      project: Project to run Cross-validation trainer.
-      location: Location for running the Cross-validation trainer.
-      root_dir: The Cloud Storage location to store the output.
-      encryption_spec_key_name: Customer-managed encryption key.
+      project (str): Required. Project to run Cross-validation trainer.
+      location (str): Location for running the Cross-validation trainer.
+      root_dir (str): The Cloud Storage location to store the output.
+      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
 
   Returns:
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.
+      gcp_resources (str):
+          GCP resources created by this component.
+          For more details, see
+          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',
@@ -72,7 +78,7 @@ def automl_tabular_finalizer(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125',
                   '", "args": ["cancel_l2l_tuner", "--error_file_path=',
                   root_dir,
                   (
