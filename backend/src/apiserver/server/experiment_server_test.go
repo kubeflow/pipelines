@@ -148,7 +148,7 @@ func TestCreateExperimentV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:create,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:create,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
 	)
 }
 
@@ -175,7 +175,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"ermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:create,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"ermissionDenied: User 'user@google.com' with groups [] is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:create,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
 	)
 }
 
@@ -537,7 +537,7 @@ func TestGetExperimentV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
 	)
 }
 
@@ -559,7 +559,7 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:get,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:exp1,})",
 	)
 }
 
@@ -729,7 +729,7 @@ func TestListExperimentsV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:list,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:,})",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:list,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:,})",
 	)
 }
 
@@ -750,7 +750,7 @@ func TestListExperiments_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:list,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:,})",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason: this is not allowed (request: &ResourceAttributes{Namespace:ns1,Verb:list,Group:pipelines.kubeflow.org,Version:v1beta1,Resource:experiments,Subresource:,Name:,})",
 	)
 }
 

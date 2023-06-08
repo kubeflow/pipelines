@@ -95,6 +95,6 @@ func TestHTTPGroupHeaderExperimentalFlagDisableAuthenticatorFromHeaderNonGoogle(
 
 	authenticator := NewHTTPHeaderAuthenticator(userIDHeader, "", groupsHeader, false)
 	userGroups, err := authenticator.GetUserGroups(ctx)
-	assert.Nil(t, userGroups)
+	assert.Empty(t, userGroups)
 	assert.Nil(t, err)
 }

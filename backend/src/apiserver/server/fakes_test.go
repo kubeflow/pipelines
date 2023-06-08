@@ -346,11 +346,12 @@ func AssertUserError(t *testing.T, err error, expectedCode codes.Code) {
 	assert.Equal(t, expectedCode, userError.ExternalStatusCode())
 }
 
-func getPermissionDeniedError(userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+func getPermissionDeniedError(userIdentity string, userGroups []string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	return util.NewPermissionDeniedError(
 		errors.New("Unauthorized access"),
-		"User '%s' is not authorized with reason: %s (request: %+v)",
+		"User '%s' with groups %v is not authorized with reason: %s (request: %+v)",
 		userIdentity,
+		userGroups,
 		"this is not allowed",
 		resourceAttributes,
 	)

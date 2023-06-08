@@ -555,7 +555,7 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason",
 	)
 }
 
@@ -583,7 +583,7 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason",
 	)
 }
 
@@ -643,7 +643,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason",
 	)
 
 	_, err = server.ListJobs(ctx, &apiv1beta1.ListJobsRequest{
@@ -656,7 +656,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason",
 	)
 }
 
@@ -794,7 +794,7 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		" PermissionDenied: User 'user@google.com' is not authorized with reason",
+		" PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason",
 	)
 }
 
@@ -839,7 +839,7 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		" PermissionDenied: User 'user@google.com' is not authorized with reason",
+		" PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason",
 	)
 }
 
