@@ -46,11 +46,11 @@ func (ha *HTTPHeaderAuthenticator) GetUserIdentity(ctx context.Context) (string,
 
 func (ha *HTTPHeaderAuthenticator) GetUserGroups(ctx context.Context) ([]string, error) {
 	if !ha.experimentalGroupsSupport {
-		return nil, nil
+		return []string{}, nil
 	}
 	groupsHeader, err := singleHeaderFromMetadata(ctx, ha.groupsHeader)
 	if err != nil {
-		return nil, err
+		return []string{}, err
 	}
 	return strings.Split(groupsHeader, ","), nil
 }

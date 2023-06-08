@@ -189,7 +189,7 @@ func getKubeflowUserIDHeader() string {
 	return common.GoogleIAPUserIdentityHeader
 }
 
-// TODO use config file & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDHeader()"
+// TODO use config file & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowGroupsHeader()"
 func getKubeflowGroupsHeader() string {
 	if value, ok := os.LookupEnv(common.KubeflowGroupsHeader); ok {
 		return value

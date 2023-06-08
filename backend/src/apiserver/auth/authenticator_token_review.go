@@ -58,7 +58,7 @@ func (tra *TokenReviewAuthenticator) GetUserIdentity(ctx context.Context) (strin
 }
 
 func (tra *TokenReviewAuthenticator) GetUserGroups(_ context.Context) ([]string, error) {
-	return nil, nil
+	return []string{}, nil
 }
 
 // ensureAudience makes sure all audience of the authenticator is found in the provided audience list.
