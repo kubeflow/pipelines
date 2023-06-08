@@ -307,9 +307,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             open={pipelineSelectorOpen}
             selectorDialog={css.selectorDialog}
             onClose={(confirmed, selectedPipeline?: ApiPipeline) => {
-              this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline }, () => {
-                this._pipelineSelectorClosed(confirmed);
-              });
+              this.setStateSafe(
+                { unconfirmedSelectedPipeline: selectedPipeline ?? this.state.pipeline },
+                () => {
+                  this._pipelineSelectorClosed(confirmed);
+                },
+              );
             }}
             toolbarActionMap={dialogToolbarActionMap}
             namespace={this.props.namespace}
