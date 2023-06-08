@@ -654,6 +654,11 @@ def get_dependencies(
             uncommon_upstream_groups.remove(
                 upstream_task.name
             )  # because a task's `upstream_groups` contains the task's name
+
+            # TODO: this logic can be simplified
+            # - ExitHandler check can be removed
+            # - the logic to check for consumption from a task in an upstream
+            # Condition and ExitHandler should be the same and can be unified with the ParallelFor checks
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
@@ -668,11 +673,11 @@ def get_dependencies(
                         f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl.{for_loop.Collected.__name__}. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
                     )
 
-            # tasks in a deeper part of a nested parallelfor cannot depend directly on a task in a shallower part of the nested parallelfor
+            # tasks in a deeper part of a nested ParallelFor cannot depend directly on a task in a shallower part of the nested ParallelFor
             # to check for this we need to know that:
-            # - the upstream task has at least one parallelfor parent group
-            # - the downstream task has at least one parallelfor parent group uncommon to the upstream task
-            # - the downstream consumes from the upstream or has an explicit dependency (.after) on it (a dependency transitively via the parent task group doesn't satisfy the error condition, since the parallelfor should be permitted to iterate over the upstreams list output)
+            # - the upstream task has at least one ParallelFor parent group
+            # - the downstream task has at least one ParallelFor parent group uncommon to the upstream task
+            # - the downstream consumes from the upstream or has an explicit dependency (.after) on it (a dependency transitively via the parent task group doesn't satisfy the error condition, since the ParallelFor should be permitted to iterate over the upstreams list output)
             if isinstance(upstream_task, pipeline_task.PipelineTask):
                 upstream_parent_tasks = task_name_to_parent_groups[
                     upstream_task.name]
