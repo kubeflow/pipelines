@@ -1,3 +1,5 @@
+"""AutoML Feature Transform Engine component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from typing import Optional
 
 from kfp import dsl
@@ -21,6 +22,7 @@ from kfp.dsl import Dataset
 from kfp.dsl import Output
 
 
+# LINT.IfChange
 @dsl.container_component
 def feature_transform_engine(
     root_dir: str,
@@ -32,6 +34,8 @@ def feature_transform_engine(
     split_example_counts: dsl.OutputPath(str),
     instance_schema: Output[Artifact],
     training_schema: Output[Artifact],
+    bigquery_train_split_uri: dsl.OutputPath(str),
+    bigquery_validation_split_uri: dsl.OutputPath(str),
     bigquery_test_split_uri: dsl.OutputPath(str),
     bigquery_downsampled_test_split_uri: dsl.OutputPath(str),
     feature_ranking: Output[Artifact],
@@ -40,9 +44,9 @@ def feature_transform_engine(
     dataset_level_transformations: Optional[list] = [],
     forecasting_time_column: Optional[str] = '',
     forecasting_time_series_identifier_column: Optional[str] = '',
-    forecasting_time_series_attribute_columns: Optional[str] = '',
-    forecasting_unavailable_at_forecast_columns: Optional[str] = '',
-    forecasting_available_at_forecast_columns: Optional[str] = '',
+    forecasting_time_series_attribute_columns: Optional[list] = [],
+    forecasting_unavailable_at_forecast_columns: Optional[list] = [],
+    forecasting_available_at_forecast_columns: Optional[list] = [],
     forecasting_forecast_horizon: Optional[int] = -1,
     forecasting_context_window: Optional[int] = -1,
     forecasting_predefined_window_column: Optional[str] = '',
@@ -80,10 +84,14 @@ def feature_transform_engine(
     dataflow_service_account: Optional[str] = '',
     encryption_spec_key_name: Optional[str] = '',
     autodetect_csv_schema: Optional[bool] = False,
+    group_columns: Optional[list] = None,
+    group_total_weight: float = 0.0,
+    temporal_total_weight: float = 0.0,
+    group_temporal_total_weight: float = 0.0,
 ):
+  # LINT.ThenChange(//depot/google3/java/com/google/cloud/ai/platform/boq/shared/tasks/pipelinejob/tabularusagemetricshelper/FeatureTransformEngineComponentMetricsHelper.java)
   # fmt: off
-  """Feature Transform Engine (FTE) component to transform raw data to
-  engineered features.
+  """Feature Transform Engine (FTE) component to transform raw data to engineered features.
 
   FTE performs dataset level transformations, data splitting, data statistic
   generation, and
@@ -92,10 +100,11 @@ def feature_transform_engine(
   transformation configuration.
 
   Args:
-      root_dir: The Cloud Storage location to store the output.
-      project: Project to run feature transform engine.
-      location: Location for the created GCP services.
-      dataset_level_custom_transformation_definitions: List of dataset-level custom transformation definitions.  Custom,
+      root_dir (str): The Cloud Storage location to store the output.
+      project (str): Project to run feature transform engine.
+      location (str): Location for the created GCP services.
+      dataset_level_custom_transformation_definitions (Optional[JsonArray]):
+        List of dataset-level custom transformation definitions.  Custom,
         bring-your-own dataset-level transform functions, where users can define
         and import their own transform function and use it with FTE's built-in
         transformations. Using custom transformations is an experimental feature
@@ -109,7 +118,7 @@ def feature_transform_engine(
             [["join_key_col", "join_key_col"]] },{ "transformation":
             "ConcatCols", "cols": ["feature_1", "feature_2"], "output_col":
             "feature_1_2" } ]
-      dataset_level_transformations: List of dataset-level
+      dataset_level_transformations (Optional[JsonArray]): List of dataset-level
         transformations.
           Example:  .. code-block:: python  [ { "transformation": "Join",
             "right_table_uri": "bq://test-project.dataset_test.table",
@@ -123,9 +132,9 @@ def feature_transform_engine(
                     "right_table_uri": "bq://test-project.dataset_test.table",
                     "join_keys": [["join_key_col", "join_key_col"]] }
                   Arguments:
-                      right_table_uri: Right table BigQuery uri to join
+                      right_table_uri (str): Right table BigQuery uri to join
                         with input_full_table_id.
-                      join_keys: Features to join on. For each
+                      join_keys (List[List[str]]): Features to join on. For each
                         nested list, the first element is a left table column
                         and the second is its corresponding right table column.
               TimeAggregate: Creates a new feature composed of values of an
@@ -138,23 +147,23 @@ def feature_transform_engine(
                     "time_column": "time_col", "time_difference_target_column":
                     "target_col", "output_column": "output_col" }
                   Arguments:
-                      time_difference: Number of time_difference_units to
+                      time_difference (int): Number of time_difference_units to
                         look back or into the future on our
                         time_difference_target_column.
-                      time_difference_units: Units of time_difference to
+                      time_difference_units (str): Units of time_difference to
                         look back or into the future on our
                         time_difference_target_column. Must be one of * 'DAY' *
                         'WEEK' (Equivalent to 7 DAYs) * 'MONTH' * 'QUARTER' *
                         'YEAR'
-                      time_series_identifier_columns: Names of the
+                      time_series_identifier_columns (List[str]): Names of the
                         time series identifier columns.
-                      time_column: Name of the time column.
-                      time_difference_target_column: Column we wish to get
+                      time_column (str): Name of the time column.
+                      time_difference_target_column (str): Column we wish to get
                         the value of time_difference time_difference_units in
                         the past or future.
-                      output_column: Name of our new time aggregate
+                      output_column (str): Name of our new time aggregate
                         feature.
-                      is_future: Whether we wish to look
+                      is_future (Optional[bool]): Whether we wish to look
                         forward in time. Defaults to False.
                         PartitionByMax/PartitionByMin/PartitionByAvg/PartitionBySum:
                         Performs a partition by reduce operation (one of max,
@@ -168,53 +177,53 @@ def feature_transform_engine(
                     "time_column": "date", "time_ago": 1, "time_ago_units":
                     "WEEK", "output_column": "partition_by_reduce_max_output" }
                   Arguments:
-                      reduce_column: Column to apply the reduce operation
+                      reduce_column (str): Column to apply the reduce operation
                         on. Reduce operations include the
                           following: Max, Min, Avg, Sum.
-                      partition_by_columns: List of columns to
+                      partition_by_columns (List[str]): List of columns to
                         partition by.
-                      time_column: Time column for the partition by
+                      time_column (str): Time column for the partition by
                         operation's window function.
-                      time_ago: Number of time_ago_units to look back on
+                      time_ago (int): Number of time_ago_units to look back on
                         our target_column, starting from time_column
                         (inclusive).
-                      time_ago_units: Units of time_ago to look back on
+                      time_ago_units (str): Units of time_ago to look back on
                         our target_column. Must be one of * 'DAY' * 'WEEK'
-                      output_column: Name of our output feature.
-      forecasting_time_column: Forecasting time column.
-      forecasting_time_series_identifier_column: Forecasting
+                      output_column (str): Name of our output feature.
+      forecasting_time_column (Optional[str]): Forecasting time column.
+      forecasting_time_series_identifier_column (Optional[str]): Forecasting
         time series identifier column.
-      forecasting_time_series_attribute_columns: Forecasting
-        time series attribute columns.
-      forecasting_unavailable_at_forecast_columns: Forecasting
-        unavailable at forecast columns.
-      forecasting_available_at_forecast_columns: Forecasting
-        available at forecast columns.
-      forecasting_forecast_horizon: Forecasting horizon.
-      forecasting_context_window: Forecasting context window.
-      forecasting_predefined_window_column: Forecasting
+      forecasting_time_series_attribute_columns (Optional[List[str]]):
+        Forecasting time series attribute columns.
+      forecasting_unavailable_at_forecast_columns (Optional[List[str]]):
+        Forecasting unavailable at forecast columns.
+      forecasting_available_at_forecast_columns (Optional[List[str]]):
+        Forecasting available at forecast columns.
+      forecasting_forecast_horizon (Optional[int]): Forecasting horizon.
+      forecasting_context_window (Optional[int]): Forecasting context window.
+      forecasting_predefined_window_column (Optional[str]): Forecasting
         predefined window column.
-      forecasting_window_stride_length: Forecasting window
+      forecasting_window_stride_length (Optional[int]): Forecasting window
         stride length.
-      forecasting_window_max_count: Forecasting window max
+      forecasting_window_max_count (Optional[int]): Forecasting window max
         count.
-      forecasting_apply_windowing: Whether to apply window
+      forecasting_apply_windowing (Optional[bool]): Whether to apply window
         strategy.
-      predefined_split_key: Predefined split key.
-      stratified_split_key: Stratified split key.
-      timestamp_split_key: Timestamp split key.
-      training_fraction: Fraction of input data for training.
-      validation_fraction: Fraction of input data for
+      predefined_split_key (Optional[str]): Predefined split key.
+      stratified_split_key (Optional[str]): Stratified split key.
+      timestamp_split_key (Optional[str]): Timestamp split key.
+      training_fraction (Optional[float]): Fraction of input data for training.
+      validation_fraction (Optional[float]): Fraction of input data for
         validation.
-      test_fraction: Fraction of input data for testing.
-      tf_transform_execution_engine: Execution engine to perform
+      test_fraction (Optional[float]): Fraction of input data for testing.
+      tf_transform_execution_engine (Optional[str]): Execution engine to perform
         row-level TF transformations. Can be one of: "dataflow" (by default) or
         "bigquery". Using "bigquery" as the execution engine is experimental and
         is for allowlisted customers only. In addition, executing on "bigquery"
         only supports auto transformations (i.e., specified by
         tf_auto_transform_features) and will raise an error when
         tf_custom_transformation_definitions or tf_transformations_path is set.
-      tf_auto_transform_features: Dict[str, List[str]]
+      tf_auto_transform_features (Optional[JsonObject]): Dict[str, List[str]]
         mapping auto and/or type-resolutions to TF transform features.  FTE will
         automatically configure a set of built-in transformations for each
         feature based on its data statistics.  If users do not want auto type
@@ -226,7 +235,7 @@ def feature_transform_engine(
             "categorical": ["feature2", "feature3"], }  Note that the target and
             weight column may not be included as an auto transformation unless
             users are running forecasting.
-      tf_custom_transformation_definitions: List of
+      tf_custom_transformation_definitions (Optional[JsonArray]): List of
         TensorFlow-based custom transformation definitions.  Custom,
         bring-your-own transform functions, where users can define and import
         their own transform function and use it with FTE's built-in
@@ -243,7 +252,7 @@ def feature_transform_engine(
             "output_columns": ["feature_1_plused_one"] },{ "transformation":
             "MultiplyTwo", "input_columns": ["feature_1"] "output_columns":
             ["feature_1_multiplied_two"] } ]
-      tf_transformations_path: Path to TensorFlow-based
+      tf_transformations_path (Optional[str]): Path to TensorFlow-based
         transformation configuration.  Path to a JSON file used to specified
         FTE's TF transformation configurations.  In the following, we provide
         some sample transform configurations to demonstrate FTE's capabilities.
@@ -260,11 +269,11 @@ def feature_transform_engine(
                     "Datetime", "input_columns": ["feature_1"], "time_format":
                     "%Y-%m-%d" }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the datetime transformation on.
-                      output_columns: Names of output
+                      output_columns (Optional[List[str]]): Names of output
                         columns, one for each datetime_features element.
-                      time_format: Datetime format string. Time format is
+                      time_format (str): Datetime format string. Time format is
                         a combination of Date + Time Delimiter (optional) + Time
                         (optional) directives. Valid date directives are as
                         follows * '%Y-%m-%d'  # 2018-11-30 * '%Y/%m/%d'  #
@@ -281,7 +290,7 @@ def feature_transform_engine(
                         23:59:58 * '%H:%M:%S.%f'    # 23:59:58[.123456] *
                           '%H:%M:%S.%f%z'  # 23:59:58[.123456]+0000 *
                           '%H:%M:%S%z',    # 23:59:58+0000
-                      datetime_features: List of datetime
+                      datetime_features (Optional[List[str]]): List of datetime
                         features to be extract. Each entry must be one of *
                         'YEAR' * 'MONTH' * 'DAY' * 'DAY_OF_WEEK' * 'DAY_OF_YEAR'
                         * 'WEEK_OF_YEAR' * 'QUARTER' * 'HOUR' * 'MINUTE' *
@@ -291,18 +300,18 @@ def feature_transform_engine(
                   Example:  .. code-block:: python  { "transformation": "Log",
                     "input_columns": ["feature_1"] }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the log transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
               ZScale: Performs Z-scale normalization on a numeric column.
                   Example:  .. code-block:: python  { "transformation":
                     "ZScale", "input_columns": ["feature_1"] }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the z-scale transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
               Vocabulary: Converts strings to integers, where each unique string
@@ -310,16 +319,16 @@ def feature_transform_engine(
                   Example:  .. code-block:: python  { "transformation":
                     "Vocabulary", "input_columns": ["feature_1"] }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the vocabulary transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
-                      top_k: Number of the most frequent words
+                      top_k (Optional[int]): Number of the most frequent words
                         in the vocabulary to use for generating dictionary
                         lookup indices. If not specified, all words in the
                         vocabulary will be used. Defaults to None.
-                      frequency_threshold: Limit the vocabulary
+                      frequency_threshold (Optional[int]): Limit the vocabulary
                         only to words whose number of occurrences in the input
                         exceeds frequency_threshold. If not specified, all words
                         in the vocabulary will be included. If both top_k and
@@ -329,16 +338,16 @@ def feature_transform_engine(
                   Example:  .. code-block:: python  { "transformation":
                     "Categorical", "input_columns": ["feature_1"], "top_k": 10 }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the categorical transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
-                      top_k: Number of the most frequent words
+                      top_k (Optional[int]): Number of the most frequent words
                         in the vocabulary to use for generating dictionary
                         lookup indices. If not specified, all words in the
                         vocabulary will be used.
-                      frequency_threshold: Limit the vocabulary
+                      frequency_threshold (Optional[int]): Limit the vocabulary
                         only to words whose number of occurrences in the input
                         exceeds frequency_threshold. If not specified, all words
                         in the vocabulary will be included. If both top_k and
@@ -350,14 +359,14 @@ def feature_transform_engine(
                     "Reduce", "input_columns": ["feature_1"], "reduce_mode":
                     "MEAN", "output_columns": ["feature_1_mean"] }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the reduce transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
-                      reduce_mode: One of * 'MAX' * 'MIN' *
+                      reduce_mode (Optional[str]): One of * 'MAX' * 'MIN' *
                         'MEAN' * 'LAST_K' Defaults to 'MEAN'.
-                      last_k: The number of last k elements when
+                      last_k (Optional[int]): The number of last k elements when
                         'LAST_K' reduce mode is used. Defaults to 1.
               SplitString: Given a column of strings, splits strings into token
                 arrays.
@@ -365,14 +374,14 @@ def feature_transform_engine(
                     "SplitString", "input_columns": ["feature_1"], "separator":
                     "$" }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the split string transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
-                      separator: Separator to split input string
+                      separator (Optional[str]): Separator to split input string
                         into tokens. Defaults to ' '.
-                      missing_token: Missing token to use when
+                      missing_token (Optional[str]): Missing token to use when
                         no string is included. Defaults to ' _MISSING_ '.
               NGram: Given a column of strings, splits strings into token arrays
                 where each token is an integer.
@@ -380,31 +389,31 @@ def feature_transform_engine(
                     "input_columns": ["feature_1"], "min_ngram_size": 1,
                     "max_ngram_size": 2, "separator": " " }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the n-gram transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
-                      min_ngram_size: Minimum n-gram size. Must
+                      min_ngram_size (Optional[int]): Minimum n-gram size. Must
                         be a positive number and <= max_ngram_size. Defaults to
                         1.
-                      max_ngram_size: Maximum n-gram size. Must
+                      max_ngram_size (Optional[int]): Maximum n-gram size. Must
                         be a positive number and >= min_ngram_size. Defaults to
                         2.
-                      top_k: Number of the most frequent words
+                      top_k (Optional[int]): Number of the most frequent words
                         in the vocabulary to use for generating dictionary
                         lookup indices. If not specified, all words in the
                         vocabulary will be used. Defaults to None.
-                      frequency_threshold: Limit the
+                      frequency_threshold (Optional[int]): Limit the
                         dictionary's vocabulary only to words whose number of
                         occurrences in the input exceeds frequency_threshold. If
                         not specified, all words in the vocabulary will be
                         included. If both top_k and frequency_threshold are
                         specified, a word must satisfy both conditions to be
                         included. Defaults to None.
-                      separator: Separator to split input string
+                      separator (Optional[str]): Separator to split input string
                         into tokens. Defaults to ' '.
-                      missing_token: Missing token to use when
+                      missing_token (Optional[str]): Missing token to use when
                         no string is included. Defaults to ' _MISSING_ '.
               Clip: Given a numeric column, clips elements such that elements <
                 min_value are assigned min_value, and elements > max_value are
@@ -413,15 +422,15 @@ def feature_transform_engine(
                     "input_columns": ["col1"], "output_columns":
                     ["col1_clipped"], "min_value": 1., "max_value": 10., }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the n-gram transformation on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
-                      min_value: Number where all values below
+                      min_value (Optional[float]): Number where all values below
                         min_value are set to min_value. If no min_value is
                         provided, min clipping will not occur. Defaults to None.
-                      max_value: Number where all values above
+                      max_value (Optional[float]): Number where all values above
                         max_value are set to max_value If no max_value is
                         provided, max clipping will not occur. Defaults to None.
               MultiHotEncoding: Performs multi-hot encoding on a categorical
@@ -442,23 +451,23 @@ def feature_transform_engine(
                     [1, 1],          # Example 0 [1, 1],          # Example 1
                     [1, 0],          # Example 2 [0, 1],          # Example 3 ]
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform the multi-hot-encoding on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
-                      top_k: Number of the most frequent words
+                      top_k (Optional[int]): Number of the most frequent words
                         in the vocabulary to use for generating dictionary
                         lookup indices. If not specified, all words in the
                         vocabulary will be used. Defaults to None.
-                      frequency_threshold: Limit the
+                      frequency_threshold (Optional[int]): Limit the
                         dictionary's vocabulary only to words whose number of
                         occurrences in the input exceeds frequency_threshold. If
                         not specified, all words in the vocabulary will be
                         included. If both top_k and frequency_threshold are
                         specified, a word must satisfy both conditions to be
                         included. Defaults to None.
-                      separator: Separator to split input string
+                      separator (Optional[str]): Separator to split input string
                         into tokens. Defaults to ' '.
               MaxAbsScale: Performs maximum absolute scaling on a numeric
                 column.
@@ -466,9 +475,9 @@ def feature_transform_engine(
                     "MaxAbsScale", "input_columns": ["col1"], "output_columns":
                     ["col1_max_abs_scaled"] }
                   Arguments:
-                      input_columns: A list with a single column to
+                      input_columns (List[str]): A list with a single column to
                         perform max-abs-scale on.
-                      output_columns: A list with a single
+                      output_columns (Optional[List[str]]): A list with a single
                         output column name, corresponding to the output of our
                         transformation.
               Custom: Transformations defined in
@@ -490,15 +499,15 @@ def feature_transform_engine(
                 string for legacy style transformations. Note that
                 legacy_transformations_path and tf_auto_transform_features
                 cannot both be specified.
-      target_column: Target column of input data.
-      weight_column: Weight column of input data.
-      prediction_type: Model prediction type. One of
+      target_column (Optional[str]): Target column of input data.
+      weight_column (Optional[str]): Weight column of input data.
+      prediction_type (Optional[str]): Model prediction type. One of
         "classification", "regression", "time_series".
-      run_distill: Whether the distillation should be applied
+      run_distill (Optional[bool]): Whether the distillation should be applied
         to the training.
-      run_feature_selection: Whether the feature selection
+      run_feature_selection (Optional[bool]): Whether the feature selection
         should be applied to the dataset.
-      feature_selection_algorithm: The algorithm of feature
+      feature_selection_algorithm (Optional[str]): The algorithm of feature
         selection. One of "AMI", "CMIM", "JMIM", "MRMR", default to be "AMI".
         The algorithms available are: AMI(Adjusted Mutual Information):
            Reference:
@@ -518,11 +527,11 @@ def feature_transform_engine(
                  criteria of max-dependency, max-relevance, and min-redundancy."
                  IEEE Transactions on pattern analysis and machine intelligence
                  27, no.
-               8: 1226-1238.
-      materialized_examples_format: The format to use for the
+               8 (2005): 1226-1238.
+      materialized_examples_format (Optional[str]): The format to use for the
         materialized examples. Should be either 'tfrecords_gzip' (default) or
         'parquet'.
-      max_selected_features: Maximum number of features to
+      max_selected_features (Optional[int]): Maximum number of features to
         select.  If specified, the transform config will be purged by only using
         the selected features that ranked top in the feature ranking, which has
         the ranking value for all supported features. If the number of input
@@ -530,11 +539,11 @@ def feature_transform_engine(
         run the feature selection process and generate the feature ranking, no
         features will be excluded.  The value will be set to 1000 by default if
         run_feature_selection is enabled.
-      data_source_csv_filenames: CSV input data source to run
+      data_source_csv_filenames (Optional[str]): CSV input data source to run
         feature transform on.
-      data_source_bigquery_table_path: BigQuery input data
+      data_source_bigquery_table_path (Optional[str]): BigQuery input data
         source to run feature transform on.
-      bigquery_staging_full_dataset_id: Dataset in
+      bigquery_staging_full_dataset_id (Optional[str]): Dataset in
         "projectId.datasetId" format for storing intermediate-FTE BigQuery
         tables.  If the specified dataset does not exist in BigQuery, FTE will
         create the dataset. If no bigquery_staging_full_dataset_id is specified,
@@ -543,43 +552,81 @@ def feature_transform_engine(
         execution called
         "vertex_feature_transform_engine_staging_{location.replace('-', '_')}".
         All tables generated by FTE will have a 30 day TTL.
-      model_type: Model type, which we wish to engineer features
+      model_type (Optional[str]): Model type, which we wish to engineer features
         for. Can be one of: neural_network, boosted_trees, l2l, seq2seq, tft, or
         tide. Defaults to the empty value, `None`.
-      dataflow_machine_type: The machine type used for dataflow
+      dataflow_machine_type (Optional[str]): The machine type used for dataflow
         jobs. If not set, default to n1-standard-16.
-      dataflow_max_num_workers: The number of workers to run the
+      dataflow_max_num_workers (Optional[int]): The number of workers to run the
         dataflow job. If not set, default to 25.
-      dataflow_disk_size_gb: The disk size, in gigabytes, to use
+      dataflow_disk_size_gb (Optional[int]): The disk size, in gigabytes, to use
         on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork
+      dataflow_subnetwork (Optional[str]): Dataflow's fully qualified subnetwork
         name, when empty the default subnetwork will be used. More details:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips: Specifies whether Dataflow
+          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_use_public_ips (Optional[bool]): Specifies whether Dataflow
         workers use public IP addresses.
-      dataflow_service_account: Custom service account to run
+      dataflow_service_account (Optional[str]): Custom service account to run
         Dataflow jobs.
-      encryption_spec_key_name: Customer-managed encryption key.
-      autodetect_csv_schema: If True, infers the column types
+      encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+      autodetect_csv_schema (Optional[bool]): If True, infers the column types
         when importing CSVs into BigQuery.
 
   Returns:
-      dataset_stats: The stats of the dataset.
-      materialized_data: The materialized dataset.
-      transform_output: The transform output artifact.
-      split_example_counts: JSON string of data split example counts for train, validate, and test splits.
-      bigquery_test_split_uri: BigQuery URI for the test split to pass to the batch prediction component during evaluation.
-      bigquery_downsampled_test_split_uri: BigQuery URI for the downsampled test split to pass to the batch prediction component during batch explain.
-      instance_schema_path: Schema of input data to the tf_model at serving time.
-      training_schema_path: Schema of input data to the tf_model at training time.
-      feature_ranking: The ranking of features, all features supported in the dataset will be included. for "AMI" algorithm, array features won't be available in the ranking as arrays are not supported yet.
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      dataset_stats (AutoMLTabularDatasetStats):
+          The stats of the dataset.
+      materialized_data (Dataset):
+          The materialized dataset.
+      transform_output (TransformOutput):
+          The transform output artifact.
+      split_example_counts (str):
+          JSON string of data split example counts for train, validate, and test
+          splits.
+      bigquery_train_split_uri (str):
+          BigQuery URI for the train split to pass to the batch prediction component during
+          distillation.
+      bigquery_validation_split_uri (str):
+          BigQuery URI for the validation split to pass to the batch prediction component during
+          distillation.
+      bigquery_test_split_uri (str):
+          BigQuery URI for the test split to pass to the batch prediction
+          component during
+          evaluation.
+      bigquery_downsampled_test_split_uri (str):
+          BigQuery URI for the downsampled test split to pass to the batch
+          prediction component
+          during batch explain.
+      instance_schema_path (DatasetSchema):
+          Schema of input data to the tf_model at serving time.
+      training_schema_path (DatasetSchema):
+          Schema of input data to the tf_model at training time.
+      feature_ranking (TabularFeatureRanking):
+          The ranking of features, all features supported in the dataset will be
+          included.
+
+          for "AMI" algorithm, array features won't be available in the ranking
+          as arrays are not
+          supported yet.
+      gcp_resources (str):
+          GCP resources created by this component.
+          For more details, see
+          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      group_columns (Optional[list]): A list of time series attribute column names that define the
+        time series hierarchy.
+      group_total_weight (Optional[float]): The weight of the loss for predictions aggregated over
+        time series in the same group.
+      temporal_total_weight (Optional[float]): The weight of the loss for predictions aggregated
+        over the horizon for a single time series.
+      group_temporal_total_weight (Optional[float]): The weight of the loss for predictions
+        aggregated over both the horizon and time series in the same hierarchy
+        group.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325',
+      # LINT.IfChange
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230605_0125',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[],
       args=[
           'feature_transform_engine',
@@ -682,11 +729,14 @@ def feature_transform_engine(
                   tf_transform_execution_engine,
               ]
           ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--tf_auto_transform_features=',
-                  tf_auto_transform_features,
-              ]
+          dsl.IfPresentPlaceholder(
+              input_name='tf_auto_transform_features',
+              then=dsl.ConcatPlaceholder(
+                  items=[
+                      '--tf_auto_transform_features=',
+                      tf_auto_transform_features,
+                  ]
+              ),
           ),
           dsl.ConcatPlaceholder(
               items=[
@@ -802,6 +852,18 @@ def feature_transform_engine(
               ]
           ),
           dsl.ConcatPlaceholder(
+              items=[
+                  '--bigquery_train_split_uri_path=',
+                  bigquery_train_split_uri,
+              ]
+          ),
+          dsl.ConcatPlaceholder(
+              items=[
+                  '--bigquery_validation_split_uri_path=',
+                  bigquery_validation_split_uri,
+              ]
+          ),
+          dsl.ConcatPlaceholder(
               items=['--bigquery_test_split_uri_path=', bigquery_test_split_uri]
           ),
           dsl.ConcatPlaceholder(
@@ -841,8 +903,8 @@ def feature_transform_engine(
           dsl.ConcatPlaceholder(
               items=['--dataflow_machine_type=', dataflow_machine_type]
           ),
-          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325',
-          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230424_1325',
+          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125',
+          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230605_0125',
           dsl.ConcatPlaceholder(
               items=['--dataflow_disk_size_gb=', dataflow_disk_size_gb]
           ),
@@ -865,5 +927,32 @@ def feature_transform_engine(
               items=['--autodetect_csv_schema=', autodetect_csv_schema]
           ),
           dsl.ConcatPlaceholder(items=['--gcp_resources_path=', gcp_resources]),
+          dsl.IfPresentPlaceholder(
+              input_name='group_columns',
+              then=dsl.ConcatPlaceholder(
+                  items=['--group_columns=', group_columns]
+              ),
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name='group_total_weight',
+              then=dsl.ConcatPlaceholder(
+                  items=['--group_total_weight=', group_total_weight]
+              ),
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name='temporal_total_weight',
+              then=dsl.ConcatPlaceholder(
+                  items=['--temporal_total_weight=', temporal_total_weight]
+              ),
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name='group_temporal_total_weight',
+              then=dsl.ConcatPlaceholder(
+                  items=[
+                      '--group_temporal_total_weight=',
+                      group_temporal_total_weight,
+                  ]
+              ),
+          ),
       ],
   )

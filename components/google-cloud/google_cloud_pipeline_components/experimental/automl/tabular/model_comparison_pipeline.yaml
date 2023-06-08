@@ -52,14 +52,21 @@ components:
     inputDefinitions:
       parameters:
         data_source_bigquery_table_path:
+          description: Data source parameter that should be passed to all the jobs
           parameterType: STRING
         data_source_csv_filenames:
+          description: Data source parameter that should be passed to all the jobs
           parameterType: STRING
         location:
+          description: The GCP location parameter that should be passed to all the
+            jobs.
           parameterType: STRING
         project:
+          description: The GCP project parameter that should be passed to all the
+            jobs.
           parameterType: STRING
         training_jobs:
+          description: Dictionary of jobs with their parameters.
           parameterType: STRUCT
     outputDefinitions:
       parameters:
@@ -70,22 +77,58 @@ components:
     inputDefinitions:
       parameters:
         data_source_bigquery_table_path:
+          description: 'Path to BigQuery Table to use as the
+
+            dataset for all training pipelines. This should be None if
+
+            `data_source_csv_filenames` is not None. This should only contain data
+
+            from the training and validation split and not from the test split.'
           isOptional: true
           parameterType: STRING
         data_source_csv_filenames:
+          description: 'Comma-separated paths to CSVs stored in GCS to
+
+            use as the dataset for all training pipelines. This should be None if
+
+            `data_source_bigquery_table_path` is not None. This should only contain
+
+            data from the training and validation split and not from the test split.'
           isOptional: true
           parameterType: STRING
         evaluation_data_source_bigquery_table_path:
+          description: 'Path to BigQuery Table to use as
+
+            the evaluation dataset for all training pipelines. This should be None
+            if
+
+            `evaluation_data_source_csv_filenames` is not None. This should only
+
+            contain data from the test split and not from the training and validation
+
+            split.'
           isOptional: true
           parameterType: STRING
         evaluation_data_source_csv_filenames:
+          description: 'Comma-separated paths to CSVs stored
+
+            in GCS to use as the evaluation dataset for all training pipelines. This
+
+            should be None if `evaluation_data_source_bigquery_table_path` is not
+
+            None. This should only contain data from the test split and not from the
+
+            training and validation split.'
           isOptional: true
           parameterType: STRING
         location:
+          description: The GCP region that runs the BigQuery queries.
           parameterType: STRING
         project:
+          description: The GCP project that runs the pipeline components.
           parameterType: STRING
         tmp_dataset_name:
+          description: The name of the tmp dataset to create the unioned table.
           parameterType: STRING
     outputDefinitions:
       parameters:
@@ -368,10 +411,13 @@ components:
     inputDefinitions:
       parameters:
         experiment_name:
+          description: Dictionary of jobs with their parameters.
           parameterType: STRING
         location:
+          description: The GCP location in which the experiment will be created.
           parameterType: STRING
         project:
+          description: The GCP project in which the experiment will be created.
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -388,11 +434,14 @@ components:
       parameters:
         default_location:
           defaultValue: ''
+          description: Location to return if no table was given.
           isOptional: true
           parameterType: STRING
         project:
+          description: The GCP project.
           parameterType: STRING
         table:
+          description: The BigQuery table to get a location for.
           parameterType: STRING
     outputDefinitions:
       parameters:
@@ -403,20 +452,33 @@ components:
     inputDefinitions:
       parameters:
         experiment_name:
+          description: 'Name of the Vertex AI Experiment to which this pipeine job
+            should be
+
+            bound.'
           parameterType: STRING
         location:
+          description: The GCP region that runs the pipeline components.
           parameterType: STRING
         model_comparison_job_name:
+          description: Name of the model comparison job running this component.
           parameterType: STRING
         network:
+          description: 'The full name of the Compute Engine network to which the
+
+            pipeline job should be peered.'
           parameterType: STRING
         pipeline_root:
+          description: The root GCS directory for the pipeline components.
           parameterType: STRING
         project:
+          description: The GCP project that runs the pipeline components.
           parameterType: STRING
         service_account:
+          description: Specifies the service account for the pipeline job.
           parameterType: STRING
         training_job:
+          description: Dict mapping a model name to its training job parameters.
           parameterType: STRUCT
   comp-validate-inputs:
     executorLabel: exec-validate-inputs
@@ -457,7 +519,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -478,7 +540,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230605_0125
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
@@ -492,7 +554,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -512,7 +574,7 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230605_0125
     exec-build-jobs-parameters:
       container:
         args:
@@ -525,7 +587,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -573,7 +635,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -641,6 +703,12 @@ deploymentSpec:
         - generate_iso8601_underscore_datetime_format
         command:
         - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -656,7 +724,7 @@ deploymentSpec:
           \  import datetime\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
           \n  timestamp = datetime.datetime.now().strftime('%Y_%m_%dT%H_%M_%S_%f')[:23]\n\
           \  return f'{run_id}_{timestamp}Z'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230605_0125
     exec-get-experiment:
       container:
         args:
@@ -670,7 +738,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.18.2'\
-          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -715,7 +783,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1'\
-          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -737,7 +805,7 @@ deploymentSpec:
           \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
           \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
           \  return client.get_table(table).location\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230605_0125
     exec-run-pipeline:
       container:
         args:
@@ -751,7 +819,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.18.2'\
-          \ 'kfp==2.0.0-beta.13' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -825,7 +893,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.13'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -963,6 +1031,8 @@ deploymentSpec:
           \ be the '\n        'same type.')\n\n"
         image: python:3.8-slim
 pipelineInfo:
+  description: Runs multiple training pipelines in parallel and exports results to
+    Vertex Experiments.
   name: model-comparison
 root:
   dag:
@@ -1022,28 +1092,76 @@ root:
   inputDefinitions:
     parameters:
       data_source_bigquery_table_path:
+        description: 'Path to BigQuery Table to use as the
+
+          training dataset for all training pipelines. This should be None if
+
+          `data_source_csv_filenames` is not None. This should only contain data
+
+          from the training and validation split and not from the test split.'
         parameterType: STRING
       data_source_csv_filenames:
+        description: 'Comma-separated paths to CSVs stored in GCS to
+
+          use as the training dataset for all training pipelines. This should be
+
+          None if `data_source_bigquery_table_path` is not None. This should only
+
+          contain data from the training and validation split and not from the test
+
+          split.'
         parameterType: STRING
       evaluation_data_source_bigquery_table_path:
+        description: 'Path to BigQuery Table to use as
+
+          the evaluation dataset for all training pipelines. This should be None if
+
+          `evaluation_data_source_csv_filenames` is not None. This should only
+
+          contain data from the test split and not from the training and validation
+
+          split.'
         parameterType: STRING
       evaluation_data_source_csv_filenames:
+        description: 'Comma-separated paths to CSVs stored
+
+          in GCS to use as the evaluation dataset for all training pipelines. This
+
+          should be None if `evaluation_data_source_bigquery_table_path` is not
+
+          None. This should only contain data from the test split and not from the
+
+          training and validation split.'
         parameterType: STRING
       experiment:
+        description: 'Vertex Experiment to add training pipeline runs to. A new
+
+          Experiment will be created if none is provided.'
         parameterType: STRING
       location:
+        description: The GCP region that runs the pipeline components.
         parameterType: STRING
       network:
+        description: 'The full name of the Compute Engine network to which the
+
+          sub-pipeline jobs should be peered.'
         parameterType: STRING
       prediction_type:
+        description: 'The type of problem being solved. Can be one of:
+
+          regression, classification, or forecasting.'
         parameterType: STRING
       project:
+        description: The GCP project that runs the pipeline components.
         parameterType: STRING
       root_dir:
+        description: The root GCS directory for the pipeline components
         parameterType: STRING
       service_account:
+        description: Specifies the service account for the sub-pipeline jobs.
         parameterType: STRING
       training_jobs:
+        description: A dict mapping name to a dict of training job inputs.
         parameterType: STRUCT
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.0.0-beta.17

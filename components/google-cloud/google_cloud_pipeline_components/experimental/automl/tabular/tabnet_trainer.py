@@ -1,3 +1,5 @@
+"""AutoML Tabnet Trainer component spec."""
+
 # Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,7 +39,7 @@ def tabnet_trainer(
     transform_output: Input[Artifact],
     training_schema_uri: Input[Artifact],
     gcp_resources: dsl.OutputPath(str),
-    unmanaged_container_model: Output[UnmanagedContainerModel],
+    unmanaged_container_model: Output[UnmanagedContainerModel],  # pylint: disable=unused-argument
     weight_column: Optional[str] = '',
     max_steps: Optional[int] = -1,
     max_train_secs: Optional[int] = -1,
@@ -79,107 +81,111 @@ def tabnet_trainer(
   """Launch a TabNet custom training job using Vertex CustomJob API.
 
   Args:
-      project: The GCP project that runs the pipeline
+      project (str): Required. The GCP project that runs the pipeline
         components.
-      location: The GCP region that runs the pipeline
+      location (str): Required. The GCP region that runs the pipeline
         components.
-      root_dir: The root GCS directory for the pipeline
+      root_dir (str): Required. The root GCS directory for the pipeline
         components.
-      target_column: The target column name.
-      prediction_type: The type of prediction the model is to
+      target_column (str): Required. The target column name.
+      prediction_type (str): Required. The type of prediction the model is to
         produce. "classification" or "regression".
-      weight_column: The weight column name.
-      max_steps: Number of steps to run the trainer for.
-      max_train_secs: Amount of time in seconds to run the
+      weight_column (Optional[str]): The weight column name.
+      max_steps (Optional[int]): Number of steps to run the trainer for.
+      max_train_secs (Optional[int]): Amount of time in seconds to run the
         trainer for.
-      learning_rate: The learning rate used by the linear optimizer.
-      large_category_dim: Embedding dimension for categorical
+      learning_rate (float): The learning rate used by the linear optimizer.
+      large_category_dim (Optional[int]): Embedding dimension for categorical
         feature with large number of categories.
-      large_category_thresh: Threshold for number of categories
+      large_category_thresh (Optional[int]): Threshold for number of categories
         to apply large_category_dim embedding dimension to.
-      yeo_johnson_transform: Enables trainable Yeo-Johnson
+      yeo_johnson_transform (Optional[bool]): Enables trainable Yeo-Johnson
         power transform.
-      feature_dim: Dimensionality of the hidden representation
+      feature_dim (Optional[int]): Dimensionality of the hidden representation
         in feature transformation block.
-      feature_dim_ratio: The ratio of output dimension
+      feature_dim_ratio (Optional[float]): The ratio of output dimension
         (dimensionality of the outputs of each decision step) to feature
         dimension.
-      num_decision_steps: Number of sequential decision steps.
-      relaxation_factor: Relaxation factor that promotes the
+      num_decision_steps (Optional[int]): Number of sequential decision steps.
+      relaxation_factor (Optional[float]): Relaxation factor that promotes the
         reuse of each feature at different decision steps. When it is 1, a
         feature is enforced to be used only at one decision step and as it
         increases, more flexibility is provided to use a feature at multiple
         decision steps.
-      decay_every: Number of iterations for periodically
+      decay_every (Optional[float]): Number of iterations for periodically
         applying learning rate decaying.
-      decay_rate: Learning rate decaying.
-      gradient_thresh: Threshold for the norm of gradients for
+      decay_rate (Optional[float]): Learning rate decaying.
+      gradient_thresh (Optional[float]): Threshold for the norm of gradients for
         clipping.
-      sparsity_loss_weight: Weight of the loss for sparsity
+      sparsity_loss_weight (Optional[float]): Weight of the loss for sparsity
         regularization (increasing it will yield more sparse feature selection).
-      batch_momentum: Momentum in ghost batch normalization.
-      batch_size_ratio: The ratio of virtual batch size (size
+      batch_momentum (Optional[float]): Momentum in ghost batch normalization.
+      batch_size_ratio (Optional[float]): The ratio of virtual batch size (size
         of the ghost batch normalization) to batch size.
-      num_transformer_layers: The number of transformer layers
+      num_transformer_layers (Optional[int]): The number of transformer layers
         for each decision step. used only at one decision step and as it
         increases, more flexibility is provided to use a feature at multiple
         decision steps.
-      num_transformer_layers_ratio: The ratio of shared
+      num_transformer_layers_ratio (Optional[float]): The ratio of shared
         transformer layer to transformer layers.
-      class_weight: The class weight is used to computes a
+      class_weight (Optional[float]): The class weight is used to computes a
         weighted cross entropy which is helpful in classify imbalanced dataset.
         Only used for classification.
-      loss_function_type: Loss function type. Loss function in
+      loss_function_type (Optional[str]): Loss function type. Loss function in
         classification [cross_entropy, weighted_cross_entropy, focal_loss],
         default is cross_entropy. Loss function in regression: [rmse, mae, mse],
         default is mse.
-      alpha_focal_loss: Alpha value (balancing factor) in
+      alpha_focal_loss (Optional[float]): Alpha value (balancing factor) in
         focal_loss function. Only used for classification.
-      gamma_focal_loss: Gamma value (modulating factor) for
+      gamma_focal_loss (Optional[float]): Gamma value (modulating factor) for
         focal loss for focal loss. Only used for classification.
-      enable_profiler: Enables profiling and saves a trace
+      enable_profiler (Optional[bool]): Enables profiling and saves a trace
         during evaluation.
-      cache_data: Whether to cache data or not. If set to
+      cache_data (Optional[str]): Whether to cache data or not. If set to
         'auto', caching is determined based on the dataset size.
-      seed: Seed to be used for this run.
-      eval_steps: Number of steps to run evaluation for. If not
+      seed (Optional[int]): Seed to be used for this run.
+      eval_steps (Optional[int]): Number of steps to run evaluation for. If not
         specified or negative, it means run evaluation on the whole validation
         dataset. If set to 0, it means run evaluation for a fixed number of
         samples.
-      batch_size: Batch size for training.
-      measurement_selection_type: Which measurement to use
+      batch_size (Optional[int]): Batch size for training.
+      measurement_selection_type (Optional[str]): Which measurement to use
         if/when the service automatically selects the final measurement from
         previously reported intermediate measurements. One of "BEST_MEASUREMENT"
         or "LAST_MEASUREMENT".
-      optimization_metric: Optimization metric used for
+      optimization_metric (Optional[str]): Optimization metric used for
         `measurement_selection_type`. Default is "rmse" for regression and "auc"
         for classification.
-      eval_frequency_secs: Frequency at which evaluation and
+      eval_frequency_secs (Optional[int]): Frequency at which evaluation and
         checkpointing will take place.
-      training_machine_spec: The training machine
+      training_machine_spec (Optional[Dict[str, Any]]): The training machine
         spec. See https://cloud.google.com/compute/docs/machine-types for
         options.
-      training_disk_spec: The training disk spec.
-      instance_baseline: The path to a JSON file
+      training_disk_spec (Optional[Dict[str, Any]]): The training disk spec.
+      instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file
         for baseline values.
-      metadata: Amount of time in seconds to run the
+      metadata (TabularExampleGenMetadata): Amount of time in seconds to run the
         trainer for.
-      materialized_train_split: The path to the materialized
+      materialized_train_split (MaterializedSplit): The path to the materialized
         train split.
-      materialized_eval_split: The path to the materialized
+      materialized_eval_split (MaterializedSplit): The path to the materialized
         validation split.
-      transform_output: The path to transform output.
-      training_schema_uri: The path to the training schema.
-      encryption_spec_key_name: The KMS key name.
+      transform_output (TransformOutput): The path to transform output.
+      training_schema_uri (TrainingSchema): The path to the training schema.
+      encryption_spec_key_name (Optional[str]): The KMS key name.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
-      unmanaged_container_model: The UnmanagedContainerModel artifact.
+      gcp_resources (str):
+          Serialized gcp_resources proto tracking the custom training job.
+      unmanaged_container_model (google.UnmanagedContainerModel):
+          The UnmanagedContainerModel artifact.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32',
+      # LINT.IfChange
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
+      # LINT.ThenChange(//depot/google3/cloud/ml/pipelines/shared/pipeline_data_access_layer/first_party_components_config.h)
       command=[
           'python3',
           '-u',
@@ -211,7 +217,7 @@ def tabnet_trainer(
                   ', "disk_spec": ',
                   training_disk_spec,
                   ', "container_spec": {"image_uri":"',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230605_0125',
                   '", "args": ["--target_column=',
                   target_column,
                   '", "--weight_column=',
@@ -219,7 +225,7 @@ def tabnet_trainer(
                   '", "--model_type=',
                   prediction_type,
                   '", "--prediction_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125',
                   '", "--baseline_path=',
                   instance_baseline.uri,
                   '", "--metadata_path=',

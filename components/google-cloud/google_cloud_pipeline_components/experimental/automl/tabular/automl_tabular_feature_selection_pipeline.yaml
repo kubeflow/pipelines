@@ -30,6 +30,8 @@
 #    fast_testing: bool [Default: False]
 #    location: str
 #    max_selected_features: int [Default: 1000.0]
+#    model_description: str [Default: '']
+#    model_display_name: str [Default: '']
 #    optimization_objective: str
 #    optimization_objective_precision_value: float [Default: -1.0]
 #    optimization_objective_recall_value: float [Default: -1.0]
@@ -76,43 +78,73 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The materialized
+
+            cross-validation splits.'
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
         tuning_result_input:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'AutoML Tabular tuning
+
+            result.'
       parameters:
         deadline_hours:
+          description: 'Number of hours the cross-validation trainer
+
+            should run.'
           parameterType: NUMBER_DOUBLE
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         num_parallel_trials:
+          description: Number of parallel training trials.
           parameterType: NUMBER_INTEGER
         num_selected_features:
           defaultValue: 0.0
+          description: 'Number of selected features. The number of
+
+            features to learn in the NN models.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         num_selected_trials:
+          description: 'Number of selected trials. The number of weak
+
+            learners in the final model is 5 * num_selected_trials.'
           parameterType: NUMBER_INTEGER
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
         single_run_max_secs:
+          description: Max number of seconds each training trial runs.
           parameterType: NUMBER_INTEGER
         worker_pool_specs_override_json:
           defaultValue: []
+          description: 'JSON worker pool specs. E.g.,
+
+            [{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}}]'
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -121,10 +153,17 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The trained model and architectures.
       parameters:
         execution_metrics:
+          description: Core metrics in dictionary of component execution.
           parameterType: STRUCT
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-cv-trainer-2:
     executorLabel: exec-automl-tabular-cv-trainer-2
@@ -134,43 +173,73 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The materialized
+
+            cross-validation splits.'
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
         tuning_result_input:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'AutoML Tabular tuning
+
+            result.'
       parameters:
         deadline_hours:
+          description: 'Number of hours the cross-validation trainer
+
+            should run.'
           parameterType: NUMBER_DOUBLE
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         num_parallel_trials:
+          description: Number of parallel training trials.
           parameterType: NUMBER_INTEGER
         num_selected_features:
           defaultValue: 0.0
+          description: 'Number of selected features. The number of
+
+            features to learn in the NN models.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         num_selected_trials:
+          description: 'Number of selected trials. The number of weak
+
+            learners in the final model is 5 * num_selected_trials.'
           parameterType: NUMBER_INTEGER
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
         single_run_max_secs:
+          description: Max number of seconds each training trial runs.
           parameterType: NUMBER_INTEGER
         worker_pool_specs_override_json:
           defaultValue: []
+          description: 'JSON worker pool specs. E.g.,
+
+            [{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}}]'
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -179,10 +248,17 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The trained model and architectures.
       parameters:
         execution_metrics:
+          description: Core metrics in dictionary of component execution.
           parameterType: STRUCT
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components.google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-ensemble:
     executorLabel: exec-automl-tabular-ensemble
@@ -192,41 +268,64 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The schema of the dataset.
         instance_baseline:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The instance baseline
+
+            used to calculate explanations.'
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
         tuning_result_input:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'AutoML Tabular tuning
+
+            result.'
         warmup_data:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: 'The warm up data. Ensemble component will save the
+
+            warm up data together with the model artifact, used to warm up the model
+
+            when prediction server starts.'
           isOptional: true
       parameters:
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         export_additional_model_without_custom_ops:
           defaultValue: false
+          description: 'True if export
+
+            an additional model without custom TF operators to the
+
+            `model_without_custom_ops` output.'
           isOptional: true
           parameterType: BOOLEAN
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -238,24 +337,40 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The output model.
         model_architecture:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The architecture of the output model.
         model_without_custom_ops:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The output model without custom TF operators, this output
+            will be
+
+            empty unless
+
+            `export_additional_model_without_custom_ops` is set.'
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
       parameters:
         explanation_metadata:
+          description: 'The explanation parameters used by Vertex online and batch
+
+            explanations.'
           parameterType: STRUCT
         explanation_parameters:
           parameterType: STRUCT
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-ensemble-2:
     executorLabel: exec-automl-tabular-ensemble-2
@@ -265,41 +380,64 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The schema of the dataset.
         instance_baseline:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The instance baseline
+
+            used to calculate explanations.'
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
         tuning_result_input:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'AutoML Tabular tuning
+
+            result.'
         warmup_data:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: 'The warm up data. Ensemble component will save the
+
+            warm up data together with the model artifact, used to warm up the model
+
+            when prediction server starts.'
           isOptional: true
       parameters:
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         export_additional_model_without_custom_ops:
           defaultValue: false
+          description: 'True if export
+
+            an additional model without custom TF operators to the
+
+            `model_without_custom_ops` output.'
           isOptional: true
           parameterType: BOOLEAN
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -311,24 +449,40 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The output model.
         model_architecture:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The architecture of the output model.
         model_without_custom_ops:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The output model without custom TF operators, this output
+            will be
+
+            empty unless
+
+            `export_additional_model_without_custom_ops` is set.'
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
       parameters:
         explanation_metadata:
+          description: 'The explanation parameters used by Vertex online and batch
+
+            explanations.'
           parameterType: STRUCT
         explanation_parameters:
           parameterType: STRUCT
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-ensemble-3:
     executorLabel: exec-automl-tabular-ensemble-3
@@ -338,41 +492,64 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The schema of the dataset.
         instance_baseline:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The instance baseline
+
+            used to calculate explanations.'
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
         tuning_result_input:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'AutoML Tabular tuning
+
+            result.'
         warmup_data:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: 'The warm up data. Ensemble component will save the
+
+            warm up data together with the model artifact, used to warm up the model
+
+            when prediction server starts.'
           isOptional: true
       parameters:
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         export_additional_model_without_custom_ops:
           defaultValue: false
+          description: 'True if export
+
+            an additional model without custom TF operators to the
+
+            `model_without_custom_ops` output.'
           isOptional: true
           parameterType: BOOLEAN
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -384,24 +561,40 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The output model.
         model_architecture:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The architecture of the output model.
         model_without_custom_ops:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The output model without custom TF operators, this output
+            will be
+
+            empty unless
+
+            `export_additional_model_without_custom_ops` is set.'
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
       parameters:
         explanation_metadata:
+          description: 'The explanation parameters used by Vertex online and batch
+
+            explanations.'
           parameterType: STRUCT
         explanation_parameters:
           parameterType: STRUCT
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-finalizer:
     executorLabel: exec-automl-tabular-finalizer
@@ -409,17 +602,26 @@ components:
       parameters:
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
     outputDefinitions:
       parameters:
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-infra-validator:
     executorLabel: exec-automl-tabular-infra-validator
@@ -429,6 +631,9 @@ components:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
+          description: 'google.UnmanagedContainerModel for model
+
+            to be validated.'
   comp-automl-tabular-infra-validator-2:
     executorLabel: exec-automl-tabular-infra-validator-2
     inputDefinitions:
@@ -437,6 +642,9 @@ components:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
+          description: 'google.UnmanagedContainerModel for model
+
+            to be validated.'
   comp-automl-tabular-infra-validator-3:
     executorLabel: exec-automl-tabular-infra-validator-3
     inputDefinitions:
@@ -445,6 +653,9 @@ components:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
+          description: 'google.UnmanagedContainerModel for model
+
+            to be validated.'
   comp-automl-tabular-stage-1-tuner:
     executorLabel: exec-automl-tabular-stage-1-tuner
     inputDefinitions:
@@ -458,55 +669,90 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The materialized eval split.
         materialized_train_split:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The materialized train
+
+            split.'
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
       parameters:
         deadline_hours:
+          description: 'Number of hours the cross-validation trainer
+
+            should run.'
           parameterType: NUMBER_DOUBLE
         disable_early_stopping:
           defaultValue: false
+          description: 'True if disable early stopping. Default
+
+            value is false.'
           isOptional: true
           parameterType: BOOLEAN
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         num_parallel_trials:
+          description: Number of parallel training trials.
           parameterType: NUMBER_INTEGER
         num_selected_features:
           defaultValue: 0.0
+          description: 'Number of selected features. The number of
+
+            features to learn in the NN models.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         num_selected_trials:
+          description: 'Number of selected trials. The number of weak
+
+            learners in the final model is 5 * num_selected_trials.'
           parameterType: NUMBER_INTEGER
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         reduce_search_space_mode:
           defaultValue: regular
+          description: 'The reduce search space mode. Possible
+
+            values: "regular" (default), "minimal", "full".'
           isOptional: true
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
         run_distillation:
           defaultValue: false
+          description: 'True if in distillation mode. The default value
+
+            is false.'
           isOptional: true
           parameterType: BOOLEAN
         single_run_max_secs:
+          description: Max number of seconds each training trial runs.
           parameterType: NUMBER_INTEGER
         study_spec_parameters_override:
           defaultValue: []
+          description: 'JSON study spec. E.g.,
+
+            [{"parameter_id": "model_type","categorical_value_spec": {"values":
+
+            ["nn"]}}]'
           isOptional: true
           parameterType: LIST
         tune_feature_selection_rate:
@@ -515,6 +761,13 @@ components:
           parameterType: BOOLEAN
         worker_pool_specs_override_json:
           defaultValue: []
+          description: 'JSON worker pool specs. E.g.,
+
+            [{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}}]'
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -523,10 +776,17 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The trained model and architectures.
       parameters:
         execution_metrics:
+          description: Core metrics in dictionary of component execution.
           parameterType: STRUCT
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-stage-1-tuner-2:
     executorLabel: exec-automl-tabular-stage-1-tuner-2
@@ -541,55 +801,90 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The materialized eval split.
         materialized_train_split:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: 'The materialized train
+
+            split.'
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
       parameters:
         deadline_hours:
+          description: 'Number of hours the cross-validation trainer
+
+            should run.'
           parameterType: NUMBER_DOUBLE
         disable_early_stopping:
           defaultValue: false
+          description: 'True if disable early stopping. Default
+
+            value is false.'
           isOptional: true
           parameterType: BOOLEAN
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         num_parallel_trials:
+          description: Number of parallel training trials.
           parameterType: NUMBER_INTEGER
         num_selected_features:
           defaultValue: 0.0
+          description: 'Number of selected features. The number of
+
+            features to learn in the NN models.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         num_selected_trials:
+          description: 'Number of selected trials. The number of weak
+
+            learners in the final model is 5 * num_selected_trials.'
           parameterType: NUMBER_INTEGER
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         reduce_search_space_mode:
           defaultValue: regular
+          description: 'The reduce search space mode. Possible
+
+            values: "regular" (default), "minimal", "full".'
           isOptional: true
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
         run_distillation:
           defaultValue: false
+          description: 'True if in distillation mode. The default value
+
+            is false.'
           isOptional: true
           parameterType: BOOLEAN
         single_run_max_secs:
+          description: Max number of seconds each training trial runs.
           parameterType: NUMBER_INTEGER
         study_spec_parameters_override:
           defaultValue: []
+          description: 'JSON study spec. E.g.,
+
+            [{"parameter_id": "model_type","categorical_value_spec": {"values":
+
+            ["nn"]}}]'
           isOptional: true
           parameterType: LIST
         tune_feature_selection_rate:
@@ -598,6 +893,13 @@ components:
           parameterType: BOOLEAN
         worker_pool_specs_override_json:
           defaultValue: []
+          description: 'JSON worker pool specs. E.g.,
+
+            [{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
+
+            "n1-standard-16"}}]'
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -606,10 +908,17 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The trained model and architectures.
       parameters:
         execution_metrics:
+          description: Core metrics in dictionary of component execution.
           parameterType: STRUCT
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-transform:
     executorLabel: exec-automl-tabular-transform
@@ -619,56 +928,82 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The schema of the dataset.
         eval_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The eval split.
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         test_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The test split.
         train_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The train split.
       parameters:
         dataflow_disk_size_gb:
           defaultValue: 40.0
+          description: 'The disk size, in gigabytes, to use
+
+            on each Dataflow worker instance. If not set, default to 40.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
+          description: 'The machine type used for dataflow
+
+            jobs. If not set, default to n1-standard-16.'
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
+          description: 'The number of workers to run the
+
+            dataflow job. If not set, default to 25.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
           defaultValue: ''
+          description: 'Custom service account to run
+
+            dataflow jobs.'
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
           defaultValue: ''
+          description: "Dataflow's fully qualified subnetwork\nname, when empty the\
+            \ default subnetwork will be used. More\ndetails:\n  https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
           defaultValue: true
+          description: 'Specifies whether Dataflow
+
+            workers use public IP addresses.'
           isOptional: true
           parameterType: BOOLEAN
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -676,6 +1011,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The materialized test split.
         materialized_test_split:
           artifactType:
             schemaTitle: system.Artifact
@@ -684,16 +1020,24 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The materialized train split.
         training_schema_uri:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The training schema.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
       parameters:
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-automl-tabular-transform-2:
     executorLabel: exec-automl-tabular-transform-2
@@ -703,56 +1047,82 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The schema of the dataset.
         eval_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The eval split.
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         test_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The test split.
         train_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The train split.
       parameters:
         dataflow_disk_size_gb:
           defaultValue: 40.0
+          description: 'The disk size, in gigabytes, to use
+
+            on each Dataflow worker instance. If not set, default to 40.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
+          description: 'The machine type used for dataflow
+
+            jobs. If not set, default to n1-standard-16.'
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
+          description: 'The number of workers to run the
+
+            dataflow job. If not set, default to 25.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
           defaultValue: ''
+          description: 'Custom service account to run
+
+            dataflow jobs.'
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
           defaultValue: ''
+          description: "Dataflow's fully qualified subnetwork\nname, when empty the\
+            \ default subnetwork will be used. More\ndetails:\n  https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
           defaultValue: true
+          description: 'Specifies whether Dataflow
+
+            workers use public IP addresses.'
           isOptional: true
           parameterType: BOOLEAN
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: Location for running the Cross-validation trainer.
           parameterType: STRING
         project:
+          description: Required. Project to run Cross-validation trainer.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -760,6 +1130,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The materialized test split.
         materialized_test_split:
           artifactType:
             schemaTitle: system.Artifact
@@ -768,22 +1139,31 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The materialized train split.
         training_schema_uri:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The training schema.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The transform output artifact.
       parameters:
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-bool-identity:
     executorLabel: exec-bool-identity
     inputDefinitions:
       parameters:
         value:
+          description: Boolean value to return
           parameterType: BOOLEAN
     outputDefinitions:
       parameters:
@@ -794,6 +1174,7 @@ components:
     inputDefinitions:
       parameters:
         value:
+          description: Boolean value to return
           parameterType: BOOLEAN
     outputDefinitions:
       parameters:
@@ -804,6 +1185,7 @@ components:
     inputDefinitions:
       parameters:
         value:
+          description: Boolean value to return
           parameterType: BOOLEAN
     outputDefinitions:
       parameters:
@@ -815,19 +1197,31 @@ components:
       parameters:
         fast_testing:
           defaultValue: false
+          description: Internal flag used for presubmit tests.
           isOptional: true
           parameterType: BOOLEAN
         is_skip_architecture_search:
           defaultValue: false
+          description: 'If component is being called in the
+
+            skip_architecture_search pipeline.'
           isOptional: true
           parameterType: BOOLEAN
         run_distillation:
+          description: Whether to run distill in the training pipeline.
           parameterType: BOOLEAN
         stage_1_num_parallel_trials:
+          description: Number of parallel trails for stage 1.
           parameterType: NUMBER_INTEGER
         stage_2_num_parallel_trials:
+          description: Number of parallel trails for stage 2.
           parameterType: NUMBER_INTEGER
         train_budget_milli_node_hours:
+          description: 'The train budget of creating this model,
+
+            expressed in milli node hours i.e. 1,000 value in this field means 1 node
+
+            hour.'
           parameterType: NUMBER_DOUBLE
     outputDefinitions:
       parameters:
@@ -851,19 +1245,31 @@ components:
       parameters:
         fast_testing:
           defaultValue: false
+          description: Internal flag used for presubmit tests.
           isOptional: true
           parameterType: BOOLEAN
         is_skip_architecture_search:
           defaultValue: false
+          description: 'If component is being called in the
+
+            skip_architecture_search pipeline.'
           isOptional: true
           parameterType: BOOLEAN
         run_distillation:
+          description: Whether to run distill in the training pipeline.
           parameterType: BOOLEAN
         stage_1_num_parallel_trials:
+          description: Number of parallel trails for stage 1.
           parameterType: NUMBER_INTEGER
         stage_2_num_parallel_trials:
+          description: Number of parallel trails for stage 2.
           parameterType: NUMBER_INTEGER
         train_budget_milli_node_hours:
+          description: 'The train budget of creating this model,
+
+            expressed in milli node hours i.e. 1,000 value in this field means 1 node
+
+            hour.'
           parameterType: NUMBER_DOUBLE
     outputDefinitions:
       parameters:
@@ -889,6 +1295,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: metadata generated by example gen.
     outputDefinitions:
       parameters:
         Output:
@@ -1145,10 +1552,9 @@ components:
                   producerTask: automl-tabular-ensemble
             parameters:
               description:
-                runtimeValue:
-                  constant: ''
+                componentInputParameter: pipelinechannel--model_description
               display_name:
-                componentInputParameter: pipelinechannel--generate-model-display-name-model_display_name
+                componentInputParameter: pipelinechannel--model_display_name
               encryption_spec_key_name:
                 componentInputParameter: pipelinechannel--encryption_spec_key_name
               explanation_parameters:
@@ -1226,9 +1632,11 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--fast_testing:
           parameterType: BOOLEAN
-        pipelinechannel--generate-model-display-name-model_display_name:
-          parameterType: STRING
         pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--model_description:
+          parameterType: STRING
+        pipelinechannel--model_display_name:
           parameterType: STRING
         pipelinechannel--prediction_type:
           parameterType: STRING
@@ -1836,10 +2244,12 @@ components:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_max_num_workers
               pipelinechannel--evaluation_dataflow_starting_num_workers:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_starting_num_workers
-              pipelinechannel--generate-model-display-name-model_display_name:
-                componentInputParameter: pipelinechannel--generate-model-display-name-model_display_name
               pipelinechannel--location:
                 componentInputParameter: pipelinechannel--location
+              pipelinechannel--model_description:
+                componentInputParameter: pipelinechannel--model_description
+              pipelinechannel--model_display_name:
+                componentInputParameter: pipelinechannel--model_display_name
               pipelinechannel--prediction_type:
                 componentInputParameter: pipelinechannel--prediction_type
               pipelinechannel--project:
@@ -2066,9 +2476,11 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--fast_testing:
           parameterType: BOOLEAN
-        pipelinechannel--generate-model-display-name-model_display_name:
-          parameterType: STRING
         pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--model_description:
+          parameterType: STRING
+        pipelinechannel--model_display_name:
           parameterType: STRING
         pipelinechannel--prediction_type:
           parameterType: STRING
@@ -2221,10 +2633,9 @@ components:
                 componentInputArtifact: pipelinechannel--automl-tabular-ensemble-2-unmanaged_container_model
             parameters:
               description:
-                runtimeValue:
-                  constant: ''
+                componentInputParameter: pipelinechannel--model_description
               display_name:
-                componentInputParameter: pipelinechannel--generate-model-display-name-model_display_name
+                componentInputParameter: pipelinechannel--model_display_name
               encryption_spec_key_name:
                 componentInputParameter: pipelinechannel--encryption_spec_key_name
               explanation_parameters:
@@ -2280,9 +2691,11 @@ components:
           parameterType: NUMBER_INTEGER
         pipelinechannel--evaluation_dataflow_starting_num_workers:
           parameterType: NUMBER_INTEGER
-        pipelinechannel--generate-model-display-name-model_display_name:
-          parameterType: STRING
         pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--model_description:
+          parameterType: STRING
+        pipelinechannel--model_display_name:
           parameterType: STRING
         pipelinechannel--prediction_type:
           parameterType: STRING
@@ -3598,10 +4011,12 @@ components:
                 componentInputParameter: pipelinechannel--export_additional_model_without_custom_ops
               pipelinechannel--fast_testing:
                 componentInputParameter: pipelinechannel--fast_testing
-              pipelinechannel--generate-model-display-name-model_display_name:
-                componentInputParameter: pipelinechannel--generate-model-display-name-model_display_name
               pipelinechannel--location:
                 componentInputParameter: pipelinechannel--location
+              pipelinechannel--model_description:
+                componentInputParameter: pipelinechannel--model_description
+              pipelinechannel--model_display_name:
+                componentInputParameter: pipelinechannel--model_display_name
               pipelinechannel--prediction_type:
                 componentInputParameter: pipelinechannel--prediction_type
               pipelinechannel--project:
@@ -3740,10 +4155,12 @@ components:
                 componentInputParameter: pipelinechannel--export_additional_model_without_custom_ops
               pipelinechannel--fast_testing:
                 componentInputParameter: pipelinechannel--fast_testing
-              pipelinechannel--generate-model-display-name-model_display_name:
-                componentInputParameter: pipelinechannel--generate-model-display-name-model_display_name
               pipelinechannel--location:
                 componentInputParameter: pipelinechannel--location
+              pipelinechannel--model_description:
+                componentInputParameter: pipelinechannel--model_description
+              pipelinechannel--model_display_name:
+                componentInputParameter: pipelinechannel--model_display_name
               pipelinechannel--prediction_type:
                 componentInputParameter: pipelinechannel--prediction_type
               pipelinechannel--project:
@@ -4013,12 +4430,14 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--fast_testing:
           parameterType: BOOLEAN
-        pipelinechannel--generate-model-display-name-model_display_name:
-          parameterType: STRING
         pipelinechannel--location:
           parameterType: STRING
         pipelinechannel--max_selected_features:
           parameterType: NUMBER_INTEGER
+        pipelinechannel--model_description:
+          parameterType: STRING
+        pipelinechannel--model_display_name:
+          parameterType: STRING
         pipelinechannel--optimization_objective:
           parameterType: STRING
         pipelinechannel--optimization_objective_precision_value:
@@ -4309,12 +4728,6 @@ components:
       parameters:
         gcp_resources:
           parameterType: STRING
-  comp-generate-model-display-name:
-    executorLabel: exec-generate-model-display-name
-    outputDefinitions:
-      parameters:
-        model_display_name:
-          parameterType: STRING
   comp-importer:
     executorLabel: exec-importer
     inputDefinitions:
@@ -4335,10 +4748,12 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The first materialized split.
         split_1:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The second materialized split.
     outputDefinitions:
       artifacts:
         splits:
@@ -4685,6 +5100,11 @@ components:
     executorLabel: exec-model-batch-predict
     inputDefinitions:
       artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+          isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
@@ -4792,6 +5212,11 @@ components:
     executorLabel: exec-model-batch-predict-2
     inputDefinitions:
       artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+          isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
@@ -4899,6 +5324,11 @@ components:
     executorLabel: exec-model-batch-predict-3
     inputDefinitions:
       artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+          isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
@@ -5006,6 +5436,11 @@ components:
     executorLabel: exec-model-batch-predict-4
     inputDefinitions:
       artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+          isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
@@ -5113,6 +5548,11 @@ components:
     executorLabel: exec-model-batch-predict-5
     inputDefinitions:
       artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+          isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
@@ -5824,10 +6264,12 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: selected feature names separated by comma.
         unpurged_metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: metadata generated by example gen.
     outputDefinitions:
       artifacts:
         output_metadata:
@@ -5842,6 +6284,7 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: Tbe path to the file that contains Dataset data.
     outputDefinitions:
       parameters:
         Output:
@@ -5854,6 +6297,7 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: Tbe path to the file that contains Dataset data.
     outputDefinitions:
       parameters:
         Output:
@@ -5863,6 +6307,7 @@ components:
     inputDefinitions:
       parameters:
         value:
+          description: String value to be checked.
           parameterType: STRING
     outputDefinitions:
       parameters:
@@ -5887,36 +6332,68 @@ components:
           parameterType: STRING
         dataflow_disk_size_gb:
           defaultValue: 40.0
+          description: 'The disk size, in gigabytes, to use
+
+            on each Dataflow worker instance. If not set, default to 40.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
+          description: 'The machine type used for dataflow
+
+            jobs. If not set, default to n1-standard-16.'
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
+          description: 'The number of workers to run the
+
+            dataflow job. If not set, default to 25.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
           defaultValue: ''
+          description: 'Custom service account to run
+
+            dataflow jobs.'
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
           defaultValue: ''
+          description: "Dataflow's fully qualified subnetwork\nname, when empty the\
+            \ default subnetwork will be used. More\ndetails:\n  https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
           defaultValue: true
+          description: 'Specifies whether Dataflow
+
+            workers use public IP addresses.'
           isOptional: true
           parameterType: BOOLEAN
         encryption_spec_key_name:
           defaultValue: ''
+          description: 'Customer-managed encryption key.
+
+            If this is set, then all resources will be encrypted with the provided
+
+            encryption key. data_source(Dataset): The input dataset artifact which
+
+            references csv, BigQuery, or TF Records. target_column_name(str): Target
+
+            column name of the input dataset.'
           isOptional: true
           parameterType: STRING
         location:
+          description: 'Location for running the feature selection. If not set,
+
+            default to us-central1.'
           parameterType: STRING
         max_selected_features:
           defaultValue: 1000.0
+          description: 'number of features to select by the
+
+            algorithm. If not set, default to 1000.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         prediction_type:
@@ -5924,8 +6401,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
+          description: Required. Project to run feature selection.
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
         target_column_name:
           parameterType: STRING
@@ -5935,12 +6414,19 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: the dictionary of feature names and feature ranking values.
         selected_features:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: A json array of selected feature names.
       parameters:
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
   comp-tabular-stats-and-example-gen:
     executorLabel: exec-tabular-stats-and-example-gen
@@ -5964,26 +6450,43 @@ components:
           parameterType: STRING
         dataflow_disk_size_gb:
           defaultValue: 40.0
+          description: 'The disk size, in gigabytes, to use
+
+            on each Dataflow worker instance. If not set, default to 40.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
+          description: 'The machine type used for dataflow
+
+            jobs. If not set, default to n1-standard-16.'
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
+          description: 'The number of workers to run the
+
+            dataflow job. If not set, default to 25.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
           defaultValue: ''
+          description: 'Custom service account to run
+
+            dataflow jobs.'
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
           defaultValue: ''
+          description: "Dataflow's fully qualified subnetwork\nname, when empty the\
+            \ default subnetwork will be used. More\ndetails:\n  https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
           defaultValue: true
+          description: 'Specifies whether Dataflow
+
+            workers use public IP addresses.'
           isOptional: true
           parameterType: BOOLEAN
         enable_probabilistic_inference:
@@ -5992,20 +6495,48 @@ components:
           parameterType: BOOLEAN
         encryption_spec_key_name:
           defaultValue: ''
+          description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         location:
+          description: 'Location for running dataset statistics and example
+
+            generation.'
           parameterType: STRING
         optimization_objective:
           defaultValue: ''
+          description: "Objective function the model is optimizing\ntowards. The training\
+            \ process creates a model that maximizes/minimizes\nthe value of the objective\
+            \ function over the validation set. The\nsupported optimization objectives\
+            \ depend on the prediction type. If the\nfield is not set, a default objective\
+            \ function is used.\n  classification (binary): \"maximize-au-roc\" (default)\
+            \ - Maximize the\n    area under the receiver operating characteristic\
+            \ (ROC) curve.\n    \"minimize-log-loss\" - Minimize log loss. \"maximize-au-prc\"\
+            \ -\n    Maximize the area under the precision-recall curve.\n    \"maximize-precision-at-recall\"\
+            \ - Maximize precision for a specified\n    recall value. \"maximize-recall-at-precision\"\
+            \ - Maximize recall for a\n    specified precision value.\n  classification\
+            \ (multi-class): \"minimize-log-loss\" (default) - Minimize\n    log loss.\n\
+            \  regression: \"minimize-rmse\" (default) - Minimize root-mean-squared\n\
+            \    error (RMSE). \"minimize-mae\" - Minimize mean-absolute error (MAE).\n\
+            \    \"minimize-rmsle\" - Minimize root-mean-squared log error (RMSLE)."
           isOptional: true
           parameterType: STRING
         optimization_objective_precision_value:
           defaultValue: -1.0
+          description: 'Required when
+
+            optimization_objective is "maximize-recall-at-precision". Must be
+
+            between 0 and 1, inclusive.'
           isOptional: true
           parameterType: NUMBER_DOUBLE
         optimization_objective_recall_value:
           defaultValue: -1.0
+          description: 'Required when
+
+            optimization_objective is "maximize-precision-at-recall". Must be
+
+            between 0 and 1, inclusive.'
           isOptional: true
           parameterType: NUMBER_DOUBLE
         predefined_split_key:
@@ -6013,8 +6544,14 @@ components:
           isOptional: true
           parameterType: STRING
         prediction_type:
+          description: 'The prediction type. Supported values:
+
+            "classification", "regression".'
           parameterType: STRING
         project:
+          description: 'Required. Project to run dataset statistics and example
+
+            generation.'
           parameterType: STRING
         quantiles:
           defaultValue: []
@@ -6025,9 +6562,13 @@ components:
           isOptional: true
           parameterType: STRING
         root_dir:
+          description: The Cloud Storage location to store the output.
           parameterType: STRING
         run_distillation:
           defaultValue: false
+          description: 'True if in distillation mode. The default value
+
+            is false.'
           isOptional: true
           parameterType: BOOLEAN
         stratified_split_key:
@@ -6035,6 +6576,7 @@ components:
           isOptional: true
           parameterType: STRING
         target_column_name:
+          description: The target column name.
           parameterType: STRING
         test_fraction:
           defaultValue: -1.0
@@ -6049,9 +6591,21 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         transformations:
+          description: 'Quote escaped JSON string for transformations. Each
+
+            transformation will apply transform function to given input column. And
+
+            the result will be used for training. When creating transformation for
+
+            BigQuery Struct column, the column should be flattened using "." as the
+
+            delimiter.'
           parameterType: STRING
         transformations_path:
           defaultValue: ''
+          description: 'Path to a GCS file containing JSON
+
+            string for transformations.'
           isOptional: true
           parameterType: STRING
         validation_fraction:
@@ -6060,6 +6614,7 @@ components:
           parameterType: NUMBER_DOUBLE
         weight_column_name:
           defaultValue: ''
+          description: The weight column name.
           isOptional: true
           parameterType: STRING
     outputDefinitions:
@@ -6068,36 +6623,50 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The schema of the dataset.
         dataset_stats:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The stats of the dataset.
         eval_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The eval split.
         instance_baseline:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The instance baseline used to calculate explanations.
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The tabular example gen metadata.
         test_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The test split.
         train_split:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+          description: The train split.
       parameters:
         downsampled_test_split_json:
+          description: The downsampled test split JSON object.
           parameterType: LIST
         gcp_resources:
+          description: 'GCP resources created by this component.
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
           parameterType: STRING
         test_split_json:
+          description: The test split JSON object.
           parameterType: LIST
   comp-write-bp-result-path:
     executorLabel: exec-write-bp-result-path
@@ -6107,6 +6676,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The batch prediction job artifact.
     outputDefinitions:
       artifacts:
         result:
@@ -6121,6 +6691,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+          description: The batch prediction job artifact.
     outputDefinitions:
       artifacts:
         result:
@@ -6145,9 +6716,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"l2l_cv_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125",
           "\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
           \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -6171,7 +6742,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-cv-trainer-2:
       container:
         args:
@@ -6188,9 +6759,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"l2l_cv_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125",
           "\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
           \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -6214,7 +6785,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-ensemble:
       container:
         args:
@@ -6231,7 +6802,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -6243,7 +6814,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -6255,7 +6826,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-ensemble-2:
       container:
         args:
@@ -6272,7 +6843,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -6284,7 +6855,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -6296,7 +6867,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-ensemble-3:
       container:
         args:
@@ -6313,7 +6884,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -6325,7 +6896,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -6337,7 +6908,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-finalizer:
       container:
         args:
@@ -6354,7 +6925,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -6363,13 +6934,13 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-infra-validator:
       container:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -6378,7 +6949,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -6387,7 +6958,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230424_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230605_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -6407,9 +6978,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125",
           "\", \"--feature_selection_result_path=", "{{$.inputs.artifacts[''feature_ranking''].uri}}",
           "\", \"--disable_early_stopping=", "{{$.inputs.parameters[''disable_early_stopping'']}}",
           "\", \"--tune_feature_selection_rate=", "{{$.inputs.parameters[''tune_feature_selection_rate'']}}",
@@ -6437,7 +7008,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-stage-1-tuner-2:
       container:
         args:
@@ -6454,9 +7025,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125",
           "\", \"--feature_selection_result_path=", "{{$.inputs.artifacts[''feature_ranking''].uri}}",
           "\", \"--disable_early_stopping=", "{{$.inputs.parameters[''disable_early_stopping'']}}",
           "\", \"--tune_feature_selection_rate=", "{{$.inputs.parameters[''tune_feature_selection_rate'']}}",
@@ -6484,7 +7055,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-transform:
       container:
         args:
@@ -6501,7 +7072,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"transform\", \"--is_mp=true\", \"--transform_output_artifact_path=",
           "{{$.outputs.artifacts[''transform_output''].uri}}", "\", \"--transform_output_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\",
@@ -6522,7 +7093,7 @@ deploymentSpec:
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
           "\", \"--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
@@ -6536,7 +7107,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-transform-2:
       container:
         args:
@@ -6553,7 +7124,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"transform\", \"--is_mp=true\", \"--transform_output_artifact_path=",
           "{{$.outputs.artifacts[''transform_output''].uri}}", "\", \"--transform_output_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\",
@@ -6574,7 +7145,7 @@ deploymentSpec:
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
           "\", \"--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
@@ -6588,7 +7159,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-bool-identity:
       container:
         args:
@@ -6598,6 +7169,12 @@ deploymentSpec:
         - _bool_identity
         command:
         - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6610,7 +7187,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
     exec-bool-identity-2:
       container:
         args:
@@ -6620,6 +7197,12 @@ deploymentSpec:
         - _bool_identity
         command:
         - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6632,7 +7215,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
     exec-bool-identity-3:
       container:
         args:
@@ -6642,6 +7225,12 @@ deploymentSpec:
         - _bool_identity
         command:
         - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6654,7 +7243,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
     exec-calculate-training-parameters:
       container:
         args:
@@ -6664,97 +7253,11 @@ deploymentSpec:
         - _calculate_training_parameters
         command:
         - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _calculate_training_parameters(\n    stage_1_num_parallel_trials:\
-          \ int,\n    train_budget_milli_node_hours: float,\n    stage_2_num_parallel_trials:\
-          \ int,\n    run_distillation: bool,\n    is_skip_architecture_search: bool\
-          \ = False,\n    fast_testing: bool = False,\n) -> NamedTuple(\n    'Outputs',\n\
-          \    [\n        ('stage_1_deadline_hours', float),\n        ('stage_1_num_selected_trials',\
-          \ int),\n        ('stage_1_single_run_max_secs', int),\n        ('stage_2_deadline_hours',\
-          \ float),\n        ('stage_2_single_run_max_secs', int),\n        ('distill_stage_1_deadline_hours',\
-          \ float),\n        ('reduce_search_space_mode', str),\n    ],\n):\n  \"\"\
-          \"Calculates training parameters.\n\n  Args:\n    stage_1_num_parallel_trials:\
-          \ Number of parallel trails for stage 1.\n    train_budget_milli_node_hours:\
-          \ The train budget of creating this model,\n      expressed in milli node\
-          \ hours i.e. 1,000 value in this field means 1 node\n      hour.\n    stage_2_num_parallel_trials:\
-          \ Number of parallel trails for stage 2.\n    run_distillation: Whether\
-          \ to run distill in the training pipeline.\n    is_skip_architecture_search:\
-          \ If component is being called in the\n      skip_architecture_search pipeline.\n\
-          \    fast_testing: Internal flag used for presubmit tests.\n\n  Returns:\n\
-          \      stage_1_deadline_hours: Maximum number of hours to run stage 1.\n\
-          \      stage_1_num_selected_trials: Number of selected trails for stage\
-          \ 1.\n      stage_1_single_run_max_secs: Maximum number seconds to for a\
-          \ single stage\n      1\n        training trial.\n      stage_2_deadline_hours:\
-          \ Maximum number of hours to run stage 2.\n      stage_2_single_run_max_secs:\
-          \ Maximum number seconds to for a single stage\n      2\n      training\
-          \ trial.\n      distill_stage_1_deadline_hours: Maximum number of hours\
-          \ to run stage 1 for\n      the model distillation.\n      reduce_search_space_mode:\
-          \ The reduce search space mode. Possible values:\n      minimal, regular,\
-          \ full.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \  import collections\n  import math\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \  num_folds = 5\n  distill_total_trials = 100\n\n  stage_1_deadline_hours\
-          \ = -1.0\n  stage_1_num_selected_trials = -1\n  stage_1_single_run_max_secs\
-          \ = -1\n  stage_2_deadline_hours = -1.0\n  stage_2_single_run_max_secs =\
-          \ -1\n  distill_stage_1_deadline_hours = 1.0\n  reduce_search_space_mode\
-          \ = 'regular'\n\n  if is_skip_architecture_search:\n    stage_2_deadline_hours\
-          \ = train_budget_milli_node_hours / 1000.0\n    stage_2_single_run_max_secs\
-          \ = int(stage_2_deadline_hours * 3600.0 / 1.3)\n  else:\n    hours = float(train_budget_milli_node_hours)\
-          \ / 1000.0\n    multiplier = stage_1_num_parallel_trials * hours / 500.0\n\
-          \    stage_1_single_run_max_secs = int(math.sqrt(multiplier) * 2400.0)\n\
-          \    phase_2_rounds = int(\n        math.sqrt(multiplier) * 100 / stage_2_num_parallel_trials\
-          \ + 0.5\n    )\n    if phase_2_rounds < 1:\n      phase_2_rounds = 1\n\n\
-          \    # All of magic number \"1.3\" above is because the trial doesn't\n\
-          \    # always finish in time_per_trial. 1.3 is an empirical safety margin\
-          \ here.\n    stage_1_deadline_secs = int(\n        hours * 3600.0 - 1.3\
-          \ * stage_1_single_run_max_secs * phase_2_rounds\n    )\n\n    if stage_1_deadline_secs\
-          \ < hours * 3600.0 * 0.5:\n      stage_1_deadline_secs = int(hours * 3600.0\
-          \ * 0.5)\n      # Phase 1 deadline is the same as phase 2 deadline in this\
-          \ case. Phase 2\n      # can't finish in time after the deadline is cut,\
-          \ so adjust the time per\n      # trial to meet the deadline.\n      stage_1_single_run_max_secs\
-          \ = int(\n          stage_1_deadline_secs / (1.3 * phase_2_rounds)\n   \
-          \   )\n\n    reduce_search_space_mode = 'minimal'\n    if multiplier > 2:\n\
-          \      reduce_search_space_mode = 'regular'\n    if multiplier > 4:\n  \
-          \    reduce_search_space_mode = 'full'\n\n    # Stage 2 number of trials\
-          \ is stage_1_num_selected_trials *\n    # num_folds, which should be equal\
-          \ to phase_2_rounds *\n    # stage_2_num_parallel_trials. Use this information\
-          \ to calculate\n    # stage_1_num_selected_trials:\n    stage_1_num_selected_trials\
-          \ = int(\n        phase_2_rounds * stage_2_num_parallel_trials / num_folds\n\
-          \    )\n    stage_1_deadline_hours = stage_1_deadline_secs / 3600.0\n\n\
-          \    stage_2_deadline_hours = hours - stage_1_deadline_hours\n    stage_2_single_run_max_secs\
-          \ = stage_1_single_run_max_secs\n\n    if run_distillation:\n      # All\
-          \ of magic number \"1.3\" above is because the trial doesn't always\n  \
-          \    # finish in time_per_trial. 1.3 is an empirical safety margin here.\n\
-          \      distill_stage_1_deadline_hours = (\n          math.ceil(float(distill_total_trials)\
-          \ / stage_1_num_parallel_trials)\n          * stage_1_single_run_max_secs\n\
-          \          * 1.3\n          / 3600.0\n      )\n\n  if fast_testing:\n  \
-          \  distill_stage_1_deadline_hours = 0.2\n    stage_1_deadline_hours = 0.2\n\
-          \    stage_1_single_run_max_secs = 1\n    stage_2_deadline_hours = 0.2\n\
-          \    stage_2_single_run_max_secs = 1\n\n  return collections.namedtuple(\n\
-          \      'Outputs',\n      [\n          'stage_1_deadline_hours',\n      \
-          \    'stage_1_num_selected_trials',\n          'stage_1_single_run_max_secs',\n\
-          \          'stage_2_deadline_hours',\n          'stage_2_single_run_max_secs',\n\
-          \          'distill_stage_1_deadline_hours',\n          'reduce_search_space_mode',\n\
-          \      ],\n  )(\n      stage_1_deadline_hours,\n      stage_1_num_selected_trials,\n\
-          \      stage_1_single_run_max_secs,\n      stage_2_deadline_hours,\n   \
-          \   stage_2_single_run_max_secs,\n      distill_stage_1_deadline_hours,\n\
-          \      reduce_search_space_mode,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
-    exec-calculate-training-parameters-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _calculate_training_parameters
-        command:
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -6838,7 +7341,105 @@ deploymentSpec:
           \      stage_1_single_run_max_secs,\n      stage_2_deadline_hours,\n   \
           \   stage_2_single_run_max_secs,\n      distill_stage_1_deadline_hours,\n\
           \      reduce_search_space_mode,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
+    exec-calculate-training-parameters-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _calculate_training_parameters
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _calculate_training_parameters(\n    stage_1_num_parallel_trials:\
+          \ int,\n    train_budget_milli_node_hours: float,\n    stage_2_num_parallel_trials:\
+          \ int,\n    run_distillation: bool,\n    is_skip_architecture_search: bool\
+          \ = False,\n    fast_testing: bool = False,\n) -> NamedTuple(\n    'Outputs',\n\
+          \    [\n        ('stage_1_deadline_hours', float),\n        ('stage_1_num_selected_trials',\
+          \ int),\n        ('stage_1_single_run_max_secs', int),\n        ('stage_2_deadline_hours',\
+          \ float),\n        ('stage_2_single_run_max_secs', int),\n        ('distill_stage_1_deadline_hours',\
+          \ float),\n        ('reduce_search_space_mode', str),\n    ],\n):\n  \"\"\
+          \"Calculates training parameters.\n\n  Args:\n    stage_1_num_parallel_trials:\
+          \ Number of parallel trails for stage 1.\n    train_budget_milli_node_hours:\
+          \ The train budget of creating this model,\n      expressed in milli node\
+          \ hours i.e. 1,000 value in this field means 1 node\n      hour.\n    stage_2_num_parallel_trials:\
+          \ Number of parallel trails for stage 2.\n    run_distillation: Whether\
+          \ to run distill in the training pipeline.\n    is_skip_architecture_search:\
+          \ If component is being called in the\n      skip_architecture_search pipeline.\n\
+          \    fast_testing: Internal flag used for presubmit tests.\n\n  Returns:\n\
+          \      stage_1_deadline_hours: Maximum number of hours to run stage 1.\n\
+          \      stage_1_num_selected_trials: Number of selected trails for stage\
+          \ 1.\n      stage_1_single_run_max_secs: Maximum number seconds to for a\
+          \ single stage\n      1\n        training trial.\n      stage_2_deadline_hours:\
+          \ Maximum number of hours to run stage 2.\n      stage_2_single_run_max_secs:\
+          \ Maximum number seconds to for a single stage\n      2\n      training\
+          \ trial.\n      distill_stage_1_deadline_hours: Maximum number of hours\
+          \ to run stage 1 for\n      the model distillation.\n      reduce_search_space_mode:\
+          \ The reduce search space mode. Possible values:\n      minimal, regular,\
+          \ full.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \  import collections\n  import math\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \  num_folds = 5\n  distill_total_trials = 100\n\n  stage_1_deadline_hours\
+          \ = -1.0\n  stage_1_num_selected_trials = -1\n  stage_1_single_run_max_secs\
+          \ = -1\n  stage_2_deadline_hours = -1.0\n  stage_2_single_run_max_secs =\
+          \ -1\n  distill_stage_1_deadline_hours = 1.0\n  reduce_search_space_mode\
+          \ = 'regular'\n\n  if is_skip_architecture_search:\n    stage_2_deadline_hours\
+          \ = train_budget_milli_node_hours / 1000.0\n    stage_2_single_run_max_secs\
+          \ = int(stage_2_deadline_hours * 3600.0 / 1.3)\n  else:\n    hours = float(train_budget_milli_node_hours)\
+          \ / 1000.0\n    multiplier = stage_1_num_parallel_trials * hours / 500.0\n\
+          \    stage_1_single_run_max_secs = int(math.sqrt(multiplier) * 2400.0)\n\
+          \    phase_2_rounds = int(\n        math.sqrt(multiplier) * 100 / stage_2_num_parallel_trials\
+          \ + 0.5\n    )\n    if phase_2_rounds < 1:\n      phase_2_rounds = 1\n\n\
+          \    # All of magic number \"1.3\" above is because the trial doesn't\n\
+          \    # always finish in time_per_trial. 1.3 is an empirical safety margin\
+          \ here.\n    stage_1_deadline_secs = int(\n        hours * 3600.0 - 1.3\
+          \ * stage_1_single_run_max_secs * phase_2_rounds\n    )\n\n    if stage_1_deadline_secs\
+          \ < hours * 3600.0 * 0.5:\n      stage_1_deadline_secs = int(hours * 3600.0\
+          \ * 0.5)\n      # Phase 1 deadline is the same as phase 2 deadline in this\
+          \ case. Phase 2\n      # can't finish in time after the deadline is cut,\
+          \ so adjust the time per\n      # trial to meet the deadline.\n      stage_1_single_run_max_secs\
+          \ = int(\n          stage_1_deadline_secs / (1.3 * phase_2_rounds)\n   \
+          \   )\n\n    reduce_search_space_mode = 'minimal'\n    if multiplier > 2:\n\
+          \      reduce_search_space_mode = 'regular'\n    if multiplier > 4:\n  \
+          \    reduce_search_space_mode = 'full'\n\n    # Stage 2 number of trials\
+          \ is stage_1_num_selected_trials *\n    # num_folds, which should be equal\
+          \ to phase_2_rounds *\n    # stage_2_num_parallel_trials. Use this information\
+          \ to calculate\n    # stage_1_num_selected_trials:\n    stage_1_num_selected_trials\
+          \ = int(\n        phase_2_rounds * stage_2_num_parallel_trials / num_folds\n\
+          \    )\n    stage_1_deadline_hours = stage_1_deadline_secs / 3600.0\n\n\
+          \    stage_2_deadline_hours = hours - stage_1_deadline_hours\n    stage_2_single_run_max_secs\
+          \ = stage_1_single_run_max_secs\n\n    if run_distillation:\n      # All\
+          \ of magic number \"1.3\" above is because the trial doesn't always\n  \
+          \    # finish in time_per_trial. 1.3 is an empirical safety margin here.\n\
+          \      distill_stage_1_deadline_hours = (\n          math.ceil(float(distill_total_trials)\
+          \ / stage_1_num_parallel_trials)\n          * stage_1_single_run_max_secs\n\
+          \          * 1.3\n          / 3600.0\n      )\n\n  if fast_testing:\n  \
+          \  distill_stage_1_deadline_hours = 0.2\n    stage_1_deadline_hours = 0.2\n\
+          \    stage_1_single_run_max_secs = 1\n    stage_2_deadline_hours = 0.2\n\
+          \    stage_2_single_run_max_secs = 1\n\n  return collections.namedtuple(\n\
+          \      'Outputs',\n      [\n          'stage_1_deadline_hours',\n      \
+          \    'stage_1_num_selected_trials',\n          'stage_1_single_run_max_secs',\n\
+          \          'stage_2_deadline_hours',\n          'stage_2_single_run_max_secs',\n\
+          \          'distill_stage_1_deadline_hours',\n          'reduce_search_space_mode',\n\
+          \      ],\n  )(\n      stage_1_deadline_hours,\n      stage_1_num_selected_trials,\n\
+          \      stage_1_single_run_max_secs,\n      stage_2_deadline_hours,\n   \
+          \   stage_2_single_run_max_secs,\n      distill_stage_1_deadline_hours,\n\
+          \      reduce_search_space_mode,\n  )\n\n"
+        image: python:3.7
     exec-check-if-binary-classification:
       container:
         args:
@@ -6847,6 +7448,12 @@ deploymentSpec:
         - --function_to_execute
         - _check_if_binary_classification
         command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -6866,7 +7473,7 @@ deploymentSpec:
           \  with open(example_gen_metadata, 'r') as f:\n    metadata_path = f.read()\n\
           \    metadata = json.loads(metadata_path)\n    return str(metadata['objective']\
           \ == 'binary_classification').lower()\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
     exec-feature-attribution:
       container:
         args:
@@ -7008,34 +7615,6 @@ deploymentSpec:
         - python
         - /main.py
         image: gcr.io/ml-pipeline/model-evaluation:v0.8.1
-    exec-generate-model-display-name:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _generate_model_display_name
-        command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _generate_model_display_name() -> (\n    NamedTuple(\n      \
-          \  'Outputs',\n        [\n            ('model_display_name', str),\n   \
-          \     ],\n    )\n):\n  \"\"\"Generates a default model_display_name.\n\n\
-          \  Returns:\n    A named tuple with model_display_name.\n  \"\"\"\n  # pylint:\
-          \ disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \  import collections\n  import uuid\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \n  model_display_name = f'tabular-workflow-model-{uuid.uuid4()}'\n\n  return\
-          \ collections.namedtuple(\n      'Outputs',\n      [\n          'model_display_name',\n\
-          \      ],\n  )(\n      model_display_name,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
     exec-importer:
       importer:
         artifactUri:
@@ -7051,6 +7630,12 @@ deploymentSpec:
         - --function_to_execute
         - _merge_materialized_splits
         command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -7069,7 +7654,7 @@ deploymentSpec:
           \ 'r') as f:\n    split_0_content = f.read()\n  with open(split_1, 'r')\
           \ as f:\n    split_1_content = f.read()\n  with open(splits, 'w') as f:\n\
           \    f.write(','.join([split_0_content, split_1_content]))\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
     exec-model-batch-explanation:
       container:
         args:
@@ -7203,7 +7788,9 @@ deploymentSpec:
         - BatchPredictionJob
         - --payload
         - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+          "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
+          \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
+          " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
           "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
           "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
           "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
@@ -7236,7 +7823,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-batch-predict-2:
       container:
         args:
@@ -7244,7 +7831,9 @@ deploymentSpec:
         - BatchPredictionJob
         - --payload
         - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+          "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
+          \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
+          " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
           "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
           "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
           "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
@@ -7277,7 +7866,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-batch-predict-3:
       container:
         args:
@@ -7285,7 +7874,9 @@ deploymentSpec:
         - BatchPredictionJob
         - --payload
         - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+          "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
+          \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
+          " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
           "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
           "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
           "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
@@ -7318,7 +7909,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-batch-predict-4:
       container:
         args:
@@ -7326,7 +7917,9 @@ deploymentSpec:
         - BatchPredictionJob
         - --payload
         - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+          "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
+          \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
+          " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
           "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
           "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
           "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
@@ -7359,7 +7952,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-batch-predict-5:
       container:
         args:
@@ -7367,7 +7960,9 @@ deploymentSpec:
         - BatchPredictionJob
         - --payload
         - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+          "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
+          \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
+          " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
           "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
           "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
           "\"", "}", "}", ", \"model_parameters\": ", "{{$.inputs.parameters[''model_parameters'']}}",
@@ -7400,7 +7995,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-evaluation:
       container:
         args:
@@ -7633,7 +8228,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-evaluation-import-2:
       container:
         args:
@@ -7671,7 +8266,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-evaluation-import-3:
       container:
         args:
@@ -7709,7 +8304,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-model-upload:
       container:
         args:
@@ -7800,6 +8395,12 @@ deploymentSpec:
         - _purge_unused_features
         command:
         - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -7840,7 +8441,7 @@ deploymentSpec:
           \n  train_spec['transformations'] = purged_transformation_list\n  metadata['train_spec']\
           \ = train_spec\n\n  with open(output_metadata, 'w') as f:\n    f.write(json.dumps(metadata))\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
     exec-read-input-uri:
       container:
         args:
@@ -7850,33 +8451,11 @@ deploymentSpec:
         - _read_input_uri
         command:
         - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _read_input_uri(\n    split_uri: dsl.InputPath('Dataset'),\n\
-          ) -> list:  # Required by KFP; pylint:disable=g-bare-generic\n  \"\"\"Construct\
-          \ Dataset based on the batch prediction job.\n\n  Args:\n    split_uri:\
-          \ Tbe path to the file that contains Dataset data.\n\n  Returns:\n    The\
-          \ list of string that represents the batch prediction input files.\n  \"\
-          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  with open(split_uri, 'r') as f:\n    data_source = json.loads(f.read())\n\
-          \    return data_source['tf_record_data_source']['file_patterns']\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
-    exec-read-input-uri-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _read_input_uri
-        command:
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -7896,7 +8475,41 @@ deploymentSpec:
           \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
           \  with open(split_uri, 'r') as f:\n    data_source = json.loads(f.read())\n\
           \    return data_source['tf_record_data_source']['file_patterns']\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
+    exec-read-input-uri-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _read_input_uri
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _read_input_uri(\n    split_uri: dsl.InputPath('Dataset'),\n\
+          ) -> list:  # Required by KFP; pylint:disable=g-bare-generic\n  \"\"\"Construct\
+          \ Dataset based on the batch prediction job.\n\n  Args:\n    split_uri:\
+          \ Tbe path to the file that contains Dataset data.\n\n  Returns:\n    The\
+          \ list of string that represents the batch prediction input files.\n  \"\
+          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  with open(split_uri, 'r') as f:\n    data_source = json.loads(f.read())\n\
+          \    return data_source['tf_record_data_source']['file_patterns']\n\n"
+        image: python:3.7
     exec-string-not-empty:
       container:
         args:
@@ -7905,6 +8518,12 @@ deploymentSpec:
         - --function_to_execute
         - _string_not_empty
         command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -7920,7 +8539,7 @@ deploymentSpec:
           \n  Returns:\n    Boolean value. -> 'true' if empty, 'false' if not empty.\
           \ We need to use str\n    instead of bool due to a limitation in KFP compiler.\n\
           \  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
     exec-tabular-feature-ranking-and-selection:
       container:
         args:
@@ -7937,7 +8556,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"feature_selection\", \"--data_source=", "{{$.inputs.artifacts[''data_source''].uri}}",
           "\", \"--target_column=", "{{$.inputs.parameters[''target_column_name'']}}",
           "\", \"--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}",
@@ -7950,7 +8569,7 @@ deploymentSpec:
           \"--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\",
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
@@ -7966,7 +8585,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-tabular-stats-and-example-gen:
       container:
         args:
@@ -7983,7 +8602,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230424_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230605_0125", "\",
           \"args\": [\"stats_generator\",", "\"--train_spec={\\\"prediction_type\\\":
           \\\"", "{{$.inputs.parameters[''prediction_type'']}}", "\\\", \\\"target_column\\\":
           \\\"", "{{$.inputs.parameters[''target_column_name'']}}", "\\\", \\\"optimization_objective\\\":
@@ -8016,7 +8635,7 @@ deploymentSpec:
           \"--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\",
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230424_1325",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230605_0125",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
@@ -8041,7 +8660,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.32
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-write-bp-result-path:
       container:
         args:
@@ -8051,35 +8670,11 @@ deploymentSpec:
         - _write_bp_result_path
         command:
         - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result:\
-          \ OutputPath('Dataset'),\n):\n  \"\"\"Construct Dataset based on the batch\
-          \ prediction job.\n\n  Args:\n    bp_job: The batch prediction job artifact.\n\
-          \    result: Tbe path to the file that contains Dataset data.\n  \"\"\"\n\
-          \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  directory = bp_job.metadata['gcsOutputDirectory']\n  data_source = {\n\
-          \      'tf_record_data_source': {\n          'file_patterns': [\n      \
-          \        f'{directory}/prediction.results-*',\n          ],\n          'coder':\
-          \ 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\
-          \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
-    exec-write-bp-result-path-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _write_bp_result_path
-        command:
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -8101,8 +8696,45 @@ deploymentSpec:
           \        f'{directory}/prediction.results-*',\n          ],\n          'coder':\
           \ 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230424_1325
+        image: python:3.7
+    exec-write-bp-result-path-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _write_bp_result_path
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result:\
+          \ OutputPath('Dataset'),\n):\n  \"\"\"Construct Dataset based on the batch\
+          \ prediction job.\n\n  Args:\n    bp_job: The batch prediction job artifact.\n\
+          \    result: Tbe path to the file that contains Dataset data.\n  \"\"\"\n\
+          \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+          \  directory = bp_job.metadata['gcsOutputDirectory']\n  data_source = {\n\
+          \      'tf_record_data_source': {\n          'file_patterns': [\n      \
+          \        f'{directory}/prediction.results-*',\n          ],\n          'coder':\
+          \ 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\
+          \n"
+        image: python:3.7
 pipelineInfo:
+  description: The AutoML Tabular pipeline.
   name: automl-tabular-feature-selection-pipeline
 root:
   dag:
@@ -8155,8 +8787,6 @@ root:
       exit-handler-1:
         componentRef:
           name: comp-exit-handler-1
-        dependentTasks:
-        - generate-model-display-name
         inputs:
           parameters:
             pipelinechannel--additional_experiments:
@@ -8211,14 +8841,14 @@ root:
               componentInputParameter: export_additional_model_without_custom_ops
             pipelinechannel--fast_testing:
               componentInputParameter: fast_testing
-            pipelinechannel--generate-model-display-name-model_display_name:
-              taskOutputParameter:
-                outputParameterKey: model_display_name
-                producerTask: generate-model-display-name
             pipelinechannel--location:
               componentInputParameter: location
             pipelinechannel--max_selected_features:
               componentInputParameter: max_selected_features
+            pipelinechannel--model_description:
+              componentInputParameter: model_description
+            pipelinechannel--model_display_name:
+              componentInputParameter: model_display_name
             pipelinechannel--optimization_objective:
               componentInputParameter: optimization_objective
             pipelinechannel--optimization_objective_precision_value:
@@ -8281,224 +8911,378 @@ root:
               componentInputParameter: weight_column
         taskInfo:
           name: exit-handler-1
-      generate-model-display-name:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-generate-model-display-name
-        taskInfo:
-          name: generate-model-display-name
   inputDefinitions:
     parameters:
       additional_experiments:
+        description: Use this field to config private preview features.
         isOptional: true
         parameterType: STRUCT
       apply_feature_selection_tuning:
         defaultValue: false
+        description: tuning feature selection rate if true.
         isOptional: true
         parameterType: BOOLEAN
       cv_trainer_worker_pool_specs_override:
+        description: 'The dictionary for overriding stage
+
+          cv trainer worker pool spec.'
         isOptional: true
         parameterType: LIST
       data_source_bigquery_table_path:
         defaultValue: ''
+        description: 'The BigQuery table path of format
+
+          bq://bq_project.bq_dataset.bq_table'
         isOptional: true
         parameterType: STRING
       data_source_csv_filenames:
         defaultValue: ''
+        description: 'A string that represents a list of comma
+
+          separated CSV filenames.'
         isOptional: true
         parameterType: STRING
       dataflow_service_account:
         defaultValue: ''
+        description: Custom service account to run dataflow jobs.
         isOptional: true
         parameterType: STRING
       dataflow_subnetwork:
         defaultValue: ''
+        description: 'Dataflow''s fully qualified subnetwork name, when empty
+
+          the default subnetwork will be used. Example:
+
+          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
         isOptional: true
         parameterType: STRING
       dataflow_use_public_ips:
         defaultValue: true
+        description: 'Specifies whether Dataflow workers use public IP
+
+          addresses.'
         isOptional: true
         parameterType: BOOLEAN
       disable_early_stopping:
         defaultValue: false
+        description: If disable easly stopping.
         isOptional: true
         parameterType: BOOLEAN
       distill_batch_predict_machine_type:
         defaultValue: n1-standard-16
+        description: 'The prediction server machine type for
+
+          batch predict component in the model distillation.'
         isOptional: true
         parameterType: STRING
       distill_batch_predict_max_replica_count:
         defaultValue: 25.0
+        description: 'The max number of prediction server
+
+          for batch predict component in the model distillation.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       distill_batch_predict_starting_replica_count:
         defaultValue: 25.0
+        description: 'The initial number of
+
+          prediction server for batch predict component in the model distillation.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       enable_probabilistic_inference:
         defaultValue: false
+        description: 'If probabilistic inference is enabled, the
+
+          model will fit a distribution that captures the uncertainty of a
+
+          prediction. At inference time, the predictive distribution is used to make
+
+          a point prediction that minimizes the optimization objective. For example,
+
+          the mean of a predictive distribution is the point prediction that
+
+          minimizes RMSE loss. If quantiles are specified, then the quantiles of the
+
+          distribution are also returned.'
         isOptional: true
         parameterType: BOOLEAN
       encryption_spec_key_name:
         defaultValue: ''
+        description: The KMS key name.
         isOptional: true
         parameterType: STRING
       evaluation_batch_explain_machine_type:
         defaultValue: n1-highmem-8
+        description: 'The prediction server machine type
+
+          for batch explain components during evaluation.'
         isOptional: true
         parameterType: STRING
       evaluation_batch_explain_max_replica_count:
         defaultValue: 10.0
+        description: 'The max number of prediction
+
+          server for batch explain components during evaluation.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_batch_explain_starting_replica_count:
         defaultValue: 10.0
+        description: 'The initial number of
+
+          prediction server for batch explain components during evaluation.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_batch_predict_machine_type:
         defaultValue: n1-highmem-8
+        description: 'The prediction server machine type
+
+          for batch predict components during evaluation.'
         isOptional: true
         parameterType: STRING
       evaluation_batch_predict_max_replica_count:
         defaultValue: 20.0
+        description: 'The max number of prediction
+
+          server for batch predict components during evaluation.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_batch_predict_starting_replica_count:
         defaultValue: 20.0
+        description: 'The initial number of
+
+          prediction server for batch predict components during evaluation.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_dataflow_disk_size_gb:
         defaultValue: 50.0
+        description: 'Dataflow worker''s disk size in GB for
+
+          evaluation components.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_dataflow_machine_type:
         defaultValue: n1-standard-4
+        description: 'The dataflow machine type for evaluation
+
+          components.'
         isOptional: true
         parameterType: STRING
       evaluation_dataflow_max_num_workers:
         defaultValue: 100.0
+        description: 'The max number of Dataflow workers for
+
+          evaluation components.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_dataflow_starting_num_workers:
         defaultValue: 10.0
+        description: 'The initial number of Dataflow
+
+          workers for evaluation components.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       export_additional_model_without_custom_ops:
         defaultValue: false
+        description: 'Whether to export additional
+
+          model without custom TensorFlow operators.'
         isOptional: true
         parameterType: BOOLEAN
       fast_testing:
         defaultValue: false
+        description: Internal flag used for presubmit tests.
         isOptional: true
         parameterType: BOOLEAN
       location:
+        description: The GCP region that runs the pipeline components.
         parameterType: STRING
       max_selected_features:
         defaultValue: 1000.0
+        description: number of features to select for training.
         isOptional: true
         parameterType: NUMBER_INTEGER
+      model_description:
+        defaultValue: ''
+        description: 'The description name of the uploaded Vertex model,   '
+        isOptional: true
+        parameterType: STRING
+      model_display_name:
+        defaultValue: ''
+        description: The display name of the uploaded Vertex model,
+        isOptional: true
+        parameterType: STRING
       optimization_objective:
+        description: 'For binary classification, "maximize-au-roc",
+
+          "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall",
+          or
+
+          "maximize-recall-at-precision". For multi class classification,
+
+          "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
+
+          "minimize-rmsle".'
         parameterType: STRING
       optimization_objective_precision_value:
         defaultValue: -1.0
+        description: 'Required when optimization_objective
+
+          is ''maximize-recall-at-precision''. Must be between 0 and 1, inclusive.'
         isOptional: true
         parameterType: NUMBER_DOUBLE
       optimization_objective_recall_value:
         defaultValue: -1.0
+        description: 'Required when optimization_objective is
+
+          ''maximize-precision-at-recall''. Must be between 0 and 1, inclusive.'
         isOptional: true
         parameterType: NUMBER_DOUBLE
       predefined_split_key:
         defaultValue: ''
+        description: The predefined_split column name.
         isOptional: true
         parameterType: STRING
       prediction_type:
+        description: 'The type of prediction the model is to produce.
+
+          "classification" or "regression".'
         parameterType: STRING
       project:
+        description: The GCP project that runs the pipeline components.
         parameterType: STRING
       quantiles:
+        description: 'Quantiles to use for probabilistic inference. Up to 5 quantiles
+
+          are allowed of values between 0 and 1, exclusive. Represents the quantiles
+
+          to use for that objective. Quantiles must be unique.'
         isOptional: true
         parameterType: LIST
       root_dir:
+        description: The root GCS directory for the pipeline components.
         parameterType: STRING
       run_distillation:
         defaultValue: false
+        description: 'Whether the distillation should be applied to the
+
+          training.'
         isOptional: true
         parameterType: BOOLEAN
       run_evaluation:
         defaultValue: false
+        description: Whether to run evaluation steps during training.
         isOptional: true
         parameterType: BOOLEAN
       stage_1_num_parallel_trials:
         defaultValue: 35.0
+        description: Number of parallel trails for stage 1.
         isOptional: true
         parameterType: NUMBER_INTEGER
       stage_1_tuner_worker_pool_specs_override:
+        description: 'The dictionary for overriding
+
+          stage 1 tuner worker pool spec.'
         isOptional: true
         parameterType: LIST
       stage_2_num_parallel_trials:
         defaultValue: 35.0
+        description: Number of parallel trails for stage 2.
         isOptional: true
         parameterType: NUMBER_INTEGER
       stage_2_num_selected_trials:
         defaultValue: 5.0
+        description: Number of selected trails for stage 2.
         isOptional: true
         parameterType: NUMBER_INTEGER
       stats_and_example_gen_dataflow_disk_size_gb:
         defaultValue: 40.0
+        description: 'Dataflow worker''s disk size in
+
+          GB for stats_and_example_gen component.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       stats_and_example_gen_dataflow_machine_type:
         defaultValue: n1-standard-16
+        description: 'The dataflow machine type for
+
+          stats_and_example_gen component.'
         isOptional: true
         parameterType: STRING
       stats_and_example_gen_dataflow_max_num_workers:
         defaultValue: 25.0
+        description: 'The max number of Dataflow
+
+          workers for stats_and_example_gen component.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       stratified_split_key:
         defaultValue: ''
+        description: The stratified_split column name.
         isOptional: true
         parameterType: STRING
       study_spec_parameters_override:
+        description: The list for overriding study spec.
         isOptional: true
         parameterType: LIST
       target_column:
+        description: The target column name.
         parameterType: STRING
       test_fraction:
         defaultValue: -1.0
+        description: float = The test fraction.
         isOptional: true
         parameterType: NUMBER_DOUBLE
       timestamp_split_key:
         defaultValue: ''
+        description: The timestamp_split column name.
         isOptional: true
         parameterType: STRING
       train_budget_milli_node_hours:
+        description: 'The train budget of creating this model,
+
+          expressed in milli node hours i.e. 1,000 value in this field means 1 node
+
+          hour.'
         parameterType: NUMBER_DOUBLE
       training_fraction:
         defaultValue: -1.0
+        description: The training fraction.
         isOptional: true
         parameterType: NUMBER_DOUBLE
       transform_dataflow_disk_size_gb:
         defaultValue: 40.0
+        description: 'Dataflow worker''s disk size in GB for
+
+          transform component.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       transform_dataflow_machine_type:
         defaultValue: n1-standard-16
+        description: 'The dataflow machine type for transform
+
+          component.'
         isOptional: true
         parameterType: STRING
       transform_dataflow_max_num_workers:
         defaultValue: 25.0
+        description: 'The max number of Dataflow workers for
+
+          transform component.'
         isOptional: true
         parameterType: NUMBER_INTEGER
       transformations:
+        description: 'The path to a GCS file containing the transformations to
+
+          apply.'
         parameterType: STRING
       validation_fraction:
         defaultValue: -1.0
+        description: The validation fraction.
         isOptional: true
         parameterType: NUMBER_DOUBLE
       weight_column:
         defaultValue: ''
+        description: The weight column name.
         isOptional: true
         parameterType: STRING
   outputDefinitions:
@@ -8528,4 +9312,4 @@ root:
           schemaTitle: system.Metrics
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.0.0-beta.17
