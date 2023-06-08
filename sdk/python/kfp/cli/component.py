@@ -330,9 +330,12 @@ class ComponentBuilder():
                 self._target_image, stream=True, decode=True)
             for log in response:
                 status = log.get('status', '').rstrip('\n')
+                error = log.get('error', '').rstrip('\n')
                 layer = log.get('id', '')
                 if status:
                     logging.info(f'{docker_log_prefix}: {layer} {status}')
+                if error:
+                    logging.error(f'{docker_log_prefix} ERROR: {error}')
         except docker.errors.BuildError as e:
             logging.error(f'{docker_log_prefix}: {e}')
             raise e
