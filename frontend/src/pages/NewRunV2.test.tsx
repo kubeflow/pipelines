@@ -240,12 +240,12 @@ describe('NewRunV2', () => {
   const updateToolbarSpy = jest.fn();
 
   // For creating new run with no pipeline is selected (enter from run list)
-  function generatePropsNoPipelineDef(): PageProps {
+  function generatePropsNoPipelineDef(eid: string | null): PageProps {
     return {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
       location: {
         pathname: RoutePage.NEW_RUN,
-        search: `?${QUERY_PARAMS.experimentId}=`,
+        search: eid ? `?${QUERY_PARAMS.experimentId}=${eid}` : `?${QUERY_PARAMS.experimentId}=`,
       } as any,
       match: '' as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
@@ -390,7 +390,7 @@ describe('NewRunV2', () => {
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNoPipelineDef()} />
+          <NewRunSwitcher {...generatePropsNoPipelineDef(null)} />
         </CommonTestWrapper>,
       );
 
@@ -401,6 +401,28 @@ describe('NewRunV2', () => {
       screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
       screen.getByText('A pipeline must be selected');
     });
+
+    it(
+      'shows experiment name in new run v2 if experiment is selected' +
+        '(enter from experiment details)',
+      async () => {
+        const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
+
+        render(
+          <CommonTestWrapper>
+            <NewRunSwitcher {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
+          </CommonTestWrapper>,
+        );
+
+        await waitFor(() => {
+          expect(getExperimentSpy).toHaveBeenCalled();
+        });
+
+        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
+        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      },
+    );
 
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       jest
