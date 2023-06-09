@@ -99,6 +99,7 @@ class PipelineTask:
             dependent_tasks=[],
             component_ref=component_spec.name,
             enable_caching=True)
+        self._run_after: List[str] = []
 
         self.importer_spec = None
         self.container_spec = None
@@ -575,6 +576,7 @@ class PipelineTask:
                 task2 = my_component(text='2nd task').after(task1)
         """
         for task in tasks:
+            self._run_after.append(task.name)
             self._task_spec.dependent_tasks.append(task.name)
         return self
 
