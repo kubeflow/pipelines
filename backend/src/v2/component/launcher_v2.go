@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
@@ -62,9 +63,14 @@ type LauncherV2 struct {
 	options       LauncherV2Options
 
 	// clients
-	metadataClient *metadata.Client
-	k8sClient      *kubernetes.Clientset
+	metadataClient metadata.ClientInterface
+	k8sClient      kubernetes.Interface
 	cacheClient    *cacheutils.Client
+}
+
+// Client is the struct to hold the Kubernetes Clientset
+type kubernetesClient struct {
+	Clientset kubernetes.Interface
 }
 
 func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
@@ -268,14 +274,34 @@ func executeV2(
 	args []string,
 	bucket *blob.Bucket,
 	bucketConfig *objectstore.Config,
-	metadataClient *metadata.Client,
+	metadataClient metadata.ClientInterface,
 	namespace string,
-	k8sClient *kubernetes.Clientset,
+	k8sClient kubernetes.Interface,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 
 	// Add parameter default values to executorInput, if there is not already a user input.
 	// This process is done in the launcher because we let the component resolve default values internally.
-	executorInput = addDefaultParams(executorInput, component)
+	// Variable executorInputWithDefault is a copy so we don't alter the original data.
+	executorInputWithDefault, err := addDefaultParams(executorInput, component)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Fill in placeholders with runtime values.
+	placeholders, err := getPlaceholders(executorInputWithDefault)
+	if err != nil {
+		return nil, nil, err
+	}
+	for placeholder, replacement := range placeholders {
+		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+	}
+	for i := range args {
+		arg := args[i]
+		for placeholder, replacement := range placeholders {
+			arg = strings.ReplaceAll(arg, placeholder, replacement)
+		}
+		args[i] = arg
+	}
 
 	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, bucketConfig, namespace, k8sClient)
 	if err != nil {
@@ -348,28 +374,21 @@ func prettyPrint(jsonStr string) string {
 
 const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 
-func execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, namespace string, k8sClient *kubernetes.Clientset) (*pipelinespec.ExecutorOutput, error) {
+func execute(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	cmd string,
+	args []string,
+	bucket *blob.Bucket,
+	bucketConfig *objectstore.Config,
+	namespace string,
+	k8sClient kubernetes.Interface,
+) (*pipelinespec.ExecutorOutput, error) {
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
 	}
 	if err := prepareOutputFolders(executorInput); err != nil {
 		return nil, err
-	}
-
-	// Fill in placeholders with runtime values.
-	placeholders, err := getPlaceholders(executorInput)
-	if err != nil {
-		return nil, err
-	}
-	for placeholder, replacement := range placeholders {
-		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
-	}
-	for i := range args {
-		arg := args[i]
-		for placeholder, replacement := range placeholders {
-			arg = strings.ReplaceAll(arg, placeholder, replacement)
-		}
-		args[i] = arg
 	}
 
 	// Run user program.
@@ -389,7 +408,7 @@ func execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cmd
 type uploadOutputArtifactsOptions struct {
 	bucketConfig   *objectstore.Config
 	bucket         *blob.Bucket
-	metadataClient *metadata.Client
+	metadataClient metadata.ClientInterface
 }
 
 func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, opts uploadOutputArtifactsOptions) ([]*metadata.OutputArtifact, error) {
@@ -444,9 +463,9 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 	return outputArtifacts, nil
 }
 
-func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, defaultBucket *blob.Bucket, defaultBucketConfig *objectstore.Config, namespace string, k8sClient *kubernetes.Clientset) error {
+func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, defaultBucket *blob.Bucket, defaultBucketConfig *objectstore.Config, namespace string, k8sClient kubernetes.Interface) error {
 	// Read input artifact metadata.
-	nonDefaultBuckets, err := fetchNonDefaultBuckets(ctx, executorInput.Inputs.Artifacts, defaultBucketConfig, namespace, k8sClient)
+	nonDefaultBuckets, err := fetchNonDefaultBuckets(ctx, executorInput.GetInputs().GetArtifacts(), defaultBucketConfig, namespace, k8sClient)
 	closeNonDefaultBuckets := func(buckets map[string]*blob.Bucket) {
 		for name, bucket := range nonDefaultBuckets {
 			if closeBucketErr := bucket.Close(); closeBucketErr != nil {
@@ -458,7 +477,7 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 	if err != nil {
 		return fmt.Errorf("failed to fetch non default buckets: %w", err)
 	}
-	for name, artifactList := range executorInput.Inputs.Artifacts {
+	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
 		// TODO(neuromage): Support concat-based placholders for arguments.
 		if len(artifactList.Artifacts) == 0 {
 			continue
@@ -501,7 +520,13 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 	return nil
 }
 
-func fetchNonDefaultBuckets(ctx context.Context, artifacts map[string]*pipelinespec.ArtifactList, defaultBucketConfig *objectstore.Config, namespace string, k8sClient *kubernetes.Clientset) (buckets map[string]*blob.Bucket, err error) {
+func fetchNonDefaultBuckets(
+	ctx context.Context,
+	artifacts map[string]*pipelinespec.ArtifactList,
+	defaultBucketConfig *objectstore.Config,
+	namespace string,
+	k8sClient kubernetes.Interface,
+) (buckets map[string]*blob.Bucket, err error) {
 	nonDefaultBuckets := make(map[string]*blob.Bucket)
 	for name, artifactList := range artifacts {
 		if len(artifactList.Artifacts) == 0 {
@@ -541,7 +566,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	placeholders["{{$}}"] = string(executorInputJSON)
 
 	// Read input artifact metadata.
-	for name, artifactList := range executorInput.Inputs.Artifacts {
+	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
@@ -578,7 +603,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	}
 
 	// Prepare input parameter placeholders.
-	for name, parameter := range executorInput.Inputs.ParameterValues {
+	for name, parameter := range executorInput.GetInputs().GetParameterValues() {
 		key := fmt.Sprintf(`{{$.inputs.parameters['%s']}}`, name)
 		switch t := parameter.Kind.(type) {
 		case *structpb.Value_StringValue:
@@ -689,7 +714,7 @@ func localPathForURI(uri string) (string, error) {
 func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	for name, parameter := range executorInput.GetOutputs().GetParameters() {
 		dir := filepath.Dir(parameter.OutputFile)
-		if err := os.MkdirAll(dir, 0644); err != nil {
+		if err := os.MkdirAll(dir, 0777); err != nil {
 			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
 		}
 	}
@@ -713,15 +738,26 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	return nil
 }
 
+// Adds default parameter values if there is no user provided value
 func addDefaultParams(
 	executorInput *pipelinespec.ExecutorInput,
 	component *pipelinespec.ComponentSpec,
-) *pipelinespec.ExecutorInput {
+) (*pipelinespec.ExecutorInput, error) {
+	// Make a deep copy so we don't alter the original data
+	executorInputWithDefaultMsg := proto.Clone(executorInput)
+	executorInputWithDefault, ok := executorInputWithDefaultMsg.(*pipelinespec.ExecutorInput)
+	if executorInputWithDefault.GetInputs().GetParameterValues() == nil {
+		executorInputWithDefault.Inputs.ParameterValues = make(map[string]*structpb.Value)
+	}
+	if !ok {
+		return nil, fmt.Errorf("bug: cloned executor input message does not have expected type")
+	}
+
 	for name, value := range component.GetInputDefinitions().GetParameters() {
-		_, hasInput := executorInput.GetInputs().GetParameterValues()[name]
+		_, hasInput := executorInputWithDefault.GetInputs().GetParameterValues()[name]
 		if value.GetDefaultValue() != nil && !hasInput {
-			executorInput.GetInputs().GetParameterValues()[name] = value.GetDefaultValue()
+			executorInputWithDefault.GetInputs().GetParameterValues()[name] = value.GetDefaultValue()
 		}
 	}
-	return executorInput
+	return executorInputWithDefault, nil
 }
