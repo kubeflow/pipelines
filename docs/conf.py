@@ -139,6 +139,13 @@ html_theme_options = {
         # need to use the sdk-, to avoid conflict with the rc.1 BE release in GitHub tags
         {
             'version':
+                'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0-rc.2/',
+            'title':
+                'v2.0.0rc2',
+            'aliases': [],
+        },
+        {
+            'version':
                 'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0-rc.1/',
             'title':
                 'v2.0.0rc1',
