@@ -394,6 +394,10 @@ describe('NewRunV2', () => {
         </CommonTestWrapper>,
       );
 
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // choose button for pipeline version is diabled if no pipeline is selected
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+
       screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
       screen.getByText('A pipeline must be selected');
     });
@@ -602,6 +606,10 @@ describe('NewRunV2', () => {
       });
 
       screen.getByDisplayValue(NEW_TEST_PIPELINE_NAME);
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // choose button for pipeline version is enabled after pipeline is selected
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
     });
   });
 
