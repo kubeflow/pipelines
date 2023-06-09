@@ -119,7 +119,7 @@ function NewRunSwitcher(props: PageProps) {
   const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
   const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
 
-  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
+  const { isFetching: experimentIsFetching, data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['experiment', experimentId],
     async () => {
       if (!experimentId) {
@@ -139,7 +139,8 @@ function NewRunSwitcher(props: PageProps) {
     v2RunIsFetching ||
     recurringRunIsFetching ||
     pipelineIsFetching ||
-    pipelineVersionIsFetching
+    pipelineVersionIsFetching ||
+    experimentIsFetching
   ) {
     return <div>Currently loading pipeline information</div>;
   }
