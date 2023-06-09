@@ -99,7 +99,7 @@ class PipelineTask:
             dependent_tasks=[],
             component_ref=component_spec.name,
             enable_caching=True)
-        self._run_after: List[PipelineTask] = []
+        self._run_after: List[str] = []
 
         self.importer_spec = None
         self.container_spec = None
