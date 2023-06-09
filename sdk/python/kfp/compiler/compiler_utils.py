@@ -655,9 +655,7 @@ def get_dependencies(
                 upstream_task.name
             )  # because a task's `upstream_groups` contains the task's name
 
-            # TODO: this logic can be simplified
-            # - ExitHandler check can be removed
-            # - the logic to check for consumption from a task in an upstream
+            # TODO: this logic can be simplified: the logic to check for consumption from a task in an upstream
             # Condition and ExitHandler should be the same and can be unified with the ParallelFor checks
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
