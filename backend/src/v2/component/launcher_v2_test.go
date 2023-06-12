@@ -14,6 +14,7 @@
 package component
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -50,6 +51,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 	tests := []struct {
 		name                string
 		executorInput       *pipelinespec.ExecutorInput
+		executorArgs        []string
 		wantErr             bool
 		expectedOutputParam float64
 	}{
@@ -66,6 +68,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 					OutputFile: "/tmp/kfp_outputs/output_metadata.json",
 				},
 			},
+			[]string{"-c", "python3 -m venv .venv && source .venv/bin/activate\nexport CLUSTER_SPEC=\"{\\\"task\\\":{\\\"type\\\":\\\"workerpool0\\\",\\\"index\\\":0,\\\"trial\\\":\\\"TRIAL_ID\\\"}}\"\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\nprogram_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n", "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n", "--executor_input", "{{$}}", "--function_to_execute", "add_numbers"},
 			false,
 			3,
 		},
@@ -82,6 +85,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 					OutputFile: "/tmp/kfp_outputs/output_metadata.json",
 				},
 			},
+			[]string{"-c", "python3 -m venv .venv && source .venv/bin/activate\nexport CLUSTER_SPEC=\"{\\\"task\\\":{\\\"type\\\":\\\"workerpool0\\\",\\\"index\\\":0,\\\"trial\\\":\\\"TRIAL_ID\\\"}}\"\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\nprogram_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n", "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n", "--executor_input", "{{$}}", "--function_to_execute", "add_numbers"},
 			false,
 			7,
 		},
@@ -98,7 +102,19 @@ func Test_executeV2_Parameters(t *testing.T) {
 					OutputFile: "/tmp/kfp_outputs/output_metadata.json",
 				},
 			},
+			[]string{"-c", "python3 -m venv .venv && source .venv/bin/activate\nexport CLUSTER_SPEC=\"{\\\"task\\\":{\\\"type\\\":\\\"workerpool0\\\",\\\"index\\\":0,\\\"trial\\\":\\\"TRIAL_ID\\\"}}\"\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\nprogram_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n", "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n", "--executor_input", "{{$}}", "--function_to_execute", "add_numbers"},
 			true,
+			0,
+		},
+		{
+			"param placeholders",
+			&pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
+				},
+			},
+			[]string{"-c", "[[ {{$.inputs.parameters['a']}} + {{$.inputs.parameters['b']}} == 7 ]] || exit 1"},
+			false,
 			0,
 		},
 	}
@@ -111,9 +127,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("gs://ml-pipeline-test/pipeline-root/")
 			assert.Nil(t, err)
-			addNumbersExecutorArgs := []string{"-c", "python3 -m venv .venv && source .venv/bin/activate\nexport CLUSTER_SPEC=\"{\\\"task\\\":{\\\"type\\\":\\\"workerpool0\\\",\\\"index\\\":0,\\\"trial\\\":\\\"TRIAL_ID\\\"}}\"\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\nprogram_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n", "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n", "--executor_input", "{{$}}", "--function_to_execute", "add_numbers"}
-
-			executorOutput, _, err := executeV2(nil, test.executorInput, addNumbersComponent, "sh", addNumbersExecutorArgs, bucket, bucketConfig, fakeMetadataClient, "namespace", fakeKubernetesClientset)
+			executorOutput, _, err := executeV2(context.Background(), test.executorInput, addNumbersComponent, "sh", test.executorArgs, bucket, bucketConfig, fakeMetadataClient, "namespace", fakeKubernetesClientset)
 
 			if test.wantErr {
 				assert.NotNil(t, err)

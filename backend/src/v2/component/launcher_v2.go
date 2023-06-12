@@ -746,13 +746,13 @@ func addDefaultParams(
 	// Make a deep copy so we don't alter the original data
 	executorInputWithDefaultMsg := proto.Clone(executorInput)
 	executorInputWithDefault, ok := executorInputWithDefaultMsg.(*pipelinespec.ExecutorInput)
-	if executorInputWithDefault.GetInputs().GetParameterValues() == nil {
-		executorInputWithDefault.Inputs.ParameterValues = make(map[string]*structpb.Value)
-	}
 	if !ok {
 		return nil, fmt.Errorf("bug: cloned executor input message does not have expected type")
 	}
 
+	if executorInputWithDefault.GetInputs().GetParameterValues() == nil {
+		executorInputWithDefault.Inputs.ParameterValues = make(map[string]*structpb.Value)
+	}
 	for name, value := range component.GetInputDefinitions().GetParameters() {
 		_, hasInput := executorInputWithDefault.GetInputs().GetParameterValues()[name]
 		if value.GetDefaultValue() != nil && !hasInput {
