@@ -30,18 +30,19 @@ def dataflow_python(
     args: List[str] = [],
 ):
   # fmt: off
-  """Launch a self-executing beam python file on Google Cloud using the
-  DataflowRunner.
+  """Launch a self-executing Beam Python file on Google Cloud using the
+  Dataflow Runner.
 
   Args:
-      project: Project to create the Dataflow job in.
-      location: Location for creating the Dataflow job. If not set, default to
-          us-central1.
-      python_module_path: The GCS path to the python file to run.
+      project: Project to create the Dataflow job.
+      location: Location of the Dataflow job. If not set, defaults to
+          ``'us-central1'``.
+      python_module_path: The GCS path to the Python file to run.
       temp_location: A GCS path for Dataflow to stage temporary job
           files created during the execution of the pipeline.
       requirements_file_path: The GCS path to the pip requirements file.
-      args: The list of args to pass to the python file. Can include additional parameters for the beam runner.
+      args: The list of args to pass to the Python file. Can include additional
+        parameters for the Dataflow Runner.
 
   Returns:
       gcp_resources: Serialized gcp_resources proto tracking the Dataflow job. For more details, see
