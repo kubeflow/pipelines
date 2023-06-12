@@ -22,11 +22,10 @@ import os
 import re
 from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
-from google_cloud_pipeline_components.container.v1.aiplatform import utils
-from google_cloud_pipeline_components.container.v1.aiplatform.utils import execution_context
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
-
 from google.cloud import aiplatform
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.aiplatform import utils
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
