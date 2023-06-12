@@ -274,10 +274,10 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 	}
 	if len(parents) == 1 {
 		// Parent-child context alredy exists.
-		if parents[0].Id != pipelineContext.Id {
+		if parents[0].GetId() != pipelineContext.GetId() {
 			return nil, fmt.Errorf("Parent context ID %d of current run is different from expected: %d",
-				parents[0].Id,
-				pipelineContext.Id)
+				parents[0].GetId(),
+				pipelineContext.GetId())
 		}
 		return &Pipeline{
 			pipelineCtx:    pipelineContext,
