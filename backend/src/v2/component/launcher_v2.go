@@ -714,7 +714,7 @@ func localPathForURI(uri string) (string, error) {
 func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	for name, parameter := range executorInput.GetOutputs().GetParameters() {
 		dir := filepath.Dir(parameter.OutputFile)
-		if err := os.MkdirAll(dir, 0777); err != nil {
+		if err := os.MkdirAll(dir, 0644); err != nil {
 			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
 		}
 	}
