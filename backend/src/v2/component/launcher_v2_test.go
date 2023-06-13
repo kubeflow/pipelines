@@ -62,7 +62,6 @@ func Test_executeV2_Parameters(t *testing.T) {
 				},
 			},
 			[]string{"-c", "test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
-			// []string{"-c", "[ {{$.inputs.parameters['a']}} == 1 ] || exit 1\n[ {{$.inputs.parameters['b']}} == 2 ] || exit 1"},
 			false,
 		},
 		{
@@ -72,7 +71,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
 				},
 			},
-			[]string{"-c", "[ {{$.inputs.parameters['a']}} == 5 ] || exit 1\n[ {{$.inputs.parameters['b']}} == 2 ] || exit 1"},
+			[]string{"-c", "test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			false,
 		},
 	}
