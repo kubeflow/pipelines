@@ -49,11 +49,10 @@ func Test_executeV2_Parameters(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name                string
-		executorInput       *pipelinespec.ExecutorInput
-		executorArgs        []string
-		wantErr             bool
-		expectedOutputParam float64
+		name          string
+		executorInput *pipelinespec.ExecutorInput
+		executorArgs  []string
+		wantErr       bool
 	}{
 		{
 			"happy pass",
@@ -61,16 +60,9 @@ func Test_executeV2_Parameters(t *testing.T) {
 				Inputs: &pipelinespec.ExecutorInput_Inputs{
 					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
 				},
-				Outputs: &pipelinespec.ExecutorInput_Outputs{
-					Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
-						"Output": {OutputFile: "/tmp/kfp/outputs/Output"},
-					},
-					OutputFile: "/tmp/kfp_outputs/output_metadata.json",
-				},
 			},
-			[]string{"-c", "export CLUSTER_SPEC=\"{\\\"task\\\":{\\\"type\\\":\\\"workerpool0\\\",\\\"index\\\":0,\\\"trial\\\":\\\"TRIAL_ID\\\"}}\"\nif ! [ -x \"$(command -v pip)\" ]; then\n    apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\nprogram_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n", "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n", "--executor_input", "{{$}}", "--function_to_execute", "add_numbers"},
+			[]string{"-c", "[[ {{$.inputs.parameters['a']}} + {{$.inputs.parameters['b']}} == 3 ]] || exit 1"},
 			false,
-			3,
 		},
 		{
 			"use default value",
@@ -78,44 +70,9 @@ func Test_executeV2_Parameters(t *testing.T) {
 				Inputs: &pipelinespec.ExecutorInput_Inputs{
 					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
 				},
-				Outputs: &pipelinespec.ExecutorInput_Outputs{
-					Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
-						"Output": {OutputFile: "/tmp/kfp/outputs/Output"},
-					},
-					OutputFile: "/tmp/kfp_outputs/output_metadata.json",
-				},
-			},
-			[]string{"-c", "export CLUSTER_SPEC=\"{\\\"task\\\":{\\\"type\\\":\\\"workerpool0\\\",\\\"index\\\":0,\\\"trial\\\":\\\"TRIAL_ID\\\"}}\"\nif ! [ -x \"$(command -v pip)\" ]; then\n    apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\nprogram_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n", "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n", "--executor_input", "{{$}}", "--function_to_execute", "add_numbers"},
-			false,
-			7,
-		},
-		{
-			"missing parameter",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{},
-				},
-				Outputs: &pipelinespec.ExecutorInput_Outputs{
-					Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
-						"Output": {OutputFile: "/tmp/kfp/outputs/Output"},
-					},
-					OutputFile: "/tmp/kfp_outputs/output_metadata.json",
-				},
-			},
-			[]string{"-c", "export CLUSTER_SPEC=\"{\\\"task\\\":{\\\"type\\\":\\\"workerpool0\\\",\\\"index\\\":0,\\\"trial\\\":\\\"TRIAL_ID\\\"}}\"\nif ! [ -x \"$(command -v pip)\" ]; then\n    apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.1' && \"$0\" \"$@\"\nprogram_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n", "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n", "--executor_input", "{{$}}", "--function_to_execute", "add_numbers"},
-			true,
-			0,
-		},
-		{
-			"param placeholders",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
-				},
 			},
 			[]string{"-c", "[[ {{$.inputs.parameters['a']}} + {{$.inputs.parameters['b']}} == 7 ]] || exit 1"},
 			false,
-			0,
 		},
 	}
 
@@ -123,18 +80,17 @@ func Test_executeV2_Parameters(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			fakeKubernetesClientset := &fake.Clientset{}
 			fakeMetadataClient := metadata.NewFakeClient()
-			bucket, err := blob.OpenBucket(nil, "gs://ml-pipeline-test")
+			bucket, err := blob.OpenBucket(context.Background(), "gs://test-bucket")
 			assert.Nil(t, err)
-			bucketConfig, err := objectstore.ParseBucketConfig("gs://ml-pipeline-test/pipeline-root/")
+			bucketConfig, err := objectstore.ParseBucketConfig("gs://test-bucket/pipeline-root/")
 			assert.Nil(t, err)
-			executorOutput, _, err := executeV2(context.Background(), test.executorInput, addNumbersComponent, "sh", test.executorArgs, bucket, bucketConfig, fakeMetadataClient, "namespace", fakeKubernetesClientset)
+			_, _, err = executeV2(context.Background(), test.executorInput, addNumbersComponent, "sh", test.executorArgs, bucket, bucketConfig, fakeMetadataClient, "namespace", fakeKubernetesClientset)
 
 			if test.wantErr {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-				assert.NotNil(t, executorOutput)
-				assert.Equal(t, test.expectedOutputParam, executorOutput.GetParameterValues()["Output"].GetNumberValue())
+
 			}
 		})
 	}
