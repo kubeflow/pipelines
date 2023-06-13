@@ -15,7 +15,6 @@ package component
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -44,10 +43,6 @@ var addNumbersComponent = &pipelinespec.ComponentSpec{
 
 // Tests that launcher correctly executes the user component and successfully writes output parameters to file.
 func Test_executeV2_Parameters(t *testing.T) {
-	defer func() {
-		os.RemoveAll("/tmp")
-	}()
-
 	tests := []struct {
 		name          string
 		executorInput *pipelinespec.ExecutorInput
