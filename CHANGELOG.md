@@ -1,5 +1,72 @@
 # Changelog
 
+## [2.0.0-rc.2](https://github.com/kubeflow/pipelines/compare/2.0.0-rc.1...2.0.0-rc.2) (2023-06-13)
+
+
+### Features
+
+* **backend:** add schema version check ([\#9447](https://github.com/kubeflow/pipelines/issues/9447)) ([08494a2](https://github.com/kubeflow/pipelines/commit/08494a2db6ec44f8e060d80c1b4e03c9da135485))
+* **backend:** Implement aws-go-sdk crendentials to support IRSA for s3 in V2 ([\#9502](https://github.com/kubeflow/pipelines/issues/9502)) ([8a3215e](https://github.com/kubeflow/pipelines/commit/8a3215ec5619602600bf5f3ca0bb5ef757764bde))
+* **components:** add a check for model garden models and skip eval import ([1782ee2](https://github.com/kubeflow/pipelines/commit/1782ee2d899f7e33fa997a740a3678bf7555fbb6))
+* **components:** Add force_dircet_runner flag to pipeline options ([f167e15](https://github.com/kubeflow/pipelines/commit/f167e15c3ca9b2120f8bb2283b0f3974439fef2f))
+* **components:** Add instructions for formatting BiasConfig input proto using json_format in Model & Data bias component ([3a89044](https://github.com/kubeflow/pipelines/commit/3a8904452539267f6101419239035014a904177c))
+* **components:** add preview directory to GCPC ([b167f87](https://github.com/kubeflow/pipelines/commit/b167f87c5feaf6479eebfb9b0b9de24d512264d8))
+* **components:** Add utility function for constructing the serverless custom job launcher spec ([6fb10f3](https://github.com/kubeflow/pipelines/commit/6fb10f37386f60b0bd761ee399b84421f3184b46))
+* **components:** Define Data Bias component for detecting data bias metrics ([7ab5d97](https://github.com/kubeflow/pipelines/commit/7ab5d97d71fee1ab230441a60bc6001f56b2cad3))
+* **components:** Define Model Bias component for detecting model bias metrics ([7022007](https://github.com/kubeflow/pipelines/commit/70220078b1e66a322d48a3adfbb14988a35b6a79))
+* **components:** Derive image tag from Eval container version. Align Eval image version for all Eval components in GCPC ([63936c0](https://github.com/kubeflow/pipelines/commit/63936c07735521b1244e1e528a9baf80d40b296d))
+* **components:** make GCPC artifacts usable in KFP Python components ([6104ff6](https://github.com/kubeflow/pipelines/commit/6104ff6b198a16270569a70870fa33f4b4cf72ec))
+* **components:** Provide model evaluation pipelines ([9ce827e](https://github.com/kubeflow/pipelines/commit/9ce827e54505e9b7b7af063cfdafe8fba5537e6a))
+* **components:** Release the Seq2Seq and Temporal Fusion Transformer pipelines ([377b961](https://github.com/kubeflow/pipelines/commit/377b96145c295246b57711f8aa1cf42cdc71cf9a))
+* **components:** Support Instance Config in kubeflow model_batch_predict component ([3166418](https://github.com/kubeflow/pipelines/commit/31664189ba403e7008e0da4da44b6814db07b645))
+* **components:** Update eval component with the latest GCPC container image version ([a3418b3](https://github.com/kubeflow/pipelines/commit/a3418b36346fdacfc7c14069991afc7618f7976f))
+* **frontend:** make container name configurable ([\#9433](https://github.com/kubeflow/pipelines/issues/9433)) ([bb9dc67](https://github.com/kubeflow/pipelines/commit/bb9dc67572e0a7b5983ef008c94089965a5f768e))
+* **sdk:** support compiling components with `dsl.PipelineTaskFinalStatus` type ([\#9082](https://github.com/kubeflow/pipelines/issues/9082)) ([7890227](https://github.com/kubeflow/pipelines/commit/78902274f1b8bda228d81944491dd9a41606fc52))
+
+
+### Bug Fixes
+
+* **backend:** Add creation of pipeline and pipeline version atomically ([\#9416](https://github.com/kubeflow/pipelines/issues/9416)) ([79d8d83](https://github.com/kubeflow/pipelines/commit/79d8d83ce4ac18c1d485251554cb668d4f9dc78e))
+* **backend:** enable cache for create/delete PVC ([\#9504](https://github.com/kubeflow/pipelines/issues/9504)) ([eadeb30](https://github.com/kubeflow/pipelines/commit/eadeb3096b9cb3d3c8495491a461154b973b4e2a))
+* **backend:** fix column size of `StateHistory` in `task` table. Fixes: [\#9553](https://github.com/kubeflow/pipelines/issues/9553) ([\#9554](https://github.com/kubeflow/pipelines/issues/9554)) ([0d53de7](https://github.com/kubeflow/pipelines/commit/0d53de7d1c52a75896d439453c42d75c2ad8f0c9))
+* **backend:** Fix url encoding issue. Closes [\#9448](https://github.com/kubeflow/pipelines/issues/9448) ([\#9449](https://github.com/kubeflow/pipelines/issues/9449)) ([3e9f048](https://github.com/kubeflow/pipelines/commit/3e9f04815eafd291c7bd45d842ca25c134c88f4f))
+* **backend:** let components add default values ([\#9591](https://github.com/kubeflow/pipelines/issues/9591)) ([dbebbde](https://github.com/kubeflow/pipelines/commit/dbebbde2001f7d2a7372a8abfd9c5c5a0eaea2b8))
+* **backend:** publish launcher execution even if it fails ([\#9513](https://github.com/kubeflow/pipelines/issues/9513)) ([0ccdb09](https://github.com/kubeflow/pipelines/commit/0ccdb09a350a2410a6c8174501f650ef506f5694))
+* **backend:** upgrade to `gopkg.in/yaml.v3` to fix boolean support. Fixes [\#9451](https://github.com/kubeflow/pipelines/issues/9451) ([\#9473](https://github.com/kubeflow/pipelines/issues/9473)) ([4810b7a](https://github.com/kubeflow/pipelines/commit/4810b7aac7b1ffbfca69df69a26235bb707cfeba))
+* **components:** Change docker base image to marketplace.gcr.io/google/ubuntu2004, which has a smaller size ([d68231d](https://github.com/kubeflow/pipelines/commit/d68231dd9cfbbc1db729adc5a8ad75b1518b5bef))
+* **components:** Fix a bug in job_remote_runner and refactor code ([fc8865a](https://github.com/kubeflow/pipelines/commit/fc8865a59d7617f49ff3b09673267fcd95bbac94))
+* **components:** fix dataset components ([3a7d684](https://github.com/kubeflow/pipelines/commit/3a7d684f665c1557384318b99763a08c43c88075))
+* **components:** fix invalid JSON payload ([c4bf506](https://github.com/kubeflow/pipelines/commit/c4bf50631d2d250c1af1389f5e6f9b4cd359bb43))
+* **components:** Remove print statement when importing eval metrics ([de5ca7a](https://github.com/kubeflow/pipelines/commit/de5ca7a40acd301d16010fff4fcd29c8b8db3090))
+* **components:** Skip sliced FA for non classification tasks to avoid empty input bug in Direct Runner ([bf8c101](https://github.com/kubeflow/pipelines/commit/bf8c10163f447e5227f54865631925f9066531cb))
+* **components:** Update force_dircet_runner flag to force_runner_mode to choose the runner of evaluation pipeline ([5acb016](https://github.com/kubeflow/pipelines/commit/5acb016ee18190f9179ac72a8f4f860cc0520c26))
+* **frontend:** Choose button is disable even if pipeline is already selected (after uploading a new pipeline) ([\#9499](https://github.com/kubeflow/pipelines/issues/9499)) ([9e5e6c6](https://github.com/kubeflow/pipelines/commit/9e5e6c62502315936ae80451b40a7a0f46c934a8))
+* **frontend:** Choose version button is greyed out after closing pipeline selector ([\#9585](https://github.com/kubeflow/pipelines/issues/9585)) ([a029a73](https://github.com/kubeflow/pipelines/commit/a029a73a58a94e619bfd5a75271ee0c40608c335))
+* **frontend:** Choose version button should be disabled if no pipeline is selected ([\#9596](https://github.com/kubeflow/pipelines/issues/9596)) ([c0e170d](https://github.com/kubeflow/pipelines/commit/c0e170d61dc5abc91c5a22e27ca340116ae42463))
+* **frontend:** Display experiment name if experiment is selected ([\#9599](https://github.com/kubeflow/pipelines/issues/9599)) ([5d779e5](https://github.com/kubeflow/pipelines/commit/5d779e5a84214c6ca86651a546c0fb306fd0f8f4))
+* **frontend:** Incorrect page text for empty pipeline. ([\#9560](https://github.com/kubeflow/pipelines/issues/9560)) ([a303e03](https://github.com/kubeflow/pipelines/commit/a303e033c91556ab214233249a64845ddb021a1a))
+* **frontend:** Incorrect page title after switching to another pipeline version. ([\#9450](https://github.com/kubeflow/pipelines/issues/9450)) ([5cf4f19](https://github.com/kubeflow/pipelines/commit/5cf4f1969ecaf82f4cb2627b5bf8e2c791e5425a))
+* **frontend:** Incorrect selected version in summary card ([\#9463](https://github.com/kubeflow/pipelines/issues/9463)) ([c28d41b](https://github.com/kubeflow/pipelines/commit/c28d41bbc010382fd99c9761930d14e01a485547))
+* **frontend:** Make pipeline definition in YAML tab more readable ([\#9511](https://github.com/kubeflow/pipelines/issues/9511)) ([ef9781b](https://github.com/kubeflow/pipelines/commit/ef9781b35ac5fa8ffac99f9a363db2f3d78af46f))
+* **frontend:** Mismatched error text in new run page ([\#9569](https://github.com/kubeflow/pipelines/issues/9569)) ([745e2a6](https://github.com/kubeflow/pipelines/commit/745e2a6e0be0c6c7c17635d2567b6d85855ebef9))
+* **frontend:** Missing pipeline info for "Clone recurring run" after viewing pipeline ([\#9559](https://github.com/kubeflow/pipelines/issues/9559)) ([a2fa55f](https://github.com/kubeflow/pipelines/commit/a2fa55f96c365b41a7a0127ce7c643edcb00bd84))
+* **frontend:** Parameter is missing after upload pipeline in pipeline selector ([\#9579](https://github.com/kubeflow/pipelines/issues/9579)) ([8613a45](https://github.com/kubeflow/pipelines/commit/8613a4504af2dff71ab896549ec03b7107088a71))
+* **frontend:** Parameter is missing in run creation page. Closes [\#9441](https://github.com/kubeflow/pipelines/issues/9441) ([\#9458](https://github.com/kubeflow/pipelines/issues/9458)) ([aa93e59](https://github.com/kubeflow/pipelines/commit/aa93e59fb5f556d5758319b6946735c8cd4e864b))
+* **frontend:** Pipeline Root is not used when provided during New Run creation ([\#9561](https://github.com/kubeflow/pipelines/issues/9561)) ([23739e9](https://github.com/kubeflow/pipelines/commit/23739e9be38a3229911ea5ee0c4d8389ba84f607))
+* **frontend:** Pipeline version is not updated in new run page ([\#9578](https://github.com/kubeflow/pipelines/issues/9578)) ([ee63f91](https://github.com/kubeflow/pipelines/commit/ee63f9187cdffe16ca12362fa98f347db75bf879))
+* **frontend:** Run name should be empty if no pipeline is selected ([\#9497](https://github.com/kubeflow/pipelines/issues/9497)) ([70219b5](https://github.com/kubeflow/pipelines/commit/70219b56def19ddaafc7232a174193d7d88a288d))
+* **frontend:** Toolbar in pipeline details (from run) should only have "Clone run" button ([\#9467](https://github.com/kubeflow/pipelines/issues/9467)) ([43cbb7e](https://github.com/kubeflow/pipelines/commit/43cbb7eec461d7739db55e951e0fdd3bb43b90cd))
+* **frontend:** Unexpected page crash when clicking artifact node. ([\#9519](https://github.com/kubeflow/pipelines/issues/9519)) ([10e639e](https://github.com/kubeflow/pipelines/commit/10e639ed4f10ecbff17a517bf022f52f23fbbe2e))
+* **sdk:** fix bug when iterating over output from upstream task in nested parallelfor loops ([\#9580](https://github.com/kubeflow/pipelines/issues/9580)) ([48ecc7d](https://github.com/kubeflow/pipelines/commit/48ecc7d87915c32b84664a66439a52bb45d5295a))
+* **sdk:** Optimize wait_for_run_completion sdk function to skip an extra wait ([\#9407](https://github.com/kubeflow/pipelines/issues/9407)) ([4d2a1cf](https://github.com/kubeflow/pipelines/commit/4d2a1cf173c0131d4e11f8df927da29881252280))
+* **sdk:** print docker error messages ([\#9595](https://github.com/kubeflow/pipelines/issues/9595)) ([a9ac0b9](https://github.com/kubeflow/pipelines/commit/a9ac0b95bcc69c6214ca4e5e3208c816096f0377))
+* **sdk:** relax executor type checking ([\#9481](https://github.com/kubeflow/pipelines/issues/9481)) ([2961202](https://github.com/kubeflow/pipelines/commit/296120290bbb4eded7f1fb2ff71f866be4953ce9))
+
+
+### Other Pull Requests
+
+* normalize docs version dropdown format ([\#9435](https://github.com/kubeflow/pipelines/issues/9435)) ([f264f38](https://github.com/kubeflow/pipelines/commit/f264f38ade297b1334ef0665e228357c0cf48171))
+
 ## [2.0.0-rc.1](https://github.com/kubeflow/pipelines/compare/2.0.0-beta.2...2.0.0-rc.1) (2023-05-12)
 
 
