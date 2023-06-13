@@ -1,4 +1,18 @@
-## Current Version 2.0.0b5 (Still in Development)
+## Current Version 2.0.0b6 (Still in Development)
+
+## Release 2.0.0b5
+* Fix experimental evaluation component runtime bugs
+* Add model evaluation pipelines:
+  * `v1.model.evaluation.vision_model_error_analysis_pipeline`
+  * `v1.model.evaluation.evaluated_annotation_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_feature_attribution_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_pipeline`
+  * `v1.model.evaluation.evaluation_automl_unstructure_data_pipeline`
+  * `v1.model.evaluation.evaluation_feature_attribution_pipeline`
+* Make GCPC artifacts usable in user-defined KFP SDK Python Components and add documentation
+* Change `force_direct_runner` flag to `force_direct_runner_mode` in experimental evaluation components to allow users to choose the runner of the evaluation pipeline
+* Add experimental AutoML Forecasting Seq2Seq and Temporal Fusion Transformer pipelines
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
 
 ## Release 2.0.0b4
 * GCPC v2 reference documentation improvements
