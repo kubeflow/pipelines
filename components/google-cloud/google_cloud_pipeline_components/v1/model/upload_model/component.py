@@ -43,49 +43,41 @@ def model_upload(
     encryption_spec_key_name: str = '',
 ):
   # fmt: off
-  """Uploads a model and returns a Model representing the uploaded Model
+  """`Uploads <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload>`_ a Google Cloud Vertex `Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_ and returns a Model artifact representing the uploaded Model
   resource.
 
-  For more details, see
-  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload.
+  See `Model upload <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload>`_ method for more information.
 
   Args:
-      project: Project to upload this model to.
-      location: Optional location to upload this model to. If
-        not set, default to us-central1.
+      project: Project to upload this Model to.
+      location: Optional location to upload this Model to. If
+        not set, defaults to ``us-central1``.
       display_name: The display name of the Model. The name
         can be up to 128 characters long and can be consist of any UTF-8
-        characters.
-      description: The description of the model.
-      parent_model: An artifact of a model
-        which to upload a new version to. Only specify this field when
-        uploading a new version.
-      unmanaged_container_model: The unmanaged container model to be uploaded.  The model can
-        be passed from an upstream step, or imported via an importer.
+        characters. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model>`_
+      description: The description of the Model. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model>`_
+      parent_model: An artifact of a model which to upload a new version to. Only specify this field when uploading a new version. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body>`_
+      unmanaged_container_model: The unmanaged container model to be uploaded.  The Model can be passed from an upstream step or imported via a KFP ``dsl.importer``.
 
-        Examples::
+        :Examples:
+          ::
 
-          from kfp.dsl import importer
-          from
-          google_cloud_pipeline_components.google_cloud_pipeline_components.types
-          import artifact_types
+            from kfp import dsl
+            from google_cloud_pipeline_components.types import artifact_types
 
-          importer_spec = importer(
-            artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',
-            artifact_class=artifact_types.UnmanagedContainerModel, metadata={
-              'containerSpec': { 'imageUri':
-                'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'
-                }
-            })
+            importer_spec = dsl.importer(
+              artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',
+              artifact_class=artifact_types.UnmanagedContainerModel,
+              metadata={
+                'containerSpec': { 'imageUri':
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'
+                  }
+              })
 
       explanation_metadata: Metadata describing the Model's
-        input and output for explanation. Both `explanation_metadata` and
-        `explanation_parameters` must be passed together when used.  For more
-        details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+        input and output for explanation. Both ``explanation_metadata`` and ``explanation_parameters`` must be passed together when used. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata>`_
       explanation_parameters: Parameters to configure
-        explaining for Model's predictions.  For more details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+        explaining for Model's predictions.  `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters>`_
       encryption_spec_key_name: Customer-managed encryption
         key spec for a Model. If set, this Model and all sub-resources of this
         Model will be secured by this key.  Has the form:
@@ -100,10 +92,8 @@ def model_upload(
         examples of labels.
 
   Returns:
-      model: Artifact tracking the created model.
-      gcp_resources: Serialized gcp_resources proto tracking the upload model's long
-          running operation. For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      model: Artifact tracking the created Model.
+      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the upload Model's long-running operation.
   """
   # fmt: on
   return ContainerSpec(
