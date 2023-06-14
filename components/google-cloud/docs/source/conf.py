@@ -54,6 +54,14 @@ def second_order_passthrough_decorator(*args, **kwargs):
   return decorator
 
 
+def second_order_passthrough_decorator_for_pipeline(*args, **kwargs):
+  def decorator(func):
+    func._is_pipeline = True
+    return func
+
+  return decorator
+
+
 def load_from_file(path: str):
   with open(path) as f:
     contents = f.read()
@@ -67,6 +75,7 @@ def load_from_file(path: str):
 utils.gcpc_output_name_converter = second_order_passthrough_decorator
 dsl.component = second_order_passthrough_decorator
 dsl.container_component = first_order_passthrough_decorator
+dsl.pipeline = second_order_passthrough_decorator_for_pipeline
 components.load_component_from_file = load_from_file
 
 
@@ -231,6 +240,11 @@ def component_grouper(app, what, name, obj, section, parent):
     return 'Components'
 
 
+def pipeline_grouper(app, what, name, obj, section, parent):
+  if getattr(obj, '_is_pipeline', False):
+    return 'Pipelines'
+
+
 def autodoc_skip_member(app, what, name, obj, skip, options):
   skip = True
   if name == 'create_custom_training_job_op_from_component':
@@ -329,4 +343,5 @@ def setup(app):
       remove__output_prefix_from_signature,
   )
   app.connect('autodocsumm-grouper', component_grouper)
+  app.connect('autodocsumm-grouper', pipeline_grouper)
   app.connect('autodoc-skip-member', autodoc_skip_member)
