@@ -36,14 +36,14 @@ def endpoint_create(
     network: str = '',
 ):
   # fmt: off
-  """Creates a Google Cloud Vertex Endpoint and waits for it to be ready.
+  """`Creates <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create>`_ a Google Cloud Vertex `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_ and waits for it to be ready.
 
-  For more details, see
-  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create.
+
+  See the `Endpoint create <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create>`_ method for more information.
 
   Args:
-      project: Project to create the endpoint.
-      location: Location to create the endpoint. If not set,
+      project: Project to create the Endpoint.
+      location: Location to create the Endpoint. If not set,
         default to us-central1.
       display_name: The user-defined name of the Endpoint. The
         name can be up to 128 characters long and can be consist of any UTF-8
@@ -66,13 +66,13 @@ def endpoint_create(
         network to which the Endpoint should be peered. Private services
         access must already be configured for the network. If left
         unspecified, the Endpoint is not peered with any network.
-        [Format](https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert):
-        projects/{project}/global/networks/{network}. Where {project} is a
-        project number, as in '12345', and {network} is network name.
+        `Format <https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert>`_:
+        ``projects/{project}/global/networks/{network}``. Where ``{project}`` is a
+        project number, as in ``'12345'``, and ``{network}`` is network name.
 
   Returns:
-      endpoint: Artifact tracking the created endpoint.
-      gcp_resources: Serialized gcp_resources proto tracking the create endpoint's long running operation. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      endpoint: Artifact tracking the created Endpoint.
+      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the create Endpoint's long-running operation.
   """
   # fmt: on
   return ContainerSpec(
