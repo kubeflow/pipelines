@@ -45,15 +45,14 @@ def model_deploy(
     explanation_parameters: Dict[str, str] = {},
 ):
   # fmt: off
-  """Deploys a Google Cloud Vertex Model to the Endpoint, creating a
-  DeployedModel within it.
+  """`Deploys <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel>`_ a Google Cloud Vertex Model to an `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_ creating a
+  `DeployedModel <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel>`_ within it.
 
-  For more details, see
-  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel.
+  See the `deploy Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel>`_ method for more information.
 
   Args:
       model: The model to be deployed.
-      endpoint: The endpoint to be deployed
+      endpoint: The Endpoint to be deployed
         to.
       deployed_model_display_name: The display name of the
         DeployedModel. If not provided upon creation, the Model's display_name
@@ -69,14 +68,10 @@ def model_deploy(
         field is empty, then the Endpoint's trafficSplit is not updated.
       dedicated_resources_machine_type: The specification of a
         single machine used by the prediction.  This field is required if
-        `automatic_resources_min_replica_count` is not specified.  For more
-        details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources.
+        ``automatic_resources_min_replica_count`` is not specified.  See `more information <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources>`_.
       dedicated_resources_accelerator_type: Hardware
-        accelerator type. Must also set accelerator_count if used. See
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
-        for available options.  This field is required if
-        `dedicated_resources_machine_type` is specified.
+        accelerator type. Must also set accelerator_count if used. See `available options <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType>`_.  This field is required if
+        ``dedicated_resources_machine_type`` is specified.
       dedicated_resources_accelerator_count: The number of
         accelerators to attach to a worker replica.
       dedicated_resources_min_replica_count: The minimum
@@ -96,14 +91,14 @@ def model_deploy(
         guaranteed (barring service outages). If traffic against the deployed
         model increases beyond what its replicas at maximum may handle, a
         portion of the traffic will be dropped. If this value is not provided,
-        will use dedicated_resources_min_replica_count as the default value.
+        will use ``dedicated_resources_min_replica_count`` as the default value.
       automatic_resources_min_replica_count: The minimum
         number of replicas this DeployedModel will be always deployed on. If
         traffic against it increases, it may dynamically be deployed onto more
-        replicas up to automatic_resources_max_replica_count, and as traffic
+        replicas up to ``automatic_resources_max_replica_count``, and as traffic
         decreases, some of these extra replicas may be freed. If the requested
         value is too large, the deployment will error.  This field is required
-        if `dedicated_resources_machine_type` is not specified.
+        if ``dedicated_resources_machine_type`` is not specified.
       automatic_resources_max_replica_count: The maximum
         number of replicas this DeployedModel may be deployed on when the
         traffic against it increases. If the requested value is too large, the
@@ -119,7 +114,7 @@ def model_deploy(
         service account. If this service account is not specified, the
         container runs as a service account that doesn't have access to the
         resource project.  Users deploying the Model must have the
-        `iam.serviceAccounts.actAs` permission on this service account.
+        ``iam.serviceAccounts.actAs`` permission on this service account.
       disable_container_logging: For custom-trained Models
         and AutoML Tabular Models, the container of the DeployedModel
         instances will send stderr and stdout streams to Stackdriver Logging
@@ -133,15 +128,12 @@ def model_deploy(
         high queries per second rate (QPS). Estimate your costs before
         enabling this option.
       explanation_metadata: Metadata describing the Model's
-        input and output for explanation.  For more details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+        input and output for explanation. See `more information <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata>`_.
       explanation_parameters: Parameters that configure
-        explaining information of the Model's predictions.  For more details,
-        see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+        explaining information of the Model's predictions. See `more information <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata>`_.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the deploy model's long running operation. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the deploy Model's long-running operation.
   """
   # fmt: on
   return ContainerSpec(

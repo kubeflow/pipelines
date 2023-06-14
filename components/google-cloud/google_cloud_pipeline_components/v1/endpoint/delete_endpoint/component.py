@@ -25,16 +25,15 @@ def endpoint_delete(
     gcp_resources: dsl.OutputPath(str),
 ):
   # fmt: off
-  """Deletes a Google Cloud Vertex Endpoint.
+  """`Deletes <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete>`_ a Google Cloud Vertex `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_.
 
-  For more details, see
-  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete.
+  See the `Endpoint delete <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete>`_ method for more information.
 
   Args:
-      endpoint: The endpoint to be deleted.
+      endpoint: The Endpoint to be deleted.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the delete endpoint's long running operation. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the delete Endpoint's long-running operation.
   """
   # fmt: on
   return dsl.ContainerSpec(
