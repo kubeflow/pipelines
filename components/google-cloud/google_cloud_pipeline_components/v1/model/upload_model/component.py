@@ -17,6 +17,7 @@ from typing import Dict
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
+from kfp import dsl
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -136,6 +137,9 @@ def model_upload(
               '"}',
               ', "labels": ',
               labels,
+              ', "pipeline_job": "',
+              f'projects/{project}/locations/{location}/pipelineJobs/{dsl.PIPELINE_JOB_ID_PLACEHOLDER}',
+              '"',
               '}',
           ]),
           '--project',
