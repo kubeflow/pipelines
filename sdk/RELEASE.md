@@ -9,6 +9,17 @@
 ## Bug fixes and other changes
 
 ## Documentation updates
+# 2.0.0
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
 # 2.0.0-rc.2
 
 ## Features
