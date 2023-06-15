@@ -44,8 +44,6 @@ def hyperparameter_tuning_job(
   """Creates a Vertex AI hyperparameter tuning job and waits for
   it to complete.
 
-  See a `usage example <https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/experimental/hyperparameter_tuning_job/hp_tuning_job_sample.ipynb>`_.
-
   See `more information. <https://cloud.google.com/vertex-ai/docs/training/using-hyperparameter-tuning>`_
 
 
