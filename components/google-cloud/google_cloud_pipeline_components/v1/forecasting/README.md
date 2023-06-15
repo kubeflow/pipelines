@@ -107,7 +107,7 @@ message ForecastingAttributeTableMetadata {
 # Example pipeline using ForecastingPreprocessingOp and ForecastingValidationOp
 ```python
 import json
-from google_cloud_pipeline_components.experimental import forecasting
+from google_cloud_pipeline_components.v1 import forecasting
 
 
 primary_table_specs = {
