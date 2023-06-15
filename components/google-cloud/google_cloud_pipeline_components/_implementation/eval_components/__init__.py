@@ -15,15 +15,27 @@
 
 import os
 
+from google_cloud_pipeline_components._implementation.eval_components.dataset_preprocessor import component as dataset_preprocessor
 from google_cloud_pipeline_components._implementation.eval_components.error_analysis_annotation import component as error_analysis_annotation
+from google_cloud_pipeline_components._implementation.eval_components.evaluated_annotation import component as evaluated_annotation
 from google_cloud_pipeline_components._implementation.eval_components.feature_extractor import component as feature_extractor
+from google_cloud_pipeline_components._implementation.eval_components.import_evaluated_annotation import component as import_evaluated_annotation
 from kfp.components import load_component_from_file
 
 __all__ = [
     'FeatureExtractorOp',
     'ErrorAnalysisAnnotationOp',
+    'EvaluatedAnnotationOp',
+    'EvaluationDatasetPreprocessorOp',
+    'ModelImportEvaluatedAnnotationOp',
 ]
 
 FeatureExtractorOp = feature_extractor.feature_extractor_error_analysis
-
 ErrorAnalysisAnnotationOp = error_analysis_annotation.error_analysis_annotation
+EvaluatedAnnotationOp = evaluated_annotation.evaluated_annotation
+EvaluationDatasetPreprocessorOp = (
+    dataset_preprocessor.dataset_preprocessor_error_analysis
+)
+ModelImportEvaluatedAnnotationOp = (
+    import_evaluated_annotation.evaluated_annotation_import
+)
