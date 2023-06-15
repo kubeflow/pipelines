@@ -1,4 +1,4 @@
-ModelEvaluation
+Model Evaluation
 ==========================
 
-.. automodule:: google_cloud_pipeline_components.v1.model_evaluation
+.. automodule:: v1.model_evaluation

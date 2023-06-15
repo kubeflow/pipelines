@@ -15,7 +15,6 @@
 from typing import NamedTuple
 from google_cloud_pipeline_components._implementation.eval_components import ErrorAnalysisAnnotationOp
 from google_cloud_pipeline_components._implementation.eval_components import FeatureExtractorOp
-from google_cloud_pipeline_components.experimental.evaluation import ModelEvaluationClassificationOp
 from google_cloud_pipeline_components.experimental.evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.experimental.evaluation.error_analysis import EvaluatedAnnotationOp
 from google_cloud_pipeline_components.experimental.evaluation.error_analysis import EvaluationDatasetPreprocessorOp as DatasetPreprocessorOp
@@ -23,6 +22,7 @@ from google_cloud_pipeline_components.experimental.evaluation.error_analysis imp
 from google_cloud_pipeline_components.experimental.model import GetVertexModelOp
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from google_cloud_pipeline_components.v1.dataset import GetVertexDatasetOp
+from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
 import kfp
 from kfp import dsl
 
@@ -88,68 +88,65 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
       their schema, followed by an additional ``error`` field which as value has
       ``google.rpc.Status`` containing only ``code`` and ``message`` fields. For
       more details about this output config, see
-          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     test_dataset_resource_name: A Vertex dataset resource name of the test
-      dataset. If `test_dataset_storage_source_uris` is also provided, this
+      dataset. If ``test_dataset_storage_source_uris`` is also provided, this
       argument will override the GCS source.
     test_dataset_annotation_set_name: A string of the annotation_set resource
       name containing the ground truth of the test datset used for evaluation.
     training_dataset_resource_name: A Vertex dataset resource name of the
-      training dataset. If `training_dataset_storage_source_uris` is also
+      training dataset. If ``training_dataset_storage_source_uris`` is also
       provided, this argument will override the GCS source.
     training_dataset_annotation_set_name: A string of the annotation_set
       resource name containing the ground truth of the test datset used for
       feature extraction.
     test_dataset_storage_source_uris: Google Cloud Storage URI(-s) to unmanaged
-      test datasets.`jsonl` is currently the only allowed format. If
-      `test_dataset` is also provided, this field will be overriden by the
+      test datasets.``jsonl`` is currently the only allowed format. If
+      ``test_dataset`` is also provided, this field will be overriden by the
       provided Vertex Dataset.
     training_dataset_storage_source_uris: Google Cloud Storage URI(-s) to
-      unmanaged test datasets.`jsonl` is currently the only allowed format. If
-      `training_dataset` is also provided, this field will be overriden by the
+      unmanaged test datasets.``jsonl`` is currently the only allowed format. If
+      ``training_dataset`` is also provided, this field will be overriden by the
       provided Vertex Dataset.
     batch_predict_instances_format: The format in which instances are given,
-      must be one of the Model's supportedInputStorageFormats. If not set,
-      default to "jsonl". For more details about this input config, see
+      must be one of the Model's supportedInputStorageFormats. For more details
+      about this input config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_predictions_format: The format in which Vertex AI gives the
-      predictions. Must be one of the Model's supportedOutputStorageFormats. If
-      not set, default to "jsonl". For more details about this output config,
-      see
+      predictions. Must be one of the Model's supportedOutputStorageFormats. For
+      more details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_machine_type: The type of machine for running batch prediction
       on dedicated resources. If the Model supports DEDICATED_RESOURCES this
       config may be provided (and the job will use these resources). If the
       Model doesn't support AUTOMATIC_RESOURCES, this config must be provided.
-      If not set, defaulted to `n1-standard-32`. For more details about the
-      BatchDedicatedResources, see
+      For more details about the BatchDedicatedResources, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources.
         For more details about the machine spec, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_starting_replica_count: The number of machine replicas used at
       the start of the batch operation. If not set, Vertex AI decides starting
-      number, not greater than `max_replica_count`. Only used if `machine_type`
-      is set.
+      number, not greater than ``max_replica_count``. Only used if
+      ``machine_type`` is set.
     batch_predict_max_replica_count: The maximum number of machine replicas the
-      batch operation may be scaled to. Only used if `machine_type` is set.
-      Default is 10.
+      batch operation may be scaled to. Only used if ``machine_type`` is set.
     batch_predict_accelerator_type: The type of accelerator(s) that may be
-      attached to the machine as per `batch_predict_accelerator_count`. Only
-      used if `batch_predict_machine_type` is set. For more details about the
+      attached to the machine as per ``batch_predict_accelerator_count``. Only
+      used if ``batch_predict_machine_type`` is set. For more details about the
       machine spec, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_accelerator_count: The number of accelerators to attach to the
-      `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is
-      set.
-    dataflow_machine_type: The dataflow machine type for evaluation components.
+      ``batch_predict_machine_type``. Only used if
+      ``batch_predict_machine_type`` is set.
+    dataflow_machine_type: The Dataflow machine type for evaluation components.
     dataflow_max_num_workers: The max number of Dataflow workers for evaluation
       components.
     dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation
       components.
-    dataflow_service_account: Custom service account to run dataflow jobs.
+    dataflow_service_account: Custom service account to run Dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
@@ -159,7 +156,7 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
       The key needs to be in the same region as where the compute resource is
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
-      are `Dataflow` and `DirectRunner`.
+      are ``Dataflow`` and ``DirectRunner``.
   """
   evaluation_display_name = 'vision-model-error-analysis-pipeline'
 
@@ -222,12 +219,14 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
         model=get_model_task.outputs['model'],
         dataflow_machine_type=dataflow_machine_type,
         dataflow_max_workers_num=dataflow_max_num_workers,
-        dataflow_disk_size=dataflow_disk_size_gb,
+        dataflow_disk_size_gb=dataflow_disk_size_gb,
         dataflow_service_account=dataflow_service_account,
         dataflow_subnetwork=dataflow_subnetwork,
         dataflow_use_public_ips=dataflow_use_public_ips,
         encryption_spec_key_name=encryption_spec_key_name,
         force_runner_mode=force_runner_mode,
+        prediction_score_column='',
+        prediction_label_column='',
     )
     evaluated_annotation_task = EvaluatedAnnotationOp(
         project=project,
@@ -342,12 +341,14 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
         model=get_model_task.outputs['model'],
         dataflow_machine_type=dataflow_machine_type,
         dataflow_max_workers_num=dataflow_max_num_workers,
-        dataflow_disk_size=dataflow_disk_size_gb,
+        dataflow_disk_size_gb=dataflow_disk_size_gb,
         dataflow_service_account=dataflow_service_account,
         dataflow_subnetwork=dataflow_subnetwork,
         dataflow_use_public_ips=dataflow_use_public_ips,
         encryption_spec_key_name=encryption_spec_key_name,
         force_runner_mode=force_runner_mode,
+        prediction_score_column='',
+        prediction_label_column='',
     )
     evaluated_annotation_task = EvaluatedAnnotationOp(
         project=project,
