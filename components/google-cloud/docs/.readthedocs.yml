@@ -7,3 +7,4 @@ python:
   install:
     - method: setuptools
       path: components/google-cloud
+    - requirements: components/google-cloud/docs/requirements.txt

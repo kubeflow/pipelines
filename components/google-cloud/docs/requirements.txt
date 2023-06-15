@@ -1,1 +1,1 @@
-components/google-cloud/
+sphinx-notfound-page==0.8.3

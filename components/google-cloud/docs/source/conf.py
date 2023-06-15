@@ -4,6 +4,7 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import textwrap
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -14,7 +15,6 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('..'))
 
-
 # -- Project information -----------------------------------------------------
 
 project = 'google_cloud_pipeline_components'
@@ -24,14 +24,36 @@ author = 'Google Inc'
 # The full version, including alpha/beta/rc tags
 release = '0.0.1'
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc']
+extensions = [
+    'sphinx.ext.autodoc',
+    'notfound.extension',
+]
 
+# notfound.extension: https://sphinx-notfound-page.readthedocs.io/en/latest/configuration.html#confval-notfound_context
+notfound_context = {
+    'title':
+        'Page not found',
+    'body':
+        textwrap.dedent("""
+            <head>
+            <title>Page not found</title>
+            </head>
+            <body>
+            <div class="container">
+                <h1>404: Page not found</h1>
+                <p>
+                It's likely the object or page you're looking for doesn't exist in this version of Google Cloud Pipeline Components. Please ensure you have the correct version selected.
+                </p>
+                <a href="https://google-cloud-pipeline-components.readthedocs.io/">Back to homepage</a>
+            </div>
+            </body>
+            """),
+}
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -39,7 +61,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-
 
 # -- Options for HTML output -------------------------------------------------
 
