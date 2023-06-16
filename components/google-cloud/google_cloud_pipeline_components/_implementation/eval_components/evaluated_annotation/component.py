@@ -15,7 +15,7 @@
 
 from typing import Optional
 
-from google_cloud_pipeline_components._implementation.eval_components.version import EVAL_IMAGE_TAG
+from google_cloud_pipeline_components.v1.model_evaluation.version import EVAL_IMAGE_TAG
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input

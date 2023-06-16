@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google_cloud_pipeline_components._implementation.eval_components.version import EVAL_IMAGE_TAG
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
+from google_cloud_pipeline_components.v1.model_evaluation.version import EVAL_IMAGE_TAG
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import IfPresentPlaceholder

@@ -14,11 +14,9 @@
 """Model evaluation components."""
 
 from google_cloud_pipeline_components.experimental.evaluation.data_bias.component import detect_data_bias as DetectDataBiasOp
-from google_cloud_pipeline_components.experimental.evaluation.feature_attribution.component import feature_attribution as ModelEvaluationFeatureAttributionOp
 from google_cloud_pipeline_components.experimental.evaluation.model_bias.component import detect_model_bias as DetectModelBiasOp
 
 __all__ = [
-    'ModelEvaluationFeatureAttributionOp',
     'DetectModelBiasOp',
     'DetectDataBiasOp',
 ]
