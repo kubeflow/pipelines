@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import NamedTuple
 from google_cloud_pipeline_components.experimental.evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.experimental.model import GetVertexModelOp
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
