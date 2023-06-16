@@ -36,7 +36,7 @@ def model_evaluation_forecasting(
     forecasting_type: str = 'point',
     forecasting_quantiles: list = [],
     point_evaluation_quantile: float = 0.5,
-    prediction_score_column: str = 'prediction.scores',
+    prediction_score_column: str = 'prediction.value',
     dataflow_service_account: str = '',
     dataflow_disk_size_gb: int = 50,
     dataflow_machine_type: str = 'n1-standard-4',
