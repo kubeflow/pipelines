@@ -198,7 +198,7 @@ def evaluated_annotation_pipeline(
       ],
       dataflow_machine_type=dataflow_machine_type,
       dataflow_max_workers_num=dataflow_max_num_workers,
-      dataflow_disk_size=dataflow_disk_size_gb,
+      dataflow_disk_size_gb=dataflow_disk_size_gb,
       dataflow_service_account=dataflow_service_account,
       dataflow_subnetwork=dataflow_subnetwork,
       dataflow_use_public_ips=dataflow_use_public_ips,
