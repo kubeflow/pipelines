@@ -67,7 +67,7 @@ def time_series_dataset_create(
           Overrides encryption_spec_key_name set in aiplatform.init.
 
   Returns:
-      time_series_dataset: Instantiated representation of the managed time series dataset resource.
+      dataset: Instantiated representation of the managed time series dataset resource.
   """
   # fmt: on
 
