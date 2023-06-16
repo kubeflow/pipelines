@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,31 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Model Evaluation Error Analysis Annotation and Feature Extractor components."""
+"""Model evaluation _implementation components."""
 
 import os
 
-from google_cloud_pipeline_components._implementation.eval_components.dataset_preprocessor import component as dataset_preprocessor
-from google_cloud_pipeline_components._implementation.eval_components.error_analysis_annotation import component as error_analysis_annotation
-from google_cloud_pipeline_components._implementation.eval_components.evaluated_annotation import component as evaluated_annotation
-from google_cloud_pipeline_components._implementation.eval_components.feature_extractor import component as feature_extractor
-from google_cloud_pipeline_components._implementation.eval_components.import_evaluated_annotation import component as import_evaluated_annotation
-from kfp.components import load_component_from_file
+from google_cloud_pipeline_components._implementation.eval_components.data_sampler.component import evaluation_data_sampler as EvaluationDataSamplerOp
+from google_cloud_pipeline_components._implementation.eval_components.dataset_preprocessor.component import dataset_preprocessor_error_analysis as EvaluationDatasetPreprocessorOp
+from google_cloud_pipeline_components._implementation.eval_components.error_analysis_annotation.component import error_analysis_annotation as ErrorAnalysisAnnotationOp
+from google_cloud_pipeline_components._implementation.eval_components.evaluated_annotation.component import evaluated_annotation as EvaluatedAnnotationOp
+from google_cloud_pipeline_components._implementation.eval_components.feature_extractor.component import feature_extractor_error_analysis as FeatureExtractorOp
+from google_cloud_pipeline_components._implementation.eval_components.import_evaluated_annotation.component import evaluated_annotation_import as ModelImportEvaluatedAnnotationOp
+from google_cloud_pipeline_components._implementation.eval_components.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
+from google_cloud_pipeline_components._implementation.eval_components.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
+
 
 __all__ = [
-    'FeatureExtractorOp',
+    'EvaluationDataSamplerOp',
+    'EvaluationDatasetPreprocessorOp',
     'ErrorAnalysisAnnotationOp',
     'EvaluatedAnnotationOp',
-    'EvaluationDatasetPreprocessorOp',
+    'FeatureExtractorOp',
     'ModelImportEvaluatedAnnotationOp',
+    'ModelImportEvaluationOp',
+    'TargetFieldDataRemoverOp',
 ]
-
-FeatureExtractorOp = feature_extractor.feature_extractor_error_analysis
-ErrorAnalysisAnnotationOp = error_analysis_annotation.error_analysis_annotation
-EvaluatedAnnotationOp = evaluated_annotation.evaluated_annotation
-EvaluationDatasetPreprocessorOp = (
-    dataset_preprocessor.dataset_preprocessor_error_analysis
-)
-ModelImportEvaluatedAnnotationOp = (
-    import_evaluated_annotation.evaluated_annotation_import
-)

@@ -11,4 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Evaluation Regression Component."""
+
+EVAL_VERSION = 'v0.9.2'
+
+EVAL_IMAGE_NAME = 'gcr.io/ml-pipeline/model-evaluation'
+EVAL_IMAGE_TAG = f'{EVAL_IMAGE_NAME}:{EVAL_VERSION}'

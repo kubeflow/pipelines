@@ -15,7 +15,7 @@
 
 from typing import Optional
 
-from google_cloud_pipeline_components.experimental.evaluation.version import EVAL_IMAGE_TAG
+from google_cloud_pipeline_components._implementation.eval_components.version import EVAL_IMAGE_TAG
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input
@@ -30,7 +30,7 @@ def evaluated_annotation(
     location: Optional[str] = 'us-central1',
     ground_truth_storage_source: Optional[str] = '',
     dataflow_service_account: Optional[str] = '',
-    dataflow_disk_size: Optional[int] = 50,
+    dataflow_disk_size_gb: Optional[int] = 50,
     dataflow_machine_type: Optional[str] = 'n1-standard-4',
     dataflow_workers_num: Optional[int] = 1,
     dataflow_max_workers_num: Optional[int] = 5,
@@ -61,7 +61,7 @@ def evaluated_annotation(
         set, dataflow will use the default woker service account. For more
         details, see
         https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
-      dataflow_disk_size: The disk size (in GB) of the machine executing the
+      dataflow_disk_size_gb: The disk size (in GB) of the machine executing the
         evaluation run. If not set, defaulted to `50`.
       dataflow_machine_type: The machine type executing the evaluation run. If
         not set, defaulted to `n1-standard-4`.
@@ -115,7 +115,7 @@ def evaluated_annotation(
           '--dataflow_service_account',
           dataflow_service_account,
           '--dataflow_disk_size',
-          dataflow_disk_size,
+          dataflow_disk_size_gb,
           '--dataflow_machine_type',
           dataflow_machine_type,
           '--dataflow_workers_num',
