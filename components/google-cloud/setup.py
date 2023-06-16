@@ -69,6 +69,7 @@ setup(
             "sphinx-immaterial==0.9.0",
             "sphinx-rtd-theme==1.0.0",
             "m2r2==0.3.2",
+            "sphinx-notfound-page==0.8.3",
         ],
     },
     include_package_data=True,

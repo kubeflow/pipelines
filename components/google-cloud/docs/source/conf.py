@@ -16,6 +16,7 @@ import inspect
 import os
 import re
 import sys
+import textwrap
 from typing import List
 
 import docstring_parser
@@ -23,7 +24,6 @@ from google_cloud_pipeline_components import utils
 from kfp import components
 from kfp import dsl
 import yaml
-
 
 # setting this enables the .rst files to use the paths v1.bigquery.Component (etc.) rather than google_cloud_pipeline_components.v1.biquery.Component for shorter, readable representation in docs
 gcpc_root_dir = os.path.abspath(
@@ -142,6 +142,7 @@ extensions = [
     'm2r2',
     'sphinx_immaterial',
     'autodocsumm',
+    'notfound.extension',
 ]
 autodoc_default_options = {
     'members': True,
@@ -151,6 +152,25 @@ autodoc_default_options = {
     'show-inheritance': False,
     'inherited-members': False,
     'autosummary': False,
+}
+
+# notfound.extension: https://sphinx-notfound-page.readthedocs.io/en/latest/configuration.html#confval-notfound_context
+notfound_context = {
+    'title': 'Page not found',
+    'body': textwrap.dedent("""
+            <head>
+            <title>Page not found</title>
+            </head>
+            <body>
+            <div class="container">
+                <h1>404: Page not found</h1>
+                <p>
+                It's likely the object or page you're looking for doesn't exist in this version of Google Cloud Pipeline Components. Please ensure you have the correct version selected.
+                </p>
+                <a href="https://google-cloud-pipeline-components.readthedocs.io/">Back to homepage</a>
+            </div>
+            </body>
+            """),
 }
 
 html_theme = 'sphinx_immaterial'
