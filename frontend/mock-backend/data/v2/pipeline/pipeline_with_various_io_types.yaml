@@ -87,7 +87,7 @@ components:
       parameters:
         output_1:
           parameterType: NUMBER_INTEGER
-defaultPipelineRoot: dummy_root
+defaultPipelineRoot: minio://dummy_root
 deploymentSpec:
   executors:
     exec-downstream:
