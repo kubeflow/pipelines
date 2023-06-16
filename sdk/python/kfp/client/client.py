@@ -1417,7 +1417,7 @@ class Client:
         if pipeline_name is None:
             pipeline_doc = _extract_pipeline_yaml(pipeline_package_path)
             pipeline_name = pipeline_doc.pipeline_spec.pipeline_info.name
-        validate_pipeline_resource_name(pipeline_name)
+        validate_pipeline_display_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path,
             name=pipeline_name,
@@ -1622,12 +1622,10 @@ def _add_generated_apis(
     target_struct.api_models = models_struct
 
 
-def validate_pipeline_resource_name(name: str) -> None:
-    REGEX = r'[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
-
-    if re.fullmatch(REGEX, name) is None:
+def validate_pipeline_display_name(name: str) -> None:
+    if not name or name.isspace():
         raise ValueError(
-            f'Invalid pipeline name: "{name}". Pipeline name must conform to the regex: "{REGEX}".'
+            f'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
         )
 
 
