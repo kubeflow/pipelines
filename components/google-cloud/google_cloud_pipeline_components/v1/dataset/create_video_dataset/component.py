@@ -86,7 +86,7 @@ def video_dataset_create(
           Overrides encryption_spec_key_name set in aiplatform.init.
 
   Returns:
-      video_dataset: Instantiated representation of the managed video dataset resource.
+      dataset: Instantiated representation of the managed video dataset resource.
   """
   # fmt: on
 

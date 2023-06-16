@@ -66,7 +66,7 @@ def tabular_dataset_create(
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
   Returns:
-      tabular_dataset: Instantiated representation of the managed tabular dataset resource.
+      dataset: Instantiated representation of the managed tabular dataset resource.
   """
   # fmt: on
 

@@ -85,7 +85,7 @@ def text_dataset_create(
           Overrides encryption_spec_key_name set in aiplatform.init.
 
   Returns:
-      text_dataset: Instantiated representation of the managed text dataset resource.
+      dataset: Instantiated representation of the managed text dataset resource.
   """
   # fmt: on
 

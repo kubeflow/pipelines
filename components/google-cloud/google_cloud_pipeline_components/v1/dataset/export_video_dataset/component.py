@@ -49,7 +49,7 @@ def video_dataset_export(
       location: Optional location to retrieve dataset from.
 
   Returns:
-      exported_files: All of the files that are exported in this export operation.
+      exported_dataset: All of the files that are exported in this export operation.
   """
   # fmt: on
 
