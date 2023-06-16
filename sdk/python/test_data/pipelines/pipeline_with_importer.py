@@ -49,7 +49,7 @@ def pass_through_op(value: str) -> str:
     return value
 
 
-@dsl.pipeline(name='pipeline-with-importer', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-importer')
 def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
 
     importer1 = importer(

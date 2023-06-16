@@ -23,9 +23,7 @@ component_op = components.load_component_from_file(
     str(test_data_dir / 'concat_placeholder_component.yaml'))
 
 
-@dsl.pipeline(
-    name='one-step-pipeline-with-concat-placeholder',
-    pipeline_root='dummy_root')
+@dsl.pipeline(name='one-step-pipeline-with-concat-placeholder')
 def my_pipeline():
     component = component_op(input_prefix='some prefix:')
 

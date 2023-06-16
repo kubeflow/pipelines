@@ -47,7 +47,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='pipeline-with-env', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-env')
 def pipeline_with_env():
     print_env_op().set_env_variable(name='ENV1', value='val1')
     print_env_2_op().set_env_variable(
@@ -57,5 +57,4 @@ def pipeline_with_env():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline_with_env,
-        package_path='pipeline_with_env.yaml')
+        pipeline_func=pipeline_with_env, package_path='pipeline_with_env.yaml')

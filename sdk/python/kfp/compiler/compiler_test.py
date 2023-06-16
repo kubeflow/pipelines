@@ -192,7 +192,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 ' type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
         ):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline():
                 downstream_op(model=upstream_op().output)
 
@@ -213,7 +213,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 TypeError,
                 ' type "String" cannot be paired with InputPathPlaceholder.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: str):
                 component_op(text=text)
 
@@ -222,7 +222,7 @@ class TestCompilePipeline(parameterized.TestCase):
         with self.assertRaisesRegex(ValueError,
                                     'Task is missing from pipeline.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: str):
                 pass
 
@@ -243,7 +243,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 TypeError,
                 ' type "Float" cannot be paired with InputUriPlaceholder.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline(value: float):
                 component_op(value=value)
 
@@ -264,7 +264,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 TypeError,
                 ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline():
                 component_op()
 
