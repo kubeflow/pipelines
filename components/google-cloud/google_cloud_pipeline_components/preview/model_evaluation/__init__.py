@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Model evaluation preview components."""
 
-EVAL_VERSION = 'v0.9.2'
+from google_cloud_pipeline_components.preview.model_evaluation.feature_attribution_component import feature_attribution as ModelEvaluationFeatureAttributionOp
 
-EVAL_IMAGE_NAME = 'gcr.io/ml-pipeline/model-evaluation'
-EVAL_IMAGE_TAG = f'{EVAL_IMAGE_NAME}:{EVAL_VERSION}'
+__all__ = [
+    'ModelEvaluationFeatureAttributionOp',
+]

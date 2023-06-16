@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google_cloud_pipeline_components.experimental.evaluation.version import EVAL_IMAGE_TAG
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
+from google_cloud_pipeline_components.v1.model_evaluation.version import EVAL_IMAGE_TAG
 from kfp import dsl
 from kfp.dsl import container_component
 
