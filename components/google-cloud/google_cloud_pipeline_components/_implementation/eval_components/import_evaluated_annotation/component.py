@@ -56,7 +56,7 @@ def evaluated_annotation_import(
           'python3',
           '-u',
           '-m',
-          'google_cloud_pipeline_components.container.experimental.evaluation.import_evaluated_annotation',
+          'google_cloud_pipeline_components.container._implementation.evaluation.import_evaluated_annotation',
       ],
       args=[
           '--evaluated_annotation_output_uri',

@@ -49,7 +49,7 @@ def get_vertex_model(
           'python3',
           '-u',
           '-m',
-          'google_cloud_pipeline_components.container.experimental.model.get_model.get_model',
+          'google_cloud_pipeline_components.container._implementation.model.get_model.get_model',
       ],
       args=[
           '--model_name',
