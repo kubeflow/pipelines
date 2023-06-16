@@ -14,16 +14,10 @@
 """Model evaluation components."""
 
 from google_cloud_pipeline_components.experimental.evaluation.data_bias.component import detect_data_bias as DetectDataBiasOp
-from google_cloud_pipeline_components.experimental.evaluation.data_sampler.component import evaluation_data_sampler as EvaluationDataSamplerOp
 from google_cloud_pipeline_components.experimental.evaluation.feature_attribution.component import feature_attribution as ModelEvaluationFeatureAttributionOp
-from google_cloud_pipeline_components.experimental.evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
 from google_cloud_pipeline_components.experimental.evaluation.model_bias.component import detect_model_bias as DetectModelBiasOp
-from google_cloud_pipeline_components.experimental.evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
 
 __all__ = [
-    'ModelImportEvaluationOp',
-    'EvaluationDataSamplerOp',
-    'TargetFieldDataRemoverOp',
     'ModelEvaluationFeatureAttributionOp',
     'DetectModelBiasOp',
     'DetectDataBiasOp',
