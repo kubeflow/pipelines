@@ -38,7 +38,7 @@ def feature_attribution(
     predictions_gcs_source: Input[Artifact] = None,
     predictions_bigquery_source: Input[BQTable] = None,
     dataflow_service_account: str = '',
-    dataflow_disk_size: int = 50,
+    dataflow_disk_size_gb: int = 50,
     dataflow_machine_type: str = 'n1-standard-4',
     dataflow_workers_num: int = 1,
     dataflow_max_workers_num: int = 5,
@@ -76,7 +76,7 @@ def feature_attribution(
         dataflow job. If not set, dataflow will use the default worker service
         account. For more details, see
         https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
-      dataflow_disk_size: The disk size (in GB) of the machine
+      dataflow_disk_size_gb: The disk size (in GB) of the machine
         executing the evaluation run. If not set, defaulted to `50`.
       dataflow_machine_type: The machine type executing the
         evaluation run. If not set, defaulted to `n1-standard-4`.
@@ -152,7 +152,7 @@ def feature_attribution(
           '--dataflow_service_account',
           dataflow_service_account,
           '--dataflow_disk_size',
-          dataflow_disk_size,
+          dataflow_disk_size_gb,
           '--dataflow_machine_type',
           dataflow_machine_type,
           '--dataflow_workers_num',
