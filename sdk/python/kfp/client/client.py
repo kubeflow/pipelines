@@ -1625,7 +1625,7 @@ def _add_generated_apis(
 def validate_pipeline_display_name(name: str) -> None:
     if not name or name.isspace():
         raise ValueError(
-            f'Invalid pipeline name. Pipeline name cannot be empty or containing only whitespace.'
+            f'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
         )
 
 

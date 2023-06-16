@@ -52,7 +52,7 @@ class TestValidatePipelineName(parameterized.TestCase):
     def test_invalid(self, name: str):
         with self.assertRaisesRegex(
                 ValueError,
-                'Invalid pipeline name. Pipeline name cannot be empty or containing only whitespace.'
+                'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
         ):
             client.validate_pipeline_display_name(name)
 
@@ -424,7 +424,7 @@ class TestClient(parameterized.TestCase):
             with patch.object(self.client, '_is_ipython', return_value=False):
                 with self.assertRaisesRegex(
                         ValueError,
-                        'Invalid pipeline name. Pipeline name cannot be empty or containing only whitespace.'
+                        'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
                 ):
                     self.client.upload_pipeline(
                         pipeline_package_path='fake.yaml',
