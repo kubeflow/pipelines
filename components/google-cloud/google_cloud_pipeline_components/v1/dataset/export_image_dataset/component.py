@@ -30,7 +30,7 @@ def image_dataset_export(
     location: Optional[str] = 'us-central1',
 ):
   # fmt: off
-  """Exports data to output dir to GCS.
+  """Exports `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_ to a GCS output directory.
 
   Args:
       output_dir: The Google Cloud Storage location where the output is to
@@ -45,8 +45,8 @@ def image_dataset_export(
           schema.yaml will be created to describe the output format.
           If the uri doesn't end with '/', a '/' will be automatically
           appended. The directory is created if it doesn't exist.
-      project: project to retrieve dataset from.
-      location: Optional location to retrieve dataset from.
+      project: Project to retrieve Dataset from.
+      location: Optional location to retrieve Dataset from.
 
   Returns:
       exported_dataset: All of the files that are exported in this export operation.

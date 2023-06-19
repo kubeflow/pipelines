@@ -33,7 +33,7 @@ def time_series_dataset_create(
     encryption_spec_key_name: Optional[str] = None,
 ):
   # fmt: off
-  """Creates a new time series dataset.
+  """Creates a new time series `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_.
 
   Args:
       display_name: The user-defined name of the Dataset.
@@ -44,10 +44,10 @@ def time_series_dataset_create(
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
+          For example, ``"gs://bucket/file.csv"`` or ``["gs://bucket/file1.csv", "gs://bucket/file2.csv"]``.
       bq_source: BigQuery URI to the input table. For example, bq://project.dataset.table_name".
-      project: project to retrieve dataset from.
-      location: Optional location to retrieve dataset from.
+      project: Project to retrieve Dataset from.
+      location: Optional location to retrieve Dataset from.
       labels: Labels with user-defined metadata to organize your Tensorboards.
           Label keys and values can be no longer than 64 characters
           (Unicode codepoints), can only contain lowercase letters, numeric
@@ -64,10 +64,10 @@ def time_series_dataset_create(
           The key needs to be in the same region as where the compute
           resource is created.
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
-          Overrides encryption_spec_key_name set in aiplatform.init.
+          Overrides ``encryption_spec_key_name`` set in ``aiplatform.init``.
 
   Returns:
-      dataset: Instantiated representation of the managed time series dataset resource.
+      dataset: Instantiated representation of the managed time series Datasetresource.
   """
   # fmt: on
 

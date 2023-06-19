@@ -34,8 +34,8 @@ def video_dataset_create(
     encryption_spec_key_name: Optional[str] = None,
 ):
   # fmt: off
-  """Creates a new video dataset and optionally imports data into dataset when
-  source and import_schema_uri are passed.
+  """Creates a new video `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_ and optionally imports data into Dataset when
+  ``source`` and ``import_schema_uri`` are passed.
 
   Args:
       display_name: The user-defined name of the Dataset.
@@ -46,12 +46,12 @@ def video_dataset_create(
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
+          For example, ``"gs://bucket/file.csv"`` or ``["gs://bucket/file1.csv", "gs://bucket/file2.csv"]``.
       import_schema_uri: Points to a YAML file stored on Google Cloud
           Storage describing the import format. Validation will be
           done against the schema. The schema is defined as an
           `OpenAPI 3.0.2 Schema
-          Object <https://tinyurl.com/y538mdwt>`__.
+          Object <https://tinyurl.com/y538mdwt>`_.
       data_item_labels: Labels that will be applied to newly imported DataItems. If
           an identical DataItem as one being imported already exists
           in the Dataset, then these labels will be appended to these
@@ -65,8 +65,8 @@ def video_dataset_create(
           pdf bytes). These labels will be overridden by Annotation
           labels specified inside index file refenced by
           ``import_schema_uri``,
-      project: project to retrieve dataset from.
-      location: Optional location to retrieve dataset from.
+      project: Project to retrieve Dataset from.
+      location: Optional location to retrieve Dataset from.
       labels: Labels with user-defined metadata to organize your Tensorboards.
           Label keys and values can be no longer than 64 characters
           (Unicode codepoints), can only contain lowercase letters, numeric
@@ -77,16 +77,16 @@ def video_dataset_create(
           System reserved label keys are prefixed with "aiplatform.googleapis.com/"
           and are immutable.
       encryption_spec_key_name: The Cloud KMS resource identifier of the customer
-          managed encryption key used to protect the dataset. Has the
+          managed encryption key used to protect the Dataset. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
           The key needs to be in the same region as where the compute
           resource is created.
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
-          Overrides encryption_spec_key_name set in aiplatform.init.
+          Overrides ``encryption_spec_key_name`` set in ``aiplatform.init``.
 
   Returns:
-      dataset: Instantiated representation of the managed video dataset resource.
+      dataset: Instantiated representation of the managed video Datasetresource.
   """
   # fmt: on
 
