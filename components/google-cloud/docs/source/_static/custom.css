@@ -1,5 +1,5 @@
 [data-md-color-primary=googleblue]{--md-primary-fg-color:#4285F4;--md-primary-fg-color--light:##4285F4;--md-primary-fg-color--dark:##4285F4;--md-primary-bg-color:#fff;--md-primary-bg-color--light:hsla(0,0%,100%,.7)}
 
-div.rst-versions {
-  display: none;
+.rst-versions.rst-badge {
+  display: none !important;
 }
