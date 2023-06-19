@@ -35,12 +35,12 @@ def video_dataset_import(
     import_schema_uri: Optional[str] = None,
 ):
   # fmt: off
-  """Upload data to existing managed dataset.
+  """Uploads data to an existing managed `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_.
 
   Args:
-      project: project to retrieve dataset from.
-      location: Optional location to retrieve dataset from.
-      dataset: The dataset to be updated.
+      project: Project to retrieve Dataset from.
+      location: Optional location to retrieve Dataset from.
+      dataset: The Dataset to be updated.
       gcs_source:
           Google Cloud Storage URI(-s) to the
           input file(s). May contain wildcards. For more
@@ -51,7 +51,7 @@ def video_dataset_import(
           Storage describing the import format. Validation will be
           done against the schema. The schema is defined as an
           `OpenAPI 3.0.2 Schema
-          Object <https://tinyurl.com/y538mdwt>`__.
+          Object <https://tinyurl.com/y538mdwt>`_.
       data_item_labels: Labels that will be applied to newly imported DataItems. If
           an identical DataItem as one being imported already exists
           in the Dataset, then these labels will be appended to these
@@ -68,7 +68,7 @@ def video_dataset_import(
           e.g. jsonl file.
 
   Returns:
-      dataset: Instantiated representation of the managed dataset resource.
+      dataset: Instantiated representation of the managed Dataset resource.
   """
   # fmt: on
 
