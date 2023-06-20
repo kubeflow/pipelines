@@ -18,12 +18,13 @@
 # finish the process using the GitHub UI to publish the draft
 
 # example usage:
-# > ./sdk/hack/github_release.sh 1.8.13
+# > ./sdk/hack/github_release.sh 2.0.0
 
 set -ex
 
-# Prefix tag name with `sdk-` to distinguish from runtime releases 
-TAG_NAME="sdk-$1"
+# Prefix tag name with `sdk-` to distinguish from runtime releases
+TARGET_VERSION=$1
+TAG_NAME="sdk-$TARGET_VERSION"
 TARGET_HASH=$(git rev-parse HEAD)
 
 # substrings indicating pre-release status
@@ -38,9 +39,9 @@ else
 fi
 
 
-TITLE="KFP SDK v${TAG_NAME}"
+TITLE="KFP SDK v${TARGET_VERSION}"
 RELEASE_NOTES_LINK="https://github.com/kubeflow/pipelines/blob/${TARGET_HASH}/sdk/RELEASE.md"
 REPO=kubeflow/pipelines
-NOTES="Release of the KFP SDK **only**."$'\n'$'\n'"To install the KFP SDK:"$'\n'"\`\`\`bash"$'\n'"pip install kfp==${TAG_NAME}"$'\n'"\`\`\`"$'\n'"For changelog, see [release notes](${RELEASE_NOTES_LINK})."
+NOTES="Release of the KFP SDK **only**."$'\n'$'\n'"To install the KFP SDK:"$'\n'"\`\`\`bash"$'\n'"pip install kfp==${TARGET_VERSION}"$'\n'"\`\`\`"$'\n'"For changelog, see [release notes](${RELEASE_NOTES_LINK})."
 
 gh release create $TAG_NAME --target $TARGET_HASH --repo $REPO --title "${TITLE}" --notes "${NOTES}" $PRE_STATUS --draft
