@@ -20,7 +20,7 @@ set -e
 # $PROJECT: gcp project
 
 RELEASE_PROJECT=ml-pipeline
-TAG=RELEASE.2019-08-14T20-37-41Z-license-compliance
+TAG=RELEASE.2022-04-16T04-26-02Z-license-compliance
 
 gcloud builds submit --config third_party/minio/cloudbuild.yaml . \
   --substitutions=TAG_NAME="$TAG" --project "$PROJECT"

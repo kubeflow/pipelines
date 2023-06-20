@@ -23,7 +23,7 @@ RUN sh /third_party/download_source.sh </third_party/minio/repo-MPL.txt
 
 
 # Minio image
-FROM minio/minio:RELEASE.2019-08-14T20-37-41Z
+FROM minio/minio:RELEASE.2022-04-16T04-26-02Z
 
 # Copy concatenated license file
 COPY third_party/minio/license.txt /third_party/license.txt
