@@ -80,7 +80,7 @@ def model_evaluation_import(
           "python3",
           "-u",
           "-m",
-          "google_cloud_pipeline_components.container._implementation.evaluation.import_model_evaluation",
+          "google_cloud_pipeline_components.container._implementation.model_evaluation.import_model_evaluation",
       ],
       args=[
           dsl.IfPresentPlaceholder(
