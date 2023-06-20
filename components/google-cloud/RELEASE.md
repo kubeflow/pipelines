@@ -1,4 +1,54 @@
-## Current Version 2.0.0b6 (Still in Development)
+## Upcoming release
+
+## Release 2.0.0
+
+Google Cloud Pipeline Components v2 is generally available!
+
+### Structure
+* Use `v1` for [GA offerings](https://cloud.google.com/terms/service-terms)
+* Create `preview` namespace for [pre-GA offerings](https://cloud.google.com/terms/service-terms) (previously `experimental`)
+* Remove `experimental` namespace
+
+### Major changes
+* Migrate many components to the [`v1` GA namespace](https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.0.0/)
+* Migrate components to the [`preview` namespace]()
+  * `preview.model_evaluation.ModelEvaluationFeatureAttributionOp`
+  * `preview.model_evaluation.DetectModelBiasOp`
+  * `preview.model_evaluation.DetectDataBiasOp`
+  * `preview.dataflow.DataflowFlexTemplateJobOp`
+* Add many new components:
+  * `v1.dataflow.DataflowFlexTemplateJobOp`
+  * `v1.model.evaluation.vision_model_error_analysis_pipeline`
+  * `v1.model.evaluation.evaluated_annotation_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_feature_attribution_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_pipeline`
+  * `v1.model.evaluation.evaluation_automl_unstructure_data_pipeline`
+  * `v1.model.evaluation.evaluation_feature_attribution_pipeline`
+* Make GCPC artifacts usable in user-defined KFP SDK Python components ([Containerized Python Components](https://www.kubeflow.org/docs/components/pipelines/v2/components/containerized-python-components/) recommended)
+
+### Runtime
+* Change runtime base image to `marketplace.gcr.io/google/ubuntu2004`
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+### Dependencies
+* Depend on KFP SDK v2 (GCPC v2 is not compatible with KFP v1)
+* Set `google-api-core<1.34.0` to avoid 900s timeout
+* Remove `google-cloud-notebooks` and `google-cloud-storage` dependencies
+
+### Documentation
+* Refresh GCPC v2 reference documentation
+
+### Other
+* Assorted minor component interface changes
+* Assorted bug fixes
+* Change `force_direct_runner` flag to `force_direct_runner_mode` in experimental evaluation components to allow users to choose the runner of the evaluation pipeline
+* Support upload model with pipeline job id in UploadModel GCPC component
+* Change default value of `prediction_score_column` for AutoML Forecasting & Regression components to `prediction.value`
+* Change `dataflow_disk_size` parameter to `dataflow_disk_size_gb` in all model evaluation components
+* Remove `aiplatform.CustomContainerTrainingJobRunOp` and `aiplatform.CustomPythonPackageTrainingJobRunOp` components
+
+### Upcoming changes
+* Additional migrations from the 1.x.x's `experimental` namespace to the `v1` and `preview` namespaces
 
 ## Release 2.0.0b5
 * Fix experimental evaluation component runtime bugs
