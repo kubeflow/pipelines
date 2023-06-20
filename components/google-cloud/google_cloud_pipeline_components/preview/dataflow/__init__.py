@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Experimnental Dataflow components."""
+"""Dataflow preview components."""
 
 from google_cloud_pipeline_components.preview.dataflow.flex_template.component import dataflow_flex_template as DataflowFlexTemplateJobOp
-from google_cloud_pipeline_components.v1.dataflow import DataflowPythonJobOp
 
 __all__ = [
     'DataflowFlexTemplateJobOp',
-    'DataflowPythonJobOp',
 ]
