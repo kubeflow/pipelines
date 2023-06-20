@@ -132,9 +132,11 @@ html_theme_options = {
         True,
     'version_info': [
         {
-            'version': 'https://kubeflow-pipelines.readthedocs.io/en/master/',
-            'title': 'master',
-            'aliases': [],
+            'version':
+                'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0/',
+            'title':
+                '2.0.0',
+            'aliases': ['stable'],
         },
         # need to use the sdk- prefix to avoid conflict with the BE's GitHub release tags
         {
@@ -214,7 +216,7 @@ html_theme_options = {
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.22/',
             'title': 'v1.8.22',
-            'aliases': ['stable'],
+            'aliases': [],
         },
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.21/',
