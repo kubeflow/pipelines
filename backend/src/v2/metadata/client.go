@@ -280,6 +280,31 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 		return nil, err
 	}
 
+	// Detect whether such parent-child relationship exists.
+	resParents, err := c.svc.GetParentContextsByContext(ctx, &pb.GetParentContextsByContextRequest{
+		ContextId: runContext.Id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	parents := resParents.GetContexts()
+	if len(parents) > 1 {
+		return nil, fmt.Errorf("Current run context has more than 1 parent context: %v", parents)
+	}
+	if len(parents) == 1 {
+		// Parent-child context alredy exists.
+		if parents[0].GetId() != pipelineContext.GetId() {
+			return nil, fmt.Errorf("Parent context ID %d of current run is different from expected: %d",
+				parents[0].GetId(),
+				pipelineContext.GetId())
+		}
+		return &Pipeline{
+			pipelineCtx:    pipelineContext,
+			pipelineRunCtx: runContext,
+		}, nil
+	}
+
+	// Insert ParentContext relationship if doesn't exist.
 	err = c.putParentContexts(ctx, &pb.PutParentContextsRequest{
 		ParentContexts: []*pb.ParentContext{{
 			ChildId:  runContext.Id,
