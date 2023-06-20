@@ -19,8 +19,6 @@ The KFP SDK 2.0.0 release contains features present in the KFP SDK v1's v2 names
 * An improved and unified Python-based authoring experience for [components](https://www.kubeflow.org/docs/components/pipelines/v2/components/) and [pipelines](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/)
 * Support for using [pipelines as components](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#pipelines-as-components) (pipeline in pipeline)
 * Various additional [configurations for tasks](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#task-configurations)
-* Support for [fanning-in outputs](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/control-flow/#parallel-looping-dslparallelfor) from `dsl.ParallelFor` using `dsl.Collected`
-* Support for [obtaining upstream task status](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/control-flow/#exit-handling-dslexithandler) in a `dsl.ExitHandler` using `dsl.PipelineTaskFinalStatus`
 * Compilation to an Argo-independent [pipeline definition](https://www.kubeflow.org/docs/components/pipelines/v2/compile-a-pipeline/#ir-yaml) that enables pipelines to be compiled once and run anywhere
 * Additonal SDK client functionality
 * An improved [KFP CLI](https://www.kubeflow.org/docs/components/pipelines/v2/cli/)
@@ -76,7 +74,6 @@ See the [KFP SDK v1 to v2 migration guide](https://www.kubeflow.org/docs/compone
 * Various bug fixes associated with providing backward compatibility for KFP SDK v1
 * Use YAML as default serialization format for pipeline IR [\#7431](https://github.com/kubeflow/pipelines/pull/7431)
 * Support Python 3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186) and 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
-
 * Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
 * Format file when compiling to JSON [\#7712](https://github.com/kubeflow/pipelines/pull/7712)
 * Allow artifact inputs in pipeline definition [\#8044](https://github.com/kubeflow/pipelines/pull/8044)
