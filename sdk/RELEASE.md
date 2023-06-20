@@ -68,7 +68,7 @@ See the [KFP SDK v1 to v2 migration guide](https://www.kubeflow.org/docs/compone
 
 
 ## Bug fixes and other changes
-* Various changes to depdenency versions relative to v1
+* Various changes to dependency versions relative to v1
 * Various dependencies removed relative to v1
 * Various bug fixes applied in KFP SDK 2.x.x pre-release versions
 * Various bug fixes associated with providing backward compatibility for KFP SDK v1
