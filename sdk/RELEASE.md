@@ -7,7 +7,6 @@
 ## Deprecations
 
 ## Bug fixes and other changes
-* Require `click>=8.0.0,<9` [\#9634](https://github.com/kubeflow/pipelines/pull/9634)
 
 ## Documentation updates
 # 2.0.0
