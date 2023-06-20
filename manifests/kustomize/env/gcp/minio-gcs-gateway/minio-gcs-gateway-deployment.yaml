@@ -18,12 +18,12 @@ spec:
       serviceAccountName: kubeflow-pipelines-minio-gcs-gateway
       containers:
         - name: minio
-          image: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance
+          image: gcr.io/ml-pipeline/minio:RELEASE.2022-04-16T04-26-02Z-license-compliance
           args:
             - gateway
             - gcs
             - $(GCP_PROJECT_ID)
-          env:            
+          env:
             - name: GCP_PROJECT_ID
               valueFrom:
                 configMapKeyRef:
