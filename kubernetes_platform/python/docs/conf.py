@@ -141,8 +141,15 @@ html_theme_options = {
         'version':
             'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-0.0.1/',
         'title':
-            '0.0.1',
+            '1.0.0',
         'aliases': ['stable'],
+    },
+                     {
+        'version':
+            'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-0.0.1/',
+        'title':
+            '0.0.1',
+        'aliases': [],
     },],
     # "toc_title_is_page_title": True,
 }
