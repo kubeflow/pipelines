@@ -40,7 +40,6 @@ components:
       parameters:
         sum:
           parameterType: NUMBER_INTEGER
-defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-add:
@@ -150,4 +149,4 @@ root:
         isOptional: true
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2

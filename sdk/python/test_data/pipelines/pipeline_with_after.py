@@ -33,7 +33,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='pipeline-with-after', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-after')
 def my_pipeline():
     task1 = component_op(text='1st task')
     task2 = component_op(text='2nd task').after(task1)

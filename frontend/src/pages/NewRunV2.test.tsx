@@ -554,7 +554,7 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: {}, pipeline_root: 'dummy_root' },
+            runtime_config: { parameters: {}, pipeline_root: 'minio://dummy_root' },
             service_account: '',
           }),
         );

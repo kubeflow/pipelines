@@ -80,7 +80,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='pipeline-with-various-types', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-various-types')
 def my_pipeline(input1: str, input3: Input[Artifact], input4: str = ''):
     component_1 = component_op_1(
         input_1=input1,

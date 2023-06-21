@@ -233,4 +233,4 @@ root:
           enableCache: true
         componentRef:
           name: comp-preprocess
-defaultPipelineRoot: dummy_root
+defaultPipelineRoot: minio://dummy_root

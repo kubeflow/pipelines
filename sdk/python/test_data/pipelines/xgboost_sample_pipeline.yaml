@@ -237,7 +237,6 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-chicago-taxi-trips-dataset:
@@ -924,4 +923,4 @@ root:
         taskInfo:
           name: xgboost-train-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2
