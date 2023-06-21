@@ -9,6 +9,18 @@
 ## Bug fixes and other changes
 
 ## Documentation updates
+# 2.0.1
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+* Fix PyPI/README description [\#9668](https://github.com/kubeflow/pipelines/pull/9668)
 # 2.0.0
 KFP SDK 2.0.0 release notes are distilled to emphasize high-level improvements in major version 2. See preceding 2.x.x pre-release notes for a more comprehensive list.
 
