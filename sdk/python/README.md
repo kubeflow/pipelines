@@ -1,16 +1,14 @@
 
-> Note: This is a pre-release and is not yet stable. Please report bugs and provide feedback via [GitHub Issues](https://github.com/kubeflow/pipelines/issues).
-
 Kubeflow Pipelines is a platform for building and deploying portable, scalable machine learning workflows based on Docker containers within the [Kubeflow](https://www.kubeflow.org/) project.
 
 Use Kubeflow Pipelines to compose a multi-step workflow ([pipeline](https://www.kubeflow.org/docs/components/pipelines/concepts/pipeline/)) as a [graph](https://www.kubeflow.org/docs/components/pipelines/concepts/graph/) of containerized [tasks](https://www.kubeflow.org/docs/components/pipelines/concepts/step/) using Python code and/or YAML. Then, [run](https://www.kubeflow.org/docs/components/pipelines/concepts/run/) your pipeline with specified pipeline arguments, rerun your pipeline with new arguments or data, [schedule](https://www.kubeflow.org/docs/components/pipelines/concepts/run-trigger/) your pipeline to run on a recurring basis, organize your runs into [experiments](https://www.kubeflow.org/docs/components/pipelines/concepts/experiment/), save machine learning artifacts to compliant [artifact registries](https://www.kubeflow.org/docs/components/pipelines/concepts/metadata/), and visualize it all through the [Kubeflow Dashboard](https://www.kubeflow.org/docs/components/central-dash/overview/).
 
 ## Installation
 
-To install the `kfp` pre-release, run:
+To install `kfp`, run:
 
 ```sh
-pip install --pre kfp
+pip install kfp
 ```
 
 ## Getting started
