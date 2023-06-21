@@ -19,7 +19,6 @@ components:
       parameters:
         text:
           parameterType: STRING
-defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-print-text:
@@ -105,4 +104,4 @@ root:
         taskInfo:
           name: print-text-3
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2

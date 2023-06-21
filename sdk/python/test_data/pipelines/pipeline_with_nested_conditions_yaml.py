@@ -68,7 +68,6 @@ print_op = components.load_component_from_text("""
 @dsl.pipeline(
     name='conditional-execution-pipeline',
     display_name='Conditional execution pipeline.',
-    pipeline_root='dummy_root',
     description='Shows how to use dsl.Condition().')
 def my_pipeline():
     flip = flip_coin_op()

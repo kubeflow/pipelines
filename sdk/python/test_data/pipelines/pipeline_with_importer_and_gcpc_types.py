@@ -38,8 +38,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(
-    name='pipeline-with-importer-and-gcpc-type', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-importer-and-gcpc-type')
 def my_pipeline():
 
     importer1 = importer(

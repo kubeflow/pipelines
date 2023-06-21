@@ -28,7 +28,7 @@ def output_metrics(metrics: Output[Metrics]):
     metrics.log_metric('accuracy', result)
 
 
-@dsl.pipeline(name='pipeline-with-metrics-outputs', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-metrics-outputs')
 def my_pipeline():
     output_metrics()
 
