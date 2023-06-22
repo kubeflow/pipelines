@@ -202,7 +202,7 @@ function TaskNodeDetail({
             )}
             {!logsBannerMessage && (
               <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
-                <LogViewer logLines={(logsDetails || '').split('\n')} />
+                <LogViewer logLines={(logsDetails || '').split(/[\r\n]+/)} />
               </div>
             )}
           </div>
