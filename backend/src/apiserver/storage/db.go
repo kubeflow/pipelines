@@ -23,6 +23,8 @@ import (
 	"github.com/VividCortex/mysqlerr"
 	"github.com/go-sql-driver/mysql"
 	sqlite3 "github.com/mattn/go-sqlite3"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 )
 
 // DB a struct wrapping plain sql library with SQL dialect, to solve any feature
@@ -59,6 +61,9 @@ type SQLDialect interface {
 
 	// Inserts new rows and updates duplicates based on the key column.
 	Upsert(query string, key string, overwrite bool, columns ...string) string
+
+	// Updates a run_details based on join (production) or inner select (test).
+	UpdateRunDetailsStorageState(expId string) (string, []interface{})
 }
 
 // MySQLDialect implements SQLDialect with mysql dialect implementation.
@@ -86,6 +91,13 @@ func (d MySQLDialect) Concat(exprs []string, separator string) string {
 func (d MySQLDialect) IsDuplicateError(err error) bool {
 	sqlError, ok := err.(*mysql.MySQLError)
 	return ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY
+}
+
+// TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
+func (d MySQLDialect) UpdateRunDetailsStorageState(expId string) (string, []interface{}) {
+	var args []interface{}
+	args = append(args, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
+	return "UPDATE run_details as runs JOIN resource_references as rf ON runs.UUID = rf.ResourceUUID SET StorageState = ? WHERE rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?", args
 }
 
 // SQLiteDialect implements SQLDialect with sqlite dialect implementation.
@@ -129,6 +141,13 @@ func (d SQLiteDialect) Upsert(query string, key string, overwrite bool, columns 
 func (d SQLiteDialect) IsDuplicateError(err error) bool {
 	sqlError, ok := err.(sqlite3.Error)
 	return ok && sqlError.Code == sqlite3.ErrConstraint
+}
+
+// TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
+func (d SQLiteDialect) UpdateRunDetailsStorageState(expId string) (string, []interface{}) {
+	var args []interface{}
+	args = append(args, model.StorageStateArchived.ToString(), model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType, expId)
+	return "UPDATE run_details SET StorageState = ? WHERE StorageState <> ? AND UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?)) OR ExperimentUUID = ?", args
 }
 
 func NewMySQLDialect() MySQLDialect {

@@ -309,32 +309,6 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	// TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
-	// TODO(jingzhang36): use inner join to replace nested query for better performance.
-	filteredRunsSql, filteredRunsArgs, err := sq.Select("ResourceUUID").
-		From("resource_references as rf").
-		Where(sq.And{
-			sq.Eq{"rf.ResourceType": model.RunResourceType},
-			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType},
-		}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to filter the runs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-	updateRunsSql, updateRunsArgs, err := sq.
-		Update("run_details").
-		SetMap(sq.Eq{
-			"StorageState": model.StorageStateArchived.ToString(),
-		}).
-		Where(sq.NotEq{"StorageState": model.StorageStateArchived.ToString()}).
-		Where(fmt.Sprintf("UUID in (%s) OR ExperimentUUID = '%s'", filteredRunsSql, expId), filteredRunsArgs...).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-
 	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
@@ -388,7 +362,8 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	_, err = tx.Exec(updateRunsSql, updateRunsArgs...)
+	query, arguments := s.db.UpdateRunDetailsStorageState(expId)
+	_, err = tx.Exec(query, arguments...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err,
