@@ -92,7 +92,8 @@ func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIden
 	if !review.Status.Authenticated {
 		return nil, util.NewUnauthenticatedError(
 			errors.New("Failed to authenticate token review"),
-			"Review.Status.Authenticated is false",
+			"Review.Status.Authenticated is false. Error %s",
+			review.Status.Error,
 		)
 	}
 	if !tra.ensureAudience(review.Status.Audiences) {
