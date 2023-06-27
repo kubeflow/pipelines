@@ -471,7 +471,7 @@ class PipelineTask:
     def set_retry(self,
                   num_retries: int,
                   backoff_duration: Optional[str] = None,
-                  backoff_factor: Optional[float] = None,
+                  backoff_factor: Optional[int] = None,
                   backoff_max_duration: Optional[str] = None) -> 'PipelineTask':
         """Sets task retry parameters.
 
