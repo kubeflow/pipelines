@@ -1345,7 +1345,7 @@ class TestSetRetryCompilation(unittest.TestCase):
             hello_world(text=text).set_retry(
                 num_retries=3,
                 backoff_duration='30s',
-                backoff_factor=1.0,
+                backoff_factor=1,
                 backoff_max_duration='3h',
             )
 
@@ -1358,7 +1358,7 @@ class TestSetRetryCompilation(unittest.TestCase):
         retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
         self.assertEqual(retry_policy.max_retry_count, 3)
         self.assertEqual(retry_policy.backoff_duration.seconds, 30)
-        self.assertEqual(retry_policy.backoff_factor, 1.0)
+        self.assertEqual(retry_policy.backoff_factor, 1)
         self.assertEqual(retry_policy.backoff_max_duration.seconds, 3600)
 
 
