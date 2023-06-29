@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import BQTable
-from google_cloud_pipeline_components.v1.model_evaluation.version import EVAL_IMAGE_TAG
 from kfp.dsl import Artifact
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -107,7 +107,7 @@ def feature_attribution(
   """
   # fmt: on
   return ContainerSpec(
-      image=EVAL_IMAGE_TAG,
+      image=version.EVAL_IMAGE_TAG,
       command=[
           'python3',
           '/main.py',

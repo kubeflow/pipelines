@@ -15,7 +15,7 @@
 
 from typing import Optional
 
-from google_cloud_pipeline_components.v1.model_evaluation.version import EVAL_IMAGE_TAG
+from google_cloud_pipeline_components._implementation.model_evaluation import version
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input
@@ -84,7 +84,7 @@ def evaluated_annotation(
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image=EVAL_IMAGE_TAG,
+      image=version.EVAL_IMAGE_TAG,
       command=['python', '/main.py'],
       args=[
           '--task',

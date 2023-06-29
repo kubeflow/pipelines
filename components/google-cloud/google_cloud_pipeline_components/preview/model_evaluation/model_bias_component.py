@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import BQTable
-from google_cloud_pipeline_components.v1.model_evaluation.version import EVAL_IMAGE_TAG
 from kfp.dsl import Artifact
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -105,7 +105,7 @@ def detect_model_bias(
   """
   # fmt: on
   return ContainerSpec(
-      image=EVAL_IMAGE_TAG,
+      image=version.EVAL_IMAGE_TAG,
       command=[
           'python3',
           '/main.py',
