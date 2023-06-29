@@ -51,7 +51,7 @@ import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { V2beta1RecurringRun, RecurringRunMode } from 'src/apisv2beta1/recurringrun';
-import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
+import ResourceSelector from 'src/pages/ResourceSelector';
 import {
   convertExperimentToResource,
   convertPipelineVersionToResource,
@@ -823,7 +823,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
         PaperProps={{ id: 'pipelineVersionSelectorDialog' }}
       >
         <DialogContent>
-          <ResourceSelectorV2
+          <ResourceSelector
             {...props}
             title='Choose a pipeline version'
             filterLabel='Filter pipeline versions'
@@ -931,7 +931,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         PaperProps={{ id: 'experimentSelectorDialog' }}
       >
         <DialogContent>
-          <ResourceSelectorV2
+          <ResourceSelector
             {...props}
             title='Choose an experiment'
             filterLabel='Filter experiments'

@@ -154,7 +154,7 @@ describe('ResourceSelector', () => {
 
     expect(tree.state('selectedIds')).toEqual([]);
     (tree.instance() as TestResourceSelector)._selectionChanged([RESOURCES[1].id!]);
-    expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1]);
+    expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1].id!);
     expect(tree.state('selectedIds')).toEqual([RESOURCES[1].id]);
   });
 
@@ -176,21 +176,5 @@ describe('ResourceSelector', () => {
       RESOURCES[0].id,
       RESOURCES[1].id,
     ]);
-  });
-
-  it('logs error if selected resource ID is not found in list', async () => {
-    tree = shallow(<TestResourceSelector {...generateProps()} />);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    await (tree.instance() as TestResourceSelector)._load({});
-
-    expect(tree.state('selectedIds')).toEqual([]);
-
-    (tree.instance() as TestResourceSelector)._selectionChanged(['id-not-in-list']);
-
-    expect(selectionChangedCbSpy).not.toHaveBeenCalled();
-    expect(tree.state('selectedIds')).toEqual([]);
-    expect(consoleSpy).toHaveBeenLastCalledWith(
-      'Somehow no resource was found with ID: id-not-in-list',
-    );
   });
 });

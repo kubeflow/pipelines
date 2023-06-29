@@ -348,9 +348,14 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 columns={this.pipelineVersionSelectorColumns}
                 emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
                 initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
-                selectionChanged={(selectedPipelineVersion: ApiPipelineVersion) =>
-                  this.setStateSafe({ unconfirmedSelectedPipelineVersion: selectedPipelineVersion })
-                }
+                selectionChanged={async (selectedId: string) => {
+                  const selectedPipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
+                    selectedId,
+                  );
+                  this.setStateSafe({
+                    unconfirmedSelectedPipelineVersion: selectedPipelineVersion,
+                  });
+                }}
                 toolbarActionMap={buttons
                   .upload(() =>
                     this.setStateSafe({
@@ -432,9 +437,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 columns={this.experimentSelectorColumns}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
-                selectionChanged={(selectedExperiment: ApiExperiment) =>
-                  this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment })
-                }
+                selectionChanged={async (selectedId: string) => {
+                  const selectedExperiment = await Apis.experimentServiceApi.getExperiment(
+                    selectedId,
+                  );
+                  this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment });
+                }}
               />
             </DialogContent>
             <DialogActions>
