@@ -573,13 +573,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public async handleVersionSelected(versionId: string): Promise<void> {
     if (this.state.v2Pipeline) {
-      const selectedVersionV1 = (this.state.v1Versions || []).find(v => v.id === versionId);
-      const selectedVersionV2 = (this.state.v2Versions || []).find(
+      const v1SelectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const v2SelectedVersion = (this.state.v2Versions || []).find(
         v => v.pipeline_version_id === versionId,
       );
       const pageTitle = this.state.v2Pipeline.display_name?.concat(
         ' (',
-        selectedVersionV2?.display_name!,
+        v2SelectedVersion?.display_name!,
         ')',
       );
 
@@ -602,7 +602,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph: undefined,
           graphV2,
           graphIsLoading: false,
-          v2SelectedVersion: selectedVersionV2,
+          v2SelectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       } else {
@@ -611,7 +611,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph,
           graphV2: undefined,
           graphIsLoading: false,
-          v1SelectedVersion: selectedVersionV1,
+          v1SelectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       }
