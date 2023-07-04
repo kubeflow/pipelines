@@ -23,8 +23,6 @@ import (
 	"github.com/VividCortex/mysqlerr"
 	"github.com/go-sql-driver/mysql"
 	sqlite3 "github.com/mattn/go-sqlite3"
-
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 )
 
 // DB a struct wrapping plain sql library with SQL dialect, to solve any feature
@@ -62,8 +60,8 @@ type SQLDialect interface {
 	// Inserts new rows and updates duplicates based on the key column.
 	Upsert(query string, key string, overwrite bool, columns ...string) string
 
-	// Updates a run_details based on join (production) or inner select (test).
-	UpdateRunDetailsStorageState(expId string) (string, []interface{})
+	// Updates a table using UPDATE with JOIN (mysql/production) or UPDATE FROM (sqlite/test).
+	UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string
 }
 
 // MySQLDialect implements SQLDialect with mysql dialect implementation.
@@ -93,11 +91,9 @@ func (d MySQLDialect) IsDuplicateError(err error) bool {
 	return ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY
 }
 
-// TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
-func (d MySQLDialect) UpdateRunDetailsStorageState(expId string) (string, []interface{}) {
-	var args []interface{}
-	args = append(args, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
-	return "UPDATE run_details as runs JOIN resource_references as rf ON runs.UUID = rf.ResourceUUID SET StorageState = ? WHERE rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?", args
+// UpdateFromOrJoin TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
+func (d MySQLDialect) UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string {
+	return fmt.Sprintf("UPDATE %s JOIN %s ON %s SET %s WHERE %s", targetTable, joinTable, joinClause, setClause, whereClause)
 }
 
 // SQLiteDialect implements SQLDialect with sqlite dialect implementation.
@@ -143,11 +139,9 @@ func (d SQLiteDialect) IsDuplicateError(err error) bool {
 	return ok && sqlError.Code == sqlite3.ErrConstraint
 }
 
-// TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
-func (d SQLiteDialect) UpdateRunDetailsStorageState(expId string) (string, []interface{}) {
-	var args []interface{}
-	args = append(args, model.StorageStateArchived.ToString(), model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType, expId)
-	return "UPDATE run_details SET StorageState = ? WHERE StorageState <> ? AND UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?)) OR ExperimentUUID = ?", args
+// UpdateFromOrJoin TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
+func (d SQLiteDialect) UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string {
+	return fmt.Sprintf("UPDATE %s SET %s FROM %s WHERE %s AND %s", targetTable, setClause, joinTable, joinClause, whereClause)
 }
 
 func NewMySQLDialect() MySQLDialect {

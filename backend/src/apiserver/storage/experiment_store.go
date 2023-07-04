@@ -362,7 +362,14 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	query, arguments := s.db.UpdateRunDetailsStorageState(expId)
+	var arguments []interface{}
+	arguments = append(arguments, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
+	query := s.db.UpdateWithJointOrFrom(
+		"run_details",
+		"resource_references",
+		"StorageState = ?",
+		"run_details.UUID = resource_references.ResourceUUID",
+		"resource_references.ResourceType = ? AND resource_references.ReferenceUUID = ? AND resource_references.ReferenceType = ?")
 	_, err = tx.Exec(query, arguments...)
 	if err != nil {
 		tx.Rollback()
