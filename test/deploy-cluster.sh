@@ -87,7 +87,7 @@ else
     SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
   # Use regular release channel to keep up with newly created clusters in Google Cloud Marketplace.
-  # TODO: Switch back to regular channel
+  # TODO(#9706): Switch back to regular channel once we stop building test images via dind.
   gcloud container clusters create ${TEST_CLUSTER} --release-channel stable ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
