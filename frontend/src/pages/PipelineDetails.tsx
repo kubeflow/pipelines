@@ -200,7 +200,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             pipeline={v2Pipeline}
             selectedVersion={v2SelectedVersion}
             versions={v2Versions}
-            handleVersionSelected={this.handleVersionSelectedV2.bind(this)}
+            handleVersionSelected={this.handleVersionSelected.bind(this)}
           />
         )}
         {!this.state.graphIsLoading && !showV2Pipeline && (
@@ -572,57 +572,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public async handleVersionSelected(versionId: string): Promise<void> {
-    if (this.state.v1Pipeline) {
-      const selectedVersionV1 = (this.state.v1Versions || []).find(v => v.id === versionId);
-      const selectedVersionV2 = (this.state.v2Versions || []).find(
-        v => v.pipeline_version_id === versionId,
-      );
-      const pageTitle = this.state.v1Pipeline.name?.concat(' (', selectedVersionV1?.name!, ')');
-
-      const selectedVersionPipelineTemplate = await this._getTemplateString(
-        this.state.v1Pipeline.id!,
-        versionId,
-      );
-      this.props.history.replace({
-        pathname: `/pipelines/details/${this.state.v1Pipeline.id}/version/${versionId}`,
-      });
-      this.props.updateToolbar(this.getInitialToolbarState());
-      this.props.updateToolbar({ pageTitle });
-
-      const [graph, reducedGraph, graphV2] = await this._createGraph(
-        selectedVersionPipelineTemplate,
-      );
-      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
-        this.setStateSafe({
-          graph: undefined,
-          reducedGraph: undefined,
-          graphV2,
-          graphIsLoading: false,
-          v2SelectedVersion: selectedVersionV2,
-          templateString: selectedVersionPipelineTemplate,
-        });
-      } else {
-        this.setStateSafe({
-          graph,
-          reducedGraph,
-          graphV2: undefined,
-          graphIsLoading: false,
-          v1SelectedVersion: selectedVersionV1,
-          templateString: selectedVersionPipelineTemplate,
-        });
-      }
-    }
-  }
-
-  public async handleVersionSelectedV2(versionId: string): Promise<void> {
     if (this.state.v2Pipeline) {
-      const selectedVersionV1 = (this.state.v1Versions || []).find(v => v.id === versionId);
-      const selectedVersionV2 = (this.state.v2Versions || []).find(
+      const v1SelectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const v2SelectedVersion = (this.state.v2Versions || []).find(
         v => v.pipeline_version_id === versionId,
       );
       const pageTitle = this.state.v2Pipeline.display_name?.concat(
         ' (',
-        selectedVersionV2?.display_name!,
+        v2SelectedVersion?.display_name!,
         ')',
       );
 
@@ -645,7 +602,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph: undefined,
           graphV2,
           graphIsLoading: false,
-          v2SelectedVersion: selectedVersionV2,
+          v2SelectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       } else {
@@ -654,7 +611,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph,
           graphV2: undefined,
           graphIsLoading: false,
-          v1SelectedVersion: selectedVersionV1,
+          v1SelectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       }
