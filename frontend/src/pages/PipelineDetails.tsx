@@ -32,7 +32,7 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
-import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import {
   V2beta1ListPipelineVersionsResponse,
   V2beta1Pipeline,
@@ -627,24 +627,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
         pipelineSpecInVersion = pipelineVersion.pipeline_spec;
       }
-      const templateStrFromSpec = pipelineSpecInVersion
-        ? JsYaml.safeDump(pipelineSpecInVersion)
-        : '';
-
-      // Get template string from template or pipeline version template (v1 API)
-      let templateResponse: ApiGetTemplateResponse;
-      if (versionId) {
-        templateResponse = await Apis.pipelineServiceApi.getPipelineVersionTemplate(versionId);
-      } else {
-        templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
-      }
-
-      return WorkflowUtils.isTemplateV2(templateStrFromSpec)
-        ? templateStrFromSpec
-        : templateResponse.template || '';
+      return pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
     } catch (err) {
       this.setStateSafe({ graphIsLoading: false });
-      await this.showPageError('Cannot retrieve pipeline template.', err);
+      await this.showPageError('Cannot retrieve pipeline version.', err);
       logger.error('Cannot retrieve pipeline details.', err);
     }
     return '';
