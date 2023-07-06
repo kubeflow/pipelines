@@ -31,17 +31,17 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
-from kfp.components import graph_component
-from kfp.components import pipeline_task
-from kfp.components import yaml_component
-from kfp.components.types import type_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
+from kfp.dsl import graph_component
 from kfp.dsl import Input
 from kfp.dsl import Model
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
+from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.dsl import yaml_component
+from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
@@ -151,18 +151,6 @@ class TestCompilePipeline(parameterized.TestCase):
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
                 f.read()
-
-    def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
-
-        with self.assertRaisesRegex(
-                AttributeError,
-                "module 'kfp.dsl' has no attribute 'graph_component'"):
-
-            @dsl.graph_component
-            def flip_coin_graph_component():
-                flip = flip_coin_op()
-                with dsl.Condition(flip.output == 'heads'):
-                    flip_coin_graph_component()
 
     def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
