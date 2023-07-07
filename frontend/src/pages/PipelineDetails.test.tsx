@@ -460,20 +460,22 @@ describe('PipelineDetails', () => {
         pipeline_id: 'run-pipeline-id',
         workflow_manifest: 'not valid JSON',
       };
-
       render(<PipelineDetails {...generateProps(true)} />);
+
       await waitFor(() => {
-        expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-        expect(updateBannerSpy).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            additionalInfo: 'Unexpected token o in JSON at position 1',
-            message: `Failed to parse pipeline spec from run with ID: ${
-              testV1Run.run!.id
-            }. Click Details for more information.`,
-            mode: 'error',
-          }),
-        );
+        expect(getV1RunSpy).toHaveBeenCalled();
       });
+
+      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'Unexpected token o in JSON at position 1',
+          message: `Failed to parse pipeline spec from run with ID: ${
+            testV1Run.run!.id
+          }. Click Details for more information.`,
+          mode: 'error',
+        }),
+      );
     },
   );
 
@@ -537,6 +539,26 @@ describe('PipelineDetails', () => {
     );
   });
 
+  it('shows load error banner when failing to get pipeline version', async () => {
+    TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
+    render(<PipelineDetails {...generateProps()} />);
+
+    await waitFor(() => {
+      // one for selected Version, another for template string
+      expect(getV2PipelineVersionSpy).toHaveBeenCalledTimes(2);
+      expect(createGraphSpy).toHaveBeenCalledTimes(0); // empty templateStr won't call createGraph
+    });
+
+    expect(updateBannerSpy).toHaveBeenCalledTimes(3); // Clear banner, show error two times
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'No pipeline version is found',
+        message: 'Cannot retrieve pipeline version. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
+  });
+
   it('shows no graph error banner when failing to parse graph', async () => {
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
@@ -559,15 +581,16 @@ describe('PipelineDetails', () => {
     await waitFor(() => {
       expect(getV2PipelineVersionSpy).toHaveBeenCalled();
       expect(createGraphSpy).toHaveBeenCalled();
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          additionalInfo: 'bad graph',
-          message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
-          mode: 'error',
-        }),
-      );
     });
+
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'bad graph',
+        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('has a new experiment button if it has a pipeline reference', async () => {
