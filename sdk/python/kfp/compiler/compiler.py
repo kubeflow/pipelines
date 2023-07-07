@@ -20,8 +20,8 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 from typing import Any, Dict, Optional
 
 from kfp.compiler import pipeline_spec_builder as builder
-from kfp.components import base_component
-from kfp.components.types import type_utils
+from kfp.dsl import base_component
+from kfp.dsl.types import type_utils
 
 
 class Compiler:

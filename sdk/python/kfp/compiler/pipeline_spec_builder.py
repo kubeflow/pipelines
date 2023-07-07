@@ -24,16 +24,16 @@ from google.protobuf import json_format
 from google.protobuf import struct_pb2
 import kfp
 from kfp.compiler import compiler_utils
-from kfp.components import for_loop
-from kfp.components import pipeline_channel
-from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import placeholders
-from kfp.components import structures
-from kfp.components import tasks_group
-from kfp.components import utils
-from kfp.components.types import artifact_types
-from kfp.components.types import type_utils
+from kfp.dsl import for_loop
+from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_context
+from kfp.dsl import pipeline_task
+from kfp.dsl import placeholders
+from kfp.dsl import structures
+from kfp.dsl import tasks_group
+from kfp.dsl import utils
+from kfp.dsl.types import artifact_types
+from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 

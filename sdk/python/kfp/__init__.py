@@ -20,5 +20,6 @@ __version__ = '2.0.1'
 
 TYPE_CHECK = True
 
+from kfp import components
 from kfp import dsl
 from kfp.client import Client

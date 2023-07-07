@@ -32,7 +32,7 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
-from kfp.components import base_component
+from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
 import yaml

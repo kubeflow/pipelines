@@ -22,9 +22,9 @@ import unittest
 from absl.testing import parameterized
 from kfp import compiler
 from kfp import components
-from kfp.components import placeholders
-from kfp.components import python_component
-from kfp.components import structures
+from kfp.dsl import placeholders
+from kfp.dsl import python_component
+from kfp.dsl import structures
 import yaml
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))

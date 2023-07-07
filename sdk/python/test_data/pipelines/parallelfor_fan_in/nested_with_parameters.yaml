@@ -150,7 +150,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -158,12 +158,12 @@ deploymentSpec:
 
           printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef add(nums: List[int]) -> int:\n    import itertools\n    return\
-          \ sum(itertools.chain(*nums))\n\n"
+          \ *\n\ndef add(nums: List[List[int]]) -> int:\n    import itertools\n  \
+          \  return sum(itertools.chain(*nums))\n\n"
         image: python:3.7
     exec-add-two-nums:
       container:
@@ -177,7 +177,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -185,7 +185,7 @@ deploymentSpec:
 
           printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
@@ -203,7 +203,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -211,7 +211,7 @@ deploymentSpec:
 
           printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
@@ -229,7 +229,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.14'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -237,7 +237,7 @@ deploymentSpec:
 
           printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
@@ -283,4 +283,4 @@ root:
       Output:
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.14
+sdkVersion: kfp-2.0.1
