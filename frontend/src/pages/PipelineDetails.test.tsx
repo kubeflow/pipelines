@@ -514,16 +514,6 @@ describe('PipelineDetails', () => {
     },
   );
 
-  it('uses an empty string as templateStr when getPipelineVersion return error', async () => {
-    TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
-    render(<PipelineDetails {...generateProps()} />);
-
-    await waitFor(() => {
-      expect(getV2PipelineVersionSpy).toHaveBeenCalled();
-      expect(createGraphSpy).toHaveBeenCalledTimes(0); // empty templateStr won't call createGraph
-    });
-  });
-
   it('shows load error banner when failing to get pipeline', async () => {
     TestUtils.makeErrorResponseOnce(getV1PipelineSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps()} />);
@@ -546,7 +536,8 @@ describe('PipelineDetails', () => {
     await waitFor(() => {
       // one for selected Version, another for template string
       expect(getV2PipelineVersionSpy).toHaveBeenCalledTimes(2);
-      expect(createGraphSpy).toHaveBeenCalledTimes(0); // empty templateStr won't call createGraph
+      // get version error will use empty string as template string, which won't call createGraph()
+      expect(createGraphSpy).toHaveBeenCalledTimes(0);
     });
 
     expect(updateBannerSpy).toHaveBeenCalledTimes(3); // Clear banner, show error two times

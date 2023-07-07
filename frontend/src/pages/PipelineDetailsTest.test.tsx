@@ -258,21 +258,21 @@ spec:
     });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
-
     render(<PipelineDetails {...generateProps()} />);
+
     await waitFor(() => {
       expect(createGraphSpy).toHaveBeenCalled();
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          additionalInfo: 'bad graph',
-          message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
-          mode: 'error',
-        }),
-      );
     });
 
     screen.getByTestId('pipeline-detail-v1');
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'bad graph',
+        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('Show error if not valid v2 template and enabled v2 feature', async () => {
@@ -293,21 +293,21 @@ spec:
     });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
-
     render(<PipelineDetails {...generateProps()} />);
+
     await waitFor(() => {
       expect(createGraphSpy).toHaveBeenCalledTimes(0);
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
-          message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
-          mode: 'error',
-        }),
-      );
     });
 
     screen.getByTestId('pipeline-detail-v1');
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
+        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('Show v1 page if valid v1 template and enabled v2 feature flag', async () => {
