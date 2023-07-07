@@ -309,6 +309,15 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
+	var updateRunsArgs []interface{}
+	updateRunsArgs = append(updateRunsArgs, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
+	updateRunsSQL := s.db.UpdateWithJointOrFrom(
+		"run_details",
+		"resource_references",
+		"StorageState = ?",
+		"run_details.UUID = resource_references.ResourceUUID",
+		"resource_references.ResourceType = ? AND resource_references.ReferenceUUID = ? AND resource_references.ReferenceType = ?")
+
 	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
@@ -322,32 +331,15 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	// TODO(jingzhang36): use inner join to replace nested query for better performance.
-	filteredJobsSql, filteredJobsArgs, err := sq.Select("ResourceUUID").
-		From("resource_references as rf").
-		Where(sq.And{
-			sq.Eq{"rf.ResourceType": model.JobResourceType},
-			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType},
-		}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to filter the jobs in an experiment %s. error: '%v'", expId, err.Error())
-	}
+	var updateJobsArgs []interface{}
 	now := s.time.Now().Unix()
-	updateJobsSql, updateJobsArgs, err := sq.
-		Update("jobs").
-		SetMap(sq.Eq{
-			"Enabled":        false,
-			"UpdatedAtInSec": now,
-		}).
-		Where(sq.Eq{"Enabled": true}).
-		Where(fmt.Sprintf("UUID in (%s) OR ExperimentUUID = '%s'", filteredJobsSql, expId), filteredJobsArgs...).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive the jobs in an experiment %s. error: '%v'", expId, err.Error())
-	}
+	updateJobsArgs = append(updateJobsArgs, false, now, model.JobResourceType, expId, model.ExperimentResourceType)
+	updateJobsSQL := s.db.UpdateWithJointOrFrom(
+		"jobs",
+		"resource_references",
+		"Enabled = ?, UpdatedAtInSec = ?",
+		"jobs.UUID = resource_references.ResourceUUID",
+		"resource_references.ResourceType = ? AND resource_references.ReferenceUUID = ? AND resource_references.ReferenceType = ?")
 
 	// In a single transaction, we update experiments, run_details and jobs tables.
 	tx, err := s.db.Begin()
@@ -362,15 +354,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	var arguments []interface{}
-	arguments = append(arguments, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
-	query := s.db.UpdateWithJointOrFrom(
-		"run_details",
-		"resource_references",
-		"StorageState = ?",
-		"run_details.UUID = resource_references.ResourceUUID",
-		"resource_references.ResourceType = ? AND resource_references.ReferenceUUID = ? AND resource_references.ReferenceType = ?")
-	_, err = tx.Exec(query, arguments...)
+	_, err = tx.Exec(updateRunsSQL, updateRunsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err,
@@ -384,7 +368,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to archive runs with ExperimentUUID being %s. error: '%v'", expId, err.Error())
 	}
 
-	_, err = tx.Exec(updateJobsSql, updateJobsArgs...)
+	_, err = tx.Exec(updateJobsSQL, updateJobsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err,
