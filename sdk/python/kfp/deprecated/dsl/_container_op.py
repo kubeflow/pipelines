@@ -1017,7 +1017,7 @@ class BaseOp(object):
                   num_retries: int,
                   policy: Optional[str] = None,
                   backoff_duration: Optional[str] = None,
-                  backoff_factor: Optional[float] = None,
+                  backoff_factor: Optional[int] = None,
                   backoff_max_duration: Optional[str] = None):
         """Sets the number of times the task is retried until it's declared
         failed.
