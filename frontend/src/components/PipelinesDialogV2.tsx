@@ -21,7 +21,7 @@ import DialogActions from '@material-ui/core/DialogActions';
 import { classes } from 'typestyle';
 import { padding, commonCss } from 'src/Css';
 import DialogContent from '@material-ui/core/DialogContent';
-import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
+import ResourceSelector from 'src/pages/ResourceSelector';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
 import { Column } from './CustomTable';
 import { V2beta1Pipeline } from 'src/apisv2beta1/pipeline';
@@ -56,7 +56,7 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
 
   function getPipelinesList(): JSX.Element {
     return (
-      <ResourceSelectorV2
+      <ResourceSelector
         {...props}
         filterLabel='Filter pipelines'
         listApi={async (
