@@ -264,12 +264,13 @@ export function updateFlowElementsState(
     return flowGraph;
   }
   for (let elem of elems) {
-    const taskLabel = elem.data?.label;
-    if (taskLabel === undefined)
-      throw new Error('task label cannot be undefined');
     let updatedElem = Object.assign({}, elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
-      const executions = getExecutionsUnderDAG(taskNameToExecution, taskLabel, executionLayers);
+      const executions = getExecutionsUnderDAG(
+          taskNameToExecution,
+          getTaskLabelByPipelineFlowElement(elem),
+          executionLayers
+      );
       if (executions) {
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
@@ -292,7 +293,11 @@ export function updateFlowElementsState(
       (updatedElem.data as ArtifactFlowElementData).mlmdId = linkedArtifact?.artifact?.getId();
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
       // TODO: Update sub-dag state based on future design.
-      const executions = getExecutionsUnderDAG(taskNameToExecution, taskLabel, executionLayers);
+      const executions = getExecutionsUnderDAG(
+          taskNameToExecution,
+          getTaskLabelByPipelineFlowElement(elem),
+          executionLayers
+      );
       if (executions) {
         (updatedElem.data as SubDagFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as SubDagFlowElementData).mlmdId = executions[0]?.getId();
@@ -301,6 +306,13 @@ export function updateFlowElementsState(
     flowGraph.push(updatedElem);
   }
   return flowGraph;
+}
+
+function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
+  const taskLabel = elem.data?.label;
+  if (taskLabel === undefined)
+    throw new Error('task label is undefined');
+  return taskLabel;
 }
 
 function getExecutionsUnderDAG(
