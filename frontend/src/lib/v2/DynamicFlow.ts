@@ -311,7 +311,7 @@ export function updateFlowElementsState(
 function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
   const taskLabel = elem.data?.label;
   if (taskLabel === undefined)
-    throw new Error('task label is undefined');
+    return getTaskKeyFromNodeKey(elem.id);
   return taskLabel;
 }
 
