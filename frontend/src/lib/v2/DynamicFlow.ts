@@ -349,9 +349,9 @@ export function getNodeMlmdInfo(
   );
 
   if (NodeTypeNames.EXECUTION === elem.type) {
-    const taskName = getTaskKeyFromNodeKey(elem.id);
+    const taskLabel = getTaskLabelByPipelineFlowElement(elem);
     const executions = taskNameToExecution
-      .get(taskName)
+      .get(taskLabel)
       ?.filter(exec => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   } else if (NodeTypeNames.ARTIFACT === elem.type) {
@@ -373,9 +373,9 @@ export function getNodeMlmdInfo(
     return { execution, linkedArtifact };
   } else if (NodeTypeNames.SUB_DAG === elem.type) {
     // TODO: Update sub-dag state based on future design.
-    const taskName = getTaskKeyFromNodeKey(elem.id);
+    const taskLabel = getTaskLabelByPipelineFlowElement(elem);
     const executions = taskNameToExecution
-      .get(taskName)
+      .get(taskLabel)
       ?.filter(exec => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   }
