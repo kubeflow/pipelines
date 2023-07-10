@@ -550,6 +550,69 @@ describe('PipelineDetails', () => {
     );
   });
 
+  it(
+    'uses an empty string and does not show error ' +
+      'when pipeline_spec in the response of getPipelineVersion() is undefined',
+    async () => {
+      jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+        if (featureKey === features.FeatureKey.V2_ALPHA) {
+          return true;
+        }
+        return false;
+      });
+      getV2PipelineVersionSpy.mockResolvedValue({
+        display_name: 'test-pipeline-version',
+        pipeline_id: 'test-pipeline-id',
+        pipeline_version_id: 'test-pipeline-version-id',
+        pipeline_spec: undefined, // empty pipeline_spec
+      });
+      render(<PipelineDetails {...generateProps()} />);
+
+      await waitFor(() => {
+        expect(getV2PipelineVersionSpy).toHaveBeenCalled();
+        // empty template string from empty pipeline_spec and it won't call createGraph()
+        expect(createGraphSpy).toHaveBeenCalledTimes(0);
+      });
+
+      // No errors
+      expect(updateBannerSpy).toHaveBeenCalledTimes(1); // Once to clear banner
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
+    },
+  );
+
+  it(
+    'shows no graph error banner ' +
+      'when pipeline_spec in the response of getPipelineVersion() is invalid format',
+    async () => {
+      jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+        if (featureKey === features.FeatureKey.V2_ALPHA) {
+          return true;
+        }
+        return false;
+      });
+      getV2PipelineVersionSpy.mockResolvedValue({
+        display_name: 'test-pipeline-version',
+        pipeline_id: 'test-pipeline-id',
+        pipeline_version_id: 'test-pipeline-version-id',
+        pipeline_spec: {}, // invalid pipeline_spec
+      });
+      render(<PipelineDetails {...generateProps()} />);
+
+      await waitFor(() => {
+        expect(getV2PipelineVersionSpy).toHaveBeenCalled();
+      });
+
+      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
+          message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
+          mode: 'error',
+        }),
+      );
+    },
+  );
+
   it('shows no graph error banner when failing to parse graph', async () => {
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
