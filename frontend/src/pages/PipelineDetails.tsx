@@ -627,7 +627,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
         pipelineSpecInVersion = pipelineVersion.pipeline_spec;
       }
-      return pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
+
+      if (pipelineSpecInVersion) {
+        return JsYaml.safeDump(pipelineSpecInVersion);
+      } else {
+        logger.error('No template string is found');
+        return '';
+      }
     } catch (err) {
       this.setStateSafe({ graphIsLoading: false });
       await this.showPageError('Cannot retrieve pipeline version.', err);
