@@ -148,7 +148,7 @@ describe('DynamicFlow', () => {
         id: 'task.exec',
         data: {
           label: label,
-          mlmdId: 1
+          mlmdId: 1,
         },
         type: NodeTypeNames.EXECUTION,
         position: { x: 1, y: 2 },

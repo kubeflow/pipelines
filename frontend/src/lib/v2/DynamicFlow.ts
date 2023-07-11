@@ -267,9 +267,9 @@ export function updateFlowElementsState(
     let updatedElem = Object.assign({}, elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
       const executions = getExecutionsUnderDAG(
-          taskNameToExecution,
-          getTaskLabelByPipelineFlowElement(elem),
-          executionLayers
+        taskNameToExecution,
+        getTaskLabelByPipelineFlowElement(elem),
+        executionLayers,
       );
       if (executions) {
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
@@ -294,9 +294,9 @@ export function updateFlowElementsState(
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
       // TODO: Update sub-dag state based on future design.
       const executions = getExecutionsUnderDAG(
-          taskNameToExecution,
-          getTaskLabelByPipelineFlowElement(elem),
-          executionLayers
+        taskNameToExecution,
+        getTaskLabelByPipelineFlowElement(elem),
+        executionLayers,
       );
       if (executions) {
         (updatedElem.data as SubDagFlowElementData).state = executions[0]?.getLastKnownState();
@@ -310,8 +310,7 @@ export function updateFlowElementsState(
 
 function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
   const taskLabel = elem.data?.label;
-  if (taskLabel === undefined)
-    return getTaskKeyFromNodeKey(elem.id);
+  if (taskLabel === undefined) return getTaskKeyFromNodeKey(elem.id);
   return taskLabel;
 }
 
