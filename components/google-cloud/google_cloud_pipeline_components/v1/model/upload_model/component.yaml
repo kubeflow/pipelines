@@ -109,6 +109,6 @@ implementation:
       --executor_input, "{{$}}",
       {if: {
           cond: {isPresent: parent_model},
-          then: [concat: ["--parent_model_name ", "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}",]]
+          then: ["--parent_model_name", "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}",]
       }}
     ]
