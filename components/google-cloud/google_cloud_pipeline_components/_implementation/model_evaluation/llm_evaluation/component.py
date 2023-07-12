@@ -17,14 +17,16 @@
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
 from google_cloud_pipeline_components._implementation.model_evaluation import version
-from kfp import dsl
 from kfp.dsl import container_component
+from kfp.dsl import Metrics
+from kfp.dsl import Output
+from kfp.dsl import OutputPath
 
 
 @container_component
 def model_evaluation_text_generation(
-    gcp_resources: dsl.OutputPath(str),
-    evaluation_metrics: dsl.Output[dsl.Metrics],
+    gcp_resources: OutputPath(str),
+    evaluation_metrics: Output[Metrics],
     project: str,
     location: str = 'us-central1',
     evaluation_task: str = 'text-generation',
