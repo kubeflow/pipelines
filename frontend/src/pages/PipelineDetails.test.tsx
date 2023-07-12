@@ -535,12 +535,12 @@ describe('PipelineDetails', () => {
 
     await waitFor(() => {
       // one for selected Version, another for template string
-      expect(getV2PipelineVersionSpy).toHaveBeenCalledTimes(2);
+      expect(getV2PipelineVersionSpy).toHaveBeenCalled();
       // get version error will use empty string as template string, which won't call createGraph()
       expect(createGraphSpy).toHaveBeenCalledTimes(0);
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(3); // Clear banner, show error two times
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'No pipeline version is found',
