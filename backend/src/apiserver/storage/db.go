@@ -59,6 +59,9 @@ type SQLDialect interface {
 
 	// Inserts new rows and updates duplicates based on the key column.
 	Upsert(query string, key string, overwrite bool, columns ...string) string
+
+	// Updates a table using UPDATE with JOIN (mysql/production) or UPDATE FROM (sqlite/test).
+	UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string
 }
 
 // MySQLDialect implements SQLDialect with mysql dialect implementation.
@@ -86,6 +89,11 @@ func (d MySQLDialect) Concat(exprs []string, separator string) string {
 func (d MySQLDialect) IsDuplicateError(err error) bool {
 	sqlError, ok := err.(*mysql.MySQLError)
 	return ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY
+}
+
+// UpdateFromOrJoin TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
+func (d MySQLDialect) UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string {
+	return fmt.Sprintf("UPDATE %s LEFT JOIN %s ON %s SET %s WHERE %s", targetTable, joinTable, joinClause, setClause, whereClause)
 }
 
 // SQLiteDialect implements SQLDialect with sqlite dialect implementation.
@@ -129,6 +137,11 @@ func (d SQLiteDialect) Upsert(query string, key string, overwrite bool, columns 
 func (d SQLiteDialect) IsDuplicateError(err error) bool {
 	sqlError, ok := err.(sqlite3.Error)
 	return ok && sqlError.Code == sqlite3.ErrConstraint
+}
+
+// UpdateFromOrJoin TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
+func (d SQLiteDialect) UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string {
+	return fmt.Sprintf("UPDATE %s SET %s FROM %s WHERE %s AND %s", targetTable, setClause, joinTable, joinClause, whereClause)
 }
 
 func NewMySQLDialect() MySQLDialect {
