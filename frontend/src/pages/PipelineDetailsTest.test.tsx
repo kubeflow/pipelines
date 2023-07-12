@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
 import React from 'react';
@@ -190,12 +190,6 @@ spec:
     Apis.pipelineServiceApi.listPipelineVersions = jest
       .fn()
       .mockResolvedValue({ versions: [testV1PipelineVersion] });
-    Apis.pipelineServiceApi.getTemplate = jest
-      .fn()
-      .mockResolvedValue({ template: 'test template' });
-    Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
-      .fn()
-      .mockResolvedValue({ template: 'test template' });
     Apis.runServiceApi.getRun = jest.fn().mockResolvedValue(testV1Run);
 
     Apis.pipelineServiceApiV2.getPipeline = jest.fn().mockResolvedValue(testV2Pipeline);
@@ -221,9 +215,15 @@ spec:
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       return false;
     });
-    Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
-      .fn()
-      .mockResolvedValue({ template: 'bad graph' });
+    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_spec: {
+        apiVersion: 'bad apiversion',
+        kind: 'bad kind',
+      },
+    });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
 
@@ -247,19 +247,22 @@ spec:
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       return false;
     });
-    Apis.pipelineServiceApi.getPipelineVersionTemplate = jest.fn().mockResolvedValue({
-      template: `    
-      apiVersion: argoproj.io/v1alpha1
-      kind: Workflow
-      metadata:
-        generateName: entry-point-test-
-      `,
+    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_spec: {
+        apiVersion: 'argoproj.io/v1alpha1',
+        kind: 'Workflow',
+      },
     });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
-
     render(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(createGraphSpy).toHaveBeenCalled();
+    });
 
     screen.getByTestId('pipeline-detail-v1');
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
@@ -280,16 +283,21 @@ spec:
       }
       return false;
     });
-    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
-    TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'test-pipeline-version-id',
       pipeline_spec: JsYaml.safeLoad(
         'spec:\n  arguments:\n    parameters:\n      - name: output\n',
       ),
     });
-
+    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     render(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(createGraphSpy).toHaveBeenCalledTimes(0);
+    });
 
     screen.getByTestId('pipeline-detail-v1');
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
@@ -313,13 +321,15 @@ spec:
 
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
-    Apis.pipelineServiceApi.getTemplate = jest
-      .fn()
-      .mockResolvedValue({ template: v1PipelineSpecTemplate });
-    Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
-      .fn()
-      .mockResolvedValue({ template: v1PipelineSpecTemplate });
-    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({});
+    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_spec: {
+        apiVersion: 'argoproj.io/v1alpha1',
+        kind: 'Workflow',
+      },
+    });
 
     render(<PipelineDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -333,9 +343,15 @@ spec:
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       return false;
     });
-    Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
-      .fn()
-      .mockResolvedValue({ template: v1PipelineSpecTemplate });
+    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_spec: {
+        apiVersion: 'argoproj.io/v1alpha1',
+        kind: 'Workflow',
+      },
+    });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
 
