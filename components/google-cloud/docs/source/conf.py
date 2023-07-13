@@ -119,6 +119,7 @@ V2_DROPDOWN_VERSIONS = [
     '2.0.0b4',
     '2.0.0b5',
     '2.0.0',
+    '2.1.0',
 ]
 
 # The short X.Y version
