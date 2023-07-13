@@ -307,7 +307,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         return;
       }
     }
-    this.setStateSafe({ v2SelectedVersion: selectedVersion });
     return selectedVersion;
   }
 
