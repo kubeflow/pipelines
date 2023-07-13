@@ -1,5 +1,11 @@
 ## Upcoming release
 
+## Release 2.1.0
+* Add AutoML tabular and forecasting components to `preview` namespace
+* Fix bug where `parent_model` parameter of `ModelUploadOp` ignored
+* Fix circular import bug for model evaluation components
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
 ## Release 2.0.0
 
 Google Cloud Pipeline Components v2 is generally available!
