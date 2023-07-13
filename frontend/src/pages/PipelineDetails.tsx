@@ -282,7 +282,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version.', err);
         logger.error('Cannot retrieve pipeline version.', err);
-        return;
+        return undefined;
       }
     } else {
       // Get the latest version if no version id
@@ -295,16 +295,19 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           'created_at desc',
         );
 
-        if (listVersionsResponse.pipeline_versions) {
+        if (
+          listVersionsResponse.pipeline_versions &&
+          listVersionsResponse.pipeline_versions.length > 0
+        ) {
           selectedVersion = listVersionsResponse.pipeline_versions[0];
         } else {
-          return;
+          return undefined;
         }
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version list.', err);
         logger.error('Cannot retrieve pipeline version list.', err);
-        return;
+        return undefined;
       }
     }
     return selectedVersion;
