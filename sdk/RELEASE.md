@@ -7,6 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Fix compilation of f-string in a loop with a list or dict parameter [\#9734](https://github.com/kubeflow/pipelines/pull/9734)
 
 ## Documentation updates
 # 2.0.1
