@@ -142,10 +142,10 @@ def model_upload(
           '{{$}}',
           IfPresentPlaceholder(
               input_name='parent_model',
-              then=ConcatPlaceholder([
-                  '--parent_model_name ',
+              then=[
+                  '--parent_model_name',
                   parent_model.metadata['resourceName'],
-              ]),
+              ],
           ),
       ],
   )
