@@ -1,5 +1,6 @@
 steps:
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
-  - --destination=gcr.io/$PROJECT_ID/google-cloud-pipeline-components:2.1.0
+  # set tag to `test` to avoid updating production image if PROJECT_ID is somehow accidentally set to ml-pipeline
+  - --destination=gcr.io/$PROJECT_ID/google-cloud-pipeline-components:${_IMAGE_SUFFIX}
   - --cache=false
