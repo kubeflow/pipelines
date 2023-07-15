@@ -50,7 +50,7 @@ __all__ = [
     'PipelineTask',
 ]
 
-_kfp_dsl_import_error_msg = 'It looks like you only have `kfp-dsl` installed. Please install the full KFP SDK using `pip install kfp`.'
+_kfp_dsl_import_error_msg = 'It looks like only `kfp-dsl` is installed. Please install the full KFP SDK using `pip install kfp`.'
 
 try:
     from typing import Annotated

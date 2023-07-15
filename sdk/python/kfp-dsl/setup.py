@@ -38,8 +38,9 @@ def find_version(*file_path_parts: str) -> str:
 
 setuptools.setup(
     name='kfp-dsl',
-    version=find_version('..', 'kfp', '__init__.py'),
-    description='KFP SDK DSL and runtime code',
+    version=find_version(
+        os.path.dirname(os.path.dirname(__file__)), 'kfp', '__init__.py'),
+    description='A KFP SDK subpackage containing the DSL and runtime code.',
     author='google',
     author_email='kubeflow-pipelines@google.com',
     url='https://github.com/kubeflow/pipelines',
