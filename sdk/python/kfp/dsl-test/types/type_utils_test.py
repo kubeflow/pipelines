@@ -727,6 +727,7 @@ class TestTypeChecking(parameterized.TestCase):
                     given_value=argument_value,
                     expected_spec=parameter_input_spec,
                     error_message_prefix='',
+                    raise_on_error=kfp.TYPE_CHECK,
                 ))
         else:
             with self.assertRaises(InconsistentTypeException):
@@ -734,6 +735,7 @@ class TestTypeChecking(parameterized.TestCase):
                     given_value=argument_value,
                     expected_spec=parameter_input_spec,
                     error_message_prefix='',
+                    raise_on_error=kfp.TYPE_CHECK,
                 )
 
     def test_list_of_artifacts_across_compilation_valid(self):

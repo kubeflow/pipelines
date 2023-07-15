@@ -18,9 +18,7 @@ source_root=$(pwd)
 pip install --upgrade pip
 pip install wheel
 
-## start remove: install from PyPI once platform-specific features are released in the KFP SDK
-pip install -e "$source_root/sdk/python"
-## end remove
+pip install 'kfp>=2.0.0,<3.0.0'
 
 # generate Python proto code from source
 apt-get update -y

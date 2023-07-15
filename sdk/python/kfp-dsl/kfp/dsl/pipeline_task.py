@@ -20,13 +20,13 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, Union
 import warnings
 
+import kfp
 from kfp.dsl import constants
 from kfp.dsl import pipeline_channel
 from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import utils
 from kfp.dsl.types import type_utils
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
@@ -89,6 +89,7 @@ class PipelineTask:
                 error_message_prefix=(
                     f'Incompatible argument passed to the input '
                     f'{input_name!r} of component {component_spec.name!r}: '),
+                raise_on_error=kfp.TYPE_CHECK,
             )
 
         self.component_spec = component_spec
@@ -149,7 +150,7 @@ class PipelineTask:
         ])
 
     @property
-    def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
+    def platform_spec(self) -> 'pipeline_spec_pb2.PlatformSpec':
         """PlatformSpec for all tasks in the pipeline as task.
 
         Only for use on tasks created from GraphComponents.

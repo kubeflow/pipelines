@@ -17,8 +17,8 @@ import tempfile
 from typing import Dict, List, NamedTuple
 import unittest
 
+from kfp.components import load_yaml_utilities
 from kfp.dsl import python_component
-from kfp.dsl import structures
 from kfp.dsl.component_decorator import component
 
 
@@ -104,7 +104,8 @@ class TestComponentDecorator(unittest.TestCase):
             with open(filepath, 'r') as f:
                 yaml_text = f.read()
 
-        component_spec = structures.ComponentSpec.from_yaml_documents(yaml_text)
+        component_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+            yaml_text)
         self.assertEqual(component_spec.name, comp.component_spec.name)
 
     def test_output_named_tuple_with_dict(self):

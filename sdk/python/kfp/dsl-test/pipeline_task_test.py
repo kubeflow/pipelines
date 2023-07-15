@@ -18,6 +18,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import dsl
+from kfp.components import load_yaml_utilities
 from kfp.dsl import pipeline_task
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -112,8 +113,8 @@ class PipelineTaskTest(parameterized.TestCase):
         )
 
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         self.assertEqual(task._task_spec, expected_task_spec)
@@ -125,8 +126,8 @@ class PipelineTaskTest(parameterized.TestCase):
                 ValueError,
                 "Component 'component1' got an unexpected input: 'input0'."):
             task = pipeline_task.PipelineTask(
-                component_spec=structures.ComponentSpec.from_yaml_documents(
-                    V2_YAML),
+                component_spec=load_yaml_utilities
+                ._load_component_spec_from_yaml_documents(V2_YAML),
                 args={
                     'input1': 'value',
                     'input0': 'abc',
@@ -135,8 +136,8 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_caching_options(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         task.set_caching_options(False)
@@ -163,8 +164,8 @@ class PipelineTaskTest(parameterized.TestCase):
     def test_set_valid_cpu_request_limit(self, cpu: str,
                                          expected_cpu_number: float):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         task.set_cpu_request(cpu)
@@ -182,8 +183,8 @@ class PipelineTaskTest(parameterized.TestCase):
     def test_set_valid_gpu_limit(self, gpu_limit: str,
                                  expected_gpu_number: int):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         with self.assertWarnsRegex(
@@ -196,8 +197,8 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_add_valid_node_selector_constraint(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         with self.assertWarnsRegex(
@@ -220,8 +221,8 @@ class PipelineTaskTest(parameterized.TestCase):
     )
     def test_set_accelerator_limit(self, limit, expected):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
 
@@ -285,8 +286,8 @@ class PipelineTaskTest(parameterized.TestCase):
     )
     def test_set_memory_limit(self, memory: str, expected_memory_number: int):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         task.set_memory_request(memory)
@@ -298,8 +299,8 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_accelerator_type_with_type_only(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         task.set_accelerator_type('NVIDIA_TESLA_K80')
@@ -310,8 +311,8 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_accelerator_type_with_accelerator_count(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         task.set_accelerator_limit('5').set_accelerator_type('TPU_V3')
@@ -322,8 +323,8 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_env_variable(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         task.set_env_variable('env_name', 'env_value')
@@ -331,8 +332,8 @@ class PipelineTaskTest(parameterized.TestCase):
 
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.from_yaml_documents(
-                V2_YAML),
+            component_spec=load_yaml_utilities
+            ._load_component_spec_from_yaml_documents(V2_YAML),
             args={'input1': 'value'},
         )
         task.set_display_name('test_name')

@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-# Copyright 2020 Kubeflow Pipelines contributors
+# Copyright 2023 Kubeflow Pipelines contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,9 @@
 
 source_root=$(pwd)
 
-python3 -m pip install --upgrade pip
-source sdk/python/install_from_source.sh
+pip install --upgrade pip
+pip install -e $source_root/sdk/python/kfp-dsl
+python3 -m pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
+python3 -m pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 
-# Test loading all component.yaml definitions
-"$source_root/components/test_load_all_components.sh"
+pytest sdk/python/kfp-dsl
