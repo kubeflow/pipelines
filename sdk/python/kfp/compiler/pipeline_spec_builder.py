@@ -1770,7 +1770,7 @@ def convert_pipeline_outputs_to_dict(
 
 def write_pipeline_spec_to_file(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    pipeline_description: str,
+    pipeline_description: Union[str, None],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
     package_path: str,
 ) -> None:
