@@ -90,7 +90,9 @@ else
   # TODO(#9706): Switch back to regular channel once we stop building test images via dind.
   # Temporarily use cos as image type until docker dependencies gets removed. 
   # reference: https://github.com/kubeflow/pipelines/issues/6696
-  gcloud container clusters create ${TEST_CLUSTER} --release-channel stable --image-type cos_containerd ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  # Hard-coded GKE to 1.25.8-gke.1000. Reference: 
+  # https://github.com/kubeflow/pipelines/issues/9704#issuecomment-1622310358
+  gcloud container clusters create ${TEST_CLUSTER} --image-type cos_containerd --cluster-version 1.25.8-gke.1000 ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
