@@ -208,7 +208,8 @@ def create_query_job(
   return create_job(project, location, job_request_json, creds, gcp_resources)
 
 
-def _send_cancel_request(job_uri, creds):
+def _send_cancel_request(job_uri: str):
+  creds, _ = google.auth.default()
   if not creds.valid:
     creds.refresh(google.auth.transport.requests.Request())
   headers = {
@@ -226,7 +227,7 @@ def _send_cancel_request(job_uri, creds):
 def poll_job(job_uri, creds) -> dict:
   """Poll the bigquery job till it reaches a final state."""
   with execution_context.ExecutionContext(
-      on_cancel=lambda: _send_cancel_request(job_uri, creds)
+      on_cancel=lambda: _send_cancel_request(job_uri)
   ):
     job = {}
     while (
