@@ -88,7 +88,9 @@ else
   fi
   # Use regular release channel to keep up with newly created clusters in Google Cloud Marketplace.
   # TODO(#9706): Switch back to regular channel once we stop building test images via dind.
-  gcloud container clusters create ${TEST_CLUSTER} --release-channel stable ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  # Temporarily use cos as image type until docker dependencies gets removed. 
+  # reference: https://github.com/kubeflow/pipelines/issues/6696
+  gcloud container clusters create ${TEST_CLUSTER} --release-channel stable --image-type cos_containerd ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
