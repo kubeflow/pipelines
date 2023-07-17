@@ -12,7 +12,7 @@ type TokenRefresherInterface interface {
 	RefreshToken()
 }
 
-const SA_TOKEN_FILE = "/var/run/secrets/kubeflow/tokens/persistenceagent-sa-token"
+const SaTokenFile = "/var/run/secrets/kubeflow/tokens/persistenceagent-sa-token"
 
 type tokenRefresher struct {
 	mu      sync.RWMutex
@@ -29,11 +29,6 @@ func NewTokenRefresher(seconds time.Duration) *tokenRefresher {
 }
 
 func (tr *tokenRefresher) StartTokenRefreshTicker(stopCh <-chan struct{}) error {
-	//TODO use viper
-	if os.Getenv("MULTIUSER") != "True" {
-		log.Info("MULTIUSER is not True. Skip reading persistent agent service account token.")
-		return nil
-	}
 	err := tr.readToken()
 	if err != nil {
 		return err
@@ -67,9 +62,9 @@ func (tr *tokenRefresher) RefreshToken() {
 func (tr *tokenRefresher) readToken() error {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
-	b, err := os.ReadFile(SA_TOKEN_FILE)
+	b, err := os.ReadFile(SaTokenFile)
 	if err != nil {
-		log.Errorf("Error reading persistence agent service account token '%s': %v", SA_TOKEN_FILE, err)
+		log.Errorf("Error reading persistence agent service account token '%s': %v", SaTokenFile, err)
 		return err
 	}
 	tr.token = string(b)

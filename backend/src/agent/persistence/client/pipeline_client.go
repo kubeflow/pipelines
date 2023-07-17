@@ -82,10 +82,9 @@ func NewPipelineClient(
 
 func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 	pctx := context.Background()
-	if os.Getenv("MULTIUSER") == "True" {
-		pctx = metadata.AppendToOutgoingContext(pctx, "Authorization",
-			"Bearer "+p.tokenRefresher.GetToken())
-	}
+	pctx = metadata.AppendToOutgoingContext(pctx, "Authorization",
+		"Bearer "+p.tokenRefresher.GetToken())
+
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 
@@ -106,7 +105,7 @@ func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 				err.Error(),
 				workflow.ToStringForStore())
 		} else if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
-			//if unauthenticated because SA token is expired, re-read/refresh the token and try again
+			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
 			p.tokenRefresher.RefreshToken()
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v, %+v",
@@ -129,10 +128,9 @@ func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 
 func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error {
 	pctx := context.Background()
-	if os.Getenv("MULTIUSER") == "True" {
-		pctx = metadata.AppendToOutgoingContext(pctx, "Authorization",
-			"Bearer "+p.tokenRefresher.GetToken())
-	}
+	pctx = metadata.AppendToOutgoingContext(pctx, "Authorization",
+		"Bearer "+p.tokenRefresher.GetToken())
+
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 
@@ -152,7 +150,7 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 				err.Error(),
 				swf.ScheduledWorkflow)
 		} else if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
-			//if unauthenticated because SA token is expired, re-read/refresh the token and try again
+			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
 			p.tokenRefresher.RefreshToken()
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v, %+v",

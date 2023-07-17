@@ -150,7 +150,7 @@ func init() {
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
-	//TODO use viper/config file instead (also for MULTIUSER env variable). Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
+	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
 	flag.Float64Var(&saTokenRefreshInterval, saTokenRefreshIntervalFlagName, DefaultTokenRefresherInterval.Seconds(), "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
 

@@ -159,10 +159,6 @@ func validateReportScheduledWorkflowRequest(swfManifest string) (*util.Scheduled
 }
 
 func (s *ReportServer) canAccessWorkflow(ctx context.Context, executionName string, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if !common.IsMultiUserMode() {
-		// Skip authz if not multi-user mode.
-		return nil
-	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
