@@ -311,6 +311,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 
 	var updateRunsArgs []interface{}
 	updateRunsArgs = append(updateRunsArgs, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
+	// TODO(gkcalat): deprecate resource_references table once we migrate to v2beta1 and switch to filtering on Run's 'experiment_id' instead.
 	updateRunsSQL := s.db.UpdateWithJointOrFrom(
 		"run_details",
 		"resource_references",
@@ -334,6 +335,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	var updateJobsArgs []interface{}
 	now := s.time.Now().Unix()
 	updateJobsArgs = append(updateJobsArgs, false, now, model.JobResourceType, expId, model.ExperimentResourceType)
+	// TODO(gkcalat): deprecate resource_references table once we migrate to v2beta1 and switch to filtering on Job's `experiment_id' instead.
 	updateJobsSQL := s.db.UpdateWithJointOrFrom(
 		"jobs",
 		"resource_references",
