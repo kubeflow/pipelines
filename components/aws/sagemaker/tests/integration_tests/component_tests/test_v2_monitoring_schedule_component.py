@@ -59,7 +59,6 @@ def test_create_v2_monitoring_schedule(
             os.path.join(download_dir, "config.yaml"),
         )
     )
-    k8s_client = ack_utils.k8s_client()
 
     # parameters for model bias job definition
     job_definition_name = (
@@ -124,14 +123,12 @@ def test_create_v2_monitoring_schedule(
 
     finally:
         ack_utils._delete_resource(
-            k8s_client,
             job_definition_name,
             "modelbiasjobdefinitions",
             wait_periods=10,
             period_length=30,
         )
         ack_utils._delete_resource(
-            k8s_client,
             monitoring_schedule_name,
             "monitoringschedules",
             wait_periods=10,
@@ -164,7 +161,6 @@ def test_update_v2_monitoring_schedule(
             os.path.join(download_dir, "config.yaml"),
         )
     )
-    k8s_client = ack_utils.k8s_client()
 
     # parameters for job definition
     test_params["Arguments"][test_params["JobInputName"]]["endpointInput"][
@@ -296,21 +292,18 @@ def test_update_v2_monitoring_schedule(
 
     finally:
         ack_utils._delete_resource(
-            k8s_client,
             job_definition_name_1,
             test_params["Plural"],
             wait_periods=10,
             period_length=30,
         )
         ack_utils._delete_resource(
-            k8s_client,
             job_definition_name_2,
             test_params["Plural"],
             wait_periods=10,
             period_length=30,
         )
         ack_utils._delete_resource(
-            k8s_client,
             monitoring_schedule_name,
             "monitoringschedules",
             wait_periods=10,

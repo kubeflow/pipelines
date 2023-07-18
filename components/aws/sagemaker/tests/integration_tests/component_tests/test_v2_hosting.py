@@ -28,7 +28,6 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
             shallow_canary=True,
         )
     )
-    k8s_client = ack_utils.k8s_client()
     input_model_name = utils.generate_random_string(10) + "-v2-model"
     input_endpoint_config_name = (
         utils.generate_random_string(10) + "-v2-endpoint-config"
@@ -142,11 +141,11 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         )
         utils.remove_dir(download_dir)
     finally:
-        ack_utils._delete_resource(k8s_client, input_endpoint_name, "endpoints")
+        ack_utils._delete_resource(input_endpoint_name, "endpoints")
         ack_utils._delete_resource(
-            k8s_client, input_endpoint_config_name, "endpointconfigs"
+            input_endpoint_config_name, "endpointconfigs"
         )
-        ack_utils._delete_resource(k8s_client, input_model_name, "models")
+        ack_utils._delete_resource(input_model_name, "models")
 
 
 @pytest.mark.v2
@@ -159,7 +158,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
             os.path.join(download_dir, "config.yaml"),
         )
     )
-    k8s_client = ack_utils.k8s_client()
     input_model_name = utils.generate_random_string(10) + "-v2-model"
     input_endpoint_config_name = (
         utils.generate_random_string(10) + "-v2-endpoint-config"
@@ -195,6 +193,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
         )
     finally:
         ack_utils._delete_resource(
-            k8s_client, input_endpoint_config_name, "endpointconfigs"
+            input_endpoint_config_name, "endpointconfigs"
         )
-        ack_utils._delete_resource(k8s_client, input_model_name, "models")
+        ack_utils._delete_resource(input_model_name, "models")

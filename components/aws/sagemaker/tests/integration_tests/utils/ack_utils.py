@@ -14,7 +14,7 @@ def _get_resource(job_name, plural):
             custom object.
     """
     # Instantiate a new client every time to avoid connection issues.
-    _api = client.CustomObjectsApi(config.new_client_from_config())
+    _api = client.CustomObjectsApi(k8s_client())
     namespace = os.environ.get("NAMESPACE")
     try:
         job_description = _api.get_namespaced_custom_object(
@@ -30,12 +30,12 @@ def _get_resource(job_name, plural):
     return job_description
 
 
-def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_length=20):
+def _delete_resource(job_name, plural, wait_periods=10, period_length=20):
     """Delete the custom resource
     Returns:
         True or False: True if the resource is deleted, False if the resource deletion times out
     """
-    _api = client.CustomObjectsApi(k8s_client)
+    _api = client.CustomObjectsApi(k8s_client())
     namespace = os.environ.get("NAMESPACE")
 
     try:
