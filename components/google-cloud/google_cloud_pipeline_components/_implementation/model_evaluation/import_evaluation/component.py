@@ -58,15 +58,25 @@ def model_evaluation_import(
       uploaded evaluation.
     metrics: Path of metrics generated from an evaluation component.
     problem_type: The problem type of the metrics being imported to the
-      VertexModel. `classification`, `regression`, and `forecasting` are the
+      VertexModel. `classification`, `regression`, `forecasting`,
+      `text-generation`, `question-answering`, and `summarization` are the
       currently supported problem types. Must be provided when `metrics` is
       provided.
-    classification_metrics: Path of classification metrics generated from the
-      classification evaluation component.
-    forecasting_metrics: Path of forecasting metrics generated from the
-      forecasting evaluation component.
-    regression_metrics: Path of regression metrics generated from the regression
-      evaluation component.
+    classification_metrics: google.ClassificationMetrics artifact generated from
+      the ModelEvaluationClassificationOp component.
+    forecasting_metrics: google.ForecastingMetrics artifact generated from
+      the ModelEvaluationForecastingOp component.
+    regression_metrics: google.ClassificationMetrics artifact generated from
+      the ModelEvaluationRegressionOp component.
+    text_generation_metrics: system.Metrics artifact generated from
+      the ModelEvaluationTextGenerationOp component. Subject to change to
+      google.TextGenerationMetrics.
+    question_answering_metrics: system.Metrics artifact generated from
+      the ModelEvaluationTextGenerationOp component. Subject to change to
+      google.QuestionAnsweringMetrics.
+    summarization_metrics: system.Metrics artifact generated from
+      the ModelEvaluationTextGenerationOp component. Subject to change to
+      google.SummarizationMetrics.
     explanation: Path for model explanation metrics generated from an evaluation
       component.
     feature_attributions: The feature attributions metrics artifact generated
@@ -138,7 +148,7 @@ def model_evaluation_import(
               input_name="summarization_metrics",
               then=[
                   "--summarization_metrics",
-                  "{{$.inputs.artifacts['summarization_metrics'].uri}}",
+                  summarization_metrics.uri,
               ],
           ),
           dsl.IfPresentPlaceholder(

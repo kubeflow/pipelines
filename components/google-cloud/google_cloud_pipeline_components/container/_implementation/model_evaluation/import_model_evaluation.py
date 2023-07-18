@@ -163,6 +163,11 @@ def main(argv):
   else:
     metrics_file_path = parsed_args.metrics
     problem_type = parsed_args.problem_type
+    if problem_type not in PROBLEM_TYPE_TO_SCHEMA_URI:
+      raise ValueError(
+          'Unsupported problem_type: {}. Supported problem types are: {}'
+          .format(problem_type, list(PROBLEM_TYPE_TO_SCHEMA_URI.keys()))
+      )
 
   logging.info('metrics_file_path: %s', metrics_file_path)
   logging.info('problem_type: %s', problem_type)
