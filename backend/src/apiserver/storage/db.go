@@ -91,9 +91,8 @@ func (d MySQLDialect) IsDuplicateError(err error) bool {
 	return ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY
 }
 
-// UpdateFromOrJoin TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
 func (d MySQLDialect) UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string {
-	return fmt.Sprintf("UPDATE %s LEFT JOIN %s ON %s SET %s WHERE %s", targetTable, joinTable, joinClause, setClause, whereClause)
+	return fmt.Sprintf("UPDATE %s INNER JOIN %s ON %s SET %s WHERE %s", targetTable, joinTable, joinClause, setClause, whereClause)
 }
 
 // SQLiteDialect implements SQLDialect with sqlite dialect implementation.
@@ -139,7 +138,6 @@ func (d SQLiteDialect) IsDuplicateError(err error) bool {
 	return ok && sqlError.Code == sqlite3.ErrConstraint
 }
 
-// UpdateFromOrJoin TODO(gkcalat): deprecate resource_references table once we migration to v2beta1 is available.
 func (d SQLiteDialect) UpdateWithJointOrFrom(targetTable, joinTable, setClause, joinClause, whereClause string) string {
 	return fmt.Sprintf("UPDATE %s SET %s FROM %s WHERE %s AND %s", targetTable, setClause, joinTable, joinClause, whereClause)
 }
