@@ -120,7 +120,7 @@ func TestMySQLDialect_UpdateWithJointOrFrom(t *testing.T) {
 		"State = ?",
 		"target_table.Name = other_table.Name",
 		"target_table.status = ?")
-	expectedQuery := `UPDATE target_table LEFT JOIN other_table ON target_table.Name = other_table.Name SET State = ? WHERE target_table.status = ?`
+	expectedQuery := `UPDATE target_table INNER JOIN other_table ON target_table.Name = other_table.Name SET State = ? WHERE target_table.status = ?`
 	assert.Equal(t, expectedQuery, actualQuery)
 }
 
