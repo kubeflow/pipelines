@@ -33,7 +33,6 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
             os.path.join(download_dir, "config.yaml"),
         )
     )
-    k8s_client = ack_utils.k8s_client()
     job_definition_name = (
         utils.generate_random_string(10) + "-v2-" + test_params["TestName"]
     )
@@ -56,7 +55,7 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
 
         # Verify if the job definition CR is created
         job_definition_describe = ack_utils._get_resource(
-            k8s_client, job_definition_name, test_params["Plural"]
+            job_definition_name, test_params["Plural"]
         )
         assert (
             job_definition_name
@@ -88,5 +87,5 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
 
     finally:
         ack_utils._delete_resource(
-            k8s_client, job_definition_name, test_params["Plural"]
+            job_definition_name, test_params["Plural"]
         )
