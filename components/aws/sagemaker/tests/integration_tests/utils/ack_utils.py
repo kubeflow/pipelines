@@ -7,13 +7,14 @@ def k8s_client():
     return config.new_client_from_config()
 
 
-def _get_resource(k8s_client, job_name, plural):
+def _get_resource(job_name, plural):
     """Get the custom resource detail similar to: kubectl describe <resource> JOB_NAME -n NAMESPACE.
     Returns:
         None or object: None if the resource doesn't exist in server or there is an error, otherwise the
             custom object.
     """
-    _api = client.CustomObjectsApi(k8s_client)
+    # Instantiate a new client every time to avoid connection issues.
+    _api = client.CustomObjectsApi(config.new_client_from_config())
     namespace = os.environ.get("NAMESPACE")
     try:
         job_description = _api.get_namespaced_custom_object(
@@ -50,7 +51,7 @@ def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_lengt
 
     for _ in range(wait_periods):
         sleep(period_length)
-        if _get_resource(k8s_client, job_name, plural) is None:
+        if _get_resource(job_name, plural) is None:
             print(f"Resource {job_name} deleted successfully.")
             return True
 
@@ -60,10 +61,10 @@ def _delete_resource(k8s_client, job_name, plural, wait_periods=10, period_lengt
 
 # TODO: Make this a generalized function for non-job resources.
 def wait_for_trainingjob_status(
-    k8s_client, training_job_name, desiredStatuses, wait_periods, period_length
+    training_job_name, desiredStatuses, wait_periods, period_length
 ):
     for _ in range(wait_periods):
-        response = _get_resource(k8s_client, training_job_name, "trainingjobs")
+        response = _get_resource(training_job_name, "trainingjobs")
         if response["status"]["trainingJobStatus"] in desiredStatuses:
             return True
         sleep(period_length)
@@ -81,9 +82,9 @@ def wait_for_condition(
     return False
 
 
-def does_endpoint_exist(k8s_client, endpoint_name):
+def does_endpoint_exist(endpoint_name):
     try:
-        response = _get_resource(k8s_client, endpoint_name, "endpoints")
+        response = _get_resource(endpoint_name, "endpoints")
         if response:
             return True
         if response is None:  # kubernetes module error
@@ -92,8 +93,8 @@ def does_endpoint_exist(k8s_client, endpoint_name):
         return False
 
 
-def is_endpoint_deleted(k8s_client, endpoint_name):
-    response = _get_resource(k8s_client, endpoint_name, "endpoints")
+def is_endpoint_deleted(endpoint_name):
+    response = _get_resource(endpoint_name, "endpoints")
     if response:
         return False
     if response is None:

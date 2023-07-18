@@ -63,7 +63,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         )
 
         endpoint_describe = ack_utils._get_resource(
-            k8s_client, input_endpoint_name, "endpoints"
+            input_endpoint_name, "endpoints"
         )
 
         outputs = {

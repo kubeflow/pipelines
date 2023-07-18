@@ -18,7 +18,6 @@ import json
     ],
 )
 def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
-    k8s_client = ack_utils.k8s_client()
     test_file_dir = "resources/config/ack-training-job"
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
     test_params = utils.load_params(
@@ -68,7 +67,7 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
 
     # Verify Training job was successful on SageMaker
     print(f"training job name: {input_job_name}")
-    train_response = ack_utils._get_resource(k8s_client, input_job_name, "trainingjobs")
+    train_response = ack_utils._get_resource(input_job_name, "trainingjobs")
     assert (
         train_response["status"]["trainingJobStatus"]
         == output_training_job_status

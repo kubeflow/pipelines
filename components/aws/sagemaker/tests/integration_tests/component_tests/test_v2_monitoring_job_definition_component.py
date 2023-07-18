@@ -56,7 +56,7 @@ def test_job_definitions(kfp_client, experiment_id, test_file_dir, deploy_endpoi
 
         # Verify if the job definition CR is created
         job_definition_describe = ack_utils._get_resource(
-            k8s_client, job_definition_name, test_params["Plural"]
+            job_definition_name, test_params["Plural"]
         )
         assert (
             job_definition_name
