@@ -72,10 +72,10 @@ def wait_for_trainingjob_status(
 
 
 def wait_for_condition(
-    k8s_client, resource_name, validator_function, wait_periods=10, period_length=8
+    resource_name, validator_function, wait_periods=10, period_length=8
 ):
     for _ in range(wait_periods):
-        if not validator_function(k8s_client, resource_name):
+        if not validator_function(resource_name):
             sleep(period_length)
         else:
             return True

@@ -181,7 +181,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
             "running",
         )
         assert ack_utils.wait_for_condition(
-            k8s_client,
             input_endpoint_name,
             ack_utils.does_endpoint_exist,
             wait_periods=12,
@@ -189,7 +188,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
         )
         kfp_client_utils.terminate_run(kfp_client, run_id)
         assert ack_utils.wait_for_condition(
-            k8s_client,
             input_endpoint_name,
             ack_utils.is_endpoint_deleted,
             wait_periods=20,
