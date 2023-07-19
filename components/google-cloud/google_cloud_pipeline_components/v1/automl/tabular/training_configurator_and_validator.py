@@ -17,19 +17,16 @@
 from typing import Optional
 
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Input
-from kfp.dsl import Output
 
 
 @dsl.container_component
 def training_configurator_and_validator(
-    dataset_stats: Input[Artifact],
+    dataset_stats: dsl.Input[dsl.Artifact],
     split_example_counts: str,
-    training_schema: Input[Artifact],
-    instance_schema: Input[Artifact],
-    metadata: Output[Artifact],
-    instance_baseline: Output[Artifact],
+    training_schema: dsl.Input[dsl.Artifact],
+    instance_schema: dsl.Input[dsl.Artifact],
+    metadata: dsl.Output[dsl.Artifact],
+    instance_baseline: dsl.Output[dsl.Artifact],
     target_column: Optional[str] = '',
     weight_column: Optional[str] = '',
     prediction_type: Optional[str] = '',
@@ -39,7 +36,7 @@ def training_configurator_and_validator(
     run_evaluation: Optional[bool] = False,
     run_distill: Optional[bool] = False,
     enable_probabilistic_inference: Optional[bool] = False,
-    time_series_identifier_column: Optional[str] = '',
+    time_series_identifier_columns: Optional[list] = [],
     time_column: Optional[str] = '',
     time_series_attribute_columns: Optional[list] = [],
     available_at_forecast_columns: Optional[list] = [],
@@ -106,8 +103,8 @@ def training_configurator_and_validator(
         For example, the mean of a predictive distribution is the point
         prediction that minimizes RMSE loss. If quantiles are specified, then
         the quantiles of the distribution are also returned.
-      time_series_identifier_column: Time series idenfier column. Used by
-        forecasting only.
+      time_series_identifier_columns: Time series idenfier columns. Used
+        by forecasting only.
       time_column: The column that indicates the time. Used by forecasting
         only.
       time_series_attribute_columns: The column names of the time series
@@ -143,7 +140,7 @@ def training_configurator_and_validator(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325',
       command=[],
       args=[
           'training_configurator_and_validator',
@@ -191,8 +188,8 @@ def training_configurator_and_validator(
           ),
           dsl.ConcatPlaceholder(
               items=[
-                  '--time_series_identifier_column=',
-                  time_series_identifier_column,
+                  '--time_series_identifier_columns=',
+                  time_series_identifier_columns,
               ]
           ),
           dsl.ConcatPlaceholder(items=['--time_column=', time_column]),

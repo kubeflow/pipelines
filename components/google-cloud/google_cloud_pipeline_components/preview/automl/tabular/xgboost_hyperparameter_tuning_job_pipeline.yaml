@@ -29,6 +29,7 @@
 #    model_display_name: str [Default: '']
 #    objective: str
 #    parallel_trial_count: int
+#    parent_model: system.Artifact
 #    predefined_split_key: str [Default: '']
 #    project: str
 #    root_dir: str
@@ -524,6 +525,8 @@ components:
           - get-best-hyperparameter-tuning-job-trial
           inputs:
             artifacts:
+              parent_model:
+                componentInputArtifact: pipelinechannel--parent_model
               unmanaged_container_model:
                 taskOutputArtifact:
                   outputArtifactKey: unmanaged_container_model
@@ -636,6 +639,11 @@ components:
           taskInfo:
             name: xgboost-hyperparameter-tuning-job
     inputDefinitions:
+      artifacts:
+        pipelinechannel--parent_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
       parameters:
         pipelinechannel--bigquery_staging_full_dataset_id:
           parameterType: STRING
@@ -948,6 +956,12 @@ components:
             \         27, no.\n       8: 1226-1238."
           isOptional: true
           parameterType: STRING
+        feature_selection_execution_engine:
+          defaultValue: dataflow
+          description: Execution engine to run feature selection, value can be dataflow,
+            bigquery.
+          isOptional: true
+          parameterType: STRING
         forecasting_apply_windowing:
           defaultValue: true
           description: Whether to apply window strategy.
@@ -1037,13 +1051,11 @@ components:
             time series attribute columns.'
           isOptional: true
           parameterType: LIST
-        forecasting_time_series_identifier_column:
-          defaultValue: ''
-          description: 'Forecasting
-
-            time series identifier column.'
+        forecasting_time_series_identifier_columns:
+          defaultValue: []
+          description: Forecasting time series identifier columns.
           isOptional: true
-          parameterType: STRING
+          parameterType: LIST
         forecasting_unavailable_at_forecast_columns:
           defaultValue: []
           description: 'Forecasting
@@ -2637,13 +2649,13 @@ components:
             attributes.'
           isOptional: true
           parameterType: LIST
-        time_series_identifier_column:
-          defaultValue: ''
-          description: 'Time series idenfier column. Used by
+        time_series_identifier_columns:
+          defaultValue: []
+          description: 'Time series idenfier columns. Used
 
-            forecasting only.'
+            by forecasting only.'
           isOptional: true
-          parameterType: STRING
+          parameterType: LIST
         unavailable_at_forecast_columns:
           defaultValue: []
           description: 'The names of the columns that are
@@ -2771,7 +2783,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230718_2325", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -2818,7 +2830,7 @@ deploymentSpec:
         - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
         - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
-        - '{"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}'
+        - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
         - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
         - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
         - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
@@ -2858,6 +2870,7 @@ deploymentSpec:
         - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
         - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+        - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
         - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
         - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
@@ -2887,8 +2900,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230718_2325
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -2904,7 +2917,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -2974,7 +2987,7 @@ deploymentSpec:
           \    return re.sub(r'^/gcs/', r'gs://', path)\n\n  master_worker_pool_spec\
           \ = {\n      'replica_count': 1,\n      'machine_spec': {\n          'machine_type':\
           \ machine_type,\n      },\n      'container_spec': {\n          'image_uri':\
-          \ 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:20230619_1325',\n\
+          \ 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:20230718_2325',\n\
           \          'args': [\n              f'--job_dir={get_gcs_path(job_dir)}',\n\
           \              f'--instance_schema_path={get_gcs_path(instance_schema_uri)}',\n\
           \              f'--prediction_schema_path={get_gcs_path(prediction_schema_uri)}',\n\
@@ -2987,7 +3000,7 @@ deploymentSpec:
           \              f'--baseline_path={get_gcs_path(instance_baseline)}',\n \
           \             f'--eval_metric={eval_metric}',\n              f'--disable_default_eval_metric={disable_default_eval_metric}',\n\
           \              f'--seed={seed}',\n              f'--seed_per_iteration={seed_per_iteration}',\n\
-          \              '--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:20230619_1325',\n\
+          \              '--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:20230718_2325',\n\
           \          ],\n      },\n  }\n\n  # Add optional arguments if set\n  if\
           \ weight_column:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
           \        f'--weight_column={weight_column}'\n    )\n\n  # Add accelerator_type\
@@ -3740,7 +3753,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230718_2325
     exec-training-configurator-and-validator:
       container:
         args:
@@ -3760,7 +3773,7 @@ deploymentSpec:
         - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
         - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
         - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
-        - '{"Concat": ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}'
+        - '{"Concat": ["--time_series_identifier_columns=", "{{$.inputs.parameters[''time_series_identifier_columns'']}}"]}'
         - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
         - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
         - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
@@ -3783,7 +3796,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325
     exec-xgboost-hyperparameter-tuning-job:
       container:
         args:
@@ -3851,6 +3864,9 @@ root:
         dependentTasks:
         - set-optional-inputs
         inputs:
+          artifacts:
+            pipelinechannel--parent_model:
+              componentInputArtifact: parent_model
           parameters:
             pipelinechannel--bigquery_staging_full_dataset_id:
               componentInputParameter: bigquery_staging_full_dataset_id
@@ -3994,6 +4010,11 @@ root:
           name: set-optional-inputs
   inputDefinitions:
     artifacts:
+      parent_model:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+        isOptional: true
       vertex_dataset:
         artifactType:
           schemaTitle: system.Artifact

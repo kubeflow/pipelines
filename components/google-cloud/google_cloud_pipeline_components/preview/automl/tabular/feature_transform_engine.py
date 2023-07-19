@@ -17,9 +17,6 @@
 from typing import Optional
 
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Dataset
-from kfp.dsl import Output
 
 
 @dsl.container_component
@@ -27,22 +24,22 @@ def feature_transform_engine(
     root_dir: str,
     project: str,
     location: str,
-    dataset_stats: Output[Artifact],
-    materialized_data: Output[Dataset],
-    transform_output: Output[Artifact],
+    dataset_stats: dsl.Output[dsl.Artifact],
+    materialized_data: dsl.Output[dsl.Dataset],
+    transform_output: dsl.Output[dsl.Artifact],
     split_example_counts: dsl.OutputPath(str),
-    instance_schema: Output[Artifact],
-    training_schema: Output[Artifact],
+    instance_schema: dsl.Output[dsl.Artifact],
+    training_schema: dsl.Output[dsl.Artifact],
     bigquery_train_split_uri: dsl.OutputPath(str),
     bigquery_validation_split_uri: dsl.OutputPath(str),
     bigquery_test_split_uri: dsl.OutputPath(str),
     bigquery_downsampled_test_split_uri: dsl.OutputPath(str),
-    feature_ranking: Output[Artifact],
+    feature_ranking: dsl.Output[dsl.Artifact],
     gcp_resources: dsl.OutputPath(str),
     dataset_level_custom_transformation_definitions: Optional[list] = [],
     dataset_level_transformations: Optional[list] = [],
     forecasting_time_column: Optional[str] = '',
-    forecasting_time_series_identifier_column: Optional[str] = '',
+    forecasting_time_series_identifier_columns: Optional[list] = [],
     forecasting_time_series_attribute_columns: Optional[list] = [],
     forecasting_unavailable_at_forecast_columns: Optional[list] = [],
     forecasting_available_at_forecast_columns: Optional[list] = [],
@@ -73,6 +70,7 @@ def feature_transform_engine(
     run_distill: Optional[bool] = False,
     run_feature_selection: Optional[bool] = False,
     feature_selection_algorithm: Optional[str] = 'AMI',
+    feature_selection_execution_engine: Optional[str] = 'dataflow',
     materialized_examples_format: Optional[str] = 'tfrecords_gzip',
     max_selected_features: Optional[int] = 1000,
     data_source_csv_filenames: Optional[str] = '',
@@ -189,8 +187,8 @@ def feature_transform_engine(
                         our target_column. Must be one of * 'DAY' * 'WEEK'
                       output_column: Name of our output feature.
       forecasting_time_column: Forecasting time column.
-      forecasting_time_series_identifier_column: Forecasting
-        time series identifier column.
+      forecasting_time_series_identifier_columns:
+        Forecasting time series identifier columns.
       forecasting_time_series_attribute_columns: Forecasting
         time series attribute columns.
       forecasting_unavailable_at_forecast_columns: Forecasting
@@ -541,6 +539,7 @@ def feature_transform_engine(
                  IEEE Transactions on pattern analysis and machine intelligence
                  27, no.
                8: 1226-1238.
+      feature_selection_execution_engine: Execution engine to run feature selection, value can be dataflow, bigquery.
       materialized_examples_format: The format to use for the
         materialized examples. Should be either 'tfrecords_gzip' (default) or
         'parquet'.
@@ -626,7 +625,7 @@ def feature_transform_engine(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325',
       command=[],
       args=[
           'feature_transform_engine',
@@ -649,8 +648,8 @@ def feature_transform_engine(
           ),
           dsl.ConcatPlaceholder(
               items=[
-                  '--forecasting_time_series_identifier_column=',
-                  forecasting_time_series_identifier_column,
+                  '--forecasting_time_series_identifier_columns=',
+                  forecasting_time_series_identifier_columns,
               ]
           ),
           dsl.ConcatPlaceholder(
@@ -820,6 +819,12 @@ def feature_transform_engine(
               ]
           ),
           dsl.ConcatPlaceholder(
+              items=[
+                  '--feature_selection_execution_engine=',
+                  feature_selection_execution_engine,
+              ]
+          ),
+          dsl.ConcatPlaceholder(
               items=['--feature_ranking_path=', feature_ranking.uri]
           ),
           dsl.ConcatPlaceholder(
@@ -921,8 +926,8 @@ def feature_transform_engine(
           dsl.ConcatPlaceholder(
               items=['--dataflow_machine_type=', dataflow_machine_type]
           ),
-          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325',
-          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325',
+          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230718_2325',
+          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325',
           dsl.ConcatPlaceholder(
               items=['--dataflow_disk_size_gb=', dataflow_disk_size_gb]
           ),

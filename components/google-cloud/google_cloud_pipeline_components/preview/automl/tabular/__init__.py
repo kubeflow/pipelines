@@ -14,8 +14,10 @@
 
 """Preview AutoML tabular components."""
 
+from google_cloud_pipeline_components.preview.automl.tabular.auto_feature_engineering import automated_feature_engineering as AutoFeatureEngineeringOp
 from google_cloud_pipeline_components.preview.automl.tabular.feature_selection import tabular_feature_ranking_and_selection as FeatureSelectionOp
 from google_cloud_pipeline_components.preview.automl.tabular.feature_transform_engine import feature_transform_engine as FeatureTransformEngineOp
+from google_cloud_pipeline_components.preview.automl.tabular.lanistr_trainer import lanistr_trainer as LanistrTrainerOp
 from google_cloud_pipeline_components.preview.automl.tabular.tabnet_hyperparameter_tuning_job import tabnet_hyperparameter_tuning_job as TabNetHyperparameterTuningJobOp
 from google_cloud_pipeline_components.preview.automl.tabular.tabnet_trainer import tabnet_trainer as TabNetTrainerOp
 from google_cloud_pipeline_components.preview.automl.tabular.wide_and_deep_hyperparameter_tuning_job import wide_and_deep_hyperparameter_tuning_job as WideAndDeepHyperparameterTuningJobOp
@@ -24,6 +26,7 @@ from google_cloud_pipeline_components.preview.automl.tabular.xgboost_hyperparame
 from google_cloud_pipeline_components.preview.automl.tabular.xgboost_trainer import xgboost_trainer as XGBoostTrainerOp
 
 __all__ = [
+    'AutoFeatureEngineeringOp',
     'FeatureSelectionOp',
     'WideAndDeepHyperparameterTuningJobOp',
     'WideAndDeepTrainerOp',
@@ -32,4 +35,5 @@ __all__ = [
     'FeatureTransformEngineOp',
     'XGBoostHyperparameterTuningJobOp',
     'XGBoostTrainerOp',
+    'LanistrTrainerOp',
 ]

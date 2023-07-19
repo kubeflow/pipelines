@@ -1766,6 +1766,7 @@ components:
             name: comp-feature-transform-engine
           dependentTasks:
           - bigquery-create-dataset-2
+          - wrapped-in-list
           inputs:
             parameters:
               autodetect_csv_schema:
@@ -1790,8 +1791,10 @@ components:
                 componentInputParameter: pipelinechannel--window_column
               forecasting_time_column:
                 componentInputParameter: pipelinechannel--time_column
-              forecasting_time_series_identifier_column:
-                componentInputParameter: pipelinechannel--time_series_identifier_column
+              forecasting_time_series_identifier_columns:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: wrapped-in-list
               forecasting_window_max_count:
                 componentInputParameter: pipelinechannel--window_max_count
               forecasting_window_stride_length:
@@ -1926,6 +1929,17 @@ components:
                 componentInputParameter: pipelinechannel--window_stride_length
           taskInfo:
             name: validate-inputs
+        wrapped-in-list:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-wrapped-in-list
+          inputs:
+            parameters:
+              value:
+                componentInputParameter: pipelinechannel--time_series_identifier_column
+          taskInfo:
+            name: wrapped-in-list
     inputDefinitions:
       parameters:
         pipelinechannel--bigquery_destination_uri:
@@ -2175,6 +2189,12 @@ components:
             \         27, no.\n       8: 1226-1238."
           isOptional: true
           parameterType: STRING
+        feature_selection_execution_engine:
+          defaultValue: dataflow
+          description: Execution engine to run feature selection, value can be dataflow,
+            bigquery.
+          isOptional: true
+          parameterType: STRING
         forecasting_apply_windowing:
           defaultValue: true
           description: Whether to apply window strategy.
@@ -2264,13 +2284,11 @@ components:
             time series attribute columns.'
           isOptional: true
           parameterType: LIST
-        forecasting_time_series_identifier_column:
-          defaultValue: ''
-          description: 'Forecasting
-
-            time series identifier column.'
+        forecasting_time_series_identifier_columns:
+          defaultValue: []
+          description: Forecasting time series identifier columns.
           isOptional: true
-          parameterType: STRING
+          parameterType: LIST
         forecasting_unavailable_at_forecast_columns:
           defaultValue: []
           description: 'Forecasting
@@ -3425,6 +3443,16 @@ components:
         window_stride_length:
           isOptional: true
           parameterType: NUMBER_INTEGER
+  comp-wrapped-in-list:
+    executorLabel: exec-wrapped-in-list
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
 deploymentSpec:
   executors:
     exec-bigquery-create-dataset:
@@ -4273,7 +4301,7 @@ deploymentSpec:
         - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
         - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
-        - '{"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}'
+        - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
         - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
         - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
         - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
@@ -4313,6 +4341,7 @@ deploymentSpec:
         - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
         - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+        - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
         - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
         - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
@@ -4342,8 +4371,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230718_2325
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -4359,7 +4388,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230718_2325
     exec-get-fte-suffix:
       container:
         args:
@@ -4850,6 +4879,33 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
+        image: python:3.7-slim
+    exec-wrapped-in-list:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - wrapped_in_list
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef wrapped_in_list(value: str) -> List[str]:\n  \"\"\"Wraps a string\
+          \ in a list.\"\"\"\n  return [value]\n\n"
         image: python:3.7-slim
 pipelineInfo:
   description: Trains a BQML ARIMA_PLUS model.

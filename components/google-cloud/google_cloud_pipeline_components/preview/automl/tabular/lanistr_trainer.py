@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""AutoML Pipeline Finalizer component spec."""
+"""AutoML Tabular Lanistr trainer component spec."""
 
 from typing import Optional
 
@@ -20,20 +20,24 @@ from kfp import dsl
 
 
 @dsl.container_component
-def automl_tabular_finalizer(
+def lanistr_trainer(
     project: str,
     location: str,
     root_dir: str,
+    transform_output: dsl.Input[dsl.Artifact],
+    materialized_data: dsl.Input[dsl.Artifact],
     gcp_resources: dsl.OutputPath(str),
     encryption_spec_key_name: Optional[str] = '',
 ):
   # fmt: off
-  """Finalizes AutoML Tabular pipelines.
+  """AutoML Tabular Lanistr component.
 
   Args:
       project: Project to run Cross-validation trainer.
       location: Location for running the Cross-validation trainer.
       root_dir: The Cloud Storage location to store the output.
+      transform_output: The transform output artifact.
+      materialized_data: The materialized data output by FTE.
       encryption_spec_key_name: Customer-managed encryption key.
 
   Returns:
@@ -64,7 +68,7 @@ def automl_tabular_finalizer(
               items=[
                   (
                       '{"display_name":'
-                      f' "automl-tabular-finalizer-{dsl.PIPELINE_JOB_ID_PLACEHOLDER}-{dsl.PIPELINE_TASK_ID_PLACEHOLDER}",'
+                      f' "lanistr-trainer-{dsl.PIPELINE_JOB_ID_PLACEHOLDER}-{dsl.PIPELINE_TASK_ID_PLACEHOLDER}",'
                       ' "encryption_spec": {"kms_key_name":"'
                   ),
                   encryption_spec_key_name,
@@ -73,15 +77,21 @@ def automl_tabular_finalizer(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230718_2325',
-                  '", "args": ["cancel_l2l_tuner", "--error_file_path=',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/lanistr-training:dev',
+                  '", "args": ["lanistr_trainer", "--transform_output_path=',
+                  transform_output.uri,
+                  '", "--materialized_data=',
+                  materialized_data.uri,
+                  '", "--training_docker_uri=',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/lanistr-training:dev',
+                  '", "--training_base_dir=',
                   root_dir,
                   (
-                      f'/{dsl.PIPELINE_JOB_ID_PLACEHOLDER}/{dsl.PIPELINE_TASK_ID_PLACEHOLDER}/error.pb",'
-                      ' "--cleanup_lro_job_infos='
+                      f'/{dsl.PIPELINE_JOB_ID_PLACEHOLDER}/{dsl.PIPELINE_TASK_ID_PLACEHOLDER}/train",'
+                      ' "--gcp_resources_path='
                   ),
-                  root_dir,
-                  f'/{dsl.PIPELINE_JOB_ID_PLACEHOLDER}/lro"' + ']}}]}}',
+                  gcp_resources,
+                  '"]}}]}}',
               ]
           ),
       ],
