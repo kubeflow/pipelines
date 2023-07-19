@@ -1,5 +1,0 @@
-steps:
-- name: 'gcr.io/kaniko-project/executor:latest'
-  args:
-  - --destination=gcr.io/$PROJECT_ID/google-cloud-pipeline-components:2.1.0
-  - --cache=false
