@@ -16,7 +16,7 @@
 import copy
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from google_cloud_pipeline_components import _image
 from kfp import components
@@ -143,11 +143,21 @@ def container_component_dumps(obj: Any) -> Any:
 def gcpc_output_name_converter(
     new_name: str,
     original_name: Optional[str] = None,
-):
+) -> Callable[
+    [components.base_component.BaseComponent],
+    components.base_component.BaseComponent,
+]:
   """Replace the output with original_name with a new_name in a component decorated with an @dsl.container_component decorator.
 
   Enables authoring components that have an input and output with the same
   key/name.
+
+  Args:
+    new_name: The new name for the output.
+    original_name: The original name of the output.
+
+  Returns:
+    A decorator that takes modifies a component in place.
 
   Example usage:
 
@@ -254,8 +264,8 @@ def gcpc_output_name_converter(
             )
 
       def replace_output_name_in_executor(
-          command: list,
-          args: list,
+          command: List[str],
+          args: List[str],
           original_name: str,
           new_name: str,
       ):

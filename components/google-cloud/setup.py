@@ -18,8 +18,7 @@ import importlib
 import os
 import types
 
-from setuptools import find_packages
-from setuptools import setup
+import setuptools
 
 relative_directory = os.path.relpath(os.path.dirname(os.path.abspath(__file__)))
 GCPC_DIR_NAME = "google_cloud_pipeline_components"
@@ -36,7 +35,11 @@ loader.exec_module(version)
 with open("README.md") as fp:
   _GCPC_LONG_DESCRIPTION = fp.read()
 
-setup(
+yaml_data = glob.glob(relative_data_path + "/**/*.yaml", recursive=True)
+json_data = glob.glob(
+    relative_data_path + "/**/automl/**/*.json", recursive=True
+)
+setuptools.setup(
     name="google-cloud-pipeline-components",
     version=version.__version__,
     description=(
@@ -87,7 +90,6 @@ setup(
             "https://google-cloud-pipeline-components.readthedocs.io/"
         ),
         "Source": "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
-        # TODO: update to point to reference documentation release notes once available post GCPC v2 GA
         "Release Notes": "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/RELEASE.md",
     },
     dependency_links=[],
@@ -114,16 +116,11 @@ setup(
     package_dir={
         GCPC_DIR_NAME: os.path.join(relative_directory, GCPC_DIR_NAME)
     },
-    packages=find_packages(where=relative_directory, include="*"),
+    packages=setuptools.find_packages(where=relative_directory, include="*"),
     package_data={
         GCPC_DIR_NAME: [
             x.replace(relative_data_path + "/", "")
-            for x in glob.glob(
-                relative_data_path + "/**/*.yaml", recursive=True
-            )
-            + glob.glob(
-                relative_data_path + "/**/automl/**/*.json", recursive=True
-            )
+            for x in yaml_data + json_data
         ]
     },
 )

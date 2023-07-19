@@ -38,7 +38,7 @@ __all__ = [
 ]
 
 import textwrap
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 from kfp import dsl
 
 _RESOURCE_NAME_KEY = 'resourceName'
@@ -74,6 +74,9 @@ properties:
         projects/{project}/locations/{location}/models/{model}. For more
         details, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/get
+
+    Returns:
+      VertexModel instance.
     """
     return cls(
         name=name,
@@ -112,6 +115,9 @@ properties:
         projects/{project}/locations/{location}/endpoints/{endpoint}. For more
         details, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/get
+
+    Returns:
+      VertexEndpoint instance.
     """
     return cls(
         name=name,
@@ -172,6 +178,9 @@ properties:
         created, into which the prediction output is written. For more details,
         see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
+
+    Returns:
+      VertexBatchPredictionJob instance.
     """
     return cls(
         name=name,
@@ -215,6 +224,9 @@ properties:
         projects/{project}/locations/{location}/datasets/{datasets_name}. For
         more details, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets/get
+
+    Returns:
+      VertexDataset instance.
     """
     return cls(
         uri=uri,
@@ -254,6 +266,9 @@ properties:
       dataset_id: The ID of the dataset containing this model.
       model_id: The ID of the model.  For more details, see
       https://cloud.google.com/bigquery/docs/reference/rest/v2/models#ModelReference
+
+    Returns:
+      BQMLModel instance.
     """
     return cls(
         name=name,
@@ -299,6 +314,9 @@ properties:
       dataset_id: The ID of the dataset containing this table.
       table_id: The ID of the table.  For more details, see
       https://cloud.google.com/bigquery/docs/reference/rest/v2/TableReference
+
+    Returns:
+      BQTable instance.
     """
     return cls(
         name=name,
@@ -365,8 +383,8 @@ properties:
   @classmethod
   def create(
       cls,
-      predict_schemata: Dict,
-      container_spec: Dict,
+      predict_schemata: Dict[str, str],
+      container_spec: Dict[str, Any],
   ) -> 'UnmanagedContainerModel':
     """Create a UnmanagedContainerModel artifact instance.
 
@@ -379,6 +397,9 @@ properties:
         fields in this message correspond to fields in the Kubernetes Container
         v1 core specification. For more details, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ModelContainerSpec
+
+    Returns:
+      UnmanagedContainerModel instance.
     """
     return cls(
         metadata={
@@ -531,6 +552,7 @@ properties:
     """Create a ClassificationMetrics artifact instance.
 
     Args:
+      name: The artifact name.
       recall: Recall (True Positive Rate) for the given confidence threshold.
       precision: Precision for the given confidence threshold.
       f1_score: The harmonic mean of recall and precision.
@@ -538,6 +560,9 @@ properties:
       au_prc: The Area Under Precision-Recall Curve metric.
       au_roc: The Area Under Receiver Operating Characteristic curve metric.
       log_loss: The Log Loss metric.
+
+    Returns:
+      ClassificationMetrics instance.
     """
     metadata = {}
     if recall is not None:
@@ -598,12 +623,16 @@ properties:
     """Create a RegressionMetrics artifact instance.
 
     Args:
+      name: The artifact name.
       root_mean_squared_error: Root Mean Squared Error (RMSE).
       mean_absolute_error: Mean Absolute Error (MAE).
       mean_absolute_percentage_error: Mean absolute percentage error.
       r_squared: Coefficient of determination as Pearson correlation
         coefficient.
       root_mean_squared_log_error: Root mean squared log error.
+
+    Returns:
+      RegressionMetrics instance.
     """
     metadata = {}
     if root_mean_squared_error is not None:
@@ -686,6 +715,7 @@ properties:
     """Create a ForecastingMetrics artifact instance.
 
     Args:
+      name: The artifact name.
       root_mean_squared_error: Root Mean Squared Error (RMSE).
       mean_absolute_error: Mean Absolute Error (MAE).
       mean_absolute_percentage_error: Mean absolute percentage error.
@@ -700,6 +730,9 @@ properties:
         Square root of MSPE. Undefined/imaginary when MSPE is negative.
       symmetric_mean_absolute_percentage_error: Symmetric Mean Absolute
         Percentage Error.
+
+    Returns:
+      ForecastingMetrics instance.
     """
     metadata = {}
     if root_mean_squared_error is not None:
