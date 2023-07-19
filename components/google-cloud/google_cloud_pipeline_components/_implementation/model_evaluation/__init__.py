@@ -23,6 +23,7 @@ from google_cloud_pipeline_components._implementation.model_evaluation.feature_e
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluated_annotation.component import evaluated_annotation_import as ModelImportEvaluatedAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_evaluation.component import model_evaluation_text_generation as ModelEvaluationTextGenerationOp
+from google_cloud_pipeline_components._implementation.model_evaluation.rai_safety.llm_safety_metrics_bias.component import llm_safety_metrics_bias as SafetyMetricsOp
 from google_cloud_pipeline_components._implementation.model_evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
 
 
@@ -35,5 +36,6 @@ __all__ = [
     'ModelEvaluationTextGenerationOp',
     'ModelImportEvaluatedAnnotationOp',
     'ModelImportEvaluationOp',
+    'SafetyMetricsOp',
     'TargetFieldDataRemoverOp',
 ]
