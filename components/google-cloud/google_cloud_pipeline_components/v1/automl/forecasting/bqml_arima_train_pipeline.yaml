@@ -4258,7 +4258,7 @@ deploymentSpec:
           \ *\n\ndef create_metrics_artifact(\n    metrics_rows: List[Dict[str, str]],\n\
           \    evaluation_metrics: dsl.Output[dsl.Metrics],\n) -> None:\n  \"\"\"\
           Converts the rows of a metrics table into an Artifact.\"\"\"\n  # Use the\
-          \ Vertex Eval component's Metrics metadata naming from\n  # http://google3/third_party/py/google/cloud/aiplatform/aiplatform/metadata/schema/google/artifact_schema.py?cl=467006447&l=344\n\
+          \ Vertex Eval component's Metrics metadata naming from\n\
           \  metric_name_map = {\n      'MAE': 'meanAbsoluteError',\n      'RMSE':\
           \ 'rootMeanSquaredError',\n      'MAPE': 'meanAbsolutePercentageError',\n\
           \  }\n  metrics = {metric_name_map[k]: v for k, v in dict(metrics_rows[0]).items()}\n\
