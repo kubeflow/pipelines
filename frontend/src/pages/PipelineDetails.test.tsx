@@ -54,6 +54,7 @@ describe('PipelineDetails', () => {
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'deletePipelineVersion');
   const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+  const PIPELINE_VERSION_ID = 'test-pipeline-version-id';
 
   let tree: ShallowWrapper | ReactWrapper;
   let testV1Pipeline: ApiPipeline = {};
@@ -61,19 +62,23 @@ describe('PipelineDetails', () => {
   let testV1Run: ApiRunDetail = {};
   let testV1RecurringRun: ApiJob = {};
   let testV2Pipeline: V2beta1Pipeline = {};
-  let testV2PipelineVersion: V2beta1PipelineVersion = {};
+  let originalTestV2PipelineVersion: V2beta1PipelineVersion = {};
+  let newTestV2PipelineVersion: V2beta1PipelineVersion = {};
   let testV2Run: V2beta1Run = {};
   let testV2RecurringRun: V2beta1RecurringRun = {};
 
-  function generateProps(fromRunSpec = false, fromRecurringRunSpec = false): PageProps {
+  function generateProps(
+    versionId?: string,
+    fromRunSpec = false,
+    fromRecurringRunSpec = false,
+  ): PageProps {
     let params = {};
     // If no fromXXX parameter is provided, it means KFP UI expects to
     // show Pipeline detail with pipeline version ID
     if (!fromRunSpec && !fromRecurringRunSpec) {
       params = {
-        [RouteParams.pipelineId]: testV1Pipeline.id,
-        [RouteParams.pipelineVersionId]:
-          (testV1Pipeline.default_version && testV1Pipeline.default_version!.id) || '',
+        [RouteParams.pipelineId]: testV2Pipeline.pipeline_id,
+        [RouteParams.pipelineVersionId]: versionId || '',
       };
     }
 
@@ -151,10 +156,19 @@ describe('PipelineDetails', () => {
       display_name: 'test pipeline',
     };
 
-    testV2PipelineVersion = {
+    originalTestV2PipelineVersion = {
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_spec: JsYaml.safeLoad(
+        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+      ),
+    };
+
+    newTestV2PipelineVersion = {
+      display_name: 'new-test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'new-test-pipeline-version-id',
       pipeline_spec: JsYaml.safeLoad(
         'spec:\n  arguments:\n    parameters:\n      - name: output\n',
       ),
@@ -181,9 +195,11 @@ describe('PipelineDetails', () => {
     getV1RecurringRunSpy.mockImplementation(() => Promise.resolve(testV1RecurringRun));
 
     getV2PipelineSpy.mockImplementation(() => Promise.resolve(testV2Pipeline));
-    getV2PipelineVersionSpy.mockImplementation(() => Promise.resolve(testV2PipelineVersion));
+    getV2PipelineVersionSpy.mockImplementation(() =>
+      Promise.resolve(originalTestV2PipelineVersion),
+    );
     listV2PipelineVersionsSpy.mockImplementation(() =>
-      Promise.resolve({ versions: [testV2PipelineVersion] }),
+      Promise.resolve({ pipeline_versions: [originalTestV2PipelineVersion] }),
     );
     getV2RunSpy.mockImplementation(() => Promise.resolve(testV2Run));
     getV2RecurringRunSpy.mockImplementation(() => Promise.resolve(testV2RecurringRun));
@@ -210,7 +226,8 @@ describe('PipelineDetails', () => {
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
-        pageTitle: testV1Pipeline.name + ' (' + testV1PipelineVersion.name + ')',
+        pageTitle:
+          testV2Pipeline.display_name + ' (' + originalTestV2PipelineVersion.display_name + ')',
       }),
     );
   });
@@ -219,7 +236,7 @@ describe('PipelineDetails', () => {
     'shows all runs breadcrumbs, and "Pipeline details" as page title when the pipeline ' +
       'comes from a run spec that does not have an experiment',
     async () => {
-      tree = shallow(<PipelineDetails {...generateProps(true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
       await getV1RunSpy;
       await getV2RunSpy;
       await createGraphSpy;
@@ -243,7 +260,7 @@ describe('PipelineDetails', () => {
     'shows all runs breadcrumbs, and "Pipeline details" as page title when the pipeline ' +
       'comes from a recurring run spec that does not have an experiment',
     async () => {
-      tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, false, true)} />);
       await getV1RecurringRunSpy;
       await getV2RecurringRunSpy;
       await TestUtils.flushPromises();
@@ -270,7 +287,7 @@ describe('PipelineDetails', () => {
       'comes from a run spec that has an experiment',
     async () => {
       testV2Run.experiment_id = 'test-experiment-id';
-      tree = shallow(<PipelineDetails {...generateProps(true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
       await getV1RunSpy;
       await getV2RunSpy;
       await getExperimentSpy;
@@ -302,7 +319,7 @@ describe('PipelineDetails', () => {
       'comes from a recurring run spec that has an experiment',
     async () => {
       testV2RecurringRun.experiment_id = 'test-experiment-id';
-      tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, false, true)} />);
       await getV1RecurringRunSpy;
       await getV2RecurringRunSpy;
       await getExperimentSpy;
@@ -341,7 +358,7 @@ describe('PipelineDetails', () => {
         workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
       };
 
-      tree = shallow(<PipelineDetails {...generateProps(true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
       await getV1RunSpy;
       await getV2RunSpy;
       await TestUtils.flushPromises();
@@ -363,7 +380,7 @@ describe('PipelineDetails', () => {
       });
       testV2Run.pipeline_spec = { spec: { arguments: { parameters: [{ name: 'output' }] } } };
 
-      tree = shallow(<PipelineDetails {...generateProps(true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
       await getV1RunSpy;
       await getV2RunSpy;
       await TestUtils.flushPromises();
@@ -388,7 +405,7 @@ describe('PipelineDetails', () => {
         spec: { arguments: { parameters: [{ name: 'output' }] } },
       };
 
-      tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, false, true)} />);
       await getV1RecurringRunSpy;
       await getV2RecurringRunSpy;
       await TestUtils.flushPromises();
@@ -409,7 +426,7 @@ describe('PipelineDetails', () => {
     testV2Run.pipeline_version_reference.pipeline_id = 'test-pipeline-id';
     testV2Run.pipeline_version_reference.pipeline_version_id = 'test-pipeline-version-id';
 
-    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
     await getV1RunSpy;
     await getV2RunSpy;
     await getV2PipelineVersionSpy;
@@ -420,9 +437,29 @@ describe('PipelineDetails', () => {
     );
   });
 
+  it('calls listPipelineVersions() if no pipeline version id', async () => {
+    listV2PipelineVersionsSpy.mockImplementation(() =>
+      Promise.resolve({
+        pipeline_versions: [newTestV2PipelineVersion, originalTestV2PipelineVersion],
+      }),
+    );
+    render(<PipelineDetails {...generateProps()} />);
+
+    await waitFor(() => {
+      expect(listV2PipelineVersionsSpy).toHaveBeenCalled();
+    });
+
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
+        pageTitle: testV2Pipeline.display_name + ' (' + newTestV2PipelineVersion.display_name + ')',
+      }),
+    );
+  });
+
   it('renders "No graph to show" if it is empty pipeline', async () => {
     TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
-    render(<PipelineDetails {...generateProps()} />);
+    render(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
     await waitFor(() => {
       expect(getV2PipelineVersionSpy).toHaveBeenCalled();
@@ -441,7 +478,7 @@ describe('PipelineDetails', () => {
     testV2RecurringRun.pipeline_version_reference.pipeline_id = 'test-pipeline-id';
     testV2RecurringRun.pipeline_version_reference.pipeline_version_id = 'test-pipeline-version-id';
 
-    tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+    tree = shallow(<PipelineDetails {...generateProps(undefined, false, true)} />);
     await getV1RecurringRunSpy;
     await getV2RecurringRunSpy;
     await getV2PipelineVersionSpy;
@@ -460,7 +497,7 @@ describe('PipelineDetails', () => {
         pipeline_id: 'run-pipeline-id',
         workflow_manifest: 'not valid JSON',
       };
-      render(<PipelineDetails {...generateProps(true)} />);
+      render(<PipelineDetails {...generateProps(undefined, true)} />);
 
       await waitFor(() => {
         expect(getV1RunSpy).toHaveBeenCalled();
@@ -481,7 +518,7 @@ describe('PipelineDetails', () => {
 
   it('shows load error banner when failing to get run details, when loading from run spec', async () => {
     TestUtils.makeErrorResponseOnce(getV1RunSpy, 'woops');
-    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
     await getV1PipelineSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
@@ -500,7 +537,7 @@ describe('PipelineDetails', () => {
     async () => {
       testV2Run.experiment_id = 'test-experiment-id';
       TestUtils.makeErrorResponse(getExperimentSpy, 'woops');
-      tree = shallow(<PipelineDetails {...generateProps(true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
       await getV1PipelineSpy;
       await TestUtils.flushPromises();
       expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
@@ -531,16 +568,15 @@ describe('PipelineDetails', () => {
 
   it('shows load error banner when failing to get pipeline version', async () => {
     TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
-    render(<PipelineDetails {...generateProps()} />);
+    render(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
     await waitFor(() => {
-      // one for selected Version, another for template string
-      expect(getV2PipelineVersionSpy).toHaveBeenCalledTimes(2);
+      expect(getV2PipelineVersionSpy).toHaveBeenCalled();
       // get version error will use empty string as template string, which won't call createGraph()
       expect(createGraphSpy).toHaveBeenCalledTimes(0);
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(3); // Clear banner, show error two times
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'No pipeline version is found',
@@ -566,7 +602,7 @@ describe('PipelineDetails', () => {
         pipeline_version_id: 'test-pipeline-version-id',
         pipeline_spec: undefined, // empty pipeline_spec
       });
-      render(<PipelineDetails {...generateProps()} />);
+      render(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
       await waitFor(() => {
         expect(getV2PipelineVersionSpy).toHaveBeenCalled();
@@ -596,7 +632,7 @@ describe('PipelineDetails', () => {
         pipeline_version_id: 'test-pipeline-version-id',
         pipeline_spec: {}, // invalid pipeline_spec
       });
-      render(<PipelineDetails {...generateProps()} />);
+      render(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
       await waitFor(() => {
         expect(getV2PipelineVersionSpy).toHaveBeenCalled();
@@ -630,7 +666,7 @@ describe('PipelineDetails', () => {
       },
     });
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
-    render(<PipelineDetails {...generateProps()} />);
+    render(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
     await waitFor(() => {
       expect(getV2PipelineVersionSpy).toHaveBeenCalled();
@@ -656,7 +692,7 @@ describe('PipelineDetails', () => {
   });
 
   it("has 'clone run' toolbar button if viewing an embedded pipeline", async () => {
-    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     /* create run and create pipeline version, so 2 */
@@ -666,7 +702,7 @@ describe('PipelineDetails', () => {
   });
 
   it("has 'clone recurring run' toolbar button if viewing an embedded pipeline from recurring run", async () => {
-    tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+    tree = shallow(<PipelineDetails {...generateProps(undefined, false, true)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     /* create run and create pipeline version, so 2 */
@@ -681,7 +717,7 @@ describe('PipelineDetails', () => {
     'clicking clone run button when viewing embedded pipeline navigates to ' +
       'the new run page (clone a run) with run ID',
     async () => {
-      tree = shallow(<PipelineDetails {...generateProps(true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, true)} />);
       await TestUtils.flushPromises();
       const instance = tree.instance() as PipelineDetails;
       const cloneRunBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
@@ -697,7 +733,7 @@ describe('PipelineDetails', () => {
     'clicking clone recurring run button when viewing embedded pipeline from recurring run' +
       'navigates to the new run page (clone a recurring run) with recurring run ID',
     async () => {
-      tree = shallow(<PipelineDetails {...generateProps(false, true)} />);
+      tree = shallow(<PipelineDetails {...generateProps(undefined, false, true)} />);
       await TestUtils.flushPromises();
       const instance = tree.instance() as PipelineDetails;
       const cloneRecurringRunBtn = instance.getInitialToolbarState().actions[
@@ -713,7 +749,7 @@ describe('PipelineDetails', () => {
   );
 
   it("has 'create run' toolbar button if not viewing an embedded pipeline", async () => {
-    tree = shallow(<PipelineDetails {...generateProps(false)} />);
+    tree = shallow(<PipelineDetails {...generateProps(undefined, false)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     /* create run, create pipeline version, create experiment and delete run, so 4 */
@@ -725,7 +761,7 @@ describe('PipelineDetails', () => {
   });
 
   it('clicking new run button navigates to the new run page', async () => {
-    tree = shallow(<PipelineDetails {...generateProps(false)} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID, false)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
@@ -735,9 +771,7 @@ describe('PipelineDetails', () => {
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN +
-        `?${QUERY_PARAMS.pipelineId}=${testV1Pipeline.id}&${
-          QUERY_PARAMS.pipelineVersionId
-        }=${testV1Pipeline.default_version!.id!}`,
+        `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}&${QUERY_PARAMS.pipelineVersionId}=${PIPELINE_VERSION_ID}`,
     );
   });
 
@@ -745,7 +779,7 @@ describe('PipelineDetails', () => {
     'clicking new run button when viewing half-loaded page navigates to ' +
       'the new run page with pipeline ID and version ID',
     async () => {
-      tree = shallow(<PipelineDetails {...generateProps(false)} />);
+      tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID, false)} />);
       // Intentionally don't wait until all network requests finish.
       const instance = tree.instance() as PipelineDetails;
       const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
@@ -755,9 +789,7 @@ describe('PipelineDetails', () => {
       expect(historyPushSpy).toHaveBeenCalledTimes(1);
       expect(historyPushSpy).toHaveBeenLastCalledWith(
         RoutePage.NEW_RUN +
-          `?${QUERY_PARAMS.pipelineId}=${testV1Pipeline.id}&${
-            QUERY_PARAMS.pipelineVersionId
-          }=${testV1Pipeline.default_version!.id!}`,
+          `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}&${QUERY_PARAMS.pipelineVersionId}=${PIPELINE_VERSION_ID}`,
       );
     },
   );
@@ -791,7 +823,7 @@ describe('PipelineDetails', () => {
   );
 
   it('has a delete button and it is enabled for pipeline version deletion', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
@@ -801,9 +833,6 @@ describe('PipelineDetails', () => {
 
   it('has a delete button, and it is disabled because no version is selected', async () => {
     let pageProps = generateProps();
-    pageProps.match.params = {
-      [RouteParams.pipelineId]: testV1Pipeline.id,
-    };
     tree = shallow(<PipelineDetails {...pageProps} />);
 
     await TestUtils.flushPromises();
@@ -814,7 +843,7 @@ describe('PipelineDetails', () => {
   });
 
   it('shows delete confirmation dialog when delete button is clicked', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -828,7 +857,7 @@ describe('PipelineDetails', () => {
   });
 
   it('does not call delete API for selected pipeline when delete dialog is canceled', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -840,7 +869,7 @@ describe('PipelineDetails', () => {
   });
 
   it('calls delete API when delete dialog is confirmed', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
@@ -857,7 +886,7 @@ describe('PipelineDetails', () => {
   });
 
   it('calls delete API when delete dialog is confirmed and page is half-loaded', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
     // Intentionally don't wait until all network requests finish.
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
@@ -874,7 +903,7 @@ describe('PipelineDetails', () => {
   });
 
   it('shows error dialog if deletion fails', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
     TestUtils.makeErrorResponseOnce(deletePipelineVersionSpy, 'woops');
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
@@ -894,7 +923,7 @@ describe('PipelineDetails', () => {
   });
 
   it('shows success snackbar if deletion succeeds', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
