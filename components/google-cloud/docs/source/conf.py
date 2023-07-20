@@ -112,23 +112,6 @@ Output = OutputClass()
 
 dsl.Output = Output
 
-# order from earliest to latest
-# start with 2.0.0b3, which is the first time we're using the new theme
-V2_DROPDOWN_VERSIONS = [
-    '2.0.0b3',
-    '2.0.0b4',
-    '2.0.0b5',
-    '2.0.0',
-    '2.1.0',
-]
-
-# The short X.Y version
-# update for each release
-LATEST_VERSION = V2_DROPDOWN_VERSIONS[-1]
-
-# The full version, including alpha/beta/rc tags
-release = LATEST_VERSION
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -209,14 +192,7 @@ html_theme_options = {
     }],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
-    'version_info': [
-        {
-            'version': f'https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-{version}',
-            'title': version,
-            'aliases': [],
-        }
-        for version in reversed(V2_DROPDOWN_VERSIONS)
-    ],
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/test-gcpc-dropdown/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
