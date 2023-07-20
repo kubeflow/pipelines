@@ -273,20 +273,20 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   // We don't have default version in v2 pipeline proto, choose the latest version instead.
   private async getSelectedVersion(pipelineId: string, versionId?: string) {
+    let selectedVersion: V2beta1PipelineVersion;
     // Get specific version if version id is provided
     if (versionId) {
       try {
-        return await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
+        selectedVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version.', err);
         logger.error('Cannot retrieve pipeline version.', err);
-        return;
+        return undefined;
       }
     } else {
       // Get the latest version if no version id
       let listVersionsResponse: V2beta1ListPipelineVersionsResponse;
-      let latesetVersion: V2beta1PipelineVersion;
       try {
         listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
           pipelineId,
@@ -295,22 +295,22 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           'created_at desc',
         );
 
-        if (listVersionsResponse.pipeline_versions) {
-          latesetVersion = listVersionsResponse.pipeline_versions[0];
-          // Append version id to URL for create run (new run switcher call getPipelineVersion)
-          this.props.history.replace({
-            pathname: `/pipelines/details/${pipelineId}/version/${latesetVersion.pipeline_version_id}`,
-          });
-          return latesetVersion;
+        if (
+          listVersionsResponse.pipeline_versions &&
+          listVersionsResponse.pipeline_versions.length > 0
+        ) {
+          selectedVersion = listVersionsResponse.pipeline_versions[0];
+        } else {
+          return undefined;
         }
-        return undefined;
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version list.', err);
         logger.error('Cannot retrieve pipeline version list.', err);
-        return;
+        return undefined;
       }
     }
+    return selectedVersion;
   }
 
   public async load(): Promise<void> {
@@ -523,10 +523,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           logger.error('Cannot retrieve pipeline versions.', err);
           return;
         }
-        templateString = await this._getTemplateString(
-          pipelineId,
-          v2SelectedVersion ? v2SelectedVersion.pipeline_version_id! : v1SelectedVersion?.id!,
-        );
+        templateString = await this._getTemplateString(v2SelectedVersion);
       }
 
       breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
@@ -583,10 +580,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         ')',
       );
 
-      const selectedVersionPipelineTemplate = await this._getTemplateString(
-        this.state.v2Pipeline.pipeline_id!,
-        versionId,
-      );
+      const selectedVersionPipelineTemplate = await this._getTemplateString(v2SelectedVersion);
       this.props.history.replace({
         pathname: `/pipelines/details/${this.state.v2Pipeline.pipeline_id}/version/${versionId}`,
       });
@@ -618,28 +612,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     }
   }
 
-  private async _getTemplateString(pipelineId: string, versionId: string): Promise<string> {
-    try {
-      // Get template string from pipeline_spec in pipeline version (v2 API)
-      let pipelineVersion;
-      let pipelineSpecInVersion;
-      if (pipelineId && versionId) {
-        pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
-        pipelineSpecInVersion = pipelineVersion.pipeline_spec;
-      }
-
-      if (pipelineSpecInVersion) {
-        return JsYaml.safeDump(pipelineSpecInVersion);
-      } else {
-        logger.error('No template string is found');
-        return '';
-      }
-    } catch (err) {
-      this.setStateSafe({ graphIsLoading: false });
-      await this.showPageError('Cannot retrieve pipeline version.', err);
-      logger.error('Cannot retrieve pipeline details.', err);
+  private async _getTemplateString(pipelineVersion?: V2beta1PipelineVersion): Promise<string> {
+    if (pipelineVersion?.pipeline_spec) {
+      return JsYaml.safeDump(pipelineVersion.pipeline_spec);
+    } else {
+      logger.error('No template string is found');
+      return '';
     }
-    return '';
   }
 
   private async _createGraph(
