@@ -38,10 +38,10 @@ import {
   GetArtifactsByIDResponse,
   GetArtifactTypesRequest,
   GetArtifactTypesResponse,
-  GetContextByTypeAndNameRequest,
+  GetContextByTypeAndNameRequest, GetEventsByArtifactIDsRequest, GetEventsByArtifactIDsResponse,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  GetExecutionsByContextRequest,
+  GetExecutionsByContextRequest, GetExecutionsByIDRequest, GetExecutionsByIDResponse,
 } from 'src/third_party/mlmd';
 import {
   GetArtifactsByContextRequest,
@@ -248,7 +248,7 @@ export async function getContextByExecution(
   return result[0];
 }
 
-async function getContextsByExecution(execution: Execution): Promise<Context[]> {
+export async function getContextsByExecution(execution: Execution): Promise<Context[]> {
   const executionId = execution.getId();
   if (!executionId) {
     throw new Error('Execution must have an ID');
@@ -353,6 +353,36 @@ export async function getArtifactTypes(): Promise<ArtifactType[]> {
     throw err;
   }
   return res.getArtifactTypesList();
+}
+
+export async function GetEventsByArtifactIDs(artifactIds: number[]): Promise<Event[]> {
+  const request = new GetEventsByArtifactIDsRequest();
+  request.setArtifactIdsList(artifactIds);
+
+  let res: GetEventsByArtifactIDsResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getEventsByArtifactIDs(request);
+  } catch (err) {
+    err.message = 'Failed to GetEventsByArtifactIDs: ' + err.message;
+    throw err;
+  }
+  return res.getEventsList();
+}
+
+export async function GetExecutionsByIDs(executionIds: number[]): Promise<Execution[]> {
+  console.log("getExecutions", executionIds);
+  const request = new GetExecutionsByIDRequest();
+  request.setExecutionIdsList(executionIds);
+
+  let res: GetExecutionsByIDResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getExecutionsByID(request);
+  } catch (err) {
+    err.message = 'Failed to GetEventsByArtifactIDs: ' + err.message;
+    throw err;
+  }
+
+  return res.getExecutionsList();
 }
 
 export function filterArtifactsByType(

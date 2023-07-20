@@ -24,7 +24,13 @@ import { ArtifactTypeMap, ExecutionTypeMap } from './LineageApi';
 import { Artifact, Execution, Value } from 'src/third_party/mlmd';
 import { LineageTypedResource } from './LineageTypes';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { ArtifactHelpers, ExecutionHelpers } from './MlmdUtils';
+import {
+  ArtifactHelpers,
+  ExecutionHelpers,
+  getContextsByExecution,
+  GetEventsByArtifactIDs,
+  GetExecutionsByIDs
+} from './MlmdUtils';
 
 const ARTIFACT_FIELD_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const EXECUTION_FIELD_REPOS = [ExecutionProperties, ExecutionCustomProperties];
@@ -47,11 +53,43 @@ export function getResourceProperty(
   return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName))) || null;
 }
 
+export async function getPipelineNameByArtifact(
+    res: Artifact
+): Promise<string> {
+  const events = await GetEventsByArtifactIDs([res.getId()]);
+  if(events.length === 0)
+    return "[unknown]";
+
+  console.log("found " + events.length + " events: ", events);
+
+  const executionId = events[0].getExecutionId();
+  const executions = await GetExecutionsByIDs([executionId]);
+  if(executions.length === 0)
+    return "[unknown]";
+
+  console.log("found " + executions.length + " executions: ", executions);
+
+  const execution = executions[0];
+  const contexts = await getContextsByExecution(execution);
+  if(contexts.length === 0)
+    return "[unknown]";
+
+  console.log("found " + contexts.length + " contexts: ", contexts);
+
+  contexts.forEach((context) => {
+    console.log(context.getPropertiesMap());
+    console.log(context.getName());
+  });
+
+  return contexts[0].getName()
+}
+
 export function getResourcePropertyViaFallBack(
   res: Artifact | Execution,
   fieldRepos: RepoType[],
   fields: string[],
 ): string {
+  console.log("getResourcePropertyViaFallBack", res, fieldRepos, fields);
   const prop =
     fields.reduce(
       (value: string, field: string) =>

@@ -47,6 +47,7 @@ import {
   serviceErrorToString,
 } from 'src/lib/Utils';
 import { Page } from 'src/pages/Page';
+import {getPipelineNameByArtifact} from "../mlmd/Utils";
 
 interface ArtifactListProps {
   isGroupView: boolean;
@@ -60,7 +61,6 @@ interface ArtifactListState {
 }
 
 const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
-const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];
 const NAME_FIELDS = [
   getStringEnumKey(ArtifactCustomProperties, ArtifactCustomProperties.NAME),
   getStringEnumKey(ArtifactCustomProperties, ArtifactCustomProperties.DISPLAY_NAME),
@@ -79,7 +79,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
         {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
-          label: 'Pipeline/Workspace',
+          label: 'Pipeline',
         },
         {
           customRenderer: this.nameCustomRenderer,
@@ -154,9 +154,18 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
     const artifacts = this.props.isGroupView
       ? await this.getArtifacts()
       : await this.getArtifacts(listOperationOpts);
+
+    const pipelineMap = new Map<number, string>();
+
+    // Collect all pipeline name by artifact
+    for (const artifact of artifacts) {
+      const pipelineName = await getPipelineNameByArtifact(artifact);
+      pipelineMap.set(artifact.getId(), pipelineName);
+    }
+
     this.clearBanner();
-    let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
-    let groupedRows = await this.getGroupedRowsFromArtifacts(request, artifacts);
+    let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts, pipelineMap);
+    let groupedRows = await this.getGroupedRowsFromArtifacts(request, artifacts, pipelineMap);
     // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
     this.setState({
       artifacts,
@@ -205,6 +214,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private async getFlattenedRowsFromArtifacts(
     request: ListRequest,
     artifacts: Artifact[],
+    artifactIdToPipelineName: Map<number, string>
   ): Promise<Row[]> {
     try {
       const artifactsWithCreationTimes = await Promise.all(
@@ -229,11 +239,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
           return {
             id: `${artifact.getId()}`,
             otherFields: [
-              getResourcePropertyViaFallBack(
-                artifact,
-                ARTIFACT_PROPERTY_REPOS,
-                PIPELINE_WORKSPACE_FIELDS,
-              ) || '[unknown]',
+              artifactIdToPipelineName.get(artifact.getId()) || "[unknown]",
               getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS) ||
                 '[unknown]',
               artifact.getId(),
@@ -263,12 +269,14 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
    * @param artifacts
+   * @param artifactIdToPipelineName
    */
   private async getGroupedRowsFromArtifacts(
     request: ListRequest,
     artifacts: Artifact[],
+    artifactIdToPipelineName: Map<number, string>
   ): Promise<CollapsedAndExpandedRows> {
-    const flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
+    const flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts, artifactIdToPipelineName);
     return groupRows(flattenedRows);
   }
 
