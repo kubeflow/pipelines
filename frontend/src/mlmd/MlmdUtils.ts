@@ -38,10 +38,14 @@ import {
   GetArtifactsByIDResponse,
   GetArtifactTypesRequest,
   GetArtifactTypesResponse,
-  GetContextByTypeAndNameRequest, GetEventsByArtifactIDsRequest, GetEventsByArtifactIDsResponse,
+  GetContextByTypeAndNameRequest,
+  GetEventsByArtifactIDsRequest,
+  GetEventsByArtifactIDsResponse,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  GetExecutionsByContextRequest, GetExecutionsByIDRequest, GetExecutionsByIDResponse,
+  GetExecutionsByContextRequest,
+  GetExecutionsByIDRequest,
+  GetExecutionsByIDResponse,
 } from 'src/third_party/mlmd';
 import {
   GetArtifactsByContextRequest,
@@ -370,7 +374,6 @@ export async function GetEventsByArtifactIDs(artifactIds: number[]): Promise<Eve
 }
 
 export async function GetExecutionsByIDs(executionIds: number[]): Promise<Execution[]> {
-  console.log("getExecutions", executionIds);
   const request = new GetExecutionsByIDRequest();
   request.setExecutionIdsList(executionIds);
 

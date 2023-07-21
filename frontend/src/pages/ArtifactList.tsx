@@ -47,7 +47,7 @@ import {
   serviceErrorToString,
 } from 'src/lib/Utils';
 import { Page } from 'src/pages/Page';
-import {getPipelineNameByArtifact} from "../mlmd/Utils";
+import { getPipelineNameByArtifact } from '../mlmd/Utils';
 
 interface ArtifactListProps {
   isGroupView: boolean;
@@ -214,7 +214,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private async getFlattenedRowsFromArtifacts(
     request: ListRequest,
     artifacts: Artifact[],
-    artifactIdToPipelineName: Map<number, string>
+    artifactIdToPipelineName: Map<number, string>,
   ): Promise<Row[]> {
     try {
       const artifactsWithCreationTimes = await Promise.all(
@@ -239,7 +239,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
           return {
             id: `${artifact.getId()}`,
             otherFields: [
-              artifactIdToPipelineName.get(artifact.getId()) || "[unknown]",
+              artifactIdToPipelineName.get(artifact.getId()) || '[unknown]',
               getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS) ||
                 '[unknown]',
               artifact.getId(),
@@ -274,9 +274,13 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private async getGroupedRowsFromArtifacts(
     request: ListRequest,
     artifacts: Artifact[],
-    artifactIdToPipelineName: Map<number, string>
+    artifactIdToPipelineName: Map<number, string>,
   ): Promise<CollapsedAndExpandedRows> {
-    const flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts, artifactIdToPipelineName);
+    const flattenedRows = await this.getFlattenedRowsFromArtifacts(
+      request,
+      artifacts,
+      artifactIdToPipelineName,
+    );
     return groupRows(flattenedRows);
   }
 
