@@ -252,12 +252,7 @@ export async function getContextByExecution(
   return result[0];
 }
 
-export async function getContextsByExecution(execution: Execution): Promise<Context[]> {
-  const executionId = execution.getId();
-  if (!executionId) {
-    throw new Error('Execution must have an ID');
-  }
-
+export async function getContextsByExecutionID(executionId: number): Promise<Context[]> {
   const request = new GetContextsByExecutionRequest().setExecutionId(executionId);
   let response: GetContextsByExecutionResponse;
   try {
@@ -267,6 +262,15 @@ export async function getContextsByExecution(execution: Execution): Promise<Cont
     throw err;
   }
   return response.getContextsList();
+}
+
+export async function getContextsByExecution(execution: Execution): Promise<Context[]> {
+  const executionId = execution.getId();
+  if (!executionId) {
+    throw new Error('Execution must have an ID');
+  }
+
+  return await getContextsByExecutionID(executionId);
 }
 
 async function getContextType(contextTypeName: string): Promise<ContextType | undefined> {

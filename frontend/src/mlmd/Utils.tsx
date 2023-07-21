@@ -27,9 +27,8 @@ import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import {
   ArtifactHelpers,
   ExecutionHelpers,
-  getContextsByExecution,
+  getContextsByExecutionID,
   GetEventsByArtifactIDs,
-  GetExecutionsByIDs,
 } from './MlmdUtils';
 
 const ARTIFACT_FIELD_REPOS = [ArtifactProperties, ArtifactCustomProperties];
@@ -58,11 +57,7 @@ export async function getPipelineNameByArtifact(res: Artifact): Promise<string> 
   if (events.length === 0) return '[unknown]';
 
   const executionId = events[0].getExecutionId();
-  const executions = await GetExecutionsByIDs([executionId]);
-  if (executions.length === 0) return '[unknown]';
-
-  const execution = executions[0];
-  const contexts = await getContextsByExecution(execution);
+  const contexts = await getContextsByExecutionID(executionId);
   if (contexts.length === 0) return '[unknown]';
 
   return contexts[0].getName();
