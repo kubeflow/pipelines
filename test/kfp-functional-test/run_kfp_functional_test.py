@@ -18,8 +18,8 @@ import random
 import string
 
 import constants
-from kfp.deprecated import dsl
-import kfp.deprecated as kfp
+from kfp.v2 import dsl
+import kfp.v2 as kfp
 
 
 def echo_op():
