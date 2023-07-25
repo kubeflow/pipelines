@@ -22,8 +22,8 @@ from typing import Optional
 
 import google.auth
 import google.auth.transport.requests
+from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.utils import execution_context
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
@@ -334,4 +334,4 @@ def bigquery_query_job(
     bq_table_artifact = BQTable.create(
         artifact_name, projectId, datasetId, tableId
     )
-    artifact_util.update_output_artifacts(executor_input, [bq_table_artifact])
+    artifact_utils.update_output_artifacts(executor_input, [bq_table_artifact])
