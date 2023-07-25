@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Utilities for working with artifacts."""
+
 import json
 import os
 
@@ -21,7 +23,7 @@ def update_output_artifact(
     target_artifact_name: str,
     uri: str,
     metadata: dict = {},
-):
+) -> None:
   """Updates the output artifact with the new uri and metadata."""
   executor_input_json = json.loads(executor_input)
   executor_output = {'artifacts': {}}
@@ -47,7 +49,10 @@ def update_output_artifact(
 
 
 # Writes a list of Artifacts to the executor output file.
-def update_output_artifacts(executor_input: str, artifacts: list):
+def update_output_artifacts(
+    executor_input: str,
+    artifacts: list,
+) -> None:
   """Updates a list of Artifacts to the executor output file."""
   executor_input_json = json.loads(executor_input)
   executor_output = {'artifacts': {}}
