@@ -29,6 +29,7 @@ from kfp.dsl import Metrics
 def model_evaluation_import(
     model: Input[VertexModel],
     gcp_resources: dsl.OutputPath(str),
+    evaluation_resource_name: dsl.OutputPath(str),
     metrics: Optional[Input[Metrics]] = None,
     problem_type: Optional[str] = None,
     classification_metrics: Optional[Input[ClassificationMetrics]] = None,
@@ -181,5 +182,7 @@ def model_evaluation_import(
           model.metadata["resourceName"],
           "--gcp_resources",
           gcp_resources,
+          "--evaluation_resource_name",
+          evaluation_resource_name,
       ],
   )
