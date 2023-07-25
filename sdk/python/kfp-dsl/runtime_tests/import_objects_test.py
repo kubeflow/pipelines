@@ -1,6 +1,4 @@
-#!/bin/bash -ex
-#
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,18 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+class TestImportObjects:
 
-
-# The scripts creates the Kubeflow Pipelines python SDK package.
-#
-# Usage:
-#   ./build.sh [output_file]
-
-
-target_archive_file=$1
-
-pushd "$(dirname "$0")"
-dist_dir=$(mktemp -d)
-python3 setup.py sdist --format=gztar --dist-dir "$dist_dir"
-cp "$dist_dir"/*.tar.gz "$target_archive_file"
-popd
+    def test(self):
+        # from kfp.dsl import * only allowed at module level, so emulate behavior
+        from kfp import dsl
+        for obj_name in dir(dsl):
+            if not obj_name.startswith('_'):
+                getattr(dsl, obj_name)
