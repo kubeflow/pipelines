@@ -129,13 +129,20 @@ parser.add_argument(
     required=True,
     default=argparse.SUPPRESS,
 )
+parser.add_argument(
+    '--evaluation_resource_name',
+    dest='evaluation_resource_name',
+    type=_make_parent_dirs_and_return_path,
+    required=True,
+    default=argparse.SUPPRESS,
+)
 
 
 def main(argv):
   """Calls ModelService.ImportModelEvaluation."""
   parsed_args, _ = parser.parse_known_args(argv)
 
-  if parsed_args.model_name.startswith('publishers'):
+  if 'publishers/google' in parsed_args.model_name:
     return
 
   _, project_id, _, location, _, model_id = parsed_args.model_name.split('/')
@@ -274,6 +281,10 @@ def main(argv):
       model_evaluation=model_evaluation,
   )
   model_evaluation_name = import_model_evaluation_response.name
+
+  # Write the model evaluation resource to evaluation_resource_name output.
+  with open(parsed_args.evaluation_resource_name, 'w') as f:
+    f.write(model_evaluation_name)
 
   resources = GcpResources()
   # Write the model evaluation resource to GcpResources output.
