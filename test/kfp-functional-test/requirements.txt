@@ -8,7 +8,7 @@ attrs==20.3.0
     # via jsonschema
 cachetools==4.1.1
     # via google-auth
-certifi==2020.12.5
+certifi==2023.7.22
     # via
     #   kfp-server-api
     #   kubernetes
