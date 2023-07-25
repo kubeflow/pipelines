@@ -19,6 +19,7 @@ import textwrap
 import unittest
 
 from kfp import components
+from kfp.components import load_yaml_utilities
 from kfp.dsl import structures
 
 SAMPLE_YAML = textwrap.dedent("""\
@@ -122,6 +123,48 @@ class LoadYamlTests(unittest.TestCase):
         self.assertEqual(
             component.component_spec.implementation.container.image,
             'python:3.7')
+
+
+class TestLoadDocumentsFromYAML(unittest.TestCase):
+
+    def test_no_documents(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Expected one or two YAML documents in the IR YAML file\. Got\: 0\.'
+        ):
+            load_yaml_utilities._load_documents_from_yaml('')
+
+    def test_one_document(self):
+        doc1, doc2 = load_yaml_utilities._load_documents_from_yaml(
+            textwrap.dedent("""\
+            key1: value1
+            """))
+        self.assertEqual(doc1, {'key1': 'value1'})
+        self.assertEqual(doc2, {})
+
+    def test_two_documents(self):
+        doc1, doc2 = load_yaml_utilities._load_documents_from_yaml(
+            textwrap.dedent("""\
+            key1: value1
+            ---
+            key2: value2
+            """))
+        self.assertEqual(doc1, {'key1': 'value1'})
+        self.assertEqual(doc2, {'key2': 'value2'})
+
+    def test_three_documents(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Expected one or two YAML documents in the IR YAML file\. Got\: 3\.'
+        ):
+            load_yaml_utilities._load_documents_from_yaml(
+                textwrap.dedent("""\
+                key3: value3
+                ---
+                key3: value3
+                ---
+                key3: value3
+                """))
 
 
 if __name__ == '__main__':

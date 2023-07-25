@@ -19,7 +19,6 @@ from typing import List
 from kfp.dsl import pipeline_task
 from kfp.dsl import structures
 from kfp.dsl.types import type_utils
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class BaseComponent(abc.ABC):
@@ -103,13 +102,13 @@ class BaseComponent(abc.ABC):
         )
 
     @property
-    def pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
+    def pipeline_spec(self) -> 'pipeline_spec_pb2.PipelineSpec':
         """Returns the pipeline spec of the component."""
         with BlockPipelineTaskRegistration():
             return self.component_spec.to_pipeline_spec()
 
     @property
-    def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
+    def platform_spec(self) -> 'pipeline_spec_pb2.PlatformSpec':
         """Returns the PlatformSpec of the component.
 
         Useful when the component is a GraphComponent, else will be

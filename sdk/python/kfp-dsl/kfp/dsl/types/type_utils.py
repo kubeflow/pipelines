@@ -19,12 +19,11 @@ import json
 from typing import Any, Callable, Dict, Optional, Type, Union
 import warnings
 
-import kfp
+from kfp import dsl
 from kfp.dsl import structures
 from kfp.dsl import task_final_status
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 DEFAULT_ARTIFACT_SCHEMA_VERSION = '0.0.1'
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
@@ -44,24 +43,32 @@ _ARTIFACT_CLASSES_MAPPING = {
 _GOOGLE_TYPES_PATTERN = r'^google.[A-Za-z]+$'
 _GOOGLE_TYPES_VERSION = DEFAULT_ARTIFACT_SCHEMA_VERSION
 
+
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Parameters.
 # The values are the corresponding IR parameter primitive types.
-_PARAMETER_TYPES_MAPPING = {
-    'integer': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
-    'int': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
-    'double': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
-    'float': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
-    'string': pipeline_spec_pb2.ParameterType.STRING,
-    'str': pipeline_spec_pb2.ParameterType.STRING,
-    'text': pipeline_spec_pb2.ParameterType.STRING,
-    'bool': pipeline_spec_pb2.ParameterType.BOOLEAN,
-    'boolean': pipeline_spec_pb2.ParameterType.BOOLEAN,
-    'dict': pipeline_spec_pb2.ParameterType.STRUCT,
-    'list': pipeline_spec_pb2.ParameterType.LIST,
-    'jsonobject': pipeline_spec_pb2.ParameterType.STRUCT,
-    'jsonarray': pipeline_spec_pb2.ParameterType.LIST,
-}
+def get_parameter_types_mapping():
+
+    try:
+        from kfp.pipeline_spec import pipeline_spec_pb2
+    except ImportError as e:
+        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
+    return {
+        'integer': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+        'int': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+        'double': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+        'float': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+        'string': pipeline_spec_pb2.ParameterType.STRING,
+        'str': pipeline_spec_pb2.ParameterType.STRING,
+        'text': pipeline_spec_pb2.ParameterType.STRING,
+        'bool': pipeline_spec_pb2.ParameterType.BOOLEAN,
+        'boolean': pipeline_spec_pb2.ParameterType.BOOLEAN,
+        'dict': pipeline_spec_pb2.ParameterType.STRUCT,
+        'list': pipeline_spec_pb2.ParameterType.LIST,
+        'jsonobject': pipeline_spec_pb2.ParameterType.STRUCT,
+        'jsonarray': pipeline_spec_pb2.ParameterType.LIST,
+    }
 
 
 def bool_cast_fn(default: Union[str, bool]) -> bool:
@@ -109,18 +116,6 @@ def deserialize_v1_component_yaml_default(type_: str, default: Any) -> Any:
     return default
 
 
-# Mapping primitive types to their IR message field names.
-# This is used in constructing condition strings.
-_PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
-    pipeline_spec_pb2.ParameterType.NUMBER_INTEGER: 'number_value',
-    pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE: 'number_value',
-    pipeline_spec_pb2.ParameterType.STRING: 'string_value',
-    pipeline_spec_pb2.ParameterType.BOOLEAN: 'bool_value',
-    pipeline_spec_pb2.ParameterType.STRUCT: 'struct_value',
-    pipeline_spec_pb2.ParameterType.LIST: 'list_value',
-}
-
-
 def is_task_final_status_type(type_name: Optional[Union[str, dict]]) -> bool:
     """Check if a ComponentSpec I/O type is PipelineTaskFinalStatus.
 
@@ -150,15 +145,21 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     else:
         return False
 
-    return type_name.lower(
-    ) in _PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
+    return type_name.lower() in get_parameter_types_mapping(
+    ) or is_task_final_status_type(type_name)
 
 
 def bundled_artifact_to_artifact_proto(
-        bundled_artifact_str: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
+        bundled_artifact_str: str) -> 'pipeline_spec_pb2.ArtifactTypeSchema':
     """Gets the IR ArtifactTypeSchema proto for a bundled artifact in form
     `<namespace>.<Name>@x.x.x` (e.g., system.Artifact@0.0.1)."""
     bundled_artifact_str, schema_version = bundled_artifact_str.split('@')
+
+    try:
+        from kfp.pipeline_spec import pipeline_spec_pb2
+    except ImportError as e:
+        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
     return pipeline_spec_pb2.ArtifactTypeSchema(
         schema_title=bundled_artifact_str,
         schema_version=schema_version,
@@ -167,7 +168,7 @@ def bundled_artifact_to_artifact_proto(
 
 def get_parameter_type(
     param_type: Optional[Union[Type, str, dict]]
-) -> pipeline_spec_pb2.ParameterType:
+) -> 'pipeline_spec_pb2.ParameterType':
     """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
     Args:
@@ -189,12 +190,17 @@ def get_parameter_type(
         type_name = list(param_type.keys())[0]
     else:
         type_name = type_annotations.get_short_type_name(str(param_type))
-    return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
+    return get_parameter_types_mapping().get(type_name.lower())
 
 
 def get_parameter_type_name(
         param_type: Optional[Union[Type, str, dict]]) -> str:
     """Gets the parameter type name."""
+    try:
+        from kfp.pipeline_spec import pipeline_spec_pb2
+    except ImportError as e:
+        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
     return pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
         get_parameter_type(param_type))
 
@@ -213,6 +219,21 @@ def get_parameter_type_field_name(type_name: Optional[str]) -> Optional[str]:
     Raises:
       AttributeError: if type_name is not a string type.
     """
+    try:
+        from kfp.pipeline_spec import pipeline_spec_pb2
+    except ImportError as e:
+        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
+    # Mapping primitive types to their IR message field names.
+    # This is used in constructing condition strings.
+    _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
+        pipeline_spec_pb2.ParameterType.NUMBER_INTEGER: 'number_value',
+        pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE: 'number_value',
+        pipeline_spec_pb2.ParameterType.STRING: 'string_value',
+        pipeline_spec_pb2.ParameterType.BOOLEAN: 'bool_value',
+        pipeline_spec_pb2.ParameterType.STRUCT: 'struct_value',
+        pipeline_spec_pb2.ParameterType.LIST: 'list_value',
+    }
     return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
         get_parameter_type(type_name))
 
@@ -251,6 +272,7 @@ def verify_type_compatibility(
     expected_spec: Union[structures.InputSpec, structures.OutputSpec],
     error_message_prefix: str,
     checks_input: bool = True,
+    raise_on_error: bool = True,
 ) -> bool:
     """Verifies the given argument type is compatible with the expected type.
 
@@ -259,12 +281,13 @@ def verify_type_compatibility(
         expected_spec: The InputSpec or OutputSpec that describes the expected type of given_value.
         error_message_prefix: The prefix for the error message.
         checks_input: True if checks an argument (given_value) against a component/pipeline input type (expected_spec). False if checks a component output (argument_value) against the pipeline output type (expected_spec).
+        raise_on_error: Whether to raise on type compatibility error. Should be passed kfp.TYPE_CHECK.
 
     Returns:
         True if types are compatible, and False if otherwise.
 
     Raises:
-        InconsistentTypeException if types are incompatible and TYPE_CHECK==True.
+        InconsistentTypeException if raise_on_error=True.
     """
     # extract and normalize types
     expected_type = expected_spec.type
@@ -307,7 +330,7 @@ def verify_type_compatibility(
         else:
             error_message_suffix = f'Output of type {given_type!r} cannot be surfaced as pipeline output type {expected_type!r}'
         error_text = error_message_prefix + error_message_suffix
-        if kfp.TYPE_CHECK:
+        if raise_on_error:
             raise InconsistentTypeException(error_text)
         else:
             warnings.warn(InconsistentTypeWarning(error_text))
@@ -424,11 +447,21 @@ class TypeCheckManager:
         Returns:
             TypeCheckManager: Returns itself.
         """
+        try:
+            import kfp
+        except ImportError as e:
+            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
         self._prev = kfp.TYPE_CHECK
         kfp.TYPE_CHECK = self._enable
         return self
 
     def __exit__(self, *unused_args) -> None:
+
+        try:
+            import kfp
+        except ImportError as e:
+            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
         """Restore type check mode to its previous state."""
         kfp.TYPE_CHECK = self._prev
 

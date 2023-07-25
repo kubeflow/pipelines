@@ -18,22 +18,18 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 import uuid
 
-from google.protobuf import json_format
-import kfp
+from kfp import dsl
 from kfp.dsl import placeholders
 from kfp.dsl import utils
-from kfp.dsl import v1_components
 from kfp.dsl import v1_structures
 from kfp.dsl.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
-from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 
 @dataclasses.dataclass
@@ -370,7 +366,7 @@ class RetryPolicy:
     backoff_factor: Optional[float] = None
     backoff_max_duration: Optional[str] = None
 
-    def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy:
+    def to_proto(self) -> 'pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy':
         # include defaults so that IR is more reflective of runtime behavior
         max_retry_count = self.max_retry_count or 0
         backoff_duration = self.backoff_duration or '0s'
@@ -380,6 +376,12 @@ class RetryPolicy:
         # include max duration seconds cap so that IR is more reflective of runtime behavior
         backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
         backoff_max_duration_seconds = f'{min(convert_duration_to_seconds(backoff_max_duration), 3600)}s'
+
+        try:
+            from google.protobuf import json_format
+            from kfp.pipeline_spec import pipeline_spec_pb2
+        except ImportError as e:
+            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
 
         return json_format.ParseDict(
             {
@@ -480,6 +482,13 @@ class Implementation:
                 executor['container']) if executor else None
             return Implementation(container=container_spec)
         else:
+
+            try:
+                from google.protobuf import json_format
+                from kfp.pipeline_spec import pipeline_spec_pb2
+            except ImportError as e:
+                raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
             pipeline_spec = json_format.ParseDict(
                 pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec())
             return Implementation(graph=pipeline_spec)
@@ -551,6 +560,14 @@ def check_placeholder_references_valid_io_name(
         raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
 
+def _import_and_make_platform_spec() -> 'pipeline_spec_pb2.PlatformSpec':
+    try:
+        from kfp.pipeline_spec import pipeline_spec_pb2
+    except ImportError as e:
+        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+    return pipeline_spec_pb2.PlatformSpec()
+
+
 @dataclasses.dataclass
 class ComponentSpec:
     """The definition of a component.
@@ -568,8 +585,9 @@ class ComponentSpec:
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
-    platform_spec: pipeline_spec_pb2.PlatformSpec = dataclasses.field(
-        default_factory=pipeline_spec_pb2.PlatformSpec)
+    platform_spec: Optional[
+        'pipeline_spec_pb2.PlatformSpec'] = dataclasses.field(
+            default_factory=_import_and_make_platform_spec)
 
     def __post_init__(self) -> None:
         self._transform_name()
@@ -652,6 +670,13 @@ class ComponentSpec:
         })
 
         inputs = {}
+
+        try:
+            from kfp.pipeline_spec import pipeline_spec_pb2
+        except ImportError as e:
+            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+        parameter_types_mapping = type_utils.get_parameter_types_mapping()
+
         for spec in component_dict.get('inputs', []):
             type_ = spec.get('type')
             optional = spec.get('optional', False) or 'default' in spec
@@ -667,9 +692,9 @@ class ComponentSpec:
                     type=type_, optional=True)
                 continue
 
-            elif isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+            elif isinstance(type_,
+                            str) and type_.lower() in parameter_types_mapping:
+                type_enum = parameter_types_mapping[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
@@ -720,9 +745,9 @@ class ComponentSpec:
             if isinstance(type_, str):
                 type_ = type_utils.get_canonical_name_for_outer_generic(type_)
 
-            if isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+            if isinstance(type_,
+                          str) and type_.lower() in parameter_types_mapping:
+                type_enum = parameter_types_mapping[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
@@ -824,6 +849,12 @@ class ComponentSpec:
             implementation.container.command or
             []) if implementation.container else None
 
+        try:
+            from google.protobuf import json_format
+            from kfp.pipeline_spec import pipeline_spec_pb2
+        except ImportError as e:
+            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
         platform_spec = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(platform_spec_dict, platform_spec)
 
@@ -836,53 +867,6 @@ class ComponentSpec:
             platform_spec=platform_spec,
         )
 
-    @classmethod
-    def from_yaml_documents(cls, component_yaml: str) -> 'ComponentSpec':
-        """Loads V1 or V2 component YAML into a ComponentSpec.
-
-        Args:
-            component_yaml: PipelineSpec and optionally PlatformSpec YAML documents as a single string.
-
-        Returns:
-            ComponentSpec: The ComponentSpec object.
-        """
-
-        def extract_description(component_yaml: str) -> Union[str, None]:
-            heading = '# Description: '
-            multi_line_description_prefix = '#             '
-            index_of_heading = 2
-            if heading in component_yaml:
-                description = component_yaml.splitlines()[index_of_heading]
-
-                # Multi line
-                comments = component_yaml.splitlines()
-                index = index_of_heading + 1
-                while comments[index][:len(multi_line_description_prefix
-                                          )] == multi_line_description_prefix:
-                    description += '\n' + comments[index][
-                        len(multi_line_description_prefix) + 1:]
-                    index += 1
-
-                return description[len(heading):]
-            else:
-                return None
-
-        pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
-            component_yaml)
-
-        is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
-        if is_v1:
-            v1_component = v1_components._load_component_spec_from_component_text(
-                component_yaml)
-            return cls.from_v1_component_spec(v1_component)
-        else:
-            component_spec = ComponentSpec.from_ir_dicts(
-                pipeline_spec_dict, platform_spec_dict)
-            if not component_spec.description:
-                component_spec.description = extract_description(
-                    component_yaml=component_yaml)
-            return component_spec
-
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into IR YAML file.
 
@@ -892,6 +876,12 @@ class ComponentSpec:
         from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec = self.to_pipeline_spec()
+
+        try:
+            from kfp.pipeline_spec import pipeline_spec_pb2
+        except ImportError as e:
+            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
         builder.write_pipeline_spec_to_file(
             pipeline_spec,
             None,
@@ -899,7 +889,7 @@ class ComponentSpec:
             output_file,
         )
 
-    def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
+    def to_pipeline_spec(self) -> 'pipeline_spec_pb2.PipelineSpec':
         """Creates a pipeline instance and constructs the pipeline spec for a
         single component.
 
@@ -949,6 +939,12 @@ class ComponentSpec:
                     task_name=task.name)
 
         utils.validate_pipeline_name(pipeline_name)
+
+        try:
+            import kfp
+            from kfp.pipeline_spec import pipeline_spec_pb2
+        except ImportError as e:
+            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         pipeline_spec.pipeline_info.name = pipeline_name
@@ -1052,24 +1048,3 @@ def convert_duration_to_seconds(duration: str) -> int:
         raise ValueError(
             f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
     return int(duration[:-1]) * seconds_per_unit[duration[-1]]
-
-
-def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
-    """Loads up to two YAML documents from a YAML string.
-
-    First document must always be present. If second document is
-    present, it is returned as a dict, else an empty dict.
-    """
-    documents = list(yaml.safe_load_all(component_yaml))
-    num_docs = len(documents)
-    if num_docs == 1:
-        pipeline_spec_dict = documents[0]
-        platform_spec_dict = {}
-    elif num_docs == 2:
-        pipeline_spec_dict = documents[0]
-        platform_spec_dict = documents[1]
-    else:
-        raise ValueError(
-            f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
-        )
-    return pipeline_spec_dict, platform_spec_dict

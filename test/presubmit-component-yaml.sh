@@ -15,10 +15,8 @@
 
 source_root=$(pwd)
 
-pushd $source_root/sdk/python
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-python3 -m pip install .
+source sdk/python/install_from_source.sh
 
 # Test loading all component.yaml definitions
 "$source_root/components/test_load_all_components.sh"

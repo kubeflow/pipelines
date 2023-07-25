@@ -1748,6 +1748,7 @@ def _validate_dag_output_types(
             output_spec,
             error_message_prefix,
             checks_input=False,
+            raise_on_error=kfp.TYPE_CHECK,
         )
 
 
