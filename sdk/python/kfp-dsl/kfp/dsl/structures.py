@@ -675,7 +675,6 @@ class ComponentSpec:
             from kfp.pipeline_spec import pipeline_spec_pb2
         except ImportError as e:
             raise ImportError(dsl._kfp_dsl_import_error_msg) from e
-        parameter_types_mapping = type_utils.get_parameter_types_mapping()
 
         for spec in component_dict.get('inputs', []):
             type_ = spec.get('type')
@@ -692,9 +691,9 @@ class ComponentSpec:
                     type=type_, optional=True)
                 continue
 
-            elif isinstance(type_,
-                            str) and type_.lower() in parameter_types_mapping:
-                type_enum = parameter_types_mapping[type_.lower()]
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
@@ -745,9 +744,9 @@ class ComponentSpec:
             if isinstance(type_, str):
                 type_ = type_utils.get_canonical_name_for_outer_generic(type_)
 
-            if isinstance(type_,
-                          str) and type_.lower() in parameter_types_mapping:
-                type_enum = parameter_types_mapping[type_.lower()]
+            if isinstance(type_, str) and type_.lower(
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
