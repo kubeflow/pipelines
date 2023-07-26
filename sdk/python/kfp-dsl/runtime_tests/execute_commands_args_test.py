@@ -14,6 +14,7 @@
 import dataclasses
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -23,7 +24,6 @@ from absl.testing import parameterized
 import yaml
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
-TMP_DIR = tempfile.mkdtemp()
 
 
 @dataclasses.dataclass
@@ -107,8 +107,13 @@ def run_commands_and_args(
             config.executor_name]['container']
 
         command_and_args = container['command'] + container['args']
+        command_and_args = [
+            re.sub(r"'(kfp(-dsl)?)==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'",
+                   'kfp-dsl', cmd) for cmd in command_and_args
+        ]
+
         executor_input_json = json.dumps(config.executor_input).replace(
-            '/gcs/', TMP_DIR)
+            '/gcs/', temp_dir)
         command_and_args = [
             v.replace('{{$}}', executor_input_json) for v in command_and_args
         ]

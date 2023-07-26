@@ -12,34 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import re
-
 import setuptools
-
-
-def find_version(*file_path_parts: str) -> str:
-    """Get version from a file that defines a __version__ variable."""
-
-    file_path = os.path.join(os.path.dirname(__file__), *file_path_parts)
-    with open(file_path, 'r') as f:
-        version_file_text = f.read()
-
-    version_match = re.search(
-        r"^__version__ = ['\"]([^'\"]*)['\"]",
-        version_file_text,
-        re.M,
-    )
-    if version_match:
-        return version_match.group(1)
-
-    raise RuntimeError(f'Unable to find version string in file: {file_path}.')
-
 
 setuptools.setup(
     name='kfp-dsl',
-    version=find_version(
-        os.path.dirname(os.path.dirname(__file__)), 'kfp', '__init__.py'),
+    version='2.1.0',
     description='A KFP SDK subpackage containing the DSL and runtime code.',
     author='google',
     author_email='kubeflow-pipelines@google.com',

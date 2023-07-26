@@ -17,7 +17,8 @@ source_root=$(pwd)
 
 pip install --upgrade pip
 pip install -e $source_root/sdk/python/kfp-dsl
-python3 -m pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
-python3 -m pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
+pip install pyyaml
+pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
+pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 
 pytest sdk/python/kfp-dsl
