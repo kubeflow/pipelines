@@ -1,4 +1,5 @@
-# Copyright 2020-2022 The Kubeflow Authors
+#!/bin/bash -ex
+# Copyright 2023 Kubeflow Pipelines contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
+source_root=$(pwd)
 
-warnings.warn(
-    (f'The module `{__name__}` is deprecated and will be removed in a future'
-     'version. Please import directly from the `kfp` namespace, '
-     'instead of `kfp.v2`.'),
-    category=DeprecationWarning,
-    stacklevel=2)
+pip install --upgrade pip
+source $source_root/sdk/python/install_from_source.sh
+pip install components/google-cloud
+pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 
-from kfp import compiler  # noqa: keep unused import
-from kfp import components  # noqa: keep unused import
-from kfp import dsl  # noqa: keep unused import
+pytest test/gcpc-tests/run_all_gcpc_modules.py
