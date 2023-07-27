@@ -14,3 +14,4 @@
 
 # Common test params
 RUN_TIMEOUT_SECONDS = 1800
+DEFAULT_USER_NAMESPACE = 'kubeflow-user-example-com'
