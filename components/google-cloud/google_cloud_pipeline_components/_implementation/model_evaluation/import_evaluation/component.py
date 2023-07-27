@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from typing import Optional
+from typing import List, Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
@@ -40,10 +40,10 @@ def model_evaluation_import(
     summarization_metrics: Optional[Input[Metrics]] = None,
     explanation: Optional[Input[Metrics]] = None,
     feature_attributions: Optional[Input[Metrics]] = None,
-    display_name: Optional[str] = "",
-    dataset_path: Optional[str] = "",
-    dataset_paths: Optional[list] = [],
-    dataset_type: Optional[str] = "",
+    display_name: str = "",
+    dataset_path: str = "",
+    dataset_paths: List[str] = [],
+    dataset_type: str = "",
 ):
   # fmt: off
   """Imports a model evaluation artifact to an existing Vertex model with

@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import Any, List
+
 from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp.dsl import Artifact
@@ -30,12 +33,12 @@ def detect_data_bias(
     data_bias_metrics: Output[Artifact],
     project: str,
     target_field_name: str,
-    bias_configs: list,
+    bias_configs: List[Any],
     location: str = 'us-central1',
     dataset_format: str = 'jsonl',
-    dataset_storage_source_uris: list = [],
+    dataset_storage_source_uris: List[str] = [],
     dataset: Input[VertexDataset] = None,
-    columns: list = [],
+    columns: List[str] = [],
     encryption_spec_key_name: str = '',
 ):
   # fmt: off

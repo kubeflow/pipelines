@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Text Generation LLM Evaluation component."""
+
+from typing import List
 
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
@@ -39,7 +40,7 @@ def model_evaluation_text_generation(
     service_account: str = '',
     enable_web_access: bool = True,
     network: str = '',
-    reserved_ip_ranges: list = [],
+    reserved_ip_ranges: List[str] = [],
     encryption_spec_key_name: str = '',
 ):
   """Computes evaluation metrics of a text generation model.

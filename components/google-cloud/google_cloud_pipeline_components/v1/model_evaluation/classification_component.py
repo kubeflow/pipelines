@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, List
+
 from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
@@ -32,14 +34,14 @@ def model_evaluation_classification(
     predictions_gcs_source: dsl.Input[dsl.Artifact] = None,
     predictions_bigquery_source: dsl.Input[BQTable] = None,
     ground_truth_format: str = 'jsonl',
-    ground_truth_gcs_source: list = [],
+    ground_truth_gcs_source: List[str] = [],
     ground_truth_bigquery_source: str = '',
     classification_type: str = 'multiclass',
-    class_labels: list = [],
+    class_labels: List[str] = [],
     prediction_score_column: str = 'prediction.scores',
     prediction_label_column: str = 'prediction.classes',
-    slicing_specs: list = [],
-    positive_classes: list = [],
+    slicing_specs: List[Any] = [],
+    positive_classes: List[str] = [],
     dataflow_service_account: str = '',
     dataflow_disk_size_gb: int = 50,
     dataflow_machine_type: str = 'n1-standard-4',

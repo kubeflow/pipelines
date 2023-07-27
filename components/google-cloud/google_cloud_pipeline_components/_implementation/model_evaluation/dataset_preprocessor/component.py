@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
 from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp.dsl import container_component
@@ -37,8 +39,8 @@ def dataset_preprocessor_error_analysis(
     test_dataset_annotation_set_name: str = '',
     training_dataset: Input[VertexDataset] = None,
     training_dataset_annotation_set_name: str = '',
-    test_dataset_storage_source_uris: list = [],
-    training_dataset_storage_source_uris: list = [],
+    test_dataset_storage_source_uris: List[str] = [],
+    training_dataset_storage_source_uris: List[str] = [],
 ):
   # fmt: off
   """Preprocesses datasets for Vision Error Analysis pipelines.

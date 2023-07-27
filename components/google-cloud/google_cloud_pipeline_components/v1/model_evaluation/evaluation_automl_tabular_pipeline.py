@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import NamedTuple
+from typing import Any, List
+
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
@@ -31,7 +32,7 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
     target_field_name: str,
     batch_predict_instances_format: str,
     batch_predict_gcs_destination_output_uri: str,
-    batch_predict_gcs_source_uris: list = [],  # pylint: disable=g-bare-generic
+    batch_predict_gcs_source_uris: List[str] = [],  # pylint: disable=g-bare-generic
     batch_predict_bigquery_source_uri: str = '',
     batch_predict_predictions_format: str = 'jsonl',
     batch_predict_bigquery_destination_output_uri: str = '',
@@ -40,7 +41,7 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
     batch_predict_max_replica_count: int = 10,
     batch_predict_accelerator_type: str = '',
     batch_predict_accelerator_count: int = 0,
-    slicing_specs: list = [],  # pylint: disable=g-bare-generic
+    slicing_specs: List[Any] = [],  # pylint: disable=g-bare-generic
     dataflow_machine_type: str = 'n1-standard-4',
     dataflow_max_num_workers: int = 5,
     dataflow_disk_size_gb: int = 50,

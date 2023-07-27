@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ErrorAnalysisAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluatedAnnotationOp
@@ -36,8 +38,8 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
     test_dataset_annotation_set_name: str = '',
     training_dataset_resource_name: str = '',
     training_dataset_annotation_set_name: str = '',
-    test_dataset_storage_source_uris: list = [],
-    training_dataset_storage_source_uris: list = [],
+    test_dataset_storage_source_uris: List[str] = [],
+    training_dataset_storage_source_uris: List[str] = [],
     batch_predict_instances_format: str = 'jsonl',
     batch_predict_predictions_format: str = 'jsonl',
     batch_predict_machine_type: str = 'n1-standard-32',
