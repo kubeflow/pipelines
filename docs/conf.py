@@ -134,9 +134,9 @@ html_theme_options = {
         # need to use the sdk- prefix to avoid conflict with the BE's GitHub release tags
         {
             'version':
-                'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.1.0/',
+                'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.1.1/',
             'title':
-                '2.1.0',
+                '2.1.1',
             'aliases': ['stable'],
         },
         {

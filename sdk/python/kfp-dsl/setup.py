@@ -16,7 +16,7 @@ import setuptools
 
 setuptools.setup(
     name='kfp-dsl',
-    version='2.1.0',
+    version='2.1.1',
     description='A KFP SDK subpackage containing the DSL and runtime code.',
     author='google',
     author_email='kubeflow-pipelines@google.com',
