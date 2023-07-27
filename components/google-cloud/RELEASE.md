@@ -1,8 +1,5 @@
 ## Upcoming release
 
-## Release 2.1.1
-* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
-
 ## Release 2.1.0
 * Add AutoML tabular and forecasting components to `preview` namespace
 * Fix bug where `parent_model` parameter of `ModelUploadOp` ignored
