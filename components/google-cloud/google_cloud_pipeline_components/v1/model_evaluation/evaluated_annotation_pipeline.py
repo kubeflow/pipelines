@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluatedAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluationDatasetPreprocessorOp as DatasetPreprocessorOp
@@ -31,7 +33,7 @@ def evaluated_annotation_pipeline(
     batch_predict_gcs_destination_output_uri: str,
     test_dataset_resource_name: str = '',
     test_dataset_annotation_set_name: str = '',
-    test_dataset_storage_source_uris: list = [],
+    test_dataset_storage_source_uris: List[str] = [],
     batch_predict_instances_format: str = 'jsonl',
     batch_predict_predictions_format: str = 'jsonl',
     batch_predict_machine_type: str = 'n1-standard-32',
