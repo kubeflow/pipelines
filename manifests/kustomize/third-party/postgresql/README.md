@@ -3,7 +3,7 @@
 ```bash
 # In this folder of manifests/kustomize/third-party/postgresql
 rm -rf build
-mkdir buidl
+mkdir build
 kustomize build ./base -o build
 ```
 
