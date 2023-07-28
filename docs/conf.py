@@ -136,7 +136,7 @@ html_theme_options = {
             'version':
                 'https://kubeflow-pipelines.readthedocs.io/en/sdk-2.1.1/',
             'title':
-                '2.1.1',
+                '2.1.2',
             'aliases': ['stable'],
         },
         {
