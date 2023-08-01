@@ -38,7 +38,6 @@ def model_evaluation_text_generation(
     display_name: str = 'model-evaluation-text-generation',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
-    enable_web_access: bool = True,
     network: str = '',
     reserved_ip_ranges: List[str] = [],
     encryption_spec_key_name: str = '',
@@ -88,11 +87,6 @@ def model_evaluation_text_generation(
         unspecified, the Vertex AI Custom Code Service
         Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
         for the CustomJob's project.
-      enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
-        [interactive shell
-        access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
-        to training containers. If set to `true`, you can access interactive
-        shells at the URIs given by [CustomJob.web_access_uris][].
       network (Optional[str]): The full name of the Compute Engine network to
         which the job should be peered. For example,
         projects/12345/global/networks/myVPC. Format is of the form
@@ -139,7 +133,6 @@ def model_evaluation_text_generation(
           service_account=service_account,
           network=network,
           reserved_ip_ranges=reserved_ip_ranges,
-          enable_web_access=enable_web_access,
           encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
