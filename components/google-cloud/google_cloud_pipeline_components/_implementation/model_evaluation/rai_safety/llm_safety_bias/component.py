@@ -10,8 +10,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
 
-_IMAGE_URI = 'gcr.io/model-evaluation-dev/llm_eval:lakeyk-test'
-# TODO(b/293198435): Update to publicly released image.
+_IMAGE_URI = 'us-docker.pkg.dev/vertex-ai-restricted/llm-eval/llm-bias:v0.2'
 
 
 @container_component
@@ -25,7 +24,6 @@ def llm_safety_metrics_bias(
     display_name: str = 'llm_safety_bias_component',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
-    enable_web_access: bool = True,
     network: str = '',
     reserved_ip_ranges: Optional[List[str]] = None,
     encryption_spec_key_name: str = '',
@@ -52,11 +50,6 @@ def llm_safety_metrics_bias(
         unspecified, the Vertex AI Custom Code Service
         Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
         for the CustomJob's project.
-      enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
-        [interactive shell
-        access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
-        to training containers. If set to `true`, you can access interactive
-        shells at the URIs given by [CustomJob.web_access_uris][].
       network (Optional[str]): The full name of the Compute Engine network to
         which the job should be peered. For example,
         projects/12345/global/networks/myVPC. Format is of the form
@@ -96,7 +89,6 @@ def llm_safety_metrics_bias(
           service_account=service_account,
           network=network,
           reserved_ip_ranges=reserved_ip_ranges,
-          enable_web_access=enable_web_access,
           encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
