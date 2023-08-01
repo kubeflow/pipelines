@@ -279,12 +279,12 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
-	response = db.Model(&model.RunDetail{}).AddIndex("namespace_createatinsec", "Namespace", "CreatedAtInSec")
+	response = db.Model(&model.Run{}).AddIndex("namespace_createatinsec", "Namespace", "CreatedAtInSec")
 	if response.Error != nil {
 		glog.Fatalf("Failed to create index namespace_createatinsec on run_details. Error: %s", response.Error)
 	}
 
-	response = db.Model(&model.RunDetail{}).AddIndex("namespace_conditions_finishedatinsec", "Namespace", "Conditions", "FinishedAtInSec")
+	response = db.Model(&model.Run{}).AddIndex("namespace_conditions_finishedatinsec", "Namespace", "Conditions", "FinishedAtInSec")
 	if response.Error != nil {
 		glog.Fatalf("Failed to create index namespace_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
