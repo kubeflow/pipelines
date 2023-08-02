@@ -300,20 +300,41 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", response.Error)
 	}
 
-	response = db.Model(&model.RunMetric{}).
-		AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-	if ignoreAlreadyExistError(response.Error) != nil {
-		glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
-	}
-	response = db.Model(&model.PipelineVersion{}).
-		AddForeignKey("\"PipelineId\"", "pipelines(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-	if ignoreAlreadyExistError(response.Error) != nil {
-		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
-	}
-	response = db.Model(&model.Task{}).
-		AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-	if ignoreAlreadyExistError(response.Error) != nil {
-		glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
+	switch driverName {
+	case "pgx":
+		response = db.Model(&model.RunMetric{}).
+			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.PipelineVersion{}).
+			AddForeignKey("\"PipelineId\"", "pipelines(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.Task{}).
+			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
+		}
+	case "mysql":
+		response = db.Model(&model.RunMetric{}).
+			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.PipelineVersion{}).
+			AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.Task{}).
+			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
+		}
+	default:
+		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}
 
 	// Data backfill for pipeline_versions if this is the first time for
