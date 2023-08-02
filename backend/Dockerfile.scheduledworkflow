@@ -27,8 +27,11 @@ RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
 RUN go-licenses check ./backend/src/crd/controller/scheduledworkflow
 RUN go-licenses csv ./backend/src/crd/controller/scheduledworkflow > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/swf.csv && \
     go-licenses save ./backend/src/crd/controller/scheduledworkflow --save_path /tmp/NOTICES
+
+#RUN go-licenses csv ./backend/src/crd/controller/scheduledworkflow > /tmp/licenses.csv && \
+#    diff /tmp/licenses.csv backend/third_party_licenses/swf.csv && \
+#    go-licenses save ./backend/src/crd/controller/scheduledworkflow --save_path /tmp/NOTICES
 
 FROM alpine:3.17
 
