@@ -183,6 +183,11 @@ describe('deploy helloworld sample run', () => {
     );
   });
 
+  it('displays run description inputs correctly', async () => {
+    const descriptionValue = await getValueFromDetailsTable('Description');
+    assert.equal(descriptionValue, runDescription, 'run message is not shown correctly');
+  });
+
   it('displays run inputs correctly', async () => {
     const paramValue = await getValueFromDetailsTable('message');
     assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
