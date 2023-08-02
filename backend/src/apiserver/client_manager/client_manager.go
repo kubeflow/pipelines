@@ -402,6 +402,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}
+	glog.Infof("lingqinggan sqlConfig: %s\n", sqlConfig)
 
 	var db *sql.DB
 	var err error
