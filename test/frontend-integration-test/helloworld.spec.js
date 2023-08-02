@@ -99,22 +99,26 @@ describe('deploy helloworld sample run', () => {
       reverse: true,
     });
 
-    await browser.keys('Tab');
+    // await browser.keys('Tab');
+    await $('#runNameInput').click();
     await browser.keys(runName);
 
-    await browser.keys('Tab');
+    // await browser.keys('Tab');
+    await $('#descriptionInput').click();
     await browser.keys(runDescription);
 
-    // Skip over "choose experiment" button
-    await browser.keys('Tab');
-    // Skip over service account help button
-    await browser.keys('Tab');
-    // Skip over "service account" textbox
-    await browser.keys('Tab');
-    // Skip over "Run Type" radio button
-    await browser.keys('Tab');
+    // // Skip over "choose experiment" button
+    // await browser.keys('Tab');
+    // // Skip over service account help button
+    // await browser.keys('Tab');
+    // // Skip over "service account" textbox
+    // await browser.keys('Tab');
+    // // Skip over "Run Type" radio button
+    // await browser.keys('Tab');
 
-    await browser.keys('Tab');
+    // await browser.keys('Tab');
+    
+    await $('#newRunPipelineParam0').click();
     await browser.keys(outputParameterValue);
 
     // Deploy
