@@ -760,6 +760,21 @@ describe('PipelineDetails', () => {
     expect(newRunBtn).toBeDefined();
   });
 
+  it('uses selected version ID to create run if URL does not contain version ID', async () => {
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as PipelineDetails;
+    const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
+      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
+    ];
+    newRunFromPipelineVersionBtn.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN +
+        `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}&${QUERY_PARAMS.pipelineVersionId}=${originalTestV2PipelineVersion.pipeline_version_id}`,
+    );
+  });
+
   it('clicking new run button navigates to the new run page', async () => {
     tree = shallow(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID, false)} />);
     await TestUtils.flushPromises();
