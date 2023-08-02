@@ -77,7 +77,7 @@ exports[`NewRunParameters shows parameters 1`] = `
   </div>
   <div>
     <ParamEditor
-      id="newRunPipelineParam0"
+      id="pipelineParamInput"
       key="0"
       onChange={[Function]}
       param={
