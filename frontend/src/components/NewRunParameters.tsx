@@ -67,7 +67,7 @@ class NewRunParameters extends React.Component<NewRunParametersProps> {
               return (
                 <ParamEditor
                   key={i}
-                  id={`newRunPipelineParam${i}`}
+                  id={`pipelineParamInput`}
                   onChange={(value: string) => handleParamChange(i, value)}
                   param={param}
                 />
