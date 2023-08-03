@@ -434,6 +434,9 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	b.MaxElapsedTime = initConnectionTimeout
 	err = backoff.Retry(operation, b)
 
+	if err != nil {
+		err = fmt.Errorf("lingqinggan sqlConfig: %s\n error message: %w", sqlConfig, err)
+	}
 	util.TerminateIfError(err)
 
 	switch driverName {
