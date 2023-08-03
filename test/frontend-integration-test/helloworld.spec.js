@@ -118,7 +118,7 @@ describe('deploy helloworld sample run', () => {
 
     // await browser.keys('Tab');
     
-    await $('#pipelineParamInput').click();
+    await $('input#newRunPipelineParam0').click();
     await browser.keys(outputParameterValue);
 
     // Deploy

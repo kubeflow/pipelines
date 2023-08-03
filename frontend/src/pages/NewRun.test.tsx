@@ -1500,60 +1500,60 @@ describe('NewRun', () => {
       });
     });
 
-    // it('sends a request to Start a run with the json editor open', async () => {
-    //   const props = generateProps();
-    //   const pipeline = newMockPipelineWithParameters();
-    //   pipeline.parameters = [{ name: 'testName', value: 'testValue' }];
-    //   props.location.search =
-    //     `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
-    //     `&${QUERY_PARAMS.pipelineId}=${pipeline.id}`;
-    //   tree = TestUtils.mountWithRouter(<TestNewRun {...props} />);
-    //   await TestUtils.flushPromises();
+    it('sends a request to Start a run with the json editor open', async () => {
+      const props = generateProps();
+      const pipeline = newMockPipelineWithParameters();
+      pipeline.parameters = [{ name: 'testName', value: 'testValue' }];
+      props.location.search =
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
+        `&${QUERY_PARAMS.pipelineId}=${pipeline.id}`;
+      tree = TestUtils.mountWithRouter(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
 
-    //   tree.setState({ parameters: pipeline.parameters });
-    //   (tree.instance() as TestNewRun).handleChange('runName')({
-    //     target: { value: 'test run name' },
-    //   });
-    //   (tree.instance() as TestNewRun).handleChange('description')({
-    //     target: { value: 'test run description' },
-    //   });
+      tree.setState({ parameters: pipeline.parameters });
+      (tree.instance() as TestNewRun).handleChange('runName')({
+        target: { value: 'test run name' },
+      });
+      (tree.instance() as TestNewRun).handleChange('description')({
+        target: { value: 'test run description' },
+      });
 
-    //   tree
-    //     .find('input#newRunPipelineParam0')
-    //     .simulate('change', { target: { value: '{"test2": "value2"}' } });
+      tree
+        .find('input#newRunPipelineParam0')
+        .simulate('change', { target: { value: '{"test2": "value2"}' } });
 
-    //   tree.find('TextField#newRunPipelineParam0 Button').simulate('click');
+      tree.find('TextField#newRunPipelineParam0 Button').simulate('click');
 
-    //   tree.find('BusyButton#startNewRunBtn').simulate('click');
-    //   // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
-    //   await TestUtils.flushPromises();
+      tree.find('BusyButton#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
+      await TestUtils.flushPromises();
 
-    //   expect(startRunSpy).toHaveBeenCalledTimes(1);
-    //   expect(startRunSpy).toHaveBeenLastCalledWith({
-    //     description: 'test run description',
-    //     name: 'test run name',
-    //     pipeline_spec: {
-    //       parameters: [{ name: 'testName', value: '{\n  "test2": "value2"\n}' }],
-    //     },
-    //     service_account: '',
-    //     resource_references: [
-    //       {
-    //         key: {
-    //           id: MOCK_EXPERIMENT.id,
-    //           type: ApiResourceType.EXPERIMENT,
-    //         },
-    //         relationship: ApiRelationship.OWNER,
-    //       },
-    //       {
-    //         key: {
-    //           id: 'original-run-pipeline-version-id',
-    //           type: ApiResourceType.PIPELINEVERSION,
-    //         },
-    //         relationship: ApiRelationship.CREATOR,
-    //       },
-    //     ],
-    //   });
-    // });
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith({
+        description: 'test run description',
+        name: 'test run name',
+        pipeline_spec: {
+          parameters: [{ name: 'testName', value: '{\n  "test2": "value2"\n}' }],
+        },
+        service_account: '',
+        resource_references: [
+          {
+            key: {
+              id: MOCK_EXPERIMENT.id,
+              type: ApiResourceType.EXPERIMENT,
+            },
+            relationship: ApiRelationship.OWNER,
+          },
+          {
+            key: {
+              id: 'original-run-pipeline-version-id',
+              type: ApiResourceType.PIPELINEVERSION,
+            },
+            relationship: ApiRelationship.CREATOR,
+          },
+        ],
+      });
+    });
 
     it('updates the parameters in state on handleParamChange', async () => {
       const props = generateProps();
