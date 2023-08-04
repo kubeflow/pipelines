@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes for input/output Artifacts in KFP SDK.
-
-These are only compatible with v2 Pipelines.
-"""
+"""Classes for input/output Artifacts in KFP SDK."""
 
 from typing import Dict, List, Optional, Type
 
@@ -112,12 +109,6 @@ class Model(Artifact):
     """
     schema_title = 'system.Model'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
-
     @property
     def framework(self) -> str:
         return self._get_framework()
@@ -143,12 +134,6 @@ class Dataset(Artifact):
     """
     schema_title = 'system.Dataset'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
-
 
 class Metrics(Artifact):
     """An artifact for storing key-value scalar metrics.
@@ -159,12 +144,6 @@ class Metrics(Artifact):
         metadata: Key-value scalar metrics.
     """
     schema_title = 'system.Metrics'
-
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
 
     def log_metric(self, metric: str, value: float) -> None:
         """Sets a custom scalar metric in the artifact's metadata.
@@ -185,12 +164,6 @@ class ClassificationMetrics(Artifact):
         metadata: The key-value scalar metrics.
     """
     schema_title = 'system.ClassificationMetrics'
-
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
 
     def log_roc_data_point(self, fpr: float, tpr: float,
                            threshold: float) -> None:
@@ -355,12 +328,6 @@ class SlicedClassificationMetrics(Artifact):
 
     schema_title = 'system.SlicedClassificationMetrics'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
-
     def _upsert_classification_metrics_for_slice(self, slice: str) -> None:
         """Upserts the classification metrics instance for a slice."""
         if slice not in self._sliced_metrics:
@@ -479,12 +446,6 @@ class HTML(Artifact):
     """
     schema_title = 'system.HTML'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
-
 
 class Markdown(Artifact):
     """An artifact representing a markdown file.
@@ -495,12 +456,6 @@ class Markdown(Artifact):
         metadata: Arbitrary key-value pairs about the markdown file.
     """
     schema_title = 'system.Markdown'
-
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Type[Artifact]] = {
