@@ -1,35 +1,55 @@
-"""Vertex LLM safety metrics pipeline."""
+"""Vertex LLM standalone Evaluation for text classification task."""
 
 from typing import List, NamedTuple
 
-from google_cloud_pipeline_components._implementation.model_evaluation import SafetyMetricsOp
+from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationClassificationPredictionsPostprocessorOp
+from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
+from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
+from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
 from kfp import dsl
 from kfp.components import importer_node
-from kfp.dsl import Metrics
 
 
-@dsl.pipeline(name='evaluation-llm-safety-pipeline')
-def llm_safety_eval_pipeline(  # pylint: disable=dangerous-default-value
+_PIPELINE_NAME = 'evaluation-llm-classification-pipeline'
+
+
+@dsl.pipeline(name=_PIPELINE_NAME)
+def llm_eval_classification_pipeline(  # pylint: disable=dangerous-default-value
     project: str,
     location: str,
+    target_field_name: str,
     batch_predict_gcs_destination_output_uri: str,
     model_name: str = 'publishers/google/models/text-bison@001',
-    slice_spec_gcs_source: str = '',
+    evaluation_task: str = 'text-classification',
+    evaluation_class_labels: List[str] = [],
     batch_predict_instances_format: str = 'jsonl',
     batch_predict_gcs_source_uris: List[str] = [],
     batch_predict_predictions_format: str = 'jsonl',
-    machine_type: str = 'n1-standard-4',
+    machine_type: str = 'e2-highmem-16',
     service_account: str = '',
     network: str = '',
+    dataflow_machine_type: str = 'n1-standard-4',
+    dataflow_disk_size_gb: int = 50,
+    dataflow_max_num_workers: int = 5,
+    dataflow_service_account: str = '',
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
-) -> NamedTuple('outputs', safety_metrics=Metrics):
-  """The LLM Data Slicing and Safety Metrics Evaluation pipeline with batch prediction.
+) -> NamedTuple(
+    'outputs',
+    evaluation_metrics=ClassificationMetrics,
+    evaluation_resource_name=str,
+):
+  """The LLM Text Classification Evaluation pipeline.
 
   Args:
     project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
+    target_field_name: The target field's name. Formatted to be able to find
+      nested columns, delimited by ``.``. Prefixed with 'instance.' on the
+      component for Vertex Batch Prediction.
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
       of the directory where the output is to be written to. In the given
       directory a new directory is created. Its name is
@@ -53,11 +73,15 @@ def llm_safety_eval_pipeline(  # pylint: disable=dangerous-default-value
       or a managed Model sharing the same ancestor location. Starting this job
       has no impact on any existing deployments of the Model and their
       resources.
-    slice_spec_gcs_source: The Google Cloud Storage location of the file where
-      the slice spec definition is located.
+    evaluation_task: The task that the large language model will be evaluated
+      on. The evaluation component computes a set of metrics relevant to that
+      specific task. Currently supported Classification tasks is:
+      ``text-classification``.
+    evaluation_class_labels: The JSON array of class names for the target_field,
+      in the same order they appear in the batch predictions input file.
     batch_predict_instances_format: The format in which instances are given,
-      must be one of the Model's supportedInputStorageFormats. Only "jsonl" is
-      currently supported. For more details about this input config, see
+      must be one of the Model's supportedInputStorageFormats. For more details
+      about this input config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your
       instances data to run batch prediction on. The instances data should also
@@ -67,12 +91,11 @@ def llm_safety_eval_pipeline(  # pylint: disable=dangerous-default-value
         more details about this input config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_predictions_format: The format in which Vertex AI gives the
-      predictions. Must be one of the Model's supportedOutputStorageFormats.
-      Only "jsonl" is currently supported. For more details about this output
-      config, see
+      predictions. Must be one of the Model's supportedOutputStorageFormats. For
+      more details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
-    machine_type: The machine type of this custom job. If not set, defaulted to
-      ``n1-standard-4``. More details:
+    machine_type: The machine type of the custom jobs in this pipeline. If not
+      set, defaulted to ``e2-highmem-16`. More details:
         https://cloud.google.com/compute/docs/machine-resource
     service_account: Sets the default service account for workload run-as
       account. The service account running the pipeline
@@ -89,6 +112,17 @@ def llm_safety_eval_pipeline(  # pylint: disable=dangerous-default-value
       already configured VPC Network Peering for Vertex AI
       (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left
       unspecified, the job is not peered with any network.
+    dataflow_machine_type: The Dataflow machine type for evaluation components.
+    dataflow_disk_size_gb: The disk size (in GB) of the machine executing the
+      evaluation run. If not set, defaulted to ``50``.
+    dataflow_max_num_workers: The max number of workers executing the evaluation
+      run. If not set, defaulted to ``5``.
+    dataflow_service_account: Custom service account to run Dataflow jobs.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this pipeline will be encrypted with the provided
       encryption key. Has the form:
@@ -98,11 +132,15 @@ def llm_safety_eval_pipeline(  # pylint: disable=dangerous-default-value
 
   Returns:
     NamedTuple:
-      safety_metrics: Metrics Artifact for Safety.
+      evaluation_metrics: ClassificationMetrics Artifact for LLM Text
+        Classification.
+      evaluation_resource_name: If run on an user's managed VertexModel, the
+        imported evaluation resource name. Empty if run on a publisher model.
   """
   outputs = NamedTuple(
       'outputs',
-      safety_metrics=Metrics,
+      evaluation_metrics=ClassificationMetrics,
+      evaluation_resource_name=str,
   )
 
   get_vertex_model_task = importer_node.importer(
@@ -126,15 +164,50 @@ def llm_safety_eval_pipeline(  # pylint: disable=dangerous-default-value
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
-  safety_task = SafetyMetricsOp(
+  postprocessor_task = LLMEvaluationClassificationPredictionsPostprocessorOp(
       project=project,
-      predictions_gcs_source=batch_predict_task.outputs['gcs_output_directory'],
-      slice_spec_gcs_source=slice_spec_gcs_source,
+      batch_prediction_results=batch_predict_task.outputs[
+          'gcs_output_directory'
+      ],
+      class_labels=evaluation_class_labels,
       location=location,
       machine_type=machine_type,
-      service_account=service_account,
       network=network,
+      service_account=service_account,
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
-  return outputs(safety_metrics=safety_task.outputs['bias_llm_metrics'])
+  eval_task = ModelEvaluationClassificationOp(
+      project=project,
+      location=location,
+      class_labels=postprocessor_task.outputs['postprocessed_class_labels'],
+      target_field_name=target_field_name,
+      predictions_gcs_source=postprocessor_task.outputs[
+          'postprocessed_predictions_gcs_source'
+      ],
+      prediction_label_column='prediction.classes',
+      prediction_score_column='prediction.scores',
+      predictions_format=batch_predict_predictions_format,
+      dataflow_machine_type=dataflow_machine_type,
+      dataflow_max_workers_num=dataflow_max_num_workers,
+      dataflow_disk_size_gb=dataflow_disk_size_gb,
+      dataflow_service_account=dataflow_service_account,
+      dataflow_subnetwork=dataflow_subnetwork,
+      dataflow_use_public_ips=dataflow_use_public_ips,
+      encryption_spec_key_name=encryption_spec_key_name,
+  )
+
+  import_evaluation_task = ModelImportEvaluationOp(
+      classification_metrics=eval_task.outputs['evaluation_metrics'],
+      model=get_vertex_model_task.outputs['artifact'],
+      dataset_type=batch_predict_instances_format,
+      dataset_paths=batch_predict_gcs_source_uris,
+      display_name=_PIPELINE_NAME,
+  )
+
+  return outputs(
+      evaluation_metrics=eval_task.outputs['evaluation_metrics'],
+      evaluation_resource_name=import_evaluation_task.outputs[
+          'evaluation_resource_name'
+      ],
+  )
