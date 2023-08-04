@@ -15,10 +15,12 @@
 
 from google_cloud_pipeline_components.preview.model_evaluation.data_bias_component import detect_data_bias as DetectDataBiasOp
 from google_cloud_pipeline_components.preview.model_evaluation.feature_attribution_component import feature_attribution as ModelEvaluationFeatureAttributionOp
+from google_cloud_pipeline_components.preview.model_evaluation.feature_attribution_graph_component import feature_attribution_graph_component as FeatureAttributionGraphComponentOp
 from google_cloud_pipeline_components.preview.model_evaluation.model_bias_component import detect_model_bias as DetectModelBiasOp
 
 __all__ = [
     'ModelEvaluationFeatureAttributionOp',
+    'FeatureAttributionGraphComponentOp',
     'DetectModelBiasOp',
     'DetectDataBiasOp',
 ]
