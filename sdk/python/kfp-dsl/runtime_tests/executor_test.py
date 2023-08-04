@@ -21,6 +21,7 @@ import unittest
 from unittest import mock
 
 from absl.testing import parameterized
+from kfp import dsl
 from kfp.dsl import executor
 from kfp.dsl import Input
 from kfp.dsl import Output
@@ -113,14 +114,9 @@ class ExecutorTest(parameterized.TestCase):
         }
         """
 
-        class VertexDataset:
+        class VertexDataset(dsl.Artifact):
             schema_title = 'google.VertexDataset'
             schema_version = '0.0.0'
-
-            def __init__(self, name: str, uri: str, metadata: dict) -> None:
-                self.name = name
-                self.uri = uri
-                self.metadata = metadata
 
             @property
             def path(self) -> str:
@@ -1217,29 +1213,6 @@ class ExecutorTest(parameterized.TestCase):
         self.assertDictEqual(output_metadata, {})
 
 
-class VertexDataset:
-    schema_title = 'google.VertexDataset'
-    schema_version = '0.0.0'
-
-    @classmethod
-    def _from_executor_fields(
-        cls,
-        name: str,
-        uri: str,
-        metadata: dict,
-    ) -> 'VertexDataset':
-
-        instance = VertexDataset()
-        instance.name = name
-        instance.uri = uri
-        instance.metadata = metadata
-        return instance
-
-    @property
-    def path(self) -> str:
-        return self.uri.replace('gs://', artifact_types._GCS_LOCAL_MOUNT_PREFIX)
-
-
 class TestDictToArtifact(parameterized.TestCase):
 
     @parameterized.parameters(
@@ -1354,25 +1327,6 @@ class TestDictToArtifact(parameterized.TestCase):
         # without artifact_cls
         self.assertIsInstance(
             executor.create_artifact_instance(runtime_artifact), expected_type)
-
-    def test_dict_to_artifact_google_artifact(self):
-        runtime_artifact = {
-            'metadata': {},
-            'name': 'input_artifact_one',
-            'type': {
-                'schemaTitle': 'google.VertexDataset'
-            },
-            'uri': 'gs://some-bucket/input_artifact_one'
-        }
-        # with artifact_cls
-        self.assertIsInstance(
-            executor.create_artifact_instance(
-                runtime_artifact, artifact_cls=VertexDataset), VertexDataset)
-
-        # without artifact_cls
-        self.assertIsInstance(
-            executor.create_artifact_instance(runtime_artifact),
-            artifact_types.Artifact)
 
 
 if __name__ == '__main__':
