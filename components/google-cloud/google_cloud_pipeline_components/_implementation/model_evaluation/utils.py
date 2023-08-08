@@ -14,7 +14,6 @@ def build_custom_job_payload(
     service_account: str = '',
     network: str = '',
     reserved_ip_ranges: List[str] = [],
-    enable_web_access: bool = False,
     accelerator_type: str = 'ACCELERATOR_TYPE_UNSPECIFIED',
     accelerator_count: int = 0,
     encryption_spec_key_name: str = '',
@@ -46,10 +45,6 @@ def build_custom_job_payload(
       network that can be used for this job. If set, we will deploy the job
       within the provided ip ranges. Otherwise, the job will be deployed to any
       ip ranges under the provided VPC network.
-    enable_web_access: Whether you want Vertex AI to enable [interactive shell
-      access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
-      to training containers. If set to `true`, you can access interactive
-      shells at the URIs given by [CustomJob.web_access_uris][].
     accelerator_type: The type of accelerator(s) that may be attached to the
       machine as per acceleratorCount.
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
@@ -79,7 +74,6 @@ def build_custom_job_payload(
           'service_account': str(service_account),
           'network': str(network),
           'reserved_ip_ranges': reserved_ip_ranges,
-          'enable_web_access': bool(enable_web_access),
       },
       'encryption_spec': {'kms_key_name': str(encryption_spec_key_name)},
   }
