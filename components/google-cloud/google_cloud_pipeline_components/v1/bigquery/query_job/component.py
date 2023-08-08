@@ -90,8 +90,8 @@ def bigquery_query_job(
           'google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher',
       ],
       args=[
-          '--type',
-          'BigqueryQueryJob',
+          # '--type',
+          # 'BigqueryQueryJob',
           '--project',
           project,
           '--location',
