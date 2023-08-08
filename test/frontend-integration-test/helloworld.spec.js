@@ -107,11 +107,13 @@ describe('deploy helloworld sample run', () => {
     });
 
     await $('#runNameInput').click();
+    await clearDefaultInput()
     await browser.keys(runName);
 
     await $('#descriptionInput').click();
     await browser.keys(runDescription);
     
+    // the parameter name is "message" in this testing pipeline 
     await $('input#newRunPipelineParam0').click();
     await clearDefaultInput()
     await browser.keys(outputParameterValue);
