@@ -466,6 +466,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
           {/* Run metadata inputs */}
           <Input
+            id='runNameInput'
             label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
             required={true}
             onChange={this.handleChange('runName')}
@@ -474,6 +475,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             variant='outlined'
           />
           <Input
+            id='descriptionInput'
             label='Description'
             multiline={true}
             onChange={this.handleChange('description')}
