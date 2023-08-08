@@ -14,7 +14,7 @@
 """Version constants for model evaluation components."""
 
 _EVAL_VERSION = 'v0.9.2'
-_LLM_EVAL_VERSION = 'v0.1'
+_LLM_EVAL_VERSION = 'v0.2'
 
 _EVAL_IMAGE_NAME = 'gcr.io/ml-pipeline/model-evaluation'
 _LLM_EVAL_IMAGE_NAME = 'gcr.io/ml-pipeline/llm-model-evaluation'
