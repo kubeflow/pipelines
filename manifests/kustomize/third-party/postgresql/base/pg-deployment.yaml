@@ -1,14 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-deployment
+  name: postgres
   labels:
     app: postgres
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: postgres
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
@@ -33,6 +34,11 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
+          readinessProbe:
+            exec:
+              command: ["psql", "-U", "user", "-d", "postgres", "-c", "SELECT 1"]
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
           volumeMounts:
             - name: postgres-stateful-data
               mountPath: /var/lib/postgresql/data

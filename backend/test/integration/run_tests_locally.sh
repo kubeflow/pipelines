@@ -32,22 +32,27 @@ case "$response" in
         ;;
 esac
 
+function cleanup() {
+  echo "killing kubectl port forward before exit"
+  kill "$PORT_FORWARD_PID"
+}
+trap cleanup EXIT
+
+echo "Starting integration tests..."
+
 if [ "$1" == "postgres" ]; then
     echo "Starting PostgreSQL DB port forwarding..."
     kubectl -n "$NAMESPACE" port-forward svc/postgres-service 5432:5432 --address="127.0.0.3" & PORT_FORWARD_PID=$!
     # wait for kubectl port forward
     sleep 10
-    echo "Starting integration tests..."
-    command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true"
-    echo $command "$@"
-    $command "$@"
+    command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true"
 else 
     echo "Starting MySQL DB port forwarding..."
     kubectl -n "$NAMESPACE" port-forward svc/mysql 3306:3306 --address=localhost & PORT_FORWARD_PID=$!
     # wait for kubectl port forward
     sleep 10
-    echo "Starting integration tests..."
-    command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true"
-    echo $command "$@"
-    $command "$@"
+    command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -localTest=true"
 fi
+
+echo $command "$@"
+$command "$@"

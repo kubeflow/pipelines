@@ -11,5 +11,5 @@ kustomize build ./base -o build
 
 ```bash
 # In this folder of manifests/kustomize/third-party/postgresql
-kubectl apply -f build
+kubectl -n <your_namespace> apply -f build
 ```

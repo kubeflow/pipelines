@@ -256,7 +256,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 	)
 
-	if ignoreAlreadyExistError(response.Error) != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to initialize the databases. Error: %s", response.Error)
 	}
 
@@ -286,27 +286,27 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
-	if ignoreAlreadyExistError(response.Error) != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
-	if ignoreAlreadyExistError(response.Error) != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("namespace_createatinsec", "Namespace", "CreatedAtInSec")
-	if response.Error != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index namespace_createatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("namespace_conditions_finishedatinsec", "Namespace", "Conditions", "FinishedAtInSec")
-	if response.Error != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index namespace_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Pipeline{}).AddUniqueIndex("name_namespace_index", "Name", "Namespace")
-	if ignoreAlreadyExistError(response.Error) != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", response.Error)
 	}
 
@@ -314,33 +314,33 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	case "pgx":
 		response = db.Model(&model.RunMetric{}).
 			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(response.Error) != nil {
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
 			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
 		}
 		response = db.Model(&model.PipelineVersion{}).
 			AddForeignKey("\"PipelineId\"", "pipelines(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(response.Error) != nil {
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
 			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
 		}
 		response = db.Model(&model.Task{}).
 			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(response.Error) != nil {
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
 			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
 		}
 	case "mysql":
 		response = db.Model(&model.RunMetric{}).
 			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(response.Error) != nil {
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
 			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
 		}
 		response = db.Model(&model.PipelineVersion{}).
 			AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(response.Error) != nil {
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
 			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
 		}
 		response = db.Model(&model.Task{}).
 			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(response.Error) != nil {
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
 			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
 		}
 	default:
@@ -412,7 +412,6 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}
-	glog.Infof("lingqinggan sqlConfig: %s\n", sqlConfig)
 
 	var db *sql.DB
 	var err error
@@ -435,7 +434,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	// Create database if not exist
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName))
-		if ignoreAlreadyExistError(err) != nil {
+		if ignoreAlreadyExistError(driverName, err) != nil {
 			return err
 		}
 		return nil
@@ -444,9 +443,6 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	b.MaxElapsedTime = initConnectionTimeout
 	err = backoff.Retry(operation, b)
 
-	if err != nil {
-		err = fmt.Errorf("lingqinggan sqlConfig: %s\n error message: %w", sqlConfig, err)
-	}
 	util.TerminateIfError(err)
 
 	switch driverName {
@@ -597,8 +593,11 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 
 // Returns the same error, if it's not "already exists" related.
 // Otherwise, return nil.
-func ignoreAlreadyExistError(err error) error {
-	if err != nil && strings.Contains(err.Error(), "exists") {
+func ignoreAlreadyExistError(driverName string, err error) error {
+	if driverName == "pgx" && err != nil && strings.Contains(err.Error(), "already exists") {
+		return nil
+	}
+	if driverName == "mysql" && err != nil && strings.Contains(err.Error(), "database exists") {
 		return nil
 	}
 	return err
