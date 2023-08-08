@@ -27,8 +27,8 @@ RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
 RUN go-licenses check ./backend/src/agent/persistence
 RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
-   diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
-   go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
+    diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
+    go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
 
 
 FROM alpine:3.17
