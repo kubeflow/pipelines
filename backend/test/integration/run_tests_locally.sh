@@ -14,6 +14,7 @@
 # limitations under the License.
 
 set -e
+set -x
 
 if [ -z "${NAMESPACE}" ]; then
     echo "NAMESPACE env var is not provided, please set it to your KFP namespace"
@@ -54,5 +55,4 @@ else
     command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -localTest=true"
 fi
 
-echo $command "$@"
 $command "$@"

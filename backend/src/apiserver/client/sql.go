@@ -21,6 +21,11 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
+const (
+	MYSQL_TEXT_FORMAT string = "longtext not null"
+	PGX_TEXT_FORMAT   string = "text"
+)
+
 func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
 	dbName, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string,
 ) *mysql.Config {

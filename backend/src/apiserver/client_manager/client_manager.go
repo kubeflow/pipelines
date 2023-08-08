@@ -263,9 +263,9 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	var textFormat string
 	switch driverName {
 	case "mysql":
-		textFormat = "longtext not null"
+		textFormat = client.MYSQL_TEXT_FORMAT
 	case "pgx":
-		textFormat = "text"
+		textFormat = client.PGX_TEXT_FORMAT
 	default:
 		glog.Fatalf("Unsupported database driver %s, please use `mysql` for MySQL, or `pgx` for PostgreSQL.", driverName)
 	}
@@ -402,7 +402,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		dbName = common.GetStringConfig(mysqlDBName)
 	case "pgx":
 		sqlConfig = client.CreatePostgreSQLConfig(
-			common.GetStringConfigWithDefault(postgresUser, ""),
+			common.GetStringConfigWithDefault(postgresUser, "user"),
 			common.GetStringConfigWithDefault(postgresPassword, ""),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			"postgres",
