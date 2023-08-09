@@ -1,0 +1,1 @@
+docker run -v $(pwd):/pipelines python:3.7 sh -c 'cd pipelines && test/presubmit-test-sdk-upgrade.sh'

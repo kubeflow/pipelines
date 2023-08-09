@@ -12,11 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from distutils.command.install import install
 import os
 import re
 from typing import List
 
 import setuptools
+import subprocess
+
+
+def uninstall_kfp() -> None:
+    subprocess.check_call(['pip', 'uninstall', 'kfp', '--debug', '-y'])
+
+
+class PreInstallCommand(install):
+
+    def run(self):
+        # putting this at the top-level of the module does not work either
+        uninstall_kfp()
+        install.run(self)
 
 
 def get_requirements(requirements_file: str) -> List[str]:
@@ -106,4 +120,8 @@ setuptools.setup(
             'dsl-compile-deprecated = kfp.deprecated.compiler.main:main',
             'kfp=kfp.cli.__main__:main',
         ]
-    })
+    },
+    cmdclass={
+        'install': PreInstallCommand,
+    },
+)
