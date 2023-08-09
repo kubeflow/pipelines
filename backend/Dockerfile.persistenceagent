@@ -30,7 +30,6 @@ RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
     go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
 
-
 FROM alpine:3.17
 
 RUN adduser -S appuser
