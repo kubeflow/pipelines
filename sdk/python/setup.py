@@ -106,4 +106,6 @@ setuptools.setup(
             'dsl-compile-deprecated = kfp.deprecated.compiler.main:main',
             'kfp=kfp.cli.__main__:main',
         ]
-    })
+    },
+    namespace_packages=['kfp'],
+)

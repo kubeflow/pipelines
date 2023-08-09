@@ -18,14 +18,15 @@ set -ex
 python3 -m pip install --upgrade pip
 
 python3 -m pip install kfp
-LATEST_KFP_SDK_RELEASE=$(pip show kfp | grep "Version:" | awk '{print $2}' | awk '{$1=$1};1')
+LATEST_KFP_SDK_RELEASE=$(python3 -m pip show kfp | grep "Version:" | awk '{print $2}' | awk '{$1=$1};1')
 echo "Installed latest KFP SDK version: $LATEST_KFP_SDK_RELEASE"
 
 # install in normal mode, not editable mode, to emulate typical user upgrade behavior
-pip3 install sdk/python/kfp-dsl
-pip3 install sdk/python
-HEAD_KFP_SDK_VERSION=$(pip show kfp | grep "Version:" | awk '{print $2}')
+python3 -m pip install sdk/python/kfp-dsl
+python3 -m pip install sdk/python
+HEAD_KFP_SDK_VERSION=$(python3 -m pip show kfp | grep "Version:" | awk '{print $2}')
 echo "Successfully upgraded to KFP SDK version @ HEAD: $HEAD_KFP_SDK_VERSION"
 
-python -c 'import kfp'
+python3 -c 'import kfp'
+python3 -c 'from kfp.dsl import *'
 echo "Successfully ran 'import kfp' @ HEAD: $HEAD_KFP_SDK_VERSION"

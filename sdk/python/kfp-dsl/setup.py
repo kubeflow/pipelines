@@ -26,4 +26,5 @@ setuptools.setup(
     install_requires=['typing-extensions>=3.7.4,<5; python_version<"3.9"'],
     include_package_data=True,
     license='Apache 2.0',
+    namespace_packages=['kfp'],
 )

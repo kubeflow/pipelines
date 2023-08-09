@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# `kfp` is a namespace package.
-# https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
-__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+# declare an explicit namespace using pkg_resources and use the namespace_packages argument in setup.py to avoid module collision between old versions of kfp and kfp-dsl on pip install
+# https://setuptools.pypa.io/en/latest/userguide/package_discovery.html#pkg-resource-style-namespace-package
+__import__('pkg_resources').declare_namespace(__name__)
 
 __version__ = '2.1.2'
 

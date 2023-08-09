@@ -84,4 +84,5 @@ setuptools.setup(
         'dev': DEV_REQUIREMENTS,
     },
     license='Apache 2.0',
+    namespace_packages=['kfp'],
 )

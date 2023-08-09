@@ -29,4 +29,5 @@ setuptools.setup(
     install_requires=['protobuf>=3.13.0,<4'],
     include_package_data=True,
     license='Apache 2.0',
+    namespace_packages=['kfp'],
 )
