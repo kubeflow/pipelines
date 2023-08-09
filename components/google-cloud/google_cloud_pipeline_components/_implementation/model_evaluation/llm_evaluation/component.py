@@ -35,8 +35,8 @@ def model_evaluation_text_generation(
     target_field_name: str = 'instance.ground_truth',
     prediction_field_name: str = 'predictions.content',
     predictions_format: str = 'jsonl',
-    joined_predictions_gcs_source: dsl.Input[Artifact] = None,
-    predictions_gcs_source: dsl.Input[Artifact] = None,
+    joined_predictions_gcs_source: str = '',
+    predictions_gcs_source: str = '',
     ground_truth_gcs_source: str = '',
     display_name: str = 'model-evaluation-text-generation',
     machine_type: str = 'e2-highmem-16',
@@ -68,11 +68,11 @@ def model_evaluation_text_generation(
     predictions_format: The file format for the LLM Batch Prediction results.
       ``jsonl`` is currently the only allowed format. If not set, defaulted to
       ``jsonl``.
-    joined_predictions_gcs_source: An Artifact with an URI pointing toward a GCS
-      directory or a GCS file with joined prediction & ground truth files to be
-      used for this evaluation.
-    predictions_gcs_source: An Artifact with an URI pointing toward a GCS
-      directory with only prediction files to be used for this evaluation.
+    joined_predictions_gcs_source: A storage URI pointing toward a GCS directory
+      or a GCS file with joined prediction & ground truth files to be used for
+      this evaluation.
+    predictions_gcs_source: A storage URI pointing toward a GCS directory with
+      only prediction files to be used for this evaluation.
     ground_truth_gcs_source: A storage URI pointing toward a GCS directory with
       only ground truth files to be used for this evaluation.
     display_name: The name of the evaluation custom job.
@@ -124,8 +124,8 @@ def model_evaluation_text_generation(
               f'--target_field_name={target_field_name}',
               f'--prediction_field_name={prediction_field_name}',
               f'--predictions_format={predictions_format}',
-              f'--joined_predictions_gcs_source={joined_predictions_gcs_source.uri}',
-              f'--predictions_gcs_source={predictions_gcs_source.uri}',
+              f'--joined_predictions_gcs_source={joined_predictions_gcs_source}',
+              f'--predictions_gcs_source={predictions_gcs_source}',
               f'--ground_truth_gcs_source={ground_truth_gcs_source}',
               f'--evaluation_metrics_output_path={evaluation_metrics.path}',
               '--executor_input={{$.json_escape[1]}}',

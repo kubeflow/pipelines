@@ -7,10 +7,25 @@ from google_cloud_pipeline_components._implementation.model_evaluation import Mo
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from kfp import dsl
+from kfp.dsl import Artifact
+from kfp.dsl import component
+from kfp.dsl import Input
 from kfp.dsl import Metrics
+from kfp.dsl import OutputPath
 
 
 _PIPELINE_NAME = 'evaluation-llm-text-generation-pipeline'
+
+
+@component
+def convert_artifact_to_string(
+    output: OutputPath(str), input_artifact: Input[Artifact]
+):
+  path = input_artifact.path
+  if path.startswith('/gcs/'):
+    path = 'gs://' + path[len('/gcs/') :]
+  with open(output, 'w') as f:
+    f.write(path)
 
 
 @dsl.pipeline(name=_PIPELINE_NAME)
@@ -122,7 +137,9 @@ def llm_eval_text_generation_pipeline(  # pylint: disable=dangerous-default-valu
       gcs_destination_output_uri_prefix=batch_predict_gcs_destination_output_uri,
       encryption_spec_key_name=encryption_spec_key_name,
   )
-
+  converter_task = convert_artifact_to_string(
+      input_artifact=batch_predict_task.outputs['gcs_output_directory']
+  )
   eval_task = LLMEvaluationTextGenerationOp(
       project=project,
       location=location,
@@ -130,9 +147,7 @@ def llm_eval_text_generation_pipeline(  # pylint: disable=dangerous-default-valu
       target_field_name='instance.ground_truth',
       prediction_field_name='predictions.content',
       predictions_format=batch_predict_predictions_format,
-      joined_predictions_gcs_source=batch_predict_task.outputs[
-          'gcs_output_directory'
-      ],
+      joined_predictions_gcs_source=converter_task.output,
       display_name=_PIPELINE_NAME,
       machine_type=machine_type,
       service_account=service_account,
