@@ -11,12 +11,68 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import os
 import re
-from typing import List
+import subprocess
+from typing import List, Union
 
 import setuptools
+from setuptools.command.install import install
+import pkg_resources
+
+
+# def maybe_uninstall_current_kfp() -> None:
+#     if uninstall_required():
+#         try:
+#             # get_python_command(), '-m',
+#             subprocess.check_call(['pip', 'uninstall', 'kfp', '-y'])
+#         except subprocess.CalledProcessError:
+#             raise Exception(
+#                 'To upgrade to kfp>=2.1 from a version <2.1, you must first uninstall the currently installed version of kfp.'
+#             )
+
+
+# def get_python_command() -> str:
+#     try:
+#         # prefer "python3" to "python", since the KFP SDK only supports python 3 and "python" typically points to "python3" if it is available at all
+#         subprocess.check_call(['python3', '-V'],
+#                               stdout=subprocess.DEVNULL,
+#                               stderr=subprocess.DEVNULL)
+#         return 'python3'
+#     except FileNotFoundError:
+#         # in some environments, "python3" may not be available, so fall back to "python"
+#         return 'python'
+
+
+# def get_package_version() -> Union[str, None]:
+#     try:
+#         return pkg_resources.get_distribution('kfp').version
+#     except pkg_resources.DistributionNotFound:
+#         return None
+
+
+# def uninstall_required() -> bool:
+#     package_version = get_package_version()
+
+#     if package_version is None:
+#         return False
+
+#     # prefer "python/python3 -m" to "pip/pip3" to ensure the pip being used is associated with the current python interpreter
+#     # no special handling is needed for anaconda, since kfp is not available in the default conda channels and users likely use pip to handle this
+#     kfp_version_parts = package_version.split('.')
+#     major = int(kfp_version_parts[0])
+#     minor = int(kfp_version_parts[1])
+#     print('MAJOR', major)
+#     print('MINOR', minor)
+#     # needed to upgrade to >=2.1.3; 2.1.0, 2.1.1, and 2.1.2 don't exist
+#     return major == 2 and minor < 1
+
+
+class PreInstallCommand(install):
+
+    def run(self):
+        subprocess.check_call(['pip', 'uninstall', 'kfp', '-y'])
+        install.run(self)
 
 
 def get_requirements(requirements_file: str) -> List[str]:
@@ -106,4 +162,8 @@ setuptools.setup(
             'dsl-compile-deprecated = kfp.deprecated.compiler.main:main',
             'kfp=kfp.cli.__main__:main',
         ]
-    })
+    },
+    cmdclass={
+        'install': PreInstallCommand,
+    },
+)
