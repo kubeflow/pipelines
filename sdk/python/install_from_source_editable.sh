@@ -1,4 +1,4 @@
 #!/bin/bash
 pip3 install --upgrade pip
-pip3 install sdk/python/kfp-dsl
+ln -s sdk/python/kfp-dsl/kfp/dsl sdk/python/kfp/dsl
 pip3 install sdk/python
