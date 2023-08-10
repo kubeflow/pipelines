@@ -403,7 +403,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	case "pgx":
 		sqlConfig = client.CreatePostgreSQLConfig(
 			common.GetStringConfigWithDefault(postgresUser, "user"),
-			common.GetStringConfigWithDefault(postgresPassword, ""),
+			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			"postgres",
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
