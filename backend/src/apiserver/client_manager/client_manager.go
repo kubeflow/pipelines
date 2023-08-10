@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package clientmanager
 
 import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -35,25 +37,33 @@ import (
 )
 
 const (
-	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
-	minioServiceRegion     = "MINIO_SERVICE_REGION"
-	minioServiceSecure     = "MINIO_SERVICE_SECURE"
-	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
-	pipelinePath           = "MINIO_PIPELINE_PATH"
-	mysqlServiceHost       = "DBConfig.Host"
-	mysqlServicePort       = "DBConfig.Port"
-	mysqlUser              = "DBConfig.User"
-	mysqlPassword          = "DBConfig.Password"
-	mysqlDBName            = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	mysqlExtraParams       = "DBConfig.ExtraParams"
-	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
-	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
-	dbConMaxLifeTime       = "DBConfig.ConMaxLifeTime"
+	minioServiceHost   = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort   = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceRegion = "MINIO_SERVICE_REGION"
+	minioServiceSecure = "MINIO_SERVICE_SECURE"
+	pipelineBucketName = "MINIO_PIPELINE_BUCKET_NAME"
+	pipelinePath       = "MINIO_PIPELINE_PATH"
 
-	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
-	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
+	mysqlServiceHost       = "DBConfig.MySQLConfig.Host"
+	mysqlServicePort       = "DBConfig.MySQLConfig.Port"
+	mysqlUser              = "DBConfig.MySQLConfig.User"
+	mysqlPassword          = "DBConfig.MySQLConfig.Password"
+	mysqlDBName            = "DBConfig.MySQLConfig.DBName"
+	mysqlGroupConcatMaxLen = "DBConfig.MySQLConfig.GroupConcatMaxLen"
+	mysqlExtraParams       = "DBConfig.MySQLConfig.ExtraParams"
+
+	postgresHost     = "DBConfig.PostgreSQLConfig.Host"
+	postgresPort     = "DBConfig.PostgreSQLConfig.Port"
+	postgresUser     = "DBConfig.PostgreSQLConfig.User"
+	postgresPassword = "DBConfig.PostgreSQLConfig.Password"
+	postgresDBName   = "DBConfig.PostgreSQLConfig.DBName"
+
+	archiveLogFileName   = "ARCHIVE_CONFIG_LOG_FILE_NAME"
+	archiveLogPathPrefix = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
+	dbConMaxLifeTime     = "DBConfig.ConMaxLifeTime"
+
+	VisualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
+	VisualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	initConnectionTimeout = "InitConnectionTimeout"
 
@@ -158,7 +168,7 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 
 func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
-	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 
 	// time
@@ -208,16 +218,12 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
-	driverName := common.GetStringConfig("DBConfig.DriverName")
-	var arg string
-
-	switch driverName {
-	case "mysql":
-		arg = initMysql(driverName, initConnectionTimeout)
-	default:
-		glog.Fatalf("Driver %v is not supported", driverName)
-	}
+func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
+	// Allowed driverName values:
+	// 1) To use MySQL, use `mysql`
+	// 2) To use PostgreSQL, use `pgx`
+	driverName := common.GetStringConfig("DBDriverName")
+	arg := initDBDriver(driverName, initConnectionTimeout)
 
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
@@ -250,8 +256,18 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 	)
 
-	if response.Error != nil {
-		glog.Fatalf("Failed to initialize the databases.")
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
+		glog.Fatalf("Failed to initialize the databases. Error: %s", response.Error)
+	}
+
+	var textFormat string
+	switch driverName {
+	case "mysql":
+		textFormat = client.MYSQL_TEXT_FORMAT
+	case "pgx":
+		textFormat = client.PGX_TEXT_FORMAT
+	default:
+		glog.Fatalf("Unsupported database driver %s, please use `mysql` for MySQL, or `pgx` for PostgreSQL.", driverName)
 	}
 
 	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
@@ -264,50 +280,71 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", response.Error)
 	}
 
-	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
+	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", textFormat)
 	if response.Error != nil {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
-	if response.Error != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
-	if response.Error != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("namespace_createatinsec", "Namespace", "CreatedAtInSec")
-	if response.Error != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index namespace_createatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Run{}).AddIndex("namespace_conditions_finishedatinsec", "Namespace", "Conditions", "FinishedAtInSec")
-	if response.Error != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index namespace_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.Pipeline{}).AddUniqueIndex("name_namespace_index", "Name", "Namespace")
-	if response.Error != nil {
+	if ignoreAlreadyExistError(driverName, response.Error) != nil {
 		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", response.Error)
 	}
 
-	response = db.Model(&model.RunMetric{}).
-		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
-	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for RunID in run_metrics table. Error: %s", response.Error)
-	}
-	response = db.Model(&model.PipelineVersion{}).
-		AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
-	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
-	}
-	response = db.Model(&model.Task{}).
-		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
-	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
+	switch driverName {
+	case "pgx":
+		response = db.Model(&model.RunMetric{}).
+			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.PipelineVersion{}).
+			AddForeignKey("\"PipelineId\"", "pipelines(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.Task{}).
+			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
+		}
+	case "mysql":
+		response = db.Model(&model.RunMetric{}).
+			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.PipelineVersion{}).
+			AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+		}
+		response = db.Model(&model.Task{}).
+			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
+		if ignoreAlreadyExistError(driverName, response.Error) != nil {
+			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
+		}
+	default:
+		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}
 
 	// Data backfill for pipeline_versions if this is the first time for
@@ -320,44 +357,66 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to backfill experiment UUID in run_details table: %s", err)
 	}
 
-	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext not null")
+	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", textFormat)
 	if response.Error != nil {
 		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
 	}
 
-	// If the old unique index idx_pipeline_version_uuid_name on pipeline_versions exists, remove it.
-	rows, err := db.Raw(`show index from pipeline_versions where Key_name='idx_pipeline_version_uuid_name'`).Rows()
-	if err != nil {
-		glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
+	// Because PostgreSQL was supported later, there's no need to delete the relic index
+	if driverName == "mysql" {
+		// If the old unique index idx_pipeline_version_uuid_name on pipeline_versions exists, remove it.
+		rows, err := db.Raw(`show index from pipeline_versions where Key_name='idx_pipeline_version_uuid_name'`).Rows()
+		if err != nil {
+			glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
+		}
+		if err := rows.Err(); err != nil {
+			glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
+		}
+		if rows.Next() {
+			db.Exec(`drop index idx_pipeline_version_uuid_name on pipeline_versions`)
+		}
+		defer rows.Close()
 	}
-	if err := rows.Err(); err != nil {
-		glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
-	}
-	if rows.Next() {
-		db.Exec(`drop index idx_pipeline_version_uuid_name on pipeline_versions`)
-	}
-	defer rows.Close()
 
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
-// Initialize the connection string for connecting to Mysql database
-// Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True.
-func initMysql(driverName string, initConnectionTimeout time.Duration) string {
-	mysqlConfig := client.CreateMySQLConfig(
-		common.GetStringConfigWithDefault(mysqlUser, "root"),
-		common.GetStringConfigWithDefault(mysqlPassword, ""),
-		common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
-		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
-		"",
-		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
-		common.GetMapConfig(mysqlExtraParams),
-	)
+// Initializes Database driver. Use `driverName` to indicate which type of DB to use:
+// 1) "mysql" for MySQL
+// 2) "pgx" for PostgreSQL
+func initDBDriver(driverName string, initConnectionTimeout time.Duration) string {
+	var sqlConfig, dbName string
+	var mysqlConfig *mysql.Config
+	switch driverName {
+	case "mysql":
+		mysqlConfig = client.CreateMySQLConfig(
+			common.GetStringConfigWithDefault(mysqlUser, "root"),
+			common.GetStringConfigWithDefault(mysqlPassword, ""),
+			common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
+			common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
+			"",
+			common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+			common.GetMapConfig(mysqlExtraParams),
+		)
+		sqlConfig = mysqlConfig.FormatDSN()
+		dbName = common.GetStringConfig(mysqlDBName)
+	case "pgx":
+		sqlConfig = client.CreatePostgreSQLConfig(
+			common.GetStringConfigWithDefault(postgresUser, "user"),
+			common.GetStringConfigWithDefault(postgresPassword, "password"),
+			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
+			"postgres",
+			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
+		)
+		dbName = common.GetStringConfig(postgresDBName)
+	default:
+		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
+	}
 
 	var db *sql.DB
 	var err error
 	operation := func() error {
-		db, err = sql.Open(driverName, mysqlConfig.FormatDSN())
+		db, err = sql.Open(driverName, sqlConfig)
 		if err != nil {
 			return err
 		}
@@ -365,7 +424,6 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	}
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
-	// err = backoff.Retry(operation, b)
 	err = backoff.RetryNotify(operation, b, func(e error, duration time.Duration) {
 		glog.Errorf("%v", e)
 	})
@@ -374,10 +432,9 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 
 	// Create database if not exist
-	dbName := common.GetStringConfig(mysqlDBName)
 	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
-		if err != nil {
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName))
+		if ignoreAlreadyExistError(driverName, err) != nil {
 			return err
 		}
 		return nil
@@ -387,13 +444,30 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	err = backoff.Retry(operation, b)
 
 	util.TerminateIfError(err)
-	mysqlConfig.DBName = dbName
-	// When updating, return rows matched instead of rows affected. This counts rows that are being
-	// set as the same values as before. If updating using a primary key and rows matched is 0, then
-	// it means this row is not found.
-	// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
-	mysqlConfig.ClientFoundRows = true
-	return mysqlConfig.FormatDSN()
+
+	switch driverName {
+	case "mysql":
+		mysqlConfig.DBName = dbName
+		// When updating, return rows matched instead of rows affected. This counts rows that are being
+		// set as the same values as before. If updating using a primary key and rows matched is 0, then
+		// it means this row is not found.
+		// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
+		mysqlConfig.ClientFoundRows = true
+		sqlConfig = mysqlConfig.FormatDSN()
+	case "pgx":
+		// Note: postgreSQL does not have the option `ClientFoundRows`
+		// Config reference: https://www.postgresql.org/docs/current/libpq-connect.html
+		sqlConfig = client.CreatePostgreSQLConfig(
+			common.GetStringConfigWithDefault(postgresUser, "root"),
+			common.GetStringConfigWithDefault(postgresPassword, ""),
+			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
+			dbName,
+			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
+		)
+	default:
+		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
+	}
+	return sqlConfig
 }
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
@@ -448,8 +522,8 @@ func initLogArchive() (logArchive archive.LogArchiveInterface) {
 	return
 }
 
-// newClientManager creates and Init a new instance of ClientManager.
-func newClientManager() ClientManager {
+// NewClientManager creates and Init a new instance of ClientManager.
+func NewClientManager() ClientManager {
 	clientManager := ClientManager{}
 	clientManager.init()
 
@@ -489,7 +563,7 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 
 func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	// check if there is any row in the run table has experiment ID being empty
-	rows, err := db.CommonDB().Query(`SELECT ExperimentUUID FROM run_details WHERE ExperimentUUID = '' LIMIT 1`)
+	rows, err := db.CommonDB().Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
 	if err != nil {
 		return err
 	}
@@ -514,5 +588,17 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 			AND resource_references.ReferenceType = 'Experiment'
 			AND run_details.ExperimentUUID = ''
 	`)
+	return err
+}
+
+// Returns the same error, if it's not "already exists" related.
+// Otherwise, return nil.
+func ignoreAlreadyExistError(driverName string, err error) error {
+	if driverName == "pgx" && err != nil && strings.Contains(err.Error(), client.PGX_EXIST_ERROR) {
+		return nil
+	}
+	if driverName == "mysql" && err != nil && strings.Contains(err.Error(), client.MYSQL_EXIST_ERROR) {
+		return nil
+	}
 	return err
 }
