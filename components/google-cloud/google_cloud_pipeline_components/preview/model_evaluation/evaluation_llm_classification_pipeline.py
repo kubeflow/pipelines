@@ -15,16 +15,16 @@ _PIPELINE_NAME = 'evaluation-llm-classification-pipeline'
 
 
 @dsl.pipeline(name=_PIPELINE_NAME)
-def llm_eval_classification_pipeline(  # pylint: disable=dangerous-default-value
+def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default-value
     project: str,
     location: str,
     target_field_name: str,
+    batch_predict_gcs_source_uris: List[str],
     batch_predict_gcs_destination_output_uri: str,
     model_name: str = 'publishers/google/models/text-bison@001',
     evaluation_task: str = 'text-classification',
     evaluation_class_labels: List[str] = [],
     batch_predict_instances_format: str = 'jsonl',
-    batch_predict_gcs_source_uris: List[str] = [],
     batch_predict_predictions_format: str = 'jsonl',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
@@ -49,6 +49,13 @@ def llm_eval_classification_pipeline(  # pylint: disable=dangerous-default-value
     target_field_name: The target field's name. Formatted to be able to find
       nested columns, delimited by ``.``. Prefixed with 'instance.' on the
       component for Vertex Batch Prediction.
+    batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your
+      instances data to run batch prediction on. The instances data should also
+      contain the ground truth (target) data, used for evaluation. May contain
+      wildcards. For more information on wildcards, see
+      https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames. For
+        more details about this input config, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
       of the directory where the output is to be written to.
     model_name: The Model name used to run evaluation. Must be a publisher Model
@@ -64,13 +71,6 @@ def llm_eval_classification_pipeline(  # pylint: disable=dangerous-default-value
     batch_predict_instances_format: The format in which instances are given,
       must be one of the Model's supportedInputStorageFormats. For more details
       about this input config, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
-    batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your
-      instances data to run batch prediction on. The instances data should also
-      contain the ground truth (target) data, used for evaluation. May contain
-      wildcards. For more information on wildcards, see
-      https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames. For
-        more details about this input config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_predictions_format: The format in which Vertex AI gives the
       predictions. Must be one of the Model's supportedOutputStorageFormats. For
@@ -113,11 +113,10 @@ def llm_eval_classification_pipeline(  # pylint: disable=dangerous-default-value
       created.
 
   Returns:
-    NamedTuple:
-      evaluation_metrics: ClassificationMetrics Artifact for LLM Text
-        Classification.
-      evaluation_resource_name: If run on an user's managed VertexModel, the
-        imported evaluation resource name. Empty if run on a publisher model.
+    evaluation_metrics: ClassificationMetrics Artifact for LLM Text
+      Classification.
+    evaluation_resource_name: If run on an user's managed VertexModel, the
+      imported evaluation resource name. Empty if run on a publisher model.
   """
   outputs = NamedTuple(
       'outputs',
@@ -125,7 +124,7 @@ def llm_eval_classification_pipeline(  # pylint: disable=dangerous-default-value
       evaluation_resource_name=str,
   )
 
-  get_vertex_model_task = dsl.importer_node.importer(
+  get_vertex_model_task = dsl.importer(
       artifact_uri=(
           f'https://{location}-aiplatform.googleapis.com/v1/{model_name}'
       ),
