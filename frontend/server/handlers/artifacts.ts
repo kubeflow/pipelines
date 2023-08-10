@@ -288,7 +288,8 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         filePathInVolume: key,
       });
       if (parseError) {
-        res.status(404).send(`Failed to open volume, ${parseError}`);
+        console.log(`Failed to open volume: ${parseError}`);
+        res.status(404).send(`Failed to open volume.`);
         return;
       }
 
@@ -305,7 +306,8 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
-      res.status(500).send(`Failed to open volume: ${err}`);
+      console.log(`Failed to open volume: ${err}`);
+      res.status(500).send(`Failed to open volume.`);
     }
   };
 }
@@ -356,26 +358,8 @@ export function getArtifactsProxyHandler({
     },
     {
       changeOrigin: true,
-      onProxyReq: (proxyReq, req, res) => {
+      onProxyReq: proxyReq => {
         console.log('Proxied artifact request: ', proxyReq.path);
-        const namespace = getNamespaceFromUrl(req.url || '');
-        if (!namespace) {
-          console.log(`There is no namespace specified.`);
-          res.writeHead(500, {
-            'Content-Type': 'text/plain',
-          });
-          res.end(`Failed to open proxy: no namespace is specified.`);
-          return;
-        }
-        const urlStr = namespacedServiceGetter(namespace!);
-        if (!isAllowedDomain(urlStr, allowedDomain)) {
-          console.log(`Domain is not allowed.`);
-          res.writeHead(500, {
-            'Content-Type': 'text/plain',
-          });
-          res.end(`Domain is not allowed.`);
-          return;
-        }
       },
       pathRewrite: (pathStr, req) => {
         const url = new URL(pathStr || '', DUMMY_BASE_PATH);
@@ -384,6 +368,15 @@ export function getArtifactsProxyHandler({
       },
       router: req => {
         const namespace = getNamespaceFromUrl(req.url || '');
+        if (!namespace) {
+          console.log(`namespace query param expected in ${req.url}.`);
+          throw new Error(`namespace query param expected.`);
+        }
+        const urlStr = namespacedServiceGetter(namespace!);
+        if (!isAllowedDomain(urlStr, allowedDomain)) {
+          console.log(`Domain is not allowed.`);
+          throw new Error(`Domain is not allowed.`);
+        }
         return namespacedServiceGetter(namespace!);
       },
       target: '/artifacts',

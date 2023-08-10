@@ -14,10 +14,19 @@
 
 export function isAllowedDomain(urlStr: string, allowedDomain: string): boolean {
   const allowedRegExp = new RegExp(allowedDomain);
-  const url = new URL(urlStr);
-  const allowed = allowedRegExp.test(url.hostname);
+  const domain = domain_from_url(urlStr);
+  const allowed = allowedRegExp.test(domain);
   if (!allowed) {
     console.log(`Domain not allowed: ${urlStr}`);
   }
   return allowed;
+}
+
+function domain_from_url(url: string): string {
+  let result: string = '';
+  let match = url.match(/^(?:https?:\/\/)?(?:[^@\/\n]+@)?([^:\/?\n]+)/);
+  if (match) {
+    result = match[0];
+  }
+  return result;
 }
