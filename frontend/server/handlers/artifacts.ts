@@ -23,6 +23,7 @@ import proxy from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
 import * as fs from 'fs';
+import { isAllowedDomain } from './domain-checker';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -56,11 +57,12 @@ export function getArtifactsHandler({
     aws: AWSConfigs;
     http: HttpConfigs;
     minio: MinioConfigs;
+    allowedDomain: string;
   };
   tryExtract: boolean;
   useParameter: boolean;
 }): Handler {
-  const { aws, http, minio } = artifactsConfigs;
+  const { aws, http, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
     const source = useParameter ? req.params.source : req.query.source;
     const bucket = useParameter ? req.params.bucket : req.query.bucket;
@@ -109,6 +111,7 @@ export function getArtifactsHandler({
       case 'http':
       case 'https':
         getHttpArtifactsHandler(
+          allowedDomain,
           getHttpUrl(source, http.baseUrl || '', bucket, key),
           http.auth,
           peek,
@@ -126,7 +129,7 @@ export function getArtifactsHandler({
         break;
 
       default:
-        res.status(500).send('Unknown storage source: ' + source);
+        res.status(500).send('Unknown storage source');
         return;
     }
   };
@@ -146,6 +149,7 @@ function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, k
 }
 
 function getHttpArtifactsHandler(
+  allowedDomain: string,
   url: string,
   auth: {
     key: string;
@@ -162,9 +166,13 @@ function getHttpArtifactsHandler(
       headers[auth.key] =
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
     }
+    if (!isAllowedDomain(url, allowedDomain)) {
+      res.status(500).send(`Domain not allowed.`);
+      return;
+    }
     const response = await fetch(url, { headers });
     response.body
-      .on('error', err => res.status(500).send(`Unable to retrieve artifact at ${url}: ${err}`))
+      .on('error', err => res.status(500).send(`Unable to retrieve artifact: ${err}`))
       .pipe(new PreviewStream({ peek }))
       .pipe(res);
   };
@@ -178,20 +186,12 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', err =>
-          res
-            .status(500)
-            .send(
-              `Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`,
-            ),
-        )
+        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
       console.error(err);
-      res
-        .status(500)
-        .send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`);
+      res.status(500).send(`Failed to get object in bucket: ${err}`);
     }
   };
 }
@@ -288,7 +288,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         filePathInVolume: key,
       });
       if (parseError) {
-        res.status(404).send(`Failed to open volume://${bucket}/${key}, ${parseError}`);
+        res.status(404).send(`Failed to open volume, ${parseError}`);
         return;
       }
 
@@ -297,9 +297,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       if (stat.isDirectory()) {
         res
           .status(400)
-          .send(
-            `Failed to open volume://${bucket}/${key}, file ${filePath} is directory, does not support now`,
-          );
+          .send(`Failed to open volume file ${filePath} is directory, does not support now`);
         return;
       }
 
@@ -307,7 +305,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
-      res.status(500).send(`Failed to open volume://${bucket}/${key}: ${err}`);
+      res.status(500).send(`Failed to open volume: ${err}`);
     }
   };
 }
@@ -341,9 +339,11 @@ const QUERIES = {
 
 export function getArtifactsProxyHandler({
   enabled,
+  allowedDomain,
   namespacedServiceGetter,
 }: {
   enabled: boolean;
+  allowedDomain: string;
   namespacedServiceGetter: NamespacedServiceGetter;
 }): Handler {
   if (!enabled) {
@@ -356,8 +356,26 @@ export function getArtifactsProxyHandler({
     },
     {
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq, req, res) => {
         console.log('Proxied artifact request: ', proxyReq.path);
+        const namespace = getNamespaceFromUrl(req.url || '');
+        if (!namespace) {
+          console.log(`There is no namespace specified.`);
+          res.writeHead(500, {
+            'Content-Type': 'text/plain',
+          });
+          res.end(`Failed to open proxy: no namespace is specified.`);
+          return;
+        }
+        const urlStr = namespacedServiceGetter(namespace!);
+        if (!isAllowedDomain(urlStr, allowedDomain)) {
+          console.log(`Domain is not allowed.`);
+          res.writeHead(500, {
+            'Content-Type': 'text/plain',
+          });
+          res.end(`Domain is not allowed.`);
+          return;
+        }
       },
       pathRewrite: (pathStr, req) => {
         const url = new URL(pathStr || '', DUMMY_BASE_PATH);
@@ -366,10 +384,7 @@ export function getArtifactsProxyHandler({
       },
       router: req => {
         const namespace = getNamespaceFromUrl(req.url || '');
-        if (!namespace) {
-          throw new Error(`namespace query param expected in ${req.url}.`);
-        }
-        return namespacedServiceGetter(namespace);
+        return namespacedServiceGetter(namespace!);
       },
       target: '/artifacts',
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
