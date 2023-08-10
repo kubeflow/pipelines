@@ -14,9 +14,37 @@
 
 import os
 import re
-from typing import List
+from typing import List, Union
 
+import pkg_resources
 import setuptools
+
+
+def get_package_version() -> Union[str, None]:
+    try:
+        return pkg_resources.get_distribution('kfp').version
+    except pkg_resources.DistributionNotFound:
+        return None
+
+
+def uninstall_required() -> bool:
+    package_version = get_package_version()
+    if package_version is None:
+        return False
+
+    # prefer "python/python3 -m" to "pip/pip3" to ensure the pip being used is associated with the current python interpreter
+    # no special handling is needed for anaconda, since kfp is not available in the default conda channels and users likely use pip to handle this
+    kfp_version_parts = package_version.split('.')
+    major = int(kfp_version_parts[0])
+    minor = int(kfp_version_parts[1])
+    # needed to upgrade to >=2.1.3; 2.1.0, 2.1.1, and 2.1.2 don't exist
+    return major == 2 and minor < 1
+
+
+if uninstall_required():
+    raise Exception(
+        'To upgrade to kfp>=2.1 from a version <2.1, you must first uninstall the currently installed version of kfp.'
+    )
 
 
 def get_requirements(requirements_file: str) -> List[str]:
