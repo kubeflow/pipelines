@@ -594,10 +594,10 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 // Returns the same error, if it's not "already exists" related.
 // Otherwise, return nil.
 func ignoreAlreadyExistError(driverName string, err error) error {
-	if driverName == "pgx" && err != nil && strings.Contains(err.Error(), "already exists") {
+	if driverName == "pgx" && err != nil && strings.Contains(err.Error(), client.PGX_EXIST_ERROR) {
 		return nil
 	}
-	if driverName == "mysql" && err != nil && strings.Contains(err.Error(), "database exists") {
+	if driverName == "mysql" && err != nil && strings.Contains(err.Error(), client.MYSQL_EXIST_ERROR) {
 		return nil
 	}
 	return err

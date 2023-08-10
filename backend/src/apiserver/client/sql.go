@@ -23,7 +23,10 @@ import (
 
 const (
 	MYSQL_TEXT_FORMAT string = "longtext not null"
-	PGX_TEXT_FORMAT   string = "text"
+	MYSQL_EXIST_ERROR string = "database exists"
+
+	PGX_TEXT_FORMAT string = "text"
+	PGX_EXIST_ERROR string = "already exists"
 )
 
 func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
