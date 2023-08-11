@@ -3,11 +3,11 @@ kfp_endpoint = None
 import datetime
 import time
 
-import kfp.deprecated as kfp
-from kfp.deprecated.components import create_component_from_func
+import kfp as kfp
+from kfp import dsl
 
 
-@create_component_from_func
+@dsl.component
 def do_work_op(seconds: float = 60) -> str:
     import datetime
     import time
@@ -19,9 +19,10 @@ def do_work_op(seconds: float = 60) -> str:
     return datetime.datetime.now().isoformat()
 
 
+@kfp.dsl.pipeline(name='caching-pipeline')
 def caching_pipeline(seconds: float = 60):
     # All outputs of successful executions are cached
-    work_task = do_work_op(seconds)
+    work_task = do_work_op(seconds=seconds)
 
 
 # Test 1
@@ -36,7 +37,6 @@ kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
 ).wait_for_run_completion(timeout=999)
 elapsed_time = datetime.datetime.now() - start_time
 print(f"Total run time: {int(elapsed_time.total_seconds())} seconds")
-
 
 # Test 2
 # Running the pipeline the second time.
@@ -56,20 +56,14 @@ if elapsed_time.total_seconds() > 60:
 
 
 # Test 3
-# For each task we can specify the maximum cached data staleness.
-# For example: task.execution_options.caching_strategy.max_cache_staleness = "P7D"  # (7 days)
-# The `max_cache_staleness` attribute uses the [RFC3339 duration format](https://tools.ietf.org/html/rfc3339#appendix-A). For example: "P0D" (0 days), "PT5H" (5 hours; notice the "T")
-# Cached results that are older than the specified time span, are not reused.
-# In this case, the pipeline should not reuse the cached result, since they will be stale.
-
+# In this case, the pipeline should not reuse the cached result, since they are
+# disabled.
+@kfp.dsl.pipeline(name='caching-pipeline3')
 def caching_pipeline3(seconds: float = 60):
-    # All outputs of successful executions are cached
-    work_task = do_work_op(seconds)
-    # TODO(Ark-kun): Fix handling non-zero periods in the backend
-    work_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'  # = Period: Time: 0 seconds
+    work_task = do_work_op(seconds=seconds)
+    work_task.set_caching_options(enable_caching=False)
 
-# Waiting for some time for the cached data to become stale:
-time.sleep(10)
+
 print("Starting test 3")
 start_time = datetime.datetime.now()
 kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
