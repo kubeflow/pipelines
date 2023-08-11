@@ -33,32 +33,94 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: bucketName
-        - name: DBCONFIG_USER
+        # - name: DBCONFIG_USER
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: mysql-secret
+        #       key: username
+        # - name: DBCONFIG_PASSWORD
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: mysql-secret
+        #       key: password
+        # - name: DBCONFIG_DBNAME
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: pipeline-install-config
+        #       key: pipelineDb
+        # - name: DBCONFIG_HOST
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: pipeline-install-config
+        #       key: dbHost
+        # - name: DBCONFIG_PORT
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: pipeline-install-config
+        #       key: dbPort
+        # - name: DBCONFIG_CONMAXLIFETIME
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: pipeline-install-config
+        #       key: ConMaxLifeTime
+        - name: DB_DRIVER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbType
+        # MySQL Config
+        - name: DBCONFIG_MYSQLCONFIG_USER
           valueFrom:
             secretKeyRef:
               name: mysql-secret
               key: username
-        - name: DBCONFIG_PASSWORD
+        - name: DBCONFIG_MYSQLCONFIG_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mysql-secret
               key: password
-        - name: DBCONFIG_DBNAME
+        - name: DBCONFIG_MYSQLCONFIG_DBNAME
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: pipelineDb
-        - name: DBCONFIG_HOST
+              key: mysqlDbName
+        - name: DBCONFIG_MYSQLCONFIG_HOST
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: dbHost
-        - name: DBCONFIG_PORT
+              key: mysqlHost
+        - name: DBCONFIG_MYSQLCONFIG_PORT
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: dbPort
-        - name: DBCONFIG_CONMAXLIFETIME
+              key: mysqlPort
+        # PostgreSQL Config
+        - name: DBCONFIG_POSTGRESQLCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: username
+        - name: DBCONFIG_POSTGRESQLCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: DBCONFIG_POSTGRESQLCONFIG_DBNAME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: postgresDbName
+        - name: DBCONFIG_POSTGRESQLCONFIG_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: postgresHost
+        - name: DBCONFIG_POSTGRESQLCONFIG_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: postgresPort
+        - name: CONMAXLIFETIME
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
