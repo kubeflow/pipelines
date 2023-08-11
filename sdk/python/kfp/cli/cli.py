@@ -16,6 +16,8 @@ from itertools import chain
 import os
 
 import click
+import kfp
+from kfp import client
 from kfp.cli import component
 from kfp.cli import diagnose_me_cli
 from kfp.cli import dsl
@@ -27,9 +29,6 @@ from kfp.cli import run
 from kfp.cli.output import OutputFormat
 from kfp.cli.utils import aliased_plurals_group
 from kfp.cli.utils import parsing
-
-import kfp
-from kfp import client
 
 COMMANDS = {
     'client': {
