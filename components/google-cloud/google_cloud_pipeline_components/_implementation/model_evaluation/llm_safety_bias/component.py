@@ -1,6 +1,19 @@
+# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """LLM Safety Bias Metrics component used in KFP pipelines."""
 
-
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
 from kfp.dsl import Artifact
@@ -16,7 +29,6 @@ _IMAGE_URI = 'us-docker.pkg.dev/vertex-ai-restricted/llm-eval/llm-bias:v0.2'
 def llm_safety_bias_metrics(
     gcp_resources: OutputPath(str),
     llm_safety_bias_evaluation_metrics: Output[Artifact],
-    project: str,
     location: str = 'us-central1',
     slice_spec_gcs_source: str = '',
     predictions_gcs_source: str = '',
@@ -25,11 +37,11 @@ def llm_safety_bias_metrics(
     service_account: str = '',
     network: str = '',
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   """Aggregates LLM safety bias metrics based on specified data slices.
 
   Args:
-    project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     slice_spec_gcs_source: Google Cloud Storage location to file with JSONL
       slicing spec definition.
@@ -60,6 +72,8 @@ def llm_safety_bias_metrics(
       ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
       The key needs to be in the same region as where the compute resource is
       created.
+    project: The GCP project that runs the pipeline components. Defaults to the
+      project in which the PipelineJob is run.
 
   Returns:
     llm_safety_bias_evaluation_metrics: ``Artifact`` tracking the LLM safety
