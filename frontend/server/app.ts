@@ -131,6 +131,7 @@ function createUIServer(options: UIConfigs) {
     '/artifacts/*',
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
+      allowedDomain: options.artifacts.allowedDomain,
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
