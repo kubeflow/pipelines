@@ -33,7 +33,7 @@ import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
-import { logger } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
@@ -103,6 +103,7 @@ const css = stylesheet({
 });
 
 export function ExperimentDetailsFC(props: PageProps) {
+  const { updateBanner, updateDialog, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
   const Refresh = () => setRefresh(refreshed => !refreshed);
   const [toolbarState, setToolbarState] = useState<ToolbarProps>();
@@ -115,6 +116,8 @@ export function ExperimentDetailsFC(props: PageProps) {
     pageTitle: 'Runs',
     topLevelToolbar: false,
   });
+  const [runStorageState, setRunStorageState] = useState(V2beta1RunStorageState.AVAILABLE);
+  const [runlistRefreshCount, setRunlistRefreshCount] = useState(0);
 
   const experimentId = props.match.params[RouteParams.experimentId];
 
@@ -140,10 +143,68 @@ export function ExperimentDetailsFC(props: PageProps) {
   useEffect(() => {
     if (toolbarState) {
       toolbarState.pageTitle = experiment?.display_name!;
-      props.updateToolbar(toolbarState);
+      updateToolbar(toolbarState);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolbarState]);
+
+  const showPageError = async (message: string, error: Error | undefined) => {
+    const errorMessage = await errorToMessage(error);
+    updateBanner({
+      additionalInfo: errorMessage ? errorMessage : undefined,
+      message: message + (errorMessage ? ' Click Details for more information.' : ''),
+    });
+  };
+
+  const selectionChanged = (selectedIds: string[]) => {
+    const toolbarButtons = getRunInitialToolBarButtons(props, Refresh, selectedIds);
+    // If user selects to show Active runs list, shows `Archive` button for selected runs.
+    // If user selects to show Archive runs list, shows `Restore` button for selected runs.
+    if (runStorageState === V2beta1RunStorageState.AVAILABLE) {
+      toolbarButtons.archive(
+        'run',
+        () => selectedIds,
+        false,
+        ids => selectionChanged(ids),
+      );
+    } else {
+      toolbarButtons.restore(
+        'run',
+        () => selectedIds,
+        false,
+        ids => selectionChanged(ids),
+      );
+    }
+    const toolbarActions = toolbarButtons.getToolbarActionMap();
+    toolbarActions[ButtonKeys.COMPARE].disabled =
+      selectedIds.length <= 1 || selectedIds.length > 10;
+    toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
+    if (toolbarActions[ButtonKeys.ARCHIVE]) {
+      toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
+    }
+    if (toolbarActions[ButtonKeys.RESTORE]) {
+      toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
+    }
+    setRunListToolbarProps({
+      actions: toolbarActions,
+      breadcrumbs: runListToolbarProps.breadcrumbs,
+      pageTitle: runListToolbarProps.pageTitle,
+      topLevelToolbar: runListToolbarProps.topLevelToolbar,
+    });
+    setSelectedIds(selectedIds);
+  };
+
+  const onRunTabSwitch = (tab: RunListsGroupTab) => {
+    let updatedRunStorageState = V2beta1RunStorageState.AVAILABLE;
+    if (tab === RunListsGroupTab.ARCHIVE) {
+      updatedRunStorageState = V2beta1RunStorageState.ARCHIVED;
+    }
+    let updatedRunlistRefreshCount = runlistRefreshCount + 1;
+    setRunStorageState(updatedRunStorageState);
+    setRunlistRefreshCount(updatedRunlistRefreshCount);
+    setSelectedIds([]);
+    return;
+  };
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -191,7 +252,7 @@ export function ExperimentDetailsFC(props: PageProps) {
                 <Button
                   id='expandExperimentDescriptionBtn'
                   onClick={() =>
-                    props.updateDialog({
+                    updateDialog({
                       content: description,
                       title: 'Experiment description',
                     })
@@ -218,6 +279,17 @@ export function ExperimentDetailsFC(props: PageProps) {
             </Paper>
           </div>
           <Toolbar {...runListToolbarProps} />
+          <RunListsRouter
+            storageState={runStorageState}
+            onError={showPageError}
+            hideExperimentColumn={true}
+            experimentIdMask={experiment.experiment_id}
+            refreshCount={runlistRefreshCount}
+            selectedIds={selectedIds}
+            onSelectionChange={selectionChanged}
+            onTabSwitch={onRunTabSwitch}
+            {...props}
+          />
         </div>
       )}
     </div>
