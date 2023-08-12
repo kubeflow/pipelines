@@ -104,11 +104,18 @@ const css = stylesheet({
 
 export function ExperimentDetailsFC(props: PageProps) {
   const [refresh, setRefresh] = useState(true);
+  const Refresh = () => setRefresh(refreshed => !refreshed);
   const [toolbarState, setToolbarState] = useState<ToolbarProps>();
   const [activeRecurringRunsCount, setActiveRecurringRunsCount] = useState(0);
   const [recurringRunsManagerOpen, setRecurringRunsManagerOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [runListToolbarProps, setRunListToolbarProps] = useState<ToolbarProps>({
+    actions: getRunInitialToolBarButtons(props, Refresh, selectedIds).getToolbarActionMap(),
+    breadcrumbs: [],
+    pageTitle: 'Runs',
+    topLevelToolbar: false,
+  });
 
-  const Refresh = () => setRefresh(refreshed => !refreshed);
   const experimentId = props.match.params[RouteParams.experimentId];
 
   const { data: experiment } = useQuery<V2beta1Experiment, Error>(
@@ -210,6 +217,7 @@ export function ExperimentDetailsFC(props: PageProps) {
               {description.split('\n').length > 2 ? '...' : ''}
             </Paper>
           </div>
+          <Toolbar {...runListToolbarProps} />
         </div>
       )}
     </div>
@@ -228,4 +236,18 @@ function getInitialToolbarState(
     // TODO: determine what to show if no props.
     pageTitle: experiment.display_name!,
   };
+}
+
+function getRunInitialToolBarButtons(
+  props: PageProps,
+  refresh: () => void,
+  selectedIds: string[],
+): Buttons {
+  const buttons = new Buttons(props, refresh);
+  buttons
+    .newRun(() => props.match.params[RouteParams.experimentId])
+    .newRecurringRun(props.match.params[RouteParams.experimentId])
+    .compareRuns(() => selectedIds)
+    .cloneRun(() => selectedIds, false);
+  return buttons;
 }
