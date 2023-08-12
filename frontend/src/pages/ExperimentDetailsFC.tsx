@@ -105,6 +105,9 @@ const css = stylesheet({
 export function ExperimentDetailsFC(props: PageProps) {
   const [refresh, setRefresh] = useState(true);
   const [toolbarState, setToolbarState] = useState<ToolbarProps>();
+  const [activeRecurringRunsCount, setActiveRecurringRunsCount] = useState(0);
+  const [recurringRunsManagerOpen, setRecurringRunsManagerOpen] = useState(false);
+
   const Refresh = () => setRefresh(refreshed => !refreshed);
   const experimentId = props.match.params[RouteParams.experimentId];
 
@@ -118,6 +121,8 @@ export function ExperimentDetailsFC(props: PageProps) {
     },
     { enabled: !!experimentId, staleTime: Infinity },
   );
+
+  const description = experiment?.description || '';
 
   useEffect(() => {
     if (experiment) {
@@ -133,7 +138,82 @@ export function ExperimentDetailsFC(props: PageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolbarState]);
 
-  return <div>experiment details test</div>;
+  return (
+    <div className={classes(commonCss.page, padding(20, 'lrt'))}>
+      {experiment && (
+        <div className={commonCss.page}>
+          <div className={css.cardRow}>
+            <Paper
+              id='recurringRunsCard'
+              className={classes(
+                css.card,
+                css.recurringRunsCard,
+                !!activeRecurringRunsCount && css.cardActive,
+              )}
+              elevation={0}
+            >
+              <div>
+                <div className={css.cardTitle}>
+                  <span>Recurring run configs</span>
+                  <Button
+                    className={css.cardBtn}
+                    id='manageExperimentRecurringRunsBtn'
+                    disableRipple={true}
+                    onClick={() => setRecurringRunsManagerOpen(true)}
+                  >
+                    Manage
+                  </Button>
+                </div>
+                <div
+                  className={classes(
+                    css.cardContent,
+                    !!activeRecurringRunsCount && css.recurringRunsActive,
+                  )}
+                >
+                  {activeRecurringRunsCount + ' active'}
+                </div>
+              </div>
+            </Paper>
+            <Paper
+              id='experimentDescriptionCard'
+              className={classes(css.card, css.runStatsCard)}
+              elevation={0}
+            >
+              <div className={css.cardTitle}>
+                <span>Experiment description</span>
+                <Button
+                  id='expandExperimentDescriptionBtn'
+                  onClick={() =>
+                    props.updateDialog({
+                      content: description,
+                      title: 'Experiment description',
+                    })
+                  }
+                  className={classes(css.popOutIcon, 'popOutButton')}
+                >
+                  <Tooltip title='Read more'>
+                    <PopOutIcon style={{ fontSize: 18 }} />
+                  </Tooltip>
+                </Button>
+              </div>
+              {description
+                .split('\n')
+                .slice(0, 2)
+                .map((line, i) => (
+                  <div
+                    key={i}
+                    style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
+                    {line}
+                  </div>
+                ))}
+              {description.split('\n').length > 2 ? '...' : ''}
+            </Paper>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function getInitialToolbarState(
