@@ -206,6 +206,12 @@ export function ExperimentDetailsFC(props: PageProps) {
     return;
   };
 
+  const recurringRunsManagerClosed = () => {
+    setRecurringRunsManagerOpen(false);
+    // Reload the details to get any updated recurring runs
+    Refresh();
+  };
+
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {experiment && (
@@ -290,6 +296,28 @@ export function ExperimentDetailsFC(props: PageProps) {
             onTabSwitch={onRunTabSwitch}
             {...props}
           />
+
+          <Dialog
+            open={recurringRunsManagerOpen}
+            classes={{ paper: css.recurringRunsDialog }}
+            onClose={recurringRunsManagerClosed}
+          >
+            <DialogContent>
+              <RecurringRunsManager
+                {...props}
+                experimentId={props.match.params[RouteParams.experimentId]}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                id='closeExperimentRecurringRunManagerBtn'
+                onClick={recurringRunsManagerClosed}
+                color='secondary'
+              >
+                Close
+              </Button>
+            </DialogActions>
+          </Dialog>
         </div>
       )}
     </div>
