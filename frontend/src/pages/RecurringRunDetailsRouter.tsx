@@ -78,7 +78,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
       // return <RecurringRunDetailsV2 {...props} />;
-      return <RecurringRunDetailsV2FC {...props} recurringRun={v2RecurringRun} />;
+      return <RecurringRunDetailsV2FC {...props} />;
     }
   }
 

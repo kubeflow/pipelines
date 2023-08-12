@@ -30,15 +30,9 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { formatDateString, enabledDisplayStringV2 } from 'src/lib/Utils';
 import { triggerDisplayString } from 'src/lib/TriggerUtils';
 
-interface recurringRunDetailsV2FCProps {
-  recurringRun: V2beta1RecurringRun;
-}
-
-type recurringRunDetailsV2Props = recurringRunDetailsV2FCProps & PageProps;
-
 function getInitialToolbarState(
   recurringRun: V2beta1RecurringRun,
-  props: recurringRunDetailsV2Props,
+  props: PageProps,
   Refresh: () => void,
 ): ToolbarProps {
   const buttons = new Buttons(props, Refresh);
@@ -60,15 +54,13 @@ function getInitialToolbarState(
   };
 }
 
-export function RecurringRunDetailsV2FC(props: recurringRunDetailsV2Props) {
+export function RecurringRunDetailsV2FC(props: PageProps) {
   const [refresh, setRefresh] = useState(true);
-  const Refresh = () => setRefresh(refreshed => !refreshed);
-  const { recurringRun } = props;
-  const [toolbarState] = useState(getInitialToolbarState(recurringRun, props, Refresh));
+  const [toolbarState, setToolbarState] = useState<ToolbarProps>();
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
-  const experimentId = recurringRun.experiment_id!;
+  const Refresh = () => setRefresh(refreshed => !refreshed);
 
-  const { data: run, refetch: refetchRecurringRun } = useQuery<V2beta1RecurringRun, Error>(
+  const { data: recurringRun, refetch: refetchRecurringRun } = useQuery<V2beta1RecurringRun, Error>(
     ['recurringRun'],
     async () => {
       if (!recurringRunId) {
@@ -79,6 +71,7 @@ export function RecurringRunDetailsV2FC(props: recurringRunDetailsV2Props) {
     { enabled: !!recurringRunId, staleTime: 0, cacheTime: 0 },
   );
 
+  const experimentId = recurringRun?.experiment_id!;
   const { data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['experiment'],
     async () => {
@@ -91,15 +84,23 @@ export function RecurringRunDetailsV2FC(props: recurringRunDetailsV2Props) {
   );
 
   useEffect(() => {
-    toolbarState.actions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
-      run?.status === V2beta1RecurringRunStatus.ENABLED;
-    toolbarState.actions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
-      run?.status !== V2beta1RecurringRunStatus.ENABLED;
-    toolbarState.pageTitle = recurringRun.display_name!;
-    toolbarState.breadcrumbs = getBreadcrumbs(experiment);
-    props.updateToolbar(toolbarState);
+    if (recurringRun) {
+      setToolbarState(getInitialToolbarState(recurringRun, props, Refresh));
+    }
+  }, [recurringRun]);
+
+  useEffect(() => {
+    if (toolbarState) {
+      toolbarState.actions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
+        recurringRun?.status === V2beta1RecurringRunStatus.ENABLED;
+      toolbarState.actions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
+        recurringRun?.status !== V2beta1RecurringRunStatus.ENABLED;
+      toolbarState.pageTitle = recurringRun?.display_name!;
+      toolbarState.breadcrumbs = getBreadcrumbs(experiment);
+      props.updateToolbar(toolbarState);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toolbarState, experiment, recurringRun, run]);
+  }, [toolbarState, experiment, recurringRun]);
 
   useEffect(() => {
     refetchRecurringRun();
@@ -117,19 +118,21 @@ export function RecurringRunDetailsV2FC(props: recurringRunDetailsV2Props) {
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      <div className={commonCss.scrollContainer}>
-        <div className={padding(20)}>
-          <DetailsTable
-            title='Recurring run details'
-            fields={getRecurringRunDetails(recurringRun)}
-          ></DetailsTable>
-          <DetailsTable title='Run triggers' fields={getRunTriggers(recurringRun)}></DetailsTable>
-          <DetailsTable
-            title='Run parameters'
-            fields={getRunParameters(recurringRun)}
-          ></DetailsTable>
+      {recurringRun && (
+        <div className={commonCss.scrollContainer}>
+          <div className={padding(20)}>
+            <DetailsTable
+              title='Recurring run details'
+              fields={getRecurringRunDetails(recurringRun)}
+            ></DetailsTable>
+            <DetailsTable title='Run triggers' fields={getRunTriggers(recurringRun)}></DetailsTable>
+            <DetailsTable
+              title='Run parameters'
+              fields={getRunParameters(recurringRun)}
+            ></DetailsTable>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
