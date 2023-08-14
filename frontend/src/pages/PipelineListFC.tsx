@@ -48,9 +48,15 @@ interface DisplayPipeline extends V2beta1Pipeline {
 }
 
 export function PipelineListFC(props: pipelineListFCProps) {
-  const { namespace } = props;
+  const selectionChanged = (pipelineId: string | undefined, selectedIds: string[]) => {};
+  const { namespace, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
   const Refresh = () => setRefresh(refreshed => !refreshed);
+  const [toolbarState, setToolbarState] = useState<ToolbarProps>(
+    getInitialToolbarState([], {}, selectionChanged, props, Refresh),
+  );
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedVersionIds, setSelectedVersionIds] = useState({});
   const [displayPipelines, setDisplayPipelines] = useState<DisplayPipeline[]>([]);
 
   const [request, setRequest] = useState<ListRequest>({});
@@ -83,6 +89,18 @@ export function PipelineListFC(props: pipelineListFCProps) {
     }
   }, [pipelineList]);
 
+  useEffect(() => {
+    setToolbarState(
+      getInitialToolbarState(selectedIds, selectedVersionIds, selectionChanged, props, Refresh),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    );
+  }, [selectedIds, selectedVersionIds]);
+
+  useEffect(() => {
+    updateToolbar(toolbarState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toolbarState]);
+
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
       Display pipeline list here.
@@ -101,4 +119,28 @@ export function PipelineListFC(props: pipelineListFCProps) {
         /> */}
     </div>
   );
+}
+
+function getInitialToolbarState(
+  selectedIds: string[],
+  selectedVersionIds: { [pipelineId: string]: string[] },
+  selectionChanged: (pipelineId: string | undefined, selectedIds: string[]) => void,
+  props: PageProps,
+  refresh: () => void,
+) {
+  const buttons = new Buttons(props, refresh);
+  return {
+    actions: buttons
+      .newPipelineVersion('Upload pipeline')
+      .refresh(refresh)
+      .deletePipelinesAndPipelineVersions(
+        () => selectedIds,
+        () => selectedVersionIds,
+        (pipelineId, ids) => selectionChanged(pipelineId, ids),
+        false /* useCurrentResource */,
+      )
+      .getToolbarActionMap(),
+    breadcrumbs: [],
+    pageTitle: 'Pipelines',
+  };
 }
