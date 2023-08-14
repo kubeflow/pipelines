@@ -70,13 +70,13 @@ def model_evaluation_import(
     regression_metrics: google.ClassificationMetrics artifact generated from
       the ModelEvaluationRegressionOp component.
     text_generation_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.TextGenerationMetrics.
     question_answering_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.QuestionAnsweringMetrics.
     summarization_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.SummarizationMetrics.
     explanation: Path for model explanation metrics generated from an evaluation
       component.
