@@ -12,15 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from kfp import dsl
-
-# In tests, we install a KFP package from the PR under test. Users should not
-# normally need to specify `kfp_package_path` in their component definitions.
-_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+from kfp import compiler, dsl
 
 
-@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+@dsl.component
 def args_generator_op() -> str:
     return '[1.1, 1.2, 1.3]'
 
@@ -29,7 +24,7 @@ def args_generator_op() -> str:
 # got error: kfp.components.types.type_utils.InconsistentTypeException:
 # Incompatible argument passed to the input "s" of component "Print op": Argument
 # type "STRING" is incompatible with the input type "NUMBER_DOUBLE"
-@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+@dsl.component
 def print_op(s: str):
     print(s)
 
@@ -39,3 +34,6 @@ def my_pipeline():
     args_generator = args_generator_op()
     with dsl.ParallelFor(args_generator.output) as item:
         print_op(s=item)
+
+if __name__ == '__main__':
+    compiler.Compiler().compile(my_pipeline, __file__ + '.yaml')
