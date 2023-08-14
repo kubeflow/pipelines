@@ -182,7 +182,7 @@ def list_versions(ctx: click.Context, package_name: str):
 )
 @click.pass_context
 def delete_version(ctx: click.Context, package_name: str, version: str):
-    """Gets package version metadata."""
+    """Deletes package version."""
 
     client_obj: RegistryClient = ctx.obj['client']
     client_obj.delete_version(package_name, version)
@@ -223,7 +223,7 @@ def create_tag(ctx: click.Context, package_name: str, version: str, tag: str):
 )
 @click.pass_context
 def get_tag(ctx: click.Context, package_name: str, tag: str):
-    """Gets package version metadata."""
+    """Gets tag metadata."""
 
     client_obj: RegistryClient = ctx.obj['client']
     result = client_obj.get_tag(package_name, tag)
