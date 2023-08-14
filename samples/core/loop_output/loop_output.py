@@ -12,22 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.deprecated import components
-from kfp.deprecated import dsl
+import os
+from kfp import dsl
+
+# In tests, we install a KFP package from the PR under test. Users should not
+# normally need to specify `kfp_package_path` in their component definitions.
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 
-@components.create_component_from_func
+@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
 def args_generator_op() -> str:
     return '[1.1, 1.2, 1.3]'
 
 
-@components.create_component_from_func
-def print_op(s: float):
+# TODO(Bobgy): how can we make this component with type float?
+# got error: kfp.components.types.type_utils.InconsistentTypeException:
+# Incompatible argument passed to the input "s" of component "Print op": Argument
+# type "STRING" is incompatible with the input type "NUMBER_DOUBLE"
+@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+def print_op(s: str):
     print(s)
 
 
-@dsl.pipeline(name='pipeline-with-loop-output')
+@dsl.pipeline(name='pipeline-with-loop-output-v2')
 def my_pipeline():
     args_generator = args_generator_op()
     with dsl.ParallelFor(args_generator.output) as item:
-        print_op(item)
+        print_op(s=item)
