@@ -14,6 +14,7 @@
 
 from typing import Any, Dict, List, NamedTuple
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.preview.model_evaluation import FeatureAttributionGraphComponentOp
@@ -29,7 +30,6 @@ import kfp
     name='evaluation-automl-tabular-feature-attribution-classification-pipeline'
 )
 def evaluation_automl_tabular_feature_attribution_classification_pipeline(  # pylint: disable=dangerous-default-value
-    project: str,
     location: str,
     model_name: str,
     target_field_name: str,
@@ -56,6 +56,7 @@ def evaluation_automl_tabular_feature_attribution_classification_pipeline(  # py
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
     force_runner_mode: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ) -> NamedTuple(
     'outputs',
     evaluation_metrics=ClassificationMetrics,
@@ -70,7 +71,6 @@ def evaluation_automl_tabular_feature_attribution_classification_pipeline(  # py
 
 
   Args:
-    project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     model_name: The Vertex model resource name to be imported and used for batch
       prediction.
@@ -197,6 +197,8 @@ def evaluation_automl_tabular_feature_attribution_classification_pipeline(  # py
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
       are ``Dataflow`` and ``DirectRunner``.
+    project: The GCP project that runs the pipeline components. Defaults to the
+      project in which the PipelineJob is run.
 
   Returns:
       A google.ClassificationMetrics artifact.

@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
@@ -31,7 +32,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def model_batch_predict(
-    project: str,
     job_display_name: str,
     gcp_resources: OutputPath(str),
     batchpredictionjob: Output[VertexBatchPredictionJob],
@@ -62,6 +62,7 @@ def model_batch_predict(
     explanation_parameters: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Creates a Google Cloud Vertex `BatchPredictionJob <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs>`_ and waits for it to complete.
@@ -69,7 +70,6 @@ def model_batch_predict(
   For more details, see `BatchPredictionJob.Create <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create>`_.
 
   Args:
-      project: Project to create the BatchPredictionJob.
       job_display_name: The user-defined name of this BatchPredictionJob.
       location: Location for creating the BatchPredictionJob.
       instances_format: The format in which instances are
@@ -262,6 +262,7 @@ def model_batch_predict(
         ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
         The key needs to be in the same region as where the compute resource
         is created.
+      project: Project to create the BatchPredictionJob. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       batchpredictionjob: [**Deprecated. Use gcs_output_directory and bigquery_output_table

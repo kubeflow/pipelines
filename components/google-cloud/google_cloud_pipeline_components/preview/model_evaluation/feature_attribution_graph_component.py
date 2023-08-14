@@ -14,6 +14,7 @@
 
 from typing import List, NamedTuple
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluationDataSamplerOp
 from google_cloud_pipeline_components.preview.model_evaluation import ModelEvaluationFeatureAttributionOp
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
@@ -23,7 +24,6 @@ import kfp
 
 @kfp.dsl.pipeline(name='feature-attribution-graph-component')
 def feature_attribution_graph_component(  # pylint: disable=dangerous-default-value
-    project: str,
     location: str,
     prediction_type: str,
     vertex_model: VertexModel,
@@ -49,6 +49,7 @@ def feature_attribution_graph_component(  # pylint: disable=dangerous-default-va
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
     force_runner_mode: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ) -> NamedTuple('outputs', feature_attributions=kfp.dsl.Metrics):
   """A pipeline to compute feature attributions by sampling data for batch explanations.
 
@@ -56,7 +57,6 @@ def feature_attribution_graph_component(  # pylint: disable=dangerous-default-va
   valid explanation_spec.
 
   Args:
-    project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     prediction_type: The type of prediction the model is to produce.
       "classification", "regression", or "forecasting".
@@ -175,6 +175,8 @@ def feature_attribution_graph_component(  # pylint: disable=dangerous-default-va
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
       are ``Dataflow`` and ``DirectRunner``.
+    project: The GCP project that runs the pipeline components. Defaults to the
+      project in which the PipelineJob is run.
 
   Returns:
     A system.Metrics artifact with feature attributions.

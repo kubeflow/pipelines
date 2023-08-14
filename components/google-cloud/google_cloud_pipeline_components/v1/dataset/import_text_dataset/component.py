@@ -15,6 +15,7 @@
 from typing import Optional
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
@@ -25,19 +26,18 @@ from kfp.dsl import Output
 @utils.gcpc_output_name_converter('dataset')
 @dsl.container_component
 def text_dataset_import(
-    project: str,
     dataset: Input[VertexDataset],
     output__dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
     data_item_labels: Optional[dict] = {},
     gcs_source: Optional[str] = None,
     import_schema_uri: Optional[str] = None,
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Uploads data to an existing managed `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_.
 
   Args:
-      project: Project to retrieve Datasetfrom.
       location: Optional location to retrieve Datasetfrom.
       dataset: The Datasetto be updated.
       gcs_source:
@@ -65,6 +65,7 @@ def text_dataset_import(
           labels specified inside index file refenced by
           ``import_schema_uri``,
           e.g. jsonl file.
+      project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       dataset: Instantiated representation of the managed Datasetresource.

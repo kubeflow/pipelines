@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import ConcatPlaceholder
@@ -27,7 +28,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_ml_roc_curve_job(
-    project: str,
     model: Input[BQMLModel],
     roc_curve: Output[BQTable],
     gcp_resources: OutputPath(str),
@@ -38,12 +38,12 @@ def bigquery_ml_roc_curve_job(
     query_parameters: List[str] = [],
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery roc curve job and waits for it to finish.
 
   Args:
-      project: Project to run BigQuery roc curve job.
       location: Location of the job to run BigQuery roc curve
         job. If not set, default to `US` multi-region.  For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -73,6 +73,7 @@ def bigquery_ml_roc_curve_job(
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+      project: Project to run BigQuery roc curve job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       roc_curve: Describes common metrics applicable to the type of model supplied.

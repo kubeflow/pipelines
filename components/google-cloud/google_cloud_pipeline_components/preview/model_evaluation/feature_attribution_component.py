@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import Artifact
@@ -32,7 +33,6 @@ from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 def feature_attribution(
     gcp_resources: OutputPath(str),
     feature_attributions: Output[Metrics],
-    project: str,
     problem_type: str,
     location: str = 'us-central1',
     predictions_format: str = 'jsonl',
@@ -47,6 +47,7 @@ def feature_attribution(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
     force_runner_mode: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Compute feature attribution on a trained model's batch explanation
@@ -57,7 +58,6 @@ def feature_attribution(
   possible, typically possible for AutoML Classification models.
 
   Args:
-      project: Project to run feature attribution container.
       location: Location running feature attribution. If not
         set, defaulted to `us-central1`.
       problem_type: Problem type of the pipeline: one of `classification`,
@@ -95,6 +95,7 @@ def feature_attribution(
         Dataflow job will be encrypted with the provided encryption key.
       force_runner_mode: Flag to choose Beam runner. Valid options are `DirectRunner`
         and `Dataflow`.
+      project: Project to run feature attribution container. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       gcs_output_directory: JsonArray of the downsampled dataset GCS

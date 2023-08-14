@@ -15,6 +15,7 @@
 from typing import Dict, Optional
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
 from kfp.dsl import Output
@@ -22,7 +23,6 @@ from kfp.dsl import Output
 
 @dsl.container_component
 def image_dataset_create(
-    project: str,
     display_name: str,
     dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
@@ -31,6 +31,7 @@ def image_dataset_create(
     import_schema_uri: Optional[str] = None,
     labels: Optional[Dict[str, str]] = {},
     encryption_spec_key_name: Optional[str] = None,
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Creates a new image `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_ and optionally imports data into Dataset when
@@ -63,7 +64,6 @@ def image_dataset_create(
           pdf bytes). These labels will be overridden by Annotation
           labels specified inside index file refenced by
           ``import_schema_uri``, e.g. jsonl file.
-      project: Project to retrieve Dataset from.
       location: Optional location to retrieve Dataset from.
       labels: Labels with user-defined metadata to organize your Tensorboards.
           Label keys and values can be no longer than 64 characters
@@ -82,6 +82,7 @@ def image_dataset_create(
           resource is created.
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
           Overrides ``encryption_spec_key_name`` set in ``aiplatform.init``.
+      project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       dataset: Instantiated representation of the managed image Dataset resource.

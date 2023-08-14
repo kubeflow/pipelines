@@ -14,6 +14,7 @@
 
 from typing import List
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluatedAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluationDatasetPreprocessorOp as DatasetPreprocessorOp
@@ -27,7 +28,6 @@ import kfp
 
 @kfp.dsl.pipeline(name='evaluated-annotation-pipeline')
 def evaluated_annotation_pipeline(
-    project: str,
     location: str,
     model_name: str,
     batch_predict_gcs_destination_output_uri: str,
@@ -49,11 +49,11 @@ def evaluated_annotation_pipeline(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
     force_runner_mode: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   """The evaluation evaluated annotation pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     model_name: The Vertex model resource name to be imported and used for batch
       prediction.
@@ -134,6 +134,8 @@ def evaluated_annotation_pipeline(
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
       are ``Dataflow`` and ``DirectRunner``.
+    project: The GCP project that runs the pipeline components. Defaults to the
+      project in which the PipelineJob is run.
   """
   evaluation_display_name = 'evaluated-annotation-pipeline'
   get_model_task = GetVertexModelOp(model_name=model_name)

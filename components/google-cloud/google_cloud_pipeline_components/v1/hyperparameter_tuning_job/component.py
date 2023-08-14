@@ -15,6 +15,7 @@
 from typing import List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -23,7 +24,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def hyperparameter_tuning_job(
-    project: str,
     display_name: str,
     base_output_directory: str,
     worker_pool_specs: List[str],
@@ -39,6 +39,7 @@ def hyperparameter_tuning_job(
     encryption_spec_key_name: str = '',
     service_account: str = '',
     network: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Creates a Vertex AI hyperparameter tuning job and waits for
@@ -51,7 +52,6 @@ def hyperparameter_tuning_job(
       display_name: The user-defined name of the
         HyperparameterTuningJob. The name can be up to 128 characters long and
         can be consist of any UTF-8 characters.
-      project: Project to run the HyperparameterTuningJob in.
       base_output_directory: The Cloud Storage location to
         store the output of this HyperparameterTuningJob. The
         base_output_directory of each child CustomJob backing a Trial is set
@@ -142,6 +142,7 @@ def hyperparameter_tuning_job(
         ``projects/12345/global/networks/myVPC``. Private services access must
         already be configured for the network. If left unspecified, the job is
         not peered with any network.
+      project: Project to run the HyperparameterTuningJob in. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which contains the GCP resource ID of the Hyperparameter Tuning job.
