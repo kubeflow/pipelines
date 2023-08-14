@@ -15,6 +15,7 @@
 from typing import Optional
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
 from kfp.dsl import Input
@@ -23,11 +24,11 @@ from kfp.dsl import Output
 
 @dsl.container_component
 def video_dataset_export(
-    project: str,
     dataset: Input[VertexDataset],
     output_dir: str,
     exported_dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Exports `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_ to a GCS output directory.
@@ -45,8 +46,8 @@ def video_dataset_export(
           schema.yaml will be created to describe the output format.
           If the uri doesn't end with '/', a '/' will be automatically
           appended. The directory is created if it doesn't exist.
-      project: Project to retrieve Dataset from.
       location: Optional location to retrieve Dataset from.
+      project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       exported_dataset: All of the files that are exported in this export operation.

@@ -15,6 +15,7 @@
 from typing import Dict
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -25,7 +26,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_export_model_job(
-    project: str,
     model: Input[BQMLModel],
     model_destination_path: str,
     exported_model_path: OutputPath(str),
@@ -33,12 +33,12 @@ def bigquery_export_model_job(
     location: str = 'us-central1',
     job_configuration_extract: Dict[str, str] = {},
     labels: Dict[str, str] = {},
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery export model job and waits for it to finish.
 
   Args:
-      project: Project to run BigQuery model export job.
       location: Location of the job to export the BigQuery
         model. If not set, default to `US` multi-region.  For more details,
         see
@@ -57,6 +57,7 @@ def bigquery_export_model_job(
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+      project: Project to run BigQuery model export job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       exported_model_path: The gcs bucket path where you export the model to.

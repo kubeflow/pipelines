@@ -15,6 +15,7 @@
 from typing import Dict
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
@@ -29,7 +30,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def model_upload(
-    project: str,
     display_name: str,
     gcp_resources: OutputPath(str),
     model: Output[VertexModel],
@@ -41,6 +41,7 @@ def model_upload(
     explanation_parameters: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """`Uploads <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload>`_ a Google Cloud Vertex `Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_ and returns a Model artifact representing the uploaded Model
@@ -49,7 +50,6 @@ def model_upload(
   See `Model upload <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload>`_ method for more information.
 
   Args:
-      project: Project to upload this Model to.
       location: Optional location to upload this Model to. If
         not set, defaults to ``us-central1``.
       display_name: The display name of the Model. The name
@@ -90,6 +90,7 @@ def model_upload(
         numeric characters, underscores and dashes. International characters
         are allowed.  See https://goo.gl/xmQnxf for more information and
         examples of labels.
+      project: Project to upload this Model to. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       model: Artifact tracking the created Model.
