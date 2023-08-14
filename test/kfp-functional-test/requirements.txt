@@ -57,7 +57,7 @@ kubernetes==11.0.0
     # via kfp
 oauthlib==3.1.0
     # via requests-oauthlib
-protobuf==3.14.0
+protobuf==3.18.3
     # via
     #   google-api-core
     #   googleapis-common-protos
@@ -103,7 +103,6 @@ six==1.15.0
     #   jsonschema
     #   kfp-server-api
     #   kubernetes
-    #   protobuf
     #   python-dateutil
     #   websocket-client
 strip-hints==0.1.9
