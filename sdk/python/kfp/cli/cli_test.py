@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors
+# Copyright 2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -186,7 +186,8 @@ class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
 
     @parameterized.parameters(*noun_verb_list)
     def test(self, noun: str, verb: str):
-        with mock.patch('kfp.cli.cli.client.Client'):
+        with mock.patch('kfp.cli.cli.client.Client'), mock.patch(
+                'kfp.cli.registry.RegistryClient'):
             result = self.runner.invoke(
                 args=[noun, verb, '--help'],
                 cli=cli.cli,
