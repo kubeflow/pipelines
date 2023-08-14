@@ -19,6 +19,7 @@ import { classes } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { PageProps } from './Page';
 import PipelineList from './PipelineList';
+import { PipelineListFC } from './PipelineListFC';
 import { RoutePage } from '../components/Router';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { commonCss, padding } from '../Css';
@@ -59,6 +60,7 @@ const PrivateAndSharedPipelines: React.FC<PrivateAndSharedProps> = props => {
 
   if (!buildInfo?.apiServerMultiUser) {
     return <PipelineList {...props} />;
+    // return <PipelineListFC {...props} />
   }
   return (
     <div className={classes(commonCss.page, padding(20, 't'))}>
