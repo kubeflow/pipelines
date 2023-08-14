@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -186,14 +186,12 @@ class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
 
     @parameterized.parameters(*noun_verb_list)
     def test(self, noun: str, verb: str):
-        if noun == 'registry':
-            args = [noun, '--host', 'dummy-host', verb, '--help']
-        else:
-            args = [noun, verb, '--help']
-        with mock.patch('kfp.cli.cli.client.Client'), mock.patch(
-                'kfp.cli.registry.RegistryClient'):
+        with mock.patch('kfp.cli.cli.client.Client'):
             result = self.runner.invoke(
-                args=args, cli=cli.cli, catch_exceptions=False, obj={})
+                args=[noun, verb, '--help'],
+                cli=cli.cli,
+                catch_exceptions=False,
+                obj={})
             self.assertTrue(result.output.startswith('Usage: '))
             self.assertEqual(result.exit_code, 0)
 

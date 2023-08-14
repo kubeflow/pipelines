@@ -20,10 +20,7 @@ from kfp.registry import RegistryClient
 
 
 @click.group()
-@click.option(
-    '--host',
-    required=True,
-    help=parsing.get_param_descr(RegistryClient, 'host'))
+@click.option('--host', help=parsing.get_param_descr(RegistryClient, 'host'))
 @click.option(
     '--config-file',
     help=parsing.get_param_descr(RegistryClient, 'config_file'))
