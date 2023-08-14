@@ -36,12 +36,15 @@ PROBLEM_TYPE_TO_SCHEMA_URI = {
     'text-generation': 'gs://google-cloud-aiplatform/schema/modelevaluation/general_text_generation_metrics_1.0.0.yaml',
     'question-answering': 'gs://google-cloud-aiplatform/schema/modelevaluation/question_answering_metrics_1.0.0.yaml',
     'summarization': 'gs://google-cloud-aiplatform/schema/modelevaluation/summarization_metrics_1.0.0.yaml',
+    'embedding': 'gs://google-cloud-aiplatform/schema/modelevaluation/embedding_metrics_1.0.0.yaml',
 }
 
 MODEL_EVALUATION_RESOURCE_TYPE = 'ModelEvaluation'
 MODEL_EVALUATION_SLICE_RESOURCE_TYPE = 'ModelEvaluationSlice'
 SLICE_BATCH_IMPORT_LIMIT = 50
-ULM_TASKS = set(['text-generation', 'question-answering', 'summarization'])
+ULM_TASKS = set(
+    ['text-generation', 'question-answering', 'summarization', 'embedding']
+)
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -80,6 +83,12 @@ parser.add_argument(
 parser.add_argument(
     '--summarization_metrics',
     dest='summarization_metrics',
+    type=str,
+    default='',
+)
+parser.add_argument(
+    '--embedding_metrics',
+    dest='embedding_metrics',
     type=str,
     default='',
 )
@@ -167,6 +176,9 @@ def main(argv):
   elif parsed_args.summarization_metrics:
     metrics_file_path = parsed_args.summarization_metrics
     problem_type = 'summarization'
+  elif parsed_args.embedding_metrics:
+    metrics_file_path = parsed_args.embedding_metrics
+    problem_type = 'embedding'
   else:
     metrics_file_path = parsed_args.metrics
     problem_type = parsed_args.problem_type
