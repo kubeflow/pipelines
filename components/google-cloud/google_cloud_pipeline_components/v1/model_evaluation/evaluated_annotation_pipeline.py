@@ -23,11 +23,11 @@ from google_cloud_pipeline_components._implementation.model_evaluation import Mo
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from google_cloud_pipeline_components.v1.dataset import GetVertexDatasetOp
 from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
-import kfp
+from kfp import dsl
 
 
-@kfp.dsl.pipeline(name='evaluated-annotation-pipeline')
-def evaluated_annotation_pipeline(
+@dsl.pipeline(name='automl-vision-evaluated-annotation-pipeline')
+def evaluated_annotation_pipeline(  # pylint: disable=dangerous-default-value
     location: str,
     model_name: str,
     batch_predict_gcs_destination_output_uri: str,
@@ -56,7 +56,10 @@ def evaluated_annotation_pipeline(
   Args:
     location: The GCP region that runs the pipeline components.
     model_name: The Vertex model resource name to be imported and used for batch
-      prediction.
+      prediction, in the format of
+      ``projects/{project}/locations/{location}/models/{model}`` or
+      ``projects/{project}/locations/{location}/models/{model}@{model_version_id
+      or model_version_alias}``
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
       of the directory where the output is to be written to. In the given
       directory a new directory is created. Its name is
@@ -118,8 +121,8 @@ def evaluated_annotation_pipeline(
     dataflow_machine_type: The Dataflow machine type for evaluation components.
     dataflow_max_num_workers: The max number of Dataflow workers for evaluation
       components.
-    dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation
-      components.
+    dataflow_disk_size_gb: The disk size (in GB) of the machine executing the
+      evaluation run.
     dataflow_service_account: Custom service account to run Dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
@@ -137,8 +140,8 @@ def evaluated_annotation_pipeline(
     project: The GCP project that runs the pipeline components. Defaults to the
       project in which the PipelineJob is run.
   """
-  evaluation_display_name = 'evaluated-annotation-pipeline'
-  get_model_task = GetVertexModelOp(model_name=model_name)
+  evaluation_display_name = 'automl-vision-evaluated-annotation-pipeline'
+
   get_test_dataset_task = GetVertexDatasetOp(
       dataset_resource_name=test_dataset_resource_name
   )
@@ -149,7 +152,7 @@ def evaluated_annotation_pipeline(
       test_dataset_annotation_set_name=test_dataset_annotation_set_name,
       test_dataset_storage_source_uris=test_dataset_storage_source_uris,
   )
-
+  get_model_task = GetVertexModelOp(model_name=model_name)
   batch_predict_task = ModelBatchPredictOp(
       project=project,
       location=location,
@@ -207,7 +210,6 @@ def evaluated_annotation_pipeline(
       dataflow_use_public_ips=dataflow_use_public_ips,
       encryption_spec_key_name=encryption_spec_key_name,
   )
-
   model_evaluation_importer_task = ModelImportEvaluationOp(
       classification_metrics=eval_task.outputs['evaluation_metrics'],
       model=get_model_task.outputs['model'],
@@ -217,7 +219,6 @@ def evaluated_annotation_pipeline(
       ],
       display_name=evaluation_display_name,
   )
-
   ModelImportEvaluatedAnnotationOp(
       model=get_model_task.outputs['model'],
       evaluated_annotation_output_uri=evaluated_annotation_task.outputs[
