@@ -5,6 +5,6 @@ resources:
   - cache-deployment.yaml
 commonLabels:
   app: cache-server
-# images:
-#  - name: gcr.io/ml-pipeline/cache-server
-#    newTag: 2.0.0
+images:
+  - name: gcr.io/ml-pipeline/cache-server
+    newTag: 2.0.0

@@ -12,8 +12,9 @@ data:
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
   appVersion: 2.0.0
-  dbHost: mysql
-  dbPort: "3306"
+  dbType: postgres
+  dbHost: postgres
+  dbPort: "5432"
   mlmdDb: metadb
   cacheDb: cachedb
   pipelineDb: mlpipeline
