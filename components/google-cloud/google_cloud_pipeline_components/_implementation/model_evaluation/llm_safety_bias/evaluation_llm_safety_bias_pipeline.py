@@ -17,7 +17,7 @@ from typing import NamedTuple
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components._implementation.model_evaluation import LLMSafetyBiasMetricsOp
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.component import llm_safety_bias_metrics as LLMSafetyBiasMetricsOp
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 from kfp import dsl
 from kfp.dsl import Artifact
