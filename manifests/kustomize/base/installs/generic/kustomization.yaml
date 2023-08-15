@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 bases:
 - ../../pipeline
-- ../../cache/overlays/mysql
+- ../../cache
 - ../../cache-deployer
 resources:
 - pipeline-install-config.yaml

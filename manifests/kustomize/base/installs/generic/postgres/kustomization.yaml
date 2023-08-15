@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 bases:
 - ../../../pipeline
-- ../../../cache/overlays/postgres
+- ../../../cache/postgres
 - ../../../cache-deployer
 resources:
 - pipeline-install-config.yaml
