@@ -1,5 +1,10 @@
 ## Upcoming release
 
+## Release 2.2.0
+* Add `preview.model_evaluation.evaluation_llm_classification_pipeline.evaluation_llm_classification_pipeline`
+* Change AutoML Vision Error Analysis pipeline names (`v1.model_evaluation.vision_model_error_analysis_pipeline' and 'v1.model_evaluation.evaluated_annotation_pipeline')
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
 ## Release 2.1.1
 * Add `preview.model_evaluation.FeatureAttributionGraphComponentOp` pipeline
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates)
