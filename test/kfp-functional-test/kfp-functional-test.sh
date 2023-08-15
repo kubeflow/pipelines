@@ -1,5 +1,5 @@
 #!/bin/sh -ex
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@ apt-get update -y
 apt --no-install-recommends -y -q install curl
 source_root="$(pwd)"
 
-# TODO(#4853) Skipping pip 20.3 due to a bad version resolution logic.
-python3 -m pip install --upgrade pip!=20.3.*
 python3 -m pip install -r "${source_root}/test/kfp-functional-test/requirements.txt"
 HOST="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"
 
