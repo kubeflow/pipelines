@@ -19,25 +19,31 @@ from google_cloud_pipeline_components._implementation.model_evaluation.data_samp
 from google_cloud_pipeline_components._implementation.model_evaluation.dataset_preprocessor.component import dataset_preprocessor_error_analysis as EvaluationDatasetPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.error_analysis_annotation.component import error_analysis_annotation as ErrorAnalysisAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.evaluated_annotation.component import evaluated_annotation as EvaluatedAnnotationOp
+from google_cloud_pipeline_components._implementation.model_evaluation.feature_attribution.feature_attribution_component import feature_attribution as ModelEvaluationFeatureAttributionOp
+from google_cloud_pipeline_components._implementation.model_evaluation.feature_attribution.feature_attribution_graph_component import feature_attribution_graph_component as FeatureAttributionGraphComponentOp
 from google_cloud_pipeline_components._implementation.model_evaluation.feature_extractor.component import feature_extractor_error_analysis as FeatureExtractorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluated_annotation.component import evaluated_annotation_import as ModelImportEvaluatedAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_classification_postprocessor.component import llm_classification_predictions_postprocessor_graph_component as LLMEvaluationClassificationPredictionsPostprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_evaluation.component import model_evaluation_text_generation as LLMEvaluationTextGenerationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.component import llm_safety_bias_metrics as LLMSafetyBiasMetricsOp
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.evaluation_llm_safety_bias_pipeline import evaluation_llm_safety_bias_pipeline
 from google_cloud_pipeline_components._implementation.model_evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
 
 
 __all__ = [
+    'evaluation_llm_safety_bias_pipeline',
     'EvaluationDataSamplerOp',
     'EvaluationDatasetPreprocessorOp',
     'ErrorAnalysisAnnotationOp',
     'EvaluatedAnnotationOp',
+    'FeatureAttributionGraphComponentOp',
     'FeatureExtractorOp',
     'LLMEvaluationClassificationPredictionsPostprocessorOp',
     'LLMEvaluationTextGenerationOp',
+    'LLMSafetyBiasMetricsOp',
+    'ModelEvaluationFeatureAttributionOp',
     'ModelImportEvaluatedAnnotationOp',
     'ModelImportEvaluationOp',
-    'LLMSafetyBiasMetricsOp',
     'TargetFieldDataRemoverOp',
 ]

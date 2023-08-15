@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Graph Component for feature attribution evaluation."""
 
 from typing import List, NamedTuple
 
 from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components._implementation.model_evaluation import EvaluationDataSamplerOp
-from google_cloud_pipeline_components.preview.model_evaluation.feature_attribution_component import feature_attribution as ModelEvaluationFeatureAttributionOp
+from google_cloud_pipeline_components._implementation.model_evaluation.data_sampler.component import evaluation_data_sampler as EvaluationDataSamplerOp
+from google_cloud_pipeline_components._implementation.model_evaluation.feature_attribution.feature_attribution_component import feature_attribution as ModelEvaluationFeatureAttributionOp
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 import kfp
