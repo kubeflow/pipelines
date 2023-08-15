@@ -1,5 +1,4 @@
-#!/bin/bash -ex
-# Copyright 2023 Kubeflow Pipelines contributors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Importer-based component."""
 
-source_root=$(pwd)
+from kfp.dsl import base_component
+from kfp.dsl import structures
 
-pip install --upgrade pip
-pip install -e $source_root/sdk/python/kfp-dsl
-pip install pyyaml
-pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
-pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 
-pytest sdk/python/kfp-dsl
+class ImporterComponent(base_component.BaseComponent):
+    """Component defined via dsl.importer."""
+
+    def __init__(
+        self,
+        component_spec: structures.ComponentSpec,
+    ):
+        super().__init__(component_spec=component_spec)
+
+    def execute(self, **kwargs):
+        raise NotImplementedError

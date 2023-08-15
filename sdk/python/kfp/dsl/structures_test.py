@@ -22,7 +22,6 @@ from absl.testing import parameterized
 from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp.components import load_yaml_utilities
 from kfp.dsl import component_factory
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -264,7 +263,7 @@ class StructuresTest(parameterized.TestCase):
             # test that it can be read back correctly
             with open(output_path, 'r') as f:
                 contents = f.read()
-            new_component_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+            new_component_spec = structures.ComponentSpec.from_yaml_documents(
                 contents)
 
         self.assertEqual(original_component_spec, new_component_spec)
@@ -319,7 +318,7 @@ schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.2
         """)
 
-        generated_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+        generated_spec = structures.ComponentSpec.from_yaml_documents(
             component_yaml_v2)
 
         expected_spec = structures.ComponentSpec(
@@ -360,8 +359,7 @@ sdkVersion: kfp-2.0.0-alpha.2
     )
     def test_component_spec_placeholder_load_from_v2_component_yaml(
             self, yaml, expected_component):
-        generated_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
-            yaml)
+        generated_spec = structures.ComponentSpec.from_yaml_documents(yaml)
         self.assertEqual(generated_spec, expected_component)
 
     def test_component_spec_load_from_v1_component_yaml(self):
@@ -390,7 +388,7 @@ sdkVersion: kfp-2.0.0-alpha.2
             - {outputPath: Output 2}
         """)
 
-        generated_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+        generated_spec = structures.ComponentSpec.from_yaml_documents(
             component_yaml_v1)
 
         expected_spec = structures.ComponentSpec(
@@ -641,7 +639,7 @@ V1_YAML = textwrap.dedent("""\
 class TestReadInComponent(parameterized.TestCase):
 
     def test_read_v1(self):
-        component_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+        component_spec = structures.ComponentSpec.from_yaml_documents(
             V1_YAML_IF_PLACEHOLDER)
         self.assertEqual(component_spec.name, 'component-if')
         self.assertEqual(component_spec.implementation.container.image,
@@ -696,7 +694,7 @@ root:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.2""")
-        loaded_component_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+        loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
             compiled_yaml)
         component_spec = structures.ComponentSpec(
             name='component1',
@@ -764,7 +762,7 @@ root:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.2""")
-        loaded_component_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+        loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
             compiled_yaml)
         component_spec = structures.ComponentSpec(
             name='if',
@@ -835,7 +833,7 @@ root:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.2""")
-        loaded_component_spec = load_yaml_utilities._load_component_spec_from_yaml_documents(
+        loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
             compiled_yaml)
         component_spec = structures.ComponentSpec(
             name='concat',
@@ -1113,6 +1111,48 @@ implementation:
         self.assertEqual(outputs['output2'].type, 'List')
         self.assertEqual(outputs['output3'].type, 'Dict')
         self.assertEqual(outputs['output4'].type, 'Dict')
+
+
+class TestLoadDocumentsFromYAML(unittest.TestCase):
+
+    def test_no_documents(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Expected one or two YAML documents in the IR YAML file\. Got\: 0\.'
+        ):
+            structures.load_documents_from_yaml('')
+
+    def test_one_document(self):
+        doc1, doc2 = structures.load_documents_from_yaml(
+            textwrap.dedent("""\
+            key1: value1
+            """))
+        self.assertEqual(doc1, {'key1': 'value1'})
+        self.assertEqual(doc2, {})
+
+    def test_two_documents(self):
+        doc1, doc2 = structures.load_documents_from_yaml(
+            textwrap.dedent("""\
+            key1: value1
+            ---
+            key2: value2
+            """))
+        self.assertEqual(doc1, {'key1': 'value1'})
+        self.assertEqual(doc2, {'key2': 'value2'})
+
+    def test_three_documents(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Expected one or two YAML documents in the IR YAML file\. Got\: 3\.'
+        ):
+            structures.load_documents_from_yaml(
+                textwrap.dedent("""\
+                key3: value3
+                ---
+                key3: value3
+                ---
+                key3: value3
+                """))
 
 
 if __name__ == '__main__':
