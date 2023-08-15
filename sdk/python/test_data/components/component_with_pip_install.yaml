@@ -19,7 +19,7 @@ deploymentSpec:
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location --index-url\
           \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'yapf'\
-          \ 'kfp-dsl==2.0.1' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.1' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)

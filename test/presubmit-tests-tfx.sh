@@ -30,7 +30,7 @@ pip3 install junit_xml
 # Using Argo to lint all compiled workflows
 "${source_root}/test/install-argo-cli.sh"
 
-source $source_root/sdk/python/install_from_source.sh
+python3 -m pip install sdk/python
 
 # Test against TFX
 # Compile and setup bazel for compiling the protos

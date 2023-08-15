@@ -24,7 +24,7 @@ python3 -m pip install $(grep 'pytest-xdist==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-cov==' sdk/python/requirements-dev.txt)
 python3 -m pip install --upgrade protobuf
 
-source $source_root/sdk/python/install_from_source.sh
+python3 -m pip install sdk/python
 
 # TODO: remove deprecated dependency; then remove --ignore arg
 pytest sdk/python/kfp --ignore=sdk/python/kfp/deprecated --cov=kfp
