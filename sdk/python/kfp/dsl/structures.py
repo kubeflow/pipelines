@@ -668,8 +668,8 @@ class ComponentSpec:
                 continue
 
             elif isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
@@ -721,8 +721,8 @@ class ComponentSpec:
                 type_ = type_utils.get_canonical_name_for_outer_generic(type_)
 
             if isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
