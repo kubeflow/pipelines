@@ -58,6 +58,20 @@ export function PipelineListFC(props: pipelineListFCProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedVersionIds, setSelectedVersionIds] = useState({});
   const [displayPipelines, setDisplayPipelines] = useState<DisplayPipeline[]>([]);
+  // const [columns, setColumns] = useState<Column[]>();
+  const [rows, setRows] = useState<Row[]>([]);
+  const [nextPageToken, setNextPageToken] = useState<string>('');
+
+  const columns: Column[] = [
+    {
+      customRenderer: nameCustomRenderer,
+      flex: 1,
+      label: 'Pipeline name',
+      sortKey: PipelineSortKeys.NAME,
+    },
+    { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
+    { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
+  ];
 
   const [request, setRequest] = useState<ListRequest>({});
 
@@ -73,6 +87,7 @@ export function PipelineListFC(props: pipelineListFCProps) {
           request.sortBy,
           request.filter,
         );
+        setNextPageToken(pipelineListResponse.next_page_token || '');
         return pipelineListResponse.pipelines ?? [];
       } catch (err) {
         throw new Error('Error: failed to retrieve list of pipelines.');
@@ -101,22 +116,38 @@ export function PipelineListFC(props: pipelineListFCProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolbarState]);
 
+  useEffect(() => {
+    const rows = displayPipelines.map(p => {
+      return {
+        expandState: p.expandState,
+        id: p.pipeline_id!,
+        otherFields: [p.display_name!, p.description!, formatDateString(p.created_at!)],
+      };
+    });
+    setRows(rows);
+  }, [displayPipelines]);
+
+  const reload = async (listRequest: ListRequest) => {
+    refetchPipelineList();
+    return nextPageToken;
+  };
+
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
       Display pipeline list here.
-      {/* <CustomTable
-          ref={this._tableRef}
-          columns={columns}
-          rows={rows}
-          initialSortColumn={PipelineSortKeys.CREATED_AT}
-          updateSelection={this._selectionChanged.bind(this, undefined)}
-          selectedIds={this.state.selectedIds}
-          reload={this._reload.bind(this)}
-          toggleExpansion={this._toggleRowExpand.bind(this)}
-          getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
-          filterLabel='Filter pipelines'
-          emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
-        /> */}
+      <CustomTable
+        // ref={this._tableRef}
+        columns={columns}
+        rows={rows}
+        initialSortColumn={PipelineSortKeys.CREATED_AT}
+        // updateSelection={this._selectionChanged.bind(this, undefined)}
+        selectedIds={selectedIds}
+        reload={reload}
+        // toggleExpansion={this._toggleRowExpand.bind(this)}
+        // getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
+        filterLabel='Filter pipelines'
+        emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
+      />
     </div>
   );
 }
@@ -144,3 +175,25 @@ function getInitialToolbarState(
     pageTitle: 'Pipelines',
   };
 }
+
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
+  return <Description description={props.value || ''} forceInline={true} />;
+};
+
+const nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
+  return (
+    <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+      <Link
+        onClick={e => e.stopPropagation()}
+        className={commonCss.link}
+        to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
+      >
+        {props.value || ''}
+      </Link>
+    </Tooltip>
+  );
+};
