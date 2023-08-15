@@ -8,10 +8,6 @@ bases:
 resources:
 - pipeline-install-config.yaml
 - mysql-secret.yaml
-# postgres-secret.yaml is not used in mysql deployment. The file is 
-# added because ml-pipeline-apiserver-deployment.yaml requires the 
-# secret to be available.
-# - postgres-secret.yaml
 vars:
 - name: kfp-namespace
   objref:

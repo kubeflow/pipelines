@@ -39,7 +39,6 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: mlmdDb
-              # key: mysqlMlmdDb
         - name: MYSQL_HOST
           valueFrom:
             configMapKeyRef:
