@@ -5,7 +5,7 @@ bases:
   # Application controller is used to provide Google Cloud Console integration.
   - ../../third-party/application
   - ../../base/application
-  - ../platform-agnostic-mysql
+  - ../platform-agnostic
   - ../gcp/inverse-proxy
 
 # Identifier for application manager to apply ownerReference.
