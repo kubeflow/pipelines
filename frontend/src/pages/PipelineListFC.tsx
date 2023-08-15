@@ -58,9 +58,14 @@ export function PipelineListFC(props: pipelineListFCProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedVersionIds, setSelectedVersionIds] = useState({});
   const [displayPipelines, setDisplayPipelines] = useState<DisplayPipeline[]>([]);
-  // const [columns, setColumns] = useState<Column[]>();
   const [rows, setRows] = useState<Row[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string>('');
+  const [request, setRequest] = useState<ListRequest>({
+    pageToken: '',
+    pageSize: 10,
+    sortBy: 'created_at desc',
+    filter: '',
+  });
 
   const columns: Column[] = [
     {
@@ -73,9 +78,11 @@ export function PipelineListFC(props: pipelineListFCProps) {
     { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
   ];
 
-  const [request, setRequest] = useState<ListRequest>({});
-
-  const { data: pipelineList, refetch: refetchPipelineList } = useQuery<V2beta1Pipeline[], Error>(
+  const {
+    isFetched: pipelineIsFetched,
+    data: pipelineList,
+    refetch: refetchPipelineList,
+  } = useQuery<V2beta1Pipeline[], Error>(
     ['pipelineList'],
     async () => {
       let pipelineListResponse: V2beta1ListPipelinesResponse;
@@ -107,8 +114,8 @@ export function PipelineListFC(props: pipelineListFCProps) {
   useEffect(() => {
     setToolbarState(
       getInitialToolbarState(selectedIds, selectedVersionIds, selectionChanged, props, Refresh),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, selectedVersionIds]);
 
   useEffect(() => {
@@ -127,27 +134,34 @@ export function PipelineListFC(props: pipelineListFCProps) {
     setRows(rows);
   }, [displayPipelines]);
 
-  const reload = async (listRequest: ListRequest) => {
+  useEffect(() => {
     refetchPipelineList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request]);
+
+  const reload = async (listRequest: ListRequest) => {
+    setRequest(listRequest);
     return nextPageToken;
   };
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
       Display pipeline list here.
-      <CustomTable
-        // ref={this._tableRef}
-        columns={columns}
-        rows={rows}
-        initialSortColumn={PipelineSortKeys.CREATED_AT}
-        // updateSelection={this._selectionChanged.bind(this, undefined)}
-        selectedIds={selectedIds}
-        reload={reload}
-        // toggleExpansion={this._toggleRowExpand.bind(this)}
-        // getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
-        filterLabel='Filter pipelines'
-        emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
-      />
+      {pipelineIsFetched && (
+        <CustomTable
+          // ref={this._tableRef}
+          columns={columns}
+          rows={rows}
+          initialSortColumn={PipelineSortKeys.CREATED_AT}
+          // updateSelection={this._selectionChanged.bind(this, undefined)}
+          selectedIds={selectedIds}
+          reload={reload}
+          // toggleExpansion={this._toggleRowExpand.bind(this)}
+          // getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
+          filterLabel='Filter pipelines'
+          emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
+        />
+      )}
     </div>
   );
 }
