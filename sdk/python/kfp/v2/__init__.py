@@ -21,6 +21,6 @@ warnings.warn(
     category=DeprecationWarning,
     stacklevel=2)
 
-from kfp import compiler  # noqa: keep unused import
-from kfp import components  # noqa: keep unused import
-from kfp import dsl  # noqa: keep unused import
+from kfp import compiler
+from kfp import components
+from kfp import dsl

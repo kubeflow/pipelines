@@ -1748,7 +1748,6 @@ def _validate_dag_output_types(
             output_spec,
             error_message_prefix,
             checks_input=False,
-            raise_on_error=kfp.TYPE_CHECK,
         )
 
 
@@ -1771,7 +1770,7 @@ def convert_pipeline_outputs_to_dict(
 
 def write_pipeline_spec_to_file(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    pipeline_description: Union[str, None],
+    pipeline_description: str,
     platform_spec: pipeline_spec_pb2.PlatformSpec,
     package_path: str,
 ) -> None:
