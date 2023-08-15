@@ -20,7 +20,6 @@ import textwrap
 from typing import Callable, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
-from kfp import dsl
 from kfp.dsl import container_component_artifact_channel
 from kfp.dsl import container_component_class
 from kfp.dsl import graph_component
@@ -176,10 +175,7 @@ def extract_component_interface(
 
     original_docstring = inspect.getdoc(func)
 
-    try:
-        import docstring_parser
-    except ImportError as e:
-        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+    import docstring_parser
 
     parsed_docstring = docstring_parser.parse(original_docstring)
 

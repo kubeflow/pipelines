@@ -19,7 +19,7 @@ import json
 from typing import Any, Callable, Dict, Optional, Type, Union
 import warnings
 
-from kfp import dsl
+import kfp
 from kfp.dsl import structures
 from kfp.dsl import task_final_status
 from kfp.dsl.types import artifact_types
@@ -155,10 +155,7 @@ def bundled_artifact_to_artifact_proto(
     `<namespace>.<Name>@x.x.x` (e.g., system.Artifact@0.0.1)."""
     bundled_artifact_str, schema_version = bundled_artifact_str.split('@')
 
-    try:
-        from kfp.pipeline_spec import pipeline_spec_pb2
-    except ImportError as e:
-        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+    from kfp.pipeline_spec import pipeline_spec_pb2
 
     return pipeline_spec_pb2.ArtifactTypeSchema(
         schema_title=bundled_artifact_str,
@@ -196,10 +193,8 @@ def get_parameter_type(
 def get_parameter_type_name(
         param_type: Optional[Union[Type, str, dict]]) -> str:
     """Gets the parameter type name."""
-    try:
-        from kfp.pipeline_spec import pipeline_spec_pb2
-    except ImportError as e:
-        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+
+    from kfp.pipeline_spec import pipeline_spec_pb2
 
     return pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
         get_parameter_type(param_type))
@@ -414,21 +409,12 @@ class TypeCheckManager:
         Returns:
             TypeCheckManager: Returns itself.
         """
-        try:
-            import kfp
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
 
         self._prev = kfp.TYPE_CHECK
         kfp.TYPE_CHECK = self._enable
         return self
 
     def __exit__(self, *unused_args) -> None:
-
-        try:
-            import kfp
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
         """Restore type check mode to its previous state."""
         kfp.TYPE_CHECK = self._prev
 

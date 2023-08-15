@@ -17,7 +17,6 @@ import inspect
 from typing import Callable, Optional
 import uuid
 
-from kfp import dsl
 from kfp.dsl import base_component
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
@@ -64,10 +63,7 @@ class GraphComponent(base_component.BaseComponent):
         pipeline_group = dsl_pipeline.groups[0]
         pipeline_group.name = uuid.uuid4().hex
 
-        try:
-            from kfp.compiler import pipeline_spec_builder as builder
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+        from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec, platform_spec = builder.create_pipeline_spec(
             pipeline=dsl_pipeline,

@@ -21,7 +21,7 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, Union
 import uuid
 
-from kfp import dsl
+import kfp
 from kfp.dsl import placeholders
 from kfp.dsl import utils
 from kfp.dsl import v1_structures
@@ -377,11 +377,8 @@ class RetryPolicy:
         backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
         backoff_max_duration_seconds = f'{min(convert_duration_to_seconds(backoff_max_duration), 3600)}s'
 
-        try:
-            from google.protobuf import json_format
-            from kfp.pipeline_spec import pipeline_spec_pb2
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+        from google.protobuf import json_format
+        from kfp.pipeline_spec import pipeline_spec_pb2
 
         return json_format.ParseDict(
             {
@@ -483,11 +480,8 @@ class Implementation:
             return Implementation(container=container_spec)
         else:
 
-            try:
-                from google.protobuf import json_format
-                from kfp.pipeline_spec import pipeline_spec_pb2
-            except ImportError as e:
-                raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+            from google.protobuf import json_format
+            from kfp.pipeline_spec import pipeline_spec_pb2
 
             pipeline_spec = json_format.ParseDict(
                 pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec())
@@ -561,10 +555,7 @@ def check_placeholder_references_valid_io_name(
 
 
 def _import_and_make_platform_spec() -> 'pipeline_spec_pb2.PlatformSpec':
-    try:
-        from kfp.pipeline_spec import pipeline_spec_pb2
-    except ImportError as e:
-        raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+    from kfp.pipeline_spec import pipeline_spec_pb2
     return pipeline_spec_pb2.PlatformSpec()
 
 
@@ -671,10 +662,7 @@ class ComponentSpec:
 
         inputs = {}
 
-        try:
-            from kfp.pipeline_spec import pipeline_spec_pb2
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+        from kfp.pipeline_spec import pipeline_spec_pb2
 
         for spec in component_dict.get('inputs', []):
             type_ = spec.get('type')
@@ -848,11 +836,8 @@ class ComponentSpec:
             implementation.container.command or
             []) if implementation.container else None
 
-        try:
-            from google.protobuf import json_format
-            from kfp.pipeline_spec import pipeline_spec_pb2
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+        from google.protobuf import json_format
+        from kfp.pipeline_spec import pipeline_spec_pb2
 
         platform_spec = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(platform_spec_dict, platform_spec)
@@ -876,10 +861,7 @@ class ComponentSpec:
 
         pipeline_spec = self.to_pipeline_spec()
 
-        try:
-            from kfp.pipeline_spec import pipeline_spec_pb2
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+        from kfp.pipeline_spec import pipeline_spec_pb2
 
         builder.write_pipeline_spec_to_file(
             pipeline_spec,
@@ -939,11 +921,7 @@ class ComponentSpec:
 
         utils.validate_pipeline_name(pipeline_name)
 
-        try:
-            import kfp
-            from kfp.pipeline_spec import pipeline_spec_pb2
-        except ImportError as e:
-            raise ImportError(dsl._kfp_dsl_import_error_msg) from e
+        from kfp.pipeline_spec import pipeline_spec_pb2
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         pipeline_spec.pipeline_info.name = pipeline_name
