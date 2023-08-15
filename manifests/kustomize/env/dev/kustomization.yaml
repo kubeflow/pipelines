@@ -3,10 +3,10 @@ kind: Kustomization
 
 bases:
   # Application controller is used to provide Google Cloud Console integration.
-  - ../../../third-party/application
-  - ../../../base/application
-  - ../../platform-agnostic-mysql
-  - ../../gcp/inverse-proxy
+  - ../../third-party/application
+  - ../../base/application
+  - ../platform-agnostic-mysql
+  - ../gcp/inverse-proxy
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
