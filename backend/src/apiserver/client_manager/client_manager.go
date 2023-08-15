@@ -60,7 +60,7 @@ const (
 
 	archiveLogFileName   = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
-	dbConMaxLifeTime     = "DBConfig.ConMaxLifeTime"
+	dbConMaxLifeTime     = "ConMaxLifeTime"
 
 	VisualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	VisualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
