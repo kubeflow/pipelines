@@ -98,6 +98,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       v2Versions: [],
     };
   }
+  // Dummy test
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
