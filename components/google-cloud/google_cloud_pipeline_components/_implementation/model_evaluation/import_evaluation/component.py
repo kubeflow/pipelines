@@ -40,6 +40,7 @@ def model_evaluation_import(
     summarization_metrics: Optional[Input[Metrics]] = None,
     explanation: Optional[Input[Metrics]] = None,
     feature_attributions: Optional[Input[Metrics]] = None,
+    embedding_metrics: Optional[Input[Metrics]] = None,
     display_name: str = "",
     dataset_path: str = "",
     dataset_paths: List[str] = [],
@@ -82,6 +83,8 @@ def model_evaluation_import(
       component.
     feature_attributions: The feature attributions metrics artifact generated
       from the feature attribution component.
+    embedding_metrics: The embedding metrics artifact generated from the
+      embedding retrieval metrics component.
     display_name: The display name for the uploaded model evaluation resource.
   """
   # fmt: on
@@ -157,6 +160,13 @@ def model_evaluation_import(
               then=[
                   "--feature_attributions",
                   feature_attributions.uri,
+              ],
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name="embedding_metrics",
+              then=[
+                  "--embedding_metrics",
+                  embedding_metrics.uri,
               ],
           ),
           dsl.IfPresentPlaceholder(
