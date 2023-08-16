@@ -116,7 +116,6 @@ def _get_packages_to_install_command(
     install_kfp_package: bool = True,
     target_image: Optional[str] = None,
 ) -> List[str]:
-
     packages_to_install = packages_to_install or []
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
     # if the user doesn't say "don't install", they aren't building a
@@ -128,6 +127,7 @@ def _get_packages_to_install_command(
             packages_to_install.append(kfp_package_path)
         else:
             packages_to_install.extend(_get_injected_kfp_imports())
+
     if packages_to_install:
         concat_package_list = ' '.join(
             [repr(str(package)) for package in packages_to_install])
@@ -138,7 +138,7 @@ def _get_packages_to_install_command(
             concat_package_list=concat_package_list)
         return ['sh', '-c', install_python_packages_script]
 
-    return ['sh', '-c']
+    return []
 
 
 def _get_injected_kfp_imports() -> List[str]:
