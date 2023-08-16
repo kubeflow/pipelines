@@ -40,13 +40,13 @@ def generate_resource_constraints_request() -> NamedTuple('output', nbr_gpus=str
 def resource_constraint_request_pipeline():
     resource_constraints_task = generate_resource_constraints_request()
 
-    # TODO: support PipelineParameterChannel for resource input
+    # TODO: support PipelineParameterChannel for .set_accelerator_type
     # TypeError: expected string or bytes-like object, got 'PipelineParameterChannel'
     # traning_task = training_job()\
-    #     .set_gpu_limit(resource_constraints_task.outputs['nbr_gpus'])\
+    #     .set_accelerator_limit(resource_constraints_task.outputs['nbr_gpus'])\
     #     .set_accelerator_type(resource_constraints_task.outputs['accelerator'])\
     traning_task = training_job()\
-        .set_gpu_limit('1')\
+        .set_accelerator_limit(resource_constraints_task.outputs['nbr_gpus'])\
         .set_accelerator_type('NVIDIA_TESLA_K80')
 
 if __name__ == '__main__':
