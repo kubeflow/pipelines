@@ -16,6 +16,7 @@
 import ast
 import collections
 import dataclasses
+import hashlib
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
@@ -25,7 +26,6 @@ from google.protobuf import json_format
 import kfp
 from kfp.dsl import placeholders
 from kfp.dsl import utils
-from kfp.dsl import v1_components
 from kfp.dsl import v1_structures
 from kfp.dsl.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
@@ -872,7 +872,7 @@ class ComponentSpec:
 
         is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
         if is_v1:
-            v1_component = v1_components._load_component_spec_from_component_text(
+            v1_component = _load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
         else:
@@ -1073,3 +1073,17 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
             f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
         )
     return pipeline_spec_dict, platform_spec_dict
+
+
+def _load_component_spec_from_component_text(
+        text) -> v1_structures.ComponentSpec:
+    component_dict = yaml.safe_load(text)
+    component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
+
+    # Calculating hash digest for the component
+    data = text if isinstance(text, bytes) else text.encode('utf-8')
+    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
+    digest = hashlib.sha256(data).hexdigest()
+    component_spec._digest = digest
+
+    return component_spec

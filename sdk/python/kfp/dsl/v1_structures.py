@@ -16,7 +16,6 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from kfp.dsl.v1_modelbase import ModelBase
-import yaml
 
 PrimitiveTypes = Union[str, int, float, bool]
 PrimitiveTypesIncludingNone = Optional[PrimitiveTypes]
@@ -436,17 +435,6 @@ class ComponentSpec(ModelBase):
                                 raise TypeError(
                                     f'Argument "{argument}" references non-existing input.'
                                 )
-
-    def save(self, file_path: str):
-        """Saves the component definition to file.
-
-        It can be shared online and later loaded using the
-        load_component function.
-        """
-
-        component_yaml = yaml.dump(self.to_dict(), sort_keys=True)
-        with open(file_path, 'w') as f:
-            f.write(component_yaml)
 
 
 class ComponentReference(ModelBase):
