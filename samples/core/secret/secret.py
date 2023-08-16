@@ -14,14 +14,15 @@
 # limitations under the License.
 
 
-from kfp.deprecated import dsl, compiler, components
+from kfp import dsl, compiler
+from kfp.components import load_component_from_text
 
 
 # Accessing GCS using the Google Cloud SDK command-line programs
-gcs_list_items_op = components.load_component_from_text('''
+gcs_list_items_op = load_component_from_text(text='''
 name: GCS - List items
 inputs:
-- {name: Uri}
+- {name: url, type: STRING}
 implementation:
   container:
     image: 'google/cloud-sdk:279.0.0'
@@ -35,11 +36,15 @@ implementation:
       fi
       gcloud auth list
       gsutil ls "$0"
-    - {inputValue: Uri}
+    - {inputValue: url}
 ''')
 
 
 # Accessing GCS using the Google Cloud Python library
+@dsl.component(
+    base_image='python:3.7', 
+    packages_to_install=['google-cloud-storage==1.31.2']
+)
 def gcs_list_buckets():
     from google.cloud import storage
     storage_client = storage.Client()
@@ -49,23 +54,16 @@ def gcs_list_buckets():
         print(bucket.name)
 
 
-gcs_list_buckets_op = components.create_component_from_func(
-    gcs_list_buckets,
-    base_image='python:3.7',
-    packages_to_install=['google-cloud-storage==1.31.2'],
-)
-
-
 @dsl.pipeline(
     name='secret-pipeline',
     description='A pipeline to demonstrate mounting and use of secretes.'
 )
 def secret_op_pipeline(
-    url='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
+    url:str='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
   """A pipeline that uses secret to access cloud hosted resouces."""
 
-  gcs_list_items_task = gcs_list_items_op(url)
-  gcs_list_buckets_task = gcs_list_buckets_op()
+  gcs_list_items_task = gcs_list_items_op(url=url)
+  gcs_list_buckets_task = gcs_list_buckets()
 
 if __name__ == '__main__':
   compiler.Compiler().compile(secret_op_pipeline, __file__ + '.yaml')
