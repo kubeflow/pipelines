@@ -7,7 +7,8 @@
     },
     "PostgreSQLConfig": {
       "DBName": "mlpipeline"
-    }
+    },
+    "ConMaxLifeTime": "120s"
   },
   "ObjectStoreConfig": {
     "AccessKey": "minio",
@@ -16,7 +17,6 @@
     "PipelinePath": "pipelines"
   },
   "DBDriverName": "mysql",
-  "ConMaxLifeTime": "120s",
   "ARCHIVE_CONFIG_LOG_FILE_NAME": "main.log",
   "ARCHIVE_CONFIG_LOG_PATH_PREFIX": "/artifacts",
   "InitConnectionTimeout": "6m",
