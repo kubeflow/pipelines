@@ -16,7 +16,6 @@
 import ast
 import collections
 import dataclasses
-import hashlib
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
@@ -1083,7 +1082,5 @@ def _load_component_spec_from_component_text(
     # Calculating hash digest for the component
     data = text if isinstance(text, bytes) else text.encode('utf-8')
     data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
-    digest = hashlib.sha256(data).hexdigest()
-    component_spec._digest = digest
 
     return component_spec
