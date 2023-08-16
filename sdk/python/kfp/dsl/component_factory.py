@@ -104,7 +104,7 @@ if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
 
-PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
+PIP_DISABLE_PIP_VERSION_CHECK=1 _RUNTIME=true python3 -m pip install --quiet \
     --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
 '''
 
@@ -124,8 +124,10 @@ def _get_packages_to_install_command(
     # themselves, we install KFP for them
     inject_kfp_install = install_kfp_package and target_image is None and not kfp_in_user_pkgs
     if inject_kfp_install:
-        kfp_package_path = kfp_package_path or _get_default_kfp_package_path()
-        packages_to_install.append(kfp_package_path)
+        if kfp_package_path:
+            packages_to_install.append(kfp_package_path)
+        else:
+            packages_to_install.extend(_get_injected_kfp_imports())
 
     concat_package_list = ' '.join(
         [repr(str(package)) for package in packages_to_install])
@@ -133,11 +135,15 @@ def _get_packages_to_install_command(
     install_python_packages_script = _install_python_packages_script_template.format(
         index_url_options=index_url_options,
         concat_package_list=concat_package_list)
-    return ['_RUNTIME=true', 'sh', '-c', install_python_packages_script]
+    return ['sh', '-c', install_python_packages_script]
 
 
-def _get_default_kfp_package_path() -> str:
-    return f'kfp=={kfp.__version__}'
+def _get_injected_kfp_imports() -> List[str]:
+    return [
+        f'kfp=={kfp.__version__}',
+        '--no-deps',
+        'typing-extensions>=3.7.4,<5; python_version<"3.9"',
+    ]
 
 
 def _get_function_source_definition(func: Callable) -> str:
