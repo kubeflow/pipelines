@@ -9,41 +9,51 @@ import (
 
 type TokenRefresherInterface interface {
 	GetToken() string
-	RefreshToken()
+	RefreshToken() error
 }
 
 const SaTokenFile = "/var/run/secrets/kubeflow/tokens/persistenceagent-sa-token"
 
-type tokenRefresher struct {
-	mu      sync.RWMutex
-	seconds *time.Duration
-	token   string
+type FileReader interface {
+	ReadFile(filename string) ([]byte, error)
 }
 
-func NewTokenRefresher(seconds time.Duration) *tokenRefresher {
+type tokenRefresher struct {
+	mu         sync.RWMutex
+	seconds    *time.Duration
+	token      string
+	fileReader *FileReader
+}
+
+type FileReaderImpl struct{}
+
+func (r *FileReaderImpl) ReadFile(filename string) ([]byte, error) {
+	return os.ReadFile(filename)
+}
+
+func NewTokenRefresher(seconds time.Duration, fileReader FileReader) *tokenRefresher {
+	if fileReader == nil {
+		fileReader = &FileReaderImpl{}
+	}
+
 	tokenRefresher := &tokenRefresher{
-		seconds: &seconds,
+		seconds:    &seconds,
+		fileReader: &fileReader,
 	}
 
 	return tokenRefresher
 }
 
-func (tr *tokenRefresher) StartTokenRefreshTicker(stopCh <-chan struct{}) error {
-	err := tr.readToken()
+func (tr *tokenRefresher) StartTokenRefreshTicker() error {
+	err := tr.RefreshToken()
 	if err != nil {
 		return err
 	}
 
 	ticker := time.NewTicker(*tr.seconds)
 	go func() {
-		for {
-			select {
-			case <-stopCh:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				tr.readToken()
-			}
+		for range ticker.C {
+			tr.RefreshToken()
 		}
 	}()
 	return err
@@ -55,14 +65,10 @@ func (tr *tokenRefresher) GetToken() string {
 	return tr.token
 }
 
-func (tr *tokenRefresher) RefreshToken() {
-	tr.readToken()
-}
-
-func (tr *tokenRefresher) readToken() error {
+func (tr *tokenRefresher) RefreshToken() error {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
-	b, err := os.ReadFile(SaTokenFile)
+	b, err := (*tr.fileReader).ReadFile(SaTokenFile)
 	if err != nil {
 		log.Errorf("Error reading persistence agent service account token '%s': %v", SaTokenFile, err)
 		return err

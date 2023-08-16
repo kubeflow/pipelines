@@ -100,10 +100,10 @@ func main() {
 		Burst: clientBurst,
 	})
 
-	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshInterval))
-	err = tokenRefresher.StartTokenRefreshTicker(stopCh)
+	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshInterval), nil)
+	err = tokenRefresher.StartTokenRefreshTicker()
 	if err != nil {
-		log.Fatalf("Error starting Service Account Token Refresh Ticker: %v", err)
+		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
 	}
 
 	pipelineClient, err := client.NewPipelineClient(
