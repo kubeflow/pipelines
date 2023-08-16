@@ -21,6 +21,7 @@ from typing import Callable, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
+import kfp
 from kfp.dsl import container_component_artifact_channel
 from kfp.dsl import container_component_class
 from kfp.dsl import graph_component
@@ -109,23 +110,33 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
 
 
 def _get_packages_to_install_command(
-        package_list: Optional[List[str]] = None,
-        pip_index_urls: Optional[List[str]] = None) -> List[str]:
+    kfp_package_path: Optional[str] = None,
+    pip_index_urls: Optional[List[str]] = None,
+    packages_to_install: Optional[List[str]] = None,
+    install_kfp_package: bool = True,
+    target_image: Optional[str] = None,
+) -> List[str]:
 
-    if not package_list:
-        return []
+    packages_to_install = packages_to_install or []
+    kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
+    # if the user doesn't say "don't install", they aren't building a
+    # container component, and they haven't already specified a KFP dep
+    # themselves, we install KFP for them
+    inject_kfp_install = install_kfp_package and target_image is None and not kfp_in_user_pkgs
+    if inject_kfp_install:
+        kfp_package_path = kfp_package_path or _get_default_kfp_package_path()
+        packages_to_install.append(kfp_package_path)
 
     concat_package_list = ' '.join(
-        [repr(str(package)) for package in package_list])
+        [repr(str(package)) for package in packages_to_install])
     index_url_options = make_index_url_options(pip_index_urls)
     install_python_packages_script = _install_python_packages_script_template.format(
         index_url_options=index_url_options,
         concat_package_list=concat_package_list)
-    return ['sh', '-c', install_python_packages_script]
+    return ['_RUNTIME=true', 'sh', '-c', install_python_packages_script]
 
 
 def _get_default_kfp_package_path() -> str:
-    import kfp
     return f'kfp=={kfp.__version__}'
 
 
@@ -471,15 +482,14 @@ def create_component_from_func(
     The decorator is defined under component_decorator.py. See the
     decorator for the canonical documentation for this function.
     """
-    packages_to_install = packages_to_install or []
-
-    if install_kfp_package and target_image is None:
-        if kfp_package_path is None:
-            kfp_package_path = _get_default_kfp_package_path()
-        packages_to_install.append(kfp_package_path)
 
     packages_to_install_command = _get_packages_to_install_command(
-        package_list=packages_to_install, pip_index_urls=pip_index_urls)
+        install_kfp_package=install_kfp_package,
+        target_image=target_image,
+        kfp_package_path=kfp_package_path,
+        packages_to_install=packages_to_install,
+        pip_index_urls=pip_index_urls,
+    )
 
     command = []
     args = []

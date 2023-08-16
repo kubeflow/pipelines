@@ -33,7 +33,10 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
 
         command = component_factory._get_packages_to_install_command(
             packages_to_install)
-        self.assertEqual(command, [])
+        self.assertEqual(command, [
+            'sh', '-c',
+            '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.1.2\' && "$0" "$@"\n'
+        ])
 
     def test_with_packages_to_install_and_no_pip_index_url(self):
         packages_to_install = ['package1', 'package2']
