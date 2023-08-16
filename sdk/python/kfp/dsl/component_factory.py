@@ -128,14 +128,17 @@ def _get_packages_to_install_command(
             packages_to_install.append(kfp_package_path)
         else:
             packages_to_install.extend(_get_injected_kfp_imports())
+    if packages_to_install:
+        concat_package_list = ' '.join(
+            [repr(str(package)) for package in packages_to_install])
+        index_url_options = make_index_url_options(pip_index_urls)
 
-    concat_package_list = ' '.join(
-        [repr(str(package)) for package in packages_to_install])
-    index_url_options = make_index_url_options(pip_index_urls)
-    install_python_packages_script = _install_python_packages_script_template.format(
-        index_url_options=index_url_options,
-        concat_package_list=concat_package_list)
-    return ['sh', '-c', install_python_packages_script]
+        install_python_packages_script = _install_python_packages_script_template.format(
+            index_url_options=index_url_options,
+            concat_package_list=concat_package_list)
+        return ['sh', '-c', install_python_packages_script]
+
+    return ['sh', '-c']
 
 
 def _get_injected_kfp_imports() -> List[str]:
