@@ -6,4 +6,3 @@ AutoML
 
    forecasting
    tabular
-   training_job
