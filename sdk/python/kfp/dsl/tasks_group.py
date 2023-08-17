@@ -16,6 +16,7 @@
 import copy
 import enum
 from typing import List, Optional, Union
+import warnings
 
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
@@ -161,7 +162,7 @@ class _ConditionBase(TasksGroup):
         self.condition: List[pipeline_channel.BinaryOperation] = condition
 
 
-class Condition(_ConditionBase):
+class If(_ConditionBase):
     """A class for creating a conditional control flow "if" block within a
     pipeline.
 
@@ -173,7 +174,7 @@ class Condition(_ConditionBase):
       ::
 
         task1 = my_component1(...)
-        with dsl.Condition(task1.output=='pizza', 'pizza-condition'):
+        with dsl.If(task1.output=='pizza', 'pizza-condition'):
             task2 = my_component2(...)
     """
 
@@ -195,21 +196,19 @@ class Condition(_ConditionBase):
         self._negated_upstream_conditions = [copied_condition]
 
 
-class If(Condition):
-    """A class for creating a conditional control flow "if" block within a
-    pipeline. Identical to dsl.Condition.
+class Condition(If):
+    """Deprecated.
 
-    Args:
-        condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
-        name: The name of the condition group.
-
-    Example:
-      ::
-
-        task1 = my_component1(...)
-        with dsl.If(task1.output=='pizza', 'pizza-condition'):
-            task2 = my_component2(...)
+    Use dsl.If instead.
     """
+
+    def __enter__(self):
+        super().__enter__()
+        warnings.warn(
+            'dsl.Condition is deprecated. Please use dsl.If instead.',
+            category=DeprecationWarning,
+            stacklevel=2)
+        return self
 
 
 class Elif(_ConditionBase):
