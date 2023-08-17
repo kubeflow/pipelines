@@ -16,7 +16,7 @@ RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/r
 # Install python client, including DSL compiler.
 # COPY ./sdk/python /sdk/python
 # RUN pip3 install /sdk/python
-RUN pip3 install kfp~=1.8
+RUN pip3 install kfp~=2.0
 
 # Copy sample test and samples source code.
 COPY ./test/sample-test /python/src/github.com/kubeflow/pipelines/test/sample-test
