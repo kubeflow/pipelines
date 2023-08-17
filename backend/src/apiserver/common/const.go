@@ -19,12 +19,14 @@ const (
 	RbacPipelinesGroup   = "pipelines.kubeflow.org"
 	RbacPipelinesVersion = "v1beta1"
 
-	RbacResourceTypePipelines      = "pipelines"
-	RbacResourceTypeExperiments    = "experiments"
-	RbacResourceTypeRuns           = "runs"
-	RbacResourceTypeJobs           = "jobs"
-	RbacResourceTypeViewers        = "viewers"
-	RbacResourceTypeVisualizations = "visualizations"
+	RbacResourceTypePipelines          = "pipelines"
+	RbacResourceTypeExperiments        = "experiments"
+	RbacResourceTypeRuns               = "runs"
+	RbacResourceTypeJobs               = "jobs"
+	RbacResourceTypeViewers            = "viewers"
+	RbacResourceTypeVisualizations     = "visualizations"
+	RbacResourceTypeScheduledWorkflows = "scheduledworkflows"
+	RbacResourceTypeWorkflows          = "workflows"
 
 	RbacResourceVerbArchive       = "archive"
 	RbacResourceVerbUpdate        = "update"
@@ -39,6 +41,7 @@ const (
 	RbacResourceVerbUnarchive     = "unarchive"
 	RbacResourceVerbReportMetrics = "reportMetrics"
 	RbacResourceVerbReadArtifact  = "readArtifact"
+	RbacResourceVerbReport        = "report"
 )
 
 const (
