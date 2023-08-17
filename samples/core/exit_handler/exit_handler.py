@@ -1,4 +1,5 @@
-# Copyright 2021 The Kubeflow Authors
+#!/usr/bin/env python3
+# Copyright 2019-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +15,19 @@
 """Pipeline using ExitHandler."""
 
 import os
-from kfp import dsl
+
 from kfp import compiler
+from kfp import dsl
 from kfp.dsl import component
 
-# In tests, we install a KFP package from the PR under test. Users should not
-# normally need to specify `kfp_package_path` in their component definitions.
-_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
-
-@component(kfp_package_path=_KFP_PACKAGE_PATH)
+@component
 def print_op(message: str):
     """Prints a message."""
     print(message)
 
 
-@component(kfp_package_path=_KFP_PACKAGE_PATH)
+@component
 def fail_op(message: str):
     """Fails."""
     import sys
@@ -49,5 +47,4 @@ def pipeline_exit_handler(message: str = 'Hello World!'):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline_exit_handler,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline_exit_handler, package_path=__file__ + '.yaml')
