@@ -2830,8 +2830,7 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
                 'Optional Input artifacts may only have default value None'):
 
             @dsl.component
-            def comp(x: Optional[Input[Model]] = Model(
-                name='', uri='', metadata={})):
+            def comp(x: Optional[Input[Model]] = Model(uri='', metadata={})):
                 print(x)
 
     def test_invalid_default_pipeline(self):
@@ -2853,8 +2852,7 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
                 'Optional Input artifacts may only have default value None'):
 
             @dsl.pipeline
-            def my_pipeline(x: Input[Artifact] = Artifact(
-                name='', uri='', metadata={})):
+            def my_pipeline(x: Input[Artifact] = Artifact(uri='', metadata={})):
                 comp()
 
 

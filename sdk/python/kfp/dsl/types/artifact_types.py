@@ -26,7 +26,6 @@ class Artifact:
     This class and all artifact classes store the name, uri, and metadata for a machine learning artifact. Use this artifact type when an artifact does not fit into another more specific artifact type (e.g., ``Model``, ``Dataset``).
 
     Args:
-        name: Name of the artifact.
         uri: The artifact's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the artifact.
 
@@ -63,14 +62,19 @@ class Artifact:
     schema_title = 'system.Artifact'
     schema_version = '0.0.1'
 
+    # require keyword arguments, since some third-party artifact types
+    # have name with a default arg specified first
+    # this promotes artifact instantiation user code that easy portable
+    # across artifact types, while being backward compatible
+    # with dropping this requirement
     def __init__(self,
-                 name: Optional[str] = None,
+                 *,
                  uri: Optional[str] = None,
                  metadata: Optional[Dict] = None) -> None:
         """Initializes the Artifact with the given name, URI and metadata."""
         self.uri = uri or ''
-        self.name = name or ''
         self.metadata = metadata or {}
+        self.name = ''
 
     @property
     def path(self) -> str:
@@ -103,7 +107,6 @@ class Model(Artifact):
     """An artifact representing a machine learning model.
 
     Args:
-        name: Name of the model.
         uri: The model's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the model.
     """
@@ -128,7 +131,6 @@ class Dataset(Artifact):
     """An artifact representing a machine learning dataset.
 
     Args:
-        name: Name of the dataset.
         uri: The dataset's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the dataset.
     """
@@ -139,7 +141,6 @@ class Metrics(Artifact):
     """An artifact for storing key-value scalar metrics.
 
     Args:
-        name: Name of the metrics artifact.
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: Key-value scalar metrics.
     """
@@ -159,7 +160,6 @@ class ClassificationMetrics(Artifact):
     """An artifact for storing classification metrics.
 
     Args:
-        name: Name of the metrics artifact.
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: The key-value scalar metrics.
     """
@@ -321,7 +321,6 @@ class SlicedClassificationMetrics(Artifact):
     ``ClassificationMetrics``.
 
     Args:
-        name: Name of the metrics artifact.
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the metrics artifact.
     """
@@ -440,7 +439,6 @@ class HTML(Artifact):
     """An artifact representing an HTML file.
 
     Args:
-        name: Name of the HTML file.
         uri: The HTML file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the HTML file.
     """
@@ -451,7 +449,6 @@ class Markdown(Artifact):
     """An artifact representing a markdown file.
 
     Args:
-        name: Name of the markdown file.
         uri: The markdown file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the markdown file.
     """
