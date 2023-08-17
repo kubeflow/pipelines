@@ -4,6 +4,6 @@ Preview Components
 .. toctree::
    :maxdepth: 1
 
-   automl
+   automl/index
    dataflow
    model_evaluation
