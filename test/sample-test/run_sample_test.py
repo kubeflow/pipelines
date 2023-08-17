@@ -157,44 +157,20 @@ class PySampleChecker(object):
                 start_time = datetime.now()
                 response = self._client.wait_for_run_completion(
                     self._run_id, self._test_timeout)
-                succ = (response.run.status.lower() == 'succeeded')
+                succ = (response.state.lower() == 'succeeded')
                 end_time = datetime.now()
                 elapsed_time = (end_time - start_time).seconds
                 utils.add_junit_test(self._test_cases, 'job completion', succ,
                                      'waiting for job completion failure',
                                      elapsed_time)
             finally:
-                ###### Output Argo Log for Debugging ######
-                workflow_json = self._client._get_workflow_json(self._run_id)
-                workflow_id = workflow_json['metadata']['name']
-                print("Argo Workflow Name: ", workflow_id)
-                argo_log, _ = utils.run_bash_command(
-                    'argo logs {} -n {}'.format(workflow_id, self._namespace))
-                print('=========Argo Workflow Log=========')
-                print(argo_log)
+                # TODO(chensun): print log for debugging
+                pass
 
             if not succ:
                 utils.write_junit_xml(self._test_name, self._result,
                                       self._test_cases)
                 exit(1)
-
-            ###### Validate the results for specific test cases ######
-            if self._testname == 'xgboost_training_cm':
-                # For xgboost sample, check its confusion matrix.
-                cm_tar_path = './confusion_matrix.tar.gz'
-                utils.get_artifact_in_minio(workflow_json, 'confusion-matrix',
-                                            cm_tar_path,
-                                            'mlpipeline-ui-metadata')
-                with tarfile.open(cm_tar_path) as tar_handle:
-                    file_handles = tar_handle.getmembers()
-                    assert len(file_handles) == 1
-
-                    with tar_handle.extractfile(file_handles[0]) as f:
-                        cm_data = f.read()
-                        utils.add_junit_test(
-                            self._test_cases, 'confusion matrix format',
-                            (len(cm_data) > 0),
-                            'the confusion matrix file is empty')
 
         ###### Delete Job ######
         #TODO: add deletion when the backend API offers the interface.
