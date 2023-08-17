@@ -12,9 +12,11 @@ data:
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
   appVersion: 2.0.0
-  dbType: postgres
-  dbHost: postgres
-  dbPort: "5432"
+  dbHost: postgres  # relic to be removed after release
+  dbPort: "5432"    # relic to be removed after release
+  dbType: postgres  
+  postgresHost: postgres
+  postgresPort: "5432"
   mlmdDb: metadb
   cacheDb: cachedb
   pipelineDb: mlpipeline

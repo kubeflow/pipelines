@@ -70,33 +70,33 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbType
-        # MySQL Config
-        - name: DBCONFIG_MYSQLCONFIG_USER
+        # PostgreSQL Config
+        - name: DBCONFIG_POSTGRESQLCONFIG_USER
           valueFrom:
             secretKeyRef:
-              name: mysql-secret
+              name: postgres-secret
               key: username
-        - name: DBCONFIG_MYSQLCONFIG_PASSWORD
+        - name: DBCONFIG_POSTGRESQLCONFIG_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-secret
+              name: postgres-secret
               key: password
-        - name: DBCONFIG_MYSQLCONFIG_DBNAME
+        - name: DBCONFIG_POSTGRESQLCONFIG_DBNAME
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
               key: pipelineDb
-        - name: DBCONFIG_MYSQLCONFIG_HOST
+        - name: DBCONFIG_POSTGRESQLCONFIG_HOST
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: mysqlHost
-        - name: DBCONFIG_MYSQLCONFIG_PORT
+              key: postgresHost
+        - name: DBCONFIG_POSTGRESQLCONFIG_PORT
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: mysqlPort
-        # end of MySQL Config
+              key: postgresPort
+        # end of PostgreSQL variables
         - name: OBJECTSTORECONFIG_ACCESSKEY
           valueFrom:
             secretKeyRef:
