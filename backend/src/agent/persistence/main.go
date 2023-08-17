@@ -43,7 +43,7 @@ var (
 	numWorker                     int
 	clientQPS                     float64
 	clientBurst                   int
-	saTokenRefreshInterval        float64
+	saTokenRefreshIntervalInSecs  int64
 )
 
 const (
@@ -60,12 +60,12 @@ const (
 	numWorkerName                         = "numWorker"
 	clientQPSFlagName                     = "clientQPS"
 	clientBurstFlagName                   = "clientBurst"
-	saTokenRefreshIntervalFlagName        = "saTokenRefreshInterval"
+	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
 )
 
 const (
-	DefaultConnectionTimeout      = 6 * time.Minute
-	DefaultTokenRefresherInterval = 1 * time.Hour
+	DefaultConnectionTimeout              = 6 * time.Minute
+	DefaultSATokenRefresherIntervalInSecs = 60 * 60 // 1 Hour in seconds
 )
 
 func main() {
@@ -100,7 +100,7 @@ func main() {
 		Burst: clientBurst,
 	})
 
-	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshInterval), nil)
+	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshIntervalInSecs)*time.Second, nil)
 	err = tokenRefresher.StartTokenRefreshTicker()
 	if err != nil {
 		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
@@ -151,7 +151,7 @@ func init() {
 	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
 	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
-	flag.Float64Var(&saTokenRefreshInterval, saTokenRefreshIntervalFlagName, DefaultTokenRefresherInterval.Seconds(), "Persistence agent service account token read interval in seconds. "+
+	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
 
 }
