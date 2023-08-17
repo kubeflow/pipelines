@@ -1,5 +1,21 @@
 # Changelog
 
+### [2.0.1](https://github.com/kubeflow/pipelines/compare/2.0.0...2.0.1) (2023-08-17)
+
+
+### Bug Fixes
+
+* **backend:** Fix performance issue within a mysql request ([\#9680](https://github.com/kubeflow/pipelines/issues/9680)) ([81618d0](https://github.com/kubeflow/pipelines/commit/81618d0fd6810560e0b78c61776d73042bd6f3bb))
+* **backend:** fix timeouts with list run api. Fixes [\#9780](https://github.com/kubeflow/pipelines/issues/9780)  ([\#9806](https://github.com/kubeflow/pipelines/issues/9806)) ([c467ece](https://github.com/kubeflow/pipelines/commit/c467ece30551046fa0304a6a7067d3e185d7cf14))
+* **frontend:** Introduce ALLOWED_ARTIFACT_DOMAIN_REGEX flag to prevent accessing undesired domains. Remove user input string from server response. ([\#9844](https://github.com/kubeflow/pipelines/issues/9844)) ([737c0cc](https://github.com/kubeflow/pipelines/commit/737c0cc12606da3994e978678ace7adb1b309944))
+
+
+### Other Pull Requests
+
+* Fix Persistence Agent SA Token time interval ([\#9892](https://github.com/kubeflow/pipelines/issues/9892)) ([681c46f](https://github.com/kubeflow/pipelines/commit/681c46f62bb1d3aa5e1e4db2a239c7c4dd64881a))
+* feat(backend) Enable auth between pesistence agent and pipelineAPI (ReportServer) ([\#9699](https://github.com/kubeflow/pipelines/issues/9699)) ([f232d0b](https://github.com/kubeflow/pipelines/commit/f232d0b3902bf666a2bfdc65ac6f93934e010083))
+* fix(backend) Replace LEFT with INNER JOIN when Archive Experiment ([\#9730](https://github.com/kubeflow/pipelines/issues/9730)) ([5593dee](https://github.com/kubeflow/pipelines/commit/5593dee729b0b9518c1a70dbc3f0052796c4f10a))
+
 ## [2.0.0](https://github.com/kubeflow/pipelines/compare/1.7.0...2.0.0) (2023-06-20)
 
 
