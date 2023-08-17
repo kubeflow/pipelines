@@ -237,7 +237,10 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.placeholders import IfPresentPlaceholder
     from kfp.dsl.structures import ContainerSpec
     from kfp.dsl.tasks_group import Condition
+    from kfp.dsl.tasks_group import Elif
+    from kfp.dsl.tasks_group import Else
     from kfp.dsl.tasks_group import ExitHandler
+    from kfp.dsl.tasks_group import If
     from kfp.dsl.tasks_group import ParallelFor
     __all__.extend([
         'component',
@@ -246,6 +249,9 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
         'importer',
         'ContainerSpec',
         'Condition',
+        'If',
+        'Elif',
+        'Else',
         'ExitHandler',
         'ParallelFor',
         'Collected',

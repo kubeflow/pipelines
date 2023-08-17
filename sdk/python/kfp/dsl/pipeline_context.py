@@ -14,7 +14,7 @@
 """Definition for Pipeline."""
 
 import functools
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from kfp.dsl import component_factory
 from kfp.dsl import pipeline_task
@@ -188,6 +188,12 @@ class Pipeline:
     def pop_tasks_group(self):
         """Removes the current TasksGroup from the stack."""
         del self.groups[-1]
+
+    def get_last_tasks_group(self) -> Union['tasks_group.TasksGroup', None]:
+        """Gets the last TasksGroup added to the pipeline at the current level
+        of the pipeline definition."""
+        groups = self.groups[-1].groups
+        return groups[-1] if groups else None
 
     def remove_task_from_groups(self, task: pipeline_task.PipelineTask):
         """Removes a task from the pipeline.

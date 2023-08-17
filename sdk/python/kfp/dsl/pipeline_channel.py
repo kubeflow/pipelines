@@ -24,17 +24,20 @@ from kfp.dsl.types import type_utils
 
 
 @dataclasses.dataclass
-class ConditionOperator:
-    """Represents a condition expression to be used in dsl.Condition().
+class BinaryOperation:
+    """Represents a condition expression to be used in condition control flow
+    group.
 
     Attributes:
       operator: The operator of the condition.
       left_operand: The left operand.
       right_operand: The right operand.
+      negate: Whether to negate the result of the binary operation.
     """
     operator: str
     left_operand: Union['PipelineParameterChannel', type_utils.PARAMETER_TYPES]
     right_operand: Union['PipelineParameterChannel', type_utils.PARAMETER_TYPES]
+    negate: bool = False
 
 
 # The string template used to generate the placeholder of a PipelineChannel.
@@ -149,22 +152,22 @@ class PipelineChannel(abc.ABC):
         return hash(self.pattern)
 
     def __eq__(self, other):
-        return ConditionOperator('==', self, other)
+        return BinaryOperation('==', self, other)
 
     def __ne__(self, other):
-        return ConditionOperator('!=', self, other)
+        return BinaryOperation('!=', self, other)
 
     def __lt__(self, other):
-        return ConditionOperator('<', self, other)
+        return BinaryOperation('<', self, other)
 
     def __le__(self, other):
-        return ConditionOperator('<=', self, other)
+        return BinaryOperation('<=', self, other)
 
     def __gt__(self, other):
-        return ConditionOperator('>', self, other)
+        return BinaryOperation('>', self, other)
 
     def __ge__(self, other):
-        return ConditionOperator('>=', self, other)
+        return BinaryOperation('>=', self, other)
 
 
 class PipelineParameterChannel(PipelineChannel):

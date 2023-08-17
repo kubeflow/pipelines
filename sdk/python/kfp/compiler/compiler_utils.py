@@ -119,7 +119,18 @@ def get_parent_groups(
     return (tasks_to_groups, groups_to_groups)
 
 
-# TODO: do we really need this?
+def get_channels_from_condition(
+    operations: List[pipeline_channel.BinaryOperation],
+    collected_channels: list,
+) -> None:
+    """Append to collected_channels each pipeline channels used in each operand
+    of each operation in operations."""
+    for operation in operations:
+        for operand in [operation.left_operand, operation.right_operand]:
+            if isinstance(operand, pipeline_channel.PipelineChannel):
+                collected_channels.append(operand)
+
+
 def get_condition_channels_for_tasks(
     root_group: tasks_group.TasksGroup,
 ) -> Mapping[str, Set[pipeline_channel.PipelineChannel]]:
@@ -139,16 +150,13 @@ def get_condition_channels_for_tasks(
         current_conditions_channels,
     ):
         new_current_conditions_channels = current_conditions_channels
-        if isinstance(group, tasks_group.Condition):
+        if isinstance(group, tasks_group._ConditionBase):
             new_current_conditions_channels = list(current_conditions_channels)
-            if isinstance(group.condition.left_operand,
-                          pipeline_channel.PipelineChannel):
-                new_current_conditions_channels.append(
-                    group.condition.left_operand)
-            if isinstance(group.condition.right_operand,
-                          pipeline_channel.PipelineChannel):
-                new_current_conditions_channels.append(
-                    group.condition.right_operand)
+            get_channels_from_condition(
+                group.condition,
+                new_current_conditions_channels,
+            )
+
         for task in group.tasks:
             for channel in new_current_conditions_channels:
                 conditions[task.name].add(channel)
@@ -661,8 +669,9 @@ def get_dependencies(
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
 
-                if isinstance(dependent_group,
-                              (tasks_group.Condition, tasks_group.ExitHandler)):
+                if isinstance(
+                        dependent_group,
+                    (tasks_group._ConditionBase, tasks_group.ExitHandler)):
                     raise InvalidTopologyException(
                         f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
                     )
