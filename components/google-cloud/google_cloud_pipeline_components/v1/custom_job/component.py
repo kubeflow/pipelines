@@ -14,6 +14,7 @@
 
 from typing import Dict, List
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils
 from kfp import dsl
 
@@ -21,7 +22,6 @@ from kfp import dsl
 # keep identical to create_custom_training_job_from_component
 @dsl.container_component
 def custom_training_job(
-    project: str,
     display_name: str,
     gcp_resources: dsl.OutputPath(str),
     location: str = 'us-central1',
@@ -36,6 +36,7 @@ def custom_training_job(
     base_output_directory: str = '',
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a Vertex AI `custom training job <https://cloud.google.com/vertex-ai/docs/training/create-custom-job>`_ using the `CustomJob <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs>`_ API.
@@ -45,7 +46,6 @@ def custom_training_job(
   more information.
 
   Args:
-    project: Project to create the custom training job in.
     location: Location for creating the custom training job.
       If not set, default to us-central1.
     display_name: The name of the CustomJob.
@@ -91,6 +91,7 @@ def custom_training_job(
     encryption_spec_key_name: Customer-managed encryption key options for the
       CustomJob. If this is set, then all resources created by the CustomJob
       will be encrypted with the provided encryption key.
+    project: Project to create the custom training job in. Defaults to the project in which the PipelineJob is run.
 
   Returns:
     gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the CustomJob.

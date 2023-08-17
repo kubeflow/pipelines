@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -25,7 +26,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_query_job(
-    project: str,
     destination_table: Output[BQTable],
     gcp_resources: OutputPath(str),
     query: str = '',
@@ -34,12 +34,12 @@ def bigquery_query_job(
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery query job and waits for it to finish.
 
   Args:
-      project: Project to run the BigQuery query job.
       location: Location for creating the BigQuery job. If not
         set, default to `US` multi-region.  For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -69,6 +69,7 @@ def bigquery_query_job(
         encryption_spec_key_name are both specified in here and in
         job_configuration_query, the value in here will override the other
         one.
+      project: Project to run the BigQuery query job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       destination_table: Describes the table where the query results should be stored.

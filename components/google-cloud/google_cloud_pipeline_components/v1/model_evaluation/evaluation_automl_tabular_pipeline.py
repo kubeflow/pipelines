@@ -14,20 +14,19 @@
 
 from typing import Any, List, NamedTuple
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
 from google_cloud_pipeline_components.types.artifact_types import RegressionMetrics
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
-from google_cloud_pipeline_components.v1.model_evaluation.forecasting_component import model_evaluation_forecasting as ModelEvaluationForecastingOp
 from google_cloud_pipeline_components.v1.model_evaluation.regression_component import model_evaluation_regression as ModelEvaluationRegressionOp
 import kfp
 
 
 @kfp.dsl.pipeline(name='evaluation-automl-tabular-classification-pipeline')
 def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=dangerous-default-value
-    project: str,
     location: str,
     model_name: str,
     target_field_name: str,
@@ -51,6 +50,7 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
     force_runner_mode: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ) -> NamedTuple(
     'outputs',
     evaluation_metrics=ClassificationMetrics,
@@ -63,7 +63,6 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
   tabular custom models.
 
   Args:
-    project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     model_name: The Vertex model resource name to be imported and used for batch
       prediction.
@@ -171,6 +170,8 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
       are ``Dataflow`` and ``DirectRunner``.
+    project: The GCP project that runs the pipeline components. Defaults to the
+      project in which the PipelineJob is run.
 
   Returns:
       A google.ClassificationMetrics artifact and imported

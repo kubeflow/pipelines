@@ -17,6 +17,8 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	authorizationv1 "k8s.io/api/authorization/v1"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -49,6 +51,17 @@ func (s *ReportServer) reportWorkflow(ctx context.Context, workflow string) (*em
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed")
 	}
+
+	executionName := (*execSpec).ExecutionName()
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb:     common.RbacResourceVerbReport,
+		Resource: common.RbacResourceTypeWorkflows,
+	}
+
+	if err := s.canAccessWorkflow(ctx, executionName, resourceAttributes); err != nil {
+		return nil, err
+	}
+
 	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report workflow")
@@ -80,6 +93,15 @@ func (s *ReportServer) reportScheduledWorkflow(ctx context.Context, swf string) 
 	if err != nil {
 		return nil, util.Wrap(err, "Report scheduled workflow failed")
 	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb:     common.RbacResourceVerbReport,
+		Resource: common.RbacResourceTypeScheduledWorkflows,
+	}
+	err = s.canAccessWorkflow(ctx, string(scheduledWorkflow.UID), resourceAttributes)
+	if err != nil {
+		return nil, err
+	}
+
 	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
 	if err != nil {
 		return nil, err
@@ -134,6 +156,16 @@ func validateReportScheduledWorkflowRequest(swfManifest string) (*util.Scheduled
 		return nil, util.NewInvalidInputError("The resource must have a UID: %+v", swf.UID)
 	}
 	return swf, nil
+}
+
+func (s *ReportServer) canAccessWorkflow(ctx context.Context, executionName string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+	if err != nil {
+		return util.Wrapf(err, "Failed to report %s `%s` due to authorization error.", resourceAttributes.Resource, executionName)
+	}
+	return nil
 }
 
 func NewReportServer(resourceManager *resource.ResourceManager) *ReportServer {

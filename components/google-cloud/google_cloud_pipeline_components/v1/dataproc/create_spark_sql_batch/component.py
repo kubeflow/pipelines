@@ -14,6 +14,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -22,7 +23,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def dataproc_create_spark_sql_batch(
-    project: str,
     gcp_resources: OutputPath(str),
     location: str = 'us-central1',
     batch_id: str = '',
@@ -40,12 +40,12 @@ def dataproc_create_spark_sql_batch(
     query_file_uri: str = '',
     query_variables: Dict[str, str] = {},
     jar_file_uris: List[str] = [],
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Create a Dataproc Spark SQL batch workload and wait for it to finish.
 
   Args:
-      project: Project to run the Dataproc batch workload.
       location: Location of the Dataproc batch workload. If
         not set, defaults to ``"us-central1"``.
       batch_id: The ID to use for the batch, which will become
@@ -81,6 +81,7 @@ def dataproc_create_spark_sql_batch(
           Example: ``{ "name": "wrench", "mass": "1.3kg", "count": "3" }``.
       jar_file_uris: HCFS URIs of jar files to be added to the Spark
         ``CLASSPATH``.
+      project: Project to run the Dataproc batch workload. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       gcp_resources: Serialized gcp_resources proto tracking the Dataproc batch workload. For more details, see

@@ -74,8 +74,7 @@ def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
             pipeline_spec['deploymentSpec']['executors'][
                 executor] = yaml.safe_load(
                     re.sub(
-                        r"'(kfp(-dsl)?)==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'",
-                        'kfp',
+                        r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
                         yaml.dump(
                             pipeline_spec['deploymentSpec']['executors']
                             [executor],

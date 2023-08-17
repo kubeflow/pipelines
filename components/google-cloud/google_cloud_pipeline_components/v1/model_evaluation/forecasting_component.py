@@ -14,6 +14,7 @@
 
 from typing import List
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import ForecastingMetrics
@@ -26,7 +27,6 @@ from kfp.dsl import container_component
 def model_evaluation_forecasting(
     gcp_resources: dsl.OutputPath(str),
     evaluation_metrics: dsl.Output[ForecastingMetrics],
-    project: str,
     target_field_name: str,
     model: dsl.Input[VertexModel] = None,
     location: str = 'us-central1',
@@ -49,6 +49,7 @@ def model_evaluation_forecasting(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
     force_runner_mode: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Computes a ``google.ForecastingMetrics`` Artifact, containing evaluation
@@ -59,7 +60,6 @@ def model_evaluation_forecasting(
   Supports point forecasting and quantile forecasting for tabular data.
 
   Args:
-      project: Project to run evaluation container.
       location: Location for running the evaluation.
       predictions_format: The file format for the batch
         prediction results. ``jsonl``, ``csv``, and ``bigquery`` are the allowed
@@ -128,6 +128,8 @@ def model_evaluation_forecasting(
         created.
       force_runner_mode: Flag to choose Beam runner. Valid options are ``DirectRunner``
         and ``Dataflow``.
+      project: Project to run evaluation container. Defaults to the project in which the PipelineJob is run.
+
 
   Returns:
       evaluation_metrics:

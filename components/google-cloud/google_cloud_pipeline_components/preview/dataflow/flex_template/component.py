@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -23,7 +24,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def dataflow_flex_template(
-    project: str,
     container_spec_gcs_path: str,
     gcp_resources: OutputPath(str),
     location: str = 'us-central1',
@@ -56,13 +56,12 @@ def dataflow_flex_template(
     update: bool = False,
     transform_name_mappings: Dict[str, str] = {},
     validate_only: bool = False,
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a job with a Dataflow Flex Template.
 
   Args:
-    project: The ID of the Cloud Platform project that the job
-      belongs to.
     location: The regional endpoint to which to direct the request. E.g., us-central1,
       us-west1. Defaults to `us-central1` if not set.
     job_name: The job name to use for the created job. For update job requests, the job
@@ -157,6 +156,8 @@ def dataflow_flex_template(
       https://cloud.google.com/dataflow/docs/guides/updating-a-pipeline#Mapping
     validate_only: If true, the request is validated but not actually executed. Defaults to
       false.
+    project: The ID of the Cloud Platform project that the job
+      belongs to. Defaults to the project in which the PipelineJob is run.
 
     Returns:
       gcp_resources: Serialized gcp_resources proto tracking the Dataflow job. For more details, see

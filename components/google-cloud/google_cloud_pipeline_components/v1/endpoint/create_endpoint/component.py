@@ -15,6 +15,7 @@
 from typing import Dict
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -25,7 +26,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def endpoint_create(
-    project: str,
     display_name: str,
     gcp_resources: OutputPath(str),
     endpoint: Output[VertexEndpoint],
@@ -34,6 +34,7 @@ def endpoint_create(
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
     network: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """`Creates <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create>`_ a Google Cloud Vertex `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_ and waits for it to be ready.
@@ -42,7 +43,6 @@ def endpoint_create(
   See the `Endpoint create <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create>`_ method for more information.
 
   Args:
-      project: Project to create the Endpoint.
       location: Location to create the Endpoint. If not set,
         default to us-central1.
       display_name: The user-defined name of the Endpoint. The
@@ -69,6 +69,7 @@ def endpoint_create(
         `Format <https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert>`_:
         ``projects/{project}/global/networks/{network}``. Where ``{project}`` is a
         project number, as in ``'12345'``, and ``{network}`` is network name.
+      project: Project to create the Endpoint. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       endpoint: Artifact tracking the created Endpoint.

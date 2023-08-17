@@ -14,6 +14,7 @@
 
 from typing import Any, List
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model_evaluation import version
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp.dsl import Artifact
@@ -31,7 +32,6 @@ from kfp.dsl import PIPELINE_TASK_ID_PLACEHOLDER
 def detect_data_bias(
     gcp_resources: OutputPath(str),
     data_bias_metrics: Output[Artifact],
-    project: str,
     target_field_name: str,
     bias_configs: List[Any],
     location: str = 'us-central1',
@@ -40,6 +40,7 @@ def detect_data_bias(
     dataset: Input[VertexDataset] = None,
     columns: List[str] = [],
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Detects data bias metrics in a dataset.
@@ -49,7 +50,6 @@ def detect_data_bias(
   bias metrics for the dataset.
 
   Args:
-      project: Project to run data bias detection.
       location: Location for running data bias detection.
       target_field_name: The full name path of the features target field
         in the predictions file. Formatted to be able to find nested columns,
@@ -92,6 +92,7 @@ def detect_data_bias(
         ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
         The key needs to be in the same region as where the compute resource is
         created.
+      project: Project to run data bias detection. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       data_bias_metrics:

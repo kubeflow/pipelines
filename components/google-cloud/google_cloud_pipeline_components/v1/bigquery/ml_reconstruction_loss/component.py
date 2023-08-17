@@ -14,6 +14,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import ConcatPlaceholder
@@ -26,7 +27,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_ml_reconstruction_loss_job(
-    project: str,
     model: Input[BQMLModel],
     destination_table: Output[BQTable],
     gcp_resources: OutputPath(str),
@@ -37,13 +37,12 @@ def bigquery_ml_reconstruction_loss_job(
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery ml reconstruction loss job and waits for it to finish.
 
   Args:
-      project: Project to run BigQuery ml reconstruction loss
-        job.
       location: Location to run the BigQuery ml reconstruction
         loss job. If not set, default to `US` multi-region. For more details,
         see
@@ -77,6 +76,8 @@ def bigquery_ml_reconstruction_loss_job(
         requires access to this encryption key. If encryption_spec_key_name
         are both specified in here and in job_configuration_query, the value
         in here will override the other one.
+      project: Project to run BigQuery ml reconstruction loss
+        job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       destination_table: Describes the table where the ml reconstruction loss job results

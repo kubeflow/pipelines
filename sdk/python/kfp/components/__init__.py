@@ -30,7 +30,6 @@ from kfp.components.load_yaml_utilities import load_component_from_url
 # keep this for backward compatibility with user code "from kfp.components import placholders" and similar
 from kfp.dsl import base_component  # noqa: keep unused import
 from kfp.dsl import placeholders  # noqa: keep unused import
-#
 from kfp.dsl.base_component import BaseComponent
 from kfp.dsl.container_component_class import ContainerComponent
 from kfp.dsl.python_component import PythonComponent

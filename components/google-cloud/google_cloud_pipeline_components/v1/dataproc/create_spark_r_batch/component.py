@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -23,7 +24,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def dataproc_create_spark_r_batch(
-    project: str,
     gcp_resources: OutputPath(str),
     location: str = 'us-central1',
     batch_id: str = '',
@@ -42,12 +42,12 @@ def dataproc_create_spark_r_batch(
     file_uris: List[str] = [],
     archive_uris: List[str] = [],
     args: List[str] = [],
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Create a Dataproc SparkR batch workload and wait for it to finish.
 
   Args:
-      project: Project to run the Dataproc batch workload.
       location: Location of the Dataproc batch workload. If not set, defaults to
         ``"us-central1"``.
       batch_id: The ID to use for the batch, which will become
@@ -86,6 +86,7 @@ def dataproc_create_spark_r_batch(
         include arguments that can be set as batch properties, such as
         ``--conf``, since a collision can occur that causes an incorrect batch
         submission.
+      project: Project to run the Dataproc batch workload. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       gcp_resources: Serialized gcp_resources proto tracking the Dataproc batch workload. For more details, see

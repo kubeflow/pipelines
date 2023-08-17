@@ -16,7 +16,7 @@
 source_root=$(pwd)
 
 pip install --upgrade pip
-source $source_root/sdk/python/install_from_source.sh
+pip install $source_root/sdk/python
 pip install components/google-cloud
 pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 

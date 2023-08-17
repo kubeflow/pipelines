@@ -14,6 +14,7 @@
 
 from typing import List
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ErrorAnalysisAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluatedAnnotationOp
@@ -24,13 +25,11 @@ from google_cloud_pipeline_components._implementation.model_evaluation import Mo
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from google_cloud_pipeline_components.v1.dataset import GetVertexDatasetOp
 from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
-import kfp
 from kfp import dsl
 
 
-@kfp.dsl.pipeline(name='vision-model-error-analysis-pipeline')
+@dsl.pipeline(name='automl-vision-error-analysis-pipeline')
 def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-value
-    project: str,
     location: str,
     model_name: str,
     batch_predict_gcs_destination_output_uri: str,
@@ -55,6 +54,7 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
     force_runner_mode: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   """The evaluation vision error analysis pipeline.
 
@@ -64,13 +64,12 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
   including Dataflow and BatchPrediction.
 
   Args:
-    project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     model_name: The Vertex model resource name to be imported and used for batch
       prediction, in the format of
-      projects/{project}/locations/{location}/models/{model} or
-      projects/{project}/locations/{location}/models/{model}@{model_version_id
-      or model_version_alias}
+      ``projects/{project}/locations/{location}/models/{model}`` or
+      ``projects/{project}/locations/{location}/models/{model}@{model_version_id
+      or model_version_alias}``
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
       of the directory where the output is to be written to. In the given
       directory a new directory is created. Its name is
@@ -142,8 +141,8 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
     dataflow_machine_type: The Dataflow machine type for evaluation components.
     dataflow_max_num_workers: The max number of Dataflow workers for evaluation
       components.
-    dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation
-      components.
+    dataflow_disk_size_gb: The disk size (in GB) of the machine executing the
+      evaluation run.
     dataflow_service_account: Custom service account to run Dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
@@ -158,10 +157,12 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
       are ``Dataflow`` and ``DirectRunner``.
+    project: The GCP project that runs the pipeline components. Defaults to the
+      project in which the PipelineJob is run.
   """
-  evaluation_display_name = 'vision-model-error-analysis-pipeline'
+  evaluation_display_name = 'automl-vision-error-analysis-pipeline'
 
-  with kfp.dsl.Condition(
+  with dsl.Condition(
       (
           test_dataset_resource_name != ''
           and training_dataset_resource_name != ''
@@ -291,7 +292,7 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
         ],
     )
 
-  with kfp.dsl.Condition(
+  with dsl.Condition(
       (
           (
               test_dataset_resource_name == ''

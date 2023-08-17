@@ -40,6 +40,7 @@ def model_evaluation_import(
     summarization_metrics: Optional[Input[Metrics]] = None,
     explanation: Optional[Input[Metrics]] = None,
     feature_attributions: Optional[Input[Metrics]] = None,
+    embedding_metrics: Optional[Input[Metrics]] = None,
     display_name: str = "",
     dataset_path: str = "",
     dataset_paths: List[str] = [],
@@ -70,18 +71,20 @@ def model_evaluation_import(
     regression_metrics: google.ClassificationMetrics artifact generated from
       the ModelEvaluationRegressionOp component.
     text_generation_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.TextGenerationMetrics.
     question_answering_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.QuestionAnsweringMetrics.
     summarization_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.SummarizationMetrics.
     explanation: Path for model explanation metrics generated from an evaluation
       component.
     feature_attributions: The feature attributions metrics artifact generated
       from the feature attribution component.
+    embedding_metrics: The embedding metrics artifact generated from the
+      embedding retrieval metrics component.
     display_name: The display name for the uploaded model evaluation resource.
   """
   # fmt: on
@@ -157,6 +160,13 @@ def model_evaluation_import(
               then=[
                   "--feature_attributions",
                   feature_attributions.uri,
+              ],
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name="embedding_metrics",
+              then=[
+                  "--embedding_metrics",
+                  embedding_metrics.uri,
               ],
           ),
           dsl.IfPresentPlaceholder(
