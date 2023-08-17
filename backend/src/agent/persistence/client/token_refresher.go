@@ -20,7 +20,7 @@ type FileReader interface {
 
 type tokenRefresher struct {
 	mu         sync.RWMutex
-	seconds    *time.Duration
+	interval   *time.Duration
 	token      string
 	fileReader *FileReader
 }
@@ -31,13 +31,13 @@ func (r *FileReaderImpl) ReadFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
 }
 
-func NewTokenRefresher(seconds time.Duration, fileReader FileReader) *tokenRefresher {
+func NewTokenRefresher(interval time.Duration, fileReader FileReader) *tokenRefresher {
 	if fileReader == nil {
 		fileReader = &FileReaderImpl{}
 	}
 
 	tokenRefresher := &tokenRefresher{
-		seconds:    &seconds,
+		interval:   &interval,
 		fileReader: &fileReader,
 	}
 
@@ -50,7 +50,7 @@ func (tr *tokenRefresher) StartTokenRefreshTicker() error {
 		return err
 	}
 
-	ticker := time.NewTicker(*tr.seconds)
+	ticker := time.NewTicker(*tr.interval)
 	go func() {
 		for range ticker.C {
 			tr.RefreshToken()
