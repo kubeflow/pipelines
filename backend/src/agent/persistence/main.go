@@ -43,6 +43,7 @@ var (
 	numWorker                     int
 	clientQPS                     float64
 	clientBurst                   int
+	saTokenRefreshInterval        float64
 )
 
 const (
@@ -59,10 +60,12 @@ const (
 	numWorkerName                         = "numWorker"
 	clientQPSFlagName                     = "clientQPS"
 	clientBurstFlagName                   = "clientBurst"
+	saTokenRefreshIntervalFlagName        = "saTokenRefreshInterval"
 )
 
 const (
-	DefaultConnectionTimeout = 6 * time.Minute
+	DefaultConnectionTimeout      = 6 * time.Minute
+	DefaultTokenRefresherInterval = 1 * time.Hour
 )
 
 func main() {
@@ -97,9 +100,16 @@ func main() {
 		Burst: clientBurst,
 	})
 
+	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshInterval), nil)
+	err = tokenRefresher.StartTokenRefreshTicker()
+	if err != nil {
+		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
+	}
+
 	pipelineClient, err := client.NewPipelineClient(
 		initializeTimeout,
 		timeout,
+		tokenRefresher,
 		mlPipelineAPIServerBasePath,
 		mlPipelineAPIServerName,
 		mlPipelineServiceHttpPort,
@@ -140,4 +150,8 @@ func init() {
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
+	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
+	flag.Float64Var(&saTokenRefreshInterval, saTokenRefreshIntervalFlagName, DefaultTokenRefresherInterval.Seconds(), "Persistence agent service account token read interval in seconds. "+
+		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
+
 }
