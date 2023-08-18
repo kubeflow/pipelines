@@ -4092,7 +4092,7 @@ class ExtractInputOutputDescription(unittest.TestCase):
             """Pipeline description. Returns
 
             Args:
-                string: Return Pipeline input string. Returns
+                string: Return Pipeline input string.
                 in_artifact: Pipeline input Return artifact.
 
             Returns:
@@ -4114,7 +4114,7 @@ class ExtractInputOutputDescription(unittest.TestCase):
         self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
         self.assertEqual(
             pipeline_spec.root.input_definitions.parameters['string']
-            .description, 'Return Pipeline input string. Returns')
+            .description, 'Return Pipeline input string.')
         self.assertIn('in_artifact',
                       pipeline_spec.root.input_definitions.artifacts)
         self.assertEqual(
@@ -4159,6 +4159,118 @@ class ExtractInputOutputDescription(unittest.TestCase):
             pipeline_spec.components['comp-comp'].output_definitions
             .artifacts['out_artifact'].description,
             'Component output artifact.')
+
+    def test_tab_and_newline_characters_ignored_for_params(self):
+        # we do string replacement for Return and Returns, so need to ensure having those words elsewhere plays well with extraction
+        @dsl.component
+        def comp(
+            string: str,
+            in_artifact: Input[Artifact],
+            out_artifact: Output[Artifact],
+        ) -> str:
+            """Return Component Returns description.
+
+            Args:
+                string: Component Return input string. Here is an example of
+                    what this should look like: "example".
+                in_artifact: Component Returns input artifact.
+                            More info about in_artifact.
+
+            Returns:
+                Output: Component output string. Here is an example of what this should look like: "example".
+                out_artifact: Component output artifact.
+                    
+                        More info about out_artifact.
+            """
+            return string
+
+        Outputs = NamedTuple(
+            'Outputs',
+            out_str=str,
+            out_artifact=Artifact,
+        )
+
+        @dsl.pipeline
+        def my_pipeline(
+            string: str,
+            in_artifact: Input[Artifact],
+        ) -> Outputs:
+            """Pipeline description. Returns
+
+            Args:
+                string: Return Pipeline input string.
+                in_artifact: Pipeline input Return artifact.
+
+            Returns:
+                out_str: Pipeline output string.
+                    More about the output
+                out_artifact: Pipeline output artifact.
+                        Poorly formatted.
+            """
+            t = comp(
+                string=string,
+                in_artifact=in_artifact,
+            )
+            return Outputs(
+                out_str=t.outputs['Output'],
+                out_artifact=t.outputs['out_artifact'])
+
+        pipeline_spec = my_pipeline.pipeline_spec
+
+        # test pipeline
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['string']
+            .description, 'Return Pipeline input string.')
+        self.assertIn('in_artifact',
+                      pipeline_spec.root.input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.artifacts['in_artifact']
+            .description, 'Pipeline input Return artifact.')
+        self.assertIn('out_str',
+                      pipeline_spec.root.output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.parameters['out_str']
+            .description, 'Pipeline output string.')
+        self.assertIn('out_artifact',
+                      pipeline_spec.root.output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.root.output_definitions.artifacts['out_artifact']
+            .description, 'Pipeline output artifact.')
+
+        # test component
+        # check key with assertIn first to prevent false negatives with errored key and easier debugging
+        self.assertIn(
+            'string',
+            pipeline_spec.components['comp-comp'].input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['string'].description,
+            'Component Return input string. Here is an example of what this should look like: "example".'
+        )
+        self.assertIn(
+            'in_artifact',
+            pipeline_spec.components['comp-comp'].input_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .artifacts['in_artifact'].description,
+            'Component Returns input artifact. More info about in_artifact.')
+        self.assertIn(
+            'Output',
+            pipeline_spec.components['comp-comp'].output_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .parameters['Output'].description,
+            'Component output string. Here is an example of what this should look like: "example".'
+        )
+        self.assertIn(
+            'out_artifact',
+            pipeline_spec.components['comp-comp'].output_definitions.artifacts)
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].output_definitions
+            .artifacts['out_artifact'].description,
+            'Component output artifact. More info about out_artifact.')
 
 
 if __name__ == '__main__':

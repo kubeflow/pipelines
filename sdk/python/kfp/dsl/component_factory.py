@@ -359,7 +359,8 @@ def extract_component_interface(
         docstring_inputs = {param.arg_name: param for param in docstring_params}
         for name, spec in inputs_or_outputs.items():
             if name in docstring_inputs:
-                spec.description = docstring_inputs[name].description
+                spec.description = docstring_inputs[name].description.strip(
+                    '\t').strip('\n')
 
     def parse_docstring_with_return_as_args(
             docstring: Union[str,
