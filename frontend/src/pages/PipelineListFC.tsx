@@ -33,7 +33,7 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import { formatDateString } from 'src/lib/Utils';
+import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { Page, PageProps } from './Page';
 import PipelineVersionList from './PipelineVersionList';
 
@@ -49,7 +49,7 @@ interface DisplayPipeline extends V2beta1Pipeline {
 
 export function PipelineListFC(props: pipelineListFCProps) {
   const selectionChanged = (pipelineId: string | undefined, selectedIds: string[]) => {};
-  const { namespace, updateToolbar } = props;
+  const { namespace, updateBanner, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
   const Refresh = () => setRefresh(refreshed => !refreshed);
   const [toolbarState, setToolbarState] = useState<ToolbarProps>(
@@ -134,14 +134,41 @@ export function PipelineListFC(props: pipelineListFCProps) {
     setRows(rows);
   }, [displayPipelines]);
 
-  useEffect(() => {
-    refetchPipelineList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request]);
+  // useEffect(() => {
+  //   refetchPipelineList();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [request]);
 
-  const reload = async (listRequest: ListRequest) => {
-    setRequest(listRequest);
-    return nextPageToken;
+  const reload = async (updateRequest: ListRequest) => {
+    let response: V2beta1ListPipelinesResponse | null = null;
+    let displayPipelines: DisplayPipeline[];
+    try {
+      response = await Apis.pipelineServiceApiV2.listPipelines(
+        namespace,
+        updateRequest.pageToken,
+        updateRequest.pageSize,
+        updateRequest.sortBy,
+        updateRequest.filter,
+      );
+      displayPipelines = response.pipelines || [];
+      displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      setDisplayPipelines(displayPipelines);
+    } catch (err) {
+      await showPageError('Error: failed to retrieve list of pipelines.', err);
+    }
+    return response ? response.next_page_token || '' : '';
+    // setRequest(listRequest)
+    // await refetchPipelineList();
+    // // wait until nextPageToken is updated, then return
+    // return nextPageToken;
+  };
+
+  const showPageError = async (message: string, error: Error | undefined) => {
+    const errorMessage = await errorToMessage(error);
+    updateBanner({
+      additionalInfo: errorMessage ? errorMessage : undefined,
+      message: message + (errorMessage ? ' Click Details for more information.' : ''),
+    });
   };
 
   return (
