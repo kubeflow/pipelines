@@ -25,7 +25,10 @@ from google_cloud_pipeline_components._implementation.model_evaluation.feature_e
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluated_annotation.component import evaluated_annotation_import as ModelImportEvaluatedAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_classification_postprocessor.component import llm_classification_predictions_postprocessor_graph_component as LLMEvaluationClassificationPredictionsPostprocessorOp
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_embedding_retrieval.component import llm_embedding_retrieval as LLMEmbeddingRetrievalOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_evaluation.component import model_evaluation_text_generation as LLMEvaluationTextGenerationOp
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_information_retrieval_preprocessor.component import llm_information_retrieval_preprocessor as LLMInformationRetrievalPreprocessorOp
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_retrieval_metrics.component import llm_retrieval_metrics as LLMRetrievalMetricsOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.component import llm_safety_bias_metrics as LLMSafetyBiasMetricsOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.evaluation_llm_safety_bias_pipeline import evaluation_llm_safety_bias_pipeline
 from google_cloud_pipeline_components._implementation.model_evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
@@ -39,8 +42,11 @@ __all__ = [
     'EvaluatedAnnotationOp',
     'FeatureAttributionGraphComponentOp',
     'FeatureExtractorOp',
+    'LLMEmbeddingRetrievalOp',
     'LLMEvaluationClassificationPredictionsPostprocessorOp',
     'LLMEvaluationTextGenerationOp',
+    'LLMInformationRetrievalPreprocessorOp',
+    'LLMRetrievalMetricsOp',
     'LLMSafetyBiasMetricsOp',
     'ModelEvaluationFeatureAttributionOp',
     'ModelImportEvaluatedAnnotationOp',
