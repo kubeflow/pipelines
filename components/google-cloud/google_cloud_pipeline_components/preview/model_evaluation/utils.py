@@ -61,7 +61,7 @@ def create_slice_specs_list(
         )
       elif isinstance(value, list):
         configs[feature] = ModelEvaluationSlice.Slice.SliceSpec.SliceConfig(
-            range=ModelEvaluationSlice.Slice.SliceSpec.Range(
+            range_=ModelEvaluationSlice.Slice.SliceSpec.Range(
                 low=value[0], high=value[1]
             )
         )
