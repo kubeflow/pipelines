@@ -35,6 +35,7 @@
 #    model_description: str [Default: '']
 #    model_display_name: str [Default: 'automl-forecasting-model-upload-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}']
 #    optimization_objective: str
+#    parent_model: system.Artifact
 #    predefined_split_key: str [Default: '']
 #    project: str
 #    root_dir: str
@@ -50,7 +51,7 @@
 #    test_fraction: float [Default: -1.0]
 #    time_column: str
 #    time_series_attribute_columns: list
-#    time_series_identifier_column: str
+#    time_series_identifier_columns: list
 #    timestamp_split_key: str [Default: '']
 #    train_budget_milli_node_hours: float
 #    training_fraction: float [Default: -1.0]
@@ -790,6 +791,8 @@ components:
                 taskOutputArtifact:
                   outputArtifactKey: explanation_metadata_artifact
                   producerTask: automl-forecasting-ensemble
+              parent_model:
+                componentInputArtifact: pipelinechannel--parent_model
               unmanaged_container_model:
                 taskOutputArtifact:
                   outputArtifactKey: unmanaged_container_model
@@ -820,6 +823,10 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
         pipelinechannel--feature-transform-engine-transform_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        pipelinechannel--parent_model:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
@@ -1339,6 +1346,9 @@ components:
                   constant: 1.0
               project:
                 componentInputParameter: pipelinechannel--project
+              reduce_search_space_mode:
+                runtimeValue:
+                  constant: full
               root_dir:
                 componentInputParameter: pipelinechannel--root_dir
               single_run_max_secs:
@@ -1491,6 +1501,8 @@ components:
                 taskOutputArtifact:
                   outputArtifactKey: explanation_metadata_artifact
                   producerTask: automl-forecasting-ensemble-2
+              parent_model:
+                componentInputArtifact: pipelinechannel--parent_model
               unmanaged_container_model:
                 taskOutputArtifact:
                   outputArtifactKey: unmanaged_container_model
@@ -1521,6 +1533,10 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
         pipelinechannel--feature-transform-engine-transform_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        pipelinechannel--parent_model:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
@@ -1992,6 +2008,8 @@ components:
                 taskOutputArtifact:
                   outputArtifactKey: transform_output
                   producerTask: feature-transform-engine
+              pipelinechannel--parent_model:
+                componentInputArtifact: pipelinechannel--parent_model
               pipelinechannel--split-materialized-data-materialized_eval_split:
                 taskOutputArtifact:
                   outputArtifactKey: materialized_eval_split
@@ -2100,6 +2118,8 @@ components:
                 taskOutputArtifact:
                   outputArtifactKey: transform_output
                   producerTask: feature-transform-engine
+              pipelinechannel--parent_model:
+                componentInputArtifact: pipelinechannel--parent_model
               pipelinechannel--split-materialized-data-materialized_eval_split:
                 taskOutputArtifact:
                   outputArtifactKey: materialized_eval_split
@@ -2231,8 +2251,8 @@ components:
                 componentInputParameter: pipelinechannel--time_column
               forecasting_time_series_attribute_columns:
                 componentInputParameter: pipelinechannel--time_series_attribute_columns
-              forecasting_time_series_identifier_column:
-                componentInputParameter: pipelinechannel--time_series_identifier_column
+              forecasting_time_series_identifier_columns:
+                componentInputParameter: pipelinechannel--time_series_identifier_columns
               forecasting_unavailable_at_forecast_columns:
                 componentInputParameter: pipelinechannel--unavailable_at_forecast_columns
               forecasting_window_max_count:
@@ -2259,6 +2279,9 @@ components:
                 componentInputParameter: pipelinechannel--project
               root_dir:
                 componentInputParameter: pipelinechannel--root_dir
+              stats_gen_execution_engine:
+                runtimeValue:
+                  constant: bigquery
               target_column:
                 componentInputParameter: pipelinechannel--target_column
               temporal_total_weight:
@@ -2338,7 +2361,7 @@ components:
                 runtimeValue:
                   constant: tft
               forecasting_transformations:
-                componentInputParameter: pipelinechannel--transformations
+                componentInputParameter: pipelinechannel--set-optional-inputs-transformations
               group_columns:
                 componentInputParameter: pipelinechannel--group_columns
               group_temporal_total_weight:
@@ -2365,8 +2388,8 @@ components:
                 componentInputParameter: pipelinechannel--time_column
               time_series_attribute_columns:
                 componentInputParameter: pipelinechannel--time_series_attribute_columns
-              time_series_identifier_column:
-                componentInputParameter: pipelinechannel--time_series_identifier_column
+              time_series_identifier_columns:
+                componentInputParameter: pipelinechannel--time_series_identifier_columns
               unavailable_at_forecast_columns:
                 componentInputParameter: pipelinechannel--unavailable_at_forecast_columns
               weight_column:
@@ -2374,6 +2397,11 @@ components:
           taskInfo:
             name: training-configurator-and-validator
     inputDefinitions:
+      artifacts:
+        pipelinechannel--parent_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
       parameters:
         pipelinechannel--available_at_forecast_columns:
           parameterType: LIST
@@ -2449,6 +2477,8 @@ components:
           parameterType: STRING
         pipelinechannel--set-optional-inputs-data_source_csv_filenames:
           parameterType: STRING
+        pipelinechannel--set-optional-inputs-transformations:
+          parameterType: STRUCT
         pipelinechannel--stage_1_num_parallel_trials:
           parameterType: NUMBER_INTEGER
         pipelinechannel--stage_1_tuner_worker_pool_specs_override:
@@ -2471,8 +2501,8 @@ components:
           parameterType: STRING
         pipelinechannel--time_series_attribute_columns:
           parameterType: LIST
-        pipelinechannel--time_series_identifier_column:
-          parameterType: STRING
+        pipelinechannel--time_series_identifier_columns:
+          parameterType: LIST
         pipelinechannel--timestamp_split_key:
           parameterType: STRING
         pipelinechannel--train_budget_milli_node_hours:
@@ -2968,6 +2998,12 @@ components:
             \         27, no.\n       8: 1226-1238."
           isOptional: true
           parameterType: STRING
+        feature_selection_execution_engine:
+          defaultValue: dataflow
+          description: Execution engine to run feature selection, value can be dataflow,
+            bigquery.
+          isOptional: true
+          parameterType: STRING
         forecasting_apply_windowing:
           defaultValue: true
           description: Whether to apply window strategy.
@@ -3058,12 +3094,19 @@ components:
           isOptional: true
           parameterType: LIST
         forecasting_time_series_identifier_column:
-          defaultValue: ''
-          description: 'Forecasting
+          description: '[Deprecated] A forecasting time series identifier column.
+            Raises an
 
-            time series identifier column.'
+            exception if used - use the "time_series_identifier_column" field
+
+            instead.'
           isOptional: true
           parameterType: STRING
+        forecasting_time_series_identifier_columns:
+          defaultValue: []
+          description: The list of forecasting time series identifier columns.
+          isOptional: true
+          parameterType: LIST
         forecasting_unavailable_at_forecast_columns:
           defaultValue: []
           description: 'Forecasting
@@ -3143,11 +3186,25 @@ components:
             columns. Defaults to an empty list.'
           isOptional: true
           parameterType: LIST
+        multimodal_tabular_columns:
+          defaultValue: []
+          description: 'List of multimodal tabular
+
+            columns. Defaults to an empty list'
+          isOptional: true
+          parameterType: LIST
         multimodal_text_columns:
           defaultValue: []
           description: 'List of multimodal text
 
-            columns. Defaults to an empty list.'
+            columns. Defaults to an empty list'
+          isOptional: true
+          parameterType: LIST
+        multimodal_timeseries_columns:
+          defaultValue: []
+          description: 'List of multimodal timeseries
+
+            columns. Defaults to an empty list'
           isOptional: true
           parameterType: LIST
         predefined_split_key:
@@ -3182,6 +3239,15 @@ components:
             should be applied to the dataset.'
           isOptional: true
           parameterType: BOOLEAN
+        stats_gen_execution_engine:
+          defaultValue: dataflow
+          description: 'Execution engine to perform
+
+            statistics generation. Can be one of: "dataflow" (by default) or
+
+            "bigquery". Using "bigquery" as the execution engine is experimental.'
+          isOptional: true
+          parameterType: STRING
         stratified_split_key:
           defaultValue: ''
           description: Stratified split key.
@@ -5247,6 +5313,11 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
           isOptional: true
+        parent_model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+          isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
@@ -5297,6 +5368,11 @@ components:
         explanation_metadata_artifact:
           artifactType:
             schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
+        parent_model:
+          artifactType:
+            schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
           isOptional: true
         unmanaged_container_model:
@@ -5367,6 +5443,12 @@ components:
         project:
           description: The GCP project that runs the pipeline components.
           parameterType: STRING
+        stats_gen_execution_engine:
+          description: Execution engine used for stats gen in FTE.
+          parameterType: STRING
+        transformations:
+          description: forecasting transformations to append stats gen engine to.
+          parameterType: STRUCT
     outputDefinitions:
       parameters:
         data_source_bigquery_table_path:
@@ -5375,6 +5457,8 @@ components:
           parameterType: STRING
         model_display_name:
           parameterType: STRING
+        transformations:
+          parameterType: STRUCT
   comp-split-materialized-data:
     executorLabel: exec-split-materialized-data
     inputDefinitions:
@@ -5659,12 +5743,20 @@ components:
           isOptional: true
           parameterType: LIST
         time_series_identifier_column:
-          defaultValue: ''
-          description: 'Time series idenfier column. Used by
+          description: '[Deprecated] The time series identifier
 
-            forecasting only.'
+            column. Used by forecasting only. Raises exception if used -
+
+            use the "time_series_identifier_column" field instead.'
           isOptional: true
           parameterType: STRING
+        time_series_identifier_columns:
+          defaultValue: []
+          description: 'The list of time series identifier columns.
+
+            Used by forecasting only.'
+          isOptional: true
+          parameterType: LIST
         unavailable_at_forecast_columns:
           defaultValue: []
           description: 'The names of the columns that are
@@ -5706,7 +5798,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230619_1325",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
           "\", \"args\": [\"forecasting_mp_ensemble", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--error_file_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
@@ -5743,7 +5835,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230619_1325",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
           "\", \"args\": [\"forecasting_mp_ensemble", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--error_file_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
@@ -5780,11 +5872,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230619_1325",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
           "\", \"args\": [\"forecasting_mp_l2l_stage_1_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230619_1325",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
           "\", \"--reduce_search_space_mode=", "{{$.inputs.parameters[''reduce_search_space_mode'']}}",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
@@ -5823,11 +5915,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230619_1325",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
           "\", \"args\": [\"forecasting_mp_l2l_stage_2_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230619_1325",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
           "\", \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -5866,7 +5958,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230817_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -6111,7 +6203,9 @@ deploymentSpec:
         - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
         - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
-        - '{"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}'
+        - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
+          "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
+        - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
         - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
         - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
         - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
@@ -6128,6 +6222,7 @@ deploymentSpec:
         - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
         - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
         - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
         - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
         - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
           ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
@@ -6142,8 +6237,10 @@ deploymentSpec:
         - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
         - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
           "{{$.inputs.parameters[''model_type'']}}"]}}}'
-        - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
+        - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
+        - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
         - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
+        - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
         - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
         - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
         - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
@@ -6151,6 +6248,7 @@ deploymentSpec:
         - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
         - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+        - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
         - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
         - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
@@ -6180,8 +6278,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -6197,7 +6295,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -6299,13 +6397,10 @@ deploymentSpec:
           \ is dsl.PIPELINE_JOB_NAME_PLACEHOLDER, though\n  # at compile time the\
           \ actual template format doesn't get injected since\n  # the Python isn't\
           \ interpreted yet, so we have to hardcode the value.\n  pipeline_url = 'https://console.cloud.google.com/vertex-ai/locations/{location}/pipelines/runs/{{$.pipeline_job_name}}?project={project}'.format(\n\
-          \      location=location, project=project\n  )\n  # Note: URL should match\
-          \ SDK and API:\n  # http://google3/third_party/py/google/cloud/aiplatform/aiplatform/pipeline_jobs.py;l=469;rcl=485422918\n\
-          \  # http://google3/google/cloud/aiplatform/master/pipeline_job.proto;l=43;rcl=521956025\n\
-          \n  if original_description:\n    return f'{original_description} From:\
-          \ {pipeline_url}'\n\n  # The pipeline url contains KFP placeholders injected\
-          \ at runtime.\n  return f'Vertex forecasting model trained in the pipeline:\
-          \ {pipeline_url}'\n\n"
+          \      location=location, project=project\n  )\n  if original_description:\n\
+          \    return f'{original_description} From: {pipeline_url}'\n\n  # The pipeline\
+          \ url contains KFP placeholders injected at runtime.\n  return f'Vertex\
+          \ forecasting model trained in the pipeline: {pipeline_url}'\n\n"
         image: python:3.7
     exec-get-or-create-model-description-2:
       container:
@@ -6337,13 +6432,10 @@ deploymentSpec:
           \ is dsl.PIPELINE_JOB_NAME_PLACEHOLDER, though\n  # at compile time the\
           \ actual template format doesn't get injected since\n  # the Python isn't\
           \ interpreted yet, so we have to hardcode the value.\n  pipeline_url = 'https://console.cloud.google.com/vertex-ai/locations/{location}/pipelines/runs/{{$.pipeline_job_name}}?project={project}'.format(\n\
-          \      location=location, project=project\n  )\n  # Note: URL should match\
-          \ SDK and API:\n  # http://google3/third_party/py/google/cloud/aiplatform/aiplatform/pipeline_jobs.py;l=469;rcl=485422918\n\
-          \  # http://google3/google/cloud/aiplatform/master/pipeline_job.proto;l=43;rcl=521956025\n\
-          \n  if original_description:\n    return f'{original_description} From:\
-          \ {pipeline_url}'\n\n  # The pipeline url contains KFP placeholders injected\
-          \ at runtime.\n  return f'Vertex forecasting model trained in the pipeline:\
-          \ {pipeline_url}'\n\n"
+          \      location=location, project=project\n  )\n  if original_description:\n\
+          \    return f'{original_description} From: {pipeline_url}'\n\n  # The pipeline\
+          \ url contains KFP placeholders injected at runtime.\n  return f'Vertex\
+          \ forecasting model trained in the pipeline: {pipeline_url}'\n\n"
         image: python:3.7
     exec-get-prediction-image-uri:
       container:
@@ -6373,10 +6465,10 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230619_1325',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230619_1325',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230619_1325',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230619_1325',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230817_0125',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230817_0125',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230817_0125',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230817_0125',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
@@ -6409,10 +6501,10 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230619_1325',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230619_1325',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230619_1325',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230619_1325',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230817_0125',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230817_0125',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230817_0125',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230817_0125',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
@@ -6445,7 +6537,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
     exec-get-predictions-column-2:
       container:
         args:
@@ -6474,7 +6566,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
     exec-importer:
       importer:
         artifactUri:
@@ -6905,12 +6997,14 @@ deploymentSpec:
         - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
         - --executor_input
         - '{{$}}'
+        - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
+          "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
         command:
         - python3
         - -u
         - -m
         - launcher
-        image: gcr.io/ml-pipeline/automl-tables-private:1.0.13
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.15
     exec-model-upload-2:
       container:
         args:
@@ -6932,12 +7026,14 @@ deploymentSpec:
         - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
         - --executor_input
         - '{{$}}'
+        - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
+          "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
         command:
         - python3
         - -u
         - -m
         - launcher
-        image: gcr.io/ml-pipeline/automl-tables-private:1.0.13
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.15
     exec-set-optional-inputs:
       container:
         args:
@@ -6950,8 +7046,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.24.1'\
-          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -6965,18 +7061,24 @@ deploymentSpec:
           \ *\n\ndef _set_optional_inputs(\n    project: str,\n    location: str,\n\
           \    data_source_csv_filenames: str,\n    data_source_bigquery_table_path:\
           \ str,\n    vertex_dataset: dsl.Input[dsl.Artifact],\n    model_display_name:\
-          \ str,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('data_source_csv_filenames',\
+          \ str,\n    stats_gen_execution_engine: str,\n    transformations: dict,\n\
+          ) -> NamedTuple(\n    'Outputs',\n    [\n        ('data_source_csv_filenames',\
           \ str),\n        ('data_source_bigquery_table_path', str),\n        ('model_display_name',\
-          \ str),\n    ],\n):\n  \"\"\"Get the data source URI.\n\n  Args:\n    project:\
-          \ The GCP project that runs the pipeline components.\n    location: The\
-          \ GCP region that runs the pipeline components.\n    data_source_csv_filenames:\
-          \ The CSV GCS path when data source is CSV.\n    data_source_bigquery_table_path:\
-          \ The BigQuery table when data source is BQ.\n    vertex_dataset: The Vertex\
-          \ dataset when data source is Vertex dataset.\n    model_display_name: The\
-          \ uploaded model's display name.\n\n  Returns:\n    A named tuple of CSV\
-          \ or BQ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \ str),\n        ('transformations', dict),\n    ],\n):\n  \"\"\"Get the\
+          \ data source URI.\n\n  Args:\n    project: The GCP project that runs the\
+          \ pipeline components.\n    location: The GCP region that runs the pipeline\
+          \ components.\n    data_source_csv_filenames: The CSV GCS path when data\
+          \ source is CSV.\n    data_source_bigquery_table_path: The BigQuery table\
+          \ when data source is BQ.\n    vertex_dataset: The Vertex dataset when data\
+          \ source is Vertex dataset.\n    model_display_name: The uploaded model's\
+          \ display name.\n    stats_gen_execution_engine: Execution engine used for\
+          \ stats gen in FTE.\n    transformations: forecasting transformations to\
+          \ append stats gen engine to.\n\n  Returns:\n    A named tuple of CSV or\
+          \ BQ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
           \  import collections\n  from google.cloud import aiplatform\n  from google.cloud\
           \ import aiplatform_v1beta1 as aip\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \n  # TODO(b/261504514) Remove this handling when we use the FTE transform\
+          \ config.\n  transformations['stats_gen_execution_engine'] = stats_gen_execution_engine\n\
           \n  if not model_display_name:\n    model_display_name = _DEFAULT_MODEL_DISPLAY_NAME\n\
           \n  if vertex_dataset is not None:\n    # of format\n    # projects/294348452381/locations/us-central1/datasets/7104764862735056896\n\
           \    dataset_name = vertex_dataset.metadata['resourceName']\n\n    aiplatform.init(project=project,\
@@ -6991,10 +7093,10 @@ deploymentSpec:
           \        ' data_source_bigquery_table_path must be specified'\n    )\n\n\
           \  return collections.namedtuple(\n      'Outputs',\n      [\n         \
           \ 'data_source_csv_filenames',\n          'data_source_bigquery_table_path',\n\
-          \          'model_display_name',\n      ],\n  )(\n      data_source_csv_filenames,\n\
-          \      data_source_bigquery_table_path,\n      model_display_name,\n  )\n\
-          \n"
-        image: python:3.7-slim
+          \          'model_display_name',\n          'transformations',\n      ],\n\
+          \  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
+          \      model_display_name,\n      transformations,\n  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
     exec-split-materialized-data:
       container:
         args:
@@ -7040,7 +7142,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125
     exec-string-not-empty:
       container:
         args:
@@ -7106,7 +7208,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
     exec-table-to-uri-2:
       container:
         args:
@@ -7142,7 +7244,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
     exec-training-configurator-and-validator:
       container:
         args:
@@ -7162,7 +7264,9 @@ deploymentSpec:
         - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
         - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
         - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
-        - '{"Concat": ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}'
+        - '{"IfPresent": {"InputName": "time_series_identifier_column", "Then": {"Concat":
+          ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}}}'
+        - '{"Concat": ["--time_series_identifier_columns=", "{{$.inputs.parameters[''time_series_identifier_columns'']}}"]}'
         - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
         - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
         - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
@@ -7185,7 +7289,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
 pipelineInfo:
   description: The Temporal Fusion Transformer (TFT) Forecasting pipeline.
   name: temporal-fusion-transformer-forecasting
@@ -7227,6 +7331,9 @@ root:
         dependentTasks:
         - set-optional-inputs
         inputs:
+          artifacts:
+            pipelinechannel--parent_model:
+              componentInputArtifact: parent_model
           parameters:
             pipelinechannel--available_at_forecast_columns:
               componentInputParameter: available_at_forecast_columns
@@ -7306,6 +7413,10 @@ root:
               taskOutputParameter:
                 outputParameterKey: data_source_csv_filenames
                 producerTask: set-optional-inputs
+            pipelinechannel--set-optional-inputs-transformations:
+              taskOutputParameter:
+                outputParameterKey: transformations
+                producerTask: set-optional-inputs
             pipelinechannel--stage_1_num_parallel_trials:
               componentInputParameter: stage_1_num_parallel_trials
             pipelinechannel--stage_1_tuner_worker_pool_specs_override:
@@ -7328,8 +7439,8 @@ root:
               componentInputParameter: time_column
             pipelinechannel--time_series_attribute_columns:
               componentInputParameter: time_series_attribute_columns
-            pipelinechannel--time_series_identifier_column:
-              componentInputParameter: time_series_identifier_column
+            pipelinechannel--time_series_identifier_columns:
+              componentInputParameter: time_series_identifier_columns
             pipelinechannel--timestamp_split_key:
               componentInputParameter: timestamp_split_key
             pipelinechannel--train_budget_milli_node_hours:
@@ -7372,10 +7483,21 @@ root:
               componentInputParameter: model_display_name
             project:
               componentInputParameter: project
+            stats_gen_execution_engine:
+              runtimeValue:
+                constant: bigquery
+            transformations:
+              componentInputParameter: transformations
         taskInfo:
           name: set-optional-inputs
   inputDefinitions:
     artifacts:
+      parent_model:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+        description: Optional Vertex Model that this model is a version of.
+        isOptional: true
       vertex_dataset:
         artifactType:
           schemaTitle: system.Artifact
@@ -7661,11 +7783,11 @@ root:
           same time series.'
         isOptional: true
         parameterType: LIST
-      time_series_identifier_column:
-        description: 'The column that distinguish the different
+      time_series_identifier_columns:
+        description: 'The columns that distinguish the different
 
           time series.'
-        parameterType: STRING
+        parameterType: LIST
       timestamp_split_key:
         defaultValue: ''
         description: The timestamp_split column name.

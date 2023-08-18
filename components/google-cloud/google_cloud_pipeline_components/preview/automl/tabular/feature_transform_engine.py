@@ -17,9 +17,6 @@
 from typing import Optional
 
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Dataset
-from kfp.dsl import Output
 
 
 @dsl.container_component
@@ -27,22 +24,23 @@ def feature_transform_engine(
     root_dir: str,
     project: str,
     location: str,
-    dataset_stats: Output[Artifact],
-    materialized_data: Output[Dataset],
-    transform_output: Output[Artifact],
+    dataset_stats: dsl.Output[dsl.Artifact],
+    materialized_data: dsl.Output[dsl.Dataset],
+    transform_output: dsl.Output[dsl.Artifact],
     split_example_counts: dsl.OutputPath(str),
-    instance_schema: Output[Artifact],
-    training_schema: Output[Artifact],
+    instance_schema: dsl.Output[dsl.Artifact],
+    training_schema: dsl.Output[dsl.Artifact],
     bigquery_train_split_uri: dsl.OutputPath(str),
     bigquery_validation_split_uri: dsl.OutputPath(str),
     bigquery_test_split_uri: dsl.OutputPath(str),
     bigquery_downsampled_test_split_uri: dsl.OutputPath(str),
-    feature_ranking: Output[Artifact],
+    feature_ranking: dsl.Output[dsl.Artifact],
     gcp_resources: dsl.OutputPath(str),
     dataset_level_custom_transformation_definitions: Optional[list] = [],
     dataset_level_transformations: Optional[list] = [],
     forecasting_time_column: Optional[str] = '',
-    forecasting_time_series_identifier_column: Optional[str] = '',
+    forecasting_time_series_identifier_column: Optional[str] = None,
+    forecasting_time_series_identifier_columns: Optional[list] = [],
     forecasting_time_series_attribute_columns: Optional[list] = [],
     forecasting_unavailable_at_forecast_columns: Optional[list] = [],
     forecasting_available_at_forecast_columns: Optional[list] = [],
@@ -59,6 +57,7 @@ def feature_transform_engine(
     training_fraction: Optional[float] = -1,
     validation_fraction: Optional[float] = -1,
     test_fraction: Optional[float] = -1,
+    stats_gen_execution_engine: Optional[str] = 'dataflow',
     tf_transform_execution_engine: Optional[str] = 'dataflow',
     tf_auto_transform_features: Optional[dict] = {},
     tf_custom_transformation_definitions: Optional[list] = [],
@@ -68,11 +67,14 @@ def feature_transform_engine(
     weight_column: Optional[str] = '',
     prediction_type: Optional[str] = '',
     model_type: Optional[str] = None,
-    multimodal_image_columns: Optional[list] = [],
+    multimodal_tabular_columns: Optional[list] = [],
+    multimodal_timeseries_columns: Optional[list] = [],
     multimodal_text_columns: Optional[list] = [],
+    multimodal_image_columns: Optional[list] = [],
     run_distill: Optional[bool] = False,
     run_feature_selection: Optional[bool] = False,
     feature_selection_algorithm: Optional[str] = 'AMI',
+    feature_selection_execution_engine: Optional[str] = 'dataflow',
     materialized_examples_format: Optional[str] = 'tfrecords_gzip',
     max_selected_features: Optional[int] = 1000,
     data_source_csv_filenames: Optional[str] = '',
@@ -189,8 +191,12 @@ def feature_transform_engine(
                         our target_column. Must be one of * 'DAY' * 'WEEK'
                       output_column: Name of our output feature.
       forecasting_time_column: Forecasting time column.
-      forecasting_time_series_identifier_column: Forecasting
-        time series identifier column.
+      forecasting_time_series_identifier_column:
+        [Deprecated] A forecasting time series identifier column. Raises an
+        exception if used - use the "time_series_identifier_column" field
+        instead.
+      forecasting_time_series_identifier_columns:
+        The list of forecasting time series identifier columns.
       forecasting_time_series_attribute_columns: Forecasting
         time series attribute columns.
       forecasting_unavailable_at_forecast_columns: Forecasting
@@ -229,6 +235,9 @@ def feature_transform_engine(
       training_fraction: Fraction of input data for training.
       validation_fraction: Fraction of input data for validation.
       test_fraction: Fraction of input data for testing.
+      stats_gen_execution_engine: Execution engine to perform
+        statistics generation. Can be one of: "dataflow" (by default) or
+        "bigquery". Using "bigquery" as the execution engine is experimental.
       tf_transform_execution_engine: Execution engine to perform
         row-level TF transformations. Can be one of: "dataflow" (by default) or
         "bigquery". Using "bigquery" as the execution engine is experimental and
@@ -541,6 +550,7 @@ def feature_transform_engine(
                  IEEE Transactions on pattern analysis and machine intelligence
                  27, no.
                8: 1226-1238.
+      feature_selection_execution_engine: Execution engine to run feature selection, value can be dataflow, bigquery.
       materialized_examples_format: The format to use for the
         materialized examples. Should be either 'tfrecords_gzip' (default) or
         'parquet'.
@@ -568,9 +578,13 @@ def feature_transform_engine(
       model_type: Model type, which we wish to engineer features
         for. Can be one of: neural_network, boosted_trees, l2l, seq2seq, tft, or
         tide. Defaults to the empty value, `None`.
-      multimodal_image_columns: List of multimodal image
-        columns. Defaults to an empty list.
+      multimodal_tabular_columns: List of multimodal tabular
+        columns. Defaults to an empty list
+      multimodal_timeseries_columns: List of multimodal timeseries
+        columns. Defaults to an empty list
       multimodal_text_columns: List of multimodal text
+        columns. Defaults to an empty list
+      multimodal_image_columns: List of multimodal image
         columns. Defaults to an empty list.
       dataflow_machine_type: The machine type used for dataflow
         jobs. If not set, default to n1-standard-16.
@@ -626,7 +640,7 @@ def feature_transform_engine(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125',
       command=[],
       args=[
           'feature_transform_engine',
@@ -647,10 +661,20 @@ def feature_transform_engine(
           dsl.ConcatPlaceholder(
               items=['--forecasting_time_column=', forecasting_time_column]
           ),
+          dsl.IfPresentPlaceholder(
+              # Singular time series ID backwards support.
+              input_name='forecasting_time_series_identifier_column',
+              then=dsl.ConcatPlaceholder(
+                  items=[
+                      '--forecasting_time_series_identifier_column=',
+                      forecasting_time_series_identifier_column,
+                  ]
+              ),
+          ),
           dsl.ConcatPlaceholder(
               items=[
-                  '--forecasting_time_series_identifier_column=',
-                  forecasting_time_series_identifier_column,
+                  '--forecasting_time_series_identifier_columns=',
+                  forecasting_time_series_identifier_columns,
               ]
           ),
           dsl.ConcatPlaceholder(
@@ -731,6 +755,12 @@ def feature_transform_engine(
           dsl.ConcatPlaceholder(items=['--test_fraction=', test_fraction]),
           dsl.ConcatPlaceholder(
               items=[
+                  '--stats_gen_execution_engine=',
+                  stats_gen_execution_engine,
+              ]
+          ),
+          dsl.ConcatPlaceholder(
+              items=[
                   '--tf_transform_execution_engine=',
                   tf_transform_execution_engine,
               ]
@@ -783,14 +813,26 @@ def feature_transform_engine(
           ),
           dsl.ConcatPlaceholder(
               items=[
-                  '--multimodal_image_columns=',
-                  multimodal_image_columns,
+                  '--multimodal_tabular_columns=',
+                  multimodal_tabular_columns,
+              ]
+          ),
+          dsl.ConcatPlaceholder(
+              items=[
+                  '--multimodal_timeseries_columns=',
+                  multimodal_timeseries_columns,
               ]
           ),
           dsl.ConcatPlaceholder(
               items=[
                   '--multimodal_text_columns=',
                   multimodal_text_columns,
+              ]
+          ),
+          dsl.ConcatPlaceholder(
+              items=[
+                  '--multimodal_image_columns=',
+                  multimodal_image_columns,
               ]
           ),
           dsl.ConcatPlaceholder(items=['--run_distill=', run_distill]),
@@ -817,6 +859,12 @@ def feature_transform_engine(
               items=[
                   '--feature_selection_algorithm=',
                   feature_selection_algorithm,
+              ]
+          ),
+          dsl.ConcatPlaceholder(
+              items=[
+                  '--feature_selection_execution_engine=',
+                  feature_selection_execution_engine,
               ]
           ),
           dsl.ConcatPlaceholder(
@@ -921,8 +969,8 @@ def feature_transform_engine(
           dsl.ConcatPlaceholder(
               items=['--dataflow_machine_type=', dataflow_machine_type]
           ),
-          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325',
-          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325',
+          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125',
+          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125',
           dsl.ConcatPlaceholder(
               items=['--dataflow_disk_size_gb=', dataflow_disk_size_gb]
           ),

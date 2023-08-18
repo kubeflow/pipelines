@@ -104,7 +104,7 @@ def automl_forecasting_ensemble(
                       ' 1, "machine_spec": {"machine_type": "n1-highmem-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230619_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125',
                   '", "args": ["forecasting_mp_ensemble',
                   '", "--transform_output_path=',
                   transform_output.uri,
