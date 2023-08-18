@@ -1,5 +1,6 @@
 """Util functions for Vertex Forecasting pipelines."""
 
+import logging
 import os
 import pathlib
 from typing import Any, Dict, FrozenSet, List, Optional, Tuple
@@ -22,7 +23,8 @@ def _get_base_forecasting_parameters(
     transformations: Dict[str, List[str]],
     train_budget_milli_node_hours: float,
     time_column: str,
-    time_series_identifier_column: str,
+    time_series_identifier_columns: List[str],
+    time_series_identifier_column: Optional[str] = None,
     time_series_attribute_columns: Optional[List[str]] = None,
     available_at_forecast_columns: Optional[List[str]] = None,
     unavailable_at_forecast_columns: Optional[List[str]] = None,
@@ -81,6 +83,14 @@ def _get_base_forecasting_parameters(
   if not stage_2_trainer_worker_pool_specs_override:
     stage_2_trainer_worker_pool_specs_override = []
 
+  if time_series_identifier_column:
+    logging.warning(
+        'Deprecation warning: `time_series_identifier_column` will soon be'
+        ' deprecated in favor of `time_series_identifier_columns`. Please'
+        ' migrate workloads to use the new field.'
+    )
+    time_series_identifier_columns = [time_series_identifier_column]
+
   parameter_values = {}
   parameters = {
       'project': project,
@@ -93,7 +103,7 @@ def _get_base_forecasting_parameters(
       'transformations': transformations,
       'train_budget_milli_node_hours': train_budget_milli_node_hours,
       'time_column': time_column,
-      'time_series_identifier_column': time_series_identifier_column,
+      'time_series_identifier_columns': time_series_identifier_columns,
       'time_series_attribute_columns': time_series_attribute_columns,
       'available_at_forecast_columns': available_at_forecast_columns,
       'unavailable_at_forecast_columns': unavailable_at_forecast_columns,
@@ -184,7 +194,8 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
     transformations: Dict[str, List[str]],
     train_budget_milli_node_hours: float,
     time_column: str,
-    time_series_identifier_column: str,
+    time_series_identifier_columns: List[str],
+    time_series_identifier_column: Optional[str] = None,
     time_series_attribute_columns: Optional[List[str]] = None,
     available_at_forecast_columns: Optional[List[str]] = None,
     unavailable_at_forecast_columns: Optional[List[str]] = None,
@@ -202,7 +213,6 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
     predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
@@ -251,8 +261,10 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
     time_column: The column that indicates the time.
-    time_series_identifier_column: The column which distinguishes different time
+    time_series_identifier_columns: The columns which distinguish different time
       series.
+    time_series_identifier_column: [Deprecated] The column which distinguishes
+      different time series.
     time_series_attribute_columns: The columns that are invariant across the
       same time series.
     available_at_forecast_columns: The columns that are available at the
@@ -279,7 +291,6 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
     data_source_bigquery_table_path: The BigQuery table path of format
       bq://bq_project.bq_dataset.bq_table
     predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
     training_fraction: The training fraction.
     validation_fraction: The validation fraction.
     test_fraction: The test fraction.
@@ -342,6 +353,7 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
       train_budget_milli_node_hours=train_budget_milli_node_hours,
       time_column=time_column,
       dataflow_service_account=dataflow_service_account,
+      time_series_identifier_columns=time_series_identifier_columns,
       time_series_identifier_column=time_series_identifier_column,
       time_series_attribute_columns=time_series_attribute_columns,
       available_at_forecast_columns=available_at_forecast_columns,
@@ -359,7 +371,6 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
       data_source_csv_filenames=data_source_csv_filenames,
       data_source_bigquery_table_path=data_source_bigquery_table_path,
       predefined_split_key=predefined_split_key,
-      timestamp_split_key=timestamp_split_key,
       training_fraction=training_fraction,
       validation_fraction=validation_fraction,
       test_fraction=test_fraction,
@@ -409,7 +420,8 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
     transformations: Dict[str, List[str]],
     train_budget_milli_node_hours: float,
     time_column: str,
-    time_series_identifier_column: str,
+    time_series_identifier_columns: List[str],
+    time_series_identifier_column: Optional[str] = None,
     time_series_attribute_columns: Optional[List[str]] = None,
     available_at_forecast_columns: Optional[List[str]] = None,
     unavailable_at_forecast_columns: Optional[List[str]] = None,
@@ -427,7 +439,6 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
     predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
@@ -476,8 +487,10 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
     time_column: The column that indicates the time.
-    time_series_identifier_column: The column which distinguishes different time
+    time_series_identifier_columns: The columns which distinguish different time
       series.
+    time_series_identifier_column: [Deprecated] The column which distinguishes
+      different time series.
     time_series_attribute_columns: The columns that are invariant across the
       same time series.
     available_at_forecast_columns: The columns that are available at the
@@ -504,7 +517,6 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
     data_source_bigquery_table_path: The BigQuery table path of format
       bq://bq_project.bq_dataset.bq_table
     predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
     training_fraction: The training fraction.
     validation_fraction: The validation fraction.
     test_fraction: The test fraction.
@@ -568,6 +580,7 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
       train_budget_milli_node_hours=train_budget_milli_node_hours,
       time_column=time_column,
       dataflow_service_account=dataflow_service_account,
+      time_series_identifier_columns=time_series_identifier_columns,
       time_series_identifier_column=time_series_identifier_column,
       time_series_attribute_columns=time_series_attribute_columns,
       available_at_forecast_columns=available_at_forecast_columns,
@@ -585,7 +598,6 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
       data_source_csv_filenames=data_source_csv_filenames,
       data_source_bigquery_table_path=data_source_bigquery_table_path,
       predefined_split_key=predefined_split_key,
-      timestamp_split_key=timestamp_split_key,
       training_fraction=training_fraction,
       validation_fraction=validation_fraction,
       test_fraction=test_fraction,
@@ -635,7 +647,8 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
     transformations: Dict[str, List[str]],
     train_budget_milli_node_hours: float,
     time_column: str,
-    time_series_identifier_column: str,
+    time_series_identifier_columns: List[str],
+    time_series_identifier_column: Optional[str] = None,
     time_series_attribute_columns: Optional[List[str]] = None,
     available_at_forecast_columns: Optional[List[str]] = None,
     unavailable_at_forecast_columns: Optional[List[str]] = None,
@@ -652,7 +665,6 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
     predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
@@ -695,8 +707,10 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
     time_column: The column that indicates the time.
-    time_series_identifier_column: The column which distinguishes different time
+    time_series_identifier_columns: The columns which distinguish different time
       series.
+    time_series_identifier_column: [Deprecated] The column which distinguishes
+      different time series.
     time_series_attribute_columns: The columns that are invariant across the
       same time series.
     available_at_forecast_columns: The columns that are available at the
@@ -722,7 +736,6 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
     data_source_bigquery_table_path: The BigQuery table path of format
       bq://bq_project.bq_dataset.bq_table
     predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
     training_fraction: The training fraction.
     validation_fraction: The validation fraction.
     test_fraction: The test fraction.
@@ -773,6 +786,7 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
       train_budget_milli_node_hours=train_budget_milli_node_hours,
       time_column=time_column,
       dataflow_service_account=dataflow_service_account,
+      time_series_identifier_columns=time_series_identifier_columns,
       time_series_identifier_column=time_series_identifier_column,
       time_series_attribute_columns=time_series_attribute_columns,
       available_at_forecast_columns=available_at_forecast_columns,
@@ -789,7 +803,6 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
       data_source_csv_filenames=data_source_csv_filenames,
       data_source_bigquery_table_path=data_source_bigquery_table_path,
       predefined_split_key=predefined_split_key,
-      timestamp_split_key=timestamp_split_key,
       training_fraction=training_fraction,
       validation_fraction=validation_fraction,
       test_fraction=test_fraction,
@@ -834,7 +847,8 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
     transformations: Dict[str, List[str]],
     train_budget_milli_node_hours: float,
     time_column: str,
-    time_series_identifier_column: str,
+    time_series_identifier_columns: List[str],
+    time_series_identifier_column: Optional[str] = None,
     time_series_attribute_columns: Optional[List[str]] = None,
     available_at_forecast_columns: Optional[List[str]] = None,
     unavailable_at_forecast_columns: Optional[List[str]] = None,
@@ -852,7 +866,6 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
     predefined_split_key: Optional[str] = None,
-    timestamp_split_key: Optional[str] = None,
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
@@ -895,8 +908,10 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
     time_column: The column that indicates the time.
-    time_series_identifier_column: The column which distinguishes different time
+    time_series_identifier_columns: The columns which distinguish different time
       series.
+    time_series_identifier_column: [Deprecated] The column which distinguishes
+      different time series.
     time_series_attribute_columns: The columns that are invariant across the
       same time series.
     available_at_forecast_columns: The columns that are available at the
@@ -923,7 +938,6 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
     data_source_bigquery_table_path: The BigQuery table path of format
       bq://bq_project.bq_dataset.bq_table
     predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
     training_fraction: The training fraction.
     validation_fraction: The validation fraction.
     test_fraction: The test fraction.
@@ -971,6 +985,7 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
       train_budget_milli_node_hours=train_budget_milli_node_hours,
       time_column=time_column,
       dataflow_service_account=dataflow_service_account,
+      time_series_identifier_columns=time_series_identifier_columns,
       time_series_identifier_column=time_series_identifier_column,
       time_series_attribute_columns=time_series_attribute_columns,
       available_at_forecast_columns=available_at_forecast_columns,
@@ -988,7 +1003,6 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
       data_source_csv_filenames=data_source_csv_filenames,
       data_source_bigquery_table_path=data_source_bigquery_table_path,
       predefined_split_key=predefined_split_key,
-      timestamp_split_key=timestamp_split_key,
       training_fraction=training_fraction,
       validation_fraction=validation_fraction,
       test_fraction=test_fraction,

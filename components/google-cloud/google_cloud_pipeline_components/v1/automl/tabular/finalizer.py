@@ -73,7 +73,7 @@ def automl_tabular_finalizer(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230817_0125',
                   '", "args": ["cancel_l2l_tuner", "--error_file_path=',
                   root_dir,
                   (

@@ -50,6 +50,7 @@
 #    num_transformer_layers: int [Default: 4.0]
 #    num_transformer_layers_ratio: float [Default: 0.25]
 #    optimization_metric: str [Default: '']
+#    parent_model: system.Artifact
 #    predefined_split_key: str [Default: '']
 #    prediction_type: str
 #    project: str
@@ -490,6 +491,8 @@ components:
           - tabnet-trainer
           inputs:
             artifacts:
+              parent_model:
+                componentInputArtifact: pipelinechannel--parent_model
               unmanaged_container_model:
                 taskOutputArtifact:
                   outputArtifactKey: unmanaged_container_model
@@ -691,6 +694,11 @@ components:
           taskInfo:
             name: training-configurator-and-validator
     inputDefinitions:
+      artifacts:
+        pipelinechannel--parent_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
       parameters:
         pipelinechannel--alpha_focal_loss:
           parameterType: NUMBER_DOUBLE
@@ -1037,6 +1045,12 @@ components:
             \         27, no.\n       8: 1226-1238."
           isOptional: true
           parameterType: STRING
+        feature_selection_execution_engine:
+          defaultValue: dataflow
+          description: Execution engine to run feature selection, value can be dataflow,
+            bigquery.
+          isOptional: true
+          parameterType: STRING
         forecasting_apply_windowing:
           defaultValue: true
           description: Whether to apply window strategy.
@@ -1127,12 +1141,19 @@ components:
           isOptional: true
           parameterType: LIST
         forecasting_time_series_identifier_column:
-          defaultValue: ''
-          description: 'Forecasting
+          description: '[Deprecated] A forecasting time series identifier column.
+            Raises an
 
-            time series identifier column.'
+            exception if used - use the "time_series_identifier_column" field
+
+            instead.'
           isOptional: true
           parameterType: STRING
+        forecasting_time_series_identifier_columns:
+          defaultValue: []
+          description: The list of forecasting time series identifier columns.
+          isOptional: true
+          parameterType: LIST
         forecasting_unavailable_at_forecast_columns:
           defaultValue: []
           description: 'Forecasting
@@ -1212,11 +1233,25 @@ components:
             columns. Defaults to an empty list.'
           isOptional: true
           parameterType: LIST
+        multimodal_tabular_columns:
+          defaultValue: []
+          description: 'List of multimodal tabular
+
+            columns. Defaults to an empty list'
+          isOptional: true
+          parameterType: LIST
         multimodal_text_columns:
           defaultValue: []
           description: 'List of multimodal text
 
-            columns. Defaults to an empty list.'
+            columns. Defaults to an empty list'
+          isOptional: true
+          parameterType: LIST
+        multimodal_timeseries_columns:
+          defaultValue: []
+          description: 'List of multimodal timeseries
+
+            columns. Defaults to an empty list'
           isOptional: true
           parameterType: LIST
         predefined_split_key:
@@ -1251,6 +1286,15 @@ components:
             should be applied to the dataset.'
           isOptional: true
           parameterType: BOOLEAN
+        stats_gen_execution_engine:
+          defaultValue: dataflow
+          description: 'Execution engine to perform
+
+            statistics generation. Can be one of: "dataflow" (by default) or
+
+            "bigquery". Using "bigquery" as the execution engine is experimental.'
+          isOptional: true
+          parameterType: STRING
         stratified_split_key:
           defaultValue: ''
           description: Stratified split key.
@@ -2983,12 +3027,20 @@ components:
           isOptional: true
           parameterType: LIST
         time_series_identifier_column:
-          defaultValue: ''
-          description: 'Time series idenfier column. Used by
+          description: '[Deprecated] The time series identifier
 
-            forecasting only.'
+            column. Used by forecasting only. Raises exception if used -
+
+            use the "time_series_identifier_column" field instead.'
           isOptional: true
           parameterType: STRING
+        time_series_identifier_columns:
+          defaultValue: []
+          description: 'The list of time series identifier columns.
+
+            Used by forecasting only.'
+          isOptional: true
+          parameterType: LIST
         unavailable_at_forecast_columns:
           defaultValue: []
           description: 'The names of the columns that are
@@ -3030,7 +3082,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230817_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -3045,7 +3097,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230817_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -3086,7 +3138,9 @@ deploymentSpec:
         - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
         - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
         - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
-        - '{"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}'
+        - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
+          "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
+        - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
         - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
         - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
         - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
@@ -3103,6 +3157,7 @@ deploymentSpec:
         - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
         - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
         - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+        - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
         - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
         - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
           ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
@@ -3117,8 +3172,10 @@ deploymentSpec:
         - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
         - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
           "{{$.inputs.parameters[''model_type'']}}"]}}}'
-        - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
+        - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
+        - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
         - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
+        - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
         - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
         - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
         - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
@@ -3126,6 +3183,7 @@ deploymentSpec:
         - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
         - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+        - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
         - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
         - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
@@ -3155,8 +3213,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -3172,7 +3230,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -3429,8 +3487,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.24.1'\
-          \ 'kfp==2.0.0-beta.17' && \"$0\" \"$@\"\n"
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -3473,7 +3531,7 @@ deploymentSpec:
           \          'model_display_name',\n      ],\n  )(\n      data_source_csv_filenames,\n\
           \      data_source_bigquery_table_path,\n      model_display_name,\n  )\n\
           \n"
-        image: python:3.7-slim
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
     exec-split-materialized-data:
       container:
         args:
@@ -3519,7 +3577,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125
     exec-tabnet-trainer:
       container:
         args:
@@ -3537,11 +3595,11 @@ deploymentSpec:
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"", "1",
           "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
           ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
-          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230619_1325",
+          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230817_0125",
           "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
           "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
           "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230619_1325",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230817_0125",
           "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
           \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
@@ -3603,7 +3661,9 @@ deploymentSpec:
         - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
         - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
         - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
-        - '{"Concat": ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}'
+        - '{"IfPresent": {"InputName": "time_series_identifier_column", "Then": {"Concat":
+          ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}}}'
+        - '{"Concat": ["--time_series_identifier_columns=", "{{$.inputs.parameters[''time_series_identifier_columns'']}}"]}'
         - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
         - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
         - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
@@ -3626,7 +3686,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230619_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
 pipelineInfo:
   description: The TabNet training pipeline.
   name: automl-tabular-tabnet-trainer
@@ -3664,6 +3724,9 @@ root:
         dependentTasks:
         - set-optional-inputs
         inputs:
+          artifacts:
+            pipelinechannel--parent_model:
+              componentInputArtifact: parent_model
           parameters:
             pipelinechannel--alpha_focal_loss:
               componentInputParameter: alpha_focal_loss
@@ -3841,6 +3904,12 @@ root:
           name: set-optional-inputs
   inputDefinitions:
     artifacts:
+      parent_model:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+        description: Parent model if this model is uploaded as a version.
+        isOptional: true
       vertex_dataset:
         artifactType:
           schemaTitle: system.Artifact
