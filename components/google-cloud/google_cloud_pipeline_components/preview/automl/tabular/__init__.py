@@ -42,3 +42,11 @@ tabnet_trainer_pipeline = components.load_component_from_file(
     # the generated file.
     os.path.join(os.path.dirname(__file__), 'tabnet_trainer_pipeline.yaml')
 )
+
+wide_and_deep_trainer_pipeline = components.load_component_from_file(
+    # Note, please don't name it as `component.yaml` which will conflict with
+    # the generated file.
+    os.path.join(
+        os.path.dirname(__file__), 'wide_and_deep_trainer_pipeline.yaml'
+    )
+)
