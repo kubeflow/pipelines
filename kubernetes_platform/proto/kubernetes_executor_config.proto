@@ -24,7 +24,8 @@ message KubernetesExecutorConfig {
     repeated SecretAsVolume secret_as_volume = 1;
     repeated SecretAsEnv secret_as_env = 2;
     repeated PvcMount pvc_mount = 3;
-    NodeSelector node_selector = 4;
+    reserved 4; // NodeSelector node_selector = 4;
+    Scheduling scheduling = 5;
 }
 
 message SecretAsVolume {
@@ -109,8 +110,64 @@ message DeletePvc {
     }
 }
 
-message NodeSelector {
-    // map of label key to label value
-    // corresponds to Pod.spec.nodeSelector field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
-    map<string, string> labels = 1;
+message Scheduling {
+    // https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector
+    map<string, string> nodeSelector = 1;
+
+    // https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodename
+    string nodeName = 2;
+
+    // https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+    Affinity affinity = 3;
+
+    // todo
+    // repeated Toleration tolerations
+
+}
+
+message Affinity {
+    // Describes node affinity scheduling rules for the pod.
+    NodeAffinity nodeAffinity = 1;
+
+    // todo
+    // PodAffinity podAffinity
+
+    // todo
+    // PodAntiAffinity podAntiAffinity
+}
+
+message NodeAffinity {
+    repeated PreferredSchedulingTerm preferredDuringSchedulingIgnoredDuringExecution = 1;
+    repeated NodeSelectorTerm requiredDuringSchedulingIgnoredDuringExecution = 2;
+}
+
+
+message NodeSelectorTerm {
+    // A list of node selector requirements by node's labels.
+    repeated NodeSelectorRequirement matchExpressions = 1;
+
+    // A list of node selector requirements by node's fields.
+    repeated NodeSelectorRequirement matchFields = 2;
+}
+
+// https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/node-selector-requirement/#NodeSelectorRequirement
+enum Operator {
+    DoesNotExist = 0;
+    Exists = 1;
+    Gt = 2;
+    In = 3;
+    Lt = 4;
+    NotIn = 5;
+}
+
+//  https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/node-selector-requirement/#NodeSelectorRequirement
+message NodeSelectorRequirement {
+    string key = 1;
+    Operator operator = 2;
+    repeated string values = 3;
+}
+
+message PreferredSchedulingTerm {
+    int32 Weight = 1;
+    NodeSelectorTerm Preference = 2;
 }

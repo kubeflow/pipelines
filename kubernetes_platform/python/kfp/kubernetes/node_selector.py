@@ -39,7 +39,7 @@ def add_node_selector(
     """
 
     msg = common.get_existing_kubernetes_config_as_message(task)
-    msg.node_selector.labels.update({label_key: label_value})
+    msg.scheduling.nodeSelector.update({label_key: label_value})
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task

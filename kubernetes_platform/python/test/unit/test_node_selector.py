@@ -36,8 +36,8 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeSelector': {
-                                    'labels': {
+                                'scheduling': {
+                                    'nodeSelector': {
                                         'cloud.google.com/gke-accelerator':
                                             'nvidia-tesla-p4'
                                     }
@@ -71,8 +71,8 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeSelector': {
-                                    'labels': {
+                                'scheduling': {
+                                    'nodeSelector': {
                                         'cloud.google.com/gke-accelerator':
                                             'nvidia-tesla-p4',
                                         'other_label_key':
@@ -105,8 +105,8 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeSelector': {
-                                    'labels': {
+                                'scheduling': {
+                                    'nodeSelector': {
                                         'cloud.google.com/gke-accelerator':
                                             'nvidia-tesla-p4'
                                     }

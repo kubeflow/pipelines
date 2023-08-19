@@ -418,6 +418,326 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	}
 }
 
+func Test_parseProtoNodeSelectorRequirement(t *testing.T) {
+	tests := []struct {
+		name                    string
+		nodeSelectorRequirement []*kubernetesplatform.NodeSelectorRequirement
+		expected                []k8score.NodeSelectorRequirement
+	}{
+		{
+			"Valid - empty",
+			nil,
+			nil,
+		},
+		{
+			"Valid - Operator_Gt",
+			[]*kubernetesplatform.NodeSelectorRequirement{
+				{
+					Key:      "nvidia.com/cuda.runtime.major",
+					Operator: kubernetesplatform.Operator_Gt,
+					Values:   []string{"10"},
+				},
+			},
+			[]k8score.NodeSelectorRequirement{
+				{
+					Key:      "nvidia.com/cuda.runtime.major",
+					Operator: k8score.NodeSelectorOpGt,
+					Values:   []string{"10"},
+				},
+			},
+		},
+		{
+			"Valid - Operators",
+			[]*kubernetesplatform.NodeSelectorRequirement{
+				{
+					Operator: kubernetesplatform.Operator_DoesNotExist,
+				},
+				{
+					Operator: kubernetesplatform.Operator_Exists,
+				},
+				{
+					Operator: kubernetesplatform.Operator_Gt,
+				},
+				{
+					Operator: kubernetesplatform.Operator_In,
+				},
+				{
+					Operator: kubernetesplatform.Operator_Lt,
+				},
+				{
+					Operator: kubernetesplatform.Operator_NotIn,
+				},
+			},
+			[]k8score.NodeSelectorRequirement{
+				{
+					Operator: k8score.NodeSelectorOpDoesNotExist,
+				},
+				{
+					Operator: k8score.NodeSelectorOpExists,
+				},
+				{
+					Operator: k8score.NodeSelectorOpGt,
+				},
+				{
+					Operator: k8score.NodeSelectorOpIn,
+				},
+				{
+					Operator: k8score.NodeSelectorOpLt,
+				},
+				{
+					Operator: k8score.NodeSelectorOpNotIn,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseProtoNodeSelectorRequirement(tt.nodeSelectorRequirement)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func Test_parseProtoNodeSelectorTerm(t *testing.T) {
+	tests := []struct {
+		name             string
+		nodeSelectorTerm *kubernetesplatform.NodeSelectorTerm
+		expected         k8score.NodeSelectorTerm
+	}{
+		{
+			"Valid - empty",
+			nil,
+			k8score.NodeSelectorTerm{},
+		},
+		{
+			"Valid - MatchExpressions",
+			&kubernetesplatform.NodeSelectorTerm{
+				MatchExpressions: make([]*kubernetesplatform.NodeSelectorRequirement, 0),
+			},
+			k8score.NodeSelectorTerm{
+				MatchExpressions: make([]k8score.NodeSelectorRequirement, 0),
+			},
+		},
+		{
+			"Valid - MatchFields",
+			&kubernetesplatform.NodeSelectorTerm{
+				MatchFields: make([]*kubernetesplatform.NodeSelectorRequirement, 0),
+			},
+			k8score.NodeSelectorTerm{
+				MatchFields: make([]k8score.NodeSelectorRequirement, 0),
+			},
+		},
+		{
+			"Valid - MatchFields and MatchExpressions",
+			&kubernetesplatform.NodeSelectorTerm{
+				MatchExpressions: make([]*kubernetesplatform.NodeSelectorRequirement, 0),
+				MatchFields:      make([]*kubernetesplatform.NodeSelectorRequirement, 0),
+			},
+			k8score.NodeSelectorTerm{
+				MatchFields:      make([]k8score.NodeSelectorRequirement, 0),
+				MatchExpressions: make([]k8score.NodeSelectorRequirement, 0),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseProtoNodeSelectorTerm(tt.nodeSelectorTerm)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func Test_parseProtoNodeAffinity(t *testing.T) {
+	tests := []struct {
+		name         string
+		nodeAffinity *kubernetesplatform.NodeAffinity
+		expected     *k8score.NodeAffinity
+	}{
+		{
+			"Valid - empty",
+			nil,
+			nil,
+		},
+		{
+			"Valid - RequiredDuringSchedulingIgnoredDuringExecution empty",
+			&kubernetesplatform.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: make([]*kubernetesplatform.NodeSelectorTerm, 0),
+			},
+			&k8score.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+					NodeSelectorTerms: make([]k8score.NodeSelectorTerm, 0),
+				},
+			},
+		},
+		{
+			"Valid - RequiredDuringSchedulingIgnoredDuringExecution single",
+			&kubernetesplatform.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []*kubernetesplatform.NodeSelectorTerm{
+					{
+						MatchExpressions: make([]*kubernetesplatform.NodeSelectorRequirement, 0),
+						MatchFields:      make([]*kubernetesplatform.NodeSelectorRequirement, 0),
+					},
+				},
+			},
+			&k8score.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+					NodeSelectorTerms: []k8score.NodeSelectorTerm{
+						{
+							MatchExpressions: make([]k8score.NodeSelectorRequirement, 0),
+							MatchFields:      make([]k8score.NodeSelectorRequirement, 0),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - PreferredDuringSchedulingIgnoredDuringExecution empty",
+			&kubernetesplatform.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: make([]*kubernetesplatform.PreferredSchedulingTerm, 0),
+			},
+			&k8score.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: make([]k8score.PreferredSchedulingTerm, 0),
+			},
+		},
+		{
+			"Valid - PreferredDuringSchedulingIgnoredDuringExecution weighted",
+			&kubernetesplatform.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []*kubernetesplatform.PreferredSchedulingTerm{
+					{
+						Weight:     55,
+						Preference: &kubernetesplatform.NodeSelectorTerm{},
+					},
+				},
+			},
+			&k8score.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
+					{
+						Weight:     55,
+						Preference: k8score.NodeSelectorTerm{},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseProtoNodeAffinity(tt.nodeAffinity)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func Test_extendPodSpecAffinity(t *testing.T) {
+	tests := []struct {
+		name       string
+		scheduling *kubernetesplatform.Scheduling
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - nil scheduling",
+			nil,
+			&k8score.PodSpec{},
+		},
+		{
+			"Valid - large test",
+			&kubernetesplatform.Scheduling{
+				NodeSelector: map[string]string{
+					"cloud.google.com/gke-accelerator": "nvidia-tesla-k80",
+				},
+				NodeName: "my-node",
+				Affinity: &kubernetesplatform.Affinity{
+					NodeAffinity: &kubernetesplatform.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []*kubernetesplatform.NodeSelectorTerm{
+							{
+								MatchExpressions: []*kubernetesplatform.NodeSelectorRequirement{
+									{
+										Key:      "nvidia.com/cuda.runtime.major",
+										Operator: kubernetesplatform.Operator_Gt,
+										Values:   []string{"10"},
+									},
+								},
+								MatchFields: []*kubernetesplatform.NodeSelectorRequirement{
+									{
+										Key:      "nvidia.com/cuda.runtime.minor",
+										Operator: kubernetesplatform.Operator_In,
+										Values:   []string{"1", "2"},
+									},
+								},
+							},
+						},
+						PreferredDuringSchedulingIgnoredDuringExecution: []*kubernetesplatform.PreferredSchedulingTerm{
+							{
+								Weight: 50,
+								Preference: &kubernetesplatform.NodeSelectorTerm{
+									MatchExpressions: []*kubernetesplatform.NodeSelectorRequirement{
+										{
+											Key:      "nvidia.com/gpu.count",
+											Operator: kubernetesplatform.Operator_Gt,
+											Values:   []string{"2"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				NodeSelector: map[string]string{
+					"cloud.google.com/gke-accelerator": "nvidia-tesla-k80",
+				},
+				NodeName: "my-node",
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+							NodeSelectorTerms: []k8score.NodeSelectorTerm{
+								{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "nvidia.com/cuda.runtime.major",
+											Operator: k8score.NodeSelectorOpGt,
+											Values:   []string{"10"},
+										},
+									},
+									MatchFields: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "nvidia.com/cuda.runtime.minor",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"1", "2"},
+										},
+									},
+								},
+							},
+						},
+						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
+							{
+								Weight: 50,
+								Preference: k8score.NodeSelectorTerm{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "nvidia.com/gpu.count",
+											Operator: k8score.NodeSelectorOpGt,
+											Values:   []string{"2"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{}
+			extendPodSpecAffinity(got, tt.scheduling)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
 func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
@@ -429,8 +749,8 @@ func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 		{
 			"Valid - NVIDIA GPU on GKE",
 			&kubernetesplatform.KubernetesExecutorConfig{
-				NodeSelector: &kubernetesplatform.NodeSelector{
-					Labels: map[string]string{
+				Scheduling: &kubernetesplatform.Scheduling{
+					NodeSelector: map[string]string{
 						"cloud.google.com/gke-accelerator": "nvidia-tesla-k80",
 					},
 				},
@@ -447,8 +767,8 @@ func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 		{
 			"Valid - operating system and arch",
 			&kubernetesplatform.KubernetesExecutorConfig{
-				NodeSelector: &kubernetesplatform.NodeSelector{
-					Labels: map[string]string{
+				Scheduling: &kubernetesplatform.Scheduling{
+					NodeSelector: map[string]string{
 						"beta.kubernetes.io/os":   "linux",
 						"beta.kubernetes.io/arch": "amd64",
 					},

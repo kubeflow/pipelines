@@ -455,6 +455,100 @@ func initPodSpecPatch(
 	return podSpec, nil
 }
 
+func parseProtoNodeSelectorRequirement(
+	nodeSelectorRequirement []*kubernetesplatform.NodeSelectorRequirement,
+) []k8score.NodeSelectorRequirement {
+	if nodeSelectorRequirement == nil {
+		return nil
+	}
+
+	var k8sNodeSelectorRequirements = make(
+		[]k8score.NodeSelectorRequirement,
+		len(nodeSelectorRequirement),
+	)
+
+	for j, nodeSelectorRequirement := range nodeSelectorRequirement {
+		k8sNodeSelectorRequirements[j] = k8score.NodeSelectorRequirement{
+			Key:      nodeSelectorRequirement.Key,
+			Values:   nodeSelectorRequirement.Values,
+			Operator: k8score.NodeSelectorOperator(nodeSelectorRequirement.Operator.String()),
+		}
+	}
+
+	return k8sNodeSelectorRequirements
+}
+
+func parseProtoNodeSelectorTerm(nodeSelectorTerm *kubernetesplatform.NodeSelectorTerm) k8score.NodeSelectorTerm {
+	var k8sNodeSelectorTerm = k8score.NodeSelectorTerm{}
+
+	// Check for MatchExpressions
+	var matchExpressions = nodeSelectorTerm.GetMatchExpressions()
+	if matchExpressions != nil {
+		k8sNodeSelectorTerm.MatchExpressions = parseProtoNodeSelectorRequirement(matchExpressions)
+	}
+
+	// Check for MatchFields
+	var matchFields = nodeSelectorTerm.GetMatchFields()
+	if matchFields != nil {
+		k8sNodeSelectorTerm.MatchFields = parseProtoNodeSelectorRequirement(matchFields)
+	}
+
+	return k8sNodeSelectorTerm
+}
+
+func parseProtoNodeAffinity(nodeAffinity *kubernetesplatform.NodeAffinity) *k8score.NodeAffinity {
+	if nodeAffinity == nil {
+		return nil
+	}
+	var k8sNodeAffinity = &k8score.NodeAffinity{}
+
+	var nodeSelectorTerms = nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+	if nodeSelectorTerms != nil {
+		var k8sNodeSelectorTerm = make([]k8score.NodeSelectorTerm, len(nodeSelectorTerms))
+
+		for index, nodeSelectorTerm := range nodeSelectorTerms {
+			k8sNodeSelectorTerm[index] = parseProtoNodeSelectorTerm(nodeSelectorTerm)
+		}
+
+		k8sNodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &k8score.NodeSelector{
+			NodeSelectorTerms: k8sNodeSelectorTerm,
+		}
+	}
+
+	var preferredSchedulingTerms = nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+	if preferredSchedulingTerms != nil {
+		var k8sPreferredSchedulingTerms = make([]k8score.PreferredSchedulingTerm, len(preferredSchedulingTerms))
+
+		for index, preferredSchedulingTerm := range preferredSchedulingTerms {
+			k8sPreferredSchedulingTerms[index].Weight = preferredSchedulingTerm.Weight
+			k8sPreferredSchedulingTerms[index].Preference = parseProtoNodeSelectorTerm(preferredSchedulingTerm.Preference)
+		}
+
+		k8sNodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = k8sPreferredSchedulingTerms
+	}
+
+	return k8sNodeAffinity
+}
+
+func extendPodSpecAffinity(podSpec *k8score.PodSpec, scheduling *kubernetesplatform.Scheduling) {
+	if scheduling == nil {
+		return
+	}
+
+	podSpec.NodeName = scheduling.NodeName
+
+	podSpec.NodeSelector = scheduling.GetNodeSelector()
+
+	var affinity = scheduling.GetAffinity()
+	if affinity == nil {
+		return
+	}
+
+	podSpec.Affinity = &k8score.Affinity{
+		NodeAffinity: parseProtoNodeAffinity(affinity.GetNodeAffinity()),
+	}
+}
+
 // Extends the PodSpec to include Kubernetes-specific executor config.
 func extendPodSpecPatch(
 	podSpec *k8score.PodSpec,
@@ -477,10 +571,8 @@ func extendPodSpecPatch(
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
 	}
 
-	// Get node selector information
-	if kubernetesExecutorConfig.GetNodeSelector() != nil {
-		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
-	}
+	// Get affinity information
+	extendPodSpecAffinity(podSpec, kubernetesExecutorConfig.GetScheduling())
 
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
