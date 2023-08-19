@@ -150,18 +150,18 @@ rules:
       - list
       - watch
   - apiGroups:
-    - pipelines.kubeflow.org
+      - pipelines.kubeflow.org
     resources:
-    - scheduledworkflows
-    - workflows
+      - scheduledworkflows
+      - workflows
     verbs:
-    - report
+      - report
   - apiGroups:
-    - ''
+      - ''
     resources:
-    - namespaces
+      - namespaces
     verbs:
-    - get
+      - get
   - apiGroups:
       - ''
     resources:
