@@ -14,6 +14,8 @@
 
 """Preview AutoML tabular components."""
 
+import os
+
 from google_cloud_pipeline_components.preview.automl.tabular.feature_selection import tabular_feature_ranking_and_selection as FeatureSelectionOp
 from google_cloud_pipeline_components.preview.automl.tabular.feature_transform_engine import feature_transform_engine as FeatureTransformEngineOp
 from google_cloud_pipeline_components.preview.automl.tabular.tabnet_hyperparameter_tuning_job import tabnet_hyperparameter_tuning_job as TabNetHyperparameterTuningJobOp
@@ -22,6 +24,7 @@ from google_cloud_pipeline_components.preview.automl.tabular.wide_and_deep_hyper
 from google_cloud_pipeline_components.preview.automl.tabular.wide_and_deep_trainer import wide_and_deep_trainer as WideAndDeepTrainerOp
 from google_cloud_pipeline_components.preview.automl.tabular.xgboost_hyperparameter_tuning_job import xgboost_hyperparameter_tuning_job as XGBoostHyperparameterTuningJobOp
 from google_cloud_pipeline_components.preview.automl.tabular.xgboost_trainer import xgboost_trainer as XGBoostTrainerOp
+from kfp import components
 
 __all__ = [
     'FeatureSelectionOp',
@@ -33,3 +36,9 @@ __all__ = [
     'XGBoostHyperparameterTuningJobOp',
     'XGBoostTrainerOp',
 ]
+
+tabnet_trainer_pipeline = components.load_component_from_file(
+    # Note, please don't name it as `component.yaml` which will conflict with
+    # the generated file.
+    os.path.join(os.path.dirname(__file__), 'tabnet_trainer_pipeline.yaml')
+)
