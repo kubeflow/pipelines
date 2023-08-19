@@ -51,6 +51,6 @@ platforms:
     deploymentSpec:
       executors:
         exec-comp:
-          nodeSelector:
-            labels:
+          scheduling:
+            nodeSelector:
               cloud.google.com/gke-accelerator: nvidia-tesla-p4
