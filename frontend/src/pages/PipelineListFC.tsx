@@ -43,20 +43,57 @@ interface pipelineListProps {
 
 type pipelineListFCProps = PageProps & pipelineListProps;
 
+type versionIdsMap = {
+  [pipelineId: string]: string[];
+};
+
 interface DisplayPipeline extends V2beta1Pipeline {
   expandState?: ExpandState;
 }
 
 export function PipelineListFC(props: pipelineListFCProps) {
-  const selectionChanged = (pipelineId: string | undefined, selectedIds: string[]) => {};
   const { namespace, updateBanner, updateToolbar } = props;
+  const [selectedPipelineIds, setSelectedPipelineIds] = useState<string[]>([]);
+  const [selectedVersionIds, setSelectedVersionIds] = useState<versionIdsMap>({});
   const [refresh, setRefresh] = useState(true);
   const Refresh = () => setRefresh(refreshed => !refreshed);
+  const selectionChanged = (parentId: string | undefined, selectedIds: string[]) => {
+    if (!!parentId) {
+      // select version
+      // console.log({[parentId]: selectedIds})
+      // let updatedSelectedVersionId = Object.assign(selectedVersionIds, {[parentId]: selectedIds})
+
+      // console.log(updatedSelectedVersionId)
+      // setSelectedVersionIds(updatedSelectedVersionId);
+
+      // let updatedSelectedVersionId = new Map<string, string[]>();
+      setSelectedVersionIds({ [parentId]: selectedIds });
+      // Update selected pipeline version ids.
+      // this.setStateSafe({
+      //   selectedVersionIds: { ...this.state.selectedVersionIds, ...{ [pipelineId!]: selectedIds } },
+      // });
+      // console.log('set is finished')
+
+      // const actions = this.props.toolbarProps.actions;
+      // actions[ButtonKeys.DELETE_RUN].disabled =
+      //   this.state.selectedIds.length < 1 && selectedIds.length < 1;
+      // this.props.updateToolbar({ actions });
+    } else {
+      // select pipeline
+      setSelectedPipelineIds(selectedIds);
+
+      // const selectedVersionIdsCt = this._deepCountDictionary(this.state.selectedVersionIds);
+      // const actions = this.props.toolbarProps.actions;
+      // actions[ButtonKeys.DELETE_RUN].disabled = selectedIds.length < 1 && selectedVersionIdsCt < 1;
+      // this.props.updateToolbar({ actions });
+    }
+  };
+
+  // console.log(selectedVersionIds)
+
   const [toolbarState, setToolbarState] = useState<ToolbarProps>(
     getInitialToolbarState([], {}, selectionChanged, props, Refresh),
   );
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [selectedVersionIds, setSelectedVersionIds] = useState({});
   const [displayPipelines, setDisplayPipelines] = useState<DisplayPipeline[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string>('');
@@ -113,10 +150,16 @@ export function PipelineListFC(props: pipelineListFCProps) {
 
   useEffect(() => {
     setToolbarState(
-      getInitialToolbarState(selectedIds, selectedVersionIds, selectionChanged, props, Refresh),
+      getInitialToolbarState(
+        selectedPipelineIds,
+        selectedVersionIds,
+        selectionChanged,
+        props,
+        Refresh,
+      ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, selectedVersionIds]);
+  }, [selectedPipelineIds, selectedVersionIds]);
 
   useEffect(() => {
     updateToolbar(toolbarState);
@@ -171,6 +214,39 @@ export function PipelineListFC(props: pipelineListFCProps) {
     });
   };
 
+  const getExpandedPipelineComponent = (rowIndex: number) => {
+    const pipeline = displayPipelines[rowIndex];
+    const updateVersionSelection = (selectedIds: string[]) => {
+      selectionChanged(pipeline.pipeline_id, selectedIds);
+    };
+    return (
+      <PipelineVersionList
+        pipelineId={pipeline.pipeline_id}
+        onError={() => null}
+        {...props}
+        selectedIds={selectedVersionIds[pipeline.pipeline_id!] || []}
+        noFilterBox={true}
+        onSelectionChange={updateVersionSelection}
+        disableSorting={false}
+        disablePaging={false}
+      />
+    );
+  };
+
+  const toggleRowExpand = (rowIndex: number) => {
+    const updatedDisplayPipelines = produce(displayPipelines, draft => {
+      draft[rowIndex].expandState =
+        draft[rowIndex].expandState === ExpandState.COLLAPSED
+          ? ExpandState.EXPANDED
+          : ExpandState.COLLAPSED;
+    });
+
+    setDisplayPipelines(updatedDisplayPipelines);
+  };
+
+  const updatePipelineSelection = (selectedIds: string[]) => {
+    selectionChanged(undefined, selectedIds);
+  };
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
       Display pipeline list here.
@@ -180,11 +256,11 @@ export function PipelineListFC(props: pipelineListFCProps) {
           columns={columns}
           rows={rows}
           initialSortColumn={PipelineSortKeys.CREATED_AT}
-          // updateSelection={this._selectionChanged.bind(this, undefined)}
-          selectedIds={selectedIds}
+          updateSelection={updatePipelineSelection}
+          selectedIds={selectedPipelineIds}
           reload={reload}
-          // toggleExpansion={this._toggleRowExpand.bind(this)}
-          // getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
+          toggleExpansion={toggleRowExpand}
+          getExpandComponent={getExpandedPipelineComponent}
           filterLabel='Filter pipelines'
           emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
         />
