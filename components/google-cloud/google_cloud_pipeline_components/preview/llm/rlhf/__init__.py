@@ -11,12 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Large-language model preview components."""
-
-from google_cloud_pipeline_components.preview.llm.infer.component import infer_pipeline
-from google_cloud_pipeline_components.preview.llm.rlhf.component import rlhf_pipeline
-
-__all__ = [
-    'infer_pipeline',
-    'rlhf_pipeline',
-]

@@ -25,7 +25,7 @@ from google_cloud_pipeline_components._implementation.llm import private_text_im
 from google_cloud_pipeline_components._implementation.llm import reinforcer
 from google_cloud_pipeline_components._implementation.llm import reward_model_trainer
 from google_cloud_pipeline_components._implementation.llm import upload_llm_model
-from google_cloud_pipeline_components.preview.llm import infer_pipeline
+from google_cloud_pipeline_components.preview.llm.infer.component import infer_pipeline
 import kfp
 
 
