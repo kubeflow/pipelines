@@ -6,4 +6,5 @@ Preview Components
 
    automl/index
    dataflow
+   llm
    model_evaluation
