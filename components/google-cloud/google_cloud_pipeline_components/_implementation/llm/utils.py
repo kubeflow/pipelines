@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility functions used to create custom Kubeflow components."""
 import os
-from typing import Any
+from typing import Any, Dict, List
 
 from google_cloud_pipeline_components._implementation.llm import env
 import kfp
@@ -24,10 +24,10 @@ def build_payload(
     display_name: str,
     machine_type: str,
     image_uri: str,
-    args: list[str],
+    args: List[str],
     accelerator_type: str = '',
     accelerator_count: int = 0,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
   """Generates payload for a custom training job.
 
   Args:
