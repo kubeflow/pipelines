@@ -1353,6 +1353,19 @@ rules:
       - list
       - watch
   - apiGroups:
+      - pipelines.kubeflow.org
+    resources:
+      - scheduledworkflows
+      - workflows
+    verbs:
+      - report
+  - apiGroups:
+      - ''
+    resources:
+      - namespaces
+    verbs:
+      - get
+  - apiGroups:
       - ''
     resources:
       - events
@@ -2451,7 +2464,18 @@ spec:
             requests:
               cpu: 120m
               memory: 500Mi
+          volumeMounts:
+            - mountPath: /var/run/secrets/kubeflow/tokens
+              name: persistenceagent-sa-token
       serviceAccountName: ml-pipeline-persistenceagent
+      volumes:
+        - name: persistenceagent-sa-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: persistenceagent-sa-token
+                  expirationSeconds: 3600
+                  audience: pipelines.kubeflow.org
 ---
 # Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: apps/v1
@@ -2764,7 +2788,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 2.0.0-beta.1
+    version: 2.0.1
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
