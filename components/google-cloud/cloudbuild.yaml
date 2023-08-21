@@ -3,3 +3,6 @@ steps:
   args:
   - --destination=gcr.io/$PROJECT_ID/google-cloud-pipeline-components:$_IMAGE_SUFFIX
   - --cache=false
+logsBucket: $_CLOUD_BUILD_LOG_BUCKET
+options:
+  logging: GCS_ONLY
