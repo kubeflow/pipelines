@@ -96,6 +96,8 @@ TEST_CONFIGS = [
     )
 ]
 
+PULL_NUMBER = None
+
 
 def run_commands_and_args(
     config: RuntimeTestConfig,
@@ -107,14 +109,27 @@ def run_commands_and_args(
             config.executor_name]['container']
 
         command_and_args = container['command'] + container['args']
-        command_and_args = [
-            re.sub(r"'(kfp(-dsl)?)==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'",
-                   'kfp-dsl', cmd) for cmd in command_and_args
-        ]
-        # raises a value error if not present, meaning we cannot accidentally
-        # pass this env var to subprocess.run when it is not present in
-        # the commands/args
+        # https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
+        # pip install from source in a container via a subprocess causes many
+        # permissions issue
+        # resolving by modifying the commands/args changes the commands/args
+        # so much that it renders the test less valuable, since the
+        # commands/args resemble the true runtime commands/args less well
+        # prefer the less invasive approach of installing from a PR
+        global PULL_NUMBER
+        if PULL_NUMBER is None:
+            if 'PULL_NUMBER' in os.environ:
+                PULL_NUMBER = os.environ['PULL_NUMBER']
+            else:
+                PULL_NUMBER = input(
+                    "Please provide the PR number for the kubeflow/pipelines PR that contains the changes you'd like to test:"
+                )
 
+        kfp_package_path = f'git+https://github.com/kubeflow/pipelines.git@refs/pull/{PULL_NUMBER}/merge#subdirectory=sdk/python'
+        command_and_args = [
+            re.sub(r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", kfp_package_path,
+                   cmd) for cmd in command_and_args
+        ]
         executor_input_json = json.dumps(config.executor_input).replace(
             '/gcs/', temp_dir)
         command_and_args = [
